@@ -3,6 +3,8 @@
 ;;; Every field checks itself once the form is sent; the username asks the demo server whether it is free as it is
 ;;; typed. What the buttons run is in sign-in.lisp.
 
+(ns sign-in.create-account)
+
 ;;; The screen
 
 (defview create-card "The create-account screen: its card, centred, scrolling when the window is short." []
@@ -43,7 +45,7 @@
              :icon user
              :fieldName ~(t "name")
              :placeholder ~(t "namePlaceholder")
-             :valid ~(> (count (trim state.name)) 0)
+             :valid ~(> (count (str/trim state.name)) 0)
              :message ~(t "enterName")
              :submitted ~state.submitted
              :maxLength 60})
@@ -77,9 +79,10 @@
             :maxLength 20}))
 
 (defmacro username-colour "The username status's colour: muted while checking, green when free, else the error's." []
-  `(cond (= computed.usernameStatus "checking") "@color.muted"
-         (= computed.usernameStatus "available") "@color.strong"
-         :else "@color.error"))
+  `(case computed.usernameStatus
+     "checking" "@color.muted"
+     "available" "@color.strong"
+     "@color.error"))
 
 (defview username-status "Under the username: a spinner while it is checked, then whether it is free." []
   `(row#usernameStatus :when ~(and (not= computed.usernameStatus "")
@@ -91,23 +94,24 @@
      :color transparent
      :role status
      :live polite
-     :label ~(t "usernameStatus" {:kind computed.usernameStatus :name (lower-case (trim state.username))})
+     :label ~(t "usernameStatus" {:kind computed.usernameStatus :name (str/lower-case (str/trim state.username))})
      (label#username-status-icon :font iconsSmall
        :text ""
        :width 14
        :height 14
        :align center
        :color transparent
-       :icon ~(cond (= computed.usernameStatus "checking") "loader"
-                    (= computed.usernameStatus "available") "check-circle"
-                    :else "alert-circle")
+       :icon ~(case computed.usernameStatus
+                "checking" "loader"
+                "available" "check-circle"
+                "alert-circle")
        :rotate ~(if (= computed.usernameStatus "checking") state.spin 0)
        :textColor ~(username-colour))
      (label#username-status-text :font small
        :fitText true
        :height 18
        :color transparent
-       :text ~(t "usernameStatus" {:kind computed.usernameStatus :name (lower-case (trim state.username))})
+       :text ~(t "usernameStatus" {:kind computed.usernameStatus :name (str/lower-case (str/trim state.username))})
        :textColor ~(username-colour))))
 
 (defview new-password "The password, its strength and rules, and its confirmation unless it is shown." []
@@ -165,7 +169,7 @@
              :icon ticket
              :fieldName ~(t "inviteCode")
              :placeholder ~(t "invitePlaceholder")
-             :valid ~(or (= (count (trim state.invite.code)) 0) computed.inviteValid)
+             :valid ~(or (empty? (str/trim state.invite.code)) computed.inviteValid)
              :message ~(t "inviteUnknown")
              :submitted ~state.submitted
              :maxLength 40})

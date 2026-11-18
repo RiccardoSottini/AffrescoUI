@@ -4,6 +4,8 @@
 ;;; recent activity. Escape or a click outside closes it. The round buttons, the tall bar and the dial it draws with
 ;;; are here too, as the home page uses some of them.
 
+(ns haven.moreinfo)
+
 ;;; What the dialog keeps
 
 (defstate info {:open false :kind light :index 0} "Whether it is open, the kind it shows, and which light or device.")
@@ -36,15 +38,16 @@
 (defcomputed infoFacts "The facts of the device shown." (get state.deviceFacts computed.infoDevice.id))
 
 (defcomputed infoName "The name of what is shown."
-  (cond (= state.info.kind "light") computed.infoLight.name
-        (= state.info.kind "device") computed.infoDevice.name
-        :else (t (str "info." state.info.kind))))
+  (case state.info.kind
+    :light computed.infoLight.name
+    :device computed.infoDevice.name
+    (t (str "info." state.info.kind))))
 
 (defcomputed infoState "The state of what is shown, in big letters."
-  (cond (= state.info.kind "alarm") (t (str "alarm." state.security))
-        (= state.info.kind "light") (if computed.infoLight.on (str computed.infoLight.level "%") (t "light.off"))
-        (= state.info.kind "climate") (str computed.room.target "°")
-        (= state.info.kind "cover") (t "blinds.open" {:n (round computed.room.blinds)})
+  (cond (= state.info.kind :alarm) (t (str "alarm." state.security))
+        (= state.info.kind :light) (if computed.infoLight.on (str computed.infoLight.level "%") (t "light.off"))
+        (= state.info.kind :climate) (str computed.room.target "°")
+        (= state.info.kind :cover) (t "blinds.open" {:n (round computed.room.blinds)})
         computed.infoDevice.busy (t "device.waiting")
         :else (t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".on" ".off")))))
 
@@ -55,7 +58,7 @@
   `(node :dir auto
      :overlay {:placement center :open state.info.open :dismiss outside :modal true}
      :width 400
-     :height ~(cond (= state.info.kind "device") 600 (= state.info.kind "climate") 536 :else 500)
+     :height ~(case state.info.kind :device 600 :climate 536 500)
      :radius 28
      :color @card
      :shadow {:y 8 :blur 24 :color "#00000040"}
@@ -88,7 +91,7 @@
       :anchors {:left 10 :top 10}
       :onClick {:set state.info.open :to false})
    `(node#infoRoom :style caption
-      :text ~(if (or (= state.info.kind "device") (= state.info.kind "alarm")) (t "info.home") computed.room.name)
+      :text ~(if (or (= state.info.kind :device) (= state.info.kind :alarm)) (t "info.home") computed.room.name)
       :anchors {:left 64 :top 12})
    `(label#infoName :font heading
       :textColor @text
@@ -148,7 +151,7 @@
      :label ~(t "climate.mode")
      :isOpen ~state.modeMenu
      :onClick {:toggle state.modeMenu}
-     (label :icon ~(cond (= state.mode "Heat") "flame" (= state.mode "Cool") "snowflake" :else "sun-snow")
+     (label :icon ~(case state.mode "Heat" "flame" "Cool" "snowflake" "sun-snow")
        :text ""
        :textColor ~computed.modeColor
        :anchors {:left 8 :top 10}
@@ -197,7 +200,7 @@
        :role img
        :label ~(t "info.historyLabel" {:low (min state.tempHistory) :high (max state.tempHistory)})
        (node :use lineChart
-         :with {:values ~(map (fn [it] (- it 19)) state.tempHistory) :top 4 :color ~computed.modeColor :lineWidth 2}
+         :with {:values ~(map #(- % 19) state.tempHistory) :top 4 :color ~computed.modeColor :lineWidth 2}
          :anchors {:left 48 :right 12 :top 16 :bottom 28})
        (node#infoHistoryHigh :style caption :text "23°" :anchors {:left 12 :top 12})
        (node#infoHistoryLow :style caption :text "19°" :anchors {:left 12 :bottom 28})
@@ -366,7 +369,7 @@
      (label#infoLogText :textColor @text
        :anchors {:left 64 :right 12 :top 10}
        :height 20
-       :text ~(t (str "device." computed.infoDevice.id (if (= (= (mod n 2) 0) computed.infoDevice.on) ".on" ".off"))))))
+       :text ~(t (str "device." computed.infoDevice.id (if (= (even? n) computed.infoDevice.on) ".on" ".off"))))))
 
 (defview dialog-menu "The dialog's menu: the automation the device is part of, and its attributes." []
   `(node#infoMore :style round

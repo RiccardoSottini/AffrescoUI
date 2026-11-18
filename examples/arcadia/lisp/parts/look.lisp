@@ -3,6 +3,8 @@
 ;;; Every colour is a token with a dark and a light value; the theme setting chooses. The bars, pages and dialogs name
 ;;; them (@color.page, @color.accent...); the kit's and the assistant's tokens follow Arcadia's.
 
+(ns arcadia.parts.look)
+
 ;;; The colours
 
 (deftokens arcadia-colours "Arcadia's colours, dark and light, and those it gives the shared kit and the assistant."

@@ -24,9 +24,12 @@
 namespace affresco::lisp {
 
 class Machine;
+struct Entry;
 
 /// Aliases by name, to the namespace each stands for.
 using AliasMap = std::map<std::string, std::string, std::less<>>;
+/// Each file's definitions' addresses, by file: what a file's namespace holds (applyNamespaces()).
+using DefinitionsByFile = std::map<std::string, std::set<std::string, std::less<>>, std::less<>>;
 
 /// @brief A namespace of the program's files: the file that declares it, and what that file defines.
 struct ProgramSpace {
@@ -144,7 +147,12 @@ inline constexpr std::array<std::string_view, 3> languageNamespaces = {"clojure.
 /// @param definedIn Each file's definitions' addresses, by file.
 /// @throws LispError Naming the place, for what doesn't check.
 void applyNamespaces(Machine& machine, std::span<const std::pair<std::string, std::string>> declared,
-                     const std::map<std::string, std::set<std::string, std::less<>>, std::less<>>& definedIn);
+                     const DefinitionsByFile& definedIn);
+
+/// @brief Each file's definitions, as applyNamespaces() takes them.
+/// @param entries A program's entries.
+/// @return Their addresses, by file.
+[[nodiscard]] DefinitionsByFile definitionsByFile(std::span<const Entry> entries);
 
 /// @brief Sets the aliases of the forms a person types after an `ns` form at the command line (Interpreter::eval()):
 /// it names the language's namespaces only, and loads no file.

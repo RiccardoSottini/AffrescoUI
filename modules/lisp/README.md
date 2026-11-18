@@ -231,7 +231,8 @@ one data value, a **template**.
   and over, in a fresh interpreter that loads them and what they use, and puts the rest of the tree back from the record; the
   result is the build in full's, key for key, and `record()->touched` names the places it could have changed (`changedPlaces`).
   It builds in full when that can't be sure: a macro, `add-hook`, `remove-hook` or `advice` changed or gone, a form that isn't a
-  definition, a definition named as one of the language's, namespaces, or nothing left to save (`Rebuild.cpp` lists them).
+  definition, a definition named as one of the language's, a file's `ns` form added, removed, moved or changed (with the
+  same forms, names resolve as they did), or nothing left to save (`Rebuild.cpp` lists them).
   `builtProgram` builds each version from the one it built last. `Program::redefine(interpreter, before, record)` does the same to
   a running interpreter: it defines again what changed and what uses it, with its entry's author, and takes away what went; where
   it can't be sure it does nothing, and a failure leaves the interpreter for the caller to throw away.

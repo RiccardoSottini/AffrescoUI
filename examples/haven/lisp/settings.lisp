@@ -4,6 +4,8 @@
 ;;; the devices and controls (tables of the devices and the rooms), the profile (language and theme), General (every
 ;;; setting from the settings schema, each row drawn by its type) and About.
 
+(ns haven.settings)
+
 ;;; The settings
 
 (defcustom climate.awayTarget
@@ -69,7 +71,7 @@
   {:door ["Keystead" 0 "Zigbee"] :vacuum ["Tidyworks" 1 "Wi-Fi"] :speaker ["Aurelle" 0 "Wi-Fi"]})
 
 (defcomputed deviceRows "The devices table's rows, those whose name holds the search."
-  (filter (fn [it] (contains (lower-case it.cells.0) (lower-case state.devQuery)))
+  (filter #(str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
           (map (fn [it]
                  {:id it.id
                   :cells [it.name
@@ -87,11 +89,11 @@
    {:id "via" :title (t "table.integration") :width (floor (* computed.tableWidth 0.18))}])
 
 (defcomputed roomEntityRows "The rooms table's rows: each room's lights and climate, those whose name holds the search."
-  (filter (fn [it] (contains (lower-case it.cells.0) (lower-case state.devQuery)))
+  (filter #(str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
           (map-indexed (fn [index it]
                          {:id (str "r" index)
                           :cells [it.name
-                                  (t "summary.lights" {:on (count (filter (fn [it] it.on) it.lights))
+                                  (t "summary.lights" {:on (count (filter :on it.lights))
                                                        :total (count it.lights)})
                                   (str it.temp "°  →  " it.target "°")]})
                        state.rooms)))
@@ -197,12 +199,12 @@
      (label#settingsTitle :font heading
        :textColor @onHeader
        :fitText true
-       :text ~(if (= state.settingsView "main") (t "page.settings") (t (str "set." state.settingsView)))
-       :anchors {:left ~(if (= state.settingsView "main") 24 64) :top 0 :bottom 0}
+       :text ~(if (= state.settingsView :main) (t "page.settings") (t (str "set." state.settingsView)))
+       :anchors {:left ~(if (= state.settingsView :main) 24 64) :top 0 :bottom 0}
        :align {:horizontal start :vertical center})))
 
 (defview settings-main "The main page: a card of rows for each group." []
-  `(column#settingsMain :when ~(= state.settingsView "main")
+  `(column#settingsMain :when ~(= state.settingsView :main)
      :anchors {:left 24 :right 24 :top 80 :bottom 0}
      :gap 24
      :scroll vertical
@@ -219,7 +221,7 @@
 ;;; Devices and controls
 
 (defview device-tabs "The devices' tabs: in the bar when the window is wide, else under it." []
-  `(row#devTabs :when ~(= state.settingsView "devices")
+  `(row#devTabs :when ~(= state.settingsView :devices)
      :anchors {:left ~(if computed.devInBar 260 0) :right ~(if computed.devInBar 24 0)
                :top ~(if computed.devInBar 0 56)}
      :height ~(if computed.devInBar 56 48)
@@ -251,13 +253,13 @@
       :color ~(if computed.devInBar "@onHeader" "@accent")}))
 
 (defview device-tabs-rule "The rule under the devices' tabs, while they are under the bar." []
-  `(node#devTabsRule :when ~(and (= state.settingsView "devices") (not computed.devInBar))
+  `(node#devTabsRule :when ~(and (= state.settingsView :devices) (not computed.devInBar))
      :anchors {:left 0 :right 0 :top 104}
      :height 1
      :color @divider))
 
 (defview device-filters "The filters button, not there yet." []
-  `(node#devFilters :when ~(= state.settingsView "devices")
+  `(node#devFilters :when ~(= state.settingsView :devices)
      :style button
      :icon filter
      :text ~(t "dev.filters")
@@ -275,7 +277,7 @@
      :disabled true))
 
 (defview device-search "The search over the devices or the rooms." []
-  `(node#devSearchBox :when ~(= state.settingsView "devices")
+  `(node#devSearchBox :when ~(= state.settingsView :devices)
      :anchors {:left 148 :right 24 :top ~(+ computed.devTop 16)}
      :height 40
      :radius 8
@@ -285,7 +287,7 @@
      (label :icon search :text "" :textColor @muted :anchors {:left 10 :top 0 :bottom 0} :width 24 :align center)
      (textarea#devSearch :bind state.devQuery
        :placeholder ~(t (str "dev.searchN." state.devTab)
-                        {:n (count (if (= state.devTab "entities") state.rooms state.devices))})
+                        {:n (count (if (= state.devTab :entities) state.rooms state.devices))})
        :placeholderColor @muted
        :textColor @text
        :color transparent
@@ -293,13 +295,13 @@
        :label ~(t "dev.search"))))
 
 (defview device-empty "What the integrations and helpers tabs show: nothing yet." []
-  `(node#devEmpty :when ~(and (= state.settingsView "devices")
-                              (or (= state.devTab "integrations") (= state.devTab "helpers")))
+  `(node#devEmpty :when ~(and (= state.settingsView :devices)
+                              (or (= state.devTab :integrations) (= state.devTab :helpers)))
      :style card
      :anchors {:left 24 :right 24 :top ~(+ computed.devTop 80)}
      :height 160
      (label :font iconsLarge
-       :icon ~(if (= state.devTab "helpers") "wand-2" "puzzle")
+       :icon ~(if (= state.devTab :helpers) "wand-2" "puzzle")
        :text ""
        :textColor @muted
        :anchors {:left 0 :right 0 :top 32}
@@ -312,7 +314,7 @@
        :align center)))
 
 (defview device-add "The floating button that adds to the tab shown (not there yet)." []
-  `(node#devAdd :when ~(= state.settingsView "devices")
+  `(node#devAdd :when ~(= state.settingsView :devices)
      :style button
      :icon plus
      :text ~(t (str "dev.add." state.devTab))
@@ -331,8 +333,8 @@
      :disabled true))
 
 (defview device-tables "The devices tab's table, or the controls tab's table of rooms." []
-  `(column#settingsDevices :when ~(and (= state.settingsView "devices")
-                                       (or (= state.devTab "devices") (= state.devTab "entities")))
+  `(column#settingsDevices :when ~(and (= state.settingsView :devices)
+                                       (or (= state.devTab :devices) (= state.devTab :entities)))
      :anchors {:left 0 :right 0 :top ~(+ computed.devTop 72) :bottom 0}
      :gap 0
      :scroll vertical
@@ -340,7 +342,7 @@
      ~(room-table)))
 
 (defview device-table "The devices: name, maker, model, room and connection." []
-  `(node#deviceTableCard :when ~(= state.devTab "devices")
+  `(node#deviceTableCard :when ~(= state.devTab :devices)
      :anchors {:left 0 :right 0}
      :height ~(+ (* (count computed.deviceRows) 52) 29)
      :color @card
@@ -359,7 +361,7 @@
        `(node#deviceTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
 
 (defview room-table "The rooms: their lights and climate; opening one shows it on the home page." []
-  `(node#roomTableCard :when ~(= state.devTab "entities")
+  `(node#roomTableCard :when ~(= state.devTab :entities)
      :anchors {:left 0 :right 0}
      :height ~(+ (* (count computed.roomEntityRows) 52) 29)
      :color @card
@@ -381,7 +383,7 @@
 ;;; The profile
 
 (defview profile-user "The person signed in, and Log out (not there yet)." []
-  `(node#settingsUser :when ~(= state.settingsView "profile")
+  `(node#settingsUser :when ~(= state.settingsView :profile)
      :style card
      :anchors {:left 24 :right 24 :top 80}
      :height 88
@@ -406,7 +408,7 @@
        :disabled true)))
 
 (defview profile-choices "The language and the theme." []
-  `(node#settingsProfile :when ~(= state.settingsView "profile")
+  `(node#settingsProfile :when ~(= state.settingsView :profile)
      :style card
      :anchors {:left 24 :right 24 :top 184}
      :height 168
@@ -416,13 +418,13 @@
          ~(language-pick))
        (node#profileTheme :use settingsSection :with {:title ~(t "set.theme") :sub ~(t "set.theme.sub")}
          (node#pickAuto :use settingsRadio
-           :with {:text ~(t "set.auto") :chosen ~(= state.theme "auto")}
+           :with {:text ~(t "set.auto") :chosen ~(= state.theme :auto)}
            :onClick {:set state.theme :to auto})
          (node#pickLight :use settingsRadio
-           :with {:text ~(t "set.light") :chosen ~(= state.theme "light")}
+           :with {:text ~(t "set.light") :chosen ~(= state.theme :light)}
            :onClick {:set state.theme :to light})
          (node#pickDark :use settingsRadio
-           :with {:text ~(t "set.dark") :chosen ~(= state.theme "dark")}
+           :with {:text ~(t "set.dark") :chosen ~(= state.theme :dark)}
            :onClick {:set state.theme :to dark})))))
 
 (defview language-pick "The language chosen, and the menu of the three, each named in its own language." []
@@ -459,13 +461,14 @@
 ;;; General: every setting, each row drawn by its type
 
 (defview general-settings "Every setting of the settings schema, a row each." []
-  `(node#settingsGeneral :when ~(= state.settingsView "general")
+  `(node#settingsGeneral :when ~(= state.settingsView :general)
      :anchors {:top 80}
-     :x ~(max 24 (/ (- (- window.width computed.sideWidth) 1040) 2))
-     :width ~(min 1040 (- (- window.width computed.sideWidth) 48))
+     :x ~(max 24 (/ (- window.width computed.sideWidth 1040) 2))
+     :width ~(min 1040 (- window.width computed.sideWidth 48))
      :height ~(+ (* (count settingsList) 72) 16)
      :style card
      (column :anchors {:left 0 :right 0 :top 8 :bottom 8} :gap 0
+       ;; style: keep, the JSON version's filter(settingsList, true), the same expression
        ~(repeat [s (filter (fn [it] true) settingsList) :index i]
          (general-row s i)))))
 
@@ -540,7 +543,7 @@
 ;;; About
 
 (defview about-card "The app's mark, name and tagline, its facts, and links to its pages (offline here)." []
-  `(node#settingsAbout :when ~(= state.settingsView "about") :style card :anchors {:left 24 :right 24 :top 80}
+  `(node#settingsAbout :when ~(= state.settingsView :about) :style card :anchors {:left 24 :right 24 :top 80}
      :height 468
      (row :anchors {:left 0 :right 0 :top 32} :height 72 :justify center
        (node :color @accent :width 72 :height 72 :radius 36

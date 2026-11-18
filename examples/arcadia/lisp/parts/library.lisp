@@ -3,6 +3,8 @@
 ;;; The list has home, a filter, search and collections that fold, each game in its play-state colour. The home has
 ;;; what's new, recent games by day, a shelf per collection and every game sorted. A game's page is in game.lisp.
 
+(ns arcadia.parts.library)
+
 ;;; What the library keeps
 
 (defstate selected starfall)
@@ -53,49 +55,48 @@
 
 (defcomputed libList "The games of the list: filtered, then by name, or the one played last first."
   (if state.recentFirst
-    (sort-by (fn [it] (or-else it.lastPlayed 0)) > (listed))
-    (sort-by (fn [it] (lower-case it.title)) (listed))))
+    (sort-by #(or-else (:lastPlayed %) 0) > (listed))
+    (sort-by #(str/lower-case (:title %)) (listed))))
 
 (defcomputed collected "Every game id some collection holds."
-  (split (join "," (map (fn [it] (join "," it.games)) state.collections)) ","))
+  (str/split (join "," (map #(join "," (:games %)) state.collections)) ","))
 
 (defcomputed sections "The list's sections: the favourites, the collections, and the games in none of them."
   (concat [{:id "favourites"
             :title (t "lib.favourites")
-            :ids (map (fn [it] it.id) (filter (fn [it] it.favourite) computed.owned))}]
+            :ids (map :id (filter :favourite computed.owned))}]
           state.collections
           [{:id "uncategorised"
             :title (t "lib.uncategorised")
-            :ids (map (fn [it] it.id)
-                      (filter (fn [it] (and (not it.favourite) (not (contains computed.collected it.id))))
-                              computed.owned))}]))
+            :ids (map :id (filter #(and (not (:favourite %)) (not (contains computed.collected (:id %))))
+                                  computed.owned))}]))
 
 (defcomputed recent "The ten games played last."
-  (slice (sort-by (fn [it] it.lastPlayed) > (filter (fn [it] (some? it.lastPlayed)) computed.owned)) 0 10))
+  (slice (->> computed.owned (filter #(some? (:lastPlayed %))) (sort-by :lastPlayed >)) 0 10))
 
 (defmacro played-between
   ;; A macro: the list stays an expression of `it`, the game.
   "The recent games last played between `from` and `to` milliseconds ago."
   [from to]
-  `(filter (fn [it] (and (>= (- state.today it.lastPlayed) ~from) (< (- state.today it.lastPlayed) ~to)))
-           computed.recent))
+  `(filter #(and (>= (- state.today (:lastPlayed %)) ~from) (< (- state.today (:lastPlayed %)) ~to)) computed.recent))
 
 (defcomputed recentGroups
   "The recent games by when they were played: today, yesterday, this week, last week, earlier."
-  (filter (fn [it] (> (count it.games) 0))
+  (filter #(pos? (count (:games %)))
           [{:label (t "time.today")
-            :games (filter (fn [it] (< (- state.today it.lastPlayed) 86400000)) computed.recent)}
+            :games (filter #(< (- state.today (:lastPlayed %)) 86400000) computed.recent)}
            {:label (t "time.yesterday") :games (played-between 86400000 172800000)}
            {:label (t "time.thisWeek") :games (played-between 172800000 604800000)}
            {:label (t "time.lastWeek") :games (played-between 604800000 1209600000)}
            {:label (t "time.earlier")
-            :games (filter (fn [it] (>= (- state.today it.lastPlayed) 1209600000)) computed.recent)}]))
+            :games (filter #(>= (- state.today (:lastPlayed %)) 1209600000) computed.recent)}]))
 
 (defcomputed allGames
   "Every owned game, in the order Settings chose: by name, by hours, or the one played last first."
-  (cond (= settings.library.sortBy "playtime") (sort-by (fn [it] it.hours) > computed.owned)
-        (= settings.library.sortBy "recent") (sort-by (fn [it] (or-else it.lastPlayed 0)) > computed.owned)
-        :else (sort-by (fn [it] (lower-case it.title)) computed.owned)))
+  (case settings.library.sortBy
+    :playtime (sort-by :hours > computed.owned)
+    :recent (sort-by #(or-else (:lastPlayed %) 0) > computed.owned)
+    (sort-by #(str/lower-case (:title %)) computed.owned)))
 
 ;;; The library's looks
 
@@ -157,7 +158,7 @@
   ;; A macro: the test stays an expression.
   "Whether any section of the list is unfolded."
   []
-  `(some (fn [it] (not (or-else (get state.collapsed it.id) false))) computed.sections))
+  `(some #(not (or-else (get state.collapsed (:id %)) false)) computed.sections))
 
 (defview home-row "Home, lit on the home, and the button that folds or unfolds every section." []
   `(row :height 40 :anchors {:left 0 :right 0} :color @color.sideTop :alignItems center
@@ -241,7 +242,7 @@
 
 (defview list-section "A section of the list: its caps title with how many it holds, which folds it, and its games."
   [section]
-  `(column :let {:games ~(filter (fn [it] (contains (or-else section.ids section.games) it.id)) computed.libList)
+  `(column :let {:games ~(filter #(contains (or-else section.ids section.games) (:id %)) computed.libList)
                  :open ~(not (or-else (get state.collapsed section.id) false))}
      :anchors {:left 0 :right 0}
      :height ~(+ 30 (if open (* (count games) 28) 0))
@@ -291,10 +292,11 @@
        :height 18
        :font small
        :runs [{:text ~game.title}
-              {:text ~(cond (= game.status "running") (str " – " (t "status.running"))
-                            (= game.status "update") (str " – " (t "status.update"))
-                            (= game.status "downloading") (str " – " (t "status.downloading"))
-                            :else "")}]
+              {:text ~(case game.status
+                        :running (str " – " (t "status.running"))
+                        :update (str " – " (t "status.update"))
+                        :downloading (str " – " (t "status.downloading"))
+                        "")}]
        :textColor ~(cond (= game.status "running") "@color.ingame"
                          (or (= game.status "update") (= game.status "downloading")) "@color.accent"
                          game.installed "@color.text"
@@ -317,8 +319,7 @@
        :gap 6
        :height ~(+ 412
                    (* 286
-                      (count (filter (fn [it]
-                                       (and (not= it.id "uncategorised") (> (count (or-else it.ids it.games)) 0)))
+                      (count (filter #(and (not= (:id %) "uncategorised") (pos? (count (or-else (:ids %) (:games %)))))
                                      computed.sections)))
                    (* 239 (grid-rows)))
        (panel :height 10 :width 1 :color transparent)
@@ -333,7 +334,7 @@
        (node#recent-header :use shelfHeader :with {:title ~(t "lib.recent")})
        (row#recent-shelf :height 262 :anchors {:left 0 :right 0} :gap 18 :scroll horizontal
          ~(repeat [group computed.recentGroups :index gi] (recent-group group gi)))
-       ~(repeat [section (slice computed.sections 0 (- (count computed.sections) 1)) :key section.id]
+       ~(repeat [section (slice computed.sections 0 (dec (count computed.sections))) :key section.id]
           (section-shelf section))
        (node#all-header :use shelfHeader :with {:title ~(t "lib.allGames") :count ~(count computed.owned)}
          (label :font caps :text ~(t "lib.sortBy") :textColor @color.muted :fitText true)
@@ -367,7 +368,7 @@
 
 (defview news-card "A piece of news: the game's banner, its kind and age, its title, and the game." [n i]
   `(column :id ~(str "news-" i)
-     :let {:g ~(find (fn [it] (= it.id n.game)) data.games)}
+     :let {:g ~(find #(= (:id %) n.game) data.games)}
      :width 232
      :height 216
      :style card
@@ -394,7 +395,7 @@
 (defview recent-group "Games played on a day, under its name; the very last one played is wide." [group gi]
   `(column :gap 8
      :height 256
-     :width ~(if (= gi 0) (+ 345 (* (- (count group.games) 1) 164)) (- (* (count group.games) 164) 14))
+     :width ~(if (zero? gi) (+ 345 (* (dec (count group.games)) 164)) (- (* (count group.games) 164) 14))
      (label :font small :text ~group.label :textColor @color.muted :height 18 :anchors {:left 0 :right 0})
      (row :gap 14 :height 225 :anchors {:left 0 :right 0} :arrows horizontal
        ~(repeat [g group.games :index i]
@@ -404,7 +405,7 @@
 
 (defview section-shelf "A shelf for a section of the list: its title and its games' covers, in a row that scrolls."
   [section]
-  `(column :let {:games ~(filter (fn [it] (contains (or-else section.ids section.games) it.id)) computed.owned)}
+  `(column :let {:games ~(filter #(contains (or-else section.ids section.games) (:id %)) computed.owned)}
      :anchors {:left 0 :right 0}
      :height 280
      :gap 6

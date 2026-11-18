@@ -7,11 +7,12 @@
 ;;; alter it. The host runs its actions by name (changes.refresh...), and scenarios play the host's part with
 ;;; changes.show.
 
-(include "locales/changes.en.lisp"
-         "locales/changes.es.lisp"
-         "locales/changes.fr.lisp"
-         "../languages/json.lisp"
-         "../languages/lisp.lisp")
+(ns shared.changes
+  (:require "locales/changes.en.lisp"
+            "locales/changes.es.lisp"
+            "locales/changes.fr.lisp"
+            "../languages/json.lisp"
+            "../languages/lisp.lisp"))
 
 ;;; What it shows
 
@@ -55,12 +56,12 @@
 
 (defstate asked false "Whether the app's assistant was asked to undo the change shown another way.")
 
-(defcomputed added "The lines the change adds." (sum (map (fn [f] (or-else f.added 0)) (or-else state.view.files []))))
+(defcomputed added "The lines the change adds." (sum (map #(or-else (:added %) 0) (or-else state.view.files []))))
 
 (defcomputed removed "The lines it removes."
-  (sum (map (fn [f] (or-else f.removed 0)) (or-else state.view.files []))))
+  (sum (map #(or-else (:removed %) 0) (or-else state.view.files []))))
 
-(defcomputed isProposal "Whether a proposal is shown." (and (some? state.view) (= state.view.kind "proposal")))
+(defcomputed isProposal "Whether a proposal is shown." (and (some? state.view) (= state.view.kind :proposal)))
 
 (defcomputed previewing "Whether the app shows the proposal."
   (and computed.isProposal (= state.list.previewing state.view.proposal)))
@@ -68,50 +69,49 @@
 (defcomputed open "Whether the proposal shown waits for a decision." (and computed.isProposal (not state.closed)))
 
 (defcomputed canAccept "Whether the person may accept it: not changed since it was read, and no conflicts."
-  (and computed.open (not state.stale) (= (count (or-else state.view.conflicts [])) 0)))
+  (and computed.open (not state.stale) (empty? (or-else state.view.conflicts []))))
 
 (defcomputed leftOut "What a merge left out of the proposal shown, for the person to settle: [{:path :mine :theirs}]."
-  (let [waiting (find (fn [p] (= (:id p) state.view.proposal)) (or-else state.list.proposals []))]
+  (let [waiting (find #(= (:id %) state.view.proposal) (or-else state.list.proposals []))]
     (if (and computed.open (some? waiting)) (or-else (:leftOut waiting) []) [])))
 
 (defcomputed decided "Whether nothing waits: a commit, or a proposal decided." (not computed.open))
 
 (defcomputed planShown "Whether the host answered a plan for the applied change shown."
-  (and (some? state.plan) (some? state.view) (= state.view.kind "commit")))
+  (and (some? state.plan) (some? state.view) (= state.view.kind :commit)))
 
 (defcomputed planOutcome "What undoing it takes: clean or ready (it can be done), choose or blocked; clean before."
-  (if computed.planShown (or-else state.plan.outcome "clean") "clean"))
+  (if computed.planShown (or-else state.plan.outcome :clean) :clean))
 
 (defcomputed canUndo "Whether the plain Undo button is offered."
-  (and computed.decided (or (= computed.planOutcome "clean") (= computed.planOutcome "ready"))))
+  (and computed.decided (contains? #{:clean :ready} computed.planOutcome)))
 
 (defcomputed choosing "Whether later changes were built on it: the person chooses what becomes of them."
-  (and computed.decided (= computed.planOutcome "choose")))
+  (and computed.decided (= computed.planOutcome :choose)))
 
 (defcomputed undoBlocked "Whether it can't be undone, and why is shown."
-  (and computed.decided (= computed.planOutcome "blocked")))
+  (and computed.decided (= computed.planOutcome :blocked)))
 
 (defcomputed undoDoable "Whether it can be undone in some way: the plan's quiet lines are shown."
   (and computed.decided computed.planShown (not computed.undoBlocked)))
 
 (defcomputed leaveBlocked "Whether leaving the later changes as they are can't be done."
-  (and (some? state.keepPlan) (= state.keepPlan.outcome "blocked")))
+  (and (some? state.keepPlan) (= state.keepPlan.outcome :blocked)))
 
 (defcomputed canAsk "Whether the app's assistant can be asked to undo it and keep what was built on it."
   (and (= state.list.canAsk true) (or computed.choosing computed.undoBlocked)))
 
 (defcomputed askText "The request to the assistant, in the person's language, built from the plan."
-  (if (> (count (or-else state.plan.later [])) 0)
+  (if (pos? (count (or-else state.plan.later [])))
     (t "changes.askKeep"
        {:message state.plan.of.message
         :n state.plan.of.number
-        :later (join "; " (map (fn [c] (t "changes.askLater" {:n c.number :message c.message})) state.plan.later))})
+        :later (join "; " (map #(t "changes.askLater" {:n (:number %) :message (:message %)}) state.plan.later))})
     (t "changes.askUndo" {:message state.plan.of.message :n state.plan.of.number})))
 
 (defcomputed extras "What the change adds beside its files: its assets, then its steps that run once."
-  (concat (map (fn [a] (if (= a.removed true) (t "changes.removed" {:name a.name}) a.name))
-               (or-else state.view.assets []))
-          (map (fn [r] (json r)) (or-else state.view.run []))))
+  (concat (map #(if (true? (:removed %)) (t "changes.removed" {:name (:name %)}) (:name %)) (or-else state.view.assets []))
+          (map #(json %) (or-else state.view.run []))))
 
 ;;; What the host asks for, and what it answers
 
@@ -130,10 +130,11 @@
         (do (set "state.selectionCount" state.list.selectionCount)
             (selectChange state.list.selection))
         computed.open
-        (let [waiting (find (fn [p] (= (:id p) state.view.proposal)) state.list.proposals)]
-          (cond (nil? waiting) (set "state.closed" true)
-                (not= (:head waiting) state.view.head) (do (set "state.stale" true)
-                                                           (loadChange))))))
+        (if-some [waiting (find #(= (:id %) state.view.proposal) state.list.proposals)]
+          (when (not= (:head waiting) state.view.head)
+            (set "state.stale" true)
+            (loadChange))
+          (set "state.closed" true))))
 
 (defn selectChange "Shows a change: {:proposal id} or {:to commit}." [what]
   (set "state.selected" what)
@@ -156,23 +157,23 @@
 (defn loadChange "Asks the host for the change shown, in the notation chosen; then shows a file of it." []
   (when (some? state.selected)
     (call "changes.load"
-          :with (if (nil? state.notation) state.selected (merge state.selected {:notation state.notation}))
+          :with (if-some [notation state.notation] (assoc state.selected :notation notation) state.selected)
           :into "state.view"
           :then loaded
           :onError failed)))
 
 (defn loaded "Shows the file shown before, if the change has it, or its first; for a commit, what undoing it takes." []
-  (openFile (if (some (fn [f] (= (:file f) state.file)) state.view.files)
+  (openFile (if (some #(= (:file %) state.file) state.view.files)
               state.file
               (or (:file (first state.view.files)) "")))
   (planUndo))
 
 (defn planUndo "Asks the host what undoing the commit shown would do: nothing changes until the person chooses." []
-  (when (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0))
+  (when (and (some? state.view) (= state.view.kind :commit) (> state.view.revision 0))
     (call "changes.undoPlan" :with {:commit state.view.commit} :into "state.plan" :then planned :onError ignored)))
 
 (defn planned "When later changes were built on it, asks too whether they can stay as they are." []
-  (if (= state.plan.outcome "choose")
+  (if (= state.plan.outcome :choose)
     (call "changes.undoPlan"
           :with {:commit state.view.commit :keep "all"}
           :into "state.keepPlan"
@@ -184,13 +185,13 @@
   (if (= file "")
     (set "state.text" nil)
     (call "changes.load"
-          :with (merge state.selected {:file file :notation state.view.notation})
+          :with (assoc state.selected :file file :notation state.view.notation)
           :into "state.opened"
           :then [fileLoaded file]
           :onError failed)))
 
 (defn fileLoaded "Shows the file's texts." [file]
-  (set "state.text" (find (fn [f] (= (:file f) file)) state.opened.files)))
+  (set "state.text" (find #(= (:file %) file) state.opened.files)))
 
 (defn setNotation "Shows the change's files in JSON or in Lisp." [notation]
   (set "state.notation" notation)
@@ -251,7 +252,7 @@
         :onError ignored))
 
 (defn resolved "Shows the proposal again as it is now, unless the host refused." [result]
-  (if (nil? (:error result)) (selectChange state.selected) (answered result)))
+  (if (some? (:error result)) (answered result) (selectChange state.selected)))
 
 (defn rejectChange "Rejects the proposal, telling its author why." []
   (call "changes.reject" :with {:proposal state.view.proposal :reason state.reason} :then rejected :onError ignored))
@@ -358,9 +359,9 @@
      :anchors {:left 0 :right 0}
      :color ~(if (and (some? state.view) (= state.view.commit c.id)) "@c.selected" "transparent")
      :selected ~(and (some? state.view) (= state.view.commit c.id))
-     :label ~(if (= c.number 0) (t "changes.original") c.message)
+     :label ~(if (zero? c.number) (t "changes.original") c.message)
      :onClick ~(handler selectCommit c.id)
-     (label :text ~(if (= c.number 0) (t "changes.original") c.message)
+     (label :text ~(if (zero? c.number) (t "changes.original") c.message)
        :textColor @c.text
        :anchors {:left 10 :right 10 :top 8}
        :height 18)
@@ -372,7 +373,7 @@
 
 (defview side "The proposals waiting, then the commits applied." []
   `(column#changesSide :width 290 :gap 6 :alignItems stretch :anchors {:top 0 :bottom 0} :scroll vertical
-     (label#changesProposalsTitle :when ~(> (count state.list.proposals) 0)
+     (label#changesProposalsTitle :when ~(pos? (count state.list.proposals))
        :text ~(t "changes.proposals")
        :font small
        :textColor @c.muted
@@ -423,10 +424,10 @@
 (defview tools "The file's name, then how its diff is laid out and in which notation." []
   `(row#changesTools :gap 6 :height 32
      (label#changesFileName :text ~state.file :font code :textColor @c.text :grow 1 :height 32 :align "start center")
-     ~(mode-button "changesSplit" 96 "split" "changes.split")
-     ~(mode-button "changesInline" 88 "inline" "changes.inline")
-     ~(notation-button "changesJson" 60 "json" "JSON")
-     ~(notation-button "changesLisp" 60 "lisp" "Lisp")))
+     ~(mode-button "changesSplit" 96 :split "changes.split")
+     ~(mode-button "changesInline" 88 :inline "changes.inline")
+     ~(notation-button "changesJson" 60 :json "JSON")
+     ~(notation-button "changesLisp" 60 :lisp "Lisp")))
 
 (defview file-row "A file of the change: its name, and the lines it adds and removes." [f]
   `(node :id ~(str "changesFile" f.file)
@@ -441,7 +442,7 @@
      :label ~f.file
      :onClick ~(handler openFile f.file)
      (label :text ~f.file :textColor @c.text :anchors {:left 10 :right 10 :top 8} :height 18)
-     (label :text ~(if (= f.tooLarge true) (t "changes.tooLarge") (str "+" f.added " −" f.removed))
+     (label :text ~(if (true? f.tooLarge) (t "changes.tooLarge") (str "+" f.added " −" f.removed))
        :textColor @c.muted
        :font small
        :anchors {:left 10 :right 10 :top 28}
@@ -450,12 +451,12 @@
 (defview files "The change's files, then what it adds beside them." []
   `(column#changesFiles :width 240 :gap 2 :alignItems stretch :anchors {:top 0 :bottom 0} :scroll vertical
      (label#changesFilesTitle :text ~(t "changes.files") :font small :textColor @c.muted :height 20)
-     (label#changesNoFiles :when ~(= (count state.view.files) 0)
+     (label#changesNoFiles :when ~(empty? state.view.files)
        :text ~(t "changes.none")
        :textColor @c.muted
        :height 20)
      ~(repeat [f state.view.files] (file-row f))
-     (label#changesExtrasTitle :when ~(> (count computed.extras) 0)
+     (label#changesExtrasTitle :when ~(pos? (count computed.extras))
        :text ~(str (t "changes.assets") " · " (t "changes.run"))
        :font small
        :textColor @c.muted
@@ -475,7 +476,7 @@
        :mode ~state.mode
        :deletedColor @c.deleted
        :insertedColor @c.inserted)
-     (label#changesTooLarge :when ~(and (some? state.text) (= state.text.tooLarge true))
+     (label#changesTooLarge :when ~(and (some? state.text) (true? state.text.tooLarge))
        :text ~(t "changes.tooLarge")
        :textColor @c.muted
        :height 24)
@@ -498,15 +499,15 @@
       :wrap true :text ~(t "changes.stale") :textColor @c.warning :anchors {:left 0 :right 0} :height 36)
     (label#changesClosed :when ~state.closed
       :wrap true :text ~(t "changes.closed") :textColor @c.muted :anchors {:left 0 :right 0} :height 36)
-    (label#changesConflicts :when ~(> (count (or-else state.view.conflicts [])) 0)
+    (label#changesConflicts :when ~(pos? (count (or-else state.view.conflicts [])))
       :wrap true :text ~(t "changes.conflicts") :textColor @c.warning :anchors {:left 0 :right 0} :height 36)
-    (label#changesPerson :when ~(> (count (or-else state.view.person [])) 0)
+    (label#changesPerson :when ~(pos? (count (or-else state.view.person [])))
       :wrap true
       :text ~(t "changes.person" {:lines (join "; " state.view.person)})
       :textColor @c.warning
       :anchors {:left 0 :right 0}
       :height 36)
-    (label#changesBehaviour :when ~(> (count (or-else state.view.behaviour [])) 0)
+    (label#changesBehaviour :when ~(pos? (count (or-else state.view.behaviour [])))
       :wrap true
       :text ~(t "changes.behaviour"
                 {:lines (str (join "; " (slice state.view.behaviour 0 3))
@@ -521,13 +522,9 @@
                  "   "
                  (t "changes.filesSummary"
                     {:n (count state.view.files) :added computed.added :removed computed.removed})
-                 (if (nil? state.view.impact)
-                   ""
-                   (str "   "
-                        (t "changes.layers"
-                           {:view state.view.impact.view
-                            :logic state.view.impact.logic
-                            :data state.view.impact.data}))))
+                 (if-some [impact state.view.impact]
+                   (str "   " (t "changes.layers" {:view impact.view :logic impact.logic :data impact.data}))
+                   ""))
      :textColor @c.muted
      :height 20))
 
@@ -540,12 +537,12 @@
   "The source's place: its file, the definition's kind and name for a program or the node for a JSON document, and
   the line marked."
   (join " · "
-        (filter (fn [part] (some? part))
+        (filter #(some? %)
                 [state.source.file
                  (if (some? state.source.kind)
-                   (str state.source.kind " " (first (reverse (split state.source.address "/"))))
+                   (str state.source.kind " " (->> (str/split state.source.address "/") reverse first))
                    state.source.node)
-                 (if (some? state.source.marked) (t "changes.line" {:line state.source.marked}) nil)])))
+                 (when-some [line state.source.marked] (t "changes.line" {:line line}))])))
 
 
 (defview source-blame "Who last changed the source, and a button that shows that change." []
@@ -617,9 +614,7 @@
        :activeLineNumberColor @c.text
        :lineColor ~(if (some? state.source.marked) "@c.marked" "transparent")
        :language ~state.source.notation
-       :goTo ~(if (some? state.source.marked)
-                {:line (- state.source.marked 1) :column 0 :request state.sourceCount}
-                nil))
+       :goTo ~(when-some [marked state.source.marked] {:line (dec marked) :column 0 :request state.sourceCount}))
      (label#changesSourceMessage :when ~(not= state.message "")
        :wrap true
        :text ~state.message
@@ -657,17 +652,17 @@
       :textColor @c.muted
       :height 20)
     ~(repeat [c (if computed.choosing state.plan.later [])] (later-row c))
-    (label#changesUndoLaterMore :when ~(and computed.choosing (> (or-else state.plan.laterMore 0) 0))
+    (label#changesUndoLaterMore :when ~(and computed.choosing (pos? (or-else state.plan.laterMore 0)))
       :text ~(t "changes.laterMore" {:n state.plan.laterMore})
       :font small
       :textColor @c.muted
       :height 18)
-    (label#changesUndoUntouched :when ~(and computed.undoDoable (> (or-else state.plan.untouched 0) 0))
+    (label#changesUndoUntouched :when ~(and computed.undoDoable (pos? (or-else state.plan.untouched 0)))
       :text ~(t "changes.untouched" {:n state.plan.untouched})
       :font small
       :textColor @c.muted
       :height 18)
-    (label#changesUndoStateKept :when ~(and computed.undoDoable (> (count (or-else state.plan.state.kept [])) 0))
+    (label#changesUndoStateKept :when ~(and computed.undoDoable (pos? (count (or-else state.plan.state.kept []))))
       :text ~(t "changes.stateKept")
       :font small
       :textColor @c.muted
@@ -763,7 +758,7 @@
   "What a merge left out of the proposal: each part, for the person to keep or take, one in view and more scrolling.
   Nothing if none."
   []
-  `(column#changesNotMerged :when ~(> (count computed.leftOut) 0)
+  `(column#changesNotMerged :when ~(pos? (count computed.leftOut))
      :height 262 ; its title, its note and one part; more scroll
      :scroll vertical
      :gap 8
@@ -803,7 +798,7 @@
   on it, the choices of what becomes of them."
   []
   `(row#changesActions
-     :when ~(or computed.open (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0)))
+     :when ~(or computed.open (and (some? state.view) (= state.view.kind :commit) (pos? state.view.revision)))
      :gap 8
      :height 32
      (textarea#changesReason :when ~computed.open

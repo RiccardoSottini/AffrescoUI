@@ -3,6 +3,8 @@
 ;;; The logbook lists today's and yesterday's events, with a search; history draws a day of on and off states per
 ;;; device, and the living room's temperature. The events are invented, in seed/.
 
+(ns haven.history)
+
 ;;; The logbook
 
 (defstate logQuery "" "The text the logbook is filtered by." :type (string :maxLength 64))
@@ -27,14 +29,14 @@
        ~(period-field "logPeriod" "log.period" "log.twoDays")
        ~(log-search))
      (node#logCard :style card :anchors {:left 24 :right 24 :top 136 :bottom 24}
-       {:style caption :when ~(= (count computed.logShown) 0) :text ~(t "log.empty") :anchors {:left 24 :top 24}}
+       {:style caption :when ~(empty? computed.logShown) :text ~(t "log.empty") :anchors {:left 24 :top 24}}
        (column#logList :anchors {:left 0 :right 0 :top 8 :bottom 8} :scroll vertical :role list
          :label ~(t "page.logbook")
          ~(repeat [day ["today" "yesterday"] :key day]
            (log-day day))))))
 
 (defview log-day "A day of the logbook: its name, and its events." [day]
-  `(node#logDay :let {:events ~(filter (fn [it] (= it.day day)) computed.logShown)}
+  `(node#logDay :let {:events ~(filter #(= (:day %) day) computed.logShown)}
      :when ~(> (count events) 0)
      :anchors {:left 0 :right 0}
      :height ~(+ 40 (* (count events) 56))
@@ -145,8 +147,8 @@
             :anchors {:top 0 :bottom 0}
             :radius {:topLeft ~(if (= si 0) 4 0)
                      :bottomLeft ~(if (= si 0) 4 0)
-                     :topRight ~(if (= si (- (count ent.segs) 1)) 4 0)
-                     :bottomRight ~(if (= si (- (count ent.segs) 1)) 4 0)}
+                     :topRight ~(if (= si (dec (count ent.segs))) 4 0)
+                     :bottomRight ~(if (= si (dec (count ent.segs))) 4 0)}
             :color ~(if seg.on "@accent" "@raised")
             :textColor ~(if seg.on "@onAccent" "@muted")
             :font small
@@ -175,7 +177,7 @@
               :align {:horizontal end :vertical center})
             {:anchors {:left 40 :right 0 :top 8} :height 1 :color @divider})))
      (node :use lineChart
-       :with {:values ~(map (fn [it] (- it 19)) state.tempHistory) :top 4 :color @warm :lineWidth 2}
+       :with {:values ~(map #(- % 19) state.tempHistory) :top 4 :color @warm :lineWidth 2}
        :anchors {:left 64 :right 24 :top 60 :bottom 40})
      (row :anchors {:left 64 :right 24 :bottom 12} :height 16 :justify space-between
        ~(repeat [h ["00:00" "06:00" "12:00" "18:00" (t "hist.now")]]

@@ -4,6 +4,8 @@
 ;;; canvas, the picked room's lights switch on and off, and the speaker's player plays, skips and sets the volume.
 ;;; The dialog that colours a light is here too.
 
+(ns haven.plan)
+
 ;;; What the page keeps
 
 (defstate planView {:camera {:x -40 :y -40 :zoom 1} :selection [] :guides {:vertical [] :horizontal []}}
@@ -37,21 +39,21 @@
 (defcomputed planItems "The rooms as the canvas draws them: named, and outlined in the accent while picked."
   (map (fn [it]
          (merge it
-                {:color (if (= computed.themeNow "dark") "#1a2340" "#ffffff")
+                {:color (if (= computed.themeNow :dark) "#1a2340" "#ffffff")
                  :borderColor (cond (= (plan-room-place it) state.room)
-                                    (if (= computed.themeNow "dark") "#22d3ee" "#0891b2")
-                                    (= computed.themeNow "dark") "#3a4363"
+                                    (if (= computed.themeNow :dark) "#22d3ee" "#0891b2")
+                                    (= computed.themeNow :dark) "#3a4363"
                                     :else "#94a3b8")
                  :borderWidth (if (= (plan-room-place it) state.room) 3 2)
                  :radius 4
                  :text (get-in state.rooms [(plan-room-place it) :name])
                  :textSize 16
-                 :textColor (if (= computed.themeNow "dark") "#e5e9f5" "#0f172a")}))
+                 :textColor (if (= computed.themeNow :dark) "#e5e9f5" "#0f172a")}))
        state.planRooms))
 
 (defcomputed track "The speaker's track." (get state.tracks state.media.track))
 
-(defcomputed speaker "The speaker, as a device." (find (fn [it] (= it.id "speaker")) state.devices))
+(defcomputed speaker "The speaker, as a device." (find #(= (:id %) "speaker") state.devices))
 
 ;;; The page
 

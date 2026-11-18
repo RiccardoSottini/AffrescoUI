@@ -4,6 +4,8 @@
 ;;; What they do when used is in modello.lisp ("The widgets"): a button opens its dropdown or runs what it was given, a
 ;;; number field changes what its key or path names.
 
+(ns modello.widgets)
+
 ;;; Buttons and fields
 
 (defcomponent hButton
@@ -38,7 +40,7 @@
      ~(button-chevron chevron)
      (node :when ~(not= open "")
        :use menu
-       :with {:open ~open :items ~items :width ~menuWidth :placement ~placement :icons ~(some (fn [it] (some? it.icon)) items)})))
+       :with {:open ~open :items ~items :width ~menuWidth :placement ~placement :icons ~(some #(some? (:icon %)) items)})))
 
 (defview button-chevron "A header button's chevron, when it opens a dropdown." [chevron]
   `(label :when ~chevron
@@ -80,7 +82,7 @@
      :tooltip ~(t "field.frameTip" {:label label})
      :onPress ~(handler startDrag value)
      :onDrag ~(handler setFrameField key (+ state.dragStart (* event.dx 0.2)))
-     :keys {:right ~(handler setFrameField key (+ value 1)) :left ~(handler setFrameField key (- value 1))}
+     :keys {:right ~(handler setFrameField key (inc value)) :left ~(handler setFrameField key (dec value))}
      (label :when ~(not= key "frame") :text ~label :textColor @dim :x 7 :anchors {:top 0 :bottom 0} :fitText true)
      (label :text ~value
        :textColor @text
@@ -144,7 +146,7 @@
 (defmacro lock-on [key axis]
   ;; A macro, not a function: what it writes stays an expression.
   "Whether the active object locks an item of its list."
-  `(= (get-in computed.activeNode [(str "lock_" ~key) ~axis]) true))
+  `(true? (get-in computed.activeNode [(str "lock_" ~key) ~axis])))
 
 (defview lock-button "The padlock beside a field: locks the item against the gizmo and G, R and S." [label key axis lockable]
   `(node :id ~(str "lock-" key "-" axis)
@@ -170,7 +172,7 @@
   `(column :width "100%" :height 62 :gap 1 :color transparent
      ~(repeat [v values :index a]
        `(node :use numberField
-          :with {:label ~(cond (= a 0) (str title " X") (= a 1) "Y" :else "Z")
+          :with {:label ~(case a 0 (str title " X") 1 "Y" "Z")
                  :value ~v
                  :key ~key
                  :axis ~a
@@ -193,12 +195,12 @@
      :role checkbox
      :focusable true
      :label ~label
-     :selected ~(= checked true)
+     :selected ~(true? checked)
      :onClick ~(handler pressCheck path run with)
      (node :anchors {:left "41%" :top 0 :bottom 0 :right 4} :color transparent
        (node :x 0 :y 3 :width 14 :height 14 :radius 3 :color ~(if checked "@kit.accent" "@widget")
          (label
-           :when ~(= checked true)
+           :when ~(true? checked)
            :font iconsSmall
            :icon check
            :text ""
@@ -225,7 +227,7 @@
   `(column :width "100%" :height ~(if (get state.panels key) 204 20) :gap 4 :color transparent
      ~(color-swatch label value target key)
      (colorPicker :id ~(str "picker-" target)
-       :when ~(= (get state.panels key) true)
+       :when ~(true? (get state.panels key))
        :width "100%"
        :height 180
        :label ~label
@@ -250,7 +252,7 @@
        :focusable true
        :label ~label
        :tooltip ~(t "field.colorTip" {:value value})
-       :isOpen ~(= (get state.panels key) true)
+       :isOpen ~(true? (get state.panels key))
        :onClick ~(handler openColor target key))))
 
 ;;; Panels
@@ -268,7 +270,7 @@
      :label ~title
      :disabled ~(not= needs "")
      :tooltip ~needs
-     :isOpen ~(and (= needs "") (= (get state.panels key) true))
+     :isOpen ~(and (= needs "") (true? (get state.panels key)))
      :onClick ~(handler togglePanel key)
      (label :font iconsSmall
        :icon ~(if (and (= needs "") (get state.panels key)) "chevron-down" "chevron-right")
@@ -286,7 +288,7 @@
 (defmacro panel-of [key]
   ;; A macro, not a function: what it writes stays an expression.
   "The panel of the properties with a key (computed.propPanels)."
-  `(find (fn [it] (= it.key ~key)) computed.propPanels))
+  `(find #(= (:key %) ~key) computed.propPanels))
 
 (defcomponent propPanel "A panel of the properties, open or closed, its rows in its slot; body is its open height."
   {:key "" :body 32}
@@ -296,7 +298,7 @@
      :height ~(if (and (= (:needs (panel-of key)) "") (get state.panels key)) (+ 24 body) 24)
      (node :use panelHeader :with {:title ~(:title (panel-of key)) :key ~key :needs ~(:needs (panel-of key))})
      (node :id ~(str "panel-" key "-body")
-       :when ~(and (= (:needs (panel-of key)) "") (= (get state.panels key) true))
+       :when ~(and (= (:needs (panel-of key)) "") (true? (get state.panels key)))
        :width "100%"
        :height ~body
        :color @panel
@@ -311,14 +313,14 @@
      :role menuitem
      :label ~item.title
      :focusable true
-     :disabled ~(= item.enabled false)
-     :selected ~(if (nil? item.checked) nil (= item.checked true))
+     :disabled ~(false? item.enabled)
+     :selected ~(when-some [c item.checked] (true? c))
      :anchors {:left ~(+ 115 (get [-115 115 0 0 -100 100 -100 100] i)) :top ~(+ 107 (get [0 0 80 -80 -50 -50 50 50] i))}
      :width 130
      :height 26
      :radius 13
-     :color ~(if (= item.checked true) "@sel" "@toolGroup")
-     :hover {:color ~(if (= item.enabled false) "@toolGroup" "@widgetHover")}
+     :color ~(if (true? item.checked) "@sel" "@toolGroup")
+     :hover {:color ~(if (false? item.enabled) "@toolGroup" "@widgetHover")}
      :focused {:color @widgetHover}
      :onClick ~(handler runItem item.run item.with)
      (label :when ~(some? item.icon)
@@ -326,11 +328,11 @@
        :icon ~item.icon
        :anchors {:left 10 :top 5}
        :fitText true
-       :textColor ~(if (= item.enabled false) "@faint" "@text"))
+       :textColor ~(if (false? item.enabled) "@faint" "@text"))
      (label :text ~item.title
        :anchors {:left ~(if (some? item.icon) 32 14) :top 5}
        :fitText true
-       :textColor ~(if (= item.enabled false) "@faint" "@text"))))
+       :textColor ~(if (false? item.enabled) "@faint" "@text"))))
 
 (defcomponent pieMenu "The pie menu: its items round a ring in the middle, its title under the ring."
   {:items [] :open state.pie.open :x 0 :y 0 :title ""}
@@ -360,4 +362,4 @@
 (defmacro editor-choices [editor]
   ;; A macro, not a function: what it writes stays an expression.
   "The Editor Type dropdown's items for an editor: its own checked, the others swapped in."
-  `(map (fn [it] (merge it {:checked (= it.id ~editor) :run "swapEditor" :with {:from ~editor :to it.id}})) computed.editorTypes))
+  `(map #(merge % {:checked (= (:id %) ~editor) :run "swapEditor" :with {:from ~editor :to (:id %)}}) computed.editorTypes))

@@ -5,6 +5,8 @@
 ;;; `state.kills`) and changes it only through steps (`set`, `edit`, `copy`). Evaluate any of these in place (C-M-x) and
 ;;; the next key uses it.
 
+(ns calamaio.killring)
+
 ;;; What every kill starts from
 
 (defn editable? "Whether this buffer takes a change now: says so if it doesn't." []
@@ -16,34 +18,32 @@
 
 (defn kill-push "Keeps a text in the ring, or joins it to the newest." [text join]
   (set "state.kills"
-       (if (and join (> (count state.kills) 0))
+       (if (and join (seq state.kills))
          (vec (cons (str (first state.kills) text) (rest state.kills)))
          (vec (take settings.kill-ring-max (cons text state.kills)))))
   (copy (first state.kills)))
 
 (defn after-a-kill? "Whether point hasn't moved since the last kill." []
-  (let [here (caret) last state.killAt]
-    (and (some? last)
-         (= (:buf last) computed.cur)
-         (= (:line last) (:line here))
-         (= (:column last) (:column here)))))
+  (let [here (caret) {:keys [buf line column] :as killed} state.killAt]
+    (and (some? killed) (= buf computed.cur) (= line (:line here)) (= column (:column here)))))
 
 (defn kill "Cuts a span of text, some times over, into the ring." [span times]
   (set "state.arg" nil)
   (when (editable?)
     (deactivate-mark)
     (set "state.killTmp" "")
-    (map (fn [i] (edit "cut" :span span :in computed.ed :into "state.killTmp" :append true)) (range times))
-    (if (= state.killTmp "")
+    (dotimes [_ times]
+      (edit "cut" :span span :in computed.ed :into "state.killTmp" :append true))
+    (if (empty? state.killTmp)
       (message (t "echo.endOfBuffer"))
-      (do (kill-push state.killTmp (and (not= span "line") (after-a-kill?)))
-          (let [here (caret)]
-            (set "state.killAt" {:buf computed.cur :line (:line here) :column (:column here)}))))))
+      (let [here (caret)]
+        (kill-push state.killTmp (and (not= span "line") (after-a-kill?)))
+        (set "state.killAt" {:buf computed.cur :line (:line here) :column (:column here)})))))
 
 (defn kill-selection "Cuts or copies the region into the ring." [keep]
   (cond
     (not computed.text) nil
-    (= (or (:selected (caret)) 0) 0) (message (t "echo.regionEmpty"))
+    (zero? (or (:selected (caret)) 0)) (message (t "echo.regionEmpty"))
     (and (not keep) (:readOnly computed.buf)) (read-only)
     :else
     (do (set "state.killTmp" "")
@@ -97,10 +97,10 @@
 ;;; Yanking
 
 (defn end-of "Where a text ends once it is inserted at a place." [text at]
-  (let [lines (split text "\n")]
-    {:line (+ (:line at) (count lines) -1)
-     :column (if (contains text "\n")
-               (+ (length (last lines)) 1)
+  (let [lines (str/split text "\n" -1)]
+    {:line (+ (:line at) (dec (count lines)))
+     :column (if (str/includes? text "\n")
+               (inc (length (last lines)))
                (+ (:column at) (length text)))}))
 
 (defn yank-at "Inserts a kill of the ring at a place, and remembers it for M-y." [i at]
@@ -114,27 +114,24 @@
   :description ~(t "command.yank.about")
   []
   (when (editable?)
-    (if (= (count state.kills) 0)
+    (if (empty? state.kills)
       (message (t "echo.killRingEmpty"))
-      (let [here (caret)]
+      (let [here (point)]
         (deactivate-mark)
         (set "state.arg" nil)
-        (yank-at 0 {:line (:line here) :column (:column here)})))))
+        (yank-at 0 here)))))
 
 (defn yanked-here? "Whether the last command was a yank, right here." []
-  (let [last state.yank here (caret)]
-    (and (some? last)
-         (= (:buf last) computed.cur)
-         (= (:line (:end last)) (:line here))
-         (= (:column (:end last)) (:column here)))))
+  (let [{:keys [buf end] :as yanked} state.yank here (caret)]
+    (and (some? yanked) (= buf computed.cur) (= (:line end) (:line here)) (= (:column end) (:column here)))))
 
 (defcommand yank-pop "Right after a yank, replaces the yanked text with the kill before it in the ring."
   :title ~(t "command.yank-pop") :category ~(t "category.killing")
   :description ~(t "command.yank-pop.about")
   []
-  (if (not (yanked-here?))
+  (if-not (yanked-here?)
     (message (t "echo.notAYank"))
-    (let [last state.yank start (:start last) end (:end last)]
+    (let [{:keys [i start end]} state.yank]
       (edit "select" :in computed.ed :line (:line start) :column (:column start)
             :toLine (:line end) :toColumn (:column end))
-      (after 0 yank-at (mod (inc (:i last)) (count state.kills)) start))))
+      (after 0 yank-at (mod (inc i) (count state.kills)) start))))

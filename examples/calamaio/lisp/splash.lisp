@@ -3,6 +3,8 @@
 ;;; It is the buffer *Calamaio* (b0), of its own kind, which a window draws with this component instead of an
 ;;; editor. Every card, button and link runs a command; the checkbox is the variable inhibit-startup-screen.
 
+(ns calamaio.splash)
+
 ;;; What it offers
 
 (def splash-links "The cards: a place to begin, the command it runs and its key."
@@ -101,7 +103,7 @@
   :title ~(t "command.splash-close") :category ~(t "category.help")
   :description ~(t "command.splash-close.about")
   []
-  (when (some? state.bufs.b0) (kill-buffer-id "b0")))
+  (when-some [_ state.bufs.b0] (kill-buffer-id "b0")))
 
 (defn toggle-splash "Whether Calamaio starts with the start screen or in the scratch buffer: the other way round." []
   (toggle "settings.inhibit-startup-screen")

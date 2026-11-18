@@ -3,6 +3,8 @@
 ;;;
 ;;; The viewport turns its own camera (`camera` steps); the rest is the state the headers and menus show.
 
+(ns modello.navigation)
+
 ;;; Menus that pop up
 
 (defn openPopup "Opens a menu of menus.lisp where the pointer is, or in the middle of the viewport when x and y are nil."
@@ -11,24 +13,25 @@
 
 (defn openPie "Opens a pie menu (the view's or the shading's) in the middle of the viewport, if the pointer is over it."
   [menu]
-  (when (and (nil? state.modal) (= (get state.areas (or state.hoverSlot "a")) "viewport"))
-    (set "state.pie" {:open true
-                      :menu menu
-                      :x (+ nodes.viewport.x (/ nodes.viewport.width 2))
-                      :y (+ nodes.viewport.y (/ nodes.viewport.height 2))})))
+  (let [slot (or state.hoverSlot "a")]
+    (when (and (nil? state.modal) (= (get state.areas slot) :viewport))
+      (set "state.pie" {:open true
+                        :menu menu
+                        :x (+ nodes.viewport.x (/ nodes.viewport.width 2))
+                        :y (+ nodes.viewport.y (/ nodes.viewport.height 2))}))))
 
 (defn hovered "The editor under the pointer, or nil." []
-  (when (some? state.hoverSlot) (get state.areas state.hoverSlot)))
+  (when-some [slot state.hoverSlot] (get state.areas slot)))
 
 (defcommand addMenu "Opens the Add menu: objects in the viewport, nodes in the Shader Editor."
   :title ~(t "command.addMenu") :description ~(t "command.addMenu.about")
   :category ~(t "category.object") :icon "plus" []
-  (openPopup (if (= (hovered) "shader") "shaderAdd" "add") nil nil))
+  (openPopup (if (= (hovered) :shader) "shaderAdd" "add") nil nil))
 
 (defcommand deleteMenu "Opens the Delete menu, when something is selected."
   :title ~(t "command.deleteMenu") :description ~(t "command.deleteMenu.about")
   :category ~(t "category.object") []
-  (when (not (empty? state.view.selection)) (openPopup "delete" nil nil)))
+  (when (seq state.view.selection) (openPopup "delete" nil nil)))
 
 (defcommand search "Opens the search for a command."
   :title ~(t "command.search") :description ~(t "command.search.about")
@@ -53,7 +56,7 @@
   :title ~(t "command.changeLanguage") :description ~(t "command.changeLanguage.about")
   :category ~(t "category.window") :icon "languages" []
   (set "settings.appearance.language"
-       (cond (= settings.appearance.language "en") "es" (= settings.appearance.language "es") "fr" :else "en")))
+       (case settings.appearance.language :en :es :es :fr :en)))
 
 ;;; The headers' options
 
@@ -74,15 +77,16 @@
   (toggle (str "state.overlay." key)))
 
 (defn kinds-in "The kinds a list of the state holds: hiddenKinds, unselectableKinds or outlinerHide." [which]
-  (cond (= which "hiddenKinds") state.hiddenKinds
-        (= which "unselectableKinds") state.unselectableKinds
-        :else state.outlinerHide))
+  (case which
+    :hiddenKinds state.hiddenKinds
+    :unselectableKinds state.unselectableKinds
+    state.outlinerHide))
 
 (defn toggleKind "A kind of object (meshes, lights...) taken out of a list of kinds, or put in: hidden, unselectable, unlisted."
   [which kind]
   (let [kinds (kinds-in which)]
     (set (str "state." which) (if (contains kinds kind) (without kinds kind) (concat kinds [kind]))))
-  (set "state.view.selection" (filter (fn [id] (contains computed.pickable id)) state.view.selection)))
+  (set "state.view.selection" (filter #(contains computed.pickable %) state.view.selection)))
 
 (defn setObjectGizmo "The gizmo the Select tool shows on the selection: one, or none when it is chosen again." [mode]
   (set "state.objectGizmo" (if (= state.objectGizmo mode) nil mode)))
@@ -114,41 +118,41 @@
 (defcommand toggleToolbar "Shows or hides the viewport's toolbar."
   :title ~(t "command.toggleToolbar") :description ~(t "command.toggleToolbar.about")
   :category ~(t "category.view") []
-  (set "state.toolbar" (= state.toolbar false)))
+  (set "state.toolbar" (false? state.toolbar)))
 
 (defcommand toggleTheme "Switches between the dark and the light theme."
   :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about")
   :category ~(t "category.window") :icon "sun-moon" []
-  (set "state.theme" (if (= state.theme "dark") "light" "dark")))
+  (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
 ;;; Editors and workspaces
 
 (defn slot-of "The area that shows an editor, or nil." [editor]
-  (find (fn [slot] (= (get state.areas slot) editor)) (keys state.areas)))
+  (find #(= (get state.areas %) editor) (keys state.areas)))
 
 (defn swapEditor "An area's editor changed: the area that showed the new one takes the old one." [from to]
   (dismiss)
-  (let [here (slot-of from)
-        there (slot-of to)]
-    (when (some? here)
+  (let [there (slot-of to)]
+    (when-some [here (slot-of from)]
       (set (str "state.areas." here) to)
-      (when (some? there) (set (str "state.areas." there) from)))))
+      (when-some [_ there] (set (str "state.areas." there) from)))))
 
 ;; A workspace sets the editors, the timeline's height, the shading and the properties' tab it is made for.
 (defn setWorkspace "A workspace tab chosen: Layout, Model, Materials, Animate or Render." [id name]
   (dismiss)
   (set "state.workspace" name)
-  (set "state.areas" {:a "viewport" :b (if (= id "shading") "shader" "timeline") :c "outliner" :d "properties"})
-  (set "state.sizes.left" [(cond (= id "animation") 520 (= id "shading") 470 (= id "modeling") 790 :else 720)])
-  (set "state.shading" (cond (= id "shading") "material" (= id "rendering") "rendered" :else "solid"))
+  (set "state.areas" {:a "viewport" :b (if (= id :shading) "shader" "timeline") :c "outliner" :d "properties"})
+  (set "state.sizes.left" [(case id :animation 520 :shading 470 :modeling 790 720)])
+  (set "state.shading" (case id :shading :material :rendering :rendered :solid))
   (set "state.xray" false)
-  (set "state.overlays" (not= id "rendering"))
-  (set "state.propTab" (cond (= id "shading") "material" (= id "rendering") "render" :else state.propTab)))
+  (set "state.overlays" (not= id :rendering))
+  (set "state.propTab" (case id :shading :material :rendering :render state.propTab)))
 
 (defn workspace-after "The workspace a step away from the one shown, round the tabs that need nothing." [step]
-  (let [tabs (filter (fn [w] (nil? (:needs w))) computed.workspaces)
-        next (get tabs (mod (+ (indexOf (map :name tabs) state.workspace) step (count tabs)) (count tabs)))]
-    (setWorkspace (:id next) (:name next))))
+  (let [tabs (filter #(nil? (:needs %)) computed.workspaces)
+        at (indexOf (map :name tabs) state.workspace)
+        {:keys [id name]} (get tabs (mod (+ at step (count tabs)) (count tabs)))]
+    (setWorkspace id name)))
 
 (defcommand nextWorkspace "Shows the next workspace."
   :title ~(t "command.nextWorkspace") :description ~(t "command.nextWorkspace.about")
@@ -164,7 +168,7 @@
   :title ~(t "command.toggleMaximize") :description ~(t "command.toggleMaximize.about")
   :category ~(t "category.view") []
   (dismiss)
-  (set "state.maximized" (if (some? state.maximized) nil (or state.hoverSlot "a"))))
+  (set "state.maximized" (when (nil? state.maximized) (or state.hoverSlot "a"))))
 
 ;;; The view
 
@@ -235,26 +239,31 @@
   (camera "#viewport" :zoom steps))
 
 (defn navDrag "A drag on the navigation buttons: the magnifier zooms, the hand pans." [id dx dy]
-  (let [view state.view.camera
-        distance (:distance view)
-        target (:target view)]
-    (cond (= id "zoom") (camera "#viewport" :zoom (* (- dy) 0.05))
-          (= id "pan") (set "state.view.camera.target"
-                            [(- (get target 0) (* (cos (:yaw view)) dx distance 0.002))
-                             (+ (get target 1) (* (sin (:yaw view)) dx distance 0.002))
-                             (+ (get target 2) (* dy distance 0.002))]))))
+  (let [{:keys [distance target yaw]} state.view.camera
+        [x y z] target]
+    (case id
+      :zoom (camera "#viewport" :zoom (* (- dy) 0.05))
+      :pan (set "state.view.camera.target"
+                [(- x (* (cos yaw) dx distance 0.002))
+                 (+ y (* (sin yaw) dx distance 0.002))
+                 (+ z (* dy distance 0.002))])
+      nil)))
 
 (defn navClick "A click on the navigation buttons: the camera looks through the scene's camera, the grid switches projection."
   [id]
-  (cond (= id "camera") (viewCamera)
-        (= id "ortho") (toggleProjection)))
+  (case id
+    :camera (viewCamera)
+    :ortho (toggleProjection)
+    nil))
 
 (defn orbitByDrag "The navigation ball dragged: the view turns by half a degree a pixel." []
-  (camera "#viewport" :orbit [(* (- (first state.dragLast) event.dx) 0.5) (* (- (second state.dragLast) event.dy) 0.5)])
+  (let [[x y] state.dragLast]
+    (camera "#viewport" :orbit [(* (- x event.dx) 0.5) (* (- y event.dy) 0.5)]))
   (set "state.dragLast" [event.dx event.dy]))
 
 (defn dragNav "A navigation button dragged: navDrag with how far the pointer went since the last move." [id]
-  (navDrag id (- event.dx (first state.dragLast)) (- event.dy (second state.dragLast)))
+  (let [[x y] state.dragLast]
+    (navDrag id (- event.dx x) (- event.dy y)))
   (set "state.dragLast" [event.dx event.dy]))
 
 (defn chooseSidebarTab "A tab of the viewport's sidebar chosen: Item, Tool or View." [tab]
