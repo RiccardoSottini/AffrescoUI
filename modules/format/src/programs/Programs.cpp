@@ -168,12 +168,12 @@ constexpr int maxRedefinitions = 64;
 
 bool Programs::redefinable() const {
 	// Running code holds its own reference: it keeps the code it started with, in the interpreter it started in
-	return live_ && live_.use_count() == 1 && program_ && redefinitions_ < maxRedefinitions &&
+	return live_ && live_.use_count() == 1 && redefinitions_ < maxRedefinitions &&
 	       (!extensions_ || (extensions_->hooks.empty() && extensions_->advice.empty()));
 }
 
 bool Programs::redefine(const json& section, const json& authors) {
-	if(!redefinable()) return false;
+	if(!program_ || !redefinable()) return false;
 	std::shared_ptr<const lisp::BuiltProgram> built;
 	try {
 		built = lisp::builtProgram(section); // judging the version built it: kept

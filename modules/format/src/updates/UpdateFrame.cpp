@@ -21,7 +21,7 @@ namespace {
 /// @param value The value.
 /// @return The ring, or none.
 /// @throws DocumentError If it is wrong.
-std::optional<FocusRing> focusRingOf(Engine& engine, const json& value) {
+std::optional<FocusRing> focusRingOf(const Engine& engine, const json& value) {
 	const std::string at = "window.focusRing";
 	if(value.is_boolean() && !value.get<bool>()) return std::nullopt;
 	if(!value.is_object()) return FocusRing{.color = engine.document.color(value, at)};

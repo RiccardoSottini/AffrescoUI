@@ -281,8 +281,8 @@ public:
 	/// @}
 
 private:
-	/// @brief Whether the live interpreter may be changed in place: one loaded and not running anything, fewer than
-	/// the changes allowed in it so far, and no hooks or advice.
+	/// @brief Whether the live interpreter may be changed in place (the caller checks that a program is loaded): one
+	/// not running anything, fewer than the changes allowed in it so far, and no hooks or advice.
 	/// @return Whether it may.
 	[[nodiscard]] bool redefinable() const;
 	/// @brief Refuses a step a feature's code leads to that it may not run (featureRunning()).
