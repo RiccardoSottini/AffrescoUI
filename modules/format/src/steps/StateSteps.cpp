@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <limits>
 #include <optional>
+#include <string_view>
 
 namespace affresco::format {
 
@@ -214,36 +215,59 @@ Written toggleStep(const Running& s, json& state) {
 	return written;
 }
 
-/// @brief Runs a state step.
-/// @param s The step.
-/// @return std::nullopt if it isn't one, else true.
-std::optional<bool> runStateStep(const Running& s) {
-	const json& step = s.step;
-	Engine& engine = s.steps.engine();
-	json& state = engine.versions.state();
-	const bool settings = engine.versions.document().contains("settings");
-	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
+/// @brief The key a state step names its place with.
+/// @param step The step.
+/// @return "set", "push", "remove", "toggle" or "increment", or nullptr if it isn't a state step.
+const char* stateKey(const json& step) {
+	for(const char* key : {"set", "push", "remove", "toggle", "increment"})
+		if(step.contains(key)) return key;
+	return nullptr;
+}
 
+/// @brief Runs a state step's write.
+/// @param s The step.
+/// @param key Its key (stateKey()).
+/// @param state The state.
+/// @return What it wrote.
+Written writeStep(const Running& s, const std::string_view key, json& state) {
+	if(key == "set") return setStep(s, state);
+	if(key == "push") return pushStep(s, state);
+	if(key == "toggle") return toggleStep(s, state);
 	Written written;
-	if(step.contains("set")) {
-		written = setStep(s, state);
-	} else if(step.contains("push")) {
-		written = pushStep(s, state);
-	} else if(step.contains("remove")) {
+	if(key == "remove") {
 		std::optional<std::size_t> removedAt;
 		written.pointer = removeFrom(s, state, removedAt);
 		if(removedAt) {
 			written.list = ListChange::Kind::Removed;
 			written.index = *removedAt;
 		}
-	} else if(step.contains("toggle")) {
-		written = toggleStep(s, state);
-	} else if(step.contains("increment")) {
-		written.pointer = s.target("increment");
-		written.changed = createdPlace(state, written.pointer);
-		written.unchanged = !increment(s, state, written.pointer);
-	} else {
-		return std::nullopt;
+		return written;
+	}
+	written.pointer = s.target("increment");
+	written.changed = createdPlace(state, written.pointer);
+	written.unchanged = !increment(s, state, written.pointer);
+	return written;
+}
+
+/// @brief Runs a state step.
+/// @param s The step.
+/// @return std::nullopt if it isn't one, else true.
+std::optional<bool> runStateStep(const Running& s) {
+	const char* key = stateKey(s.step);
+	if(!key) return std::nullopt;
+	Engine& engine = s.steps.engine();
+	json& state = engine.versions.state();
+	const bool settings = engine.versions.document().contains("settings");
+	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
+
+	// A write that fails may have made the places on its way first (a list grown with nulls, a member added)
+	const json::json_pointer made = createdPlace(state, s.target(key));
+	Written written;
+	try {
+		written = writeStep(s, key, state);
+	} catch(const DocumentError&) {
+		engine.document.markStateChanged(made);
+		throw;
 	}
 	if(written.unchanged) return true; // an equal write: nothing to check, mark or update
 	if(settings) checkSettingsWritten(engine, before, s.where);

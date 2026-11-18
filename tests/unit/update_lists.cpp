@@ -12,6 +12,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
 #include <map>
@@ -425,5 +426,29 @@ TEST_CASE("lists: two repeats over one list, the first reconciled in full, the s
 			CHECK(built.errors.empty());
 			CHECK(asBuiltAgain(built));
 		}
+	}
+}
+
+// Found by fuzzing (tests/fuzz, updates): a push, then a remove from a list that isn't there, in one update
+TEST_CASE("lists: a state step that fails after making the places on its way updates what reads them") {
+	// A remove from a list that isn't there, or a push whose value fails, makes the list's place first (the list of
+	// columns grows with nulls): what reads it updates as a full pass does
+	json document = listScreen(2);
+	document["state"]["columns"] = json::array({json{{"cards", json::array({1})}}});
+	document["actions"]["drop"] = json::parse(R"([{ "remove": "state.columns[event.c].cards", "at": 0 }])");
+	document["actions"]["add"] =
+	    json::parse(R"([{ "push": "state.columns[event.c].cards", "value": "{{nosuch(event.c)}}" }])");
+	document["root"]["children"].push_back(
+	    json{{"type", "column"},
+	         {"children", json::array({json{{"type", "label"},
+	                                        {"repeat", {{"for", "column"}, {"in", "state.columns"}}},
+	                                        {"text", "{{length(column.cards)}}"}}})}});
+	for(const std::string action : {"drop", "add"}) {
+		CAPTURE(action);
+		Built built(document, true);
+		built.runtime.runAction(action.c_str(), built.window->root(), json{{"c", 3}});
+		built.window->routeKey({affresco::Key::Unknown, 0, affresco::Action::Release, {}}); // runs what was deferred
+		CHECK(std::ranges::none_of(built.errors, [](const std::string& e) { return e.contains("update check"); }));
+		CHECK(asBuiltAgain(built));
 	}
 }
