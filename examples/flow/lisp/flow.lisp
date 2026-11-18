@@ -249,22 +249,22 @@
 (defn setPriority "The priority from 0 (none) to 4 (low); every marked card while some are." [p]
   (if (seq state.marked)
     (bulkPriority p)
-    (when (some? computed.card)
+    (when-some [_ computed.card]
       (updateCard {:priority p})
       (set "state.issuePriorityOpen" false))))
 
 (defn setEstimate "The points." [n]
   (set "state.issueEstimateOpen" false)
-  (when (some? computed.card) (updateCard {:points n})))
+  (when-some [_ computed.card] (updateCard {:points n})))
 
 (defn setTag "The issue's main label; its project follows it." [tag]
   (set "state.issueTagOpen" false)
-  (when (some? computed.card) (updateCard {:tag tag})))
+  (when-some [_ computed.card] (updateCard {:tag tag})))
 
 (defn setAssignee "A member's initials; every marked card while some are." [who]
   (if (seq state.marked)
     (bulkAssignee who)
-    (when (some? computed.card)
+    (when-some [_ computed.card]
       (updateCard {:who who})
       (set "state.issueWhoOpen" false))))
 
@@ -272,10 +272,10 @@
   (set "state.issueStatusOpen" false)
   (if (seq state.marked)
     (bulkStatus to)
-    (when (some? computed.card) (moveCard state.selected.c state.selected.i to))))
+    (when-some [_ computed.card] (moveCard state.selected.c state.selected.i to))))
 
 (defn setDue "A date, or nil to clear it." [date]
-  (when (some? computed.card)
+  (when-some [_ computed.card]
     (updateCard {:due date})
     (set "state.dueOpen" false)))
 
@@ -287,7 +287,7 @@
   (or (get computed.card field) []))
 
 (defn toggleListItem "Adds a label or an assignee to the selected card, or removes it." [field value]
-  (when (some? computed.card)
+  (when-some [_ computed.card]
     (let [items (listOf field)]
       (updateCard {field (if (contains items value) (remove #{value} items) (conj items value))}))))
 
@@ -305,10 +305,10 @@
                                        computed.card.checklist)}))
 
 (defn editNotes "Edits the chosen card's description in place." []
-  (when (some? computed.card) (set "state.draft" {:editing true :notes (or computed.card.notes "")})))
+  (when-some [card computed.card] (set "state.draft" {:editing true :notes (or (:notes card) "")})))
 
 (defn saveNotes "Keeps the description being edited." []
-  (when (some? computed.card)
+  (when-some [_ computed.card]
     (updateCard {:notes state.draft.notes})
     (set "state.draft.editing" false)
     (notify (t "toast.saved"))))
