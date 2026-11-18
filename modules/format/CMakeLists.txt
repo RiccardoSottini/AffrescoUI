@@ -101,7 +101,7 @@ target_sources(affrescoui_format PRIVATE
 	src/nodes/CompiledNode.cpp
 	src/nodes/Binding.cpp)
 target_include_directories(affrescoui_format PRIVATE src/nodes)
-# src/updates/: reads, models, list items, the item index, the reconciler and its children lists, the update's frame,
+# src/updates/: reads, models, list items, the reconciler and its children lists, the update's frame,
 # watches, the tracker of readers, the place index, scope layers and the check of partial updates (Verify)
 target_sources(affrescoui_format PRIVATE
 	src/updates/Reconciler.cpp
@@ -113,7 +113,6 @@ target_sources(affrescoui_format PRIVATE
 	src/updates/ScopeLayers.cpp
 	src/updates/Verify.cpp
 	src/updates/Reads.cpp
-	src/updates/ItemIndex.cpp
 	src/updates/Models.cpp
 	src/updates/ListItems.cpp)
 target_include_directories(affrescoui_format PRIVATE src/updates)

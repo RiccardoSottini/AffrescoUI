@@ -139,13 +139,6 @@ private:
 		StateChanges others{};            ///< The changes for the panels below: all but the lists that changed shape.
 		bool shapes = false;              ///< A list changes shape.
 	};
-	/// @brief A child of the list a change may meet, found before the list changes.
-	struct Visit {
-		std::size_t entry = 0; ///< Its element.
-		std::size_t row = 0;   ///< Its row's number, before the change.
-		bool changes = false;  ///< It may read Plan::others.
-		bool shape = false;    ///< It reads more than its item: it may read a list's shape or its number.
-	};
 
 	/// @brief Builds every child again, keeping each panel a child with the same key (or place) and type had.
 	/// @param node The node.
@@ -241,21 +234,6 @@ private:
 	/// @return false if a row's key changes, or it can't get or lose its panel in place: every child is built again.
 	bool prepareRows(ListState& state, std::size_t index, const StateChanges& changes, EntryPlan& plan,
 	                 const Panel& panel, std::size_t first);
-	/// @brief The children a change may meet, before the list changes.
-	/// @param panel The panel.
-	/// @param record Its record.
-	/// @param plan The plan.
-	/// @return Them.
-	[[nodiscard]] static std::vector<Visit> visitsOf(const Panel& panel, const Record& record, const Plan& plan);
-	/// @brief The children the item index says a change may meet.
-	/// @param panel The panel.
-	/// @param record Its record.
-	/// @param plan The plan.
-	/// @param allChanges Set if every child may meet the changes besides the shapes.
-	/// @param allShapes Set if every child may read a list's shape or its number.
-	/// @return The children by position, in order, each with what it may read: 1 the changes, 2 a shape.
-	[[nodiscard]] static std::vector<std::pair<std::size_t, int>>
-	chosenOf(const Panel& panel, const Record& record, const Plan& plan, bool& allChanges, bool& allShapes);
 	/// @brief Inserts, removes and builds again the rows of the plan, numbering the rows after them again.
 	/// @param panel The panel.
 	/// @param record Its record.
@@ -263,21 +241,6 @@ private:
 	/// @param plan The plan.
 	/// @param changes What changed.
 	void apply(Panel& panel, Record& record, int depth, Plan& plan, const StateChanges& changes);
-	/// @brief Updates the children a change may meet: what they read of it, a list's shape and their number.
-	/// @param state The rows.
-	/// @param depth Their depth.
-	/// @param plan The plan.
-	/// @param visits Them, as found before the list changed.
-	void deliver(ListState& state, int depth, const Plan& plan, const std::vector<Visit>& visits);
-	/// @brief The changes one child a change may meet gets.
-	/// @param state The rows.
-	/// @param plan The plan.
-	/// @param visit The child.
-	/// @param number Its row's number now.
-	/// @param reads What it reads.
-	/// @return Them.
-	[[nodiscard]] static StateChanges changesFor(const ListState& state, const Plan& plan, const Visit& visit,
-	                                             std::size_t number, const ReadSet& reads);
 	/// @brief Builds or destroys a row's panel, or builds it again, after its "when", key or variables changed.
 	/// @param panel The panel.
 	/// @param state The rows.

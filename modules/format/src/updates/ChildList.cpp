@@ -69,34 +69,6 @@ bool touches(const ReadSet& reads, const std::string& path) {
 	return reads.touchedBy(one);
 }
 
-/// @brief What a kept row's panels read of a list beyond their own item.
-struct Reach {
-	bool list = false;   ///< The list, a place around it, or another row.
-	bool number = false; ///< The row's number (indexKey).
-};
-
-/// @brief What panels read of a list beyond one item.
-/// @param reads What they read.
-/// @param list The list's place.
-/// @param recorded The number of their row when they read it (ItemPlace::noRow: none).
-/// @return It.
-Reach reachOf(const ReadSet& reads, std::string_view list, std::size_t recorded) {
-	if(reads.always) return {.list = true, .number = true};
-	Reach reach;
-	const std::string own = std::to_string(recorded);
-	for(const std::string& read : reads.paths) {
-		if(!contains(list, read)) {
-			reach.list = reach.list || contains(read, list, true);
-			continue;
-		}
-		std::string_view key = std::string_view(read).substr(std::min(read.size(), list.size() + 1U));
-		key = key.substr(0, key.find('/'));
-		if(key == indexKey) reach.number = true;
-		else if(read.size() == list.size() || key != own) reach.list = true;
-	}
-	return reach;
-}
-
 /// @brief A row's item, as its variables hold it.
 /// @param entry Its repeat.
 /// @param row The row.
@@ -382,9 +354,6 @@ void ChildList::reconcileAll(const CompiledNode& node, Panel& panel, Record& rec
 	}
 	if(items) arrange(panel, record, *items, depth + 1, changes, state);
 	else state.tracked = false;
-	if(state.tracked)
-		for(const ListEntry& entry : state.entries)
-			if(entry.placed) reads.addPath(entry.place()); // a change inside an item comes here (partial())
 	record.list = std::move(state);
 	reconciler_.listReconciled(panel, record, std::move(reads));
 }
@@ -395,6 +364,12 @@ void ChildList::reconcileChildren(const CompiledNode& node, Panel& panel, Record
 		fail(path, "nodes nested too deeply (more than " + std::to_string(maxNodeDepth) +
 		               " levels: a component or a screen inside itself?)");
 	if(changes && record.list.tracked && record.list.node == &node && partial(panel, record, depth, *changes)) return;
+	if(changes) // the rows' readers of a list whose shape changed were left to this list: they run
+		for(const ListChange& change : changes->lists)
+			if(!record.list.tracked || std::ranges::any_of(record.list.entries, [&](const ListEntry& entry) {
+				   return entry.placed && entry.place() == change.place;
+			   }))
+				engine_.tracker.rerunRows(change.place);
 	reconcileAll(node, panel, record, path, depth, changes);
 }
 
@@ -522,45 +497,6 @@ bool ChildList::prepareRows(ListState& state, std::size_t index, const StateChan
 	return true;
 }
 
-std::vector<std::pair<std::size_t, int>> ChildList::chosenOf(const Panel& panel, const Record& record, const Plan& plan,
-                                                             bool& allChanges, bool& allShapes) {
-	const std::size_t count = panel.children().size();
-	std::vector<std::pair<std::size_t, int>> chosen;
-	if(!plan.others.empty()) {
-		const auto found = record.items.visits(plan.others, count);
-		allChanges = !found;
-		if(found)
-			for(const std::size_t i : *found) chosen.emplace_back(i, 1);
-	}
-	if(plan.shapes) { // those that read more than their item: their numbers, the list, another row
-		const auto found = record.items.visits(StateChanges{}, count);
-		allShapes = !found;
-		if(found)
-			for(const std::size_t i : *found) chosen.emplace_back(i, 2);
-	}
-	std::ranges::sort(chosen);
-	return chosen;
-}
-
-std::vector<ChildList::Visit> ChildList::visitsOf(const Panel& panel, const Record& record, const Plan& plan) {
-	bool allChanges = false;
-	bool allShapes = false;
-	const std::vector<std::pair<std::size_t, int>> chosen = chosenOf(panel, record, plan, allChanges, allShapes);
-	std::vector<Visit> visits;
-	std::size_t child = record.firstManaged;
-	std::size_t next = 0;
-	for(std::size_t i = 0; i < record.list.entries.size(); ++i)
-		for(std::size_t k = 0; k < record.list.entries[i].rows.size(); ++k) {
-			if(!record.list.entries[i].rows[k].panel) continue;
-			Visit visit{.entry = i, .row = k, .changes = allChanges, .shape = allShapes};
-			for(; next < chosen.size() && chosen[next].first <= child; ++next)
-				if(chosen[next].first == child) (chosen[next].second == 1 ? visit.changes : visit.shape) = true;
-			if(visit.changes || visit.shape) visits.push_back(visit);
-			++child;
-		}
-	return visits;
-}
-
 void ChildList::replaceRow(Panel& panel, ListState& state, std::size_t index, std::size_t number, ListRow row,
                            std::optional<Item>& item, int depth, const StateChanges& changes) {
 	ListRow& old = state.entries[index].rows[number];
@@ -607,6 +543,10 @@ void ChildList::apply(Panel& panel, Record& record, int depth, Plan& plan, const
 		entry.rows.erase(from, from + static_cast<std::ptrdiff_t>(part.removed));
 		entry.rows.insert(entry.rows.begin() + static_cast<std::ptrdiff_t>(part.at),
 		                  std::make_move_iterator(part.rows.begin()), std::make_move_iterator(part.rows.end()));
+		if(entry.placed) // what the kept rows read of their items moves with them: they don't run
+			engine_.tracker.shift(entry.place(), part.at + part.removed,
+			                      static_cast<std::ptrdiff_t>(part.inserted) -
+			                          static_cast<std::ptrdiff_t>(part.removed));
 		for(std::size_t j = 0, at = position; j < part.items.size(); ++j) {
 			std::optional<Item>& item = part.items[j];
 			if(!item) continue;
@@ -614,55 +554,12 @@ void ChildList::apply(Panel& panel, Record& record, int depth, Plan& plan, const
 			row.panel = &build(panel, at++, *item, depth);
 			countKey(state, typeOf(*item->node, item->path), row.key, true);
 		}
-		for(std::size_t k = part.at + part.inserted; k < entry.rows.size(); ++k) entry.rows[k].scope->renumber(k);
+		for(std::size_t k = part.at + part.inserted; k < entry.rows.size(); ++k) {
+			entry.rows[k].scope->renumber(k);
+			entry.rows[k].recorded = k; // their reads moved with them (Tracker::shift())
+		}
 	}
 	record.managed = panel.children().size() - record.firstManaged;
-}
-
-StateChanges ChildList::changesFor(const ListState& state, const Plan& plan, const Visit& visit, std::size_t number,
-                                   const ReadSet& reads) {
-	StateChanges changes;
-	if(visit.changes) changes = plan.others;
-	if(!visit.shape) return changes;
-	for(std::size_t i = 0; i < state.entries.size(); ++i) {
-		const EntryPlan& part = plan.entries[i];
-		if(!part.shape || part.inserted + part.removed == 0U) continue;
-		const ListEntry& entry = state.entries[i];
-		const bool own = i == visit.entry;
-		const std::string list = entry.place();
-		const Reach reach = reachOf(reads, list, own ? entry.rows[number].recorded : ItemPlace::noRow);
-		if(reach.list) changes.add(list);
-		if(own && reach.number && number != visit.row) changes.add(list + '/' + std::string(indexKey));
-	}
-	return changes;
-}
-
-void ChildList::deliver(ListState& state, int depth, const Plan& plan, const std::vector<Visit>& visits) {
-	for(const Visit& visit : visits) {
-		const EntryPlan& part = plan.entries[visit.entry];
-		std::size_t number = visit.row;
-		if(part.shape && number >= part.at) {
-			if(number < part.at + part.removed) continue; // destroyed
-			number = number - part.removed + part.inserted;
-		}
-		if(std::ranges::binary_search(part.numbers, number) && !part.shape) continue; // built again already
-		ListEntry& entry = state.entries[visit.entry];
-		ListRow& row = entry.rows[number];
-		Record* record = row.panel ? reconciler_.recordOf(row.panel) : nullptr;
-		if(!record) continue;
-		const StateChanges changes = changesFor(state, plan, visit, number, record->subtreeReads);
-		if(changes.empty()) continue;
-		const bool stale = entry.placed && row.recorded != number;
-		if(stale && std::ranges::any_of(changes.paths, [&](const std::string& path) {
-			   return overlaps(row.scope->origin(), path);
-		   })) { // its panels read its item under its old number: built again under the new one
-			Item item{record->node, record->locals, entry.at + "[" + std::to_string(number) + "]", row.key};
-			rebuild(*row.panel, item, depth);
-			row.recorded = number;
-			continue;
-		}
-		reconciler_.updatePanel(*row.panel, *record, changes, depth);
-	}
 }
 
 // What changed is sorted by list first, and the new rows built, so that anything this can't follow builds every child
@@ -674,14 +571,14 @@ bool ChildList::partial(Panel& panel, Record& record, int depth, const StateChan
 	if(!classify(state, changes, plan)) return false;
 	for(std::size_t i = 0; i < state.entries.size(); ++i)
 		if(!prepare(state, i, changes, plan.entries[i], panel, record.firstManaged)) return false;
-	const std::vector<Visit> visits = visitsOf(panel, record, plan);
+	for(std::size_t i = 0; i < state.entries.size(); ++i) // written whole, the kept rows' items are what they were
+		if(const std::string place = state.entries[i].placed ? state.entries[i].place() : std::string();
+		   plan.entries[i].shape && std::ranges::find(changes.lists, place, &ListChange::place) == changes.lists.end())
+			engine_.tracker.keepRows(place, changes);
 	apply(panel, record, depth + 1, plan, changes);
-	deliver(record.list, depth + 1, plan, visits);
 	ReadSet reads;
-	for(const ListEntry& entry : record.list.entries) {
-		reads.add(entry.reads);
-		if(entry.placed) reads.addPath(entry.place());
-	}
+	for(const ListEntry& entry : record.list.entries) reads.add(entry.reads); // a change inside an item: its rows'
+
 	reconciler_.listReconciled(panel, record, std::move(reads));
 	return true;
 }
