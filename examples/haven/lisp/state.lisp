@@ -4,6 +4,8 @@
 ;;; their own state beside their views: the floor plan's in plan.lisp, the automations' and security's in
 ;;; automations.lisp, the more-info dialog's in moreinfo.lisp, the settings' in settings.lisp.
 
+(ns haven.state)
+
 ;;; The page shown
 
 (defstate theme light "Light, dark, or auto to follow the system." :type {:enum [auto dark light]})

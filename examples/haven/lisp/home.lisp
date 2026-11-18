@@ -4,11 +4,13 @@
 ;;; picture, its lights, the scenes and the alarm; on the end side, the climate, the blinds and the devices. While
 ;;; the cards are being arranged, the top bar turns into the editing bar and each card shows its frame.
 
+(ns haven.home)
+
 ;;; The page
 
 (defview home-page "The home page: the top bar, the summary, and the room's cards." []
   `(node#main :dir auto
-     :when ~(= state.page "home")
+     :when ~(= state.page :home)
      :anchors {:left ~computed.sideWidth :right 0 :top 0 :bottom 32}
      :color transparent
      ~(top-bar)
@@ -255,7 +257,7 @@
   `(grid#lights :columns 2
      :gap 8
      :anchors {:left ~(if state.editing 10 0) :right ~(if state.editing 10 0) :top ~(if computed.compact 30 166)}
-     :height ~(- (* (ceil (/ (count computed.room.lights) 2)) 112) 8)
+     :height ~(-> (count computed.room.lights) (/ 2) ceil (* 112) (- 8))
      :role list
      ~(repeat [light computed.room.lights :index i]
        (light-tile light i))))
@@ -423,7 +425,7 @@
        :onClick ~(handler setTarget 0.5))))
 
 (defview mode-button "A heating mode, in its colour while it is the one chosen." [mode]
-  `(label#panel-mode :icon ~(cond (= mode "Heat") "flame" (= mode "Cool") "snowflake" :else "sun-snow")
+  `(label#panel-mode :icon ~(case mode "Heat" "flame" "Cool" "snowflake" "sun-snow")
      :text ""
      :width 44
      :height 44

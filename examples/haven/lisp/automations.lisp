@@ -4,6 +4,8 @@
 ;;; do) beside the trace of its last run. The flow tab shows the rules as a node graph, and the schedules of the day
 ;;; on a timeline whose clips move and stretch by the hour.
 
+(ns haven.automations)
+
 ;;; What the page keeps
 
 (defstate autoTab list "The tab shown: the list, or the flow.")
@@ -99,22 +101,23 @@
   `(t (str "rule." (or-else (:title ~rule) (:id ~rule)))))
 
 (defmacro matches-search "Whether an automation's name holds the list's search, or there is none." [rule]
-  `(or (= state.autoQuery "") (contains (lower-case (rule-name ~rule)) (lower-case (trim state.autoQuery)))))
+  `(or (= state.autoQuery "")
+       (str/includes? (str/lower-case (rule-name ~rule)) (str/lower-case (str/trim state.autoQuery)))))
 
 (defcomputed openAuto "The automation open in the editor." (get state.automations (max state.autoOpen 0)))
 
-(defcomputed autoOnCount "How many automations are on." (count (filter (fn [it] it.on) state.automations)))
+(defcomputed autoOnCount "How many automations are on." (count (filter :on state.automations)))
 
 (defcomputed autoShown "How many automations the list shows."
-  (count (filter (fn [it] (matches-search it)) state.automations)))
+  (count (filter #(matches-search %) state.automations)))
 
 (defcomputed autoGraph "The flow's nodes, named in the language shown, as the graph draws them."
   (map (fn [it]
          (merge it
                 {:title (t (str "auto." it.kind))
                  :width 170
-                 :inputs (map (fn [it] (merge it {:label (t (str "port." it.id))})) (or-else it.inputs []))
-                 :outputs (map (fn [it] (merge it {:label (t (str "port." it.id))})) (or-else it.outputs []))}))
+                 :inputs (map #(merge % {:label (t (str "port." (:id %)))}) (or-else it.inputs []))
+                 :outputs (map #(merge % {:label (t (str "port." (:id %)))}) (or-else it.outputs []))}))
        state.autoNodes))
 
 (defcomputed scheduleTracks "The schedules, named in the language shown, as the timeline draws them."
@@ -133,7 +136,7 @@
   {}
   `(node :color transparent
      (node#automationsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @header :role banner)
-     (label#automationsTitle :when ~(or (< state.autoOpen 0) (= state.autoTab "flow"))
+     (label#automationsTitle :when ~(or (< state.autoOpen 0) (= state.autoTab :flow))
        :font heading
        :text ~(t "page.automations")
        :textColor @onHeader
@@ -147,17 +150,17 @@
      ~(delete-question)
      ~(rule-list)
      ~(rule-editor)
-     (node#automationsSummary :when ~(= state.autoTab "flow") :style caption :text ~(t "auto.summary")
+     (node#automationsSummary :when ~(= state.autoTab :flow) :style caption :text ~(t "auto.summary")
        :anchors {:left 308 :top 73})
      ~(add-node-buttons)
-     (node#autoCard :when ~(= state.autoTab "flow")
+     (node#autoCard :when ~(= state.autoTab :flow)
        :style card
        :anchors {:left 32 :right 32 :top 104 :bottom "#scheduleCard.top - 16"}
        ~(rule-graph))
      ~(schedule-card)))
 
 (defview page-tabs "The two tabs: the list and the flow." []
-  `(row#autoTabs :when ~(or (< state.autoOpen 0) (= state.autoTab "flow"))
+  `(row#autoTabs :when ~(or (< state.autoOpen 0) (= state.autoTab :flow))
      :anchors {:left 32 :top 68}
      :width 260
      :height 28
@@ -180,7 +183,7 @@
      :onClick ~(handler showAutomationTab tab)))
 
 (defview list-search "The search over the list's names." []
-  `(node#autoSearchBox :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoSearchBox :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :anchors {:left 308 :top 64}
      :width 300
      :height 36
@@ -196,7 +199,7 @@
        :label ~(t "auto.search"))))
 
 (defview new-button "The floating button that makes a new automation." []
-  `(node#autoNew :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoNew :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :style button
      :icon plus
      :text ~(t "auto.new")
@@ -250,10 +253,10 @@
 ;;; The list
 
 (defview rule-list "The automations, a row each, under the columns' names." []
-  `(node#autoList :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoList :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :style card
      :anchors {:left 32 :right 32 :top 112}
-     :height ~(min (+ (* (max 1 computed.autoShown) 64) 56) (if computed.compact 420 520))
+     :height ~(-> computed.autoShown (max 1) (* 64) (+ 56) (min (if computed.compact 420 520)))
      {:style caption :text ~(t "auto.colName") :anchors {:left 88 :top 14}}
      {:style caption
       :text ~(t "auto.colRan")
@@ -273,7 +276,7 @@
             :role listitem
             ~(rule-row auto i)
             ~(rule-menu auto i)
-            {:when ~(< i (- (count state.automations) 1)) :anchors {:left 24 :right 24 :bottom 0} :height 1
+            {:when ~(< i (dec (count state.automations))) :anchors {:left 24 :right 24 :bottom 0} :height 1
              :color @border})))))
 
 (defview rule-row "A row of the list: the automation's icon, name and last run; it opens the editor." [auto i]
@@ -336,7 +339,7 @@
 ;;; The editor
 
 (defview rule-editor "The automation open: its bar and menu, a banner while it is off, its parts, and its last run." []
-  `(node#autoEditor :when ~(and (= state.autoTab "list") (>= state.autoOpen 0))
+  `(node#autoEditor :when ~(and (= state.autoTab :list) (>= state.autoOpen 0))
      :anchors {:left 0 :right 0 :top 0 :bottom 0}
      :color transparent
      (node#autoBack :style button
@@ -433,18 +436,18 @@
      {:anchors {:left 0 :right 0} :height 12 :color transparent}))
 
 (defmacro part-steps "The open automation's steps of a part." [part]
-  `(filter (fn [it] (= it.part ~part)) computed.openAuto.steps))
+  `(filter #(= (:part %) ~part) computed.openAuto.steps))
 
 (defcomponent autoSection "A part of the automation editor as a card: its steps, each with its menu, and an add button."
   {:part when :title "" :hint "" :addLabel ""}
   `(node :style card
      :anchors {:left 0 :right 12}
-     :height ~(+ (* (max 1 (count (part-steps part))) 54) 116)
+     :height ~(-> (part-steps part) count (max 1) (* 54) (+ 116))
      :role group
      :label ~title
      {:style cardTitle :text ~title :anchors {:left 20 :top 16}}
      {:style caption :text ~hint :anchors {:left 20 :top 42}}
-     {:style caption :when ~(= (count (part-steps part)) 0) :text ~(t "auto.empty") :anchors {:left 24 :top 80}}
+     {:style caption :when ~(empty? (part-steps part)) :text ~(t "auto.empty") :anchors {:left 24 :top 80}}
      (column :anchors {:left 12 :right 12 :top 68} :height ~(* (count (part-steps part)) 54) :gap 6 :role list
        :label ~title
        ~(repeat [step computed.openAuto.steps :index s]
@@ -525,7 +528,7 @@
 
 (defview trace-step "A step of the last run: a tick, its words, its part and when it ran." [step s]
   `(node :anchors {:left 0 :right 0} :height 52 :color transparent :role listitem
-     {:when ~(< s (- (count computed.openAuto.steps) 1)) :anchors {:left 11 :top 26 :bottom 0} :width 2 :color @border}
+     {:when ~(< s (dec (count computed.openAuto.steps))) :anchors {:left 11 :top 26 :bottom 0} :width 2 :color @border}
      (label :icon check
        :text ""
        :font small
@@ -549,7 +552,7 @@
 ;;; The flow and the schedules
 
 (defview add-node-buttons "The buttons that add a node to the flow: a time, a check of the dark, a scene." []
-  `(row#autoAdd :when ~(= state.autoTab "flow")
+  `(row#autoAdd :when ~(= state.autoTab :flow)
      :anchors {:right 32 :top 28}
      :width 330
      :height 30
@@ -592,7 +595,7 @@
      :onDelete deleteNodes))
 
 (defview schedule-card "The day's schedules on a timeline: a track each, the hours across." []
-  `(node#scheduleCard :when ~(= state.autoTab "flow")
+  `(node#scheduleCard :when ~(= state.autoTab :flow)
      :style card
      :anchors {:left 32 :right 32 :bottom 24}
      :height ~(if computed.compact 156 196)
@@ -604,7 +607,8 @@
        :tracks ~computed.scheduleTracks
        :duration 24
        :fps 1
-       :pixelsPerSecond ~(max 16 (/ (- (- (- (- window.width computed.sideWidth) 64) 16) 140) 24))
+       :pixelsPerSecond ~(max 16 (/ (- window.width computed.sideWidth 64 16 140) 24))
+
        :offset 0
        :time 14
        :headerWidth 140

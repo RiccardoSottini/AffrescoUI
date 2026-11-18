@@ -3,12 +3,6 @@
 		"launcher/lisp"
 	],
 	"allowed": {
-		"fn-one-parameter": 32,
-		"if-nil": 1,
-		"cond-one-value": 2,
-		"count-zero": 5,
-		"string-function": 11,
-		"four-nested-calls": 37,
-		"entry-include": 1
+		"four-nested-calls": 5
 	}
 }
