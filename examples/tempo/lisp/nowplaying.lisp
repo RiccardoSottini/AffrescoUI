@@ -39,14 +39,12 @@
 
 (defcomputed bars "The bars, as a path."
   (join " "
-        (map-indexed (fn [index it]
-                       (str "M " (+ (* index 10) 2) " " (- 84 (* it 80)) " h 6 V 84 h -6 Z"))
+        (map-indexed (fn [index it] (str "M " (+ (* index 10) 2) " " (- 84 (* it 80)) " h 6 V 84 h -6 Z"))
                      computed.barHeights)))
 
 (defcomputed barReflections "The bars' reflections, as a path."
   (join " "
-        (map-indexed (fn [index it]
-                       (str "M " (+ (* index 10) 2) " 86 h 6 V " (+ 86 (* it 28)) " h -6 Z"))
+        (map-indexed (fn [index it] (str "M " (+ (* index 10) 2) " 86 h 6 V " (+ 86 (* it 28)) " h -6 Z"))
                      computed.barHeights)))
 
 ;;; Now playing
@@ -202,9 +200,7 @@
      :align center
      :textColor ~(if state.eqOn "@text" "@muted")
      :height 20
-     :text ~(let [db (gain band)]
-              (t "sound.band" {:label band.label :gain (str (if (pos? db) "+" "") db)}))))
-
+     :text ~(t "sound.band" {:label band.label :gain (str (if (pos? (gain band)) "+" "") (gain band))})))
 
 (defview crossfade "The crossfade's caption, slider and seconds: three nodes." []
   [`(node#crossfadeCaption :style caption :text ~(t "sound.crossfade") :anchors {:left 32 :top 364})
