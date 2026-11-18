@@ -47,11 +47,14 @@ void runCounted(Engine& engine, const Record& record, Panel& panel, std::string_
 /* Connections */
 
 void Events::connect(Window& window) {
-	// Bindings can use the window size
-	windowHooks_.resized =
-	    window.onResize.connect([this](const ResizeEvent&) { engine_.reconciler.requestReconcile(); });
+	// What reads `window` is evaluated again: its size, scale, colour scheme or caps lock changed
+	const auto windowChanged = [this] {
+		engine_.document.markGlobalChanged("window");
+		engine_.reconciler.requestStateUpdate();
+	};
+	windowHooks_.resized = window.onResize.connect([windowChanged](const ResizeEvent&) { windowChanged(); });
 	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
-	windowHooks_.key = window.onKey.connect([this](const KeyEvent& event) {
+	windowHooks_.key = window.onKey.connect([this, windowChanged](const KeyEvent& event) {
 		if(!keyResolved_ && engine_.window) {
 			Panel* focused = engine_.window->focusedPanel();
 			if(!resolve(focused, event)) navigate(focused, event);
@@ -60,12 +63,11 @@ void Events::connect(Window& window) {
 		// Bindings can use window.capsLock
 		if(event.mods.capsLock() != capsLock_) {
 			capsLock_ = event.mods.capsLock();
-			engine_.reconciler.requestReconcile();
+			windowChanged();
 		}
 	});
 	// The display's scale or the system's colour scheme changed: bindings can use them
-	windowHooks_.display =
-	    window.onDisplay.connect([this](const DisplayEvent&) { engine_.reconciler.requestReconcile(); });
+	windowHooks_.display = window.onDisplay.connect([windowChanged](const DisplayEvent&) { windowChanged(); });
 	// Files dropped from the OS: the node under the pointer with "onDrop" (or an ancestor) gets their paths
 	windowHooks_.drop = window.onDrop.connect([this](const DropEvent& event) {
 		if(!engine_.window) return;

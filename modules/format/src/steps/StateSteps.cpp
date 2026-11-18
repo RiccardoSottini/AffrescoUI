@@ -49,6 +49,49 @@ json::json_pointer createdPlace(const json& state, json::json_pointer pointer) {
 	return pointer;
 }
 
+/// The values a comparison of two values looks at before it counts them as different: an equal write of a large
+/// value isn't worth comparing.
+constexpr std::size_t comparedValues = 4096;
+
+/// @brief Whether two values are the same, of the same types (1 and 1.0 differ: they are shown differently; a signed
+/// and an unsigned integer don't).
+/// @param a A value.
+/// @param b Another.
+/// @param budget The values it may still look at; spent as it looks.
+/// @return true if they are the same; false if they differ, or the budget ran out first.
+bool sameValue(const json& a, const json& b, std::size_t& budget) {
+	if(budget == 0 || (a.type() != b.type() && !(a.is_number_integer() && b.is_number_integer()))) return false;
+	--budget;
+	if(a.is_object()) {
+		if(a.size() != b.size()) return false;
+		for(auto it = a.begin(); it != a.end(); ++it) {
+			const auto other = b.find(it.key());
+			if(other == b.end() || !sameValue(*it, *other, budget)) return false;
+		}
+		return true;
+	}
+	if(a.is_array()) {
+		if(a.size() != b.size()) return false;
+		for(std::size_t i = 0; i < a.size(); ++i)
+			if(!sameValue(a[i], b[i], budget)) return false;
+		return true;
+	}
+	return a == b;
+}
+
+/// @brief Writes a value at a place of the state, unless it holds the same value already.
+/// @param s The step, for errors.
+/// @param state The state.
+/// @param pointer The place.
+/// @param value The value.
+/// @return true if it wrote; false if the place held the value already, and nothing changed.
+bool writeChanged(const Running& s, json& state, const json::json_pointer& pointer, json value) {
+	std::size_t budget = comparedValues;
+	if(const json* found = findInState(state, pointer); found && sameValue(*found, value, budget)) return false;
+	statePlace(state, pointer, s.where) = std::move(value);
+	return true;
+}
+
 /// @brief Tells whether two integers add up to one: integers stay integers, unless their sum doesn't fit (an
 /// overflow would be undefined behaviour), when it is a double.
 /// @param a An integer.
@@ -62,18 +105,18 @@ bool fitsSum(std::int64_t a, std::int64_t b) noexcept {
 /// @brief "increment": adds "by" (1 by default) to a number in the state.
 /// @param s The step.
 /// @param state The state.
-/// @return The place changed.
-json::json_pointer increment(const Running& s, json& state) {
-	const json::json_pointer pointer = s.target("increment");
+/// @param pointer The place.
+/// @return true if it wrote; false if "by" is 0 and the number was there.
+bool increment(const Running& s, json& state, const json::json_pointer& pointer) {
 	const json by = s.value(s.step.value("by", json(1)), s.where + ".by");
 	const json* found = findInState(state, pointer);
 	const json current = found && !found->is_null() ? *found : json(0);
 	if(!current.is_number() || !by.is_number()) fail(s.where, "\"increment\" needs numbers");
 	const bool integers = current.is_number_integer() && by.is_number_integer() &&
 	                      fitsSum(current.get<std::int64_t>(), by.get<std::int64_t>());
-	statePlace(state, pointer, s.where) = integers ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
-	                                               : json(current.get<double>() + by.get<double>());
-	return pointer;
+	return writeChanged(s, state, pointer,
+	                    integers ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
+	                             : json(current.get<double>() + by.get<double>()));
 }
 
 /// @brief The default of the setting a state place holds, so a toggle of a setting still at its default flips that.
@@ -117,6 +160,7 @@ struct Written {
 	json::json_pointer changed{};         ///< What readers see changed: it, or what a write past it created.
 	std::optional<ListChange::Kind> list; ///< How, if it is a list that changed shape.
 	std::size_t index = 0;                ///< Where in the list.
+	bool unchanged = false;               ///< It wrote the value the place held: nothing changed.
 };
 
 /// @brief "set": writes "to" at a state path.
@@ -131,7 +175,7 @@ Written setStep(const Running& s, json& state) {
 	json value = s.value("to");
 	expect::shallowEnough(value, pointerDepth(written.pointer), s.where + ".to");
 	s.steps.engine().document.spendBytes(value, s.where + ".to");
-	statePlace(state, written.pointer, s.where) = std::move(value);
+	written.unchanged = !writeChanged(s, state, written.pointer, std::move(value));
 	return written;
 }
 
@@ -166,7 +210,7 @@ Written toggleStep(const Running& s, json& state) {
 	const json* found = findInState(state, written.pointer);
 	if(!found) found = settingDefault(s.steps.engine().versions.document(), written.pointer);
 	const bool on = found && format::truthy(*found);
-	statePlace(state, written.pointer, s.where) = !on;
+	written.unchanged = !writeChanged(s, state, written.pointer, !on);
 	return written;
 }
 
@@ -195,11 +239,13 @@ std::optional<bool> runStateStep(const Running& s) {
 	} else if(step.contains("toggle")) {
 		written = toggleStep(s, state);
 	} else if(step.contains("increment")) {
-		written.changed = createdPlace(state, s.target("increment"));
-		written.pointer = increment(s, state);
+		written.pointer = s.target("increment");
+		written.changed = createdPlace(state, written.pointer);
+		written.unchanged = !increment(s, state, written.pointer);
 	} else {
 		return std::nullopt;
 	}
+	if(written.unchanged) return true; // an equal write: nothing to check, mark or update
 	if(settings) checkSettingsWritten(engine, before, s.where);
 	if(written.list) engine.document.markListChanged(written.pointer, *written.list, written.index);
 	else engine.document.markStateChanged(written.changed.empty() ? written.pointer : written.changed);

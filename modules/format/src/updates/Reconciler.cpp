@@ -40,7 +40,8 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 		const DocumentContext::ReadScope scope(engine_.document, &reads); // the bound value, and what behaviour reads
 		engine_.properties.apply(panel, record, item.node, std::move(values), item.path, isRoot, created);
 	}
-	if(item.node->alwaysApply) reads.addAlways(AlwaysReason::Behaviour); // its behaviour reads more than its values
+	// A node whose behaviour reads more than its values (an overlay's "open" path, a bound path) is applied whole each
+	// time it runs (Properties::apply()), which records those reads: it runs when they change, not on every update
 	if(reads.always) ++statistics_.alwaysReaders;
 	if(const std::string& dropped = testing::droppedReads(); !dropped.empty() && panel.id() == dropped)
 		reads.clear(); // a read dropped, as a bug would (test-only)
