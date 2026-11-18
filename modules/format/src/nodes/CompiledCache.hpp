@@ -9,6 +9,7 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -107,6 +108,15 @@ public:
 	/// @brief How many compiled nodes the last carryOver() kept, for the tests.
 	/// @return The count.
 	[[nodiscard]] std::size_t carried() const noexcept { return carried_; }
+	/// @brief The nodes kept by the last carryOver() whose list of children the panels show changed (a child added,
+	/// removed, moved, or changed in its own keys), by their numbers (CompiledNode::serial, childrenPlace()).
+	/// @return Them, sorted.
+	[[nodiscard]] const std::vector<std::uint64_t>& changedLists() const noexcept { return changedLists_; }
+	/// @brief Whether running the lists of changedLists() again builds what the last carryOver()'s version shows: every
+	/// compiled root, screen, template and overlay was kept, and the screens and the overlays are the same ones.
+	/// Otherwise (or after everything was dropped) the panels need a full pass.
+	/// @return true if they are enough.
+	[[nodiscard]] bool listsOnly() const noexcept { return listsOnly_; }
 
 private:
 	/// @brief A node compiled for each style a dynamic "style" chose.
@@ -123,11 +133,18 @@ private:
 	/// @brief The cache, dropped first if it belongs to another version of the document.
 	/// @return It.
 	Cache& cache() const;
+	/// @brief Numbers a node this cache compiled (CompiledNode::serial).
+	/// @param node The node.
+	/// @return It.
+	CompiledRef numbered(CompiledRef node) const noexcept;
 	struct Carrier; // carryOver()'s walk (CompiledCache.cpp)
 
 	Engine& engine_;                  ///< The runtime.
 	mutable Cache cache_;             ///< What is compiled for the current version (filled as updates need it).
 	mutable std::size_t carried_ = 0; ///< See carried().
+	mutable std::vector<std::uint64_t> changedLists_; ///< See changedLists().
+	mutable bool listsOnly_ = false;                  ///< See listsOnly().
+	mutable std::uint64_t serials_ = 0;               ///< The last number numbered() gave, never reused.
 };
 
 } // namespace affresco::format
