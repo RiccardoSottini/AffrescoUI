@@ -610,6 +610,24 @@ std::optional<json> Rules::built(const json& document) const {
 	return *builtTree(document);
 }
 
+std::optional<std::vector<std::string>> Rules::changedPlaces(const json& before, const json& after) const {
+	if(!lisp::hasProgram(before) || !lisp::hasProgram(after)) return std::nullopt;
+	static_cast<void>(builtTree(before)); // each is built, and checked, as built() builds it: kept
+	static_cast<void>(builtTree(after));
+	std::vector<std::string> places =
+	    lisp::changedPlaces(*lisp::builtProgram(before.at("program")), *lisp::builtProgram(after.at("program")));
+	std::set<std::string> keys;
+	for(const json* document : {&before, &after})
+		for(const auto& [key, value] : document->items()) keys.insert(key);
+	for(const std::string& key : keys)
+		if(!before.contains(key) || !after.contains(key) || before[key] != after[key])
+			places.push_back((json::json_pointer() / key).to_string());
+	std::ranges::sort(places);
+	const auto [first, last] = std::ranges::unique(places);
+	places.erase(first, last);
+	return places;
+}
+
 // "/program/<file>/<name>/:key(/:key...)" becomes "replace /program/<file>/<name>" with the whole new text
 void Rules::rewriteOperation(const json& document, json& operation) const {
 	const std::string pointer = operation["path"].get<std::string>();
