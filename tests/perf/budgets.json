@@ -8,7 +8,8 @@
       "budget": "Idle CPU: 0%",
       "source": "bench",
       "workloads": [
-        "budgets/idle"
+        "budgets/idle",
+        "budgets/idle-"
       ],
       "field": "processMs",
       "aggregate": "max",
@@ -50,8 +51,18 @@
       "budget": "One state change: 1 ms at most at any size, a 50,000-panel screen included",
       "source": "bench",
       "workloads": [
+        "update/14",
+        "update/100",
         "update/400",
-        "update/panels-50000"
+        "update/read/",
+        "update/record/",
+        "update/panels-50000",
+        "update/app-50000",
+        "update/list-append-25000",
+        "update/computed-unrelated/400",
+        "update/parameter/400",
+        "update/lisp-row/25000",
+        "update/animation/400"
       ],
       "field": "value",
       "aggregate": "max",
