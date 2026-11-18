@@ -1,5 +1,7 @@
 ;;; panel.lisp --- the bottom panel: the problems and the console
 
+(ns code-editor.panel)
+
 ;;; Views
 
 (defview bottom-panel "The bottom panel: its tabs, then the problems or the console." []
