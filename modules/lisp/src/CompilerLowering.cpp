@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
@@ -240,6 +241,76 @@ constexpr unsigned itemBit(std::string_view name) noexcept {
 	return name == "acc" ? 4U : 0U;
 }
 
+/// The functions on each item that read only the truth of what their function gives, so that its body is a test.
+/// Not `some`, which gives that value: its body is a test only where the `some` is one.
+constexpr std::array<std::string_view, 4> testingItemFunctions = {"filter", "remove", "find", "every?"};
+
+/// @brief Tells whether a set's member is one an expression's list holds as the set does, `=` being `==` for it: nil,
+/// a number, a text, a keyword (the text of its name) or a boolean.
+/// @param member The member.
+/// @return true if it is.
+bool isConstantMember(const Value& member) {
+	switch(member.kind()) {
+	case Kind::Nil:
+	case Kind::Boolean:
+	case Kind::Integer:
+	case Kind::Unsigned:
+	case Kind::Float:
+	case Kind::String:
+	case Kind::Keyword:
+		return true;
+	default:
+		return false;
+	}
+}
+
+/// @brief The members of a set the reader made, as an expression's list: `#{:a :b}` is `['a', 'b']`.
+/// @param machine The machine, which writes each member.
+/// @param set The form.
+/// @param truthful Whether to leave out nil and `false`: called as a function, the set gives them, which are no truth.
+/// @return The list's text, or nothing if the form isn't such a set, a member isn't a constant (isConstantMember()),
+/// or no member is left.
+std::optional<std::string> setListText(Machine& machine, const Value& set, bool truthful) {
+	if(set.kind() != Kind::Set) return std::nullopt;
+	std::string text = "[";
+	for(std::size_t at = 0; at < set.count(); ++at) {
+		const Value member = set.at(at);
+		if(!isConstantMember(member)) return std::nullopt;
+		if(truthful && !member.truthy()) continue; // nil and false
+		if(text.size() > 1) text += ", ";
+		text += expressionOfValue(machine, member);
+	}
+	if(text.size() == 1) return std::nullopt;
+	return text + "]";
+}
+
+/// @brief Tells whether a set has a number among its members.
+/// @param set The set.
+/// @return true if it has.
+bool holdsNumber(const Value& set) {
+	return std::ranges::any_of(std::views::iota(std::size_t{0}, set.count()),
+	                           [&](std::size_t at) { return set.at(at).isNumber(); });
+}
+
+/// @brief Sets the flag of a test for the form being written, and puts it back once that form is written or fails.
+class TestScope {
+public:
+	/// @brief Sets it.
+	/// @param flag The compiler's flag, which outlives this.
+	/// @param test Its value for the form.
+	TestScope(bool& flag, bool test) noexcept : flag_(flag), outer_(std::exchange(flag, test)) {}
+	TestScope(const TestScope&) = delete;
+	TestScope& operator=(const TestScope&) = delete;
+	TestScope(TestScope&&) = delete;
+	TestScope& operator=(TestScope&&) = delete;
+	/// @brief Puts it back.
+	~TestScope() { flag_ = outer_; }
+
+private:
+	bool& flag_; ///< See the constructor.
+	bool outer_; ///< What it was.
+};
+
 } // namespace
 
 std::string pathExpression(std::string_view word) {
@@ -250,7 +321,8 @@ std::string pathExpression(std::string_view word) {
 	return text + (dot == std::string_view::npos ? "" : membersText(word.substr(dot + 1)));
 }
 
-void Compiler::lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts) {
+void Compiler::lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts, bool test) {
+	const TestScope scope(test_, test);
 	const Value form = written.kind() == Kind::List ? expanded(written) : written;
 	if(depth > maxCompileDepth)
 		fail(form, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
@@ -315,11 +387,11 @@ void Compiler::lowerWord(const Value& word, int depth, std::vector<BindingPart>&
 }
 
 void Compiler::lowerList(const Value& form, int depth, std::vector<BindingPart>& parts, const std::string& open,
-                         const std::string& separator) {
+                         const std::string& separator, bool tests) {
 	parts.push_back({open, {}, false, {}, {}});
 	for(std::size_t at = 1; at < form.count(); ++at) {
 		if(at != 1) parts.push_back({separator, {}, false, {}, {}});
-		lowerForm(form.at(at), depth + 1, parts);
+		lowerForm(form.at(at), depth + 1, parts, tests);
 	}
 	parts.push_back({")", {}, false, {}, {}});
 }
@@ -329,7 +401,7 @@ bool Compiler::lowerIf(const Value& form, int depth, std::vector<BindingPart>& p
 	const std::size_t operands = form.count() - 1;
 	if((head != "if" || (operands != 2 && operands != 3)) && (head != "when" || operands != 2)) return false;
 	parts.push_back({"(", {}, false, {}, {}});
-	lowerForm(form.at(1), depth + 1, parts);
+	lowerForm(form.at(1), depth + 1, parts, true);
 	parts.push_back({" ? ", {}, false, {}, {}});
 	lowerForm(form.at(2), depth + 1, parts);
 	parts.push_back({" : ", {}, false, {}, {}});
@@ -351,7 +423,7 @@ bool Compiler::lowerCond(const Value& form, int depth, std::vector<BindingPart>&
 			break;
 		}
 		parts.push_back({"(", {}, false, {}, {}});
-		lowerForm(form.at(at), depth + 1, parts);
+		lowerForm(form.at(at), depth + 1, parts, true);
 		parts.push_back({" ? ", {}, false, {}, {}});
 		lowerForm(form.at(at + 1), depth + 1, parts);
 		parts.push_back({" : ", {}, false, {}, {}});
@@ -416,7 +488,7 @@ void Compiler::failTooLarge(const Value& form) const {
 bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	if(lowerLet(form, depth, parts) || lowerIf(form, depth, parts) || lowerCond(form, depth, parts)) return true;
 	if(const AroundOperator* around = aroundOf(aroundOperators, form)) {
-		lowerList(form, depth, parts, std::string(around->open), "");
+		lowerList(form, depth, parts, std::string(around->open), "", around->word != "-"); // not and truthy? test
 		parts.back().text = around->close;
 		return true;
 	}
@@ -425,7 +497,9 @@ bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPa
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
 	if(infix == infixOperators.end() || operands < infix->fewest || operands > infix->most) return false;
-	lowerList(form, depth, parts, "(", " " + std::string(infix->expression) + " ");
+	// (if (and a b) ...) tests a and b; (str (or a b)) gives one of them
+	lowerList(form, depth, parts, "(", " " + std::string(infix->expression) + " ",
+	          test_ && (head == "and" || head == "or"));
 	return true;
 }
 
@@ -454,7 +528,7 @@ void Compiler::lowerStr(const Value& form, int depth, std::vector<BindingPart>& 
 }
 
 void Compiler::lowerFunctionBody(const Value& function, std::span<const std::string_view> names, int depth,
-                                 std::vector<BindingPart>& parts) {
+                                 std::vector<BindingPart>& parts, bool test) {
 	const Value params = function.at(1);
 	if(function.count() != 3 || params.count() == 0 || params.count() > names.size() ||
 	   std::ranges::any_of(std::views::iota(std::size_t{0}, params.count()),
@@ -472,24 +546,27 @@ void Compiler::lowerFunctionBody(const Value& function, std::span<const std::str
 	}
 	for(std::size_t at = 0; at < params.count(); ++at)
 		renames_.push_back({params.at(at).text(), std::string(names[at])});
-	lowerForm(function.at(2), depth + 1, parts);
+	lowerForm(function.at(2), depth + 1, parts, test);
 	renames_.resize(before);
 	for(std::size_t at = 0; at < before; ++at) renames_[at].hidden = hidden[at];
 }
 
+bool Compiler::lowerReduce(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(tableWord(calledName(form)) != "reduce" || form.count() != 4 || !isItemFunction(form.at(1))) return false;
+	parts.push_back({"reduce(", {}, false, {}, {}});
+	lowerForm(form.at(3), depth + 1, parts);
+	parts.push_back({", ", {}, false, {}, {}});
+	const std::array<std::string_view, 2> names = {"acc", "it"};
+	lowerFunctionBody(form.at(1), names, depth, parts);
+	parts.push_back({", ", {}, false, {}, {}});
+	lowerForm(form.at(2), depth + 1, parts);
+	parts.push_back({")", {}, false, {}, {}});
+	return true;
+}
+
 bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(lowerSetGiven(form, depth, parts) || lowerReduce(form, depth, parts)) return true;
 	const std::string_view head = tableWord(calledName(form));
-	if(head == "reduce" && form.count() == 4 && isItemFunction(form.at(1))) { // (reduce (fn [acc x] ...) init list)
-		parts.push_back({"reduce(", {}, false, {}, {}});
-		lowerForm(form.at(3), depth + 1, parts);
-		parts.push_back({", ", {}, false, {}, {}});
-		const std::array<std::string_view, 2> names = {"acc", "it"};
-		lowerFunctionBody(form.at(1), names, depth, parts);
-		parts.push_back({", ", {}, false, {}, {}});
-		lowerForm(form.at(2), depth + 1, parts);
-		parts.push_back({")", {}, false, {}, {}});
-		return true;
-	}
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find(itemFunctions, head, &ItemFunction::word);
 	const bool descending = isDescendingSort(form);
@@ -504,10 +581,67 @@ bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<Bindi
 		parts.push_back({"it", {}, false, {}, {}});
 		lowerKey(form.at(1), depth, parts);
 	} else {
-		lowerFunctionBody(form.at(1), std::span(found->names).first(found->parameters), depth, parts);
+		const bool test = std::ranges::contains(testingItemFunctions, head) || (head == "some" && test_);
+		lowerFunctionBody(form.at(1), std::span(found->names).first(found->parameters), depth, parts, test);
 	}
 	parts.push_back({head == "remove" ? "))" : descending ? ", 'desc')" : ")", {}, false, {}, {}});
 	return true;
+}
+
+bool Compiler::lowerSetGiven(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	const std::string_view head = tableWord(calledName(form));
+	// (some #{:a} xs) gives the member, which the expression's some doesn't: only its truth is the same
+	const bool testing = std::ranges::contains(testingItemFunctions, head) && head != "find";
+	if(form.count() != 3 || !(testing || (head == "some" && test_))) return false;
+	const std::optional<std::string> members = setListText(machine_, form.at(1), true);
+	if(!members) return false;
+	parts.push_back({std::string(head == "every?" ? "every"
+	                             : head == "some" ? "some"
+	                                              : "filter") +
+	                     "(",
+	                 {},
+	                 false,
+	                 {},
+	                 {}});
+	lowerForm(form.at(2), depth + 1, parts);
+	parts.push_back(
+	    {(head == "remove" ? ", !(contains(" : ", contains(") + *members + ", it)" + (head == "remove" ? "))" : ")"),
+		 {},
+		 false,
+		 {},
+		 {}});
+	return true;
+}
+
+bool Compiler::lowerSetMember(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(form.count() != 3 && form.count() != 2) return false;
+	const bool called = form.count() == 2; // (#{:a} x), else (contains? #{:a} x)
+	if(!called && tableWord(calledName(form)) != "contains?") return false;
+	const Value set = form.at(called ? 0 : 1);
+	// Called, the set gives its member: the expression's x where they are equal, but 1.0 is not 1, and false no truth
+	const bool test = called && test_;
+	if(called && !test && set.kind() == Kind::Set && holdsNumber(set)) return false;
+	const std::optional<std::string> members = setListText(machine_, set, test);
+	if(!members) return false;
+	writeSetMember(*members, form.at(called ? 1 : 2), called && !test, depth, parts);
+	return true;
+}
+
+void Compiler::writeSetMember(const std::string& members, const Value& value, bool chosen, int depth,
+                              std::vector<BindingPart>& parts) {
+	std::vector<BindingPart> written;
+	lowerForm(value, depth + 1, written);
+	if(!chosen) { // contains(L, x)
+		parts.push_back({"contains(" + members + ", ", {}, false, {}, {}});
+		parts.insert(parts.end(), written.begin(), written.end());
+		parts.push_back({")", {}, false, {}, {}});
+		return;
+	}
+	parts.push_back({"(contains(" + members + ", ", {}, false, {}, {}}); // (contains(L, x) ? x : null)
+	parts.insert(parts.end(), written.begin(), written.end());
+	parts.push_back({") ? ", {}, false, {}, {}});
+	parts.insert(parts.end(), written.begin(), written.end());
+	parts.push_back({" : null)", {}, false, {}, {}});
 }
 
 bool Compiler::lowerMember(const Value& form, int depth, std::vector<BindingPart>& parts) {
@@ -530,7 +664,7 @@ bool Compiler::lowerMember(const Value& form, int depth, std::vector<BindingPart
 bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	const std::string_view head = tableWord(calledName(form));
 	const std::size_t arguments = form.count() - 1;
-	if(lowerItemFunction(form, depth, parts)) return true;
+	if(lowerItemFunction(form, depth, parts) || lowerSetMember(form, depth, parts)) return true;
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	if(const auto same = std::ranges::find(sameFunctions, head, &SameFunction::word);
 	   same != sameFunctions.end() && arguments >= same->fewest && arguments <= same->most) {
@@ -568,12 +702,18 @@ bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPar
 	return false;
 }
 
-void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	if(form.count() == 2 && form.at(0).kind() == Kind::Keyword) { // (:title card) is card.title
+bool Compiler::lowerCalledValue(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(form.count() != 2) return false;
+	if(form.at(0).kind() == Kind::Keyword) { // (:title card) is card.title
 		lowerForm(form.at(1), depth + 1, parts);
 		lowerKey(form.at(0), depth, parts);
-		return;
+		return true;
 	}
+	return form.at(0).kind() == Kind::Set && lowerSetMember(form, depth, parts); // (#{:a} x)
+}
+
+void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(lowerCalledValue(form, depth, parts)) return;
 	const std::string_view written = headWord(form);
 	if(written.empty()) fail(form, std::string(notAnExpression)); // ((fn ...) x)
 	// An item's name the binding writes, or a local's

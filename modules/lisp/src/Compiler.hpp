@@ -305,13 +305,42 @@ private:
 	/// @param parts Gets the text.
 	/// @return Whether it is one.
 	bool lowerItemFunction(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes `(reduce (fn [acc x] ...) init list)` as `reduce(list, ..., init)`.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is one.
+	bool lowerReduce(const Value& form, int depth, std::vector<BindingPart>& parts);
 	/// @brief Writes a function's body, its parameters named as the expression names them.
 	/// @param function The `(fn [params] body)` form.
 	/// @param names What the expression calls each parameter, in order.
 	/// @param depth How deep it is.
 	/// @param parts Gets the text.
+	/// @param test Whether only the body's truth is read (testingItemFunctions).
 	void lowerFunctionBody(const Value& function, std::span<const std::string_view> names, int depth,
-	                       std::vector<BindingPart>& parts);
+	                       std::vector<BindingPart>& parts, bool test = false);
+	/// @brief Writes a set given to a function on each item, `(filter #{:a :b} list)`, as the test of an item's
+	/// membership: `filter(list, contains(['a', 'b'], it))` (reference/sets.md, "In a binding").
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is one.
+	bool lowerSetGiven(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a membership test of a set of constants: `(contains? #{:a :b} x)`, and `(#{:a :b} x)` where its
+	/// value is the expression's, as `contains(['a', 'b'], x)`.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is one.
+	bool lowerSetMember(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a set's membership test, the set's members written as a list.
+	/// @param members The list's text.
+	/// @param value The value tested.
+	/// @param chosen Whether the test gives the value where it is a member, else nil, rather than the truth.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	void writeSetMember(const std::string& members, const Value& value, bool chosen, int depth,
+	                    std::vector<BindingPart>& parts);
 	/// @brief Writes a member's key after what it is read from: `.title`, `['a b']` or `[index]`.
 	/// @param key The key's form.
 	/// @param depth How deep it is.
@@ -331,15 +360,17 @@ private:
 	/// @param written The form.
 	/// @param depth How deep it is.
 	/// @param parts Gets the text, and the forms the build works out.
-	void lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts);
+	/// @param test Whether only its truth is read: an `if`'s test, a `not`'s operand, `filter`'s function (test_).
+	void lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts, bool test = false);
 	/// @brief Writes a list's items as an expression's, between an opening and a ')'.
 	/// @param form The list.
 	/// @param depth How deep it is.
 	/// @param parts Gets the text.
 	/// @param open What comes first.
 	/// @param separator What goes between the items.
+	/// @param tests Whether only the items' truth is read.
 	void lowerList(const Value& form, int depth, std::vector<BindingPart>& parts, const std::string& open,
-	               const std::string& separator);
+	               const std::string& separator, bool tests = false);
 	/// @brief Writes a list as an expression's operator, if it is one.
 	/// @param form The list.
 	/// @param depth How deep it is.
@@ -402,6 +433,12 @@ private:
 	/// @param depth How deep it is.
 	/// @param parts Gets the text.
 	void lowerCall(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a call whose head is a value, a keyword or a set, not a function's name.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is one.
+	bool lowerCalledValue(const Value& form, int depth, std::vector<BindingPart>& parts);
 
 	// The special forms (CompilerForms.cpp)
 	void formQuote(const Value& form, Position position);
@@ -589,10 +626,13 @@ private:
 	bool compilingHead_ = false;  ///< Compiling a call's head: a word there is the function, never a variable.
 	bool functionArgument_ = false; ///< Checking an argument of a function that takes functions (CompilerBindings.cpp).
 	bool symbolic_ = false;         ///< Writing a binding where the locals hold names of the running app.
-	std::vector<Rename> renames_;   ///< The parameters of the functions a binding is writing, innermost last.
-	unsigned itemsRead_ = 0;        ///< The items the text being written reads (itemBit()), for Rename::uses.
-	std::size_t substituted_ = 0;   ///< How much text the binding being written has from its `let`s' names.
-	std::vector<std::string_view> itemNames_;           ///< The parameters of functions a liveness check is inside.
+	/// The form lowerForm() is writing is a test, whose truth alone is read: a set called there may be written as a
+	/// membership test, where its value, the member, is another than the expression's.
+	bool test_ = false;
+	std::vector<Rename> renames_;             ///< The parameters of the functions a binding is writing, innermost last.
+	unsigned itemsRead_ = 0;                  ///< The items the text being written reads (itemBit()), for Rename::uses.
+	std::size_t substituted_ = 0;             ///< How much text the binding being written has from its `let`s' names.
+	std::vector<std::string_view> itemNames_; ///< The parameters of functions a liveness check is inside.
 	std::unordered_map<const void*, Value> expansions_; ///< Each macro call's expansion, made once (expanded()).
 };
 

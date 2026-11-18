@@ -16,11 +16,16 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
+#include <cstddef>
 #include <filesystem>
+#include <format>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace lisp = affresco::lisp;
 using affresco::json;
@@ -101,6 +106,40 @@ std::string atCommandLine(std::string_view text) {
 	} catch(const lisp::LispError& error) {
 		return error.message();
 	}
+}
+
+/// @brief Where an app's error is: its file, line and column, as `file:line:column`.
+/// @param name A name for its folder.
+/// @param files Its files.
+/// @param call A form run once the program is loaded, as an event's function runs, or "" to only build.
+/// @return The place, or "no error".
+std::string errorPlace(const std::string& name, const Files& files, const std::string& call = "") {
+	try {
+		affresco::Screen screen = affresco::Screen::fromApp(writeApp(name, files), {});
+		lisp::Program program = lisp::programOf(screen.versions().sourceDocument().at("program"));
+		static_cast<void>(program.build());
+		if(!call.empty()) {
+			lisp::Interpreter interpreter;
+			program.load(interpreter);
+			static_cast<void>(interpreter.eval(call, "event", "event"));
+		}
+	} catch(const lisp::LispError& error) {
+		return std::format("{}:{}:{}", error.file(), error.line(), error.column());
+	}
+	return "no error";
+}
+
+/// @brief A file whose form on line 4 has an error of a kind: its place is column 22 for the reader (the bracket too
+/// many), 20 to compile (the let's vector) and 15 to run (the sum).
+/// @param head The file's first line: its ns form, or a comment.
+/// @param kind What is wrong: "reader" (a bracket too many), "compile" (a let of an odd vector), "run" (a sum of a
+/// text), "event" (the same, in a function only an event calls).
+/// @return The text.
+std::string withError(const std::string& head, std::string_view kind) {
+	const std::string form = kind == "reader"    ? "(defn f [] (+ 1 )))"
+	                         : kind == "compile" ? "(defn f [] (let [a] 1))"
+	                                             : "(defn f [] (+ 1 \"a\"))";
+	return head + "\n\n;; f\n   " + form + "\n";
 }
 
 /// @brief The fixture app's three files (tests/unit/fixtures/namespaces), as a test writes them.
@@ -289,4 +328,54 @@ TEST_CASE("lisp namespaces: the fixture app builds, through its aliases") {
 	const json tree = lisp::programOf(screen.versions().sourceDocument().at("program")).build();
 	CHECK(tree["root"]["children"][0]["text"] == "THE BOARD");
 	CHECK(tree["root"]["children"][1]["children"][1]["text"] == "cell b");
+}
+
+TEST_CASE("lisp namespaces: an error in an included or required file says where it is in that file") {
+	constexpr std::array<std::string_view, 4> kinds = {"reader", "compile", "run", "event"};
+	for(const std::string_view kind : kinds) {
+		CAPTURE(kind);
+		const std::string used = kind == "event" ? "1" : "(f)";
+		const std::string call = kind == "event" ? "(f)" : "";
+		// One include, and one inside it
+		Files files = {{"index.screen.lisp", "(include \"a.lisp\")\n" + screenShowing("", used)},
+		               {"a.lisp", withError(";;; a", kind)}};
+		const std::string at = kind == "reader" ? ":4:22" : kind == "compile" ? ":4:20" : ":4:15";
+		CHECK(errorPlace("include", files, call) == "a.lisp" + at);
+		files["a.lisp"] = ";;; a\n(include \"b/b.lisp\")\n(defn g [] 2)\n";
+		files["b/b.lisp"] = withError(";;; b", kind);
+		CHECK(errorPlace("nested", files, call).ends_with("b.lisp" + at));
+		// A file required by its dotted name, and one by its path
+		files = {{"index.screen.lisp", screenShowing("(ns t.index (:require [t.parts.p :as p]))", used)},
+		         {"parts/p.lisp", withError("(ns t.parts.p)", kind)}};
+		CHECK(errorPlace("dotted", files, call) == "parts/p.lisp" + at);
+		files = {{"index.screen.lisp", screenShowing("(ns t.index (:require [\"parts/q.lisp\" :as q]))", used)},
+		         {"parts/q.lisp", withError(";;; q", kind)}};
+		CHECK(errorPlace("path", files, call) == "parts/q.lisp" + at);
+		// The entry's own definitions say their lines too
+		files = {{"index.screen.lisp", withError(";;; index", kind) + screenShowing("", used)}};
+		CHECK(errorPlace("entry", files, call) == "index.screen.lisp" + at);
+	}
+}
+
+TEST_CASE("lisp namespaces: an error on line 7 of a file the fixture app requires is reported there") {
+	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "tests" /
+	                                     "unit" / "fixtures" / "namespaces";
+	Files files;
+	for(const std::string path : {"index.screen.lisp", "parts/board.lisp", "parts/cell.lisp"}) {
+		std::ifstream in(folder / path);
+		files[path] = std::string(std::istreambuf_iterator<char>(in), {});
+	}
+	const std::string cell = files["parts/cell.lisp"];
+	const std::string line7 = R"x(  `(label :text ~(join " " ["cell" name]))))x";
+	REQUIRE(cell.contains(line7));
+	for(const auto& [planted, column] : std::array<std::pair<std::string_view, std::size_t>, 3>{
+	        {{R"x(  `(label :text ~(join " " ["cell" (+ 1 name)]))))x", 36},     // run: "+" given a text
+			 {R"x(  `(label :text ~(let [a] (join " " ["cell" name])))))x", 23}, // compile
+			 {R"x(  `(label :text ~(join " " ["cell" name])))))x", 44}}}) {      // reader: a bracket too many
+		CAPTURE(planted);
+		std::string text = cell;
+		text.replace(text.find(line7), line7.size(), planted);
+		files["parts/cell.lisp"] = text;
+		CHECK(errorPlace("fixture", files) == std::format("parts/cell.lisp:7:{}", column));
+	}
 }

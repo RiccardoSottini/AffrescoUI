@@ -124,7 +124,13 @@ std::optional<ConsoleName> RuntimeConsole::nameOf(const std::string& name, bool 
 	// A place only for what the file on disk still holds as it is: a revision's text is in no file
 	const json authors = engine_.versions.programAuthors();
 	if(!out.file.empty() && authors.value(out.file, json::object()).value(name, std::string()) == "file") {
-		const std::size_t inEntry = described.value("line", std::size_t{1});
+		// The definition's line counts from its file's top where the program was read from the file, else from its own
+		std::size_t entryLine = 1;
+		if(engine_.programs.program_)
+			for(const lisp::Entry& entry : engine_.programs.program_->entries())
+				if(entry.file == out.file && entry.name == name) entryLine = entry.line;
+		const std::size_t line = described.value("line", std::size_t{1});
+		const std::size_t inEntry = line >= entryLine ? line - entryLine + 1 : line;
 		const json entry = engine_.versions.sourceDocument()
 		                       .value("program", json::object())
 		                       .value(out.file, json::object())
