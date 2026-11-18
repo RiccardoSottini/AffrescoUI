@@ -3,6 +3,8 @@
 ;;; The menu row (the menus on the left; TV mode, the notifications and the account with its wallet on the right), the
 ;;; big navigation with back and forward, and the bottom bar (add a game, the download in progress, friends and chat).
 
+(ns arcadia.parts.chrome)
+
 ;;; What the bars keep
 
 (defstate menus {})
@@ -27,12 +29,12 @@
    {:icon tag :text notice.sale :n 2 :unread false}])
 
 (defcomputed download "The download in progress, if one is."
-  (find (fn [it] (= it.status "downloading")) state.downloads))
+  (find #(= (:status %) "downloading") state.downloads))
 
 (defcomputed downloadGame "The game the download in progress is of."
-  (find (fn [it] (= it.id computed.download.id)) data.games))
+  (find #(= (:id %) computed.download.id) data.games))
 
-(defcomputed unread "How many notifications are unread." (count (filter (fn [it] it.unread) state.notifications)))
+(defcomputed unread "How many notifications are unread." (count (filter :unread state.notifications)))
 
 ;;; The bars' looks
 
@@ -245,7 +247,7 @@
      :text ""
      :fitText true
      :padding 6
-     :textColor ~(if (< state.at (- (count state.nav) 1)) "@color.text" "@color.dim")
+     :textColor ~(if (< state.at (dec (count state.nav))) "@color.text" "@color.dim")
      :focusable true
      :role button
      :label ~(t "nav.forward")

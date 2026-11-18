@@ -4,6 +4,8 @@
 ;;; sections; what friends did in it and its news; and the side panels: friends who play it, achievements,
 ;;; screenshots, the controller, and a note of your own.
 
+(ns arcadia.parts.game)
+
 ;;; What the page shows
 
 (defcomputed lastPlayed "When the game on the page was last played: today, yesterday, a date, or never."
@@ -16,7 +18,7 @@
   ;; A macro: the list stays an expression, for a repeat and a count.
   "The records of a list (data.news, data.activity) about the game on the page."
   [records]
-  `(filter (fn [it] (= it.game g.id)) ~records))
+  `(filter #(= (:game %) g.id) ~records))
 
 ;;; The page
 
@@ -100,10 +102,11 @@
      :height 48
      :font button
      :align center
-     :icon ~(cond (= g.status "ready") "play"
-                  (= g.status "running") "square"
-                  (= g.status "downloading") "pause"
-                  :else "download")
+     :icon ~(case g.status
+              :ready "play"
+              :running "square"
+              :downloading "pause"
+              "download")
      :text ~(t (str "status.button." g.status))
      :textColor @color.onAccent
      :focusable true
@@ -253,7 +256,7 @@
 (defview friend-activity
   "What a friend did in the game: their avatar, what it was, and a screenshot if they took one."
   [a]
-  `(row :let {:f ~(find (fn [it] (= it.id a.who)) data.friends)}
+  `(row :let {:f ~(find #(= (:id %) a.who) data.friends)}
      :height ~(if (= a.kind "screenshot") 168 84)
      :anchors {:left 0 :right 0}
      :style card
@@ -291,9 +294,10 @@
      :fit cover
      :radius 2
      :borderWidth 1
-     :borderColor ~(cond (= f.presence "ingame") "@color.ingame"
-                         (= f.presence "offline") "@color.offline"
-                         :else "@color.online")))
+     :borderColor ~(case f.presence
+                     :ingame "@color.ingame"
+                     :offline "@color.offline"
+                     "@color.online")))
 
 ;;; The side panels
 

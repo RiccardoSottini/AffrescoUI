@@ -2,6 +2,8 @@
 ;;;
 ;;; Opened from the links under a game's banner. The posts are invented, the same for every game, with its name in them.
 
+(ns arcadia.parts.hub)
+
 ;;; The posts
 
 (defstate hubTab hub)
@@ -18,7 +20,7 @@
   ;; A macro, not a function: the list it writes stays an expression, for a repeat and a height.
   "The posts of the section chosen, or all of them on the hub's own tab."
   []
-  `(filter (fn [it] (or (= state.hubTab "hub") (= it.kind state.hubTab))) state.hubPosts))
+  `(filter #(or (= state.hubTab :hub) (= (:kind %) state.hubTab)) state.hubPosts))
 
 ;;; The hub page
 

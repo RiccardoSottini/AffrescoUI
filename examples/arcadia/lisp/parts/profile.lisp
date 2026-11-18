@@ -3,10 +3,12 @@
 ;;; The banner with the avatar, level and status; numbers; a showcase of favourites; the games played lately with
 ;;; their hours and achievements; and friends.
 
+(ns arcadia.parts.profile)
+
 ;;; What it shows
 
 (defcomputed profileRecent "The four games played last."
-  (slice (sort-by (fn [it] it.lastPlayed) > (filter (fn [it] (some? it.lastPlayed)) computed.owned)) 0 4))
+  (slice (sort-by :lastPlayed > (filter #(some? (:lastPlayed %)) computed.owned)) 0 4))
 
 (deftokens profile-colours "The profile banner's colours, from top to bottom."
   {:profile.bannerStart {:dark "#3b2346" :light "#eadcf2"} :profile.bannerEnd {:dark "#211a28" :light "#f6f2f7"}})
@@ -71,10 +73,12 @@
      (node :use profileStat :with {:id stat-games :value ~(count computed.owned) :title ~(t "profile.games")})
      (node :use profileStat
        :with {:id stat-hours
+              ; style: keep, sum is the expression's own function: the function it takes names its item it
               :value ~(formatNumber (sum computed.owned (fn [it] it.hours)) 0 0)
               :title ~(t "profile.hours")})
      (node :use profileStat
        :with {:id stat-achievements
+              ; style: keep, sum is the expression's own function: the function it takes names its item it
               :value ~(sum computed.owned (fn [it] (or-else it.achievements.0 0)))
               :title ~(t "profile.achievements")})
      (node :use profileStat :with {:id stat-friends :value ~(count data.friends) :title ~(t "profile.friends")})))
@@ -86,7 +90,7 @@
      (panel :color transparent :width 1 :height 12)
      (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.showcase"))
      (row#profile-showcase :height 180 :gap 14 :anchors {:left 0 :right 0}
-       ~(repeat [g (slice (filter (fn [it] it.favourite) computed.owned) 0 5) :key g.id]
+       ~(repeat [g (slice (filter :favourite computed.owned) 0 5) :key g.id]
           `(node :use capsule :with {:game ~g :width 116})))
      (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.recent"))
      ~(repeat [g computed.profileRecent :key g.id] (recent-game g))))
@@ -140,7 +144,7 @@
        :anchors {:left 0 :right 0}
        :role heading
        :text ~(t "profile.friendsCount" {:n (count data.friends)}))
-     ~(repeat [f (slice (sort-by (fn [it] (if (= it.presence "offline") 1 0)) data.friends) 0 8) :key f.id]
+     ~(repeat [f (slice (sort-by #(if (= (:presence %) :offline) 1 0) data.friends) 0 8) :key f.id]
         (profile-friend f))))
 
 (defview profile-friend "A friend on the profile: the avatar and the name, in their presence's colour." [f]

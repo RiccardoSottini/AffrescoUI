@@ -3,6 +3,8 @@
 ;;; A game's menu opens from the library (right click, Shift+F10) or the game page's gear. Its properties (launch
 ;;; options, the overlay, cloud saves, updates, installed files) are kept on the game's record; uninstalling asks first.
 
+(ns arcadia.parts.manage)
+
 ;;; What it keeps
 
 (defstate manage nil)
@@ -13,19 +15,19 @@
 
 (defstate uninstall {:open false})
 
-(defcomputed manageGame "The game being managed." (find (fn [it] (= it.id state.manage)) data.games))
+(defcomputed manageGame "The game being managed." (find #(= (:id %) state.manage) data.games))
 
 ;;; The game's menu
 
 (defcomputed gameMenuItems "The game menu's items, for the game it is open on: what it can do now first."
-  (if (nil? computed.manageGame)
-    []
-    [{:title (t (cond (= computed.manageGame.status "ready") "menu.game.play"
-                      (= computed.manageGame.status "running") "menu.game.stop"
-                      (= computed.manageGame.status "update") "menu.game.update"
-                      (= computed.manageGame.status "downloading") "menu.game.downloading"
-                      :else "menu.game.install"))
-      :enabled (not= computed.manageGame.status "downloading")
+  (if (some? computed.manageGame)
+    [{:title (t (case computed.manageGame.status
+                  :ready "menu.game.play"
+                  :running "menu.game.stop"
+                  :update "menu.game.update"
+                  :downloading "menu.game.downloading"
+                  "menu.game.install"))
+      :enabled (not= computed.manageGame.status :downloading)
       :run "primary"
       :with {:game computed.manageGame}}
      {:separator true}
@@ -215,10 +217,11 @@
        :font small
        :anchors {:left 0 :right 0 :top 168}
        :height 20
-       :text ~(cond (= state.properties.verify "running") (t "properties.verifying")
-                    (= state.properties.verify "done") (t "properties.verified")
-                    :else "")
-       :textColor ~(if (= state.properties.verify "done") "@color.play" "@color.muted"))))
+       :text ~(case state.properties.verify
+                :running (t "properties.verifying")
+                :done (t "properties.verified")
+                "")
+       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))))
 
 (defview extras-page "The extra content page: none yet." []
   `(node :when ~(= state.properties.tab "dlc") :fill true :color transparent
