@@ -160,6 +160,24 @@ void Builder::check(const json& node, Scope& layer, const std::string& at) const
 
 // The new variables form one layer over the parent's scope; with and let see the ones before them
 CompiledRef Builder::scoped(const CompiledRef& node, SharedScope& scope, const std::string& at) const {
+	return scoped(node, scope, at, nullptr);
+}
+
+// A tracked layer is shared from the start: the layer keeps where its scope is
+CompiledRef Builder::scoped(const CompiledRef& node, SharedScope& scope, const std::string& at,
+                            LayerReads* reads) const {
+	if(reads && ScopeLayers::tracked(*node)) {
+		auto layer = std::make_shared<Scope>();
+		layer->parent = scope.get();
+		layer->keep = scope;
+		layers_.make(*layer, node, at, *reads);
+		CompiledRef result = node;
+		if(node->style)
+			result = compiler_.styled(
+			    node, node->style->evaluate(engine_.document.context(*layer, emptyObject()), at, "style"), at);
+		scope = std::move(layer);
+		return result;
+	}
 	const json& own = node->own;
 	Scope layer{scope.get(), nullptr, json::object(), {}, {}};
 	const Context context = engine_.document.context(layer, emptyObject()); // reads the layer as it grows
@@ -216,24 +234,28 @@ json Builder::listOf(const CompiledRepeat& repeat, const Scope& locals, const st
 }
 
 // What the key, the variables and "when" read goes to the row as well (ListRow::reads), so a change of them builds
-// that row alone again
+// that row alone again; what tracked variables read goes to their layer instead, but for what a repeat's row numbers
+// (LayerReads::rows), and what "when" or a style reads of them, the reads of those variables
 void Builder::instance(const CompiledRef& node, SharedScope scope, std::string where, const Binding* key,
                        std::vector<Item>& items, ListRow* row) const {
 	ReadSet* const outer = engine_.document.reads();
 	ReadSet own;
+	LayerReads layer;
 	json itemKey;
 	CompiledRef chosen;
 	bool shown = false;
 	{
-		const DocumentContext::ReadScope reading(engine_.document, row && outer ? &own : outer);
+		const DocumentContext::ReadScope reading(engine_.document, outer ? &own : nullptr);
 		if(row) row->scope = scope;
 		if(key) itemKey = key->evaluate(engine_.document.context(*scope, emptyObject()), where, "repeat.key");
-		chosen = scoped(node, scope, where);
+		chosen = scoped(node, scope, where, outer ? &layer : nullptr);
 		shown = !chosen->when ||
 		        format::truthy(chosen->when->evaluate(engine_.document.context(*scope, emptyObject()), where, "when"));
 	}
+	layer.expand(own);
+	own.add(layer.rows);
+	if(outer) outer->add(own);
 	if(row) {
-		if(outer) outer->add(own);
 		row->reads = std::move(own);
 		row->key = itemKey;
 		row->shown = shown;

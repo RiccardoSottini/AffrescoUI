@@ -338,7 +338,7 @@ private:
 	/// @param keys Its keys.
 	void noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const;
 	/// @brief Where a read of a variable is recorded: a repeat's item where it lies, a row's number under its list
-	/// (indexKey).
+	/// (indexKey), a tracked "with" or "let" under its layer ("/~s/<layer>/<name>", ScopeLayers).
 	/// @param name The variable.
 	/// @return The place, or std::nullopt for a variable that never changes while it is in scope.
 	[[nodiscard]] std::optional<std::string> namedPlace(std::string_view name) const;
