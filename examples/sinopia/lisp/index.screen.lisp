@@ -6,24 +6,25 @@
 ;;; parts/edit.lisp and sinopia.lisp; the drop-downs, the panes and the show have a file each. Each file holds its
 ;;; views, then what its buttons do.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "parts/window.lisp"
-         "parts/keys.lisp"
-         "parts/themes.lisp"
-         "parts/geometry.lisp"
-         "parts/slide.lisp"
-         "parts/sample-deck.lisp"
-         "parts/edit.lisp"
-         "parts/ribbon.lisp"
-         "parts/tabs.lisp"
-         "parts/show.lisp"
-         "parts/views.lisp"
-         "parts/menus.lisp"
-         "parts/review.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "sinopia.lisp")
+(ns sinopia.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            sinopia.parts.window
+            sinopia.parts.keys
+            sinopia.parts.themes
+            sinopia.parts.geometry
+            sinopia.parts.slide
+            sinopia.parts.sample-deck
+            sinopia.parts.edit
+            sinopia.parts.ribbon
+            sinopia.parts.tabs
+            sinopia.parts.show
+            sinopia.parts.views
+            sinopia.parts.menus
+            sinopia.parts.review
+            "../../shared/addons/assistant/assistant.lisp"
+            sinopia.sinopia))
 
 ;;; The window, and what is in it, in the order it is drawn
 
