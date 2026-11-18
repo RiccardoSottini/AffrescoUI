@@ -1,6 +1,8 @@
 ;;; issue.lisp --- Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its
 ;;; description and activity on the left, its properties on the right.
 
+(ns flow.issue)
+
 ;;; State
 
 (defstate issueOpen false)

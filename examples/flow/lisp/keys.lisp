@@ -3,6 +3,8 @@
 ;;; A key runs a command of flow.lisp by name, some only while no text field has the focus and the issues page is
 ;;; shown; a menu lists commands by group.
 
+(ns flow.keys)
+
 ;;; Keys
 
 (defkey "c" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do newCardCommand})
