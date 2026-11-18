@@ -124,8 +124,7 @@
 
 (defcomputed paletteFirst
   (filter #(and (:enabled %)
-                (contains ["changeStatus" "changePriority" "changeAssignee" "assignToMe" "editCard" "openIssue"]
-                          (:name %)))
+                (#{:changeStatus :changePriority :changeAssignee :assignToMe :editCard :openIssue} (:name %)))
           commands))
 
 (defcomputed palette
