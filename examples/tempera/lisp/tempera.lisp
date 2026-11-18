@@ -331,7 +331,8 @@ A review step runs from a step that the person's input or a scenario plays, not 
 (defn submitField "A number typed in an option's field, its unit left out, kept within its range; else it stays shown."
   [action args key shown low high scale]
   (let [typedValue (-> event.text (str/split "%") first (str/split " ") first str/trim number)]
-    (runWith action (assoc args key (-> typedValue (or-else shown) (clamp low high) (/ scale))))))
+    (runWith action
+             (assoc args key (-> typedValue (or-else shown) (clamp low high) (/ scale))))))
 
 (defn chooseMenuItem "A menu's item chosen: a submenu opens; anything else closes the menu and runs the item's action."
   [item path close]
