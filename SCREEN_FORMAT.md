@@ -1041,10 +1041,6 @@ Wherever a value is expected it can be computed:
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
   `scan(list, expression, initial?)`.
-- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
-  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
-  `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
-  `scan(list, expression, initial?)`.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
 display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list
@@ -1060,6 +1056,12 @@ later changes has `undo`: `{"of", "drop", "then"}`, what it undid and the later 
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
 (not in a circle, and at most 32 deep). Prefer them to actions that recount things by hand.
+
+**When a binding is evaluated again:** when a place it read changes. A binding that reads `state.items[5].title`
+is evaluated again when that title changes, not when another item does, and a `computed` value whose new value is
+the same as before changes nothing that reads it. `nodes.<id>`, `now()` and `today()` say nothing when they change,
+so a binding that reads one is evaluated on every update. A `repeat` with a `key` makes an item inserted or removed
+cost one row; without a `key`, the rows after it are evaluated again with their new items.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 

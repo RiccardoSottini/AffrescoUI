@@ -30,6 +30,16 @@ AFFRESCOUI_HIDDEN=0 python3 tests/render/check.py --only <scenario>
 
 A program run by hand (`./build/affrescoui_launcher`) shows its windows unless the variable is set.
 
+`AFFRESCOUI_VERIFY_UPDATES=1` checks every partial update against a full one: after each update that ran only the
+readers of what changed, a full pass over the same panels must give the same values, or the screen reports the first
+node and property that differ. It makes every update cost a full one, so it is for tests. When you change
+`modules/format/src/updates/` (or what records reads or marks places), run the unit tests and the scenarios with it:
+
+```sh
+AFFRESCOUI_VERIFY_UPDATES=1 ctest --test-dir build -j 4 --timeout 900
+AFFRESCOUI_VERIFY_UPDATES=1 python3 tests/render/check.py
+```
+
 ## Live tests
 
 Give the host, the MCP server and the channels inside screens the same short socket folder of your own, so that
