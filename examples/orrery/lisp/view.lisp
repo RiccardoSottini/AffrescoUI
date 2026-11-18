@@ -20,25 +20,29 @@
 (defcomputed target "The point the camera looks at: the body it follows, else the camera's own."
   (if (and (not= state.follow "") computed.followed)
     {:x computed.followed.x :z computed.followed.z}
-    {:x (+ state.camera.tx (* (if computed.flyPosition (- computed.flyPosition.x state.camera.tx) 0) state.fly))
-     :z (+ state.camera.tz (* (if computed.flyPosition (- computed.flyPosition.z state.camera.tz) 0) state.fly))}))
+    {:x (-> (if computed.flyPosition (- computed.flyPosition.x state.camera.tx) 0)
+         (* state.fly)
+         (->> (+ state.camera.tx)))
+     :z (-> (if computed.flyPosition (- computed.flyPosition.z state.camera.tz) 0)
+         (* state.fly)
+         (->> (+ state.camera.tz)))}))
 
 (defcomputed sceneView "The 3D view's camera, as the scene takes it."
   {:camera {:target [computed.target.x 0 computed.target.z]
             :yaw state.camera.yaw
             :pitch state.camera.pitch
             :distance computed.view.distance
-            :fieldOfView (* 2 (atan (/ computed.view.h (* 2 computed.view.f))))}
+            :fieldOfView (->> (* 2 computed.view.f) (/ computed.view.h) atan (* 2))}
    :selection (if (not= state.selected "") [state.selected] [])})
 
 (defcomputed fov "The 3D view's field of view, in degrees, across and up."
-  {:deg (degrees (* 2 (atan (/ (min computed.view.w computed.view.h) (* 2 computed.view.f)))))
+  {:deg (->> (* 2 computed.view.f) (/ (min computed.view.w computed.view.h)) atan (* 2) degrees)
    :times (/ state.zoom 1.1)})
 
 (defcomputed fovText "The field of view, as the view's readout says it."
   (t "view.fov"
      {:degrees (text (floor computed.fov.deg))
-      :minutes (pad (floor (* (- computed.fov.deg (floor computed.fov.deg)) 60)) 2 "0")
+      :minutes (-> computed.fov.deg (- (floor computed.fov.deg)) (* 60) floor (pad 2 "0"))
       :times (fixed computed.fov.times 2)}))
 
 (defcomputed magText "The faintest stars shown, as the view's readout says it."
@@ -56,9 +60,9 @@
 
 (defcomputed starVectors "The background stars' directions as unit vectors."
   (map (fn [it]
-         {:x (* (sqrt (- 1 (* it.u it.u))) (cos it.t))
+         {:x (* (->> (* it.u it.u) (- 1) sqrt) (cos it.t))
           :y it.u
-          :z (* (sqrt (- 1 (* it.u it.u))) (sin it.t))
+          :z (* (->> (* it.u it.u) (- 1) sqrt) (sin it.t))
           :mag it.mag})
        computed.stars))
 
@@ -140,7 +144,7 @@
     nil))
 
 (defcomputed apparent "How wide the selected body looks, in degrees."
-  (if (and computed.sight (> computed.range 0)) (degrees (* 2 (atan (/ computed.sight.size computed.range)))) 0))
+  (if (and computed.sight (> computed.range 0)) (->> (/ computed.sight.size computed.range) atan (* 2) degrees) 0))
 
 (defcomputed apparentText "How wide the selected body looks, in degrees, minutes or seconds."
   (cond (>= computed.apparent 1) (str (fixed computed.apparent 2) "°")
@@ -153,20 +157,21 @@
 (defcomputed marked "The marks' corners, drawn around the marked bodies."
   (map-indexed (fn [index it]
                  {:id (str (get-in computed.marks [(floor (/ index 4)) :id]) "-" (mod index 4))
-                  :x (cond (< (mod index 4) 2) (- (get-in computed.marks [(floor (/ index 4)) :px]) 1)
+                  :x (cond (< (mod index 4) 2) (dec (get-in computed.marks [(floor (/ index 4)) :px]))
                            (= (mod index 4) 2) (- (- (get-in computed.marks [(floor (/ index 4)) :px])
                                  (get-in computed.marks [(floor (/ index 4)) :r]))
                               12)
                            :else (+ (get-in computed.marks [(floor (/ index 4)) :px])
                               (get-in computed.marks [(floor (/ index 4)) :r])
                               5))
-                  :y (cond (= (mod index 4) 0) (- (- (get-in computed.marks [(floor (/ index 4)) :py])
-                                 (get-in computed.marks [(floor (/ index 4)) :r]))
-                              12)
-                           (= (mod index 4) 1) (+ (get-in computed.marks [(floor (/ index 4)) :py])
-                              (get-in computed.marks [(floor (/ index 4)) :r])
-                              5)
-                           :else (- (get-in computed.marks [(floor (/ index 4)) :py]) 1))
+                  :y (case (mod index 4)
+                       0 (- (- (get-in computed.marks [(floor (/ index 4)) :py])
+                               (get-in computed.marks [(floor (/ index 4)) :r]))
+                            12)
+                       1 (+ (get-in computed.marks [(floor (/ index 4)) :py])
+                            (get-in computed.marks [(floor (/ index 4)) :r])
+                            5)
+                       (dec (get-in computed.marks [(floor (/ index 4)) :py])))
                   :w (if (< (mod index 4) 2) 2 7)
                   :h (if (< (mod index 4) 2) 7 2)})
                (range (* (count computed.marks) 4))))
@@ -183,12 +188,12 @@
                    {:id (str "orbit-" (get-in computed.orbitRings [(floor (/ index 64)) :id]) "-" (mod index 64))
                     :translation [(+ (get-in computed.orbitRings [(floor (/ index 64)) :cx])
                                      (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
-                                        (cos (/ (* (+ (mod index 64) 0.5) (pi)) 32))))
+                                        (-> index (mod 64) (+ 0.5) (* (pi)) (/ 32) cos)))
                                   0
                                   (+ (get-in computed.orbitRings [(floor (/ index 64)) :cz])
                                      (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
-                                        (sin (/ (* (+ (mod index 64) 0.5) (pi)) 32))))]
-                    :rotationDegrees [0 (- 90 (* (+ (mod index 64) 0.5) 5.625)) 0]
+                                        (-> index (mod 64) (+ 0.5) (* (pi)) (/ 32) sin)))]
+                    :rotationDegrees [0 (->> (-> index (mod 64) (+ 0.5) (* 5.625)) (- 90)) 0]
                     :scale [(/ (* (get-in computed.orbitRings [(floor (/ index 64)) :radius]) (pi)) 62)
                             (/ (* computed.view.distance 0.6) computed.view.f)
                             (/ (* computed.view.distance 0.6) computed.view.f)]
@@ -206,9 +211,9 @@
                     :translation [(+ computed.target.x (* it.x 300))
                                   (* it.y 300)
                                   (+ computed.target.z (* it.z 300))]
-                    :scale [(/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
-                            (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
-                            (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)]
+                    :scale [(-> (->> (* it.mag 0.13) (- 1.3) (* 310)) (/ computed.view.f))
+                            (-> (->> (* it.mag 0.13) (- 1.3) (* 310)) (/ computed.view.f))
+                            (-> (->> (* it.mag 0.13) (- 1.3) (* 310)) (/ computed.view.f))]
                     :mesh "cube"
                     :material "star"})
                  (filter #(<= (:mag %) state.limitMag) computed.starVectors))
@@ -373,7 +378,7 @@
        :text ~(t "info.phase" {:percent (text (round (* computed.info.lit 100)))}))))
 
 (defview clock-card "The day and the rate, at the top of the view." []
-  `(column#view-time :anchors {:left ~(max (/ (- (- window.width 461) 300) 2) 12) :top 10}
+  `(column#view-time :anchors {:left ~(-> window.width (- 461) (- 300) (/ 2) (max 12)) :top 10}
      :width 300
      :gap 0
      :justify center
