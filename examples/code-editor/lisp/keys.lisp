@@ -118,7 +118,7 @@
 
 (defkey "mod+shift+d" duplicateLines)
 
-(defkey "ctrl+shift+k" {:when ~(= context.platform "mac") :do deleteLines})
+(defkey "ctrl+shift+k" {:when ~(= context.platform :mac) :do deleteLines})
 
 (defkey "ctrl+mod+up" moveLinesUp)
 
@@ -140,7 +140,7 @@
 
 (defkey "mod+shift+l" splitIntoLines)
 
-(defkey "ctrl+cmd+g" {:when ~(= context.platform "mac") :do selectAllOccurrences})
+(defkey "ctrl+cmd+g" {:when ~(= context.platform :mac) :do selectAllOccurrences})
 
 (defkey "alt+f3" selectAllOccurrences)
 
@@ -160,9 +160,9 @@
 
 (defkey "mod+alt+f" openReplace)
 
-(defkey "cmd+g" {:when ~(= context.platform "mac") :do findNext})
+(defkey "cmd+g" {:when ~(= context.platform :mac) :do findNext})
 
-(defkey "cmd+shift+g" {:when ~(= context.platform "mac") :do findPrevious})
+(defkey "cmd+shift+g" {:when ~(= context.platform :mac) :do findPrevious})
 
 (defkey "f3" findNext)
 
@@ -182,6 +182,6 @@
 
 (defkey "mod+k mod+t" selectTheme)
 
-(defkey "ctrl+cmd+shift+f" {:when ~(= context.platform "mac") :do toggleZen})
+(defkey "ctrl+cmd+shift+f" {:when ~(= context.platform :mac) :do toggleZen})
 
 (defkey "shift+f11" toggleZen)
