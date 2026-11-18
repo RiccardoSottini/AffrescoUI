@@ -108,11 +108,11 @@ struct Engine : VersionObserver {
 	std::vector<std::string> droppedFiles;
 
 	DocumentContext document;       ///< Colours, fonts, theme, globals, the screen shown.
-	ComputedValues computed{*this}; ///< The cached "computed" values.
 	Builder builder;                ///< Expands children.
 	Scheduler scheduler;            ///< Timers and deferred tasks.
 	Properties properties;          ///< Values on panels.
 	Tracker tracker{*this};         ///< The readers of the state, run before the walk.
+	ComputedValues computed{*this}; ///< The "computed" values, each a reader (after the tracker: it leaves it).
 	Reconciler reconciler;          ///< Records; updates.
 	UpdateFrame frame{*this};       ///< What every update does around the walk over the panels.
 	Watches watches{*this};         ///< The "watch" handlers.

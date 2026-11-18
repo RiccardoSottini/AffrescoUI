@@ -141,6 +141,16 @@ public:
 	/// keep computed values, which never read there; a global or a variable ("/~g/...", "/~v/...") makes them stale.
 	/// @param place The place.
 	void markPlaceChanged(const std::string& place);
+	/// @brief Records that a list outside the state changed shape, a data model's rows (Models.hpp), as
+	/// markPlaceChanged() does for its place, with how it changed (StateChanges::lists).
+	/// @param place The list, "/~m/<name>".
+	/// @param kind Rows inserted or removed.
+	/// @param index The first one.
+	/// @param count How many.
+	void markPlaceListChanged(std::string place, ListChange::Kind kind, std::size_t index, std::size_t count) {
+		markPlaceChanged(place);
+		if(!changes_.all) changes_.lists.push_back({std::move(place), kind, index, count});
+	}
 	/// @brief Whether the state changed, or an update was requested, since the last update began (takeChanges()).
 	[[nodiscard]] bool stateChanged() const noexcept { return !changes_.empty(); }
 	/// @brief What changed since the last update began, as an update begins: the state is then up to date with the
