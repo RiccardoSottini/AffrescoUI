@@ -635,8 +635,9 @@ the running interpreter instead of a new one. Neither is a way around a rule:
   (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and the property test and
   the `updates` fuzz target compare the two after random sequences of changes.
 - **A change made in place is bounded as a load is.** At most 64 changes, and together at most what one load may allocate
-  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, or touches
-  a name the language or the host defines, is never made in place.
+  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, touches
+  a name the language or the host defines, or adds, removes, moves or changes a file's `ns` form, is never made in place,
+  and the last is built in full: the aliases code is compiled with come only from those forms.
 - **What is counted holds no value.** The update counters (`UpdateStatistics`) are numbers of panels and places; a
   difference verify mode logs in a secret text field names its place, never what the field holds.
 - **What follows a panel follows its change.** The keybindings list is built again when any panel's keys change, even to

@@ -4,6 +4,8 @@
 ;;; regular expression, in the file or the selection; the editor highlights the matches and counts them. Its line
 ;;; commands (toggle comment, move, delete, indent) are the editor's own, on its keys (views.lisp of the editor).
 
+(ns forge.features.editing.editing)
+
 ;;; The find bar
 
 (defstate findBar
@@ -67,22 +69,22 @@
 (defcommand findNext "Find Next"
   :title ~(t "command.findNext")
   :description ~(t "command.findNext") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "next"))
+  (findStep :next))
 
 (defcommand findPrevious "Find Previous"
   :title ~(t "command.findPrevious")
   :description ~(t "command.findPrevious") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "previous"))
+  (findStep :previous))
 
 (defcommand replaceOne "Replace"
   :title ~(t "command.replaceOne")
   :description ~(t "command.replaceOne") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "replace"))
+  (findStep :replace))
 
 (defcommand replaceAllInFile "Replace All"
   :title ~(t "command.replaceAllInFile")
   :description ~(t "command.replaceAllInFile") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "replaceAll"))
+  (findStep :replaceAll))
 
 (defcommand toggleFindInSelection "Toggle Find in Selection"
   :title ~(t "command.toggleFindInSelection")

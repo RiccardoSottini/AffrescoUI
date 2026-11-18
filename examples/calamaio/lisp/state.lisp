@@ -4,6 +4,8 @@
 ;;; first in `order`; the windows by id, laid out in groups across `layout.dir`. The sample home folder is in home.lisp,
 ;;; the kill ring's own state with the kill ring (killring.lisp). Below, what every command works out from them.
 
+(ns calamaio.state)
+
 ;;; Buffers
 
 (defstate bufs
@@ -104,7 +106,7 @@
   (not= (get-in state.bufs [(get-in state.win [state.sel :buf]) :kind]) "splash"))
 
 (defcomputed wins "The windows, in the order they are on the frame."
-  (split (join "," (map (fn [it] (join "," it)) state.layout.groups)) ","))
+  (str/split (join "," (map #(join "," %) state.layout.groups)) ","))
 
 (defcomputed other "The buffer C-x b offers first: the most recent other than this one."
   (or-else (find (fn [it]
@@ -112,7 +114,7 @@
                  state.order)
            (get-in state.win [state.sel :buf])))
 
-(defcomputed names "The buffers' names, in their order." (map (fn [it] (get-in state.bufs [it :name])) state.order))
+(defcomputed names "The buffers' names, in their order." (map #(get-in state.bufs [% :name]) state.order))
 
 (defcomputed commandNames
-  "Every command's name, sorted: what M-x completes." (sortText (map (fn [it] it.name) commands)))
+  "Every command's name, sorted: what M-x completes." (sortText (map :name commands)))

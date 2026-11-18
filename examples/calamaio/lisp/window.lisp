@@ -4,6 +4,8 @@
 ;;; window, `b` the buffer it shows, `on` whether it is the selected one and `v` what its editor shows (the first and
 ;;; last lines in view, and how many there are).
 
+(ns calamaio.window)
+
 ;;; The window
 
 (defcomponent window
@@ -74,25 +76,26 @@
                            (not state.is.on) (not state.qr.on))
                :do quit-window}}
          (zipmap (map str (range 10))
+                 ; style: keep, #(...) can't give a map
                  (map (fn [d] `{:when ~(and (some? state.arg) state.argDigits) :do digit-argument :with {:d ~d}})
                       (range 10)))))
 
 (defcomputed findRequest
   "What the selected window's editor finds: the search's text, or the replace's, with the request that moves it."
   (cond (and state.is.on (not= state.is.text ""))
-        {:text state.is.text :caseSensitive (not= (lower-case state.is.text) state.is.text) :step state.is.step
+        {:text state.is.text :caseSensitive (not= (str/lower-case state.is.text) state.is.text) :step state.is.step
          :request state.is.req}
         state.qr.on
-        {:text state.qr.from :caseSensitive (not= (lower-case state.qr.from) state.qr.from) :step state.qr.step
+        {:text state.qr.from :caseSensitive (not= (str/lower-case state.qr.from) state.qr.from) :step state.qr.step
          :request state.qr.req :replace state.qr.replace}
         :else nil))
 
 (defview scroll-bar "The scroll bar: a thumb as tall as the share of the buffer in view, where that share is." []
   `(node :width 10 :alignSelf stretch :color @track
      :let {:lines ~(max 1 (or-else v.lines 1))
-           :shown ~(min 1 (max 0.05 (/ (+ (- (or-else v.last 1) (or-else v.first 1)) 1) lines)))}
+           :shown ~(min 1 (max 0.05 (/ (inc (- (or-else v.last 1) (or-else v.first 1))) lines)))}
      (node :x 2 :width 6 :radius 3 :color @thumb
-       :y ~(str (fixed (* 100 (min (- 1 shown) (/ (- (or-else v.first 1) 1) lines))) 2) "%")
+       :y ~(str (fixed (* 100 (min (- 1 shown) (/ (dec (or-else v.first 1)) lines))) 2) "%")
        :height ~(str (fixed (* 100 shown) 2) "%"))))
 
 ;;; The mode line
@@ -121,7 +124,7 @@
      (node :grow 1 :height 1 :color transparent)
      (label :fitText true :textColor ~(if on "@mlFg" "@mliFg")
        :text ~(t "modeLine.position"
-                 {:line (str line) :column (str (- column 1)) :where (where-in-view top bottom lines)}))
+                 {:line (str line) :column (str (dec column)) :where (where-in-view top bottom lines)}))
      (node :width 6 :height 1 :color transparent)))
 
 (defmacro where-in-view
@@ -129,7 +132,7 @@
   `(cond (and (<= ~top 1) (>= ~bottom ~lines)) (t "modeLine.all")
          (<= ~top 1) (t "modeLine.top")
          (>= ~bottom ~lines) (t "modeLine.bottom")
-         :else (str (floor (/ (* 100 (- ~top 1)) ~lines)) "%")))
+         :else (str (floor (/ (* 100 (dec ~top)) ~lines)) "%")))
 
 ;;; What its handlers do
 

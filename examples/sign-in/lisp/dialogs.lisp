@@ -4,6 +4,8 @@
 ;;; Each is the built-in dialog component (`:use dialog`), its buttons running functions of sign-in.lisp and
 ;;; profile.lisp; its fields sit under its title and message, from y 76.
 
+(ns sign-in.dialogs)
+
 ;;; Signing in
 
 (defview forgot-dialog "Forgot password: the account's email, to send it a reset code." []

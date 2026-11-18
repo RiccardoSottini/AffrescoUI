@@ -1,6 +1,8 @@
 ;;; drawer.lisp --- Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text,
 ;;; edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.
 
+(ns flow.drawer)
+
 ;;; Styles
 
 (defstyle section (label :font small :textColor @color.muted :height 18 :align {:horizontal start :vertical center}))

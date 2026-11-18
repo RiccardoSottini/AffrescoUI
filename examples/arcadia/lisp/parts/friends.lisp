@@ -3,6 +3,8 @@
 ;;; A chat's messages are records of models.lisp's messages; an invitation to play is a message with a game. Every
 ;;; friend and message is invented. The profile page is in profile.lisp.
 
+(ns arcadia.parts.friends)
+
 ;;; What the friends page keeps
 
 (defstate chatWith f2)
@@ -25,25 +27,23 @@
   ;; A macro, not a function: the list it writes stays an expression, worked out at its speed.
   "The friends whose presence passes `test` (of `it`), and whose name matches the search."
   [test]
+  ; style: keep, the test it is given names its item it
   `(filter (fn [it] (and ~test (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
            data.friends))
 
 (defcomputed friendGroups "The friends in a game, online (or away), and offline, each group only if it has someone."
-  (filter (fn [it] (> (count it.friends) 0))
-          [{:key "ingame" :friends (friends-where (= it.presence "ingame"))}
-           {:key "online" :friends (friends-where (or (= it.presence "online") (= it.presence "away")))}
-           {:key "offline" :friends (friends-where (= it.presence "offline"))}]))
+  (filter #(pos? (count (:friends %)))
+          [{:key "ingame" :friends (friends-where (= it.presence :ingame))}
+           {:key "online" :friends (friends-where (#{:online :away} it.presence))}
+           {:key "offline" :friends (friends-where (= it.presence :offline))}]))
 
-(defcomputed chatFriend "The friend whose chat is open." (find (fn [it] (= it.id state.chatWith)) data.friends))
+(defcomputed chatFriend "The friend whose chat is open." (find #(= (:id %) state.chatWith) data.friends))
 
-(defcomputed chat "The messages with that friend." (filter (fn [it] (= it.friend state.chatWith)) data.messages))
+(defcomputed chat "The messages with that friend." (filter #(= (:friend %) state.chatWith) data.messages))
 
 (defcomputed inviteGame "The game an invitation is to: the one running, else the installed one played last."
-  (or-else (find (fn [it] (= it.id state.running)) data.games)
-           (get (sort-by (fn [it] it.lastPlayed)
-                         >
-                         (filter (fn [it] (and it.installed (some? it.lastPlayed))) computed.owned))
-                0)))
+  (or-else (find #(= (:id %) state.running) data.games)
+           (get (->> computed.owned (filter #(and (:installed %) (some? (:lastPlayed %)))) (sort-by :lastPlayed >)) 0)))
 
 (deftokens chat-colours "The colours of your own chat bubbles."
   {:chat.mine {:dark "#5a3f1c" :light "#f8dfb6"} :chat.onMine {:dark "#ffe7c2" :light "#3d2508"}})
@@ -54,9 +54,10 @@
   ;; A macro: the colour stays an expression of the presence it is given.
   "The colour of a presence: in a game lime, offline (or invisible) grey, else lilac."
   [p]
-  `(cond (= ~p "ingame") "@color.ingame"
-         (or (= ~p "offline") (= ~p "invisible")) "@color.offline"
-         :else "@color.online"))
+  `(case ~p
+     :ingame "@color.ingame"
+     (:offline :invisible) "@color.offline"
+     "@color.online"))
 
 (defcomponent avatar
   "A person's avatar with a frame in their presence's colour: in a game lime, online lilac, offline grey."
@@ -89,7 +90,7 @@
          :anchors {:left 0 :right 0}
          :height 16
          :textColor ~(if (= p "ingame") "@color.ingame" "@color.muted")
-         :text ~(cond (= p "ingame") (or-else (:title (find (fn [it] (= it.id friend.game)) data.games)) (t "presence.ingame"))
+         :text ~(cond (= p "ingame") (or-else (:title (find #(= (:id %) friend.game) data.games)) (t "presence.ingame"))
                       (and (= p "offline") (> friend.since 0)) (t "friends.lastOnline" {:n friend.since})
                       :else (t (str "presence." p)))))
      ~(unread-dot)
@@ -195,6 +196,7 @@
              :role heading
              :text ~(t (str "friends.group." group.key) {:n (count group.friends)}))
            ~(repeat [f group.friends :key f.id] `(node :use friendRow :with {:friend ~f}))))
+     ; style: keep, sum is the expression's own function: the function it takes names its item it
      (label :when ~(= (sum computed.friendGroups (fn [it] (count it.friends))) 0)
        :height 60
        :anchors {:left 14 :right 14}
@@ -257,7 +259,7 @@
          :height 16
          :textColor @color.muted
          :text ~(if (= friend.presence "ingame")
-                  (t "friends.playing" {:game (:title (find (fn [it] (= it.id friend.game)) data.games))})
+                  (t "friends.playing" {:game (:title (find #(= (:id %) friend.game) data.games))})
                   (t (str "presence." friend.presence)))))
      ~(invite-button)
      (panel :color transparent :width 18 :height 1)))
@@ -276,9 +278,9 @@
      :textColor @color.text
      :hover {:color @color.hover :textColor @color.bright}
      :disabled ~(nil? computed.inviteGame)
-     :tooltip ~(if (nil? computed.inviteGame)
-                 (t "chat.nothingToInvite")
-                 (t "chat.inviteTo" {:game computed.inviteGame.title}))
+     :tooltip ~(if-some [game computed.inviteGame]
+                 (t "chat.inviteTo" {:game game.title})
+                 (t "chat.nothingToInvite"))
      :text ~(t "chat.inviteButton")
      :onClick ~(handler inviteToPlay)))
 
@@ -305,8 +307,8 @@
      (panel#chat-end :color transparent :height 8 :anchors {:left 0 :right 0})))
 
 (defview day-line "A line with the day (today, yesterday or the date) over a day's first message." [m i]
-  `(row :when ~(or (= i 0)
-                   (not= (floor (/ (get-in computed.chat [(- i 1) :at]) 86400000)) (floor (/ m.at 86400000))))
+  `(row :when ~(or (zero? i)
+                   (not= (floor (/ (get-in computed.chat [(dec i) :at]) 86400000)) (floor (/ m.at 86400000))))
      :height 20
      :anchors {:left 0 :right 0}
      :gap 12
@@ -322,7 +324,7 @@
 (defcomponent chatMessage
   "One message: a bubble on the right for yours, on the left with the friend's avatar for theirs; an invitation is a card."
   {:m {} :friend {}}
-  `(row :let {:g ~(if (nil? m.game) nil (find (fn [it] (= it.id m.game)) data.games))}
+  `(row :let {:g ~(when-some [id m.game] (find #(= (:id %) id) data.games))}
      :anchors {:left 0 :right 0}
      :gap 8
      :fitContent height
@@ -331,7 +333,7 @@
      :role listitem
      :label ~(str (if m.mine state.user.name friend.name)
                   ": "
-                  (if (nil? g) m.text (t "chat.invite" {:game g.title})))
+                  (if-some [game g] (t "chat.invite" {:game game.title}) m.text))
      (image :when ~(not m.mine)
        :file ~(str "../assets/art/avatars/" friend.avatar ".svg")
        :width 28

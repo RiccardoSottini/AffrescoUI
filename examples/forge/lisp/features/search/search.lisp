@@ -6,6 +6,8 @@
 ;;; (search.replace, then files.write): files with unsaved edits are skipped, and the open ones that changed are read
 ;;; again. Build output and dependencies (state.search.skip) are never searched.
 
+(ns forge.features.search.search)
+
 ;;; Searching
 
 (defstate search
@@ -33,7 +35,7 @@
 (defcommand findInFiles "Shows the Search view, its query field focused."
   :title ~(t "command.findInFiles")
   :description ~(t "command.findInFiles") :category ~(t "category.search") :icon "search" []
-  (set "state.sideView" "search")
+  (set "state.sideView" :search)
   (set "state.layout.sidebar" true)
   (after 0 findInFilesLater))
 
@@ -47,7 +49,7 @@
   (set "state.search.error" "")
   (set "state.search.collapsed" [])
   (cond
-    (empty? (trim state.search.query)) (do (set "state.search.result" nil) (set "state.search.ran" nil))
+    (str/blank? state.search.query) (do (set "state.search.result" nil) (set "state.search.ran" nil))
     (empty? state.folder.root)
       (do (set "state.search.result" nil) (set "state.search.error" (t "search.noFolder")))
     :else (startSearch)))
@@ -59,7 +61,7 @@
         :wholeWord state.search.wholeWord
         :caseSensitive state.search.caseSensitive
         :include state.search.include
-        :exclude (str state.search.skip (if (empty? (trim state.search.exclude)) "" (str ", " state.search.exclude)))})
+        :exclude (str state.search.skip (if (str/blank? state.search.exclude) "" (str ", " state.search.exclude)))})
   (set "state.search.result" {:tree [] :hits [] :files 0 :matches 0 :skipped 0 :truncated false :done false})
   (invoke "search.find"
           :with state.search.ran
@@ -75,11 +77,11 @@
 
 (defn startSearchDone "The search is over: the files in order, and Output says how many matches." [result]
   (set "state.search.result"
-       (merge state.search.result
-              {:tree (sort-by (fn [it] it.id) state.search.result.tree)
-               :skipped result.skipped
-               :truncated result.truncated
-               :done true}))
+       (assoc state.search.result
+              :tree (sort-by :id state.search.result.tree)
+              :skipped result.skipped
+              :truncated result.truncated
+              :done true))
   (log-line (t "log.search" {:matches state.search.result.matches :files state.search.result.files})))
 
 (defn startSearchFailed "Says why the search failed, unless it was cancelled." [error]
@@ -88,31 +90,29 @@
 (defn searchFound
   "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
   [found]
-  (set "state.search.result"
-       (merge state.search.result
-              {:tree (concat state.search.result.tree
-                             [{:id (str "file:" found.file)
-                               :label (str (baseName found.file)
-                                           (if (contains found.file "/")
-                                             (str "  "
-                                                  (slice found.file
-                                                         0
-                                                         (- (- (count found.file) (count (baseName found.file))) 1)))
-                                             "")
-                                           "  ("
-                                           (count found.matches)
-                                           ")")
-                               :icon "file"
-                               :children (map-indexed (fn [index it]
-                                                        {:id (str "hit:" (+ (count state.search.result.hits) index))
-                                                         :label (str it.line ": " (trim it.text))})
-                                                      found.matches)}])
-               :hits (concat state.search.result.hits
-                             (map (fn [it]
-                                    {:file found.file :label (baseName found.file) :line it.line :column it.column})
-                                  found.matches))
-               :files (+ state.search.result.files 1)
-               :matches (+ state.search.result.matches (count found.matches))})))
+  (let [{:keys [file matches]} found
+        {:keys [tree hits]} state.search.result
+        folder (str/join "/" (butlast (str/split file "/" -1)))]
+    (set "state.search.result"
+         (-> state.search.result
+             (assoc :tree (concat tree
+                                  [{:id (str "file:" file)
+                                    :label (str (baseName file)
+                                                (if (str/includes? file "/") (str "  " folder) "")
+                                                "  ("
+                                                (count matches)
+                                                ")")
+                                    :icon "file"
+                                    :children (map-indexed (fn [index match]
+                                                             {:id (str "hit:" (+ (count hits) index))
+                                                              :label (str match.line ": " (str/trim match.text))})
+                                                           matches)}])
+                    :hits (concat hits
+                                  ; style: keep, #(...) can't give a map
+                                  (map (fn [match] {:file file :label (baseName file) :line match.line :column match.column})
+                                       matches)))
+             (update :files inc)
+             (update :matches + (count matches))))))
 
 (defcommand cancelSearch "Cancel Search"
   :title ~(t "command.cancelSearch") :description ~(t "command.cancelSearch") :category ~(t "category.search")
@@ -135,62 +135,54 @@
 
 (defcomputed searchExpanded
   (if state.search.result
-        (filter (fn [it] (not (contains state.search.collapsed it))) (map (fn [it] it.id) state.search.result.tree))
+        (filter #(not (contains state.search.collapsed %)) (map :id state.search.result.tree))
         []))
 
 (defn openSearchHit "A row of the results tree, opened: a match at its line, or a file." []
   (cond
-    (= (slice (or-else event.id "") 0 4) "hit:")
-      (openSearchMatch (get state.search.result.hits (number (slice event.id 4))))
-    (= (slice (or-else event.id "") 0 5) "file:") (openPath (slice event.id 5) (baseName event.id))))
+    (str/starts-with? (or-else event.id "") "hit:") (openSearchMatch (get state.search.result.hits (number (subs event.id 4))))
+    (str/starts-with? (or-else event.id "") "file:") (openPath (subs event.id 5) (baseName event.id))))
 
 (defn openSearchMatch "Opens a match's file at its line." [hit]
-  (when (some? hit) (openPath hit.file hit.label) (goToLine hit.line)))
+  (when-some [{:keys [file label line]} hit] (openPath file label) (goToLine line)))
 
 (defcommand searchDismiss "Take the selected file or match out of the results; the files stay as they are."
   :title ~(t "command.searchDismiss") :category ~(t "category.search") :icon "close"
   :description ~(t "command.searchDismiss.about")
   :enablement ~(and (some? state.search.result) state.search.result.done (not (empty? (or-else state.search.selected "")))) []
-  (if (= (slice state.search.selected 0 5) "file:")
-    (searchDismissFile (find (fn [it] (= it.id state.search.selected)) state.search.result.tree))
+  (if (str/starts-with? state.search.selected "file:")
+    (searchDismissFile (find #(= (:id %) state.search.selected) state.search.result.tree))
     (searchDismissHit
       state.search.selected
-      (find (fn [it] (some (fn [it] (= it.id state.search.selected)) it.children)) state.search.result.tree)))
+      ; style: keep, #(...) can't hold another #(...)
+      (find (fn [file] (some #(= (:id %) state.search.selected) (:children file))) state.search.result.tree)))
   (set "state.search.selected" nil))
 
 (defn searchDismissFile "Takes a file and its matches out of the results." [file]
-  (when (some? file)
+  (when-some [{:keys [id children]} file]
     (set "state.search.result"
-         (merge state.search.result
-                {:tree (filter (fn [it] (not= it.id file.id)) state.search.result.tree)
-                 :files (- state.search.result.files 1)
-                 :matches (- state.search.result.matches (count file.children))}))))
+         (-> state.search.result
+             (update :tree (partial remove #(= (:id %) id)))
+             (update :files dec)
+             (update :matches - (count children))))))
 
 (defn searchDismissHit "Takes a match out of the results, and its file when it was the last." [hit file]
-  (cond
-    (and (some? file) (<= (count file.children) 1)) (searchDismissFile file)
-    (some? file)
-      (set "state.search.result"
-           (merge state.search.result
-                  {:tree (map (fn [it]
-                                (if (not= it.id file.id)
-                                  it
-                                  (merge it
-                                         {:children (filter (fn [it] (not= it.id hit)) it.children)
-                                          :label (str (slice it.label
-                                                             0
-                                                             (- (count it.label)
-                                                                (count (str "(" (count it.children) ")"))))
-                                                      "("
-                                                      (- (count it.children) 1)
-                                                      ")")})))
-                              state.search.result.tree)
-                   :matches (- state.search.result.matches 1)}))))
+  (when-some [{:keys [id children label]} file]
+    (if (<= (count children) 1)
+      (searchDismissFile file)
+      (let [counted (str "(" (count children) ")")
+            shown (assoc file
+                         :children (remove #(= (:id %) hit) children)
+                         :label (str (subs label 0 (- (count label) (count counted))) "(" (dec (count children)) ")"))]
+        (set "state.search.result"
+             (-> state.search.result
+                 (update :tree (partial map #(if (= (:id %) id) shown %)))
+                 (update :matches dec)))))))
 
 (defn searchExpand "A file of the results opened or closed (`event.expanded`): it is remembered." []
   (set "state.search.collapsed"
-       (if event.expanded
-         (filter (fn [it] (not= it event.id)) state.search.collapsed)
+       (if (true? event.expanded)
+         (remove #(= % event.id) state.search.collapsed)
          (concat state.search.collapsed [event.id]))))
 
 (defn searchMenu "The results' menu, opened where the right-click was." []
@@ -213,12 +205,13 @@
             (reduce (fn [acc it]
                       (concat acc
                               [{:text (slice it.id 5) :id it.id}]
+                              ; style: keep, #(...) can't give a map
                               (map (fn [it] {:text (str "  " it.label) :id it.id}) (or-else it.children []))
                               [{:text "" :id ""}]))
                     []
                     (if state.search.result state.search.result.tree []))))
 
-(defcomputed searchEditorText (join "\n" (map (fn [it] it.text) computed.searchEditorRows)))
+(defcomputed searchEditorText (join "\n" (map :text computed.searchEditorRows)))
 
 (defcommand openSearchEditor
   "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
@@ -227,29 +220,24 @@
   (openPage "forge:search-results" (t "page.searchResults") "searchResults"))
 
 (defn openSearchEditorLine "The results editor's line at the caret, opened." []
-  (openSearchRow (or-else (get computed.searchEditorRows (- (or-else state.searchEditor.caret.line 1) 1)) {:id ""})))
+  (openSearchRow (or-else (get computed.searchEditorRows (dec (or-else state.searchEditor.caret.line 1))) {:id ""})))
 
 (defn openSearchRow "A row of the results, opened: a match at its line, or a file." [row]
   (cond
-    (= (slice row.id 0 4) "hit:") (openSearchMatch (get state.search.result.hits (number (slice row.id 4))))
-    (= (slice row.id 0 5) "file:") (openPath (slice row.id 5) (baseName row.id))))
+    (str/starts-with? row.id "hit:") (openSearchMatch (get state.search.result.hits (number (subs row.id 4))))
+    (str/starts-with? row.id "file:") (openPath (subs row.id 5) (baseName row.id))))
 
 ;;; Replace All
 
 (defn askReplace "Asks before replacing, when the search found something." []
-  (when (and state.search.result state.search.result.done (> state.search.result.files 0))
+  (when (and (some? state.search.result) (true? state.search.result.done) (pos? state.search.result.files))
     (set "state.search.confirm" true)))
 
 (defn replaceAll "Replaces every match, one file at a time; open files with unsaved edits are skipped."
   []
-  (set "state.search.replacing"
-       {:queue (filter (fn [it] (not (contains computed.dirtyIds it)))
-                       (map (fn [it] (slice it.id 5)) state.search.result.tree))
-        :skipped (filter (fn [it] (contains computed.dirtyIds it))
-                         (map (fn [it] (slice it.id 5)) state.search.result.tree))
-        :replaced 0
-        :changed []
-        :failed []})
+  (let [files (map #(subs (:id %) 5) state.search.result.tree)
+        dirty? #(contains computed.dirtyIds %)]
+    (set "state.search.replacing" {:queue (remove dirty? files) :skipped (filter dirty? files) :replaced 0 :changed [] :failed []}))
   (replaceNext))
 
 (defn replaceNext "Replaces in the next file, or ends." []
@@ -297,12 +285,12 @@
   "Replacing is over: the open files that changed read again, a notice of what was done, the search run again."
   [done]
   (set "state.search.replacing" nil)
-  (set "state.search.reload" (filter (fn [it] (contains computed.docIds it)) done.changed))
+  (set "state.search.reload" (filter #(contains computed.docIds %) done.changed))
   (doseq [file state.search.reload] (invoke "files.read" :with {:path file} :onDone [replaceFinishedDone file]))
-  (notify (if (or (> (count done.failed) 0) (> (count done.skipped) 0)) "warning" "info")
+  (notify (if (or (seq done.failed) (seq done.skipped)) "warning" "info")
           (str (t "notify.replaced" {:matches done.replaced :files (count done.changed)})
-               (if (> (count done.skipped) 0) (t "notify.replacedSkipped" {:n (count done.skipped)}) "")
-               (if (> (count done.failed) 0) (t "notify.replacedFailed" {:n (count done.failed)}) "")))
+               (if (seq done.skipped) (t "notify.replacedSkipped" {:n (count done.skipped)}) "")
+               (if (seq done.failed) (t "notify.replacedFailed" {:n (count done.failed)}) "")))
   (runSearch))
 
 (defn replaceFinishedDone "An open file read again after a replace." [file result]

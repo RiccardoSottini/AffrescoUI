@@ -1,6 +1,8 @@
 ;;; list.lisp --- Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row
 ;;; each.
 
+(ns flow.list)
+
 ;;; Components
 
 (defcomponent listView "The cards grouped by column: a header with the column's name and count, then a row a card"

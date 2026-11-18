@@ -74,6 +74,15 @@ name. The alias is a label checked against the file: `board/render` and `:refer 
 `board` names defines `render`, as `board/render: "render" isn't defined in parts/board.lisp`. Two files can't define the
 same name, as without `ns`.
 
+## When the program changes
+
+A changed definition is built again alone, and redefined in the running interpreter, as without `ns`
+(`Program::rebuild`, `Program::redefine`): with the same `ns` forms, in the same files and order, every alias means what
+it meant, so only what changed and what uses it compiles again. A definition that comes, goes or moves to another file
+is one that changed: what names it, `board/render` included, is compiled again, and checked against the files as the
+whole program has them. A file's `ns` form added, removed, moved or changed in any way (a `:require` reordered, an
+alias renamed, a docstring) builds the whole program and loads a new interpreter.
+
 ## At the command line
 
 `affrescoui repl` takes an `ns` form for the forms typed after it: `(ns a (:require [clojure.string :as s]))`, then

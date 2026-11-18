@@ -2,6 +2,8 @@
 ;;;
 ;;; A key runs a command of haven.lisp by name, or a function with its arguments.
 
+(ns haven.keys)
+
 ;;; The room shown
 
 (defkey "up" "A half degree warmer." ~(handler setTarget 0.5))

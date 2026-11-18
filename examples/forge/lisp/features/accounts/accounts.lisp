@@ -5,6 +5,8 @@
 ;;; The provider's URLs and client id are placeholders to edit (no client secret: a public client with PKCE or a
 ;;; device code); the host allows their origins. The token stays in the system's secret store, never in the state.
 
+(ns forge.features.accounts.accounts)
+
 ;;; Signing in
 
 (defstate accounts {:synced nil :revisions 0 :peers [] :where "" :menuOpen false})
@@ -79,13 +81,13 @@
 (defn accountsReceive
   "Settings from the server, kept as synced, so they aren't sent back; a document without settings changes nothing."
   [settings]
-  (when (some? settings) (set "state.accounts.synced" settings) (set "state.settings" settings)))
+  (when-some [received settings] (set "state.accounts.synced" received) (set "state.settings" received)))
 
 (defn accountsSend
   "The settings changed here, sent to the server as a revision of ~settings, once they differ from what it has."
   []
-  (when (and connections.accountsServer.online (not= state.settings state.accounts.synced))
-    (set "state.accounts.revisions" (+ state.accounts.revisions 1))
+  (when (and (true? connections.accountsServer.online) (not= state.settings state.accounts.synced))
+    (set "state.accounts.revisions" (inc state.accounts.revisions))
     (set "state.accounts.synced" state.settings)
     (request "accountsServer.revision"
              :with {:id (str "settings-" (text state.accounts.revisions)) :settings state.settings})))
@@ -104,7 +106,7 @@
   (set "state.accounts.peers" []))
 
 (defn accountsPresence "Tells the others which file the person is in, when it changes." []
-  (when (and connections.accountsTeam.online (not= (or-else computed.activeDoc.label "") state.accounts.where))
+  (when (and (true? connections.accountsTeam.online) (not= (or-else computed.activeDoc.label "") state.accounts.where))
     (set "state.accounts.where" (or-else computed.activeDoc.label ""))
     (request "accountsTeam.presence" :with {:where state.accounts.where :doing "editing"})))
 

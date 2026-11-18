@@ -10,14 +10,15 @@
   {:values [] :top 0 :color "#2563eb" :lineWidth 2}
   `(path :width 240
      :height 120
-     :viewBox ~(str "0 0 " (max (- (count values) 1) 1) " 100")
+     :viewBox ~(str "0 0 " (-> values count dec (max 1)) " 100")
      :fit fill
      :d ~(if (empty? values)
              ""
              (str "M "
                   (join " L "
                         (map-indexed (fn [index it]
-                                       (str index " " (- 100 (/ (* it 100) (max (or top (max values)) 0.000001)))))
+                                       (let [scale (max (or top (max values)) 0.000001)]
+                                         (->> (/ (* it 100) scale) (- 100) (str index " "))))
                                      values))))
      :stroke ~color
      :strokeWidth ~lineWidth
@@ -28,17 +29,18 @@
   {:values [] :top 0 :color "#2563eb80"}
   `(path :width 240
      :height 120
-     :viewBox ~(str "0 0 " (max (- (count values) 1) 1) " 100")
+     :viewBox ~(str "0 0 " (-> values count dec (max 1)) " 100")
      :fit fill
      :d ~(if (empty? values)
              ""
              (str "M 0 100 L "
                   (join " L "
                         (map-indexed (fn [index it]
-                                       (str index " " (- 100 (/ (* it 100) (max (or top (max values)) 0.000001)))))
+                                       (let [scale (max (or top (max values)) 0.000001)]
+                                         (->> (/ (* it 100) scale) (- 100) (str index " "))))
                                      values))
                   " L "
-                  (- (count values) 1)
+                  (dec (count values))
                   " 100 Z"))
      :fillColor ~color))
 
@@ -50,12 +52,13 @@
      :fit fill
      :d ~(join " "
                (map-indexed (fn [index it]
-                              (str "M "
-                                   (+ index (/ gap 2))
-                                   " 100 V "
-                                   (- 100 (/ (* it 100) (max (or top (max values)) 0.000001)))
-                                   " H "
-                                   (- (+ index 1) (/ gap 2))
-                                   " V 100 Z"))
+                              (let [scale (max (or top (max values)) 0.000001)]
+                                (str "M "
+                                     (+ index (/ gap 2))
+                                     " 100 V "
+                                     (- 100 (/ (* it 100) scale))
+                                     " H "
+                                     (- (inc index) (/ gap 2))
+                                     " V 100 Z")))
                             values))
      :fillColor ~color))

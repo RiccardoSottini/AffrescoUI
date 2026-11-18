@@ -4,6 +4,8 @@
 ;;; Each is an `account-section` (account.lisp): a column shown while it is the one chosen, under its heading. A
 ;;; list's rows are itemRows (components.lisp), their links and buttons the row's own children.
 
+(ns sign-in.account-sections)
+
 ;;; Emails
 
 (defview emails-section "The account's emails, at most five, and a form to add one." []
@@ -97,7 +99,7 @@
     `(node#passkeysCaption :style hint :text ~(t "passkeysCaption"))
     (repeat [passkey state.myPasskeys :key passkey.id]
       (passkey-row passkey))
-    `(node#noPasskeys :when ~(= (count state.myPasskeys) 0)
+    `(node#noPasskeys :when ~(empty? state.myPasskeys)
        :style hint
        :icon fingerprint-pattern
        :text ~(t "noPasskeys"))
@@ -128,7 +130,7 @@
        :anchors {:left 12 :right 12})
      ~(repeat [device computed.myTrusted :index i :key device.device]
         (trusted-device device))
-     (node#noTrusted :when ~(and state.user.twoStep (= (count computed.myTrusted) 0))
+     (node#noTrusted :when ~(and state.user.twoStep (empty? computed.myTrusted))
        :style hint
        :text ~(t "noTrusted")
        :anchors {:left 12 :right 12})
@@ -220,7 +222,7 @@
       (provider-row provider))))
 
 (defmacro connected-to? "Whether the account is connected to a provider, by its name." [provider]
-  `(some (fn [it] (= it.provider ~provider)) state.connected))
+  `(some #(= (:provider %) ~provider) state.connected))
 
 (defview provider-row "A provider: the account it is connected as, and Connect or Disconnect." [provider]
   `(node#providerRow :use itemRow
@@ -228,7 +230,7 @@
             :title ~(t (str "provider_" provider.name))
             :hint ~(if (connected-to? provider.name)
                        (t "connectedAs"
-                          {:account (:account (find (fn [it] (= it.provider provider.name)) state.connected))})
+                          {:account (:account (find #(= (:provider %) provider.name) state.connected))})
                        (t "notConnected"))}
      (node#connectProvider :when ~(not (connected-to? provider.name))
        :style smallButton

@@ -4,6 +4,8 @@
 ;;; features service lists the example catalogue and installs a feature from it by a revision the permissions
 ;;; review. The other files' functions use `doseq`, defined here.
 
+(ns forge.forge)
+
 ;;; The open folder
 
 (defpart workspace "The services on the open folder, and what Forge gives an installed feature to read."
@@ -16,14 +18,15 @@
              :search {:provider search :root workspace}}
   :onLoad openWorkspace
   :exports {:editor.text (string :value ~(or-else computed.activeDoc.text "") :description "The text of the editor in focus.")
+            ; style: keep, #(...) can't give a map
             :workspace.files (array :value ~(map (fn [it] {:id it.id :name it.label :text it.text})
-                                                 (filter (fn [it] (= it.kind "file")) state.docs))
+                                                 (filter #(= (:kind %) :file) state.docs))
                                :description "The open files: id, name and text.")})
 
 (defn openWorkspace "On load: the folder the host opened, its tree listed and its files indexed for Go to File." []
   (set "state.folder.root" (or-else services.files.folder ""))
   (explorerRefresh)
-  (when (not (empty? state.folder.root)) (indexFolder)))
+  (when (seq state.folder.root) (indexFolder)))
 
 ;;; The catalogue's features
 
@@ -76,8 +79,9 @@
   (get-in state.groups [state.activeGroup :active]))
 
 (defn baseName "A path's last part: a file's or a folder's name." [path]
-  (last (split path "/")))
+  (last (str/split path "/" -1)))
 
+; style: keep, the features of both packages run on this doseq, and the tree keeps its definition
 (defmacro doseq "Runs its body once for each item of a list, for what it does: (doseq [item list] body...)."
   [binding & body]
   `(do (map (fn [~(first binding)] ~@body) ~(second binding)) nil))

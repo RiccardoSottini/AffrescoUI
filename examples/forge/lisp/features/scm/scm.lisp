@@ -5,6 +5,8 @@
 ;;; or inline; the gutters of an open file mark its changed lines. The commit message goes to git's input, never its
 ;;; arguments.
 
+(ns forge.features.scm.scm)
+
 ;;; The view, and git's status
 
 (defstate scm
@@ -34,7 +36,7 @@
   :title ~(t "command.showSourceControl")
   :description ~(t "command.showSourceControl") :category ~(t "category.view") :icon "git-branch" []
   (forgeShowView "scm")
-  (when (and (= state.sideView "scm") (not (empty? state.folder.root))) (scmRefresh)))
+  (when (and (= state.sideView "scm") (seq state.folder.root)) (scmRefresh)))
 
 (defcommand scmRefresh "Read the open folder's git status again."
   :title ~(t "command.scmRefresh") :category ~(t "category.sourceControl") :icon "refresh-cw"
@@ -52,7 +54,7 @@
       (set "state.scm.error" "")
       (set "state.scm.status"
            {:branch {:head "" :upstream "" :ahead 0 :behind 0} :files [] :staged [] :changes [] :count 0}))
-    (do (scmStatusRead (gitStatus result.output)) (scmStashCount) (when state.scm.showHistory (scmLog)))))
+    (do (scmStatusRead (gitStatus result.output)) (scmStashCount) (when (true? state.scm.showHistory) (scmLog)))))
 
 (defn scmGitDidNotRun "Says, in the view, that git didn't run." [error]
   (set "state.scm.error" (t "scm.didNotRun" {:error error.message})))
@@ -61,8 +63,7 @@
   (scmStatusRead (gitStatus event.output)))
 
 (defn scmStatusRead "git's status, read: each file's row with its badge, staged or not." [read]
-  (if (nil? read)
-    (set "state.scm.error" (t "scm.statusUnread"))
+  (if (some? read)
     (do
       (set "state.scm.error" "")
       (set "state.scm.status"
@@ -70,49 +71,49 @@
                   {:items (map (fn [it]
                                  {:id it.path
                                   :label (baseName it.path)
-                                  :detail (join "/" (slice (split it.path "/") 0 (- (count (split it.path "/")) 1)))
-                                  :badge (cond
-                                           (= it.kind "added") "A"
-                                           (= it.kind "deleted") "D"
-                                           (= it.kind "renamed") "R"
-                                           (= it.kind "copied") "C"
-                                           (= it.kind "unmerged") "!"
-                                           (= it.kind "untracked") "U"
-                                           :else "M")
+                                  ; style: keep, the host's split keeps the empty name after a last slash
+                                  :detail (str/join "/" (slice (split it.path "/") 0 (- 1)))
+                                  :badge (case it.kind
+                                           :added "A"
+                                           :deleted "D"
+                                           :renamed "R"
+                                           :copied "C"
+                                           :unmerged "!"
+                                           :untracked "U"
+                                           "M")
                                   :kind it.kind
                                   :staged it.staged
                                   :unstaged it.unstaged})
-                               (filter (fn [it] (not= it.kind "ignored")) read.files))}))
-      (set "state.scm.status.staged" (filter (fn [it] it.staged) state.scm.status.items))
-      (set "state.scm.status.changes" (filter (fn [it] it.unstaged) state.scm.status.items))
-      (set "state.scm.status.count" (+ (count state.scm.status.staged) (count state.scm.status.changes))))))
+                               (remove #(= (:kind %) "ignored") read.files))}))
+      (set "state.scm.status.staged" (filter :staged state.scm.status.items))
+      (set "state.scm.status.changes" (filter :unstaged state.scm.status.items))
+      (set "state.scm.status.count" (+ (count state.scm.status.staged) (count state.scm.status.changes))))
+    (set "state.scm.error" (t "scm.statusUnread"))))
 
 (defcomputed scmStagedRows
   (map (fn [it]
            {:id it.id
             :label (+ it.label (if (empty? it.detail) "" (str "  " it.detail)) "  " it.badge)
-            :icon (cond (or (= it.kind "added") (= it.kind "untracked")) "file-plus"
-                        (= it.kind "deleted") "file-minus"
-                        (= it.kind "unmerged") "alert-triangle"
-                        (or (= it.kind "renamed") (= it.kind "copied")) "file-symlink"
-                        :else "file-diff")
-            :iconColor (cond (or (= it.kind "added") (= it.kind "untracked")) "#2ea043"
-                             (or (= it.kind "deleted") (= it.kind "unmerged")) "#f85149"
-                             :else "#d4a63a")})
+            :icon (case it.kind
+                    (:added :untracked) "file-plus"
+                    :deleted "file-minus"
+                    :unmerged "alert-triangle"
+                    (:renamed :copied) "file-symlink"
+                    "file-diff")
+            :iconColor (case it.kind (:added :untracked) "#2ea043" (:deleted :unmerged) "#f85149" "#d4a63a")})
          state.scm.status.staged))
 
 (defcomputed scmChangeRows
   (map (fn [it]
            {:id it.id
             :label (+ it.label (if (empty? it.detail) "" (str "  " it.detail)) "  " it.badge)
-            :icon (cond (or (= it.kind "added") (= it.kind "untracked")) "file-plus"
-                        (= it.kind "deleted") "file-minus"
-                        (= it.kind "unmerged") "alert-triangle"
-                        (or (= it.kind "renamed") (= it.kind "copied")) "file-symlink"
-                        :else "file-diff")
-            :iconColor (cond (or (= it.kind "added") (= it.kind "untracked")) "#2ea043"
-                             (or (= it.kind "deleted") (= it.kind "unmerged")) "#f85149"
-                             :else "#d4a63a")})
+            :icon (case it.kind
+                    (:added :untracked) "file-plus"
+                    :deleted "file-minus"
+                    :unmerged "alert-triangle"
+                    (:renamed :copied) "file-symlink"
+                    "file-diff")
+            :iconColor (case it.kind (:added :untracked) "#2ea043" (:deleted :unmerged) "#f85149" "#d4a63a")})
          state.scm.status.changes))
 
 (defcomputed scmHasRepo (not (empty? state.scm.status.branch.head)))
@@ -128,7 +129,7 @@
 
 (defn scmStashesCounted "The stashes, counted." [result]
   (set "state.scm.stashes"
-       (if (= result.code 0) (count (filter (fn [it] (not (empty? (trim it)))) (split result.output "\n"))) 0)))
+       (if (= result.code 0) (count (remove str/blank? (str/split result.output "\n"))) 0)))
 
 (defkey "mod+shift+g" showSourceControl)
 
@@ -142,18 +143,16 @@
           :onDone [scmGitDone arguments]))
 
 (defn scmGitDone "git ran: a failure is a notice, a commit or a fetch a line in Output." [arguments result]
-  (if (not= result.code 0)
-    (notify "error"
-            (t (if (empty? (trim result.output)) "scm.failed" "scm.failedWith")
-               {:command arguments.0 :output (slice (trim result.output) 0 300)}))
-    (do
-      (when (= arguments.0 "commit")
-        (set "state.scm.message" "")
-        (log-line (t "log.committed" {:output (slice (trim result.output) 0 200)})))
-      (when (contains ["fetch" "pull" "push" "stash"] arguments.0)
-        (log-line (str "git "
-                  (join " " arguments)
-                  (if (empty? (trim result.output)) "" (str ": " (slice (trim result.output) 0 200))))))))
+  (let [output (str/trim result.output)]
+    (if (not= result.code 0)
+      (notify "error"
+              (t (if (empty? output) "scm.failed" "scm.failedWith") {:command arguments.0 :output (slice output 0 300)}))
+      (do
+        (when (= arguments.0 "commit")
+          (set "state.scm.message" "")
+          (log-line (t "log.committed" {:output (slice output 0 200)})))
+        (when (#{:fetch :pull :push :stash} arguments.0)
+          (log-line (str "git " (str/join " " arguments) (if (empty? output) "" (str ": " (slice output 0 200)))))))))
   (scmRefresh)
   (when (= arguments.0 "switch") (scmBranches)))
 
@@ -198,14 +197,14 @@
   :title ~(t "command.scmStage")
   :description ~(t "command.scmStage") :category ~(t "category.sourceControl") :icon "plus"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedChange))) []
-  (let [path (or-else event.id state.scm.selectedChange)] (when (not (empty? path)) (scmGit ["add" "--" path] ""))))
+  (let [path (or-else event.id state.scm.selectedChange)] (when (seq path) (scmGit ["add" "--" path] ""))))
 
 (defcommand scmUnstage "Unstage Changes"
   :title ~(t "command.scmUnstage")
   :description ~(t "command.scmUnstage") :category ~(t "category.sourceControl") :icon "minus"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedStaged))) []
   (let [path (or-else event.id state.scm.selectedStaged)]
-    (when (not (empty? path)) (scmGit ["restore" "--staged" "--" path] ""))))
+    (when (seq path) (scmGit ["restore" "--staged" "--" path] ""))))
 
 (defcommand scmStageAll "Stage All Changes"
   :title ~(t "command.scmStageAll")
@@ -223,12 +222,10 @@
   :title ~(t "command.scmCommit") :category ~(t "category.sourceControl") :icon "check"
   :description ~(t "command.scmCommit.about")
   :enablement ~(and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0)) []
-  (if (or (empty? (trim state.scm.message)) (= (count state.scm.status.staged) 0))
-    (notify "info"
-            (if (= (count state.scm.status.staged) 0)
-              (t "scm.nothingStaged")
-              (t "scm.noMessage")))
-    (scmGit ["commit" "-F" "-"] (str (trim state.scm.message) "\n"))))
+  (let [message (str/trim state.scm.message)]
+    (if (or (empty? message) (empty? state.scm.status.staged))
+      (notify "info" (t (if (empty? state.scm.status.staged) "scm.nothingStaged" "scm.noMessage")))
+      (scmGit ["commit" "-F" "-"] (str message "\n")))))
 
 ;;; Branches
 
@@ -236,6 +233,7 @@
   (set "state.scm.showBranches" false))
 
 (defcomputed scmBranchRows
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:id it.id :label it.label :icon (if it.current "check" "git-branch")}) state.scm.branches.branches))
 
 (defcomputed scmBranchText
@@ -262,23 +260,23 @@
   (scmBranchesRead (gitBranches event.output)))
 
 (defn scmBranchesRead "git's branch list, read." [read]
-  (if (nil? read)
-    (set "state.scm.error" (t "scm.branchesUnread"))
-    (set "state.scm.branches" read)))
+  (if (some? read)
+    (set "state.scm.branches" read)
+    (set "state.scm.error" (t "scm.branchesUnread"))))
 
 (defcommand scmSwitch "Switch Branch"
   :title ~(t "command.scmSwitch")
   :description ~(t "command.scmSwitch") :category ~(t "category.sourceControl") :icon "git-branch"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedBranch))) []
   (let [name (or-else event.id state.scm.selectedBranch)]
-    (when (and (not (empty? name)) (not= name state.scm.branches.current)) (scmGit ["switch" name] ""))))
+    (when (and (seq name) (not= name state.scm.branches.current)) (scmGit ["switch" name] ""))))
 
 (defcommand scmCreateBranch "Create a branch with the name typed under Branches and switch to it."
   :title ~(t "command.scmCreateBranch") :category ~(t "category.sourceControl") :icon "git-branch"
   :description ~(t "command.scmCreateBranch.about")
   :enablement ~(not (empty? (trim (or-else event.text state.scm.branchName)))) []
-  (let [name (trim (or-else event.text state.scm.branchName))]
-    (when (not (empty? name)) (set "state.scm.branchName" "") (scmGit ["switch" "-c" name] ""))))
+  (let [name (str/trim (or-else event.text state.scm.branchName))]
+    (when (seq name) (set "state.scm.branchName" "") (scmGit ["switch" "-c" name] ""))))
 
 ;;; The history
 
@@ -309,7 +307,7 @@
                         (join "/" (slice (split it.path "/") 0 (- 1)))
                         "  "
                         it.status)
-            :icon (cond (= it.status "A") "file-plus" (= it.status "D") "file-minus" :else "file-diff")})
+            :icon (case it.status :A "file-plus" :D "file-minus" "file-diff")})
          state.scm.commit.files))
 
 (defcommand scmHistory
@@ -340,38 +338,38 @@
   [output]
   (set "state.scm.log"
        (slice (map (fn [it]
-                     (if (= (count it.f) 0)
+                     (if (empty? it.f)
                        {:short "" :hash "" :author "" :when "" :subject "" :refs "" :graph it.graph}
                        {:short (slice it.f.0 0 12)
                         :hash it.f.1
                         :author (slice it.f.2 0 80)
                         :when (slice it.f.3 0 40)
-                        :subject (slice (join " " (slice it.f 4)) 0 200)
+                        :subject (slice (str/join " " (slice it.f 4)) 0 200)
                         :refs it.refs
                         :graph it.graph}))
                    (filter (fn [it]
                              (or (and (>= (count it.f) 5) (= (count it.f.1) 40))
-                                 (and (= (count it.f) 0)
-                                      (not (empty? (trim it.graph)))
-                                      (every? (fn [it] (contains "|/\\_*. -" it)) (split it.graph "")))))
-                           (map (fn [it]
-                                  {:graph (cond
-                                            (= (count (split it "\u001e")) 3) (slice (get (split it "\u001e") 0) 0 60)
-                                            (contains it "\u001f") ""
-                                            :else (slice it 0 60))
-                                   :refs (if (= (count (split it "\u001e")) 3)
-                                           (slice (get (split it "\u001e") 1) 0 120)
-                                           "")
-                                   :f (if (contains (get (reverse (split it "\u001e")) 0) "\u001f")
-                                        (split (get (reverse (split it "\u001e")) 0) "\u001f")
-                                        [])})
-                                (split output "\n"))))
+                                 (and (empty? it.f)
+                                      (seq (str/trim it.graph))
+                                      (every? #(str/includes? "|/\\_*. -" %) (seq it.graph)))))
+                           (map (fn [line]
+                                  ; style: keep, the host's split keeps the empty fields at the end, which are counted
+                                  (let [parts (split line "\u001e")
+                                        fields (last parts)]
+                                    {:graph (cond
+                                              (= (count parts) 3) (slice (first parts) 0 60)
+                                              (str/includes? line "\u001f") ""
+                                              :else (slice line 0 60))
+                                     :refs (if (= (count parts) 3) (slice (get parts 1) 0 120) "")
+                                     ; style: keep, the host's split keeps an empty subject, which is counted
+                                     :f (if (str/includes? fields "\u001f") (split fields "\u001f") [])}))
+                                (str/split output "\n"))))
               0
               300)))
 
 (defn scmPickCommit "A commit chosen in the history: lists the files it changed." []
   (let [hash (or-else event.value state.scm.selectedCommit)]
-    (when (and (= (count (or-else hash "")) 40) (not= (slice hash 0 1) "-"))
+    (when (and (= (count (or-else hash "")) 40) (not (str/starts-with? hash "-")))
       (set "state.scm.commit" {:hash hash :files [] :before ""})
       (invoke "git.run"
               :id "scm-commit-files"
@@ -391,14 +389,16 @@
   [hash output]
   (when (= hash state.scm.commit.hash)
     (set "state.scm.commit.files"
-         (slice (map (fn [it] {:status (slice it.0 0 1) :from it.1 :path (get (reverse it) 0)})
-                     (filter (fn [it] (and (>= (count it) 2) (not (empty? it.1))))
-                             (map (fn [it] (split it "\t")) (split output "\n"))))
+         ; style: keep, #(...) can't give a map
+         (slice (map (fn [it] {:status (slice it.0 0 1) :from it.1 :path (last it)})
+                     (filter #(and (>= (count %) 2) (seq (get % 1)))
+                             ; style: keep, the host's split keeps an empty path at the end, which is the path read
+                             (map #(split % "\t") (str/split output "\n"))))
                 0
                 500))))
 
 (defn scmOpenCommitFile "A file of a commit, opened: its text before the commit, then after it, in a diff tab." []
-  (doseq [file (filter (fn [it] (= it.path (or-else event.id state.scm.selectedCommitFile))) state.scm.commit.files)]
+  (doseq [file (filter #(= (:path %) (or-else event.id state.scm.selectedCommitFile)) state.scm.commit.files)]
     (invoke "git.run"
             :id "scm-commit-before"
             :with {:arguments ["show" "--no-textconv" (str state.scm.commit.hash "^:" file.from)] :collect true}
@@ -426,7 +426,7 @@
          :label (str (baseName event.path) " (" (slice event.hash 0 7) ")")
          :diff (merge (diffLines (or-else event.original "") (or-else event.modified "") {:context (- 1)})
                       {:path event.path :original (or-else event.original "") :modified (or-else event.modified "")})}]
-    (set "state.docs" (filter (fn [it] (not= it.id page.id)) state.docs))
+    (set "state.docs" (remove #(= (:id %) page.id) state.docs))
     (push "state.docs"
           {:id page.id :label page.label :kind "diff" :text "" :dirty false :language "" :diff page.diff})
     (showTab page.id page.label)))
@@ -435,7 +435,7 @@
 
 (defn scmOpenDiff "A change chosen: its file at HEAD and in the folder, compared in a diff tab." []
   (let [path (or-else event.id state.scm.selectedChange state.scm.selectedStaged)]
-    (when (not (empty? path))
+    (when (seq path)
       (set "state.scm.compare" {:path path :original "" :modified ""})
       (invoke "git.run"
               :id "scm-show"
@@ -466,15 +466,15 @@
 (defn scmDiffShow "A comparison shown: the file's gutters mark its changed lines, and a diff tab shows both sides."
   [diff changes]
   (set "state.scm.gutters"
-       (concat (filter (fn [it] (not= it.path state.scm.compare.path)) state.scm.gutters)
-               [{:path state.scm.compare.path
-                 :marks (map (fn [it]
-                               {:line (max it.newStart 1)
-                                :endLine (if (= it.newLines 0) (max it.newStart 1) (- (+ it.newStart it.newLines) 1))
-                                :kind "gutter"
-                                :color (cond (= it.oldLines 0) "#2ea043" (= it.newLines 0) "#f85149" :else "#0078d4")
-                                :text (cond (= it.oldLines 0) "added" (= it.newLines 0) "deleted" :else "modified")})
-                             changes)}]))
+       (conj (remove #(= (:path %) state.scm.compare.path) state.scm.gutters)
+             {:path state.scm.compare.path
+              :marks (map (fn [it]
+                            {:line (max it.newStart 1)
+                             :endLine (if (zero? it.newLines) (max it.newStart 1) (dec (+ it.newStart it.newLines)))
+                             :kind "gutter"
+                             :color (cond (zero? it.oldLines) "#2ea043" (zero? it.newLines) "#f85149" :else "#0078d4")
+                             :text (cond (zero? it.oldLines) "added" (zero? it.newLines) "deleted" :else "modified")})
+                          changes)}))
   (let [page
         {:id (str "diff:" state.scm.compare.path)
          :label (str (baseName state.scm.compare.path) " (Working Tree)")
@@ -484,18 +484,11 @@
                        :modified state.scm.compare.modified
                        :items (map-indexed (fn [index it]
                                              {:id (text index)
-                                              :label (str (cond
-                                                            (= it.kind "insert") "+ "
-                                                            (= it.kind "delete") "- "
-                                                            :else "  ")
-                                                          it.text)
-                                              :icon (cond
-                                                      (= it.kind "insert") "plus"
-                                                      (= it.kind "delete") "minus"
-                                                      :else "")
+                                              :label (str (case it.kind :insert "+ " :delete "- " "  ") it.text)
+                                              :icon (case it.kind :insert "plus" :delete "minus" "")
                                               :iconColor (if (= it.kind "insert") "#2ea043" "#f85149")})
                                            (or-else diff.hunks.0.lines []))})}]
-    (set "state.docs" (filter (fn [it] (not= it.id page.id)) state.docs))
+    (set "state.docs" (remove #(= (:id %) page.id) state.docs))
     (push "state.docs"
           {:id page.id :label page.label :kind "diff" :text "" :dirty false :language "" :diff page.diff})
     (showTab page.id page.label)))

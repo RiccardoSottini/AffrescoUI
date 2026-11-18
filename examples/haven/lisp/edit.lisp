@@ -3,6 +3,8 @@
 ;;; Arrange cards, in the top bar's menu, outlines each card with a pencil; a click on one opens its editor, which
 ;;; changes the card's configuration in a visual form or as code, beside a preview.
 
+(ns haven.edit)
+
 ;;; What it keeps
 
 (defstate editing false "Whether the cards are being arranged.")
@@ -36,7 +38,7 @@
 
 (defcomputed cardCode "The configuration being changed, as code."
   (str "{\n"
-       (join ",\n" (map (fn [it] (str "  " (json it.key) ": " (json it.value))) (entries state.cardEdit.draft)))
+       (->> (entries state.cardEdit.draft) (map #(str "  " (json (:key %)) ": " (json (:value %)))) (join ",\n"))
        "\n}"))
 
 ;;; Arranging the cards
@@ -164,7 +166,7 @@
          :anchors {:left 0 :right 0 :top 18 :bottom 0}
          :label ~(t "edit.title"))
        {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @muted})
-     ~(repeat [opt (filter (fn [it] (and (not= it "type") (not= it "title"))) (keys state.cardEdit.draft)) :index i]
+     ~(repeat [opt (remove #{:type :title} (keys state.cardEdit.draft)) :index i]
        (card-option opt i))))
 
 (defview card-option "An option of the card, and its switch." [opt i]
@@ -241,7 +243,7 @@
      :gap 12
      :justify center
      ~(repeat [mode state.modes]
-       `(label :icon ~(cond (= mode "Heat") "flame" (= mode "Cool") "snowflake" :else "sun-snow")
+       `(label :icon ~(case mode "Heat" "flame" "Cool" "snowflake" "sun-snow")
           :text ""
           :color ~(if (= mode state.mode) computed.modeSoft "@raised")
           :textColor ~(if (= mode state.mode) computed.modeColor "@muted")

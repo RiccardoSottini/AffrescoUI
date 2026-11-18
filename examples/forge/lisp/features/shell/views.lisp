@@ -1,5 +1,7 @@
 ;;; views.lisp --- the workbench's frame: the title bar, the view rail, the side bar, the welcome page, the status bar
 
+(ns forge.features.shell.views)
+
 ;;; The title bar
 
 (defcomponent forgeTitleBar "The title bar: the menus, Back and Forward, the command centre, and the layout's buttons."

@@ -1,5 +1,7 @@
 ;;; views.lisp --- the bar over a file with merge conflicts
 
+(ns forge.features.merge.views)
+
 ;;; The bar
 
 (defcomponent forgeConflictButton "A button of the bar: its text, which runs `run`."

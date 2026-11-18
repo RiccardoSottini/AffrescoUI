@@ -4,6 +4,8 @@
 ;;; passkey, an emailed code, Example ID and three made-up providers sign in too. What the buttons run is in
 ;;; sign-in.lisp.
 
+(ns sign-in.sign-in-form)
+
 ;;; The screen
 
 (defview sign-in-card "The sign-in screen: its card, centred, scrolling when the window is short." []
@@ -97,7 +99,7 @@
      :color @color.input
      :borderWidth 1
      :borderColor @color.border
-     :label ~(t "signingInAs" {:email (trim state.email)})
+     :label ~(t "signingInAs" {:email (str/trim state.email)})
      (node#chip-avatar :width 32 :height 36 :color transparent
        (label#chip-initial :width 28
          :height 28
@@ -106,9 +108,9 @@
          :color @color.accent
          :textColor @color.accentText
          :font small
-         :text ~(upper-case (slice (trim state.email) 0 1))
+         :text ~(str/upper-case (slice (str/trim state.email) 0 1))
          :anchors {:left 4 :top 4}))
-     (label#label-chip-email :font small :textColor @color.text :height 20 :fitText true :text ~(trim state.email))
+     (label#label-chip-email :font small :textColor @color.text :height 20 :fitText true :text ~(str/trim state.email))
      (row#spacer-chip :grow 1 :height 1)
      (node#changeEmail :style smallLink :height 20 :text ~(t "notYou") :onClick changeEmail)
      (row#spacer-chip-end :width 6 :height 1)))

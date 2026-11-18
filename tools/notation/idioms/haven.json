@@ -3,14 +3,6 @@
 		"haven/lisp"
 	],
 	"allowed": {
-		"fn-one-parameter": 37,
-		"when-some": 2,
-		"cond-one-value": 13,
-		"minus-one": 9,
-		"plus-one": 4,
-		"count-zero": 5,
-		"string-function": 3,
-		"four-nested-calls": 56,
-		"entry-include": 1
+		"four-nested-calls": 24
 	}
 }

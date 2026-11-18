@@ -4,14 +4,20 @@
 ///
 /// Where it can't be sure it gives what a build in full gives, it builds in full. That is when a macro, a hook or an
 /// advice changes or goes, as a macro changes what any code means and a hook or an advice what a function does; when an
-/// entry isn't a definition (a macro's call at the top level or `do`, which defines whatever it gives); when the
-/// program has namespaces; when a definition would use one the build in part didn't load; when what a build found
-/// (undefined names, truth tests) didn't come in the order of the definitions; and when anything fails, so that the
-/// build in full says why, as it always did.
+/// entry isn't a definition (a macro's call at the top level or `do`, which defines whatever it gives); when a file's
+/// `ns` form came, went, moved or changed; when a definition would use one the build in part didn't load; when what a
+/// build found (undefined names, truth tests) didn't come in the order of the definitions; and when anything fails, so
+/// that the build in full says why, as it always did.
+///
+/// With the same `ns` forms, a qualified word resolves as it did: its alias is its file's form's, and its name is the
+/// global of that name (reference/namespaces.md, "One flat space of names"), checked against what the file it names
+/// defines. A definition that came, went or moved to another file is one that changed, so what names it runs again,
+/// and the build in part checks it against the files as the whole program has them (definitionsByFile()).
 
 #include "Rebuild.hpp"
 
 #include "Definitions.hpp"
+#include "Namespaces.hpp"
 #include "TopLevel.hpp"
 
 #include <affresco/notation/Lexer.hpp>
@@ -74,7 +80,8 @@ bool reachesAnywhere(std::string_view kind) {
 	return kind == "defmacro" || isExtensionWord(kind) || !isDefinitionWord(kind);
 }
 
-/// @brief Calls a function with each word of a text, and each word's part before a `.` or `/`: what its code may use.
+/// @brief Calls a function with each word of a text, each word's part before a `.` or `/`, and a qualified word's
+/// name after its `/` (`board/render` is the global `render`): what its code may use.
 /// @param text The text.
 /// @param function The function.
 void forEachWord(std::string_view text, const std::function<void(std::string_view)>& function) {
@@ -85,6 +92,7 @@ void forEachWord(std::string_view text, const std::function<void(std::string_vie
 			function(token.text);
 			if(const std::size_t cut = token.text.find_first_of("./"); cut != std::string_view::npos && cut > 0)
 				function(token.text.substr(0, cut));
+			if(isQualified(token.text)) function(token.text.substr(token.text.find('/') + 1));
 		}
 	} catch(const DocumentError&) {
 		function(""); // what doesn't read fails to load, and the build in full says why
@@ -295,6 +303,7 @@ std::vector<UndefinedName> foundIn(const Machine& machine, bool truth) {
 }
 
 /// @brief Runs the definitions a plan says, in a fresh interpreter that has loaded what they need.
+/// @param program What it loads: the entries the plan loads, with the program's ns forms.
 /// @param entries The program's entries.
 /// @param names Each entry's place, by its name.
 /// @param primitives The program's pure primitives.
@@ -302,12 +311,10 @@ std::vector<UndefinedName> foundIn(const Machine& machine, bool truth) {
 /// @param limits The limits, less what the record's build spent.
 /// @return What they gave, or std::nullopt where only a build in full can be sure.
 /// @throws LispError If the build fails: the build in full says why.
-std::optional<PartBuilt> runPart(const std::vector<Entry>& entries, const std::map<std::string, std::size_t>& names,
+std::optional<PartBuilt> runPart(const Program& program, const std::vector<Entry>& entries,
+                                 const std::map<std::string, std::size_t>& names,
                                  const std::vector<std::pair<std::string, Primitive>>& primitives, const PartPlan& plan,
                                  const Limits& limits) {
-	Program program;
-	for(std::size_t at = 0; at < entries.size(); ++at)
-		if(plan.loaded[at]) program.addEntryUnread(entries[at]);
 	Interpreter interpreter(limits);
 	interpreter.setPure(true);
 	for(const auto& [name, primitive] : primitives) interpreter.definePrimitive(name, primitive);
@@ -470,14 +477,14 @@ void Program::keepRecord(Machine& machine, std::vector<DefinitionBuilt> record, 
 		if(entry == names_.end()) continue; // a macro's call at the top level defined it
 		record[at].file = entries_[entry->second].file;
 		record[at].text = entries_[entry->second].text;
-		if(!recording_ && namespaces_.empty()) // else it never builds in part
+		if(!recording_) // else it never builds in part
 			record[at].words = entryWords(record[at].text, record[at].name, names_);
 		record[at].author = entries_[entry->second].author;
 		index.emplace(record[at].name, at);
 	}
-	kept->inPart = !recording_ && namespaces_.empty() && record.size() == entries_.size() &&
-	               index.size() == record.size() && sortByDefinition(truth_, index, record, true) &&
-	               sortByDefinition(undefined_, index, record, false);
+	kept->inPart = !recording_ && record.size() == entries_.size() && index.size() == record.size() &&
+	               sortByDefinition(truth_, index, record, true) && sortByDefinition(undefined_, index, record, false);
+	kept->namespaces = namespaces_;
 	kept->spent = {limits.budget.operations - machine.budget().operations,
 	               limits.budget.bytes - machine.budget().bytes};
 	kept->macroSpent = limits.macroOperations - machine.macroOperationsLeft();
@@ -558,7 +565,8 @@ void Program::keepWhatWasDefined(const BuildRecord& record) {
 }
 
 std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limits& limits) {
-	if(!previous.inPart || recording_ || !namespaces_.empty() || !leavesBudget(previous, limits)) return std::nullopt;
+	if(!previous.inPart || recording_ || previous.namespaces != namespaces_ || !leavesBudget(previous, limits))
+		return std::nullopt;
 	const auto shadows = [this](std::string_view name) { return shadowsName(primitives_, name); };
 	const std::optional<PartPlan> plan = planPart(previous, entries_, names_, shadows);
 	if(!plan) return std::nullopt;
@@ -567,7 +575,12 @@ std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limi
 	part.budget.bytes -= previous.spent.bytes;
 	part.macroOperations -= previous.macroSpent;
 	try {
-		std::optional<PartBuilt> ran = runPart(entries_, names_, primitives_, *plan, part);
+		Program loaded; // the entries it runs and what they need, with the program's ns forms and files
+		loaded.namespaces_ = namespaces_;
+		if(!namespaces_.empty()) loaded.definedInWhole_ = definitionsByFile(entries_);
+		for(std::size_t at = 0; at < entries_.size(); ++at)
+			if(plan->loaded[at]) loaded.addEntryUnread(entries_[at]);
+		std::optional<PartBuilt> ran = runPart(loaded, entries_, names_, primitives_, *plan, part);
 		if(!ran) return std::nullopt;
 		auto record = std::make_shared<BuildRecord>();
 		record->definitions = inBuildOrder(previous, *plan, *ran);
@@ -578,6 +591,7 @@ std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limi
 		keepWhatWasDefined(*record);
 		record->touched = placesTouched(previous, *plan, record->definitions, names_);
 		record->inPart = true;
+		record->namespaces = namespaces_;
 		record->whole = false;
 		record->spent = {previous.spent.operations + ran->spent.operations, previous.spent.bytes + ran->spent.bytes};
 		record->macroSpent = previous.macroSpent + ran->macroSpent;
@@ -750,7 +764,8 @@ private:
 bool Program::redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
                        const Limits& limits, std::size_t* bytesLeft) const {
 	Machine& machine = interpreter.machine();
-	if(!namespaces_.empty() || !before.namespaces_.empty() || !machine.namespaces().programless() ||
+	// With the same ns forms, the aliases the machine's code was compiled with are this version's too
+	if(before.namespaces_ != namespaces_ || machine.namespaces().programless() != namespaces_.empty() ||
 	   machine.definitions().size() != before.entries_.size())
 		return false;
 	std::optional<InPlace> change = changeInPlace(machine, entries_, names_, before.entries_, before.names_);
@@ -761,6 +776,10 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 	const std::vector<bool> again = redefined(built, std::move(seeds), names_, entries_, change->removed);
 	const RestoredBudget restore(machine, limits.budget);
 	return leavingAsLispError(machine, [&] {
+		if(!namespaces_.empty())
+			if(const DefinitionsByFile definedIn = definitionsByFile(entries_);
+			   definedIn != definitionsByFile(before.entries_))
+				applyNamespaces(machine, namespaces_, definedIn); // what each file's namespace holds, as load() has it
 		defineAgain(machine, entries_, again, change->removed);
 		if(bytesLeft) *bytesLeft = machine.budget().bytes;
 		++statistics.redefined;
