@@ -67,22 +67,22 @@
 (defcommand findNext "Find Next"
   :title ~(t "command.findNext")
   :description ~(t "command.findNext") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "next"))
+  (findStep :next))
 
 (defcommand findPrevious "Find Previous"
   :title ~(t "command.findPrevious")
   :description ~(t "command.findPrevious") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "previous"))
+  (findStep :previous))
 
 (defcommand replaceOne "Replace"
   :title ~(t "command.replaceOne")
   :description ~(t "command.replaceOne") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "replace"))
+  (findStep :replace))
 
 (defcommand replaceAllInFile "Replace All"
   :title ~(t "command.replaceAllInFile")
   :description ~(t "command.replaceAllInFile") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep "replaceAll"))
+  (findStep :replaceAll))
 
 (defcommand toggleFindInSelection "Toggle Find in Selection"
   :title ~(t "command.toggleFindInSelection")
