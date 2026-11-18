@@ -82,8 +82,8 @@ void showMenuBar(Engine& engine);
 /// @param engine The runtime.
 void hideMenuBar(Engine& engine);
 
-/// @brief What the `keybindings` variable reads of the panels: which ones have an id and "keys". The same panels
-/// give the same number, whatever order the records are in.
+/// @brief What the `keybindings` variable reads of the panels: which ones have an id and "keys", and what keys. The
+/// same panels with the same keys give the same number, whatever order the records are in.
 /// @param engine The runtime.
 /// @return The number.
 [[nodiscard]] std::size_t keysFingerprint(Engine& engine);

@@ -331,3 +331,21 @@ TEST_CASE("update frame: the state file is written when a persisted place change
 	CHECK(json::parse(readFile(stateFile)) == json{{"/dirty", true}});
 	std::filesystem::remove_all(folder);
 }
+
+TEST_CASE("update frame: the keybindings list changes when a panel's keys change, even to as many keys") {
+	Built built(json::parse(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"actions": { "go": [] },
+		"root": { "type": "panel", "id": "root", "children": [
+			{ "type": "panel", "id": "keyed", "keys": { "ctrl+a": "go" }, "width": 10, "height": 10 },
+			{ "type": "label", "id": "shown", "text": "{{keybindings[0].key}}", "y": 20, "width": 100, "height": 20 }
+		] }
+	})json"));
+	CHECK(built.text("shown") == "ctrl+a");
+	const affresco::RevisionResult applied = built.versions.submit(
+	    {{"author", "app"}, {"message", "m"}, {"set", {{"/root/children/0/keys", {{"ctrl+b", "go"}}}}}});
+	REQUIRE(applied.status == affresco::RevisionStatus::Applied);
+	built.window->render();
+	built.window->render(); // the update the list's change asks for
+	CHECK(built.text("shown") == "ctrl+b");
+}
