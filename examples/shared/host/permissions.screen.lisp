@@ -5,9 +5,10 @@
 ;;; with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows
 ;;; nothing, and the host asks again next time. It is read from the host's assets, never from the app.
 
-(include "locales/permissions.en.lisp"
-         "locales/permissions.es.lisp"
-         "locales/permissions.fr.lisp")
+(ns shared.permissions
+  (:require "locales/permissions.en.lisp"
+            "locales/permissions.es.lisp"
+            "locales/permissions.fr.lisp"))
 
 ;;; What the host asks about
 
@@ -22,10 +23,7 @@
 
 (defn decide "Gives the host the person's answer: the capabilities checked, or none, and the window closes." [all]
   (call "permissions.decide"
-        :with {:allowed (if all
-                          (map (fn [capability] (:key capability))
-                               (filter (fn [capability] (= (:allowed capability) true)) state.app.capabilities))
-                          [])}))
+        :with {:allowed (if all (->> state.app.capabilities (filter #(true? (:allowed %))) (map :key)) [])}))
 
 ;;; The look
 
