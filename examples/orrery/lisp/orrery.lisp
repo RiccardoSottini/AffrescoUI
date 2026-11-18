@@ -6,6 +6,8 @@
 ;;; (`set`, `push`, `animate`...). A handler runs one by name (`:onConnect reparent`) or with its arguments
 ;;; (`~(handler chooseBody event.value)`); keys.lisp binds the keys.
 
+(ns orrery.orrery)
+
 ;;; The bodies
 
 (defn body "The body of an id, or nil." [id] (find #(= (:id %) id) state.bodies))

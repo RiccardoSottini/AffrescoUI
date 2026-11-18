@@ -3,6 +3,8 @@
 ;;; Time is in days from day 0 (1 January 2030); eclipses happen where the Moon crosses the Earth's orbit, and
 ;;; conjunctions and oppositions where two planets line up with the Sun.
 
+(ns orrery.time)
+
 ;;; The day and the rate
 
 (defcomputed clock "The day shown, as a date and a time in UTC."
@@ -62,7 +64,9 @@
                    :moonName it.m.name
                    :host it.m.host.id
                    :hostName it.m.host.name
-                   :hours (/ (* (if (odd? it.n) 0.0186 0.0405) 24) (* 2 (pi) (abs it.m.d)))
+                   :hours (-> (if (odd? it.n) 0.0186 0.0405)
+                              (* 24)
+                              (/ (* 2 (pi) (abs it.m.d))))
                    :label (if (not= (mod it.n 2) 0)
                             (str it.m.name " eclipses the Sun")
                             (str it.m.name " in the shadow of " it.m.host.name))})

@@ -4,6 +4,8 @@
 ;;; window; an item is a map with any of title, icon, keyLabel, checked, enabled, separator, submenu, run and with. A
 ;;; row chosen runs its item (tempera.lisp, chooseMenuItem); one with a submenu opens it to the right, a tSubmenu.
 
+(ns tempera.menu)
+
 ;;; The rows
 
 (defmacro menu-rows "The items with every key a row reads, those an item leaves out at their default." [items]

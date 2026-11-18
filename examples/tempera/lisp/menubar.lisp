@@ -3,6 +3,8 @@
 ;;; Tempera's mark, then one button per menu of menus.lisp; a click opens that menu under it, a tMenu (menu.lisp),
 ;;; and the arrow keys move along the bar.
 
+(ns tempera.menubar)
+
 ;;; The menu bar
 
 (def menuBarMenus "The menu bar's menus, in order: each button opens the menu of that name."

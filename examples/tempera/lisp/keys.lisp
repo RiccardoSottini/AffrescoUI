@@ -3,6 +3,8 @@
 ;;; A letter chooses a tool, as in other image editors; the rest run a command of commands.lisp by name. The
 ;;; clipboard's keys leave a text field's own copy and paste alone.
 
+(ns tempera.keys)
+
 ;;; Tools
 
 (defkey "v" {:do setTool :with {:args {:tool move}}})

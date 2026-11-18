@@ -4,6 +4,8 @@
 ;;; saturation, colour balance, brightness and contrast, a threshold); a pixel layer, its transform, the align icons
 ;;; and quick actions, in sections that fold. Adjust adds an adjustment layer of each kind.
 
+(ns tempera.properties)
+
 ;;; Sliders and sections
 
 (defcomponent tAdjustSlider "One of the active adjustment's values, from low to high: its title, a slider, its value."

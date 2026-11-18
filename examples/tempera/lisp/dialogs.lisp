@@ -4,6 +4,8 @@
 ;;; state.transform...), with fields bound to that part; its OK runs a function of tempera.lisp that applies it. The
 ;;; filter dialog only edits state.filter: watches preview, apply or cancel it (tempera.lisp, "The filters").
 
+(ns tempera.dialogs)
+
 ;;; What the dialogs share
 
 (defcomponent tNumberRow "A number's row in a dialog: its title, its field bound to state.<path>.<key>, its unit."

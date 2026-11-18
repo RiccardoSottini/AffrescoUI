@@ -3,6 +3,8 @@
 ;;; One column of tool groups (state.tools): each shows its chosen tool, or its first; a right click opens the group's
 ;;; other tools to its right. Under them, the foreground and background colours, the quick mask, the screen mode.
 
+(ns tempera.tools)
+
 ;;; The bar
 
 (defview tool-bar "The tools bar: the tool groups, then the colours and the modes." []

@@ -3,6 +3,8 @@
 ;;; Each defcomputed is a value the views and the functions read as computed.<name>, worked out again when what it reads
 ;;; changes: the active layer and its neighbours, the tool, the canvas's size and its rulers, the Layers panel's rows.
 
+(ns tempera.computed)
+
 ;;; Layers
 
 (defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))

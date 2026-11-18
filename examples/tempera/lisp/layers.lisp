@@ -4,6 +4,8 @@
 ;;; first (computed.layerRows: a folded group's layers hidden, the filter applied), and the buttons that add and delete
 ;;; layers. A row is dragged onto another to move it there. The Channels panel lists the image's channels.
 
+(ns tempera.layers)
+
 ;;; The Layers panel
 
 (defview layers-panel "The Layers panel: its filter, blend and lock rows, the layers, and its buttons." []

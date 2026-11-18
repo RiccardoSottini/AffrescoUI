@@ -4,6 +4,8 @@
 ;;; selecting, filling, gradients, cropping, moving, the view), each a control of controls.lisp. What isn't available
 ;;; yet is shown disabled, its tooltip saying so.
 
+(ns tempera.options)
+
 ;;; The bar
 
 (defview options-bar "The options bar: the current tool, its options, the search and the workspace switcher." []

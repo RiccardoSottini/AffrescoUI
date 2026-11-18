@@ -4,6 +4,8 @@
 ;;; enabled only when they can run. What they do is mostly one call of tempera.lisp's functions; the keys are in
 ;;; keys.lisp, the menus in menus.lisp.
 
+(ns tempera.commands)
+
 ;;; File
 
 (defcommand showNewDialog "Opens the New dialog."

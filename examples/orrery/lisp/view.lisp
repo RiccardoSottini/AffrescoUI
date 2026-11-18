@@ -3,6 +3,8 @@
 ;;; The scene node is bound to computed values; the labels, the marks and the readouts are drawn over it. Each body's
 ;;; thumbnail is a node drawn into the image body:<id>, for the features that show the bodies.
 
+(ns orrery.view)
+
 ;;; The camera
 
 (defcomputed pane "The 3D view's size." {:w (max (- window.width 461) 200) :h (max (- window.height 324) 160)})

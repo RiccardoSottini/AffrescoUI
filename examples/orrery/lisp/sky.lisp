@@ -6,6 +6,8 @@
 ;;; sidereal time, then projected through the view's azimuth, altitude and field of view. Great circles are straight
 ;;; lines in this projection, so the horizon is a horizontal line and a constellation's lines are straight.
 
+(ns orrery.sky)
+
 ;;; What the sky keeps
 
 (defstate skyMode ground)

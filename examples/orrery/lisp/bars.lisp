@@ -1,5 +1,7 @@
 ;;; bars.lisp --- the bars: the menus, the toolbar and the status bar
 
+(ns orrery.bars)
+
 ;;; The menus
 
 (defmenu view

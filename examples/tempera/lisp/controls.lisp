@@ -5,6 +5,8 @@
 ;;; with `args`, the value it changes set at `key` (tempera.lisp, "What the controls run"). A slider's range is
 ;;; `low` to `high`, since min and max are the language's.
 
+(ns tempera.controls)
+
 ;;; Buttons
 
 (defcomponent tIcon "An icon button with its tooltip: on shows it chosen, off disabled; a click runs run with args."

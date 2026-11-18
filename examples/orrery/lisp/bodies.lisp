@@ -3,6 +3,8 @@
 ;;; A body's place is its parent's place plus its own on its orbit, at the day shown; a chain of parents is at most
 ;;; three deep (a moon's moon). The browser's tree and the orbit graph read the same list.
 
+(ns orrery.bodies)
+
 ;;; Each body's orbit
 
 (defcomputed ids "Every body's id, in order." (map :id state.bodies))

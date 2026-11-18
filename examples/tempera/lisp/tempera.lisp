@@ -6,6 +6,8 @@
 ;;; and a feature's adapter run these functions by name, their arguments in `args`:
 ;;; {:run moveLayer :with {:args {...}}}. The commands of the menus are in commands.lisp, and call these.
 
+(ns tempera.tempera)
+
 ;;; Reading what a dialog was given
 
 (defn typed "A number typed in a dialog, kept between 1 and most; one that isn't a number is fallback."

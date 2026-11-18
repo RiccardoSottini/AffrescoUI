@@ -4,6 +4,8 @@
 ;;; tool says, in the library. A click on a ruler adds a guide there. The status bar says what the library last did,
 ;;; the zoom (type one to change it) and one fact of the document, chosen from its menu.
 
+(ns tempera.canvas)
+
 ;;; The area
 
 (defview canvas-area "The canvas area: the document's tab, the rulers, the image, the status bar." []

@@ -3,6 +3,8 @@
 ;;; An item runs a command of commands.lisp, whose title it shows unless it gives its own; a submenu names another
 ;;; menu here. What Tempera can't do yet runs unavailable, shown disabled. The menu bar (menubar.lisp) draws them.
 
+(ns tempera.menus)
+
 ;;; File and Edit
 
 (defmenu file "The File menu: new, open, close, save, export."

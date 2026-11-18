@@ -4,6 +4,8 @@
 ;;; (tempera.lisp), and after each change the library puts its snapshot in state.doc. Each tool is a gesture of the
 ;;; pointer on the canvas.
 
+(ns tempera.image)
+
 ;;; The image doc
 
 (defpart image "The image doc, 1200 × 800 to start, and the gesture each tool makes."

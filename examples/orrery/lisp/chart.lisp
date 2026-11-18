@@ -3,6 +3,8 @@
 ;;; From above, the chart is a canvas of the orbits, the planets' names and your notes; from the ground it is
 ;;; sky.lisp's view. Under it, the orbit graph: drag a link to make a body orbit another.
 
+(ns orrery.chart)
+
 ;;; The chart
 
 (defcomputed chartItems "The chart's items: the stars, each planet's orbit and name, and the notes."

@@ -1,5 +1,7 @@
 ;;; look.lisp --- Orrery's colours and styles
 
+(ns orrery.look)
+
 ;;; Colours
 
 (deftokens tokens "Tokens."
