@@ -1,5 +1,7 @@
 ;;; views.lisp --- the Terminal tab: the terminals' tabs, and the one shown
 
+(ns forge.features.terminal.views)
+
 ;;; The terminals
 
 (defcomponent forgeTerminal "The Terminal tab: a tab per terminal, then the active one's shell."

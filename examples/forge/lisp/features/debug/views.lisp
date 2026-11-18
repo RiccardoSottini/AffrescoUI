@@ -1,6 +1,8 @@
 ;;; views.lisp --- the debugger's views: Run and Debug in the side bar, the debug console, the toolbar over the
 ;;; editors, its dialogs, and a source outside the folder
 
+(ns forge.features.debug.views)
+
 ;;; Run and Debug
 
 (defcomponent forgeDebugView

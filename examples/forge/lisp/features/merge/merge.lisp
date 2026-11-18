@@ -4,6 +4,8 @@
 ;;; a bar over the editor keeps the current change, the incoming one or both for the conflict at the caret (or the
 ;;; first), and moves to the next; the file stays unsaved until Save.
 
+(ns forge.features.merge.merge)
+
 ;;; Conflicts, and resolving them
 
 (defcomputed conflictLines

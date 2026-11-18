@@ -5,6 +5,8 @@
 ;;; task of .forge/tasks.json, read through files.read and parsed with parseJsonc, in a new terminal, through
 ;;; runInTerminal.
 
+(ns forge.features.terminal.terminal)
+
 ;;; Terminals
 
 (defstate terminals {:list [] :active "" :next 1})

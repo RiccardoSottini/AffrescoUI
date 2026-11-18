@@ -5,6 +5,8 @@
 ;;; The provider's URLs and client id are placeholders to edit (no client secret: a public client with PKCE or a
 ;;; device code); the host allows their origins. The token stays in the system's secret store, never in the state.
 
+(ns forge.features.accounts.accounts)
+
 ;;; Signing in
 
 (defstate accounts {:synced nil :revisions 0 :peers [] :where "" :menuOpen false})

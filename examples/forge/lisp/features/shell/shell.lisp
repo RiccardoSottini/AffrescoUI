@@ -5,6 +5,8 @@
 ;;; state.groups. Go Back and Go Forward walk the tabs shown before. The views (views.lisp) are the title bar with its
 ;;; command centre, the view rail, the side bar, the welcome page, the breadcrumbs and the status bar.
 
+(ns forge.features.shell.shell)
+
 ;;; The layout
 
 (defstate layout

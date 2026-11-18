@@ -1,6 +1,8 @@
 ;;; views.lisp --- what the language server shows over the editor: the hover, the signature, completions, the
 ;;; peek, the rename and review dialogs, and the symbol picker
 
+(ns forge.features.lsp.views)
+
 ;;; Over the editor
 
 (defcomponent forgeLsp "What the language server shows over the editor, each an overlay: the hover first."

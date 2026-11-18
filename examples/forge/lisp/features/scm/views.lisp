@@ -4,6 +4,8 @@
 ;;; and its buttons), the branches and the history when shown. The diff tab compares a file's two texts, side by side
 ;;; or inline.
 
+(ns forge.features.scm.views)
+
 ;;; The view
 
 (defcomponent forgeScmView

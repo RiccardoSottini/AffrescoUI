@@ -8,6 +8,8 @@
 ;;; adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100
 ;;; entries and the variables 5000 rows. The views are in views.lisp.
 
+(ns forge.features.debug.debug)
+
 ;;; The view and the configurations
 
 (defstate debug

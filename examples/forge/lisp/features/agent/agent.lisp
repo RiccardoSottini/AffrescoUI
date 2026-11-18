@@ -8,6 +8,8 @@
 ;;; /features/<name> (RFC 0004), so each is reviewable and can be undone. What a peer sends is bounded before it is
 ;;; kept.
 
+(ns forge.features.agent.agent)
+
 ;;; The conversation
 
 (defstate agent

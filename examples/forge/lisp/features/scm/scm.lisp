@@ -5,6 +5,8 @@
 ;;; or inline; the gutters of an open file mark its changed lines. The commit message goes to git's input, never its
 ;;; arguments.
 
+(ns forge.features.scm.scm)
+
 ;;; The view, and git's status
 
 (defstate scm

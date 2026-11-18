@@ -4,6 +4,8 @@
 ;;; this file asks it about the active file, shows its answers, and applies the edits a rename or a format proposes
 ;;; after a review. Its diagnostics squiggle the editors and fill Problems.
 
+(ns forge.features.lsp.lsp)
+
 ;;; The server
 
 (defstate lsp

@@ -1,5 +1,7 @@
 ;;; views.lisp --- the agent pane: the conversation, the proposals to review; and the Features view
 
+(ns forge.features.agent.views)
+
 ;;; The pane
 
 (defcomponent forgeAgentView
