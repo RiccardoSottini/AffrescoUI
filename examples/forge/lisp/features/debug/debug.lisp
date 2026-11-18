@@ -8,6 +8,8 @@
 ;;; adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100
 ;;; entries and the variables 5000 rows. The views are in views.lisp.
 
+(ns forge.features.debug.debug)
+
 ;;; The view and the configurations
 
 (defstate debug
@@ -87,36 +89,35 @@
     (set "state.debug.error" (t "debug.cannotRead" {:reason error.message}))))
 
 (defn debugReadLaunchFile "launch.json's text, read as JSON with comments: its configurations, else why not." [launch]
-  (if (nil? launch)
-    (set "state.debug.error" (t "debug.cannotRead" {:reason (t "tasks.notJson")}))
+  (if (some? launch)
     (debugReadConfigurations
-      (if (and (= (type launch) "object") (= (type launch.configurations) "list")) launch.configurations []))))
+      (if (and (= (type launch) "object") (= (type launch.configurations) "list")) launch.configurations []))
+    (set "state.debug.error" (t "debug.cannotRead" {:reason (t "tasks.notJson")}))))
 
 (defn debugReadConfigurations
   "The configurations Forge runs (lldb or python, launch or attach), each made plain; the others are skipped."
   [listed]
   (debugMakeConfigurations
     (count listed)
-    (filter (fn [it] (and (some? it.adapter) (or (= it.request "launch") (= it.request "attach"))))
+    (filter #(and (some? (:adapter %)) (#{:launch :attach} (:request %)))
             (map (fn [it]
                    {:c it
                     :request it.request
-                    :adapter (cond
-                               (or (= it.type "lldb") (= it.type "lldb-dap")) "lldb"
-                               (or (= it.type "python") (= it.type "debugpy")) "python"
-                               :else nil)
+                    :adapter (case it.type
+                               (:lldb :lldb-dap) "lldb"
+                               (:python :debugpy) "python"
+                               nil)
                     :port (or-else it.port (if (= (type it.connect) "object") it.connect.port nil))
-                    :terminal (or (= it.console "integratedTerminal") (= it.console "externalTerminal"))})
-                 (filter (fn [it] (= (type it) "object")) listed)))))
+                    :terminal (contains? #{:integratedTerminal :externalTerminal} it.console)})
+                 (filter #(= (type %) "object") listed)))))
 
 (defn debugMakeConfigurations
   "Each configuration as its adapter takes it, from what it says; one that can't run is left out."
   [total known]
-  (debugKeepConfigurations total
-                           (filter some? (map (fn [config] (when (debugRunnable? config) (debugConfiguration config)))
-                                              known))))
+  (debugKeepConfigurations total (keep #(when (debugRunnable? %) (debugConfiguration %)) known)))
 
 (defn debugRunnable? "Whether a configuration can run: a program to launch, a port or a process to attach to." [config]
+  ; style: keep, the tests read two fields, the request and then the adapter
   (cond
     (= config.request "launch") (and (= (type config.c.program) "string") (<= (count config.c.program) 4096))
     (= config.adapter "python")
@@ -124,7 +125,7 @@
            (= (round config.port) config.port)
            (>= config.port 1)
            (<= config.port 65535))
-    :else (and (= (type config.c.pid) "number") (= (round config.c.pid) config.c.pid) (> config.c.pid 0))))
+    :else (and (= (type config.c.pid) "number") (= (round config.c.pid) config.c.pid) (pos? config.c.pid))))
 
 (defn debugConfiguration "A configuration as the debug view lists it: its name, adapter, request and arguments."
   [config]
@@ -142,10 +143,10 @@
          (if (and (= (type c.cwd) "string") (<= (count c.cwd) 4096)) {:cwd c.cwd} {})
          (if (= (type c.stopOnEntry) "boolean") {:stopOnEntry c.stopOnEntry} {})
          (if (= (type c.args) "list")
-           {:args (slice (filter (fn [it] (and (= (type it) "string") (<= (count it) 4096))) c.args) 0 1000)}
+           {:args (slice (filter #(and (= (type %) "string") (<= (count %) 4096)) c.args) 0 1000)}
            {})
          (if (= (type c.env) "object")
-           {:env (fromEntries (slice (filter (fn [it] (and (= (type it.value) "string") (<= (count it.value) 4096)))
+           {:env (fromEntries (slice (filter #(and (= (type (:value %)) "string") (<= (count (:value %)) 4096))
                                              (entries c.env))
                                      0
                                      1000))}
@@ -181,15 +182,14 @@
 (defcommand debugContinueOrStart "Start Debugging or Continue"
   :title ~(t "command.debugContinueOrStart")
   :description ~(t "command.debugContinueOrStart") :category ~(t "category.debug") :icon "play" []
-  (cond (= state.debug.status "stopped") (debugContinue) (= state.debug.status "inactive") (debugStart)))
+  (case state.debug.status :stopped (debugContinue) :inactive (debugStart) nil))
 
 (defcommand debugStart "Start Debugging"
   :title ~(t "command.debugStart") :description ~(t "command.debugStart") :category ~(t "category.debug") :icon "play"
   :enablement ~(= state.debug.status "inactive") []
-  (if (nil? computed.debugConfiguration)
-    (notify "info" (t "debug.noConfiguration"))
+  (if-some [configuration computed.debugConfiguration]
     (do
-      (debugBegin computed.debugConfiguration)
+      (debugBegin configuration)
       (debugSubscribe)
       (debugRequest "initialize"
                     "debugOnInitialize"
@@ -204,7 +204,8 @@
                      :pathFormat "path"
                      :supportsVariableType true
                      :supportsVariablePaging true
-                     :supportsRunInTerminalRequest true}))))
+                     :supportsRunInTerminalRequest true}))
+    (notify "info" (t "debug.noConfiguration"))))
 
 (defn debugBegin
   "Starts a session with a configuration: the adapter's events listened to, initialize asked, the console shown."
@@ -219,7 +220,7 @@
   (set "state.debug.threadId" nil)
   (debugResumed)
   (set "state.debug.breakpoints"
-       (map (fn [it] (merge it {:verified false :message "" :adapterId nil})) state.debug.breakpoints))
+       (map #(merge % {:verified false :message "" :adapterId nil}) state.debug.breakpoints))
   (debugPrint (t "debug.starting" {:name configuration.name}) "console")
   (set "state.layout.panel" true)
   (set "state.panelTab" "debugConsole"))
@@ -268,9 +269,9 @@
   "The adapter is ready: every file's breakpoints and the exception filters sent, then configurationDone."
   []
   (set "state.debug.configured" true)
-  (doseq [path (distinct (map (fn [it] it.path) state.debug.breakpoints))]
+  (doseq [path (distinct (map :path state.debug.breakpoints))]
     (debugSendBreakpoints path))
-  (when (> (count state.debug.exceptionFilters) 0) (debugSendFilters))
+  (when (seq state.debug.exceptionFilters) (debugSendFilters))
   (when (or-else state.debug.capabilities.supportsConfigurationDoneRequest false)
     (debugRequest "configurationDone" "" {} "" {})))
 
@@ -282,11 +283,11 @@
     (set "state.debug.threads" [])
     (set "state.debug.threadId" nil)
     (set "state.debug.breakpoints"
-         (map (fn [it] (merge it {:verified false :message "" :adapterId nil})) state.debug.breakpoints))
-    (if (not (empty? message))
-      (do (debugPrint message "error") (notify "error" message))
-      (debugPrint (t "debug.ended") "console"))
-    (when state.debug.restartAfter (set "state.debug.restartAfter" false) (debugStart))))
+         (map #(merge % {:verified false :message "" :adapterId nil}) state.debug.breakpoints))
+    (if (empty? message)
+      (debugPrint (t "debug.ended") "console")
+      (do (debugPrint message "error") (notify "error" message)))
+    (when (true? state.debug.restartAfter) (set "state.debug.restartAfter" false) (debugStart))))
 
 ;;; Requests and their answers
 
@@ -300,73 +301,72 @@
 (defn debugRequestPython "A request to the Python adapter (debugpy), each a step that names its method written out."
   [command arguments answer context refused]
   (let [done [debugAnswered answer context] failed [debugRefused command refused context]]
-    (cond
-      (= command "initialize") (invoke "debugPython.initialize" :with arguments :onDone done :onError failed)
-      (= command "launch") (invoke "debugPython.launch" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "attach") (invoke "debugPython.attach" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "configurationDone")
-        (invoke "debugPython.configurationDone" :with arguments :onDone done :onError failed)
-      (= command "setBreakpoints") (invoke "debugPython.setBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "setExceptionBreakpoints")
+    (case command
+      :initialize (invoke "debugPython.initialize" :with arguments :onDone done :onError failed)
+      :launch (invoke "debugPython.launch" :with arguments :timeout 60000 :onDone done :onError failed)
+      :attach (invoke "debugPython.attach" :with arguments :timeout 60000 :onDone done :onError failed)
+      :configurationDone (invoke "debugPython.configurationDone" :with arguments :onDone done :onError failed)
+      :setBreakpoints (invoke "debugPython.setBreakpoints" :with arguments :onDone done :onError failed)
+      :setExceptionBreakpoints
         (invoke "debugPython.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "threads") (invoke "debugPython.threads" :with arguments :onDone done :onError failed)
-      (= command "stackTrace") (invoke "debugPython.stackTrace" :with arguments :onDone done :onError failed)
-      (= command "scopes") (invoke "debugPython.scopes" :with arguments :onDone done :onError failed)
-      (= command "variables") (invoke "debugPython.variables" :with arguments :onDone done :onError failed)
-      (= command "source") (invoke "debugPython.source" :with arguments :onDone done :onError failed)
-      (= command "evaluate") (invoke "debugPython.evaluate" :with arguments :onDone done :onError failed)
-      (= command "setVariable") (invoke "debugPython.setVariable" :with arguments :onDone done :onError failed)
-      (= command "continue") (invoke "debugPython.continue" :with arguments :onDone done :onError failed)
-      (= command "next") (invoke "debugPython.next" :with arguments :onDone done :onError failed)
-      (= command "stepIn") (invoke "debugPython.stepIn" :with arguments :onDone done :onError failed)
-      (= command "stepOut") (invoke "debugPython.stepOut" :with arguments :onDone done :onError failed)
-      (= command "pause") (invoke "debugPython.pause" :with arguments :onDone done :onError failed)
-      (= command "restart") (invoke "debugPython.restart" :with arguments :onDone done :onError failed)
-      (= command "disconnect") (invoke "debugPython.disconnect" :with arguments :onDone done :onError failed)
-      (= command "completions") (invoke "debugPython.completions" :with arguments :onDone done :onError failed)
-      (= command "exceptionInfo") (invoke "debugPython.exceptionInfo" :with arguments :onDone done :onError failed))))
+      :threads (invoke "debugPython.threads" :with arguments :onDone done :onError failed)
+      :stackTrace (invoke "debugPython.stackTrace" :with arguments :onDone done :onError failed)
+      :scopes (invoke "debugPython.scopes" :with arguments :onDone done :onError failed)
+      :variables (invoke "debugPython.variables" :with arguments :onDone done :onError failed)
+      :source (invoke "debugPython.source" :with arguments :onDone done :onError failed)
+      :evaluate (invoke "debugPython.evaluate" :with arguments :onDone done :onError failed)
+      :setVariable (invoke "debugPython.setVariable" :with arguments :onDone done :onError failed)
+      :continue (invoke "debugPython.continue" :with arguments :onDone done :onError failed)
+      :next (invoke "debugPython.next" :with arguments :onDone done :onError failed)
+      :stepIn (invoke "debugPython.stepIn" :with arguments :onDone done :onError failed)
+      :stepOut (invoke "debugPython.stepOut" :with arguments :onDone done :onError failed)
+      :pause (invoke "debugPython.pause" :with arguments :onDone done :onError failed)
+      :restart (invoke "debugPython.restart" :with arguments :onDone done :onError failed)
+      :disconnect (invoke "debugPython.disconnect" :with arguments :onDone done :onError failed)
+      :completions (invoke "debugPython.completions" :with arguments :onDone done :onError failed)
+      :exceptionInfo (invoke "debugPython.exceptionInfo" :with arguments :onDone done :onError failed)
+      nil)))
 
 (defn debugRequestLldb "A request to lldb-dap, each a step that names its method written out."
   [command arguments answer context refused]
   (let [done [debugAnswered answer context] failed [debugRefused command refused context]]
-    (cond
-      (= command "initialize") (invoke "debugLldb.initialize" :with arguments :onDone done :onError failed)
-      (= command "launch") (invoke "debugLldb.launch" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "attach") (invoke "debugLldb.attach" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "configurationDone")
-        (invoke "debugLldb.configurationDone" :with arguments :onDone done :onError failed)
-      (= command "setBreakpoints") (invoke "debugLldb.setBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "setExceptionBreakpoints")
-        (invoke "debugLldb.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "threads") (invoke "debugLldb.threads" :with arguments :onDone done :onError failed)
-      (= command "stackTrace") (invoke "debugLldb.stackTrace" :with arguments :onDone done :onError failed)
-      (= command "scopes") (invoke "debugLldb.scopes" :with arguments :onDone done :onError failed)
-      (= command "variables") (invoke "debugLldb.variables" :with arguments :onDone done :onError failed)
-      (= command "source") (invoke "debugLldb.source" :with arguments :onDone done :onError failed)
-      (= command "evaluate") (invoke "debugLldb.evaluate" :with arguments :onDone done :onError failed)
-      (= command "setVariable") (invoke "debugLldb.setVariable" :with arguments :onDone done :onError failed)
-      (= command "continue") (invoke "debugLldb.continue" :with arguments :onDone done :onError failed)
-      (= command "next") (invoke "debugLldb.next" :with arguments :onDone done :onError failed)
-      (= command "stepIn") (invoke "debugLldb.stepIn" :with arguments :onDone done :onError failed)
-      (= command "stepOut") (invoke "debugLldb.stepOut" :with arguments :onDone done :onError failed)
-      (= command "pause") (invoke "debugLldb.pause" :with arguments :onDone done :onError failed)
-      (= command "restart") (invoke "debugLldb.restart" :with arguments :onDone done :onError failed)
-      (= command "disconnect") (invoke "debugLldb.disconnect" :with arguments :onDone done :onError failed)
-      (= command "completions") (invoke "debugLldb.completions" :with arguments :onDone done :onError failed)
-      (= command "exceptionInfo") (invoke "debugLldb.exceptionInfo" :with arguments :onDone done :onError failed))))
+    (case command
+      :initialize (invoke "debugLldb.initialize" :with arguments :onDone done :onError failed)
+      :launch (invoke "debugLldb.launch" :with arguments :timeout 60000 :onDone done :onError failed)
+      :attach (invoke "debugLldb.attach" :with arguments :timeout 60000 :onDone done :onError failed)
+      :configurationDone (invoke "debugLldb.configurationDone" :with arguments :onDone done :onError failed)
+      :setBreakpoints (invoke "debugLldb.setBreakpoints" :with arguments :onDone done :onError failed)
+      :setExceptionBreakpoints (invoke "debugLldb.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
+      :threads (invoke "debugLldb.threads" :with arguments :onDone done :onError failed)
+      :stackTrace (invoke "debugLldb.stackTrace" :with arguments :onDone done :onError failed)
+      :scopes (invoke "debugLldb.scopes" :with arguments :onDone done :onError failed)
+      :variables (invoke "debugLldb.variables" :with arguments :onDone done :onError failed)
+      :source (invoke "debugLldb.source" :with arguments :onDone done :onError failed)
+      :evaluate (invoke "debugLldb.evaluate" :with arguments :onDone done :onError failed)
+      :setVariable (invoke "debugLldb.setVariable" :with arguments :onDone done :onError failed)
+      :continue (invoke "debugLldb.continue" :with arguments :onDone done :onError failed)
+      :next (invoke "debugLldb.next" :with arguments :onDone done :onError failed)
+      :stepIn (invoke "debugLldb.stepIn" :with arguments :onDone done :onError failed)
+      :stepOut (invoke "debugLldb.stepOut" :with arguments :onDone done :onError failed)
+      :pause (invoke "debugLldb.pause" :with arguments :onDone done :onError failed)
+      :restart (invoke "debugLldb.restart" :with arguments :onDone done :onError failed)
+      :disconnect (invoke "debugLldb.disconnect" :with arguments :onDone done :onError failed)
+      :completions (invoke "debugLldb.completions" :with arguments :onDone done :onError failed)
+      :exceptionInfo (invoke "debugLldb.exceptionInfo" :with arguments :onDone done :onError failed)
+      nil)))
 
 (defn debugAnswered
   "An adapter's answer: the function it names runs with the answer's `body` and the request's `context`."
   [answer context result]
-  (when (not (empty? answer)) (run answer :with {:body (or-else result {}) :context context})))
+  (when (seq answer) (run answer :with {:body (or-else result {}) :context context})))
 
 (defn debugRefused
   "An adapter's refusal: the request's function runs, the session ends if it couldn't start, or the console says why."
   [command refused context error]
-  (when (not (= error.code "ended"))
+  (when (not= error.code "ended")
     (cond
-      (not (empty? refused)) (run refused :with {:message error.message :context context})
-      (or (= command "initialize") (= command "launch") (= command "attach"))
+      (seq refused) (run refused :with {:message error.message :context context})
+      (#{:initialize :launch :attach} command)
         (debugEnd (t "debug.couldNot" {:command command :error error.message}))
       (= command "disconnect") (debugEnd "")
       :else (debugPrint (str command ": " error.message) "error"))))
@@ -386,22 +386,23 @@
 (defn debugEvent
   "An event of the adapter (`message`): initialized, stopped, continued, output, breakpoint, exited or terminated."
   [message]
-  (when (= message.event "initialized") (debugConfigure))
-  (when (= message.event "stopped") (debugStopped (or-else message.body {})))
-  (when (= message.event "continued") (set "state.debug.status" "running") (debugResumed))
-  (when (= message.event "output") (debugOutput (or-else message.body {})))
-  (when (= message.event "breakpoint")
-    (set "state.debug.breakpoints"
-         (map (fn [it]
-                (if (and (some? it.adapterId) (= it.adapterId message.body.breakpoint.id))
-                  (merge it
-                         {:verified (or-else message.body.breakpoint.verified it.verified)
-                          :message (text (or-else message.body.breakpoint.message ""))})
-                  it))
-              state.debug.breakpoints)))
-  (when (= message.event "exited")
-    (debugPrint (t "debug.exited" {:code (or-else message.body.exitCode 0)}) "console"))
-  (when (= message.event "terminated") (debugEnd "")))
+  (case message.event
+    :initialized (debugConfigure)
+    :stopped (debugStopped (or-else message.body {}))
+    :continued (do (set "state.debug.status" "running") (debugResumed))
+    :output (debugOutput (or-else message.body {}))
+    :breakpoint
+      (set "state.debug.breakpoints"
+           (map (fn [it]
+                  (if (and (some? it.adapterId) (= it.adapterId message.body.breakpoint.id))
+                    (merge it
+                           {:verified (or-else message.body.breakpoint.verified it.verified)
+                            :message (text (or-else message.body.breakpoint.message ""))})
+                    it))
+                state.debug.breakpoints))
+    :exited (debugPrint (t "debug.exited" {:code (or-else message.body.exitCode 0)}) "console")
+    :terminated (debugEnd "")
+    nil))
 
 (defn debugApplyEvent "Plays an adapter's event given in the event, as the scenarios do." [event]
   (debugEvent event))
@@ -426,7 +427,8 @@
   (set "state.debug.hover" {:path "" :word "" :line 0 :value ""}))
 
 (defn debugOutput "The program's output, line by line in the console; telemetry is left out." [body]
-  (when (and (not= body.category "telemetry") (not (empty? body.output)))
+  (when (and (not= body.category "telemetry") (seq body.output))
+    ; style: keep, the host's split keeps the empty text after a last line break, which the line count needs
     (debugPrintLines (split body.output "\n") (or-else body.category "console"))))
 
 ;;; Running, stepping and stopping
@@ -468,7 +470,7 @@
 
 (defn debugOnThreadsPause "Pauses the program, once its threads are known." [body]
   (debugOnThreads body)
-  (when (> (count state.debug.threads) 0) (debugRequest "pause" "" {} "" {:threadId state.debug.threads.0.id})))
+  (when (seq state.debug.threads) (debugRequest "pause" "" {} "" {:threadId state.debug.threads.0.id})))
 
 (defcommand debugStop "Stop"
   :title ~(t "command.debugStop") :description ~(t "command.debugStop") :category ~(t "category.debug") :icon "square"
@@ -503,7 +505,7 @@
                     :icon "list-tree"})
                  (slice state.debug.threads
                         0
-                        (+ (indexOf (map (fn [it] it.id) state.debug.threads) state.debug.threadId) 1)))
+                        (inc (indexOf (map :id state.debug.threads) state.debug.threadId))))
             (map (fn [it]
                    {:id (str "f:" it.id)
                     :label (str "    "
@@ -515,9 +517,10 @@
                     :icon (if (= it.id state.debug.frameId) "arrow-right" "")
                     :iconColor (if it.inside "#e5c07b" "#848484")})
                  state.debug.frames)
+            ; style: keep, #(...) can't give a map
             (map (fn [it] {:id (str "t:" it.id) :label it.name :icon "list-tree"})
                  (slice state.debug.threads
-                        (+ (indexOf (map (fn [it] it.id) state.debug.threads) state.debug.threadId) 1)))))
+                        (inc (indexOf (map :id state.debug.threads) state.debug.threadId))))))
 
 (defn debugLoadStack "Reads the stopped thread's stack." []
   (debugRequest "stackTrace"
@@ -528,6 +531,7 @@
 
 (defn debugOnThreads "The program's threads." [body]
   (set "state.debug.threads"
+       ; style: keep, #(...) can't give a map
        (map (fn [it] {:id it.id :name (text (or-else it.name it.id))}) (or-else body.threads []))))
 
 (defn debugOnExceptionInfo "The exception the program stopped on: its name and description." [body]
@@ -547,17 +551,17 @@
                  :inside (or-else it.source.inside false)
                  :reference (or-else it.source.sourceReference 0)})
               (or-else body.stackFrames [])))
-    (when (> (count state.debug.frames) 0) (debugSelectFrame state.debug.frames.0 false))))
+    (when (seq state.debug.frames) (debugSelectFrame state.debug.frames.0 false))))
 
 (defn debugSelectStack "A row of the call stack, chosen: a thread's frames are read, a frame shown." [id]
   (cond
-    (= (slice id 0 2) "t:")
-      (do
-        (when (and (= state.debug.status "stopped") (not= (slice id 2) (text state.debug.threadId)))
-          (set "state.debug.threadId" (:id (find (fn [it] (= (text it.id) (slice id 2))) state.debug.threads)))
-          (debugLoadStack)))
-    (some? (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames))
-      (debugSelectFrame (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames) true)))
+    (str/starts-with? id "t:")
+      (when (and (= state.debug.status "stopped") (not= (slice id 2) (text state.debug.threadId)))
+        (set "state.debug.threadId" (:id (find #(= (text (:id %)) (slice id 2)) state.debug.threads)))
+        (debugLoadStack))
+    :else
+      (when-some [frame (find #(= (str "f:" (:id %)) id) state.debug.frames)]
+        (debugSelectFrame frame true))))
 
 (defn debugSelectFrame
   "Shows a frame: its scopes read, its source opened at its line, or asked about (`ask`) when outside the folder."
@@ -574,19 +578,18 @@
   (debugRequest "scopes" "debugOnScopes" {:frameId frame.id} "" {:frameId frame.id})
   (debugRefreshWatches)
   (cond
-    (and frame.inside (not (empty? frame.relative)))
+    (and frame.inside (seq frame.relative))
       (do (openPath frame.relative (baseName frame.relative)) (goToLine frame.line))
     (contains computed.docIds state.debug.current.path)
-      (showTab state.debug.current.path (:label (find (fn [it] (= it.id state.debug.current.path)) state.docs)))
+      (showTab state.debug.current.path (:label (find #(= (:id %) state.debug.current.path) state.docs)))
     :else
-      (do
-        (when (and ask (or (> frame.reference 0) (not (empty? frame.path))))
-          (set "state.debug.outside" {:open true :frame frame})))))
+      (when (and ask (or (pos? frame.reference) (seq frame.path)))
+        (set "state.debug.outside" {:open true :frame frame}))))
 
 (defcomputed debugMarks
   (concat (map (fn [it]
                    {:path it.path
-                    :mark {:line (- it.line 1)
+                    :mark {:line (dec it.line)
                            :kind "gutter"
                            :text (cond (not it.enabled) "○" (not (empty? it.logMessage)) "◆" :else "●")
                            :color (if (or (not it.enabled)
@@ -596,13 +599,13 @@
                  state.debug.breakpoints)
             (if (and (= state.debug.status "stopped") (> state.debug.current.line 0))
                 [{:path state.debug.current.path
-                  :mark {:line (- state.debug.current.line 1) :kind "background" :color "#ffcc0040"}}]
+                  :mark {:line (dec state.debug.current.line) :kind "background" :color "#ffcc0040"}}]
                 [])
             (if (and (= state.debug.status "stopped")
                      (not (empty? state.debug.exception))
                      (> state.debug.current.line 0))
                 [{:path state.debug.current.path
-                  :mark {:line (- state.debug.current.line 1)
+                  :mark {:line (dec state.debug.current.line)
                          :kind "inline"
                          :color "#f85149"
                          :text state.debug.exception}}]
@@ -642,10 +645,11 @@
                          :kind "scope"
                          :expensive (or-else it.expensive false)})
                       (slice (or-else body.scopes []) 0 20)))
-    (when (and (> (count state.debug.variables) 0) (not state.debug.variables.0.expensive)) (debugExpand "s0"))))
+    ; style: keep, a scope is cheap unless the adapter's expensive is there and not false, as Lisp tests it
+    (when (and (seq state.debug.variables) (not state.debug.variables.0.expensive)) (debugExpand "s0"))))
 
 (defn debugExpand "Expands or collapses a row of the variables, by its path." [path]
-  (debugExpandRow (find (fn [it] (= it.path path)) state.debug.variables)))
+  (debugExpandRow (find #(= (:path %) path) state.debug.variables)))
 
 (defn debugExpandRow
   "Expands a row (`row`): its variables read; collapses it if it is open; a 'more' row reads the next hundred."
@@ -653,17 +657,15 @@
   (cond
     (and (some? row) (= row.kind "more"))
       (debugLoadVariables row.parent row.ref row.depth row.start row.indexed row.path)
-    (and (some? row) (> row.ref 0) row.expanded)
+    (and (some? row) (pos? row.ref) row.expanded)
       (set "state.debug.variables"
-           (map (fn [it] (if (= it.path row.path) (merge it {:expanded false}) it))
-                (filter (fn [it] (not= (slice it.path 0 (+ (count row.path) 1)) (str row.path "/")))
-                        state.debug.variables)))
+           (map #(if (= (:path %) row.path) (merge % {:expanded false}) %)
+                (remove #(str/starts-with? (:path %) (str row.path "/")) state.debug.variables)))
     :else
-      (do
-        (when (and (some? row) (> row.ref 0))
-          (set "state.debug.variables"
-               (map (fn [it] (if (= it.path row.path) (merge it {:expanded true}) it)) state.debug.variables))
-          (debugLoadVariables row.path row.ref (+ row.depth 1) 0 row.indexed "")))))
+      (when (and (some? row) (pos? row.ref))
+        (set "state.debug.variables"
+             (map #(if (= (:path %) row.path) (merge % {:expanded true}) %) state.debug.variables))
+        (debugLoadVariables row.path row.ref (inc row.depth) 0 row.indexed ""))))
 
 (defn debugLoadVariables "Reads a row's variables, a hundred at a time from `start`."
   [parent ref depth start indexed replace]
@@ -678,44 +680,40 @@
                  :frameId state.debug.frameId}
                 ""
                 (merge {:variablesReference ref}
-                       (if (> indexed 0) {:filter "indexed" :start start :count (min 100 (- indexed start))} {}))))
+                       (if (pos? indexed) {:filter "indexed" :start start :count (min 100 (- indexed start))} {}))))
 
 (defn debugOnVariables
   "A row's variables, inserted under it (the next hundred replace its 'more' row); the rows are bounded."
   [context body]
-  (when (and (= context.frameId state.debug.frameId)
-             (>= (indexOf (map (fn [it] it.path) state.debug.variables)
-                          (if (empty? context.replace) context.parent context.replace))
-                 0))
-    (debugInsertRows
-      (+ (indexOf (map (fn [it] it.path) state.debug.variables)
-                  (if (empty? context.replace) context.parent context.replace))
-         (if (empty? context.replace) 1 0))
-      (if (empty? context.replace) 0 1)
-      (concat (map-indexed (fn [index it]
-                             {:path (str context.parent "/" (+ context.start index))
-                              :depth context.depth
-                              :name (text (or-else it.name ""))
-                              :value (text (or-else it.value ""))
-                              :type (text (or-else it.type ""))
-                              :ref (or-else it.variablesReference 0)
-                              :indexed (or-else it.indexedVariables 0)
-                              :expanded false
-                              :kind "variable"
-                              :container context.ref})
-                           (slice (or-else body.variables []) 0 (max 0 (- 5000 (count state.debug.variables)))))
-              (if (and (> context.indexed 0) (< (+ context.start 100) context.indexed))
-                [{:path (str context.parent "/more" (+ context.start 100))
-                  :depth context.depth
-                  :name ""
-                  :value (str (text (- (- context.indexed context.start) 100)) " more")
-                  :ref context.ref
-                  :indexed context.indexed
-                  :expanded false
-                  :kind "more"
-                  :parent context.parent
-                  :start (+ context.start 100)}]
-                [])))))
+  (let [at (indexOf (map :path state.debug.variables) (if (empty? context.replace) context.parent context.replace))]
+    (when (and (= context.frameId state.debug.frameId) (>= at 0))
+      (debugInsertRows
+        (+ at (if (empty? context.replace) 1 0))
+        (if (empty? context.replace) 0 1)
+        (concat (map-indexed (fn [index it]
+                               {:path (str context.parent "/" (+ context.start index))
+                                :depth context.depth
+                                :name (text (or-else it.name ""))
+                                :value (text (or-else it.value ""))
+                                :type (text (or-else it.type ""))
+                                :ref (or-else it.variablesReference 0)
+                                :indexed (or-else it.indexedVariables 0)
+                                :expanded false
+                                :kind "variable"
+                                :container context.ref})
+                             (slice (or-else body.variables []) 0 (max 0 (- 5000 (count state.debug.variables)))))
+                (if (and (pos? context.indexed) (< (+ context.start 100) context.indexed))
+                  [{:path (str context.parent "/more" (+ context.start 100))
+                    :depth context.depth
+                    :name ""
+                    :value (str (text (- context.indexed context.start 100)) " more")
+                    :ref context.ref
+                    :indexed context.indexed
+                    :expanded false
+                    :kind "more"
+                    :parent context.parent
+                    :start (+ context.start 100)}]
+                  []))))))
 
 (defn debugInsertRows "Rows inserted in the variables at `at`, replacing `skip` rows there." [at skip rows]
   (set "state.debug.variables"
@@ -725,7 +723,7 @@
   :title ~(t "command.debugEditValue")
   :description ~(t "command.debugEditValue") :category ~(t "category.debug") :icon "pencil"
   :enablement ~(= state.debug.status "stopped") []
-  (debugEditValueOf (find (fn [it] (= it.path state.debug.selectedVariable)) state.debug.variables)))
+  (debugEditValueOf (find #(= (:path %) state.debug.selectedVariable) state.debug.variables)))
 
 (defn debugEditValueOf "Asks for a variable's new value, if the adapter can set it." [row]
   (if (and (some? row) (= row.kind "variable") (or-else state.debug.capabilities.supportsSetVariable false))
@@ -738,8 +736,7 @@
                 "debugOnSetVariable"
                 {:path state.debug.setValue.path}
                 ""
-                {:variablesReference (:container (find (fn [it] (= it.path state.debug.setValue.path))
-                                                       state.debug.variables))
+                {:variablesReference (:container (find #(= (:path %) state.debug.setValue.path) state.debug.variables))
                  :name state.debug.setValue.name
                  :value state.debug.setValue.value}))
 
@@ -757,8 +754,8 @@
   [section]
   (set "state.debug.collapsed"
        (if (contains state.debug.collapsed section)
-         (filter (fn [it] (not= it section)) state.debug.collapsed)
-         (concat state.debug.collapsed [section]))))
+         (remove #{section} state.debug.collapsed)
+         (conj state.debug.collapsed section))))
 
 ;;; Watches
 
@@ -773,15 +770,15 @@
          state.debug.watches))
 
 (defn debugAddWatch "Watches the expression typed (100 at most)." []
-  (when (and (not (empty? (trim state.debug.watchDraft))) (< (count state.debug.watches) 100))
+  (when (and (seq (str/trim state.debug.watchDraft)) (< (count state.debug.watches) 100))
     (push "state.debug.watches"
-          {:id (str "w" state.debug.watchNext) :expression (trim state.debug.watchDraft) :value "" :error ""})
+          {:id (str "w" state.debug.watchNext) :expression (str/trim state.debug.watchDraft) :value "" :error ""})
     (increment "state.debug.watchNext" :by 1)
     (set "state.debug.watchDraft" "")
     (debugRefreshWatches)))
 
 (defn debugRemoveWatch "Stops watching the expression chosen." []
-  (set "state.debug.watches" (filter (fn [it] (not= it.id state.debug.selectedWatch)) state.debug.watches)))
+  (set "state.debug.watches" (remove #(= (:id %) state.debug.selectedWatch) state.debug.watches)))
 
 (defn debugRefreshWatches "Evaluates every watch in the frame shown." []
   (when (and (= state.debug.status "stopped") (some? state.debug.frameId))
@@ -794,12 +791,12 @@
 
 (defn debugOnWatch "A watch's value." [context body]
   (set "state.debug.watches"
-       (map (fn [it] (if (= it.id context.id) (merge it {:value (text (or-else body.result "")) :error ""}) it))
+       (map #(if (= (:id %) context.id) (merge % {:value (text (or-else body.result "")) :error ""}) %)
             state.debug.watches)))
 
 (defn debugOnWatchError "Why a watch has no value." [context message]
   (set "state.debug.watches"
-       (map (fn [it] (if (= it.id context.id) (merge it {:value "" :error message}) it)) state.debug.watches)))
+       (map #(if (= (:id %) context.id) (merge % {:value "" :error message}) %) state.debug.watches)))
 
 ;;; The debug console
 
@@ -807,9 +804,7 @@
   (map (fn [it]
            {:id it.id
             :label it.text
-            :icon (cond (= it.kind "input") "chevron-right"
-                        (or (= it.kind "error") (= it.kind "stderr")) "circle-x"
-                        :else "")
+            :icon (case it.kind :input "chevron-right" (:error :stderr) "circle-x" "")
             :iconColor (if (= it.kind "input") "#3794ff" "#f85149")})
          state.debug.console))
 
@@ -828,11 +823,10 @@
   (debugPrintLines [text] kind))
 
 (defn debugEvaluate "Evaluates the console's input in the frame shown, and keeps it in the history." []
-  (when (not (empty? (trim state.debug.input)))
+  (when (seq (str/trim state.debug.input))
     (debugPrint state.debug.input "input")
     (set "state.debug.history"
-         (slice (concat (filter (fn [it] (not= it state.debug.input)) state.debug.history) [state.debug.input])
-                (- 100)))
+         (slice (conj (remove #{state.debug.input} state.debug.history) state.debug.input) (- 100)))
     (set "state.debug.historyAt" (count state.debug.history))
     (set "state.debug.completions" [])
     (if (= state.debug.status "inactive")
@@ -842,7 +836,7 @@
                     {}
                     "debugOnEvaluateError"
                     (merge {:expression state.debug.input :context "repl"}
-                           (if (nil? state.debug.frameId) {} {:frameId state.debug.frameId}))))
+                           (if (some? state.debug.frameId) {:frameId state.debug.frameId} {}))))
     (set "state.debug.input" "")))
 
 (defn debugOnEvaluate "What the input evaluated to, in the console." [body]
@@ -852,7 +846,7 @@
   (debugPrint message "error"))
 
 (defn debugHistoryBack "The console's input before, from the history." []
-  (when (> state.debug.historyAt 0)
+  (when (pos? state.debug.historyAt)
     (increment "state.debug.historyAt" :by -1)
     (set "state.debug.input" (get state.debug.history state.debug.historyAt))))
 
@@ -866,18 +860,19 @@
                   "debugOnCompletions"
                   {:input state.debug.input}
                   "debugIgnore"
-                  (merge {:text state.debug.input :column (+ (count state.debug.input) 1)}
-                         (if (nil? state.debug.frameId) {} {:frameId state.debug.frameId})))))
+                  (merge {:text state.debug.input :column (inc (count state.debug.input))}
+                         (if (some? state.debug.frameId) {:frameId state.debug.frameId} {})))))
 
 (defn debugOnCompletions "The completions of the input: one is inserted, several listed." [context body]
   (when (= context.input state.debug.input)
     (set "state.debug.completions"
-         (slice (map (fn [it] (text (or-else it.text it.label))) (or-else body.targets [])) 0 50))
+         (slice (map #(text (or-else (:text %) (:label %))) (or-else body.targets [])) 0 50))
     (when (= (count state.debug.completions) 1)
       (set "state.debug.input"
            (str (slice state.debug.input
                        0
-                       (- (count state.debug.input) (count (get (reverse (split state.debug.input " ")) 0))))
+                       ; style: keep, the host's split keeps the empty word after a last space: nothing is cut
+                       (- (count state.debug.input) (count (last (split state.debug.input " ")))))
                 state.debug.completions.0))
       (set "state.debug.completions" []))))
 
@@ -930,9 +925,8 @@
          state.debug.breakpoints))
 
 (defn debugToggleBreakpoint "Adds a breakpoint at a file's line, or removes the one there." [path line]
-  (if (some? (find (fn [it] (and (= it.path path) (= it.line line))) state.debug.breakpoints))
-    (set "state.debug.breakpoints"
-         (filter (fn [it] (not (and (= it.path path) (= it.line line)))) state.debug.breakpoints))
+  (if (some #(and (= (:path %) path) (= (:line %) line)) state.debug.breakpoints)
+    (set "state.debug.breakpoints" (remove #(and (= (:path %) path) (= (:line %) line)) state.debug.breakpoints))
     (debugAddBreakpoint path line))
   (debugSendBreakpoints path))
 
@@ -961,27 +955,25 @@
 (defn debugGutterClick
   "A click in an editor's gutter: a breakpoint toggled; with Shift, edited; with Alt, enabled or disabled."
   [path]
-  (cond
-    event.shift (debugEditBreakpointAt path (+ event.line 1))
-    event.alt
-      (do
-        (set "state.debug.breakpoints"
-             (map (fn [it]
-                    (if (and (= it.path path) (= it.line (+ event.line 1))) (merge it {:enabled (not it.enabled)}) it))
-                  state.debug.breakpoints))
-        (debugSendBreakpoints path))
-    :else (debugToggleBreakpoint path (+ event.line 1))))
+  (let [line (inc event.line)]
+    (cond
+      (true? event.shift) (debugEditBreakpointAt path line)
+      (true? event.alt)
+        (do
+          (set "state.debug.breakpoints"
+               (map #(if (and (= (:path %) path) (= (:line %) line)) (merge % {:enabled (not (:enabled %))}) %)
+                    state.debug.breakpoints))
+          (debugSendBreakpoints path))
+      :else (debugToggleBreakpoint path line))))
 
 (defn debugEditBreakpointAt "Edits the breakpoint at a line, adding one first." [path line]
-  (when (nil? (find (fn [it] (and (= it.path path) (= it.line line))) state.debug.breakpoints))
+  (when-not (some #(and (= (:path %) path) (= (:line %) line)) state.debug.breakpoints)
     (debugAddBreakpoint path line))
-  (debugEditBreakpoint
-    (or-else (:id (find (fn [it] (and (= it.path path) (= it.line line))) state.debug.breakpoints)) "")))
+  (debugEditBreakpoint (or-else (:id (find #(and (= (:path %) path) (= (:line %) line)) state.debug.breakpoints)) "")))
 
 (defn debugEditBreakpoint "Opens a breakpoint's condition, hit count and log message." [id]
-  (when (some? (find (fn [it] (= it.id id)) state.debug.breakpoints))
-    (set "state.debug.edit"
-         (merge {:open true :id id} (or-else (find (fn [it] (= it.id id)) state.debug.breakpoints) {})))))
+  (when-some [breakpoint (find #(= (:id %) id) state.debug.breakpoints)]
+    (set "state.debug.edit" (merge {:open true :id id} breakpoint))))
 
 (defcommand debugEditSelectedBreakpoint "Edit Breakpoint"
   :title ~(t "command.debugEditSelectedBreakpoint")
@@ -997,12 +989,12 @@
        (map (fn [it]
               (if (= it.id state.debug.edit.id)
                 (merge it
-                       {:condition (slice (trim state.debug.edit.condition) 0 1000)
-                        :hitCondition (slice (trim state.debug.edit.hitCondition) 0 1000)
+                       {:condition (slice (str/trim state.debug.edit.condition) 0 1000)
+                        :hitCondition (slice (str/trim state.debug.edit.hitCondition) 0 1000)
                         :logMessage (slice state.debug.edit.logMessage 0 1000)})
                 it))
             state.debug.breakpoints))
-  (debugSendBreakpoints (or-else (:path (find (fn [it] (= it.id state.debug.edit.id)) state.debug.breakpoints)) "")))
+  (debugSendBreakpoints (or-else (:path (find #(= (:id %) state.debug.edit.id) state.debug.breakpoints)) "")))
 
 (defn debugApplyBreakpoint "Plays a breakpoint given in the event, as the scenarios do." []
   (debugToggleBreakpoint event.path event.line)
@@ -1018,57 +1010,56 @@
 
 (defn debugToggleEnabled "Enables or disables a breakpoint." [id]
   (set "state.debug.breakpoints"
-       (map (fn [it] (if (= it.id id) (merge it {:enabled (not it.enabled)}) it)) state.debug.breakpoints))
-  (debugSendBreakpoints (or-else (:path (find (fn [it] (= it.id id)) state.debug.breakpoints)) "")))
+       (map #(if (= (:id %) id) (merge % {:enabled (not (:enabled %))}) %) state.debug.breakpoints))
+  (debugSendBreakpoints (or-else (:path (find #(= (:id %) id) state.debug.breakpoints)) "")))
 
 (defn debugToggleSelectedEnabled "Enables or disables the breakpoint chosen." []
-  (when (some? state.debug.selectedBreakpoint) (debugToggleEnabled state.debug.selectedBreakpoint)))
+  (when-some [id state.debug.selectedBreakpoint] (debugToggleEnabled id)))
 
 (defn debugOpenBreakpoint "A row of the breakpoints, opened: its file at its line." []
-  (when (some? (find (fn [it] (= it.id event.id)) state.debug.breakpoints))
-    (debugGoTo (find (fn [it] (= it.id event.id)) state.debug.breakpoints))))
+  (when-some [breakpoint (find #(= (:id %) event.id) state.debug.breakpoints)]
+    (debugGoTo breakpoint)))
 
 (defn debugGoTo "Opens a breakpoint's file at its line." [breakpoint]
   (openPath breakpoint.path (baseName breakpoint.path))
   (goToLine breakpoint.line))
 
 (defn debugRemoveBreakpoint "Removes the breakpoint chosen." []
-  (when (some? state.debug.selectedBreakpoint)
-    (debugRemoveBreakpointOf (find (fn [it] (= it.id state.debug.selectedBreakpoint)) state.debug.breakpoints))))
+  (when-some [id state.debug.selectedBreakpoint]
+    (debugRemoveBreakpointOf (find #(= (:id %) id) state.debug.breakpoints))))
 
 (defn debugRemoveBreakpointOf "Removes a breakpoint, and sends its file's breakpoints." [breakpoint]
-  (when (some? breakpoint)
-    (set "state.debug.breakpoints" (filter (fn [it] (not= it.id breakpoint.id)) state.debug.breakpoints))
+  (when-some [_ breakpoint]
+    (set "state.debug.breakpoints" (remove #(= (:id %) breakpoint.id) state.debug.breakpoints))
     (set "state.debug.selectedBreakpoint" nil)
     (debugSendBreakpoints breakpoint.path)))
 
 (defn distinct "A list's items, each once, in the order they first come." [items]
-  (reduce (fn [seen x] (if (some (fn [y] (= y x)) seen) seen (conj seen x))) [] items))
+  (reduce (fn [seen x] (if (some #(= % x) seen) seen (conj seen x))) [] items))
 
 (defcommand debugRemoveAllBreakpoints "Remove All Breakpoints"
   :title ~(t "command.debugRemoveAllBreakpoints")
   :description ~(t "command.debugRemoveAllBreakpoints") :category ~(t "category.debug") :icon "list-x" []
-  (doseq [path (distinct (map (fn [it] it.path) state.debug.breakpoints))]
-    (set "state.debug.breakpoints" (filter (fn [it] (not= it.path path)) state.debug.breakpoints))
+  (doseq [path (distinct (map :path state.debug.breakpoints))]
+    (set "state.debug.breakpoints" (remove #(= (:path %) path) state.debug.breakpoints))
     (debugSendBreakpoints path))
   (set "state.debug.selectedBreakpoint" nil))
 
 (defn debugSendBreakpoints "A file's breakpoints, sent to the adapter once the session is configured." [path]
-  (when (and (not= state.debug.status "inactive") state.debug.configured)
-    (debugRequest "setBreakpoints"
-                  "debugOnSetBreakpoints"
-                  {:path path
-                   :ids (map (fn [it] it.id)
-                             (filter (fn [it] (and (= it.path path) it.enabled)) state.debug.breakpoints))}
-                  ""
-                  {:source {:path path}
-                   :breakpoints (map (fn [it]
-                                       (merge {:line it.line}
-                                              (if (empty? it.condition) {} {:condition it.condition})
-                                              (if (empty? it.hitCondition) {} {:hitCondition it.hitCondition})
-                                              (if (empty? it.logMessage) {} {:logMessage it.logMessage})))
-                                     (filter (fn [it] (and (= it.path path) it.enabled)) state.debug.breakpoints))
-                   :sourceModified false})))
+  (when (and (not= state.debug.status "inactive") (true? state.debug.configured))
+    (let [enabled (filter #(and (= (:path %) path) (:enabled %)) state.debug.breakpoints)]
+      (debugRequest "setBreakpoints"
+                    "debugOnSetBreakpoints"
+                    {:path path :ids (map :id enabled)}
+                    ""
+                    {:source {:path path}
+                     :breakpoints (map (fn [it]
+                                         (merge {:line it.line}
+                                                (if (empty? it.condition) {} {:condition it.condition})
+                                                (if (empty? it.hitCondition) {} {:hitCondition it.hitCondition})
+                                                (if (empty? it.logMessage) {} {:logMessage it.logMessage})))
+                                       enabled)
+                     :sourceModified false}))))
 
 (defn debugOnSetBreakpoints
   "The adapter's answer for a file's breakpoints: each verified or not, at the line it moved to."
@@ -1076,44 +1067,42 @@
   (set "state.debug.breakpoints"
        (map (fn [it]
               (if (contains context.ids it.id)
-                (merge it
-                       {:verified (or-else (get-in body.breakpoints [(indexOf context.ids it.id) :verified]) false)
-                        :message (text (or-else (get-in body.breakpoints [(indexOf context.ids it.id) :message]) ""))
-                        :adapterId (or-else (get-in body.breakpoints [(indexOf context.ids it.id) :id]) nil)})
+                (let [answer (get body.breakpoints (indexOf context.ids it.id))]
+                  (merge it
+                         {:verified (or-else (:verified answer) false)
+                          :message (text (or-else (:message answer) ""))
+                          :adapterId (:id answer)}))
                 it))
             state.debug.breakpoints)))
 
 (defn debugSendFilters "The exception filters that are on, sent to the adapter." []
-  (when (and (not= state.debug.status "inactive") state.debug.configured)
+  (when (and (not= state.debug.status "inactive") (true? state.debug.configured))
     (debugRequest "setExceptionBreakpoints"
                   ""
                   {}
                   ""
-                  {:filters (map (fn [it] it.filter) (filter (fn [it] it.enabled) state.debug.exceptionFilters))})))
+                  {:filters (map :filter (filter :enabled state.debug.exceptionFilters))})))
 
 (defn debugToggleFilter "Turns an exception filter on or off, remembered for the next session." [filter]
   (set "state.debug.exceptionFilters"
-       (map (fn [it] (if (= it.filter filter) (merge it {:enabled (not it.enabled)}) it))
-            state.debug.exceptionFilters))
+       (map #(if (= (:filter %) filter) (merge % {:enabled (not (:enabled %))}) %) state.debug.exceptionFilters))
   (set "state.debug.filterChoices"
        (assoc state.debug.filterChoices
               filter
-              (:enabled (find (fn [it] (= it.filter filter)) state.debug.exceptionFilters))))
+              (:enabled (find #(= (:filter %) filter) state.debug.exceptionFilters))))
   (debugSendFilters))
 
 ;;; Sources outside the folder
 
 (defn debugOpenOutside "Asks the adapter for the text of the frame outside the folder." []
-  (when (some? state.debug.outside.frame)
+  (when-some [frame state.debug.outside.frame]
     (debugRequest "source"
                   "debugOnSource"
-                  {:frame state.debug.outside.frame}
+                  {:frame frame}
                   "debugOnSourceRefused"
-                  {:source (merge (if (empty? state.debug.outside.frame.path)
-                                    {}
-                                    {:path state.debug.outside.frame.path})
-                                  {:sourceReference state.debug.outside.frame.reference})
-                   :sourceReference state.debug.outside.frame.reference})))
+                  {:source (merge (if (empty? (:path frame)) {} {:path (:path frame)})
+                                  {:sourceReference (:reference frame)})
+                   :sourceReference (:reference frame)})))
 
 (defn debugOnSource "A source's text, from the adapter, shown read-only in a tab." [context body]
   (debugShowSource
@@ -1125,7 +1114,7 @@
   (notify "info" (t "debug.noSource" {:error message})))
 
 (defn debugShowSource "Shows a debugged source's text in a tab of its own, read-only." [id label content]
-  (set "state.docs" (filter (fn [it] (not= it.id id)) state.docs))
+  (set "state.docs" (remove #(= (:id %) id) state.docs))
   (push "state.docs" {:id id :label label :kind "debugSource" :text content :dirty false :language ""})
   (showTab id label))
 
@@ -1143,7 +1132,7 @@
 (defn debugRunInTerminal
   "The adapter's runInTerminal: its program runs, quoted by shellLine(), on the debug terminal's POSIX shell sh."
   []
-  (debugRunLine (and (= (type event.args) "list") (not (empty? event.args)))
+  (debugRunLine (and (= (type event.args) "list") (seq event.args))
                 (if (= (type event.args) "list")
                   (shellLine event.args (if (= (type event.env) "object") event.env nil))
                   nil)
@@ -1164,13 +1153,13 @@
                 :onError debugRunLineFailed))))
 
 (defn debugRunLineEvent "The debug terminal opened: the line is typed once, and the adapter answered." [line]
-  (when (and (some? event.session) (not state.debug.terminalSent))
+  (when (and (some? event.session) (not (true? state.debug.terminalSent)))
     (set "state.debug.terminalSent" true)
     (invoke "debugTerminal.write"
             :with {:session event.session :data (str "exec " line "\n")}
             :onError debugRunLineEventFailed
             :onDone debugRunLineEventDone))
-  (when (some? event.data) (debugOutput {:category "stdout" :output event.data})))
+  (when-some [data event.data] (debugOutput {:category "stdout" :output data})))
 
 (defn debugRunLineEventDone "The line was typed: the adapter hears it ran." []
   (respond {}))
@@ -1179,7 +1168,7 @@
   (respond nil :error error.message))
 
 (defn debugRunLineFailed "The debug terminal didn't open: the adapter hears why." [error]
-  (when (not state.debug.terminalSent) (respond nil :error error.message)))
+  (when-not (true? state.debug.terminalSent) (respond nil :error error.message)))
 
 (defpart debug-events "What the adapters' requests run: each a function."
   :actions {"debugLldb:runInTerminal" ~(handler debugLldbRunInTerminal)
