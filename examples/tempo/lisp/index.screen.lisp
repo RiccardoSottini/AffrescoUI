@@ -29,7 +29,6 @@
             "../../shared/addons/assistant/assistant.lisp"
             tempo.tempo))
 
-
 ;;; The window, and what is in it, in the order it is drawn
 
 (defscreen main "Tempo's one window: the sidebar, the page and the queue, the player, and what opens over them."

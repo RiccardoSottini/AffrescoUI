@@ -116,7 +116,6 @@
 (defview playlist-row "A playlist: its cover, name and size, a dot while it plays; a click opens it, a double click plays it."
   [list]
   `(node#playlist :let {:open ~(and (= state.page :playlist) (= index state.current))}
-
      :anchors {:left 0 :right 0}
      :height 56
      :radius 14
