@@ -3,6 +3,8 @@
 ;;; The tokens are the palette, light and dark, and the assistant add-on's colours taken from it; a style is a node's
 ;;; look that many nodes name (:style primary).
 
+(ns sign-in.look)
+
 ;;; Colours
 
 (deftokens tokens "The palette, light and dark: the page, the card, the fields, the accent and the avatars."
