@@ -65,6 +65,37 @@ Each of these gives the same value as the function wherever the function gives o
 vectors and maps (`tests/unit/lisp_clojure_bindings.cpp` runs every row both ways). Where the function gives an error,
 the expression may give a value, as the rows before do (`(inc "a")` is `"a1"`).
 
+## A set's membership test
+
+A set whose members are all constants (nil, a number, a text, a keyword or a boolean) is written as the expression's
+list, a keyword as the text of its name, as everywhere in a tree. Its test of membership is then an expression:
+
+| Form | Its binding |
+|---|---|
+| `(contains? #{:a :b} state.kind)` | `{{contains(['a', 'b'], state.kind)}}` |
+| `(#{:text :shape} state.kind)`, tested: in `if`, `when`, `cond`, `not`, an `and` or `or` tested | `{{contains(['text', 'shape'], state.kind)}}` |
+| `(#{:text :shape} state.kind)`, its value | `{{(contains(['text', 'shape'], state.kind) ? state.kind : null)}}` |
+| `(filter #{1 2} state.xs)`, `remove`, `every?` | `{{filter(state.xs, contains([1, 2], it))}}`, `filter(state.xs, !(contains([1, 2], it)))`, `every(...)` |
+| `(some #{1 2} state.xs)`, tested | `{{some(state.xs, contains([1, 2], it))}}` |
+
+A set called gives the member, so a tested call leaves nil and `false` out of the list: they are members whose value
+is no truth. `filter`, `remove` and `every?` read only their function's truth, so their set is tested wherever they
+are. So `(label :when ~(#{:text :shape} state.kind))` shows for `"text"` and hides for `"line"` and nil, as an
+expression. The rows run both ways in `tests/unit/lisp_style_bindings.cpp`, over values of every kind, and a keyword
+member against a text value; `some`, `filter`, `remove` and `every?` differ on a text and a map as their rows below do.
+
+What stays a call of the function, and why, is under "Left out" below.
+
+## Everyday forms
+
+`tests/unit/lisp_style_bindings.cpp` runs the forms of everyday Clojure over states of several shapes, each written as
+an expression with no call in it, giving what the function gives: `#(= (:tag %) state.filter)` given to `filter`,
+`map`, `every?`, `sort-by` and `find`, and to `some` tested (its value is false where the function's is nil, as
+below); a keyword as the function (`(map :ref xs)`, `(filter :done xs)`, `(sort-by :order xs)`); `->` and `->>` over
+paths and functions; `some->`, `when-some` and `if-some`; `case` and `condp =` against a text value; `not=`, `if-not`,
+`when-not`, `inc`, `dec`, `empty?` and `zero?`; a keyword compared with a text from the state, and a keyword written
+into a map a template holds. Every one is an expression, so none is left out below.
+
 ## What is refused
 
 A binding is one value. A form that does things, or a function the expression machine can't hold, is refused with what
@@ -88,6 +119,10 @@ and `d`'s text, `it.n`, would read `e`. The same form reading nothing of the app
 | `str/join` | On nil the function gives `""`, the expression's `join` an error |
 | `mapv`, `filterv` | On a text or a map the function goes through its items (characters, entries), where `map` and `filter` give an error |
 | `not-any?`, `not-every?` | On nil and on a text or a map, as above: `some` and `every` give another value there |
+| `(some #{:a} xs)` for its value | The function gives the member, the expression's `some` true or false |
+| A set of numbers called for its value, `(#{1 2} x)` | The function gives the member, `1`, where the expression would give the value, `1.0`: refused, as before, where a call can't be written |
+| A set with a member that isn't a constant (`#{:a state.w}`, `#{[1]}`) | The expression's list has no such member; refused, as before, where a call can't be written (`(#{[1]} state.n)`) |
+| A set given to `map`, `find` or `sort-by` | Its value, the member or nil, is read, not only its truth |
 
 They stay `{{lisp('mapv', 'done', state.xs)}}` and run as the program's function.
 
@@ -103,3 +138,5 @@ or an error, though the function gives a value. They are kept as they were, and 
 - `join` of nil: an error, not `""`.
 - `str` of a vector: `[1,2]`, not `[1 2]`.
 - `some` gives true or false, not the function's value, and `[]` on nil; `every?` gives `[]` on nil.
+- `(contains? s x)` of a set with a member that isn't a constant: the call is given the set as a vector, whose
+  `contains?` tests an index, so `0` and `1` are members of `#{:a [1]}`.

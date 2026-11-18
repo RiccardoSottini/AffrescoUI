@@ -45,6 +45,15 @@ collection take a set, its members in their order. Those that give a sequence gi
 
 A vector is a function too, of an index: `([10 20] 1)` is `20`, and an index outside it is an error.
 
+## In a binding
+
+A `~form` that reads the running app writes a set's test of membership as an expression when every member is a
+constant (nil, a number, a text, a keyword or a boolean): `(contains? #{:a :b} state.kind)` is
+`{{contains(['a', 'b'], state.kind)}}`, and so is `(#{:a :b} state.kind)` where only its truth is read, as in
+`(label :when ~(#{:text :shape} state.kind))`. Called for its value it gives `state.kind` or null; `filter`, `remove`,
+`every?`, and `some` tested, take such a set as their function. A set with any other member stays a call of the
+function, as before. `bindings.md` has every row ("A set's membership test") and what stays a call ("Left out").
+
 ## `clojure.set`, written `set/`
 
 | Function | Gives |

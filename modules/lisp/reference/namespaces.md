@@ -58,6 +58,15 @@ an include is, and its definitions come once; at most 1,024 files are read for o
 loader's, with its checks: in an app, a path that leaves the app's folder and the shared folder beside it
 (`["../../x.lisp"]`, or a dotted name in a file that says it is deeper than it is) is refused.
 
+## Where an error is
+
+An error in a required or included file names that file, as the program calls it (`parts/board.lisp`), and the line
+and column in it: whether the file doesn't read (`parts/board.lisp: line 7, column 28: expected a value, found ')'`),
+a form in it can't be compiled, or a function in it fails as it runs, at the build or later in an event. So do the
+entry file's own definitions, and through an include inside an include. The message names names and kinds, never
+values. A definition a revision changed has no line in a file yet: its error counts lines from the definition's own
+start, as before.
+
 ## One flat space of names
 
 Names stay global: `board/render` is the global `render`, and a file that requires nothing still reaches it by its plain
