@@ -81,28 +81,13 @@ json actions() {
 	})json");
 }
 
-/// @brief Generates a document: a seeded choice of the parts below, nested in panels, rows and columns.
-/// @param random The generator.
+/// @brief The parts a generated document chooses from: labels reading the state, the computed values and the
+/// settings, a let, lists in lists, a filtered list, a component.
 /// @param lisp Whether the item labels are written as a program's function, called as lisp('name', item).
-/// @return The document.
-json generate(std::mt19937& random, bool lisp) {
-	const auto chance = [&] { return random() % 2 == 0; };
-	json document = {{"format", "affrescoui-screen"}, {"version", 2}, {"state", startState()}, {"actions", actions()}};
-	document["settings"] = {{"size", {{"type", "integer"}, {"default", 3}, {"description", "A size."}}}};
-	document["styles"] = {{"on", {{"color", "#00ff00"}}}, {"off", {{"color", "#ff0000"}}}};
-	document["computed"] = {{"a", "{{state.n * 2}}"}, {"b", "{{computed.a + length(state.items)}}"}};
-	document["components"] = {{"chip",
-	                           {{"params", {{"label", ""}, {"on", false}}},
-	                            {"node", json::parse(R"({ "type": "row", "style": "{{on ? 'on' : 'off'}}", "children": [
-	                  { "type": "label", "text": "{{label}}" }, { "slot": true } ] })")}}}};
-	if(lisp)
-		document["program"] = {
-		    {"app.lisp", {{"title-of", R"((defn title-of [x] (str "#" (:title x) (if (:done x) "!" ""))))"}}}};
-	if(chance())
-		document["watch"] = {{"state.n", json::array({{{"set", "state.watched"}, {"to", "{{event.value}}"}}})}};
-
+/// @return The parts.
+std::vector<json> partsOf(bool lisp) {
 	const std::string itemText = lisp ? "{{lisp('title-of', item)}}" : "{{item.title}}{{item.done ? '!' : ''}}";
-	std::vector<json> parts = {
+	return {
 	    json::parse(R"({ "type": "label", "text": "{{state.n}} {{state.name}} {{state.watched}}" })"),
 	    json::parse(R"({ "type": "label", "when": "{{state.flag}}", "text": "on {{computed.b}}" })"),
 	    json::parse(R"({ "type": "label", "text": "{{state.obj.x}}-{{state.obj.y}}" })"),
@@ -132,6 +117,29 @@ json generate(std::mt19937& random, bool lisp) {
 	    json::parse(
 	        R"({ "type": "label", "text": "{{state.ghost.deep ?? '-'}} {{state.nowhere ? 'y' : 'n'}} {{state.missing ?? 0}}" })"),
 	};
+}
+
+/// @brief Generates a document: a seeded choice of the parts below, nested in panels, rows and columns.
+/// @param random The generator.
+/// @param lisp Whether the item labels are written as a program's function, called as lisp('name', item).
+/// @return The document.
+json generate(std::mt19937& random, bool lisp) {
+	const auto chance = [&] { return random() % 2 == 0; };
+	json document = {{"format", "affrescoui-screen"}, {"version", 2}, {"state", startState()}, {"actions", actions()}};
+	document["settings"] = {{"size", {{"type", "integer"}, {"default", 3}, {"description", "A size."}}}};
+	document["styles"] = {{"on", {{"color", "#00ff00"}}}, {"off", {{"color", "#ff0000"}}}};
+	document["computed"] = {{"a", "{{state.n * 2}}"}, {"b", "{{computed.a + length(state.items)}}"}};
+	document["components"] = {{"chip",
+	                           {{"params", {{"label", ""}, {"on", false}}},
+	                            {"node", json::parse(R"({ "type": "row", "style": "{{on ? 'on' : 'off'}}", "children": [
+	                  { "type": "label", "text": "{{label}}" }, { "slot": true } ] })")}}}};
+	if(lisp)
+		document["program"] = {
+		    {"app.lisp", {{"title-of", R"((defn title-of [x] (str "#" (:title x) (if (:done x) "!" ""))))"}}}};
+	if(chance())
+		document["watch"] = {{"state.n", json::array({{{"set", "state.watched"}, {"to", "{{event.value}}"}}})}};
+
+	std::vector<json> parts = partsOf(lisp);
 	json children = json::array();
 	for(json& part : parts)
 		if(chance()) children.push_back(std::move(part));
