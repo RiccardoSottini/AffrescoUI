@@ -19,7 +19,7 @@
      :label ~(t (str "menubar." key))
      :mnemonic ~(t (str "menubar." key))
      :focusable true
-     :width ~(+ (* (count (t (str "menubar." key))) 6.5) 18)
+     :width ~(-> (str "menubar." key) t count (* 6.5) (+ 18))
      :height 20
      :radius 999
      :color ~(if (get state.menuBar key) "@panel" "transparent")
