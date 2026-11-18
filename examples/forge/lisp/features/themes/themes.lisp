@@ -4,6 +4,8 @@
 ;;; and switching is one state change. A colour theme read from a file (VS Code's .json) becomes a new theme: its
 ;;; colours, by a revision, added to the tokens they map to (state.themeSources), the rest its kind's defaults.
 
+(ns forge.features.themes.themes)
+
 ;;; The themes
 
 (defstate theme forge-dark)

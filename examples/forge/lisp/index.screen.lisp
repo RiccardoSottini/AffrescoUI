@@ -6,46 +6,19 @@
 ;;; fileChanges watches it and search searches it; the features service offers the example catalogue (catalog/),
 ;;; and what it installs is kept in features.lisp. forge.lisp opens the folder and installs features.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "features.lisp"
-         "forge.lisp"
-         "menus.lisp"
-         "features/editor/editor.lisp"
-         "features/editor/views.lisp"
-         "features/themes/colours.lisp"
-         "features/themes/themes.lisp"
-         "features/panels/panels.lisp"
-         "features/panels/views.lisp"
-         "features/palette/palette.lisp"
-         "features/palette/views.lisp"
-         "features/search/search.lisp"
-         "features/search/views.lisp"
-         "features/shell/shell.lisp"
-         "features/shell/views.lisp"
-         "features/accounts/accounts.lisp"
-         "features/accounts/views.lisp"
-         "features/explorer/explorer.lisp"
-         "features/explorer/views.lisp"
-         "features/terminal/terminal.lisp"
-         "features/terminal/views.lisp"
-         "features/scm/scm.lisp"
-         "features/scm/views.lisp"
-         "features/agent/agent.lisp"
-         "features/agent/views.lisp"
-         "features/lsp/lsp.lisp"
-         "features/lsp/views.lisp"
-         "features/debug/debug.lisp"
-         "features/debug/views.lisp"
-         "features/editing/editing.lisp"
-         "features/editing/views.lisp"
-         "features/workbench/workbench.lisp"
-         "features/workbench/views.lisp"
-         "features/merge/merge.lisp"
-         "features/merge/views.lisp"
-         "../../shared/languages/languages.lisp"
-         "../../shared/addons/assistant/assistant.lisp")
+(ns forge.index
+  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "features.lisp" forge.forge forge.menus
+            forge.features.editor.editor forge.features.editor.views "features/themes/colours.lisp"
+            forge.features.themes.themes forge.features.panels.panels forge.features.panels.views
+            forge.features.palette.palette forge.features.palette.views forge.features.search.search
+            forge.features.search.views "features/shell/shell.lisp" "features/shell/views.lisp"
+            "features/accounts/accounts.lisp" "features/accounts/views.lisp" forge.features.explorer.explorer
+            forge.features.explorer.views "features/terminal/terminal.lisp" "features/terminal/views.lisp"
+            "features/scm/scm.lisp" "features/scm/views.lisp" "features/agent/agent.lisp" "features/agent/views.lisp"
+            "features/lsp/lsp.lisp" "features/lsp/views.lisp" "features/debug/debug.lisp" "features/debug/views.lisp"
+            forge.features.editing.editing forge.features.editing.views forge.features.workbench.workbench
+            forge.features.workbench.views "features/merge/merge.lisp" "features/merge/views.lisp"
+            "../../shared/languages/languages.lisp" "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; The window, and what is in it, in the order it is drawn
 

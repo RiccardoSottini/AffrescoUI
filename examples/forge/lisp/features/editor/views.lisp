@@ -3,6 +3,8 @@
 ;;; The page is a file's editor (with the find bar and the merge conflict bar over it), or one of the pages other
 ;;; features give: the settings, the keybindings, search results, a diff, a debugged source.
 
+(ns forge.features.editor.views)
+
 ;;; The groups
 
 (defcomponent forgeEditors "The editor groups, side by side: each its tabs, its breadcrumbs and its page."

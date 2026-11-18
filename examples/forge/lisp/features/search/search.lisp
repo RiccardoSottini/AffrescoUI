@@ -6,6 +6,8 @@
 ;;; (search.replace, then files.write): files with unsaved edits are skipped, and the open ones that changed are read
 ;;; again. Build output and dependencies (state.search.skip) are never searched.
 
+(ns forge.features.search.search)
+
 ;;; Searching
 
 (defstate search

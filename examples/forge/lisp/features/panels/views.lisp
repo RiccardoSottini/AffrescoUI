@@ -1,5 +1,7 @@
 ;;; views.lisp --- the panel under the editors: its tabs and buttons, Problems, Output, a terminal or the debug console
 
+(ns forge.features.panels.views)
+
 ;;; The panel
 
 (defcomponent forgePanel "The panel: its head, then the page of the tab chosen."

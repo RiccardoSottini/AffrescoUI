@@ -2,6 +2,8 @@
 ;;;
 ;;; Each item runs a command by name, in a group and an order; every feature adds its own here.
 
+(ns forge.menus)
+
 ;;; The menu bar
 
 (defmenu file "The File menu: open a folder, new files and folders, save, revert, recent files."

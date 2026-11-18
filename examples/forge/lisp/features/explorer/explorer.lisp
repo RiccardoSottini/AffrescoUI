@@ -5,6 +5,8 @@
 ;;; move by drag and drop, and reveal of the active file. state.explorerTree holds what is listed, state.explorerEdit
 ;;; what the dialogs and the context menu are doing.
 
+(ns forge.features.explorer.explorer)
+
 ;;; Listing the tree
 
 (defstate explorerTree {:entries [] :listed []})

@@ -1,5 +1,7 @@
 ;;; views.lisp --- the find bar over the active editor: the query, its options and its buttons; the replacement
 
+(ns forge.features.editing.views)
+
 ;;; The find bar
 
 (defcomponent forgeFindBar

@@ -5,6 +5,8 @@
 ;;; status bar's bell keeps the toasts' history; a long task shows a toast with a bar. The panel's tabs and the
 ;;; status bar's counts come from this state.
 
+(ns forge.features.panels.panels)
+
 ;;; Problems
 
 (defstate problems [])

@@ -4,6 +4,8 @@
 ;;; regular expression, in the file or the selection; the editor highlights the matches and counts them. Its line
 ;;; commands (toggle comment, move, delete, indent) are the editor's own, on its keys (views.lisp of the editor).
 
+(ns forge.features.editing.editing)
+
 ;;; The find bar
 
 (defstate findBar

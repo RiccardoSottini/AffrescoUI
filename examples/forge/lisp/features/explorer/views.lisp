@@ -1,5 +1,7 @@
 ;;; views.lisp --- the explorer: its title and buttons, the folder's tree, its menu and its dialogs
 
+(ns forge.features.explorer.views)
+
 ;;; The title
 
 (defcomponent forgeExplorerTitle "The explorer's title, and its buttons once a folder is open."

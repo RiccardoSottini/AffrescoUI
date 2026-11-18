@@ -5,6 +5,8 @@
 ;;; caret. Tabs move between groups and along their strip; a pinned tab stays at the start. Recently opened files
 ;;; come first in Go to File. The settings you changed open as JSON to edit, and the keys as JSON to read.
 
+(ns forge.features.workbench.workbench)
+
 ;;; The outline
 
 (defstate outline [])

@@ -4,6 +4,8 @@
 ;;; features service lists the example catalogue and installs a feature from it by a revision the permissions
 ;;; review. The other files' functions use `doseq`, defined here.
 
+(ns forge.forge)
+
 ;;; The open folder
 
 (defpart workspace "The services on the open folder, and what Forge gives an installed feature to read."

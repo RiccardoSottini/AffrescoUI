@@ -1,5 +1,7 @@
 ;;; views.lisp --- the secondary side bar with the Outline, the breadcrumbs, and the JSON pages of settings and keys
 
+(ns forge.features.workbench.views)
+
 ;;; The Outline
 
 (defcomponent forgeSecondarySideBar "The side bar at the right: the Outline of the active file, a row a symbol."

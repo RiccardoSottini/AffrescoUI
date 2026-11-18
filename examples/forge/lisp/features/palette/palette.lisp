@@ -5,6 +5,8 @@
 ;;; pickers. The settings page lists every setting the features define, searchable, in groups; the keyboard
 ;;; shortcuts page lists every key.
 
+(ns forge.features.palette.palette)
+
 ;;; The quick pick
 
 (defstate quickPick {:open false :query ""})

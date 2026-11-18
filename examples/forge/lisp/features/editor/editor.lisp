@@ -6,6 +6,8 @@
 ;;; marker; Save, Save All and Revert File write it or read it again. The shell and the panels use openPath and
 ;;; closeTab.
 
+(ns forge.features.editor.editor)
+
 ;;; Opening files
 
 (defn openPath "Opens a file in a pinned tab of the active group: its path in the folder, and its label." [path label]

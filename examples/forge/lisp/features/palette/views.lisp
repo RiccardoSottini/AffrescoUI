@@ -1,5 +1,7 @@
 ;;; views.lisp --- the palette over the workbench, and the settings and keyboard shortcuts pages
 
+(ns forge.features.palette.views)
+
 ;;; The palette
 
 (defcomponent forgePalette "The quick pick: each provider its prefix, its items, what a pick runs and its hint."
