@@ -155,6 +155,28 @@ std::string Screen::exportChanges(int fromRevision, std::string_view name) const
 	return impl_->repository.exportChanges(fromRevision, name).dump(2);
 }
 
+format::Package Screen::exportPackage(const format::PackageOptions& options) const {
+	if(!impl_->app) throw DocumentError("AffrescoUI package: the screen isn't an app's (open its folder or app.json)");
+	const format::AppManifest& app = *impl_->app;
+	const std::filesystem::path entry(app.entry);
+	const std::string notation = entry.extension() == ".lisp" ? "lisp" : "json";
+	json files;
+	if(options.kind == format::PackageKind::App) {
+		// the app's folder: the entry's, less the folders the manifest names it in
+		std::filesystem::path folder = impl_->screenFolder;
+		for(auto part = entry.parent_path(); !part.empty() && part != part.parent_path(); part = part.parent_path())
+			folder = folder.parent_path();
+		std::error_code error;
+		const std::filesystem::path manifest =
+		    std::filesystem::exists(folder / "app.json", error) ? folder / "app.json" : folder / "app.lisp";
+		files = format::appFiles(manifest);
+	}
+	const vcs::Repository& repository = impl_->repository;
+	return format::buildPackage(
+	    repository.versionParts(), options, app, notation,
+	    [&repository](std::string_view name) { return repository.assetBytes(name); }, files);
+}
+
 bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	const auto changes = parseJson(changesJson, "changes", error);
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);

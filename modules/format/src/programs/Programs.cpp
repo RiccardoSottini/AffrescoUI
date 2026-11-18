@@ -111,24 +111,39 @@ Programs::Frame* Programs::enter(Frame* frame) {
 	return std::exchange(frame_, frame);
 }
 
+// A program whose features' code can't be loaded with it runs alone: the rules refuse such a revision, so it is only
+// ever a document read from disk
 void Programs::load() {
 	const json& source = engine_.versions.sourceDocument();
-	const auto section = source.find("program");
-	if(section == source.end()) {
+	const auto own = source.find("program");
+	if(own == source.end()) {
 		live_.reset();
 		extensions_.reset();
 		loaded_ = nullptr;
 		program_.reset();
 		return;
 	}
-	if(live_ && loaded_ == *section) return;
+	const json section = runningProgram(source);
+	if(live_ && loaded_ == section) return;
+	try {
+		loadSection(section);
+	} catch(const std::exception& error) {
+		if(section == *own) throw;
+		engine_.report(std::string("the features' programs don't load with the app's, so they don't run: ") +
+		               error.what());
+		if(!live_ || loaded_ != *own) loadSection(*own);
+	}
+}
+
+void Programs::loadSection(const json& section) {
 	json authors = engine_.versions.programAuthors();
-	creditTheRest(*section, authors);
-	if(redefine(*section, authors)) return;
-	lisp::Program program = lisp::programOf(*section, authors);
+	creditTheRest(section, authors);
+	creditFeatures(section, authors);
+	if(redefine(section, authors)) return;
+	lisp::Program program = lisp::programOf(section, authors);
 	live_ = loadedInterpreter(program);
 	extensions_ = std::move(extensionsNext_);
-	loaded_ = *section;
+	loaded_ = section;
 	program_ = std::move(program);
 	redefinitions_ = 0;
 }
@@ -283,6 +298,7 @@ void Programs::check(const lisp::CallContext& call) const {
 	StepKind kind = call.capability == "review"    ? StepKind::Review
 	                : call.capability == "control" ? StepKind::Control
 	                                               : StepKind::Free;
+	if(kind != StepKind::Free) checkFeatureCall(call.primitive, ran);
 	// What the calling code names written out is judged by its use, as its text was (ServiceRules.cpp)
 	if(kind == StepKind::Control && judgedByUse(call.primitive, call.named)) kind = StepKind::Free;
 	if(const std::optional<std::string> why = refusal(call.primitive, kind, ran)) throw lisp::Refusal(*why);
@@ -290,6 +306,7 @@ void Programs::check(const lisp::CallContext& call) const {
 
 void Programs::checkStep(const json& step, const std::string& where) const {
 	if(!step.is_object()) return;
+	checkFeatureStep(step, where);
 	for(const auto& [key, value] : step.items()) {
 		StepKind kind = stepKind(key);
 		// A use written out in the document, judged by its use as the revision that wrote it was

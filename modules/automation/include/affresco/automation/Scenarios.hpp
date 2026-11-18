@@ -66,7 +66,8 @@ struct Options {
 	                                     ///< empty: a capture fails, and a frame that differs is only counted.
 	std::optional<std::string> document; ///< Play on this document (JSON text) instead of each scenario's screen file,
 	                                     ///< e.g. the running screen's, to check its revisions; files are still found
-	                                     ///< relative to the screen file.
+	                                     ///< relative to the screen file. A program's is its source, as a file's is
+	                                     ///< (screenDocument()): what it builds is built from it, never read back.
 	std::vector<std::string> only;       ///< Play only these scenarios; empty: all.
 	bool pictures = true;                ///< Whether scenarios that draw may open a hidden OpenGL window; if not, they
 	                                     ///< fail at their first picture.

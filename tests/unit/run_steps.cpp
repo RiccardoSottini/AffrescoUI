@@ -263,7 +263,7 @@ TEST_CASE("format: a run step attack: an agent's code may not run allowRun") {
 
 TEST_CASE("format: a run step's peer: the command messages reach the screen's commands, and review carries the runs") {
 	affresco::test::MemoryChannel agent;
-	ManualClock clock;
+	const ManualClock clock;
 	const std::unique_ptr<affresco::Window> window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(runScreen);
 	screen.build(*window);

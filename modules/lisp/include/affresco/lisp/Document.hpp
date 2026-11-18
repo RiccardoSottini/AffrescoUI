@@ -48,6 +48,39 @@ struct BuiltProgram {
 /// @return true if it has a `program` section.
 [[nodiscard]] bool hasProgram(const json& document);
 
+/// @brief The program a document runs: its own `program` section, then the files of each enabled feature record whose
+/// `provides` holds a program, each named `features/<name>/<file>`, the features by `order`, then by name. It checks
+/// nothing: a record of the wrong shape is left out. With no feature that holds a program, it is the document's own
+/// section, unchanged; a document with no `program` section runs none, and gives null.
+/// @param document The document.
+/// @return The program, or null.
+[[nodiscard]] json effectiveProgram(const json& document);
+
+/// @brief The same, with only the features named (those a composition merged, Composition::merged).
+/// @param document The document.
+/// @param features The features to take.
+/// @return The program, or null.
+[[nodiscard]] json effectiveProgram(const json& document, std::span<const std::string> features);
+
+/// @brief The prefix of a feature's files in an effective program: `features/<name>/`.
+/// @param name The feature.
+/// @return The prefix.
+[[nodiscard]] std::string featureFiles(std::string_view name);
+
+/// @brief The feature a file of an effective program belongs to.
+/// @param file The file's name.
+/// @return The feature's name; empty for the document's own files.
+[[nodiscard]] std::string featureOfFile(std::string_view file);
+
+/// @brief How many sections builtProgram() has built on this thread, not counting those it kept (for the tests).
+/// @return The count.
+[[nodiscard]] std::size_t programBuilds() noexcept;
+
+/// @brief Makes builtProgram() keep more builds on this thread, for good: those of an app with features, each
+/// feature's program alone and the effective program before and after a revision, so none is built twice.
+/// builtProgram() calls it itself for a section with features' files; composition, before it builds a feature's.
+void keepFeatureBuilds() noexcept;
+
 /// @brief Checks a `program` section's shape and limits; not what its text means, which is the build's to say.
 /// @param section The section.
 /// @throws DocumentError If it isn't `{file: {name: text}}`, or is too large.

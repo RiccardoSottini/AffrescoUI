@@ -5,7 +5,7 @@
 
 ;;; The page and the person's choices
 
-(defstate page apps "The page shown." :type {:enum [apps mine create settings]})
+(defstate page apps "The page shown." :type {:enum [apps mine create settings install catalogue]})
 
 (defstate query "" "The search over the apps.")
 

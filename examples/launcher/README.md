@@ -21,6 +21,19 @@ opens it when it is started without a file.
   folder with an `app.lisp`: a copy of an example, or of a program), named by its window's title (a program's `:name`), the last
   changed first (an app just made or duplicated is at the top at once, before the folder is read again): open,
   duplicate, show in its folder, and delete after a confirm dialog (Delete on a focused row asks too).
+- **Share:** each My apps row has an Export button: a dialog with the version's name, description and author, what
+  the file holds (your changes to the app it was made on, or the whole app), and what is never included (records,
+  history, permissions given, keys and tokens, where your files are); Save asks where (`<id>.affresco.json`), and the
+  toast names the file, never its folder. **Install from a file** opens one, and a review page shows what installing
+  it would do, from its content: its name, release, description and who it says it is by, its signature, what it was
+  made on, the changes per layer and definition, its hooks and advice, what it writes and uses, the capabilities it
+  asks for (new ones marked), permissions, state, pictures and records; a file with problems lists them in red and
+  can't be installed. Install, with a name checked as Create checks it, makes a new app at the top of My apps and
+  opens it, its changes waiting for the person's review.
+- **Catalogue:** shown only when the host grants a catalogue whose index it trusts (`catalogue/README.md`): cards for
+  the versions of apps and the features it lists, with a search. A card opens the same review page, with the line
+  "Listed in the AffrescoUI catalogue, checked on <date>". A version installs as a file does. A feature is reviewed
+  there, with what it needs, and is installed from inside an app.
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
   no double curly braces, which the new app's file would read as an expression; a folder of that name holding
   something else is said to be there, and kept),
@@ -41,13 +54,16 @@ opens it when it is started without a file.
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
   inside one of those two folders (with `--ask TEXT`), found next to the host, each detached,
   with the host's `--data` and a socket folder of its own (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
+  It also grants the `packages` service (`export`, `inspect`, `install`, `catalogue`; SECURITY.md, "The `packages` service") on
+  those two roots, `apps` the only writable one, with the data folder, and the file dialogs (the capability `files`).
 - **The apps folder** holds one folder per app and `shared/`, a copy of `examples/shared` without its C++ (fonts,
   add-ons, components, languages), brought up to date at each create, so the apps' `../shared/...` paths hold as in
   `examples/`. The names of the examples' folders are kept: an app's state and history in the data folder are named
   after its folder.
 - **Without the grants** (the rendering check, `affrescoui test`, a screenshot run), the services are refused: the
   examples come from `apps.json`, My apps says the folder isn't available, and scenarios play the folder's answer with
-  the action `launcher.show`.
+  the action `launcher.show`, the service's with `launcher.export` and `launcher.review` (the summary in the event), and the catalogue's with
+  `launcher.catalogue` (its rows) and `launcher.reviewListed` (an entry's summary and where it was listed).
 
 | File | What it is |
 |---|---|

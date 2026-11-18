@@ -266,6 +266,25 @@ public:
 		Machine& machine_; ///< The machine.
 		const void* ran_;  ///< What it was.
 	};
+	/// @brief While it lives, authorsThatRan() starts again from none; when it ends it goes back to what it was. For
+	/// code run on behalf of other code that may not lend it its authority, nor take its own: an app's action a
+	/// feature's code runs through what the app hands it (the feature's authority stays with the steps that run it).
+	class Apart {
+	public:
+		/// @brief Starts one.
+		/// @param interpreter The interpreter; outlives it.
+		explicit Apart(Interpreter& interpreter);
+		/// @brief Puts it back.
+		~Apart();
+		Apart(const Apart&) = delete;
+		Apart& operator=(const Apart&) = delete;
+		Apart(Apart&&) = delete;
+		Apart& operator=(Apart&&) = delete;
+
+	private:
+		Machine& machine_; ///< The machine.
+		const void* ran_;  ///< What it was.
+	};
 	/// @brief Adds authors to authorsThatRan(): those whose decision is why what runs next runs, though it isn't their
 	/// code.
 	/// @param authors The authors.

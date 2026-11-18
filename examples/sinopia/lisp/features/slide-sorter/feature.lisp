@@ -1,11 +1,16 @@
+;;; feature.lisp --- Sinopia's slide sorter, the feature other apps install: its manifest
+;;;
+;;; Data: who it is, what it needs from the app it goes into, the program files that hold what it gives (sorter.lisp),
+;;; and the scenarios a composition proof plays on the app with it.
+
 {:format affrescoui-feature
  :version 2
  :name slideSorter
- :release "1.0.0"
+ :release "2.0.0"
  :title "Slide sorter"
- :description "Sinopia's slide sorter as a part other apps install: thumbnails of an ordered list of pages, drag to reorder, click to select, and a button that duplicates the selected page."
+ :description "Sinopia's slide sorter as a part other apps install, written as a program: thumbnails of an ordered list of pages, drag to reorder, click to select, and a button that duplicates the selected page."
  :license "Apache-2.0"
- :note "It names what it needs, not where it comes from: an app binds each need to its exports (directly, or through an adapter: Tempera's top-level layers are its pages, examples/tempera/json/sorter/sorter.adapter.json), and a composition proof checks the binding before the install revision is submitted."
+ :note "Its definitions are in sorter.lisp, named in the feature's namespace; an app written as a program installs it, and a static app installs the JSON version, examples/sinopia/json/features/slide-sorter/feature.json. It names what it needs, not where it comes from: an app binds each need to its exports (directly, or through an adapter: Tempera's top-level layers are its pages, examples/tempera/json/sorter/sorter.adapter.json), and a composition proof checks the binding before the install revision is submitted."
  :requires {:format 2}
  :needs {:pages {:kind list
                  :item {:id string :name string :image image}
@@ -17,70 +22,7 @@
          :select {:kind action :arguments {:id string} :description "Selects page id."}
          :duplicate {:kind action :arguments {:id string} :description "Duplicates page id."}
          :dock {:kind slot :slot dock :description "Where the sorter sits."}}
- :provides {:state {:picked ""}
-            :actions {:pick {:title "Select Page"
-                             :category "Slide Sorter"
-                             :do [{:set state.slideSorter.picked :to "{{id}}"} {:run app.select :with {:id "{{id}}"}}]}
-                      :move {:title "Move Page"
-                             :category "Slide Sorter"
-                             :do [{:if "{{id != onto}}"
-                                   :then [{:run app.reorder :with {:id "{{id}}" :onto "{{onto}}"}}]}]}
-                      :duplicate {:title "Duplicate Page"
-                                  :category "Slide Sorter"
-                                  :do [{:run app.duplicate :with {:id "{{app.current ?? state.slideSorter.picked}}"}}]}}
-            :views {:dock {:slideSorter-view (column :width "100%"
-                                               :height 132
-                                               :gap 4
-                                               :color transparent
-                                               :borderWidth 1
-                                               :borderColor @border
-                                               (row#slideSorter-header :width "100%"
-                                                 :height 24
-                                                 :gap 6
-                                                 :alignItems center
-                                                 (label#slideSorter-title :grow 1
-                                                   :height 24
-                                                   :padding 6
-                                                   :textColor @text
-                                                   :text "Pages ({{length(app.pages)}})")
-                                                 (label#slideSorter-duplicate :width 24
-                                                   :height 24
-                                                   :icon copy
-                                                   :cursor hand
-                                                   :tooltip "Duplicate page"
-                                                   :textColor @text
-                                                   :onClick slideSorter.duplicate))
-                                               (row#slideSorter-pages :width "100%"
-                                                 :grow 1
-                                                 :gap 8
-                                                 :scroll horizontal
-                                                 :color transparent
-                                                 (column :id "slideSorter-page-{{page.id}}"
-                                                   :repeat {:for page :in "{{app.pages}}" :key "{{page.id}}"}
-                                                   :width 84
-                                                   :height 96
-                                                   :gap 2
-                                                   :color transparent
-                                                   :cursor hand
-                                                   :drag {:data {:id "{{page.id}}"}}
-                                                   :onDrop {:run slideSorter.move
-                                                            :with {:id "{{event.data.id}}" :onto "{{page.id}}"}}
-                                                   :onClick {:run slideSorter.pick :with {:id "{{page.id}}"}}
-                                                   (image :id "slideSorter-image-{{page.id}}"
-                                                     :width 84
-                                                     :height 70
-                                                     :source "{{page.image}}"
-                                                     :fit contain
-                                                     :borderWidth "{{page.id == (app.current ?? state.slideSorter.picked) ? 2 : 1}}"
-                                                     :borderColor "{{page.id == (app.current ?? state.slideSorter.picked) ? '@accent' : '@border'}}"
-                                                     :dragOver {:borderColor @accent :borderWidth 3})
-                                                   (label :id "slideSorter-name-{{page.id}}"
-                                                     :width 84
-                                                     :height 18
-                                                     :align center
-                                                     :fitText true
-                                                     :textColor @muted
-                                                     :text "{{page.name}}"))))}}}
+ :program ["sorter.lisp"]
  :scenarios [{:name slideSorter-shows
               :note "The sorter is docked, with one thumbnail per page"
               :steps [{:expect {:node "#slideSorter-view" :exists true}}

@@ -301,6 +301,12 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If the app or the screen can't be read.
 [[nodiscard]] json appDocument(const std::filesystem::path& folder);
 
+/// @brief A template's folder in JSON: its json/ beside its lisp/, or the folder itself. The canonical edits
+/// (tests/perf/edits) are JSON edits of a JSON document: in a program, the same nodes are its definitions' to change.
+/// @param folder The template's folder.
+/// @return The folder of its JSON notation.
+[[nodiscard]] std::filesystem::path jsonNotation(const std::filesystem::path& folder);
+
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.

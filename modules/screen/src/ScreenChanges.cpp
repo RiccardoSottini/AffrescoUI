@@ -7,6 +7,8 @@
 #include "affresco/core/TextDiff.hpp"
 #include "affresco/notation/Notation.hpp"
 
+#include <affresco/lisp/Document.hpp>
+
 #include <algorithm>
 #include <set>
 #include <string>
@@ -37,7 +39,20 @@ struct Sides {
 	return pointer.substr(0, pointer.find('/'));
 }
 
-/// @brief The paths a patch touches, without assets, which are listed on their own.
+/// @brief Tells whether a path is in a feature's program, `/features/<name>/provides/program...`, which is listed on its
+/// own, as the program is.
+/// @param path The path.
+/// @return true if it is.
+[[nodiscard]] bool inFeatureProgram(std::string_view path) {
+	constexpr std::string_view features = "/features/", program = "/provides/program";
+	if(!path.starts_with(features)) return false;
+	const std::size_t slash = path.find('/', features.size());
+	if(slash == std::string_view::npos) return false;
+	const std::string_view rest = path.substr(slash);
+	return rest.starts_with(program) && (rest.size() == program.size() || rest[program.size()] == '/');
+}
+
+/// @brief The paths a patch touches, without assets and programs, which are listed on their own.
 /// @param patch The patch.
 /// @return The paths, as written.
 [[nodiscard]] std::set<std::string> touchedPaths(const json& patch) {
@@ -46,7 +61,8 @@ struct Sides {
 		for(const char* key : {"path", "from"})
 			if(operation.contains(key) && operation[key].is_string()) {
 				std::string path = operation[key].get<std::string>();
-				if(sectionOf(path) != "assets" && sectionOf(path) != "program") paths.insert(std::move(path));
+				if(sectionOf(path) != "assets" && sectionOf(path) != "program" && !inFeatureProgram(path))
+					paths.insert(std::move(path));
 			}
 	}
 	return paths;
@@ -195,31 +211,32 @@ void project(const json& value, const std::string& pointer, const std::string& f
 }
 
 /// @brief A program's file as a reviewer reads it: its definitions' texts, comments and all, one after another.
-/// @param document The document.
+/// @param program The program.
 /// @param file The file.
-/// @return The text; nothing if the document has no such file.
-[[nodiscard]] std::string programText(const json& document, const std::string& file) {
+/// @return The text; nothing if the program has no such file.
+[[nodiscard]] std::string programText(const json& program, const std::string& file) {
 	std::string text;
-	const auto section = document.find("program");
-	if(section == document.end() || !section->contains(file)) return text;
-	for(const auto& [name, entry] : (*section)[file].items()) {
+	if(!program.is_object() || !program.contains(file) || !program[file].is_object()) return text;
+	for(const auto& [name, entry] : program[file].items()) {
 		if(!text.empty()) text += "\n\n";
-		text += entry.get<std::string>();
+		if(entry.is_string()) text += entry.get_ref<const std::string&>();
 	}
 	return text;
 }
 
-/// @brief The rows of the program's files a change touches.
+/// @brief The rows of the program's files a change touches: the app's own, and its features', each a
+/// `features/<name>/<file>` (lisp::effectiveProgram()).
 /// @param sides The two sides.
 /// @param wanted The file to give the text of.
 /// @param files Gets them.
 void addProgramRows(const Sides& sides, const std::string& wanted, json& files) {
+	const json was = lisp::effectiveProgram(sides.before), is = lisp::effectiveProgram(sides.after);
 	std::set<std::string> names;
-	for(const json* side : {&sides.before, &sides.after})
-		if(const auto section = side->find("program"); section != side->end())
-			for(const auto& [file, entries] : section->items()) names.insert(file);
+	for(const json* program : {&was, &is})
+		if(program->is_object())
+			for(const auto& [file, entries] : program->items()) names.insert(file);
 	for(const std::string& file : names) {
-		const std::string before = programText(sides.before, file), after = programText(sides.after, file);
+		const std::string before = programText(was, file), after = programText(is, file);
 		if(before != after) files.push_back(textRow(file, before, after, file == wanted));
 	}
 }

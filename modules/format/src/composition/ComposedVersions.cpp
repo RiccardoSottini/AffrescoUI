@@ -58,7 +58,14 @@ void ComposedVersions::proposalsChanged() {
 // from disk: its features that don't fit are left out, and the checker's findings say why
 void ComposedVersions::recompose() {
 	composing_ = needsComposition(inner_.document());
-	composed_ = composing_ ? compose(inner_.document()).screen : json();
+	merged_.clear();
+	if(!composing_) {
+		composed_ = json();
+		return;
+	}
+	Composition composition = compose(inner_.document());
+	composed_ = std::move(composition.screen);
+	merged_ = std::move(composition.merged);
 }
 
 std::vector<std::string> ComposedVersions::syncState() {

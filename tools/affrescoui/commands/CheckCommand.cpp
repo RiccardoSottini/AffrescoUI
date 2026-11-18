@@ -145,7 +145,7 @@ std::vector<std::string> truthNotes(const std::filesystem::path& file, const std
 		                          : Screen::fromApp(manifest, {}, Screen::History::InMemory);
 		const json document = json::parse(screen.documentJson());
 		if(lisp::hasProgram(document))
-			for(const lisp::UndefinedName& test : lisp::builtProgram(document["program"])->truth)
+			for(const lisp::UndefinedName& test : lisp::builtProgram(lisp::effectiveProgram(document))->truth) // features' too
 				notes.push_back(
 				    test.name == "+"
 				        ? std::format("{}: in {}, line {}: + is given a text: an expression joins texts with it, a "

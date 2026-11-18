@@ -128,6 +128,7 @@ struct RunTargets {
 	/// Those that may run a control step, or nullptr when that isn't known: then any may.
 	const std::set<std::string>* controlActions = nullptr;
 	std::map<std::string, std::vector<std::string>> advice; ///< The functions that advise each action.
+	std::map<std::string, std::string> features; ///< The feature of each definition in a feature's file.
 };
 
 /// @brief What a definition's words reach: the definitions they name, and whether one reaches a control or a review
@@ -185,6 +186,9 @@ private:
 	/// @param target What it runs.
 	void follow(const std::string& name, const std::string& target) {
 		if(target.contains("{{")) return reaches(name);
+		if(const auto feature = targets_.features.find(name);
+		   feature != targets_.features.end() && target.starts_with("app.")) // what the app hands it
+			return follow(name, feature->second + ".adapted." + target.substr(4));
 		if(targets_.actions && targets_.actions->is_object() && targets_.actions->contains(target)) {
 			if(!targets_.controlActions || targets_.controlActions->contains(target)) reaches(name);
 			if(const auto advice = targets_.advice.find(target); advice != targets_.advice.end())
@@ -223,6 +227,17 @@ private:
 	std::set<std::string> control_;                               ///< Those found to reach one.
 };
 
+/// @brief Notes the feature of each definition in a feature's file of a document's program (lisp::featureFiles()).
+/// @param document The document, its program the one that runs (lisp::effectiveProgram()).
+/// @param features Gets each definition's feature.
+void noteFeatures(const json& document, std::map<std::string, std::string>& features) {
+	for(const auto& [file, entries] : document["program"].items()) {
+		const std::string feature = lisp::featureOfFile(file);
+		if(feature.empty() || !entries.is_object()) continue;
+		for(const auto& [name, text] : entries.items()) features.emplace(name, feature);
+	}
+}
+
 /// @brief What a `run` written out may name in a document.
 /// @param document The document.
 /// @param built What its program built.
@@ -236,6 +251,7 @@ RunTargets runTargetsOf(const json& document, const lisp::BuiltProgram& built,
 	for(const lisp::Extension& extension : built.extensions)
 		if(extension.kind == "advice" && !built.namesUsed.contains(extension.targets.front()))
 			targets.advice[extension.targets.front()].push_back(extension.targets.back());
+	noteFeatures(document, targets.features);
 	return targets;
 }
 
@@ -342,12 +358,62 @@ void followCalls(const lisp::BuiltProgram& built, const std::string& name,
 
 } // namespace
 
-void addExtensionReviewLines(const json& before, const json& after, std::vector<std::string>& lines) {
+namespace {
+
+/// @brief Tells whether a document holds a feature whose record gives a program.
+/// @param document The document.
+/// @return true if one does.
+bool holdsFeaturePrograms(const json& document) {
+	const auto features = document.find("features");
+	if(features == document.end() || !features->is_object()) return false;
+	return std::ranges::any_of(features->items(), [](const auto& item) {
+		const json& record = item.value();
+		if(!record.is_object()) return false;
+		const auto provides = record.find("provides");
+		return provides != record.end() && provides->is_object() && provides->contains("program");
+	});
+}
+
+/// @brief The names a view's program defines in a feature's file.
+/// @param view The view (runningView()).
+/// @return Them.
+std::set<std::string> featureDefinitions(const json& view) {
+	std::set<std::string> names;
+	if(!lisp::hasProgram(view)) return names;
+	for(const auto& [file, entries] : view["program"].items())
+		if(!lisp::featureOfFile(file).empty() && entries.is_object())
+			for(const auto& [name, text] : entries.items()) names.insert(name);
+	return names;
+}
+
+} // namespace
+
+// NOLINTBEGIN(bugprone-return-const-ref-from-parameter): callers pass documents they hold
+const json& runningView(const json& document, json& storage, bool strict) {
+	if(!lisp::hasProgram(document) || !holdsFeaturePrograms(document)) return document;
+	json program = lisp::effectiveProgram(document);
+	if(!strict) try {
+			static_cast<void>(lisp::builtProgram(program));
+		} catch(const DocumentError&) {
+			return document; // what ran: the app's own (Programs::load())
+		}
+	storage = document;
+	storage["program"] = std::move(program);
+	return storage;
+}
+// NOLINTEND(bugprone-return-const-ref-from-parameter)
+
+void addExtensionReviewLines(const json& rawBefore, const json& rawAfter, std::vector<std::string>& lines) {
+	json keptBefore, keptAfter;
+	const json& before = runningView(rawBefore, keptBefore, false);
+	const json& after = runningView(rawAfter, keptAfter, false);
 	const std::map<std::string, lisp::Extension> was = extensionsOf(before), is = extensionsOf(after);
+	const std::set<std::string> features = featureDefinitions(before), added = featureDefinitions(after);
 	const auto review = [&](const lisp::Extension& extension, const char* verb) {
 		// Advice is what its target now does, whatever it does; a hook is, where a hook point meets a control step or a
-		// reviewed action
-		if(extension.kind != "advice") {
+		// reviewed action; and either, a feature's, always: the feature joins the app's code
+		const bool feature = features.contains(extension.name) || added.contains(extension.name);
+		if(extension.kind != "advice" && !feature) {
 			const auto built = lisp::builtProgram(after["program"]);
 			const bool actions = after.contains("actions") && after["actions"].dump().contains("runHooks");
 			const RunTargets targets =
@@ -476,7 +542,10 @@ void checkNamespacesKept(const json& before, const json& after) {
 
 } // namespace
 
-void checkProgramChange(const json& before, const json& after) {
+void checkProgramChange(const json& rawBefore, const json& rawAfter) {
+	json keptBefore, keptAfter;
+	const json& before = runningView(rawBefore, keptBefore, false);
+	const json& after = runningView(rawAfter, keptAfter, true);
 	if(lisp::hasProgram(before) != lisp::hasProgram(after))
 		fail("revision", lisp::hasProgram(after)
 		                     ? "permission denied: this app is static, and a revision can't give it a program"
@@ -498,13 +567,19 @@ void checkProgramChange(const json& before, const json& after) {
 	}
 }
 
-void addProgramLines(const json& before, const json& after, std::vector<std::string>& lines) {
+void addProgramLines(const json& rawBefore, const json& rawAfter, std::vector<std::string>& lines) {
+	json keptBefore, keptAfter;
+	const json& before = runningView(rawBefore, keptBefore, false);
+	const json& after = runningView(rawAfter, keptAfter, false);
 	for(const DefinitionChange& change : definitionChanges(before, after))
 		if(isBehaviour(change.kind))
 			lines.push_back(change.verb + " the definition '" + change.name + "' of " + change.file);
 }
 
-std::size_t programLogic(const json& before, const json& after) {
+std::size_t programLogic(const json& rawBefore, const json& rawAfter) {
+	json keptBefore, keptAfter;
+	const json& before = runningView(rawBefore, keptBefore, false);
+	const json& after = runningView(rawAfter, keptAfter, false);
 	std::size_t count = 0;
 	for(const DefinitionChange& change : definitionChanges(before, after))
 		if(isBehaviour(change.kind)) ++count;
@@ -543,7 +618,10 @@ bool screenOrNone(const json& view, const DefinitionChange& change) {
 
 } // namespace
 
-bool programRunsChanged(const json& before, const json& after) {
+bool programRunsChanged(const json& rawBefore, const json& rawAfter) {
+	json keptBefore, keptAfter;
+	const json& before = runningView(rawBefore, keptBefore, false);
+	const json& after = runningView(rawAfter, keptAfter, false);
 	const std::vector<DefinitionChange> changes = definitionChanges(before, after);
 	if(changes.empty()) return false;
 	const std::optional<std::set<std::string>> was = namesUsedIn(before), is = namesUsedIn(after);

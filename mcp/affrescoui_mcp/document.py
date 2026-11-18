@@ -9,6 +9,14 @@ def compact(value):
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
 
 
+def source_of(reply):
+    """The document as version control keeps it, from a host's reply: a program's source, which the host sends as
+    "source" beside what it builds, or any other document as it is. The tool proves, plays and reads that one: a
+    program's built tree read back as a document says twice what its definitions say."""
+    source = reply.get("source")
+    return source if isinstance(source, dict) else (reply.get("document") or {})
+
+
 def diff(before, after, path=""):
     """A small JSON Patch from before to after: objects key by key, lists item by item when only their tail differs
     in length, anything else replaced whole."""

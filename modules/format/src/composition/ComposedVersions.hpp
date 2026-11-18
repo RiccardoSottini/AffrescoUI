@@ -41,6 +41,9 @@ public:
 	[[nodiscard]] json programAuthors() const override { return inner_.programAuthors(); }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] json& state() override { return inner_.state(); }
+	/// @brief The features the composition merged: those whose program runs (lisp::effectiveProgram()).
+	/// @return Their names.
+	[[nodiscard]] const std::vector<std::string>& mergedFeatures() const noexcept { return merged_; }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] const json& state() const override { return inner_.state(); }
 	/// @copydoc VersionControl::head
@@ -105,6 +108,11 @@ public:
 	}
 	/// @copydoc VersionControl::reject
 	bool reject(int proposal, std::string_view reason) override { return inner_.reject(proposal, reason); }
+	/// @copydoc VersionControl::resolveLeftOut
+	std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                          std::string_view reviewer) override {
+		return inner_.resolveLeftOut(proposal, path, theirs, reviewer);
+	}
 	/// @copydoc VersionControl::preview
 	std::optional<std::string> preview(int proposal) override { return inner_.preview(proposal); }
 	/// @copydoc VersionControl::endPreview
@@ -153,6 +161,7 @@ private:
 	json composed_;                       ///< The composed screen, if composing is needed.
 	bool composing_ = false;              ///< Whether document() is composed_.
 	std::set<std::string> featureStates_; ///< The state keys features own now.
+	std::vector<std::string> merged_;     ///< See mergedFeatures().
 	std::vector<Connection> forwarded_;   ///< The inner signals forwarded to this one's.
 };
 

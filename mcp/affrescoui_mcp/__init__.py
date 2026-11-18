@@ -31,6 +31,7 @@ released CPython offers on Windows yet: there the server starts, but its tools s
 from .document import (
     compact, diff, changes_since, by_id, find_node, trees, walk_nodes, node_type, short, summary, TYPE_WORDS,
     describe_type, state_types, definition_kind, definitions, outline, locate, pruned, find_nodes, pointer_parts, apply_patch,
+    source_of,
 )
 from .commands import (
     MAX_COMMAND_LINES, MAX_PATCH_LINES, OLDER_HOST, type_text, argument_text, command_line, command_list, patch_lines,

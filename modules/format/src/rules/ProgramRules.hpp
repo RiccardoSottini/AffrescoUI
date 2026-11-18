@@ -37,12 +37,21 @@ struct ProgramReach {
 	std::set<std::string> control; ///< Those that reach a control or a review step.
 };
 
+/// @brief A document as its program runs: the same, with the files of its enabled features that hold a program added to
+/// its program (lisp::effectiveProgram()); the document itself when none does, so an app with none pays nothing.
+/// @param document The document.
+/// @param storage Holds the document with its features' files when there are any.
+/// @param strict false for the side before a change: a program that doesn't build with its features' files is then
+/// its own, what ran; true for the side after, which must build with them.
+/// @return It.
+[[nodiscard]] const json& runningView(const json& document, json& storage, bool strict);
+
 /// @brief What a change's hooks and advice need: the review changing what they join needs. Adding or taking away
 /// advice, or a hook where a hook point meets a control step, is always reviewed.
-/// @param before The view before it.
-/// @param after The view after it.
+/// @param rawBefore The document before it; its program is the one that ran (runningView()).
+/// @param rawAfter The document after it; its program is the one that runs (runningView()).
 /// @param lines Gets what it says.
-void addExtensionReviewLines(const json& before, const json& after, std::vector<std::string>& lines);
+void addExtensionReviewLines(const json& rawBefore, const json& rawAfter, std::vector<std::string>& lines);
 
 /// @brief What a document's program can do. A `run` of a name written out reaches what the run step would find by it:
 /// the document's action of that name (one of @p controlActions reaches a control step, as does any advice on it that
@@ -91,10 +100,10 @@ void collectProgramWrites(const json& document, std::span<const std::string_view
 /// is what runs, from a command, a key, a handler, a hook, advice or another definition. That is every definition but a
 /// screen's that no other definition uses by name, since a screen builds a tree and nothing else (a function can't be
 /// in a tree), and the tree is judged as it is. A program that can't be built counts every change.
-/// @param before The view before it.
-/// @param after The view after it.
+/// @param rawBefore The document before it; its program is the one that ran (runningView()).
+/// @param rawAfter The document after it; its program is the one that runs (runningView()).
 /// @return true if it does.
-[[nodiscard]] bool programRunsChanged(const json& before, const json& after);
+[[nodiscard]] bool programRunsChanged(const json& rawBefore, const json& rawAfter);
 
 /// @brief "program": `file -> {definition -> its text}`, within the limits (lisp/Document.hpp). What the text means is
 /// the build's to say.
@@ -105,21 +114,21 @@ void checkProgramSection(const json& value, const std::string& name);
 
 /// @brief Refuses a change that takes away a definition another still uses, which the build alone wouldn't notice: a
 /// function's body runs only when it is called.
-/// @param before The view before it.
-/// @param after The view after it.
+/// @param rawBefore The document before it; its program is the one that ran (runningView()).
+/// @param rawAfter The document after it; its program is the one that runs (runningView()).
 /// @throws DocumentError If it does.
-void checkProgramChange(const json& before, const json& after);
+void checkProgramChange(const json& rawBefore, const json& rawAfter);
 
 /// @brief Adds a line for each definition a change touches that does more than what it builds.
-/// @param before The view before it.
-/// @param after The view after it.
+/// @param rawBefore The document before it; its program is the one that ran (runningView()).
+/// @param rawAfter The document after it; its program is the one that runs (runningView()).
 /// @param lines Gets them.
-void addProgramLines(const json& before, const json& after, std::vector<std::string>& lines);
+void addProgramLines(const json& rawBefore, const json& rawAfter, std::vector<std::string>& lines);
 
 /// @brief How many such definitions a change touches.
-/// @param before The view before it.
-/// @param after The view after it.
+/// @param rawBefore The document before it; its program is the one that ran (runningView()).
+/// @param rawAfter The document after it; its program is the one that runs (runningView()).
 /// @return The count.
-[[nodiscard]] std::size_t programLogic(const json& before, const json& after);
+[[nodiscard]] std::size_t programLogic(const json& rawBefore, const json& rawAfter);
 
 } // namespace affresco::format

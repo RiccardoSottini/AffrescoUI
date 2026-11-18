@@ -110,12 +110,12 @@ std::vector<Row> commandRows() {
 	return {
 	    {"getCommands", false, plain({{"type", "getCommands"}}), "rejected", "this host runs no commands"},
 	    {"runCommand", false, plain({{"type", "runCommand"}, {"command", "save"}}), "rejected",
-	     "this host runs no commands"},
+		 "this host runs no commands"},
 	    {"undoRun", false, plain({{"type", "undoRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
 	    {"allowRun", true, plain({{"type", "allowRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
 	    {"denyRun", true, plain({{"type", "denyRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
 	    {"revokeRun", true, plain({{"type", "revokeRun"}, {"rule", "agent(run:save)"}}), "rejected",
-	     "this host runs no commands"},
+		 "this host runs no commands"},
 	};
 }
 
@@ -225,6 +225,18 @@ std::vector<Row> protocolTable() {
 	     },
 		 "done", ""},
 	    {"revoke", true, plain({{"type", "revoke"}, {"rule", "agent(#title)"}}), "rejected", "no grant"},
+	    {"resolve", true,
+		 [&](Peers& peers) {
+		     return json{
+		         {"type", "resolve"}, {"proposal", proposal(peers).first}, {"path", "/state/x"}, {"take", "mine"}};
+	     },
+		 "rejected", "only the person settles"},
+	    {"resolve", true, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "theirs"}}),
+		 "rejected", "no proposal #4"},
+	    {"resolve", true, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "both"}}),
+		 "rejected", "resolve.take"},
+	    {"resolve", false, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "mine"}}),
+		 "rejected", "may not review"},
 	    {"request", false, plain({{"type", "request"}, {"id", "r1"}, {"text", "Make it blue"}}), "", ""},
 	    {"reply", true, plain({{"type", "reply"}, {"request", "r1"}, {"text", "Done"}}), "", ""},
 	};

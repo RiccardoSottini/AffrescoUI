@@ -37,6 +37,10 @@ inline constexpr std::array<std::string_view, 33> controlSteps = {
     "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen", "evaluate", "propose",  "exportChanges",
     "pick",          "unpick",        "allowRun",      "denyRun",    "undoRun"};
 
+/// The parts a feature provides and composition merges, written in JSON or built by its program.
+inline constexpr std::array<std::string_view, 10> featureParts = {
+    "state", "computed", "actions", "components", "styles", "keys", "menus", "settings", "views", "exports"};
+
 /// @brief A feature's release: semver's three numbers (no pre-release or build part in v1).
 struct Release {
 	int major = 0; ///< Incompatible changes.
@@ -88,6 +92,19 @@ void checkManifest(const json& manifest, const std::string& place);
 /// @param place Its place, for errors ("features.wordCount").
 /// @throws DocumentError If it is malformed.
 void checkFeatureRecord(const std::string& name, const json& record, const std::string& place);
+
+/// @brief A check's error as a problem: its place and message, without the prefix every load error has.
+/// @param error The error.
+/// @return "place: message".
+[[nodiscard]] std::string plainMessage(const DocumentError& error);
+
+/// @brief Checks a feature's views: `"<point>": { "<id>": <node> }`, every id in the feature's namespace
+/// (`<feature>-`), the key the view's id, and no view a contribution point.
+/// @param views The part.
+/// @param feature The feature's name.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkProvidedViews(const json& views, const std::string& feature, const std::string& place);
 
 /// @brief Checks the "features" section: each record (checkFeatureRecord()).
 /// @param section The section.

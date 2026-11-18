@@ -60,5 +60,9 @@ be a deck before it replaces the one on screen, as a change undo takes back.
 | [`review.lisp`](lisp/parts/review.lisp) | The Ink, Record, Check and Help tabs: ink on the slide, timings, comments, the accessibility check, the side pane |
 | [`themes/sinopia.lisp`](lisp/themes/sinopia.lisp) | The app's own look: the window's colour tokens, light and dark |
 
-The slide sorter as a part other apps install is [`features/slide-sorter`](lisp/features/slide-sorter) (Orrery's bodies
-strip uses it).
+The slide sorter as a part other apps install comes in two forms. [`lisp/features/slide-sorter`](lisp/features/slide-sorter)
+(release 2.0.0) is written as a program: `feature.lisp` is its manifest, and `:program ["sorter.lisp"]` names the file
+that holds its state, commands, functions and views. An app written as a program installs it: Orrery's bodies strip
+and Tempera's layers strip, both Lisp. [`json/features/slide-sorter`](json/features/slide-sorter/feature.json)
+(release 1.0.0) writes the same parts out in JSON; a static app installs that one, as the JSON Orrery and Tempera do.
+The two build the same views.

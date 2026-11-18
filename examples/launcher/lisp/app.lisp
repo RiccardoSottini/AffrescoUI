@@ -10,5 +10,6 @@
                                      :why "Lists the example apps, and copies one to start an app of your own."}
                           :apps {:access write :why "Keeps the apps you make, in AffrescoUI in your home folder."}}
                 :programs {:affresco "Opens each app in a window of its own."}
-                :assistant "Answers your questions about your apps, with the assistant you set up in Settings."}
+                :assistant "Answers your questions about your apps, with the assistant you set up in Settings."
+                :files "Saves a version of an app of yours to share, and opens a version someone gave you."}
  :assets ["../assets/covers" starters "../assets/affrescoui-icon.png" "../assets/affrescoui-mark.svg"]}

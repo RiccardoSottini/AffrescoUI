@@ -11,10 +11,15 @@
 (defpart host "The services, the read of the apps folder on load, and the actions the host and scenarios run."
   :services {:examples {:provider fs :root examples :readOnly true}
              :apps {:provider fs :root apps :copyFrom [examples]}
-             :launch {:provider process :process affresco}}
+             :launch {:provider process :process affresco}
+             :packages {:provider packages}}
   :onLoad {:run launcher.refresh}
   :actions {:launcher.refresh [{:lisp refreshMine}]
-            :launcher.show [{:lisp showMineList}]})
+            :launcher.show [{:lisp showMineList}]
+            :launcher.export [{:lisp showExport}]
+            :launcher.review [{:lisp showReview}]
+            :launcher.catalogue [{:lisp showListing}]
+            :launcher.reviewListed [{:lisp showListedReview}]})
 
 ;;; Pages and notes
 
@@ -64,7 +69,8 @@
 (defn refreshMine "Reads the apps folder again." []
   (let [pass (inc state.mineRun)]
     (set "state.mineRun" pass)
-    (listMine pass)))
+    (listMine pass)
+    (listCatalogue)))
 
 (defn current? "Whether a read is the last one started." [pass] (= pass state.mineRun))
 

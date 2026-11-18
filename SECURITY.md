@@ -549,6 +549,21 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
 
+**Features that hold programs** (`tests/unit/features_authority.cpp`, each case with the static checks on and off). A feature's
+definitions run as `features/<name>/<file>`, by the author `feature:<name>`, never the person's nor the file's:
+
+- **Two lines.** Composition refuses a feature whose code steps outside its own names or reaches past what it is handed; at run
+  time, `Programs::checkStep` holds whatever got past it, a feature shipped in the app's own file included: what a
+  `features/<name>/` definition led to writes only `state.<name>`, runs only `<name>.<command>` or `app.<need>`, and never a
+  record step, `invoke`, `request`, `subscribe`, `image`, a control or a review step.
+- **Reached from is who wrote it.** "A feature's code led here" follows the same authors as authority: the person's command
+  that calls a feature's function loses its control steps for the rest of that run, and advice a feature puts on the person's
+  command lends it none.
+- **What the app hands it runs apart.** `app.<need>` runs the app's `<name>.adapted.<need>` under `feature:<name>/app`: not the
+  feature's reach, and no control step.
+- **The error names the feature, the definition and the step**, never a value.
+- **Off is gone.** A feature switched off or removed is gone at the next version, with its callbacks.
+
 **The loop: evaluating from inside the app** (`tests/unit/lisp_loop.cpp`). The step `evaluate` is what makes an app extensible from inside, and it is what the person may do and nobody else:
 
 - **Only on the person's own press,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, even from a binding of their own key, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
@@ -705,7 +720,13 @@ code calls `Features::trustPublisher`; a catalogue installs only if its index an
 keys, the manifest by the very publisher the index names, and an upgrade never changes the publisher. A release's
 URL is a path inside the catalogue's folder. Whatever is installed is a revision under the document's
 `permissions`, and a feature can't bring a capability (`channels`, `services`, `connections`, `persist`) or a
-control step, so a feature never widens what the app can do. `affrescoui sign --new-key` writes a key only its owner
+control step, so a feature never widens what the app can do. A feature's program (its Lisp definitions) is built alone, within
+the build's budget, and refused unless every name is in its namespace, it builds only the parts a feature gives, and
+its code reaches only its own state and commands, the language, and the actions it needs: no other step, no
+undefined name, and a function reads none of the app's values. The steps it builds as data (a quoted list, a map)
+are checked like its code, and it may not write the names the language keeps for what it compiles (`%read`), nor
+build a name from text (`symbol`). A record whose `enabled` isn't `true` or `false` is off. Its hooks and advice join only what the app offers the
+points it is placed in. `affrescoui sign --new-key` writes a key only its owner
 can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
 key that was then deleted).
 
@@ -719,6 +740,73 @@ refused. An adapter is expressions only and can't give a capability or a permiss
 `permissions` or any capability is refused. The install is a revision under the document's permissions, proven
 again on the document it lands on; signatures and trust apply unchanged. The MCP tools return a proof's reasons,
 never the document.
+
+### Packages
+A package (VERSION_CONTROL.md, "Sharing a version: packages") is a file people pass around: what reads it treats it as
+untrusted input, and what writes it treats the person's own data as something to keep out. Reading
+(`readPackage`) refuses a file over 16 MiB before parsing it, then every key it doesn't know, by name; the JSON nesting
+limit and the document's; a delta of anything but add, remove and replace; a base the delta doesn't give (its tree);
+a file outside the app's folder, with a `.` part, over 4 MiB, or beyond 1,024; a manifest whose id isn't the base's;
+an asset the document doesn't list with that size and SHA-256; a state key the base has; and a signature that doesn't
+verify. Its `author` is shown as written, not as a proof, and `affrescoui` prints a package's texts with the
+characters that steer a terminal written out (`\x1b`), so a name can't redraw the review it is shown in. Writing
+(`affrescoui pack`) keeps out the records, the state, the history and every file the manifest doesn't reach (a link
+to a folder among its assets is left out), and refuses to write a package holding the person's paths or what looks
+like a key or a token.
+
+Installing one (`affrescoui install`, `Screen::proposePackage`; VERSION_CONTROL.md, "Installing a package") gives its
+code no more authority than a revision:
+- **Only the person accepts it.** It is a proposal by `plugin:<name>`, which only the person can accept (an agent, a
+  reviewer that isn't the person, and its own author are refused), and it is never applied as it is proposed. The
+  `install` command never accepts it. A trusted signature changes none of this: it names who made the file.
+- **Checked from its content.** The summary the person reviews is worked out from the document, never from what the
+  package says of itself; what refuses it is listed with its place. A package of changes can't touch `permissions`,
+  `channels`, `persist`, `services` or `connections`, nor add or take away the `program` as a whole; a definition that
+  holds a form that isn't a definition is refused, since it would run as the program is built.
+- **The revision rules hold.** A package can't bring or add a control step (`call`, ...) nor run a function that has
+  one; its `:around` advice that reaches one through `(proceed)` is refused as it runs. Capabilities are never widened
+  by it: a kind `app` package's are the new copy's manifest, shown to the person with what is new to them.
+- **The person's own stays.** What a three-way merge can't merge is left out, the person's value staying, until they
+  choose (only a reviewer of the person's channel, never the author); taking theirs moves the proposal's head, so an
+  approval given before is refused. A state key the person has is kept. Records aren't touched: models change only
+  the description.
+- **Files.** `install --new` writes a kind `app` package's files only into a folder that doesn't exist yet (not even
+  as a link), refusing an absolute path or one that leaves it, and two files the disk takes as one (`app.json` and
+  `APP.json` on a disk that ignores case), and leaves nothing behind if a file can't be written. The files must then
+  open, where they were written, as the base the package describes (its `base.tree`): the summary is worked out from
+  the document, so files that hold anything else (a definition only they have) aren't what the person reviewed, and
+  are removed with their folder.
+- **Trusted publishers** (`publishers.json` in the data folder) are read whole or refused: at most 64 KiB and 256 keys,
+  each an Ed25519 public key at its fixed length; small-order and non-canonical keys don't verify.
+
+**The `packages` service** (`makePackagesProvider`, `PackagesGrant`) is what a host grants a screen, the Launcher, to
+export one of the person's apps and to install a file someone gave them; nothing has it unless the host grants it, and
+a screenshot run never does. Its arguments are checked by their schema, which takes no path: an app is a folder name
+in a root the grant names (`examples`, `apps`), refused if it is anything else (`..`, `/`, a capital, a leading `-`).
+An install never takes the id `shared`, whose kits every app of the root includes, nor `launcher`.
+`export` reads the app's history from a copy of its data, so the person's own data folder isn't written nor its lock
+taken, and leaves out what `affrescoui pack` leaves out. `inspect` and `install` refuse a package over 16 MiB before
+it is read. `install` writes only into the writable root (`apps`), only into a folder that doesn't exist yet, removes
+only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. Results and
+errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
+
+### The AffrescoUI catalogue
+The Launcher lists the catalogue in the repository (`catalogue/`, its `README.md`): versions of apps and features,
+each added by a pull request that `affrescoui catalogue check` and a reviewer pass ("Adding to the catalogue" in
+`CONTRIBUTING.md`).
+- **Who signs.** The maintainer signs `catalogue/index.json` with the release key, in the release job only. The key's
+  private half is never in the repository, and the index is committed unsigned. The Launcher of a release trusts only
+  the public half built into it (`AFFRESCOUI_CATALOGUE_KEY`). A development build has no key built in, so it refuses
+  every index. It reads one unsigned only with `--catalogue DIR --trust-unsigned-catalogue`, and then prints a
+  warning. An app's own host is given no catalogue.
+- **What the signature says.** It says that the maintainer published this index and that it is unchanged since. Each
+  file the index lists is pinned by its SHA-512 digest and its size, so a changed file is refused before it is read.
+  The signature is not a promise that an entry is safe. It means that the entry was reviewed and is unchanged.
+- **What installing does.** An entry installs as a file from disk would. The `packages` service reads it from the
+  catalogue's folder, and the person sees the same review, with the date the index was checked. The package's
+  changes are a proposal that only the person accepts. A feature is reviewed from the catalogue and installed from
+  inside the app that binds what it needs. The service takes a catalogue entry by its id and release, never by a path,
+  and a release's file is a path inside the catalogue's folder.
 
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
@@ -764,18 +852,19 @@ the reason it has none.
 
 ### Services
 
-Services are `process`, `pty`, `fs`, `watch`, `search` and `jsonrpc`; language servers (LSP) and debug adapters (DAP)
-are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built into the
-library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and read no
-grammar from outside; the `syntax` fuzz target covers them.
+Services are `process`, `pty`, `fs`, `watch`, `search`, `jsonrpc` and `packages`; language servers (LSP) and debug
+adapters (DAP) are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built
+into the library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and
+read no grammar from outside; the `syntax` fuzz target covers them.
 
 | | |
 |---|---|
 | Assets | The user's files and folders, what the programs the host allows can do, and the host's memory and main thread |
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
-| Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
+| Limits | "Limits" below: the `process`, `fs`, `pty`, `search`, `packages` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
 | Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs, patterns and terminal output are fuzzed (`frames`, `search_glob`, `find_pattern`, `terminal`); PCRE2's match limits end catastrophic backtracking |
+| Packages | `packages` takes roots by name, never a path; installs only into a new folder of its writable root, removed on failure; a package refused over 16 MiB before it is read; what it installs waits as a proposal only the person accepts ("Packages" above) |
 | Known gaps | Programs aren't sandboxed (G-02) |
 
 ### The network
@@ -803,7 +892,7 @@ catalogues" above).
 | Who attacks | A catalogue's server or whoever answers in its place; a publisher whose key was stolen; a publisher that turns hostile in an upgrade |
 | Entry points | A catalogue's index, a manifest, a release's archive, public keys and signatures |
 | Limits | Index and manifest sizes, checked before parsing; the JSON nesting limit; fixed-length keys and digests |
-| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
+| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. A hostile upgrade meets the merge: it is still one revision, reviewed like any other, merged with what was edited locally (conflicts kept local and listed), or a proposal naming the edits it would drop, so local edits are never dropped silently. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
 | Known gaps | None of its own: a feature is a revision, so the revision gaps apply (G-06 to G-12) |
 
 ### Installing across apps
@@ -818,6 +907,19 @@ Features from another app, the adapters that bind their needs, and their proofs 
 | Limits | Manifest and proof 256 KiB, adapter 64 KiB, 64 needs, 64 bindings of 2,048 characters, 8 levels, 16 reasons per check, 256 scenarios per proof |
 | Mitigations | Expressions read only the host's exports; actions only those its point receives; no capability, permission or control step can be added; the composed document is checked and the scenarios played before the install; the install is a reviewed revision. Fuzzed: `composition` |
 | Known gaps | A proof's scenarios are those the feature and the host ship: behaviour they don't cover isn't proven |
+
+### Packages
+
+A version of an app as one file, shared from person to person ("Packages" above).
+
+| | |
+|---|---|
+| Assets | The reader's app and data; the writer's records, state, history, paths and keys |
+| Who attacks | Whoever made or changed the file; and, for the writer, a stray secret in the app's folder or its history |
+| Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`); `Screen::proposePackage`, `installAppFiles` and `readTrustedPublishers` (`affrescoui install`, `trust`); `resolveLeftOut` (`resolve`) |
+| Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000; trusted publishers 64 KiB and 256 keys |
+| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Installing: a proposal only the person accepts, never applied as proposed; sections a revision can't change refused; the revision rules on its code (no control step, advice refused at one); what doesn't merge left out until the person chooses, a choice moving the head; the person's state keys kept; new files only in a new folder; the same file once. Tested: `packages_threats.cpp` (11 threats). Fuzzed: `package` (reading, the summary against a copy, installing on a JSON template and on a program) |
+| Known gaps | The scan finds the patterns it knows, not every secret; the summary shows what the code may write and use, not what it will do: the person reads the definitions in the changes window |
 
 ### Dependencies
 
@@ -892,6 +994,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
+| A feature's program | within its manifest's 1 MiB; built with the Lisp build's budget, a build past it refused |
+| Feature builds kept (`Composition.cpp`) | 16 per thread |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
@@ -902,6 +1006,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Computed values reading computed values | 32 levels |
 | Panels built inside each other (components and outlets included; a component or a screen inside itself stops here) | 256 levels |
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
+| A package (`maxPackageBytes`, `format/Package.hpp`) | 16 MiB, refused before it is parsed |
+| A package's files (`maxPackageFiles`, `maxPackageFileBytes`) | 1,024, each at most 4 MiB |
+| A package's delta and state | 100,000 operations, paths of 4,096 bytes; 10,000 keys of 256 bytes |
+| A package's name and description | 80 and 2,000 characters |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
@@ -987,6 +1095,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
 | What a service program writes (`services`: a JSON-RPC frame or line) | Headers 8 KiB, a body or a line 8 MiB; a larger one stops the service. An error message from it is cut to 1,000 bytes |
 | A JSON-RPC service | 256 calls waiting for an answer, 256 subscriptions, 16 MiB waiting to be written to it |
+| A `packages` service | 4 calls at once; a package 16 MiB, refused before it is read; names 80 characters, a description 2,000, an author 200; ids a to z, 0 to 9 and `-`, 64 characters |
 | A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
 | An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
 | Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
@@ -1080,6 +1189,10 @@ removes the gap from this list.
   JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
   writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
   programs and folders you trust the screen with. Tracking: G-02.
+- **`inspect` can't open a whole app that includes the shared folder.** Away from where it is installed, a kind `app`
+  package's files that include the shared folder beside them don't open, so `affrescoui inspect` (without `--app`) and
+  the Launcher's review check them against their base only when they are installed: `install` refuses them then, and
+  writes nothing. Tracking: G-32.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.

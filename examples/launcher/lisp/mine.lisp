@@ -1,15 +1,22 @@
 ;;; mine.lisp --- the My apps page: the apps the person made, a row each
 ;;;
-;;; A row opens its app; its buttons open it too, duplicate it, show it in the folder, or delete it after a question.
-;;; Delete on a row asks the same. With no app yet, the page says how to make one.
+;;; A row opens its app; its buttons open it too, export it as a file to share (share.lisp), duplicate it, show it in
+;;; the folder, or delete it after a question. Install from a file reviews a file someone gave, and installs it. With
+;;; no app yet, the page says how to make one.
 
 ;;; The page
 
 (defview mine-page "My apps: its title, its buttons, a note if the folder can't be read, and the rows." []
   `(node#minePage :when ~(= state.page "mine") :fill true :color transparent :role tabpanel :label ~(t "nav.mine")
      (node#mineTitle :style pageTitle :text ~(t "mine.title") :role heading)
-     (node#mineSub :style pageSub :text ~(t "mine.sub") :anchors {:left 36 :right 360 :top 72})
-     (row#mineButtons :gap 8 :anchors {:right 36 :top 38} :height 38 :width 330 :justify end
+     (node#mineSub :style pageSub :text ~(t "mine.sub") :anchors {:left 36 :right 560 :top 72})
+     (row#mineButtons :gap 8 :anchors {:right 36 :top 38} :height 38 :width 530 :justify end
+       (node#mineInstall :style secondary
+         :icon package-open
+         :text ~(t "mine.install")
+         :width 192
+         :height 38
+         :onClick installFromFile)
        (node#mineFolder :style secondary
          :icon folder-open
          :text ~(t "mine.showFolder")
@@ -94,17 +101,22 @@
        :anchors {:left 16 :top 16}
        :width 44
        :height 44)
-     (label#mineName :text ~app.name :font strong :textColor @c.text :anchors {:left 76 :right 220 :top 17} :height 22)
+     (label#mineName :text ~app.name :font strong :textColor @c.text :anchors {:left 76 :right 258 :top 17} :height 22)
      (label#mineInfo :font small
        :textColor @c.muted
        :text ~(if (> app.modified 0) (t "mine.info" {:folder app.id :date (formatDate app.modified "medium")}) app.id)
-       :anchors {:left 76 :right 220 :top 41}
+       :anchors {:left 76 :right 258 :top 41}
        :height 18)
      ~(mine-actions app)))
 
-(defview mine-actions "A row's buttons: open, duplicate, show in the folder, delete." [app]
-  `(row#mineActions :gap 4 :anchors {:right 14 :top 21} :height 34 :width 210 :justify end
+(defview mine-actions "A row's buttons: open, export, duplicate, show in the folder, delete." [app]
+  `(row#mineActions :gap 4 :anchors {:right 14 :top 21} :height 34 :width 248 :justify end
      (node#mineOpen :style primary :text ~(t "mine.open") :width 74 :height 34 :onClick ~(handler openApp app))
+     (node#mineExport :style iconButton
+       :icon package
+       :tooltip ~(t "mine.export")
+       :label ~(t "mine.exportLabel" {:name app.name})
+       :onClick ~(handler exportMine app.id app.name))
      (node#mineDuplicate :style iconButton
        :icon copy
        :tooltip ~(t "mine.duplicate")

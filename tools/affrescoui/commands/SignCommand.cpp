@@ -1,5 +1,6 @@
 /// @file
-/// @brief `affrescoui sign`: signs a feature's manifest or a catalogue's index (RFC 0004), and makes signing keys.
+/// @brief `affrescoui sign`: signs a feature's manifest, a catalogue's index (RFC 0004) or a package, and makes signing
+/// keys.
 
 #include "Cli.hpp"
 #include "JsonText.hpp"
@@ -7,6 +8,7 @@
 #include "FeatureSignatures.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/Package.hpp>
 
 #include <array>
 #include <cstdio>
@@ -66,27 +68,24 @@ SigningKey readKey(const std::filesystem::path& file) {
 	}
 }
 
-/// @brief Sets each release's digest and size of a catalogue's index from its manifest, so the index signs what is
-/// there; the manifests are signed first.
-/// @param index The index.
-/// @param folder The index's folder: the releases' URLs are relative to it.
-/// @throws FileProblem If a manifest can't be read.
+} // namespace
+
 void refreshReleases(json& index, const std::filesystem::path& folder) {
-	const auto features = index.find("features");
-	if(features == index.end() || !features->is_object()) return;
-	for(auto& [name, feature] : features->items()) {
-		const auto releases = feature.find("releases");
-		if(releases == feature.end() || !releases->is_array()) continue;
-		for(json& release : *releases) {
-			if(!release.is_object() || !release.contains("url") || !release["url"].is_string()) continue;
-			const std::string bytes = readFile(folder / release["url"].get<std::string>());
-			release["digest"] = format::digestOf(bytes);
-			release["size"] = bytes.size();
+	for(const char* part : {"features", "packages"}) {
+		const auto entries = index.find(part);
+		if(entries == index.end() || !entries->is_object()) continue;
+		for(auto& [name, entry] : entries->items()) {
+			const auto releases = entry.find("releases");
+			if(releases == entry.end() || !releases->is_array()) continue;
+			for(json& release : *releases) {
+				if(!release.is_object() || !release.contains("url") || !release["url"].is_string()) continue;
+				const std::string bytes = readFile(folder / release["url"].get<std::string>());
+				release["digest"] = format::digestOf(bytes);
+				release["size"] = bytes.size();
+			}
 		}
 	}
 }
-
-} // namespace
 
 Exit signFile(std::span<const std::string_view> args) {
 	const Arguments arguments(args, signOptions, {});
@@ -104,10 +103,18 @@ Exit signFile(std::span<const std::string_view> args) {
 	} catch(const json::parse_error& error) {
 		throw FileProblem(file.string() + ": isn't JSON (" + error.what() + ")");
 	}
-	if(!document.is_object()) throw FileProblem(file.string() + ": isn't a manifest or a catalogue's index");
+	if(!document.is_object()) throw FileProblem(file.string() + ": isn't a manifest, a catalogue's index or a package");
 	if(document.value("format", json()) == "affrescoui-catalog") refreshReleases(document, file.parent_path());
 	const SigningKey key = readKey(*keyFile);
+	const bool package = document.value("format", json()) == format::packageFormat;
 	const json signedDocument = key.sign(std::move(document));
+	if(package) {
+		try {
+			static_cast<void>(format::parsePackage(signedDocument)); // its signature verifies, and the rest reads
+		} catch(const DocumentError& error) {
+			throw FileProblem(file.string() + ": isn't a package that can be signed (" + error.what() + ")");
+		}
+	}
 	writeFile(arguments.value("-o").value_or(file.string()), printText(parseText(signedDocument.dump())));
 	std::cerr << file.string() << ": signed by " << key.publisher() << '\n';
 	return Exit::Success;

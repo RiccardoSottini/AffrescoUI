@@ -98,6 +98,26 @@ json emptyProof(const ProofInputs& inputs) {
 	        {"unmet", json::array()}};
 }
 
+/// @brief A document as the checks of a screen see it: what its `program` builds beside its other sections, as
+/// Rules::validate() judges it; any other document as it is.
+/// @param document The document as version control keeps it.
+/// @return The screen.
+/// @throws DocumentError If its program can't be built.
+json screenOf(const json& document) {
+	if(!document.is_object() || !document.contains("program")) return document; // a JSON host: no rules to build
+	return Rules().built(document).value_or(document);
+}
+
+/// @brief The host as a screen, from its source: a program's built tree read back as a document is refused
+/// (isBuiltTree()).
+/// @param host The host document.
+/// @return The screen.
+/// @throws DocumentError If it is a program's built tree, or its program can't be built.
+json sourceScreen(const json& host) {
+	if(isBuiltTree(host)) fail("host", std::string(builtTreeProblem));
+	return screenOf(host);
+}
+
 /// @brief The place after the next order among a document's features.
 /// @param document The document.
 /// @return The highest order plus 10.
@@ -258,10 +278,11 @@ void walkIsolation(const IsolationWalk& walk, const json& value, const std::stri
 
 /// @brief Checks the manifest and the adapter, and binds the needs.
 /// @param inputs What to prove.
+/// @param screen The host as a screen: what its program builds, for a program.
 /// @param proof The proof.
 /// @param bound Receives the bindings.
 /// @return true if all passed.
-bool bindStep(const ProofInputs& inputs, json& proof, BoundNeeds& bound) {
+bool bindStep(const ProofInputs& inputs, const json& screen, json& proof, BoundNeeds& bound) {
 	if(!addThrowingCheck(proof, "manifest", [&] { checkManifest(inputs.manifest, "feature"); })) return false;
 	const bool adapterFine = addThrowingCheck(proof, "adapter", [&] {
 		if(inputs.adapter.is_null()) return;
@@ -270,7 +291,7 @@ bool bindStep(const ProofInputs& inputs, json& proof, BoundNeeds& bound) {
 			fail("adapter.feature", "names another feature");
 	});
 	if(!adapterFine) return false;
-	bound = bindNeeds(inputs.manifest.value("needs", json::object()), inputs.host, inputs.adapter);
+	bound = bindNeeds(inputs.manifest.value("needs", json::object()), screen, inputs.adapter);
 	proof["bindings"] = bound.records;
 	proof["unmet"] = bound.unmet;
 	std::vector<std::string> reasons;
@@ -298,6 +319,19 @@ void scenarioStep(json& proof, const ProvenComposition& proven, const json& mani
 
 } // namespace
 
+// A document says a thing once: a tree that writes the root its program builds says it twice, and would fail on the
+// first change to the definition that builds it (lisp::buildDocument()'s rule)
+bool isBuiltTree(const json& document) {
+	if(!document.is_object() || !document.contains("program") || !document.contains("root")) return false;
+	json unwritten = document;
+	unwritten.erase("root");
+	try {
+		return screenOf(unwritten).contains("root");
+	} catch(const DocumentError&) {
+		return false; // a program that can't be built is the build's to report, where the document is checked
+	}
+}
+
 std::vector<std::string> isolationProblems(const std::string& name, const json& provides, const json& needs) {
 	std::vector<std::string> problems;
 	walkIsolation({name, needs, problems}, provides, "provides");
@@ -307,17 +341,30 @@ std::vector<std::string> isolationProblems(const std::string& name, const json& 
 ProvenComposition proveComposition(const ProofInputs& inputs, const ScenarioRunner& runner) {
 	ProvenComposition proven{.proof = emptyProof(inputs), .record = nullptr, .document = nullptr};
 	json& proof = proven.proof;
+	json hostScreen;
+	try { // a check only when it fails: a JSON host's proof stays what it was, record for record
+		hostScreen = sourceScreen(inputs.host);
+	} catch(const DocumentError& error) {
+		(void)addCheck(proof, "host", {error.what()});
+		return proven;
+	}
 	BoundNeeds bound;
-	if(!bindStep(inputs, proof, bound)) return proven;
+	if(!bindStep(inputs, hostScreen, proof, bound)) return proven;
 	const std::string name = inputs.manifest["name"].get<std::string>();
-	proven.record = recordFor(inputs.manifest, inputs.source, inputs.digest, inputs.publisher, nextOrder(inputs.host));
+	proven.record = recordFor(inputs.manifest, inputs.source, inputs.digest, inputs.publisher, nextOrder(hostScreen));
 	proven.record["bindings"] = bound.bindings;
-	proven.document = inputs.host;
+	proven.document = inputs.host; // the source, as version control keeps it: the record goes beside the program
+	json screen;
 	bool passed = addCheck(proof, "composition", [&] -> std::vector<std::string> {
-		if(inputs.host.contains("features") && inputs.host["features"].contains(name))
+		if(hostScreen.contains("features") && hostScreen["features"].contains(name))
 			return {std::format("the host already has a feature '{}'", name)};
 		proven.document["features"][name] = proven.record;
-		return compositionProblems(inputs.host, proven.document);
+		try {
+			screen = screenOf(proven.document);
+		} catch(const DocumentError& error) {
+			return {error.what()};
+		}
+		return compositionProblems(hostScreen, screen);
 	}());
 	passed = addCheck(proof, "isolation",
 	                  isolationProblems(name, inputs.manifest["provides"],
@@ -325,7 +372,7 @@ ProvenComposition proveComposition(const ProofInputs& inputs, const ScenarioRunn
 	         passed;
 	passed =
 	    passed && addThrowingCheck(proof, "permissions", [&] { Rules().checkChange(inputs.host, proven.document); });
-	passed = passed && addCheck(proof, "document", documentProblems(inputs.host, proven.document));
+	passed = passed && addCheck(proof, "document", documentProblems(hostScreen, screen));
 	if(passed) scenarioStep(proof, proven, inputs.manifest, runner);
 	proven.record["proof"] = proof;
 	if(proof["passed"] == true) proven.document["features"][name] = proven.record;

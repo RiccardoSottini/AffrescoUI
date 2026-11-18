@@ -4,6 +4,7 @@
 
 #include "affresco/vcs/Repository.hpp"
 
+#include "revisions/Deltas.hpp"
 #include "revisions/Revisions.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
@@ -28,6 +29,48 @@ json currentChanges(const DocumentRules& rules, const json& changes) {
 		if(revision.is_object() && revision.contains("patch"))
 			static_cast<void>(rules.upgradeRevision(revision["patch"]));
 	return current;
+}
+
+/// @brief Replays a commit's operations on the state on a scratch document holding only a state: "set" as "add", and
+/// an operation that doesn't apply there (one the history made on another state than the base's) left out.
+/// @param scratch {"state": ...}, changed in place.
+/// @param patch The commit's operations, as submitted.
+void replayOnState(json& scratch, const json& patch) {
+	if(!patch.is_array()) return;
+	for(const json& operation : patch) {
+		if(!operation.is_object() || !operation.contains("path") || !operation["path"].is_string()) continue;
+		if(!operation["path"].get_ref<const std::string&>().starts_with("/state/")) continue;
+		json plain = operation;
+		if(plain.value("op", "") == "set") plain["op"] = "add";
+		try {
+			scratch = scratch.patch(json::array({plain}));
+		} catch(const json::exception&) {
+			continue;
+		}
+	}
+}
+
+/// @brief The members of an object whose keys another object hasn't.
+/// @param value The object (anything else has none).
+/// @param other The other (anything else has no key).
+/// @return Them, as an object.
+json keysNotIn(const json& value, const json& other) {
+	json result = json::object();
+	if(!value.is_object()) return result;
+	for(const auto& [key, item] : value.items())
+		if(!other.is_object() || !other.contains(key)) result[key] = item;
+	return result;
+}
+
+/// @brief The keys of an object that another object hasn't.
+/// @param value The object.
+/// @param other The other.
+/// @return Them, as a list.
+json namesNotIn(const json& value, const json& other) {
+	json result = json::array();
+	const json members = keysNotIn(value, other);
+	for(const auto& [key, unused] : members.items()) result.push_back(key);
+	return result;
 }
 
 } // namespace
@@ -146,6 +189,22 @@ void Repository::recordImported(const json& changes) {
 	if(hasImported(changes)) return;
 	imported_.push_back(detail::sha256(changes.dump()));
 	saveHistory();
+}
+
+json Repository::versionParts() const {
+	const json& document = mainDocument();
+	json base = main_.empty() ? document : documentOf(objects_.at(main_.front()));
+	json baseState = base.is_object() ? base.value("state", json::object()) : json::object();
+	if(!baseState.is_object()) baseState = json::object();
+
+	// every commit's operations on the state, replayed in order on the base's own: what they leave and it lacks
+	json scratch = {{"state", baseState}};
+	for(std::size_t n = 1; n < main_.size(); ++n) replayOnState(scratch, objects_.at(main_[n]).patch);
+	return {{"base", base},
+	        {"document", document},
+	        {"delta", detail::delta(document, base)},
+	        {"state", keysNotIn(scratch["state"], baseState)},
+	        {"assets", namesNotIn(document.value("assets", json::object()), base.value("assets", json::object()))}};
 }
 
 } // namespace affresco::vcs

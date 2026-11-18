@@ -3,6 +3,7 @@
 /// snippets, token styles and UTF-16 columns.
 
 #include "lsp/LspProtocol.hpp"
+#include "Providers.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -48,7 +49,8 @@ std::optional<std::string_view> localPath(std::string_view uri) {
 
 /// @brief Decodes a URI's path.
 /// @param path The path, escaped.
-/// @return It, or std::nullopt for a query, a fragment, a broken escape or an escaped NUL (which would cut the name).
+/// @return It, or std::nullopt for a query, a fragment, a broken escape, an escaped NUL (which would cut the name) or
+/// escapes that decode to bytes that aren't UTF-8 (a name a screen can't be given).
 std::optional<std::string> decodedPath(std::string_view path) {
 	std::string decoded;
 	for(std::size_t i = 0; i < path.size(); ++i) {
@@ -63,6 +65,7 @@ std::optional<std::string> decodedPath(std::string_view path) {
 		decoded += static_cast<char>(high * 16 + low);
 		i += 2;
 	}
+	if(!isUtf8(decoded)) return std::nullopt;
 	return decoded;
 }
 

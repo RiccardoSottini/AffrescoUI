@@ -51,7 +51,7 @@ json CommandCatalog::list() const {
 
 std::optional<json> CommandCatalog::find(std::string_view name) const {
 	for(json& entry : list())
-		if(entry["name"] == name) return std::move(entry);
+		if(entry.value("name", std::string()) == name) return std::move(entry);
 	return std::nullopt;
 }
 

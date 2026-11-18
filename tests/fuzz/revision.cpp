@@ -1,7 +1,8 @@
 /// @file
 /// @brief Fuzzes a revision submitted to a vcs::Repository loaded with the JSON template, as a peer's "revision"
-/// message is: compact edits or JSON Patch, judged by the template's permission rules; and the same revision on a
-/// document that holds a program, whose every edit is built.
+/// message is: compact edits or JSON Patch, judged by the template's permission rules; the same revision on a
+/// document that holds a program, whose every edit is built; and on one whose feature holds a program too, for the
+/// revisions that add, change and remove `/features/<name>` records with programs.
 ///
 /// Besides not crashing, the rules VERSION_CONTROL.md promises must hold:
 /// - a revision that isn't applied changes nothing (revisions are atomic);
@@ -85,6 +86,23 @@ constexpr const char* kProgram = R"lisp(
 (defscreen main :state {:n 1} :permissions {:allow ["studio"] :reviewers ["studio"]} (column#list (label#a :text "A")))
 )lisp";
 
+/// A feature's record that holds a program, for the revisions on `/features/...`: its own state, a function and a
+/// command; the revisions add what reaches a step it may not run, for the run-time check (Programs::checkStep()).
+constexpr const char* kFeature = R"json({
+  "release": "1.0.0", "source": "revision", "enabled": true, "order": 0,
+  "provides": {"program": {"feature.lisp": {
+    "state.tally": "(defstate tally {:n 0} \"Its state.\")",
+    "tally-bump": "(defn tally-bump \"Counts.\" [] (set \"state.tally.n\" 1))",
+    "tally.go": "(defcommand tally.go \"Counts.\" :title \"Tally\" [] (tally-bump))"}}}})json";
+
+/// @brief The program's document with a feature whose record holds a program.
+/// @return It.
+json featureDocument() {
+	json document = affresco::lisp::sourceDocument(kProgram, "app.lisp");
+	document["features"]["tally"] = json::parse(kFeature);
+	return document;
+}
+
 /// @brief Submits a revision to a repository, and checks what VERSION_CONTROL.md promises of it.
 /// @param repository The repository, which it changes.
 /// @param revision The revision.
@@ -138,5 +156,11 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	}
 	affresco::vcs::Repository program(rules, affresco::lisp::sourceDocument(kProgram, "app.lisp"));
 	judge(program, revision);
+	// Installing, changing and removing a feature's program, judged as a change of its definitions
+	if(affresco::fuzz::text(data, size).contains("/features")) {
+		static const json withFeature = featureDocument();
+		affresco::vcs::Repository features(rules, withFeature);
+		judge(features, revision);
+	}
 	return 0;
 }

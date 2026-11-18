@@ -24,6 +24,7 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/format/App.hpp"
 #include "affresco/format/Features.hpp"
+#include "affresco/format/PackageFiles.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
@@ -583,6 +584,40 @@ public:
 	/// @param name The change set's name.
 	/// @return The change set, as JSON text.
 	[[nodiscard]] std::string exportChanges(int fromRevision = 0, std::string_view name = {}) const;
+	/// @brief A version of the app as one package (VERSION_CONTROL.md, "Sharing a version: packages"): main's
+	/// document and the base its first commit holds, the state keys and assets the commits added, and for kind App the
+	/// app's files its manifest reaches. Nothing about the person goes in it: not the records, the saved or live state,
+	/// the history's commits, settings or paths. Check it with format::scrubProblems() before it is written.
+	/// @param options What the person says of it; `engine` is the AffrescoUI release writing it.
+	/// @return The package, as format::parsePackage() reads it.
+	/// @throws DocumentError If the screen wasn't loaded from an app (fromApp()), a file of the app is outside its
+	/// folder, or the package isn't valid.
+	[[nodiscard]] format::Package exportPackage(const format::PackageOptions& options) const;
+	/// @brief What installing a package on this screen would do (VERSION_CONTROL.md, "Installing a package"):
+	/// format::packageSummary(), with this screen as the person's copy, and what doesn't merge with it.
+	/// @param packageJson The package's file.
+	/// @param trustedPublishers The publishers the person trusts (format::readTrustedPublishers()).
+	/// @return The summary; its "problems" are empty if it can be installed.
+	/// @throws DocumentError If it isn't a package, naming the place.
+	[[nodiscard]] json inspectPackage(std::string_view packageJson, const json& trustedPublishers) const;
+	/// @brief Whether a package of kind App's own files are the base it describes: opened, their document must have
+	/// its base.tree, or what is installed isn't what inspecting it showed.
+	/// @param packageJson The package's file.
+	/// @param placed The folder they were written into (installAppFiles), opened there beside the shared folder the
+	/// app will include; if empty, they are written in a scratch folder, and files that don't open there (an include
+	/// of the shared folder) are checked only where they are installed.
+	/// @return "" if they are (or it is a package of changes), else why not.
+	/// @throws DocumentError If it isn't a package, naming the place.
+	[[nodiscard]] static std::string appFilesProblem(std::string_view packageJson,
+	                                                 const std::filesystem::path& placed = {});
+	/// @brief Installs a package as a proposal that only the person can accept (VERSION_CONTROL.md, "Installing a
+	/// package"): its changes since its base, merged into this screen's document as "plugin:<name>", with its assets
+	/// and the state keys this screen lacks. What doesn't merge is left out, for the person to choose. Never applied.
+	/// @param packageJson The package's file.
+	/// @param error Receives why it was refused, if it was (may be nullptr).
+	/// @return Proposed; or Rejected, with why: it isn't a package, it can't be installed (format::installProblems()),
+	/// it is already installed (the same file, accepted or not), or what proposing it refused.
+	RevisionResult proposePackage(std::string_view packageJson, std::string* error = nullptr);
 
 	/// @brief Applies a change set, all or nothing.
 	/// @param changesJson A change set from exportChanges().

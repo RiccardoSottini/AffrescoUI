@@ -21,7 +21,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 18> list = {{
+	static constexpr std::array<Command, 23> list = {{
 	    {"run",
 		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]... "
 		 "[--nrepl [PORT]]",
@@ -70,8 +70,30 @@ std::span<const Command> commands() {
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
 		 generateSchema},
+	    {"pack",
+		 "<app> [-o FILE] [--name NAME] [--release X.Y.Z] [--description TEXT] [--author NAME] [--license NAME] "
+		 "[--whole] [--data DIR]",
+		 "Write your version of an app as one package: its changes and the release they grew from, nothing of yours; "
+		 "--whole puts the app's files in too",
+		 packVersion},
+	    {"inspect", "<file> [--json] [--app APP] [--data DIR]",
+		 "Check a package and say everything installing it would do; --app compares it with your copy of that app, "
+		 "and lists what wouldn't merge",
+		 inspectPackage},
+	    {"install", "<app> <file> [--data DIR] | --new <folder> <file> [--data DIR]",
+		 "Propose a package to you on an app, or on a new folder its files are written into; it never accepts: open "
+		 "the app to review it",
+		 installPackage},
+	    {"trust", "<key> [--name NAME] [--remove] [--data DIR] | --list [--data DIR]",
+		 "Keep the publishers whose signatures you trust, in the data folder's publishers.json", trustPublisher},
+	    {"catalogue", "check <folder> [--examples DIR] | refresh <folder>",
+		 "Check a catalogue's folder: each entry reads, fits its app in examples/, plays its proof, adds no "
+		 "capability, "
+		 "holds no path or key and has a licence, and the index's digests match; refresh writes them",
+		 catalogueCommand},
 	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
-		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
+		 "Sign a feature's manifest, a catalogue's index (its digests first) or a package; --new-key makes a key",
+		 signFile},
 	    {"migrate", "<file>... [--check] [--write]",
 		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
 	    {"source", "<file> <#id | pointer | address> [--json]",

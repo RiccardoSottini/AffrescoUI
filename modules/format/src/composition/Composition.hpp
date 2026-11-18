@@ -18,10 +18,20 @@
 
 namespace affresco::format {
 
+/// @brief A hook or an advice a feature's program adds to the app, accepted for a review to show.
+struct FeatureExtension {
+	std::string feature; ///< The feature.
+	std::string kind;    ///< `add-hook`, `remove-hook` or `advice`.
+	std::string name;    ///< Its address in the feature's program.
+	std::string target;  ///< The hook point, or the action it advises.
+};
+
 /// @brief A composed screen and what kept features out of it.
 struct Composition {
-	json screen;                       ///< The screen: the document with its enabled features merged in.
-	std::vector<std::string> problems; ///< Each with its place, "features.wordCount.requires.points: ...".
+	json screen;                              ///< The screen: the document with its enabled features merged in.
+	std::vector<std::string> problems;        ///< Each with its place, "features.wordCount.requires.points: ...".
+	std::vector<FeatureExtension> extensions; ///< The hooks and advice the merged features' programs add.
+	std::vector<std::string> merged;          ///< The features merged, by name: those whose program runs.
 };
 
 /// @brief Tells whether a document has anything to compose: features or imports. Without them, the document is the
@@ -51,7 +61,8 @@ struct Composition {
 
 /// @brief The state an enabled feature declares, by feature: what the live state must have at `state.<name>`.
 /// @param document The document.
-/// @return `{ "<name>": <its initial state> }` for each enabled feature that provides state.
+/// @return `{ "<name>": <its initial state> }` for each enabled feature that provides state: its `provides.state`, or
+/// the `defstate` of its program.
 [[nodiscard]] json featureStates(const json& document);
 
 } // namespace affresco::format
