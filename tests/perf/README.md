@@ -286,6 +286,10 @@ sets.
 5. Run it locally, then with `--callgrind` on Linux. Check that two callgrind runs give the same count.
 
 Canonical edits are entries in `edits/<template>.json`: a name, then `submit_revision`'s arguments.
+A template built by a program has its edits of the program in `edits/program/<template>.json`: under the edit's name,
+its message and the definitions it changes (`"definition": "<file>/<entry>"`, then `from` and `to`, `append`, or the
+whole `text`). The `revision/` workload of such a template applies that edit to the program as written, and its other
+edits to the document as written.
 
 ## Why instruction counts gate CI
 

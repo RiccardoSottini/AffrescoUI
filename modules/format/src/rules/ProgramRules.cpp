@@ -565,9 +565,51 @@ bool Rules::changesCodeUnder(const json& before, const json& after, std::string_
 	return programRunsChanged(before, after);
 }
 
+namespace {
+
+/// @brief Builds kept by builtTree(): the document before a revision and the one after it.
+constexpr std::size_t treesKept = 2U;
+
+/// @brief A document and what its program builds.
+struct KeptTree {
+	json source;                     ///< The document as versioned.
+	std::shared_ptr<const json> tree; ///< What it builds.
+};
+
+/// @brief The builds builtTree() keeps on this thread, the latest first, and how many it made.
+struct KeptTrees {
+	std::vector<KeptTree> trees; ///< At most treesKept.
+	std::size_t builds = 0;      ///< Builds made.
+};
+
+/// @brief This thread's kept builds.
+/// @return Them.
+KeptTrees& keptTrees() {
+	thread_local KeptTrees kept;
+	return kept;
+}
+
+} // namespace
+
+std::shared_ptr<const json> builtTree(const json& document) {
+	KeptTrees& kept = keptTrees();
+	const auto found = std::ranges::find_if(kept.trees, [&document](const KeptTree& entry) { return entry.source == document; });
+	if(found != kept.trees.end()) {
+		std::rotate(kept.trees.begin(), found, found + 1);
+		return kept.trees.front().tree;
+	}
+	auto tree = std::make_shared<const json>(lisp::buildDocument(document)); // throws before anything is kept
+	++kept.builds;
+	if(kept.trees.size() >= treesKept) kept.trees.pop_back();
+	kept.trees.insert(kept.trees.begin(), KeptTree{document, tree});
+	return tree;
+}
+
+std::size_t programBuildCount() noexcept { return keptTrees().builds; }
+
 std::optional<json> Rules::built(const json& document) const {
 	if(!lisp::hasProgram(document)) return std::nullopt;
-	return lisp::buildDocument(document);
+	return *builtTree(document);
 }
 
 // "/program/<file>/<name>/:key(/:key...)" becomes "replace /program/<file>/<name>" with the whole new text

@@ -164,9 +164,8 @@ void Rules::checkRevision(const json& patch) const {
 
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
 void Rules::validate(const json& document) const {
-	json built;
-	if(lisp::hasProgram(document)) built = lisp::buildDocument(document);
-	const json& doc = built.is_null() ? document : built; // what a program builds is judged like any document
+	const std::shared_ptr<const json> built = lisp::hasProgram(document) ? builtTree(document) : nullptr;
+	const json& doc = built ? *built : document; // what a program builds is judged like any document
 	sections_->validate(doc);
 	checkDocumentSize(doc);
 	json composed;

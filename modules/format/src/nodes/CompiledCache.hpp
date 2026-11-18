@@ -6,6 +6,9 @@
 
 #include "Record.hpp"
 
+#include "affresco/core/VersionControl.hpp"
+
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -20,7 +23,8 @@ struct Engine;
 /// built from it; a node with a dynamic style is compiled once per style it chooses.
 ///
 /// Invariants: it never changes the document; its cache belongs to one version of the document (forgetVersion()
-/// drops it, and it drops itself when the document is another object). Callers: the builder (resolve(), styled()),
+/// drops it, carryOver() moves to the next version what that version didn't change, and it drops itself when the
+/// document is another object). Callers: the builder (resolve(), styled()),
 /// the children lists (compiled(), compiledOverlay()), the reconciler (compiled()) and the properties subsystem
 /// (withStyles() for state blocks). Main thread only.
 class CompiledCache {
@@ -90,6 +94,19 @@ public:
 	[[nodiscard]] CompiledRef styled(const CompiledRef& node, const json& style, const std::string& at) const;
 	/// @brief Drops what was compiled: the document changed.
 	void forgetVersion() const noexcept;
+	/// @brief Moves to a new version of the document what was compiled for nodes it didn't change, by their new
+	/// places, and drops the rest. A node is kept when it is the same, or differs only in its "children" and holds
+	/// none of its own (they are then found where the new version has them); the nodes compiled inside a kept
+	/// component's instance are kept with it. Nodes are matched by value, from the top: a list keeps its common start
+	/// and end, so a child added or removed doesn't drop its siblings. Everything is dropped when the change touches
+	/// what every node is compiled with ("styles", "components", "templates") or may have changed anything.
+	/// @param before The document the cache was filled from; valid during the call.
+	/// @param after The new version (what the engine's document() now returns).
+	/// @param change What the version control says changed.
+	void carryOver(const json& before, const json& after, const DocumentChange& change) const;
+	/// @brief How many compiled nodes the last carryOver() kept, for the tests.
+	/// @return The count.
+	[[nodiscard]] std::size_t carried() const noexcept { return carried_; }
 
 private:
 	/// @brief A node compiled for each style a dynamic "style" chose.
@@ -106,9 +123,11 @@ private:
 	/// @brief The cache, dropped first if it belongs to another version of the document.
 	/// @return It.
 	Cache& cache() const;
+	struct Carrier; // carryOver()'s walk (CompiledCache.cpp)
 
-	Engine& engine_;      ///< The runtime.
-	mutable Cache cache_; ///< What is compiled for the current version (filled as updates need it).
+	Engine& engine_;                  ///< The runtime.
+	mutable Cache cache_;             ///< What is compiled for the current version (filled as updates need it).
+	mutable std::size_t carried_ = 0; ///< See carried().
 };
 
 } // namespace affresco::format

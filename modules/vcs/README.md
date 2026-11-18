@@ -167,7 +167,12 @@ borrowed too; `setObserver(nullptr)` before the observer goes.
 
 - **Any document format:** implement `DocumentRules` (`core`) and give it to the `Repository`.
 - **Observers:** `setObserver` (one `VersionObserver`: the renderer), and the signals `onCommit`, `onDecision` and
-  `onReviewChanged` for everyone else.
+  `onReviewChanged` for everyone else. A commit tells the observer what it changed (`documentChangedWith` and a
+  `DocumentChange`): the places of the patch, split into the state's and the document's, or for a program the
+  places where the trees built before and after differ. It also passes the document the observer saw before, valid
+  during the call. A restore, a revert, a preview and its end, an import, an upgrade and the rollback after a refused
+  version say everything changed. The change stays inside the process: it is never sent to or from a peer, and
+  every check runs on the whole revision whatever it says.
 
 ## Files
 
