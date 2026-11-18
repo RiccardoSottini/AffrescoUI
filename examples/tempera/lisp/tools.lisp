@@ -81,7 +81,7 @@
                             :icon it.icon
                             :enabled (some? it.id)
                             :checked (= it.id state.doc.tool)
-                            :keyLabel (slice (or-else it.key "") (max 0 (- (count (or-else it.key "")) 1)))
+                            :keyLabel (slice (or-else it.key "") (->> (or-else it.key "") count dec (max 0)))
                             :run "setTool"
                             :with {:args {:tool it.id}}})
                          g)}))
