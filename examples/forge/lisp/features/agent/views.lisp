@@ -31,7 +31,7 @@
        :width "100%"
        :height 22
        :padding 8)
-     (label#agent-review-empty :when ~(= (count proposals) 0)
+     (label#agent-review-empty :when ~(empty? proposals)
        :wrap true
        :width "100%"
        :height 44
@@ -42,7 +42,7 @@
      (node :use forgeAgentReview :when ~(some? computed.agentCurrent))))
 
 (defview agent-empty "Before the first request: what the pane does, or how an agent joins." []
-  `(column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
+  `(column#agent-empty :when ~(empty? state.agent.log) :width "100%" :grow 2 :alignItems center :justify center :gap 8
      (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
      (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
      (label#agent-empty-text :wrap true
@@ -76,7 +76,7 @@
               :text ~(t "agentView.ask")
               :icon send
               :action agentAsk
-              :on ~(not (empty? (trim state.agent.draft)))})))
+              :on ~(not (empty? (str/trim state.agent.draft)))})))
 
 (defview agent-draft "The request, typed: Enter sends it." []
   `(textarea#agent-draft :width "100%"
@@ -222,7 +222,7 @@
        :padding 8
        :textColor @color.text
        :text ~state.features.error)
-     (label#features-empty :when ~(and (= (count state.features.catalog) 0) (empty? state.features.error))
+     (label#features-empty :when ~(and (empty? state.features.catalog) (empty? state.features.error))
        :wrap true
        :width "100%"
        :padding 8

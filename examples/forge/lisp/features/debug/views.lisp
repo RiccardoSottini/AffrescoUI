@@ -74,7 +74,7 @@
      :onOpen debugStart))
 
 (defview debug-empty "No configuration: how to add one, and how many were left out." []
-  `(column#debug-empty :when ~(and (= (count state.debug.configurations) 0)
+  `(column#debug-empty :when ~(and (empty? state.debug.configurations)
                                    (empty? state.debug.error)
                                    (= state.debug.status "inactive"))
      :width "100%"
@@ -109,9 +109,10 @@
      :padding 8
      :icon bug
      :textColor ~(if (= state.debug.status "stopped") "#e5c07b" "@color.muted")
-     :text ~(cond (= state.debug.status "stopped") (t "debug-status.paused" {:reason state.debug.reason})
-                  (= state.debug.status "starting") (t "debug-status.starting")
-                  :else (t "debug-status.running"))))
+     :text ~(case state.debug.status
+              :stopped (t "debug-status.paused" {:reason state.debug.reason})
+              :starting (t "debug-status.starting")
+              (t "debug-status.running"))))
 
 (defview debug-variables-head "The variables' title, and Set Value." []
   `(row#debug-variables-head :width "100%" :height 22 :alignItems center
@@ -503,10 +504,10 @@
      :font code
      :rowHeight 18
      :items ~(map-indexed (fn [index it]
-                            {:id (text (+ index 1))
-                             :label (+ (pad (text (+ index 1)) 6)
+                            {:id (text (inc index))
+                             :label (+ (pad (text (inc index)) 6)
                                        (if (and (= state.debug.current.path doc.id)
-                                                (= state.debug.current.line (+ index 1)))
+                                                (= state.debug.current.line (inc index)))
                                            " → "
                                            "   ")
                                        it)})
