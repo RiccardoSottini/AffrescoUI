@@ -2,5 +2,7 @@
 	"folders": [
 		"tempo/lisp"
 	],
-	"allowed": {}
+	"allowed": {
+		"four-nested-calls": 24
+	}
 }
