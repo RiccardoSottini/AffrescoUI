@@ -170,7 +170,9 @@
               (map (fn [it]
                      {:kind "gridLabel"
                       :id (str "g" it)
-                      :text (if (< it 12) (str (* 30 it) "°") (str (->> (mod it 2) (* 30) (+ 30) round) "°"))
+                      :text (if (< it 12)
+                              (str (* 30 it) "°")
+                              (str (->> (mod it 2) (* 30) (+ 30) round) "°"))
                       :e (if (< it 12)
                            (sin (radians (* 30 it)))
                            (* (->> (/ (- it 12) 2) floor (* 90) radians sin)
