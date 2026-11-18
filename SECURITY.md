@@ -624,6 +624,23 @@ What holds for whatever text it is given:
   interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
   and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
 
+### Updates that build only what changed
+
+An update builds again only what read a place that changed (`Tracker`, `PlaceIndex`), and a program's change may be made in
+the running interpreter instead of a new one. Neither is a way around a rule:
+
+- **What is judged is what is built.** A revision's rules and the checker run on the tree the update builds, in part or in
+  full alike, and a feature's checks on every step it runs; where tracking can't tell what a change reaches, the update is a
+  full one. Verify mode (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and
+  the property test and the `updates` fuzz target compare the two after random sequences of changes.
+- **A change made in place is bounded as a load is.** At most 64 changes, and together at most what one load may allocate
+  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, or touches
+  a name the language or the host defines, is never made in place.
+- **What is counted holds no value.** The update counters (`UpdateStatistics`) are numbers of panels and places; a
+  difference verify mode logs in a secret text field names its place, never what the field holds.
+- **What follows a panel follows its change.** The keybindings list is built again when any panel's keys change, even to
+  as many keys, so a key a revision rebinds is never shown or run with its former action.
+
 ### Commands run by peers
 
 A peer may run one of the app's commands (`Runtime::runCommandAs()`, `format/src/commands/CommandRuns.*`;
