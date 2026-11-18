@@ -43,15 +43,15 @@
 
 (defcomputed magText "The faintest stars shown, as the view's readout says it."
   (t "view.magnitude"
-     {:mag (fixed state.limitMag 1) :n (text (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars)))}))
+     {:mag (fixed state.limitMag 1) :n (text (count (filter #(<= (:mag %) state.limitMag) computed.stars)))}))
 
 ;;; The bodies and the stars on the view
 
 (defcomputed stars "The background stars, each with its direction."
   (map-indexed (fn [index it]
-                 {:u (- (* (mod (abs (* (sin (* index 12.9898)) 43758.5453)) 1) 2) 1)
-                  :t (* (mod (abs (* (sin (* index 78.233)) 12543.917)) 1) 2 (pi))
-                  :mag (+ 0.5 (* 6 (sqrt (mod (abs (* (sin (* index 39.425)) 24634.633)) 1))))})
+                 {:u (-> index (* 12.9898) sin (* 43758.5453) abs (mod 1) (* 2) dec)
+                  :t (-> index (* 78.233) sin (* 12543.917) abs (mod 1) (* 2 (pi)))
+                  :mag (->> (-> index (* 39.425) sin (* 24634.633) abs (mod 1)) sqrt (* 6) (+ 0.5))})
                (range 400)))
 
 (defcomputed starVectors "The background stars' directions as unit vectors."
@@ -72,7 +72,7 @@
        computed.placed))
 
 (defcomputed projected "Each body on the view, farthest first, with its size on screen."
-  (sort-by (fn [it] it.depth)
+  (sort-by :depth
            >
            (map (fn [it]
                   (merge it
@@ -112,9 +112,9 @@
                              0.000001))}))
        computed.projected))
 
-(defcomputed sight "The selected body, on the view." (find (fn [it] (= it.id state.selected)) computed.projected))
+(defcomputed sight "The selected body, on the view." (find #(= (:id %) state.selected) computed.projected))
 
-(defcomputed sun "The Sun, in the camera's frame." (find (fn [it] (= it.parent "")) computed.turned))
+(defcomputed sun "The Sun, in the camera's frame." (find #(= (:parent %) "") computed.turned))
 
 (defcomputed range "How far the selected body is from the camera."
   (if computed.sight
@@ -148,7 +148,7 @@
         :else (str (fixed (* computed.apparent 3600) 1) "″")))
 
 (defcomputed marks "The marked bodies in front of the camera."
-  (filter (fn [it] (and (>= (indexOf state.markers it.id) 0) (> it.depth 0.3))) computed.projected))
+  (filter #(and (>= (indexOf state.markers (:id %)) 0) (> (:depth %) 0.3)) computed.projected))
 
 (defcomputed marked "The marks' corners, drawn around the marked bodies."
   (map-indexed (fn [index it]
@@ -175,7 +175,7 @@
 
 (defcomputed orbitRings "Each orbit: its centre and its radius."
   (map (fn [it] {:id it.id :cx it.cx :cz it.cz :radius it.radius})
-       (filter (fn [it] (not= it.parent "")) computed.placed)))
+       (filter #(not= (:parent %) "") computed.placed)))
 
 (defcomputed orbitSegments "The orbits as the scene's lines, while they are shown."
   (if state.showOrbits
@@ -211,7 +211,7 @@
                             (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)]
                     :mesh "cube"
                     :material "star"})
-                 (filter (fn [it] (<= it.mag state.limitMag)) computed.starVectors))
+                 (filter #(<= (:mag %) state.limitMag) computed.starVectors))
     []))
 
 (defcomputed bodyNodes "The bodies as the scene's spheres."
@@ -289,7 +289,7 @@
      ~(repeat [t computed.marked :key t.id]
         `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
      ~(repeat [b computed.projected :key b.id] (body-label b))
-     ~(repeat [b (filter (fn [it] (= (or-else it.look "") "")) state.bodies) :key b.id] (thumbnail b))
+     ~(repeat [b (filter #(= (or-else (:look %) "") "") state.bodies) :key b.id] (thumbnail b))
      ~(info-card)
      ~(clock-card)
      ~(browser)
