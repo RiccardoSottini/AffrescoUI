@@ -178,8 +178,7 @@
           (focus "#nameField")
           (set "state.edit.open" true))
       ; style: keep, question, description and unit are optional fields: the host's trim gives "" for nil
-      (storeHabit {:name (str/trim name) :question (trim question) :color color
-                   :description (trim description) :unit (trim unit)
+      (storeHabit {:name (str/trim name) :question (trim question) :color color :description (trim description) :unit (trim unit)
                    :target (or (number target) 0) :targetType targetType
                    :reminder (when (:reminderOn edit) {:time (:time edit) :days (:days edit)})
                    :frequency (frequencyOf edit)}))))
