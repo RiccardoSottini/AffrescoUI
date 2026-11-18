@@ -22,7 +22,8 @@
          :perSecond (if (< (abs state.speed) 0.0005)
                       ""
                       (t "time.perSecond"
-                         {:days (fixed (* (abs state.speed) 20) (if (< (abs state.speed) 0.05) 2 0))}))})))
+                         {:days (fixed (* (abs state.speed) 20)
+                                       (if (< (abs state.speed) 0.05) 2 0))}))})))
 
 (defcomputed rate "How fast time runs, said in words: paused, or the speed, reversed or not."
   (cond (not state.playing) (t "time.paused")
@@ -61,13 +62,14 @@
                    :moonName it.m.name
                    :host it.m.host.id
                    :hostName it.m.host.name
-                   :hours (/ (* (if (not= (mod it.n 2) 0) 0.0186 0.0405) 24) (* 2 (pi) (abs it.m.d)))
+                   :hours (/ (* (if (odd? it.n) 0.0186 0.0405) 24) (* 2 (pi) (abs it.m.d)))
                    :label (if (not= (mod it.n 2) 0)
                             (str it.m.name " eclipses the Sun")
                             (str it.m.name " in the shadow of " it.m.host.name))})
                 (filter (fn [it]
                           (or (nil? it.m.eclipseYear)
                               (< (* (abs (- (- it.time it.m.nodeDay)
+                                            ; style: keep, threading would move the operands: another binding's text
                                             (/ (* (round (/ (* (- it.time it.m.nodeDay) 2) it.m.eclipseYear))
                                                   it.m.eclipseYear)
                                                2)))
@@ -108,6 +110,7 @@
   (map (fn [it]
          {:id it.id
           :label (t (if it.solar "eclipse.solarRow" "eclipse.lunarRow")
+                    ; style: keep, threading would move the operands: another binding's text
                     {:date (formatDate (+ (dateMs "2030-01-01") (* (- it.time (/ it.hours 48)) 86400000))
                                        "yyyy-MM-dd HH:mm"
                                        "utc")
