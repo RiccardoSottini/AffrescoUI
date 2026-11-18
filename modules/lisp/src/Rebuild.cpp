@@ -715,7 +715,7 @@ private:
 } // namespace
 
 bool Program::redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
-                       const Limits& limits) const {
+                       const Limits& limits, std::size_t* bytesLeft) const {
 	Machine& machine = interpreter.machine();
 	if(!namespaces_.empty() || !before.namespaces_.empty() || !machine.namespaces().programless() ||
 	   machine.definitions().size() != before.entries_.size())
@@ -729,6 +729,7 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 	const RestoredBudget restore(machine, limits.budget);
 	return leavingAsLispError(machine, [&] {
 		defineAgain(machine, entries_, again, change->removed);
+		if(bytesLeft) *bytesLeft = machine.budget().bytes;
 		++statistics.redefined;
 		statistics.definedAgain += static_cast<std::size_t>(std::ranges::count(again, true));
 		return true;

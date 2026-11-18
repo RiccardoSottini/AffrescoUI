@@ -146,6 +146,7 @@ void Programs::loadSection(const json& section) {
 	loaded_ = section;
 	program_ = std::move(program);
 	redefinitions_ = 0;
+	redefinedBytesLeft_ = lisp::maxBuildBytes;
 }
 
 std::shared_ptr<lisp::Interpreter> Programs::loadedInterpreter(const lisp::Program& program) {
@@ -179,15 +180,16 @@ bool Programs::redefine(const json& section, const json& authors) {
 	if(!built->extensions.empty() || !built->record) return false;
 	lisp::Program program = lisp::programOf(section, authors);
 	lisp::Limits limits;
-	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
+	limits.budget = {lisp::maxBuildOperations, redefinedBytesLeft_}; // what they keep together: one load's
 	bool done = false;
 	live_->setPure(true);
 	try {
-		done = program.redefine(*live_, *program_, *built->record, limits);
+		done = program.redefine(*live_, *program_, *built->record, limits, &redefinedBytesLeft_);
 	} catch(const std::exception&) { // half changed: the earlier version again, afresh, and load() says what is wrong
 		live_ = loadedInterpreter(*program_);
 		extensions_ = std::move(extensionsNext_);
 		redefinitions_ = 0;
+		redefinedBytesLeft_ = lisp::maxBuildBytes;
 		return false;
 	}
 	live_->setPure(false);

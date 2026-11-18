@@ -553,3 +553,21 @@ TEST_CASE("lisp rebuild: a macro removed isn't changed in place: what used it is
 	if(!patched.is_null()) CHECK(patched == full);
 	CHECK(patched.is_null()); // Program.hpp: a macro gone refuses the change in place
 }
+
+TEST_CASE("lisp rebuild: what changes in place keeps in the heap is bounded, as one load's, before a new interpreter") {
+	lispapp::App app(R"lisp(
+(def big "" (vec (range 20000)))
+(defn other "" [] 1)
+(defscreen main (panel#root))
+)lisp");
+	// Each version keeps its value in the heap, which only grows: a load may allocate 16 MiB
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	constexpr int revisions = 60; // under the count of changes in place a new interpreter is made after
+	for(int i = 0; i < revisions; ++i)
+		app.write("big", "(def big \"\" (vec (range " + std::to_string(200000 + i) + ")))");
+	const std::size_t inPlace = lisp::rebuildStatistics().redefined - before.redefined;
+	MESSAGE(inPlace << " of " << revisions << " changes made in place");
+	CHECK(inPlace > 0);
+	CHECK(inPlace < revisions);
+	CHECK(app.errors.empty());
+}

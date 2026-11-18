@@ -623,6 +623,7 @@ private:
 	json loaded_;                             ///< The section it was loaded from.
 	std::optional<lisp::Program> program_;    ///< What live_ loaded, its entries' authors with it (redefine()).
 	int redefinitions_ = 0;                   ///< Changes made in place since live_ was made: its heap only grows.
+	std::size_t redefinedBytesLeft_ = 0;      ///< What they may still allocate together, of one load's budget.
 	Frame* frame_ = nullptr;                  ///< What the running function is called from.
 	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
 	/// The size of each structured value the running read viewed in place (viewInPlace()), so that a place read again

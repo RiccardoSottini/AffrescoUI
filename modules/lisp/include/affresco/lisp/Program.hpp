@@ -226,10 +226,12 @@ public:
 	/// @param before The earlier version, as it was loaded.
 	/// @param built The record of this version's build (record()): who uses what.
 	/// @param limits What the change may spend.
+	/// @param bytesLeft If given, gets what is left of the budget's bytes once it is changed: the heap keeps what it
+	/// allocated, so the caller can bound what changes in place keep together.
 	/// @return true if it changed it; false if nothing was done.
 	/// @throws LispError If a definition fails: the interpreter is then half changed, for the caller to throw away.
 	[[nodiscard]] bool redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
-	                            const Limits& limits = {}) const;
+	                            const Limits& limits = {}, std::size_t* bytesLeft = nullptr) const;
 	/// @brief What the last build kept of each definition, for the build of a later version (rebuild()).
 	/// @return It; nullptr before a build.
 	[[nodiscard]] std::shared_ptr<const BuildRecord> record() const noexcept { return record_; }
