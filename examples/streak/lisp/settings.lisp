@@ -68,6 +68,7 @@
        :with {:open state.menus.theme
               :width 220
               :placement below-end
+              ; style: keep, gives a map
               :items ~(map (fn [it]
                              {:title (t (str "theme." it)) :checked (= state.theme it) :run "setTheme" :with {:value it}})
                            ["light" "dark" "system"])})))
@@ -82,11 +83,10 @@
        :with {:open state.menus.firstDay
               :width 220
               :placement below-end
+              ; style: keep, gives a map
               :items ~(map (fn [it]
                              {:title (formatDate (dateMs (addDays "2000-01-02" it)) "EEEE" "utc")
-                              :checked (= state.firstWeekday it)
-                              :run "setFirstDay"
-                              :with {:value it}})
+                              :checked (= state.firstWeekday it) :run "setFirstDay" :with {:value it}})
                            [6 0 1])})))
 
 (defview language-row "The language, in a menu: English, Spanish or French." []
@@ -98,11 +98,9 @@
        :with {:open state.menus.language
               :width 220
               :placement below-end
+              ; style: keep, gives a map
               :items ~(map (fn [it]
-                             {:title (t (str "lang." it))
-                              :checked (= state.locale it)
-                              :run "setLocale"
-                              :with {:value it}})
+                             {:title (t (str "lang." it)) :checked (= state.locale it) :run "setLocale" :with {:value it}})
                            ["en" "es" "fr"])})))
 
 (defview settings-data "The data: export, back up and restore." []

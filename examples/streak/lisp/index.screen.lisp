@@ -31,7 +31,7 @@
        :color @c.divider)
      (node#detailPane :anchors {:right 0 :top 0 :bottom 0}
        :width ~computed.detailWidth
-       :visible ~(or computed.wide (= state.page "detail"))
+       :visible ~(or computed.wide (= state.page :detail))
        :color @c.bg
        ~(detail-cards)
        (label#label-t-no-selection :text ~(t "noSelection")
@@ -51,7 +51,7 @@
              :title ~(if (= state.edit.id "") (t "edit.new") (t "edit.edit"))
              :message ""
              :width 600
-             :height ~(if (= state.edit.kind "measurable") 500 436)
+             :height ~(if (= state.edit.kind :measurable) 500 436)
              :highlight ~computed.accent
              :buttons ~[{:title (t "save") :run "saveHabit"} {:title (t "cancel")}]}
       ~(edit-fields))
