@@ -86,11 +86,11 @@ json menuBarOf(const json& document) {
 
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
     : engine_(engine), baseDirectory_(std::move(baseDirectory)),
-      computedLookup_([this](std::string_view name) { return computed(name); }),
+      computedLookup_([this](std::string_view name) { return engine_.computed.computed(name); }),
       nodeLookup_([this](std::string_view id) { return node(id); }),
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
       variableLookup_([this](std::string_view name) { return variable(name); }),
-      computedValueLookup_([this](std::string_view name) { return &computedValue(name); }),
+      computedValueLookup_([this](std::string_view name) { return &engine_.computed.value(name); }),
       programCall_([this](const std::string& name, std::vector<json> arguments, const Scope& locals, const json& event,
 	                      const std::string& where) {
 	      return engine_.programs.read(name, std::move(arguments), locals, event, where);
@@ -326,43 +326,6 @@ void DocumentContext::spendBytes(const json& value, const std::string& where) co
 json DocumentContext::evaluate(const json& value, const Scope& locals, const json& event,
                                const std::string& where) const {
 	return format::evaluate(value, context(locals, event), where);
-}
-
-json DocumentContext::computed(std::string_view name) const { return computedValue(name); }
-
-const json& DocumentContext::computedValue(std::string_view name) const {
-	const json& document = engine_.versions.document();
-	const std::string key(name);
-	if(!document.contains("computed") || !document["computed"].contains(key))
-		fail("computed", "no computed value '" + key + "'");
-	if(computedVersion_ != stateVersion_ && computing_.empty()) { // only between evaluations: values read stay
-		computedValues_.clear();
-		computedReads_.clear();
-		computedVersion_ = stateVersion_;
-	}
-	if(const auto cached = computedValues_.find(key); cached != computedValues_.end()) {
-		if(reads_) reads_->add(computedReads_[key]); // what reads it reads what it read
-		return cached->second;
-	}
-	if(std::ranges::find(computing_, key) != computing_.end())
-		fail("computed." + key, "computed values refer to each other in a circle");
-	if(computing_.size() >= maxComputedDepth)
-		fail("computed." + key, "computed values read each other too deeply (more than 32 levels)");
-	computing_.push_back(key);
-	json value;
-	ReadSet read;
-	try {
-		const ReadScope scope(*this, &read);
-		const json none = json::object();
-		value = format::evaluate(document["computed"][key], context(*noVariables(), none), "computed." + key);
-	} catch(...) {
-		computing_.pop_back();
-		throw;
-	}
-	computing_.pop_back();
-	if(reads_) reads_->add(read);
-	computedReads_[key] = std::move(read);
-	return computedValues_.insert_or_assign(key, std::move(value)).first->second; // a map: its address stays
 }
 
 json DocumentContext::node(std::string_view id) const {

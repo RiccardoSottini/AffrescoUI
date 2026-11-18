@@ -279,7 +279,7 @@ void Properties::addStateBlock(const Record& record, std::string_view name, json
 	const CompiledProperty* property = record.node->find(name);
 	if(!property) return;
 	const std::string at = concatenate(record.path, ".", name);
-	block = engine_.builder.withStyles(object(CompiledNode::valueOf(*property, record.values), at), at);
+	block = engine_.builder.compiler().withStyles(object(CompiledNode::valueOf(*property, record.values), at), at);
 	for(const auto& [key, value] : block.items()) {
 		if(structural(key) || key == "type") continue;
 		for(const auto& set : record.sets)
