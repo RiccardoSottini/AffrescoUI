@@ -9,7 +9,7 @@
   (t "time.clock"
      {:date (formatDate (+ (dateMs "2030-01-01") (* state.time 86400000)) "yyyy-MM-dd HH:mm:ss" "utc")}))
 
-(defcomputed realTime "Whether time runs at real time." (< (abs (- (* (abs state.speed) 1728000) 1)) 0.01))
+(defcomputed realTime "Whether time runs at real time." (-> state.speed abs (* 1728000) dec abs (< 0.01)))
 
 (defmacro speed-text
   ;; A macro: the text stays an expression, for the rate to say forwards or reversed.
@@ -73,7 +73,7 @@
                                                2)))
                                     2)
                                  it.m.eclipseSeason)))
-                        (map #(merge % {:time (/ (- (/ (:n %) 2) (-> % :m :o)) (-> % :m :d))})
+                        (map #(merge % {:time (-> % :n (/ 2) (- (-> % :m :o)) (/ (-> % :m :d)))})
                              (filter #(<= (:n %) (-> % :m :to))
                                      (map (fn [it]
                                             {:m (get computed.eclipseOrbits (floor (/ it computed.eclipseSpan)))
@@ -112,7 +112,7 @@
                                        "yyyy-MM-dd HH:mm"
                                        "utc")
                      :hours (text (floor it.hours))
-                     :minutes (text (round (* (mod it.hours 1) 60)))
+                     :minutes (-> it.hours (mod 1) (* 60) round text)
                      :host it.hostName
                      :moon it.moonName})
           :icon (if it.solar "sun" "moon")})
