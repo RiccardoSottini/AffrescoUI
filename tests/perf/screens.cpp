@@ -132,16 +132,29 @@ json kanbanWithCards(const std::filesystem::path& directory, int cards) {
 	return document;
 }
 
+json fiftyThousandPanels() {
+	json items = json::array();
+	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
+	json document = json::parse(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
+		"root": { "type": "panel", "children": [{ "type": "column", "children": [
+			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
+				{ "type": "label", "text": "{{item.v}}" }
+			] }
+		] }] }
+	})json");
+	document["state"]["items"] = std::move(items);
+	return document;
+}
+
+std::size_t panelCount(const Panel& panel) {
+	std::size_t count = 1;
+	for(const auto& child : panel.children()) count += panelCount(*child);
+	return count;
+}
+
 namespace {
-
-/// @brief Runs the updates that state changes have queued, as the end of a routed event does, without drawing: a key
-/// release that no panel has the focus for and no shortcut uses.
-/// @param window The window.
-void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
-
-/// @brief Lays the window out, without drawing.
-/// @param window The window.
-void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 
 /// @brief The card counts the Kanban workloads fill the template to, the roadmap item's: the template has 12 cards, so
 /// even the smallest board has two copies.
@@ -166,7 +179,8 @@ std::vector<Workload> loadWorkloads(Context& context) {
 }
 
 /// @brief "build/<template>": building each template into a window, its document read and its fonts loaded
-/// beforehand. Each run keeps its screen, so `retainedBytes` is the memory of the panels built and what they keep.
+/// beforehand. Each run keeps its screen, so `retainedBytes` is the memory of the panels built and what they keep;
+/// "panels" is how many there are, so the two give the bytes per panel.
 /// @param context The context.
 /// @return One workload per template.
 std::vector<Workload> buildWorkloads(Context& context) {
@@ -183,6 +197,7 @@ std::vector<Workload> buildWorkloads(Context& context) {
 			*screen = &context.create(*text, folder);
 		};
 		workload.step = [window, screen] { (*screen)->build(**window); };
+		workload.report = [window](json& result) { result["panels"] = panelCount((*window)->root()); };
 		workloads.push_back(std::move(workload));
 	}
 	return workloads;
@@ -197,25 +212,6 @@ void renameBoard(const LoadedScreen& loaded, bool& renamed) {
 	loaded.screen.runAction("renameBoard", loaded.window.root(), event);
 	runQueuedUpdates(loaded.window);
 	layOut(loaded.window);
-}
-
-/// @brief A screen of 50,000 panels: a keyed list of 25,000 rows, each a row and a label showing its item's value,
-/// with a "touch" action that changes one item's value.
-/// @return The document.
-json fiftyThousandPanels() {
-	json items = json::array();
-	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
-	json document = json::parse(R"json({
-		"format": "affrescoui-screen", "version": 2,
-		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
-		"root": { "type": "panel", "children": [{ "type": "column", "children": [
-			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
-				{ "type": "label", "text": "{{item.v}}" }
-			] }
-		] }] }
-	})json");
-	document["state"]["items"] = std::move(items);
-	return document;
 }
 
 /// @brief "update/panels-50000": one changed value on a screen of 50,000 panels (fiftyThousandPanels()), its update
@@ -347,15 +343,6 @@ void resize(Window& window, bool& smaller) {
 	layOut(window);
 }
 
-/// @brief How many panels a tree has.
-/// @param panel The tree's root.
-/// @return The panels, the root included.
-std::size_t panelCount(const Panel& panel) {
-	std::size_t count = 1;
-	for(const auto& child : panel.children()) count += panelCount(*child);
-	return count;
-}
-
 /// @brief The cards that fill the Kanban template to at least 5,000 panels (checked when the workload is set up).
 constexpr int cardsForFiveThousandPanels = 770;
 
@@ -450,7 +437,8 @@ std::vector<Group> screenGroups() {
 	return {{"load", loadWorkloads},         {"build", buildWorkloads},   {"update", updateWorkloads},
 	        {"revision", revisionWorkloads}, {"layout", layoutWorkloads}, {"frame", frameWorkloads},
 	        {"editor", editorWorkloads},     {"forge", forgeWorkloads},   {"lisp", lispWorkloads},
-	        {"budgets", budgetWorkloads},   {"command", commandWorkloads}};
+	        {"budgets", budgetWorkloads},   {"command", commandWorkloads},
+	        {"update", trackingUpdateWorkloads}, {"revision", trackingRevisionWorkloads}};
 }
 
 } // namespace affresco::bench

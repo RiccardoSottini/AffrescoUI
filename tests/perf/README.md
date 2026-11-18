@@ -19,10 +19,15 @@ python3 tests/perf/run.py                        # every workload, wall clock: a
 python3 tests/perf/run.py --only update,frame    # the workloads whose names start with these
 python3 tests/perf/run.py --skip load --runs 3   # leave some out; fewer runs
 python3 tests/perf/run.py --callgrind --skip frame   # instruction counts (Linux, valgrind installed before the build)
+python3 tests/perf/run.py --callgrind --only update --annotate update/400 --out out/perf.jsonl   # and where they go
 
 pip install --require-hashes -r tests/perf/requirements.txt   # tiktoken, for the token counts only
 python3 tests/perf/tokens.py --table
 ```
+
+`--annotate a,b` keeps those workloads' callgrind output beside `--out` (or in the current folder), with
+`callgrind_annotate --inclusive=yes` of each in `<name>.annotate.txt`: the instructions per function, callees included.
+[PROFILE.md](PROFILE.md) is a profile of the missed budgets made this way and with a sampler.
 
 `run.py` only passes its options to `./build/affrescoui_bench`, which you can also run yourself. The workloads that need
 a window open hidden ones, so a display is needed, like the rendering check (`xvfb-run` on a Linux server).
@@ -73,9 +78,19 @@ as the OpenGL driver's, aren't counted.
 | `history/undoPlan/conflicts/10000` | The plan of an undo of revision 1 on the 10,000-commit history, which set 8 actions that later commits spread over the history set again: 8 conflicts, each traced to the commit that built on it |
 | `history/load/10000` | Opening a folder holding a history of 10,000 commits (written once, unmeasured, as one change set) |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
-| `build/<template>` | Building a template into a window (`Screen::build`, with its checker warnings). The window is opened and the screen read, its fonts loaded, before the run. `retainedBytes` is the memory of the panels built and what the runtime keeps for them: divide it by the screen's panels for the memory per panel |
+| `build/<template>` | Building a template into a window (`Screen::build`, with its checker warnings). The window is opened and the screen read, its fonts loaded, before the run. `retainedBytes` is the memory of the panels built and what the runtime keeps for them: divide it by `panels`, the panels built, for the memory per panel |
 | `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own 12 cards into its four columns in turn, so even `update/14` has two copies |
 | `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
+| `update/read/<cards>`, `update/record/<cards>` | On the same board, one label that only a probe overlay reads changes (`state.benchRead`), or one card's record is written (an `update` of `issues`). `panels` is the screen's panel count |
+| `update/animation/400` | On the 400-card board, a 16 px panel's `rotate` moves on by 6 degrees: one frame of a turn |
+| `update/panels-50000`, `update/panels-50000-without-layout` | One changed value on a screen of 50,000 panels in keyed rows, with its layout or without it |
+| `update/app-50000`, `update/app-50000-without-layout` | One row's value changed on 50,000 panels shaped like an app: 100 sections of 10 component groups of 25 keyed rows, 400 state places read by labels, a computed value per section |
+| `update/list-<edit>-25000`, `…-without-layout` | On the 25,000-row keyed list of `update/panels-50000`: an item appended, inserted at the front, removed from the front, or the list reversed. Between runs the edit is taken back, unmeasured. Some of these take seconds, so they run 5 times |
+| `update/computed-unrelated/400` | A state key that nothing reads changes, beside a computed list of 400 items that a watch names |
+| `update/parameter/400` | One of 400 uses of a component gets a new parameter value |
+| `update/lisp-row/25000` | One item of a 25,000-row list written as a program changes: each row's label is a function of its item |
+| `revision/state-only/400` | A revision that sets one state key on the 400-card board: everything a revision does, with no change to the document |
+| `revision/one-label/<cards>` | A revision that renames the logo (`#logo/text`) on the board with 14, 100 or 400 cards. It uses the JSON twin (`examples/flow/json`): in the program the logo is built, so a pick can't change it |
 | `layout/400` | Laying out the largest screen, the Kanban template with 400 cards, after a resize |
 | `layout/5000` | The same with 770 cards: 5,066 panels, more than the 5,000 that roadmap item 4.5 sets 4 ms of layout for |
 | `layout/5000/change` | On that screen, one card's title changes, then the layout: only what the change moves is laid out again |
@@ -172,6 +187,8 @@ The `budgets` group measures what no other workload does:
 
 - `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
   of every thread in that second.
+- `budgets/idle-<template>`: the same for each template in `examples/templates.json`. Run them alone
+  (`--only budgets/idle`): a window left open by an earlier workload runs in the same event loop.
 - `budgets/open-50mb`: a 50 MiB file read into the library's text editor.
 - `budgets/forge-cold-start`: Forge from its document to its first frame.
 - `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab
