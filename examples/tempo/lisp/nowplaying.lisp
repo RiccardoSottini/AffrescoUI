@@ -4,8 +4,8 @@
 ;;; The song playing
 
 (defcomputed fade "How loud the song playing is through the crossfade: 1, falling to 0 over its last seconds."
-  (if (and (> settings.playback.crossfade 0) (> (count state.queue) 0))
-      (clamp (/ (- computed.duration state.elapsed) settings.playback.crossfade) 0 1)
+  (if (and (pos? settings.playback.crossfade) (pos? (count state.queue)))
+      (-> computed.duration (- state.elapsed) (/ settings.playback.crossfade) (clamp 0 1))
       1))
 
 (defcomputed crossfading "Whether the song playing is fading into the next."
@@ -15,7 +15,7 @@
   (or-else computed.queueSongs.0.title ""))
 
 (defcomputed lyricLine "The line of the lyrics sung now: one every 12 seconds, from a line the song gives."
-  (mod (+ (floor (/ state.elapsed 12)) state.playingTrack) 10))
+  (-> state.elapsed (/ 12) floor (+ state.playingTrack) (mod 10)))
 
 (defcomputed lyricWindow "Five lines of the lyrics round the one sung now, the third the current one."
   (map-indexed (fn [index it]
@@ -30,19 +30,21 @@
                  (clamp (+ 0.04
                            (* (or-else (get computed.spectrum index) 0)
                               computed.fade
-                              (if state.eqOn (* (curve state.eq (/ index 31)) 2) 1)))
+                              (if state.eqOn (->> (/ index 31) (curve state.eq) (* 2)) 1)))
                         0.04
                         1))
                (range 32)))
 
 (defcomputed bars "The bars, as a path."
   (join " "
-        (map-indexed (fn [index it] (str "M " (+ (* index 10) 2) " " (- 84 (* it 80)) " h 6 V 84 h -6 Z"))
+        (map-indexed (fn [index it]
+                       (str "M " (+ (* index 10) 2) " " (- 84 (* it 80)) " h 6 V 84 h -6 Z"))
                      computed.barHeights)))
 
 (defcomputed barReflections "The bars' reflections, as a path."
   (join " "
-        (map-indexed (fn [index it] (str "M " (+ (* index 10) 2) " 86 h 6 V " (+ 86 (* it 28)) " h -6 Z"))
+        (map-indexed (fn [index it]
+                       (str "M " (+ (* index 10) 2) " 86 h 6 V " (+ 86 (* it 28)) " h -6 Z"))
                      computed.barHeights)))
 
 ;;; Now playing
@@ -191,14 +193,16 @@
 (defmacro gain [band]
   ;; A macro, not a function: what it writes stays an expression.
   "A band's gain in decibels, from -12 to 12, as the curve gives it."
-  `(round (* (- (curve state.eq (:at ~band)) 0.5) 24)))
+  `(-> (curve state.eq (:at ~band)) (- 0.5) (* 24) round))
 
 (defview band-gain "A band of the equaliser and its gain." [band]
   `(label#band :font small
      :align center
      :textColor ~(if state.eqOn "@text" "@muted")
      :height 20
-     :text ~(t "sound.band" {:label band.label :gain (str (if (> (gain band) 0) "+" "") (gain band))})))
+     :text ~(let [db (gain band)]
+              (t "sound.band" {:label band.label :gain (str (if (pos? db) "+" "") db)}))))
+
 
 (defview crossfade "The crossfade's caption, slider and seconds: three nodes." []
   [`(node#crossfadeCaption :style caption :text ~(t "sound.crossfade") :anchors {:left 32 :top 364})
