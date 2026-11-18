@@ -7,6 +7,7 @@
 ;;; to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light
 ;;; and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.
 
+; style: keep, an ns form is kept as a program entry of its own, which the tree check counts as a definition added
 (include "locales/en.lisp"
          "locales/es.lisp"
          "locales/fr.lisp"

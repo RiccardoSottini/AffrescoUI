@@ -91,7 +91,7 @@
        :width 24
        :height 24
        :radius 999
-       :color ~(or-else (:color (find (fn [it] (= it.who entry.who)) state.members)) "@color.muted")
+       :color ~(or-else (:color (find #(= (:who %) entry.who) state.members)) "@color.muted")
        :textColor "#ffffff")
      (label#activityText :font small
        :textColor @color.text
@@ -99,7 +99,7 @@
        :anchors {:left 32 :right 0 :top 0 :bottom 0}
        :align {:horizontal start :vertical center}
        :text ~(t (str "activity." entry.key)
-                 {:who (or-else (:name (find (fn [it] (= it.who entry.who)) state.members)) entry.who)
+                 {:who (or-else (:name (find #(= (:who %) entry.who) state.members)) entry.who)
                   :title entry.title
                   :column (or-else entry.column "")}))))
 
@@ -152,7 +152,7 @@
                      ~member.name)
      (node#laneCount :style caption
        :anchors {:left "#laneName.right + 10" :top 15}
-       :text ~(t "lane.cards" {:n (count (filter (fn [it] (= it.who member.who)) computed.allCards))}))
+       :text ~(t "lane.cards" {:n (count (filter #(= (:who %) member.who) computed.allCards))}))
      ~(lane-columns member)))
 
 (defview lane-columns "A swimlane's columns, side by side." [member]

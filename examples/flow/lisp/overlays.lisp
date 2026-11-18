@@ -101,7 +101,7 @@
      ~(composer-box)))
 
 (defview selection-bar "The bar at the bottom while cards are marked: their count and what to do with them." []
-  `(node#bulkBar :when ~(and (= state.page "issues") (> (count state.marked) 0))
+  `(node#bulkBar :when ~(and (= state.page :issues) (pos? (count state.marked)))
      :x ~(+ 228 (round (/ (- (- window.width 236) 340) 2)))
      :anchors {:bottom 56}
      :width 340

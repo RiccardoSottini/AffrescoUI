@@ -11,7 +11,7 @@
           :height ~(+ 36
                       (if (contains state.collapsedGroups c)
                           0
-                          (* 36 (count (filter (fn [it] (contains computed.visibleRefs it.ref)) column.cards)))))
+                          (* 36 (count (filter #(contains computed.visibleRefs (:ref %)) column.cards)))))
           :color transparent
           :role group
           :label ~column.name
@@ -42,7 +42,7 @@
      :label ~(t "list.collapse" {:name column.name})
      :onClick {:set state.collapsedGroups
                :to ~(if (contains state.collapsedGroups c)
-                        (filter (fn [it] (not= it c)) state.collapsedGroups)
+                        (filter #(not= % c) state.collapsedGroups)
                         (concat state.collapsedGroups [c]))}))
 
 (defview list-header "A group's header in the list: its column's name and count." [column c]
@@ -102,7 +102,7 @@
      :label ~(t "card.label"
                 {:title card.title
                  :tag (t (str "tag." card.tag))
-                 :who (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)
+                 :who (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)
                  :column column.name})
      :onFocus ~(handler selectCard c i)
      :keys {:enter editCard :space togglePeek}
@@ -169,9 +169,9 @@
      :height 22
      :radius 999
      :anchors {:right 20 :top 7}
-     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) card.who) state.members)) "@color.muted")
      :textColor "#ffffff"
-     :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
+     :tooltip ~(or-else (:name (find #(= (:who %) card.who) state.members)) card.who)))
 
 (defview row-tag "A list row's label." []
   `(label#rowTag :when ~(not (contains state.hidden "label"))

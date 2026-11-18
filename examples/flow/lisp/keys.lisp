@@ -5,7 +5,7 @@
 
 ;;; Keys
 
-(defkey "c" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do newCardCommand})
+(defkey "c" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do newCardCommand})
 
 (defkey "mod+n" newCardCommand)
 
@@ -16,27 +16,27 @@
 (defkey "mod+k" commandPalette)
 
 (defkey "f"
-  {:when ~(and (not context.textInputFocus) (= state.page "issues"))
+  {:when ~(and (not context.textInputFocus) (= state.page :issues))
    :do [{:set state.filterQuery :to ""}
         {:set state.filterProp :to ""}
         {:toggle state.filterOpen}
         {:focus "#filterField"}]})
 
 (defkey "j"
-  [{:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do nextNotification}
-   {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do selectNext}])
+  [{:when ~(and (not context.textInputFocus) (= state.page :inbox)) :do nextNotification}
+   {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do selectNext}])
 
 (defkey "k"
-  [{:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do previousNotification}
-   {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do selectPrev}])
+  [{:when ~(and (not context.textInputFocus) (= state.page :inbox)) :do previousNotification}
+   {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do selectPrev}])
 
-(defkey "s" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do changeStatus})
+(defkey "s" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do changeStatus})
 
-(defkey "p" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do changePriority})
+(defkey "p" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do changePriority})
 
-(defkey "a" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do changeAssignee})
+(defkey "a" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do changeAssignee})
 
-(defkey "i" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do assignToMe})
+(defkey "i" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do assignToMe})
 
 (defkey "slash" {:when ~(not context.textInputFocus) :do focusSearch})
 
@@ -51,7 +51,7 @@
 (defkey "mod+enter" openIssue)
 
 (defkey "escape"
-  [{:when ~state.issueOpen :do closeIssue} {:when ~(> (count state.marked) 0) :do clearMarks} {:do clearFilters}])
+  [{:when ~state.issueOpen :do closeIssue} {:when ~(pos? (count state.marked)) :do clearMarks} {:do clearFilters}])
 
 ;;; Menus
 
