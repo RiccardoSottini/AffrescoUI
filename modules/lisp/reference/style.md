@@ -175,24 +175,46 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
 
 ## `ns`
 
-**Not yet (Flow, the first rewrite):** an `ns` form is kept in the program as an entry of its own, `ns`, beside the
-file's definitions, so `lisp_tree.py --compare` counts it as a definition added ("anything else", exit 1), in a code
-file and in the entry alike. Until the tree check reads `ns` as a label, an app keeps its `(include ...)`, marked
-`; style: keep, ...`, and its files get no label. What follows is the form once it does.
-
-Every code file gets a label, `(ns <app>.<file>)`, as its first form, after its `;;;` header: `(ns flow.computed)` for
-`computed.lisp`, `(ns forge.features.editor.editor)` for `features/editor/editor.lisp` (`namespaces.md`, "Which file a
-name requires"). The entry's `(:require ...)` replaces its `(include ...)` forms and lists the app's files in the order
-the include had: code files by their dotted name, data files and shared files by their path as a string.
+Every code file gets a label, `(ns <app>.<file>)`, as its first form, after its `;;;` header and a blank line:
+`(ns flow.computed)` for `computed.lisp`, `(ns forge.features.editor.editor)` for `features/editor/editor.lisp`
+(`namespaces.md`, "Which file a name requires"). The entry's `(ns <app>.index (:require ...))` replaces its
+`(include ...)` and lists the same files in the same order: code files by their dotted name, data files and shared
+files by their path as a string. Flow's (`index.screen.lisp`):
 
 ```clojure
+;;; index.screen.lisp --- Flow: an issue tracker with a kanban board
+;;; ...
+
 (ns flow.index
-  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp"     ; data files: by path
-            flow.state flow.computed flow.look flow.keys flow.toolbar    ; code files: by dotted name
+  (:require "locales/en.lisp"                                  ; data files: by path
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            flow.state                                         ; code files: by dotted name
+            flow.computed
             ...
-            "../../shared/components/charts.lisp"                       ; shared files: by path
-            ...))
+            flow.overlays
+            "../../shared/components/charts.lisp"              ; shared files: by path
+            flow.board
+            ...
+            flow.select
+            "../../shared/addons/assistant/assistant.lisp"
+            flow.flow))
 ```
+
+and each code file's (`computed.lisp`):
+
+```clojure
+;;; computed.lisp --- what Flow works out from its state and its records
+;;; ...
+
+(ns flow.computed)
+
+;;; The board's columns and cards
+```
+
+The program keeps an `ns` form as an entry of its own, `ns`, and the file's `;;;` header moves to it from the file's
+first definition. `lisp_tree.py --compare` counts both as a definition's text, so the check stays at exit 0; the
+built screen is the same.
 
 No `:refer` lists: every program is one flat space of names (`differences.md`), so a definition is reached by its own
 name. Write an alias (`:as`) only where the file uses it. `examples/shared/` files get labels too, and are still

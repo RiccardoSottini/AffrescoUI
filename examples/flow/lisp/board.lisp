@@ -3,6 +3,8 @@
 ;;;
 ;;; What they run is in flow.lisp.
 
+(ns flow.board)
+
 ;;; State
 
 (defstate query "")
