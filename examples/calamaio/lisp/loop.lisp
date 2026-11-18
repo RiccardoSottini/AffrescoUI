@@ -7,6 +7,8 @@
 ;;; draws itself with the whole of it, and run it as you, once, only if you say so. M-x eval-buffer doesn't ask: its
 ;;; definitions are a proposal, in its own name, and anything else in it doesn't run.
 
+(ns calamaio.loop)
+
 ;;; Hook points of this editor, which your init.lisp can add to
 
 (defhook after-save "Runs after a buffer is saved, with the buffer's name.")
@@ -59,7 +61,7 @@
   :title ~(t "command.eval-region") :category ~(t "category.lisp")
   :description ~(t "command.eval-region.about")
   []
-  (if (= (or (:selected (caret)) 0) 0)
+  (if (zero? (or (:selected (caret)) 0))
     (message (t "echo.regionEmpty"))
     (do (edit "cut" :span "selection" :in computed.ed :into "state.killTmp" :keep true)
         (evaluate state.killTmp :file "init.lisp" :confirm true :then show-result))))
@@ -135,7 +137,7 @@
   :title ~(t "command.apropos-command") :category ~(t "category.help")
   :description ~(t "command.apropos-command.about")
   [text]
-  (open-buffer {:name "*Apropos*" :mode "fundamental" :text (join "\n" (map one-line (apropos (or text ""))))}))
+  (open-buffer {:name "*Apropos*" :mode "fundamental" :text (str/join "\n" (map one-line (apropos (or text ""))))}))
 
 (defcommand what-is-here "Describes the definition around point, as it is known now."
   :title ~(t "command.what-is-here") :category ~(t "category.help")
@@ -143,5 +145,5 @@
   []
   (let [at (caret)
         form (formAround (text-here) (:line at) (:column at))
-        found (and form (describe-function (:name form)))]
+        found (some-> form :name describe-function)]
     (message (if found (one-line found) (t "echo.notDefined")))))

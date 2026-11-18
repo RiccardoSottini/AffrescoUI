@@ -3,6 +3,8 @@
 ;;; A buffer is an entry of state.bufs, by id; state.order lists them, the most recently shown first. Showing a buffer
 ;;; in the selected window keeps the point of the one it replaces, and puts the new one's back.
 
+(ns calamaio.buffers)
+
 ;;; Showing
 
 (defn keep-point "Remembers where point is in the selected window's buffer, for when it is shown again." []
@@ -12,7 +14,7 @@
 (defn show "Shows a buffer in the selected window, as the most recent one, with its point where it was." [b]
   (keep-point)
   (set (str "state.win." state.sel ".buf") b)
-  (set "state.order" (concat [b] (filter (fn [it] (not= it b)) state.order)))
+  (set "state.order" (concat [b] (remove #{b} state.order)))
   (set "state.mark.on" false)
   (after 20 goto-kept-point b))
 
@@ -61,8 +63,8 @@
 (defn kill-buffer-id "Kills a buffer: the windows that showed it show the most recent other one." [b]
   (when (= (count state.order) 1)
     (open-buffer {:name "*scratch*" :mode "lisp-interaction" :text ""}))
-  (set "state.order" (filter (fn [it] (not= it b)) state.order))
-  (map (fn [x] (set (str "state.win." x ".buf") (first state.order)))
-       (filter (fn [x] (= (get-in state.win [x :buf]) b)) (keys state.win)))
+  (set "state.order" (remove #{b} state.order))
+  (doseq [x (keys state.win) :when (= (get-in state.win [x :buf]) b)]
+    (set (str "state.win." x ".buf") (first state.order)))
   (remove-state (str "state.bufs." b))
   (focus computed.ed))

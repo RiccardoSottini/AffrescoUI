@@ -3,14 +3,6 @@
 		"sign-in/lisp"
 	],
 	"allowed": {
-		"fn-one-parameter": 33,
-		"if-not": 7,
-		"if-nil": 2,
-		"cond-one-value": 3,
-		"plus-one": 2,
-		"count-zero": 6,
-		"string-function": 23,
-		"four-nested-calls": 43,
-		"entry-include": 1
+		"four-nested-calls": 16
 	}
 }

@@ -2,13 +2,15 @@
 ;;;
 ;;; Both texts are Calamaio's own, in the locales (tutorial.text, tour.text).
 
+(ns calamaio.guides)
+
 ;;; The guides
 
 (defcommand help-with-tutorial "Opens the tutorial in a buffer of its own, to read and practise in."
   :title ~(t "command.help-with-tutorial") :category ~(t "category.help")
   :description ~(t "command.help-with-tutorial.about")
   []
-  (if (contains (keys state.bufs) "bt")
+  (if (contains? state.bufs "bt")
     (show "bt")
     (listing-show "bt" {:name "TUTORIAL" :mode "text" :text (t "tutorial.text")})))
 

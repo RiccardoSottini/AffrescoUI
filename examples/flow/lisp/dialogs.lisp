@@ -1,5 +1,7 @@
 ;;; dialogs.lisp --- what opens over the work area: the composer, the edit dialog and the selection bar
 
+(ns flow.dialogs)
+
 ;;; The composer
 
 (defview composer-box "The composer: a new card's title, notes and properties, and Create more to keep it open." []

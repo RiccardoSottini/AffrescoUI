@@ -3,6 +3,8 @@
 ;;;
 ;;; The screens themselves are drawn in the outlet between the top bar and the footer (index.screen.lisp).
 
+(ns sign-in.chrome)
+
 ;;; Behind and around the screens
 
 (defview glows "The two soft glows behind the card, top left and bottom right: two nodes, spliced in with ~@." []
@@ -65,7 +67,7 @@
 
 (defview language-chip "A language of the top bar, by its code, lit while it is the one shown." [language]
   `(node#lang :style ~(if (= state.locale language) "chipOn" "chip")
-     :text ~(upper-case language)
+     :text ~(str/upper-case language)
      :label ~(t "langName" {:code language})
      :tooltip ~(t "langName" {:code language})
      :selected ~(= state.locale language)

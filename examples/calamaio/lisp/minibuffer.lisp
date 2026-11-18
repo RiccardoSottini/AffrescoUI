@@ -5,29 +5,31 @@
 ;;; TAB completes what is typed from the kind's candidates: the only match, else the common prefix, else the list in
 ;;; *Completions*. M-p and M-n (or the arrows) go through the answers given before, one history a kind.
 
+(ns calamaio.minibuffer)
+
 ;;; The candidates
 
 (defcomputed mbCands "What an answer of this kind can be: commands, buffers, files, folders, themes or variables."
-  (cond (or (= state.mb.kind "command") (= state.mb.kind "function")) computed.commandNames
-        (or (= state.mb.kind "buffer") (= state.mb.kind "kill")) computed.names
-        (contains ["file" "write" "insert"] state.mb.kind) (map (fn [it] it.path) state.files)
-        (= state.mb.kind "dired")
-        (concat [state.home] (map (fn [it] it.path) (filter (fn [it] (= it.dir true)) state.files)))
-        (= state.mb.kind "theme") ["default" "inchiostro" "pergamena"]
-        (= state.mb.kind "variable") (map (fn [it] it.key) settingsList)
-        :else []))
+  (case state.mb.kind
+    ("command" "function") computed.commandNames
+    ("buffer" "kill") computed.names
+    ("file" "write" "insert") (map :path state.files)
+    "dired" (concat [state.home] (->> state.files (filter #(= (:dir %) true)) (map :path)))
+    "theme" ["default" "inchiostro" "pergamena"]
+    "variable" (map :key settingsList)
+    []))
 
 (defcomputed mbMatches "The candidates that start with what is typed, sorted."
-  (sortText (filter (fn [it] (= (slice it 0 (count state.mb.text)) state.mb.text)) computed.mbCands)))
+  (sortText (filter #(= (slice % 0 (count state.mb.text)) state.mb.text) computed.mbCands)))
 
 (defcomputed mbA "The first match." (or-else computed.mbMatches.0 ""))
 
-(defcomputed mbB "The last match." (or-else (get computed.mbMatches (- (count computed.mbMatches) 1)) ""))
+(defcomputed mbB "The last match." (or-else (get computed.mbMatches (dec (count computed.mbMatches))) ""))
 
 (defcomputed mbPrefix "What every match starts with: the first and the last, sorted, share it."
   (slice computed.mbA
          0
-         (count (filter (fn [it] (= (slice computed.mbA 0 (+ it 1)) (slice computed.mbB 0 (+ it 1))))
+         (count (filter #(= (slice computed.mbA 0 (inc %)) (slice computed.mbB 0 (inc %)))
                         (range (min (count computed.mbA) (count computed.mbB)))))))
 
 ;;; Asking
@@ -46,25 +48,27 @@
   (focus computed.ed))
 
 (defn answer "Gives an answer to the function its kind of question has." [kind value]
-  (cond (= kind "buffer") (mb-buffer value)
-        (= kind "kill") (mb-kill value)
-        (= kind "file") (mb-file value)
-        (= kind "write") (mb-write value)
-        (= kind "insert") (mb-insert value)
-        (= kind "dired") (mb-dired value)
-        (= kind "command") (mb-command value)
-        (= kind "function") (mb-function value)
-        (= kind "variable") (mb-variable value)
-        (= kind "theme") (mb-theme value)
-        (= kind "replace-from") (mb-replace-from value)
-        (= kind "replace-to") (mb-replace-to value)))
+  (case kind
+    "buffer" (mb-buffer value)
+    "kill" (mb-kill value)
+    "file" (mb-file value)
+    "write" (mb-write value)
+    "insert" (mb-insert value)
+    "dired" (mb-dired value)
+    "command" (mb-command value)
+    "function" (mb-function value)
+    "variable" (mb-variable value)
+    "theme" (mb-theme value)
+    "replace-from" (mb-replace-from value)
+    "replace-to" (mb-replace-to value)
+    nil))
 
 (defn minibuffer-done
   "Closes the minibuffer, keeps the answer in its kind's history, and gives it to its function." [value kind]
   (minibuffer-close)
   (when (not= value "")
     (set (str "state.mb.hist." kind)
-         (concat [value] (filter (fn [it] (not= it value)) (or (get state.mb.hist kind) [])))))
+         (concat [value] (remove #{value} (or (get state.mb.hist kind) [])))))
   (answer kind value))
 
 (defn minibuffer-exit "RET in the minibuffer: answers what is typed, or the default if nothing is." []
@@ -91,7 +95,7 @@
 
 (defn minibuffer-complete "TAB: completes the only match, or the common prefix of the matches, or lists them." []
   (let [matches computed.mbMatches]
-    (cond (= (count matches) 0)
+    (cond (empty? matches)
           (minibuffer-note (t "minibuffer.noMatch"))
           (= (count matches) 1)
           (do (minibuffer-set computed.mbA)
