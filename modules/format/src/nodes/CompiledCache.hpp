@@ -60,6 +60,22 @@ public:
 	/// @return The node.
 	/// @throws DocumentError If the component is unknown.
 	[[nodiscard]] json instantiateComponent(const json& use, const std::string& path) const;
+	/// @brief The component a use names: the document's own, else a built-in one.
+	/// @param name Its name.
+	/// @param path The use's place, for errors.
+	/// @return The component.
+	/// @throws DocumentError If there is none, or it has no "node".
+	[[nodiscard]] const json& componentNamed(const std::string& name, const std::string& path) const;
+	/// @brief A use's parameters, in one layer: what the use passes, the component's defaults it didn't pass, then
+	/// the component node's own "with".
+	/// @param use The node with "use".
+	/// @param component The component.
+	/// @param node The component's node, with the use's properties on top.
+	/// @param name The component's name, for errors.
+	/// @param path The use's place, for errors.
+	/// @return The "with" object.
+	[[nodiscard]] static json parameters(const json& use, const json& component, const json& node,
+	                                     const std::string& name, const std::string& path);
 	/// @brief A child of "children" with its components instantiated and its static styles merged, compiled.
 	/// @param child The child.
 	/// @param at Its place, for errors.

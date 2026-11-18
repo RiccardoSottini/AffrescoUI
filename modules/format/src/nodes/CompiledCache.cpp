@@ -129,19 +129,33 @@ CompiledRef CompiledCache::compiledOverlay(const json& node, const std::string& 
 	return result;
 }
 
-json CompiledCache::instantiateComponent(const json& use, const std::string& path) const {
-	const std::string name = string(use["use"], path + ".use");
+const json& CompiledCache::componentNamed(const std::string& name, const std::string& path) const {
 	const json& document = engine_.versions.document();
 	const bool own = document.contains("components") && document["components"].contains(name);
 	const json* builtIn = own ? nullptr : libraryComponent(name); // the document's own win
 	if(!own && !builtIn) fail(path + ".use", "unknown component '" + name + "'");
 	const json& component = builtIn ? *builtIn : object(document["components"][name], "components." + name);
 	if(!component.contains("node")) fail("components." + name, "a component needs a \"node\"");
+	return component;
+}
+
+json CompiledCache::instantiateComponent(const json& use, const std::string& path) const {
+	const std::string name = string(use["use"], path + ".use");
+	const json& component = componentNamed(name, path);
 
 	json result = object(component["node"], "components." + name + ".node");
 	for(const auto& [key, value] : use.items())
 		if(key != "use" && key != "with" && key != "children") result[key] = value;
+	result["with"] = parameters(use, component, result, name, path);
 
+	// The use's children go where the component has {"slot": true} (nothing does if it has none)
+	const json children = use.contains("children") ? use["children"] : json::array();
+	if(!fillSlot(result, children) && use.contains("children")) result["children"] = children;
+	return result;
+}
+
+json CompiledCache::parameters(const json& use, const json& component, const json& node, const std::string& name,
+                               const std::string& path) {
 	// Parameters, evaluated in this order in one layer, each seeing the ones before it: what the use passes (in the
 	// caller's scope), then the component's defaults it didn't pass (they may read the passed ones), then the
 	// component node's own "with" (what it passes when it is itself a use of another component, or its own variables):
@@ -150,17 +164,12 @@ json CompiledCache::instantiateComponent(const json& use, const std::string& pat
 	if(component.contains("params"))
 		for(const auto& [key, value] : object(component["params"], "components." + name + ".params").items())
 			if(!with.contains(key)) with[key] = value;
-	if(result.contains("with"))
-		for(const auto& [key, value] : object(result["with"], "components." + name + ".node.with").items()) {
+	if(node.contains("with"))
+		for(const auto& [key, value] : object(node["with"], "components." + name + ".node.with").items()) {
 			with.erase(key);
 			with[key] = value;
 		}
-	result["with"] = std::move(with);
-
-	// The use's children go where the component has {"slot": true} (nothing does if it has none)
-	const json children = use.contains("children") ? use["children"] : json::array();
-	if(!fillSlot(result, children) && use.contains("children")) result["children"] = children;
-	return result;
+	return with;
 }
 
 CompiledRef CompiledCache::styled(const CompiledRef& node, const json& style, const std::string& at) const {

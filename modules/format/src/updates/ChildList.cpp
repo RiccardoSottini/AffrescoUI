@@ -59,7 +59,7 @@ void ChildList::addOverlays(const Record& record, std::optional<std::vector<Item
 	if(overlays == document.end() || !overlays->is_object() || overlays->empty()) return;
 	if(!items) items.emplace();
 	for(const auto& [name, node] : overlays->items()) {
-		std::string at = "overlays." + name;
+		const std::string at = "overlays." + name;
 		SharedScope scope = record.locals;
 		CompiledRef scoped = engine_.builder.scoped(engine_.builder.compiler().compiledOverlay(node, at), scope, at);
 		if(scoped->when && // as a child's: not built while it doesn't hold

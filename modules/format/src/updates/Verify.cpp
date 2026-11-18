@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <format>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -73,6 +74,41 @@ void write(const Panel& panel, Reconciler& reconciler, const std::string& place,
 	for(const auto& child : panel.children()) write(*child, reconciler, at, out);
 }
 
+/// @brief A difference between a partial update and a full one.
+struct Difference {
+	std::string place;    ///< The node's place.
+	std::string property; ///< What differs.
+	std::string partial;  ///< Its value after the partial update.
+	std::string full;     ///< And after the full one.
+};
+
+/// @brief The first difference between two writings of the same panel.
+/// @param a After the partial update.
+/// @param b After the full pass.
+/// @return It, or std::nullopt if they are the same.
+std::optional<Difference> panelDifference(const Written& a, const Written& b) {
+	if(a.panel != b.panel) return Difference{a.place, "children", "kept", "another panel"};
+	for(std::size_t k = 0; k < a.properties.size() || k < b.properties.size(); ++k) {
+		const Property* x = k < a.properties.size() ? &a.properties[k] : nullptr;
+		const Property* y = k < b.properties.size() ? &b.properties[k] : nullptr;
+		if(x && y && x->name == y->name && x->value == y->value) continue;
+		return Difference{a.place, x ? x->name : y->name, x ? x->value : "none", y ? y->value : "none"};
+	}
+	return std::nullopt;
+}
+
+/// @brief The first difference between two writings of the same panels.
+/// @param partial After the partial update.
+/// @param full After the full pass.
+/// @return It, or std::nullopt if they are the same.
+std::optional<Difference> firstDifference(const std::vector<Written>& partial, const std::vector<Written>& full) {
+	for(std::size_t i = 0; i < partial.size() && i < full.size(); ++i)
+		if(std::optional<Difference> difference = panelDifference(partial[i], full[i])) return difference;
+	if(partial.size() != full.size())
+		return Difference{"root", "children", std::to_string(partial.size()), std::to_string(full.size())};
+	return std::nullopt;
+}
+
 /// @brief The test-only id whose reads are dropped (testing::dropReadsOf()).
 /// @return It.
 std::string& dropped() noexcept {
@@ -97,13 +133,13 @@ void Verify::check(Panel& root, const std::function<void()>& fullPass) {
 
 	const UpdateStatistics statistics = reconciler.statistics();
 	const bool suspended = std::exchange(engine_.handlersSuspended, true);
-	std::string failed;
+	std::optional<Difference> difference;
 	checking_ = true;
 	firstCreated_.clear();
 	try {
 		fullPass();
 	} catch(const DocumentError& error) {
-		failed = error.what();
+		difference = Difference{"root", "build", "built", error.what()};
 	}
 	checking_ = false;
 	engine_.handlersSuspended = suspended;
@@ -111,28 +147,13 @@ void Verify::check(Panel& root, const std::function<void()>& fullPass) {
 
 	std::vector<Written> full;
 	write(root, reconciler, "root", full);
-
-	const auto differ = [this](const std::string& place, std::string_view property, std::string_view before,
-	                           std::string_view after) {
-		log(LogLevel::Error, std::format("update check: {}.{}: partial {}, full {}", place, property, before, after));
-		engine_.report("update check: " + place + "." + std::string(property) +
-		               ": a partial update and a full update differ");
-	};
-	if(!failed.empty()) return differ("root", "build", "built", failed);
-	if(!firstCreated_.empty()) return differ(firstCreated_, "panel", "kept", "created");
-	for(std::size_t i = 0; i < partial.size() && i < full.size(); ++i) {
-		const Written& a = partial[i];
-		const Written& b = full[i];
-		if(a.panel != b.panel) return differ(a.place, "children", "kept", "another panel");
-		for(std::size_t k = 0; k < a.properties.size() || k < b.properties.size(); ++k) {
-			const Property* x = k < a.properties.size() ? &a.properties[k] : nullptr;
-			const Property* y = k < b.properties.size() ? &b.properties[k] : nullptr;
-			if(x && y && x->name == y->name && x->value == y->value) continue;
-			return differ(a.place, x ? x->name : y->name, x ? x->value : "none", y ? y->value : "none");
-		}
-	}
-	if(partial.size() != full.size())
-		differ("root", "children", std::to_string(partial.size()), std::to_string(full.size()));
+	if(!difference && !firstCreated_.empty()) difference = Difference{firstCreated_, "panel", "kept", "created"};
+	if(!difference) difference = firstDifference(partial, full);
+	if(!difference) return;
+	log(LogLevel::Error, std::format("update check: {}.{}: partial {}, full {}", difference->place,
+	                                 difference->property, difference->partial, difference->full));
+	engine_.report("update check: " + difference->place + "." + difference->property +
+	               ": a partial update and a full update differ");
 }
 
 namespace testing {
