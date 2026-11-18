@@ -401,3 +401,29 @@ TEST_CASE("lists: a series of inserts, removals, moves and changes inside rows, 
 		}
 	}
 }
+
+TEST_CASE("lists: two repeats over one list, the first reconciled in full, the second in part, keep every row's reads") {
+	for(const bool checked : {false, true}) {
+		for(const bool keyed : {false, true}) {
+			CAPTURE(checked);
+			CAPTURE(keyed);
+			json document = listScreen(3);
+			json first = document["root"]["children"][0]["children"][0];
+			if(!keyed) first["repeat"].erase("key");
+			// Its number and its value in two labels: the number makes the other rows change too
+			first["children"] = json::array({json{{"type", "label"}, {"text", "{{index}}"}},
+			                                  json{{"type", "label"}, {"text", "{{item.v}}"}}});
+			json column = {{"type", "column"}, {"children", json::array({first})}};
+			document["root"]["children"].insert(document["root"]["children"].begin(), std::move(column));
+			Built built(document, checked);
+			built.run("remove", {{"at", 0}});
+			REQUIRE(asBuiltAgain(built));
+			built.run("touch", {{"at", 1}, {"v", 7}});
+			CHECK(built.errors.empty());
+			CHECK(asBuiltAgain(built));
+			built.run("touch", {{"at", 0}, {"v", 8}});
+			CHECK(built.errors.empty());
+			CHECK(asBuiltAgain(built));
+		}
+	}
+}

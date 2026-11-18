@@ -106,6 +106,14 @@ public:
 	/// shape announced as one leaves out (PlaceIndex::collect()): for a list's panel that can't follow the change.
 	/// @param list The list, as a JSON Pointer.
 	void rerunRows(const std::string& list);
+	/// @brief Notes, in the running update, that a panel showing a list built its rows in full: their reads are
+	/// recorded where the rows lie now, so no other panel of the list may shift() them again (ChildList::prepare()).
+	/// @param list The list, as a JSON Pointer.
+	void listRebuilt(const std::string& list);
+	/// @brief Whether a panel showing a list built its rows in full in the running update (listRebuilt()).
+	/// @param list The list, as a JSON Pointer.
+	/// @return true if one did.
+	[[nodiscard]] bool rebuiltInFull(const std::string& list) const;
 	/// @brief The readers that read always.
 	/// @return Their number.
 	[[nodiscard]] std::size_t alwaysReaders() const noexcept { return always_.size(); }
@@ -193,6 +201,7 @@ private:
 	mutable std::vector<ReaderId> found_; ///< What the index collected (reused).
 	std::vector<ReaderId> pending_;       ///< What shift() and rerunRows() found, due after the reader running.
 	std::vector<std::string> shifted_;    ///< The lists shift() numbered again in the running update.
+	std::vector<std::string> rebuilt_;    ///< The lists a panel built in full in the running update.
 	std::uint32_t stamp_ = 0;             ///< The number of the update running, or of the last one.
 	bool running_ = false;                ///< Whether an update runs.
 	bool warned_ = false;                 ///< Whether maxEntries was reported.

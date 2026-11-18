@@ -371,6 +371,12 @@ void ChildList::reconcileChildren(const CompiledNode& node, Panel& panel, Record
 			   }))
 				engine_.tracker.rerunRows(change.place);
 	reconcileAll(node, panel, record, path, depth, changes);
+	if(changes) // its rows read where they lie now: another panel of the list mustn't shift them again
+		for(const ListChange& change : changes->lists)
+			if(std::ranges::any_of(record.list.entries, [&](const ListEntry& entry) {
+				   return entry.placed && entry.place() == change.place;
+			   }))
+				engine_.tracker.listRebuilt(change.place);
 }
 
 // --- Partial updates: an insert, a removal, or changes inside items ---
@@ -437,6 +443,7 @@ bool ChildList::prepare(ListState& state, std::size_t index, const StateChanges&
 	if(!plan.shape) return prepareRows(state, index, changes, plan, panel, first);
 	ListEntry& entry = state.entries[index];
 	if(!plan.inside.empty() || entry.otherRows) return false; // rows read their numbers or each other
+	if(engine_.tracker.rebuiltInFull(entry.place())) return false; // its rows' reads can't be shifted alone now
 	const json* list = findInState(engine_.versions.state(), json::json_pointer(entry.place()));
 	if(!list || !list->is_array()) return false;
 	if(!shiftOf(entry, *list, changes.lists, plan.at, plan.inserted, plan.removed)) return false;

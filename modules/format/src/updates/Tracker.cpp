@@ -219,6 +219,14 @@ void Tracker::shift(const std::string& list, std::size_t from, std::ptrdiff_t by
 		if(Entry* entry = live(id)) entry->ran = 0; // numbered again: they run even if kept (keepRows())
 }
 
+void Tracker::listRebuilt(const std::string& list) {
+	if(running_ && std::ranges::find(rebuilt_, list) == rebuilt_.end()) rebuilt_.push_back(list);
+}
+
+bool Tracker::rebuiltInFull(const std::string& list) const {
+	return running_ && std::ranges::find(rebuilt_, list) != rebuilt_.end();
+}
+
 void Tracker::keepRows(const std::string& list, const StateChanges& changes) {
 	if(!running_) return;
 	std::vector<ReaderId> rows;
@@ -263,6 +271,7 @@ bool Tracker::update(StateChanges& changes, bool panels) {
 	const Running running(*this);
 	pending_.clear();
 	shifted_.clear();
+	rebuilt_.clear();
 	if(changes.all) {
 		runAll(changes);
 		return false;
