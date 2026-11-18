@@ -9,9 +9,9 @@
 
 (defstate problems [])
 
-(defcomputed errors (count (filter (fn [it] (= it.severity "error")) state.problems)))
+(defcomputed errors (count (filter #(= (:severity %) "error") state.problems)))
 
-(defcomputed warnings (count (filter (fn [it] (= it.severity "warning")) state.problems)))
+(defcomputed warnings (count (filter #(= (:severity %) "warning") state.problems)))
 
 (defcomputed problemRows
   (map-indexed (fn [index it]
@@ -26,15 +26,15 @@
                  state.problems))
 
 (defn goToProblem "A row of Problems, opened: its file shown at its line." []
-  (let [p (get state.problems (number event.id))]
-    (showTab p.file p.label)
-    (goToLine p.line)))
+  (let [{:keys [file label line]} (get state.problems (number event.id))]
+    (showTab file label)
+    (goToLine line)))
 
 (defcommand showProblems "Focus Problems"
   :title ~(t "command.showProblems")
   :description ~(t "command.showProblems") :category ~(t "category.view") :icon "alert-triangle" []
   (set "state.layout.panel" true)
-  (set "state.panelTab" "problems"))
+  (set "state.panelTab" :problems))
 
 (defkey "mod+shift+m" showProblems)
 
@@ -64,7 +64,7 @@
   :title ~(t "command.showOutput")
   :description ~(t "command.showOutput") :category ~(t "category.view") :icon "terminal" []
   (set "state.layout.panel" true)
-  (set "state.panelTab" "output"))
+  (set "state.panelTab" :output))
 
 (defcommand clearOutput "Clear Output"
   :title ~(t "command.clearOutput") :description ~(t "command.clearOutput") :category ~(t "category.output") []
@@ -97,7 +97,7 @@
 (defstate panelTab problems)
 
 (defn openTerminalWithPanel "Opens a terminal when the Terminal tab is shown with none." []
-  (when (and (= state.panelTab "terminal") (= (count state.terminals.list) 0) state.layout.panel) (terminalNew)))
+  (when (and (= state.panelTab :terminal) (empty? state.terminals.list) (true? state.layout.panel)) (terminalNew)))
 
 (defpart terminal-on-show "The Terminal tab, shown with none open, opens one."
   :watch {:state.panelTab openTerminalWithPanel})
