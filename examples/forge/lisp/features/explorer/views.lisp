@@ -79,9 +79,10 @@
   `(node#explorer-name-dialog :use dialog
      :with {:open state.explorerEdit.naming
             :height 150
-            :title ~(cond (= state.explorerEdit.mode "rename") (t "explorer-name-dialog.rename")
-                          (= state.explorerEdit.mode "newFolder") (t "explorer-name-dialog.newFolder")
-                          :else (t "explorer-name-dialog.newFile"))
+            :title ~(case state.explorerEdit.mode
+                      :rename (t "explorer-name-dialog.rename")
+                      :newFolder (t "explorer-name-dialog.newFolder")
+                      (t "explorer-name-dialog.newFile"))
             :message ""
             :buttons [{:title ~(t "explorer-name-dialog.ok") :run explorerSubmitName}
                       {:title ~(t "explorer-name-dialog.cancel")}]}

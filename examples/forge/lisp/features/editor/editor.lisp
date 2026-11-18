@@ -37,7 +37,7 @@
          :dirty false
          :language (if (= label "CMakeLists.txt")
                      "CMake"
-                     (or-else (get state.languages (str/lower-case (last (str/split label ".")))) ""))})
+                     (or-else (get state.languages (str/lower-case (last (str/split label "." -1)))) ""))})
   (showFileTab path label preview))
 
 (defn openBufferFailed "Says why a file couldn't be opened." [label error]
@@ -77,7 +77,8 @@
 
 (defn pinTab "A preview tab stays: the next preview opens beside it." [id]
   (set "state.groups"
-       (map (fn [group] (update group :tabs (fn [tabs] (map #(if (= (:id %) id) (assoc % :preview false) %) tabs))))
+       ; style: keep, #(...) can't hold another #(...)
+       (map (fn [group] (update group :tabs (partial map #(if (= (:id %) id) (assoc % :preview false) %))))
             state.groups)))
 
 (defcommand keepEditor "Pins the preview tab, so the next preview opens beside it."
@@ -87,6 +88,7 @@
   (pinTab (activeTabId)))
 
 (defn releaseBuffer "Lets go of a file no tab shows any more, unless it has unsaved edits." [id]
+  ; style: keep, #(...) can't hold another #(...)
   (when (and (not-any? (fn [group] (some #(= (:id %) id) (:tabs group))) state.groups)
              (some #(and (= (:id %) id) (= (:kind %) :file) (not (:dirty %))) state.docs))
     (set "state.docs" (remove #(= (:id %) id) state.docs))
@@ -182,7 +184,7 @@
   (doseq [doc (filter #(and (= (:kind %) :file) (<= (count (:text %)) 1000000)) state.docs)]
     (set "state.problems"
          (slice (concat state.problems
-                        (->> (str/split doc.text "\n")
+                        (->> (str/split doc.text "\n" -1)
                              (map-indexed (fn [index row] {:line (inc index) :row (str/trim row)}))
                              (filter #(or (str/includes? (:row %) "TODO") (str/includes? (:row %) "FIXME")))
                              (map (fn [it]

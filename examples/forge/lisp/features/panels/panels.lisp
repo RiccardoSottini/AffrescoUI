@@ -18,12 +18,8 @@
 (defcomputed problemRows
   (map-indexed (fn [index it]
                    {:id index
-                    :icon (cond (= it.severity "error") "circle-x"
-                                (= it.severity "warning") "alert-triangle"
-                                :else "info")
-                    :iconColor (cond (= it.severity "error") "#f85149"
-                                     (= it.severity "warning") "#cca700"
-                                     :else "#3794ff")
+                    :icon (case it.severity :error "circle-x" :warning "alert-triangle" "info")
+                    :iconColor (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
                     :cells [it.message it.label it.line]})
                  state.problems))
 

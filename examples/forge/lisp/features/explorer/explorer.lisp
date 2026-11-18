@@ -54,7 +54,7 @@
   [batch]
   (if batch.rescan
     (explorerRefresh)
-    (explorerRelist (map #(str/join "/" (butlast (str/split (:path %) "/"))) batch.changes))))
+    (explorerRelist (map #(str/join "/" (butlast (str/split (:path %) "/" -1))) batch.changes))))
 
 (defn explorerRelist "Lists again the folders listed among `parents`." [parents]
   (doseq [folder (filter #(contains parents %) (concat [""] state.explorerTree.listed))]
@@ -84,14 +84,15 @@
        (concat (filter (fn [it]
                          (and (not= it.parent folder)
                               (or (not (str/starts-with? it.path prefix))
-                                  (contains folders (first (str/split (subs it.path (count prefix)) "/"))))))
+                                  (contains folders (first (str/split (subs it.path (count prefix)) "/" -1))))))
                        state.explorerTree.entries)
+               ; style: keep, #(...) can't give a map
                (map (fn [it] {:path (str prefix it.name) :name it.name :kind it.kind :parent folder}) entries)))
   (set "state.explorerTree.listed"
        (concat (filter (fn [it]
                          (and (not= it folder)
                               (or (not (str/starts-with? it prefix))
-                                  (contains folders (first (str/split (subs it (count prefix)) "/"))))))
+                                  (contains folders (first (str/split (subs it (count prefix)) "/" -1))))))
                        state.explorerTree.listed)
                (if (empty? folder) [] [folder]))))
 
@@ -160,8 +161,8 @@
 (defn explorerSubmitName "The name typed, made a path in the folder chosen." []
   (set "state.explorerEdit.naming" false)
   (explorerMake state.explorerEdit
-                (->> (concat (slice (str/split state.explorerEdit.id "/") 0 (if (= state.explorerEdit.mode :rename) -1 1000))
-                             (str/split state.explorerEdit.name "/"))
+                (->> (concat (slice (str/split state.explorerEdit.id "/" -1) 0 (if (= state.explorerEdit.mode :rename) -1 1000))
+                             (str/split state.explorerEdit.name "/" -1))
                      (remove empty?)
                      (str/join "/"))))
 
@@ -169,7 +170,7 @@
   "Makes what the dialog asked for (`edit`) at a path (`to`): renames, or creates once nothing is there."
   [edit to]
   (cond
-    (or (str/blank? edit.name) (some #{".."} (str/split edit.name "/"))) (notify "error" (t "notify.nameMissing"))
+    (or (str/blank? edit.name) (some #{".."} (str/split edit.name "/" -1))) (notify "error" (t "notify.nameMissing"))
     (= edit.mode :rename)
       (invoke "files.rename"
               :with {:path edit.id :to to}
@@ -205,9 +206,9 @@
   (notify "error" (t "notify.cannotCreate" {:error error.message})))
 
 (defn explorerMoved "A file or folder moved (`from`, `to`): tabs follow it, and the explorer shows it." [from to]
-  (let [inside? (fn [path] (and (some? path) (or (= path from) (str/starts-with? path (str from "/")))))
+  (let [inside? #(and (some? %) (or (= % from) (str/starts-with? % (str from "/"))))
         moved #(str to (subs % (count from)))
-        follow (fn [tab] (if (inside? (:id tab)) (assoc tab :id (moved (:id tab)) :label (baseName (moved (:id tab)))) tab))]
+        follow #(if (inside? (:id %)) (assoc % :id (moved (:id %)) :label (baseName (moved (:id %)))) %)]
     (set "state.docs" (map follow state.docs))
     (set "state.groups"
          (map (fn [group]
@@ -215,11 +216,11 @@
                        :active (if (inside? (:active group)) (moved (:active group)) (:active group))
                        :tabs (map follow (:tabs group))))
               state.groups)))
-  (explorerList (str/join "/" (butlast (str/split from "/"))))
+  (explorerList (str/join "/" (butlast (str/split from "/" -1))))
   (explorerShow to))
 
 (defn explorerShow "Lists and opens the folders holding a path, then selects it." [id]
-  (let [parts (str/split id "/")
+  (let [parts (str/split id "/" -1)
         folders (map #(str/join "/" (take % parts)) (range (count parts)))
         opened (rest folders)]
     (doseq [folder folders] (explorerList folder))
@@ -250,7 +251,7 @@
 
 (defn explorerDeleted "An entry deleted: its folder listed again." []
   (set "state.explorer.selected" nil)
-  (explorerList (str/join "/" (butlast (str/split state.explorerEdit.id "/")))))
+  (explorerList (str/join "/" (butlast (str/split state.explorerEdit.id "/" -1)))))
 
 (defn explorerDeleteFailed "Says why the entry couldn't be deleted." [error]
   (notify "error" (t "notify.cannotDelete" {:error error.message})))
@@ -288,13 +289,13 @@
                   (if (and (= event.place :inside)
                            (some #(and (= (:path %) event.id) (= (:kind %) :folder)) state.explorerTree.entries))
                     event.id
-                    (str/join "/" (butlast (str/split (or-else event.id "") "/")))))))
+                    (str/join "/" (butlast (str/split (or-else event.id "") "/" -1)))))))
 
 (defn explorerMove "Moves an entry into a folder, unless it is already there or the folder is inside it." [from into]
   (cond
     (or (= into from) (str/starts-with? into (str from "/")))
       (notify "error" (t "notify.moveIntoItself" {:name (baseName from)}))
-    (not= into (str/join "/" (butlast (str/split from "/"))))
+    (not= into (str/join "/" (butlast (str/split from "/" -1))))
       (invoke "files.rename"
               :with {:path from :to (str/join "/" (remove empty? [into (baseName from)]))}
               :onError explorerMoveFailed

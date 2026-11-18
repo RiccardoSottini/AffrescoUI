@@ -54,7 +54,8 @@
   [tab]
   `(if (and settings.workbench.fileIcons (contains ~(symbol (str tab ".label")) "."))
      (or-else (get state.iconTheme.names ~(symbol (str tab ".label")))
-              (get state.iconTheme.extensions (lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
+              ; style: keep, str/split with -1 is a slow call in a binding, and without -1 it drops a trailing empty part
+              (get state.iconTheme.extensions (str/lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
               state.iconTheme.file)
      nil))
 
@@ -96,8 +97,8 @@
      :grammar ~(doc-of d :label)
      :lineNumbers ~settings.editor.lineNumbers
      :goTo ~(if (and (= gi state.activeGroup) (> state.goTo.request 0))
-                {:line (max (- state.goTo.line 1) 0)
-                 :column (max (- (or-else state.goTo.column 1) 1) 0)
+                {:line (max (dec state.goTo.line) 0)
+                 :column (max (dec (or-else state.goTo.column 1)) 0)
                  :request state.goTo.request}
                 nil)
      :caret state.caret

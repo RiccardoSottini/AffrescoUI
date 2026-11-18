@@ -79,8 +79,7 @@
   (get-in state.groups [state.activeGroup :active]))
 
 (defn baseName "A path's last part: a file's or a folder's name." [path]
-  ; style: keep, str/split drops a trailing empty part, and "a/" names no file
-  (last (split path "/")))
+  (last (str/split path "/" -1)))
 
 ; style: keep, the features of both packages run on this doseq, and the tree keeps its definition
 (defmacro doseq "Runs its body once for each item of a list, for what it does: (doseq [item list] body...)."

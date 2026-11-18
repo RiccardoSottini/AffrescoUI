@@ -92,7 +92,7 @@
   [found]
   (let [{:keys [file matches]} found
         {:keys [tree hits]} state.search.result
-        folder (str/join "/" (butlast (str/split file "/")))]
+        folder (str/join "/" (butlast (str/split file "/" -1)))]
     (set "state.search.result"
          (-> state.search.result
              (assoc :tree (concat tree
@@ -108,6 +108,7 @@
                                                               :label (str match.line ": " (str/trim match.text))})
                                                            matches)}])
                     :hits (concat hits
+                                  ; style: keep, #(...) can't give a map
                                   (map (fn [match] {:file file :label (baseName file) :line match.line :column match.column})
                                        matches)))
              (update :files inc)
@@ -153,6 +154,7 @@
     (searchDismissFile (find #(= (:id %) state.search.selected) state.search.result.tree))
     (searchDismissHit
       state.search.selected
+      ; style: keep, #(...) can't hold another #(...)
       (find (fn [file] (some #(= (:id %) state.search.selected) (:children file))) state.search.result.tree)))
   (set "state.search.selected" nil))
 
@@ -160,7 +162,7 @@
   (when-some [{:keys [id children]} file]
     (set "state.search.result"
          (-> state.search.result
-             (update :tree (fn [tree] (remove #(= (:id %) id) tree)))
+             (update :tree (partial remove #(= (:id %) id)))
              (update :files dec)
              (update :matches - (count children))))))
 
@@ -174,7 +176,7 @@
                          :label (str (subs label 0 (- (count label) (count counted))) "(" (dec (count children)) ")"))]
         (set "state.search.result"
              (-> state.search.result
-                 (update :tree (fn [tree] (map #(if (= (:id %) id) shown %) tree)))
+                 (update :tree (partial map #(if (= (:id %) id) shown %)))
                  (update :matches dec)))))))
 
 (defn searchExpand "A file of the results opened or closed (`event.expanded`): it is remembered." []

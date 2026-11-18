@@ -40,7 +40,7 @@
       (when-some [_ computed.lspLanguage] (lspAsk "outline" nil nil "" ""))
       (when (not= state.outlineSymbols computed.activeDoc.id)
         (let [{:keys [language text]} computed.activeDoc
-              lines (map-indexed (fn [index row] {:line (inc index) :row row}) (take 20000 (str/split text "\n")))]
+              lines (map-indexed (fn [index row] {:line (inc index) :row row}) (take 20000 (str/split text "\n" -1)))]
           (outlineOf (if (= language "Markdown") [] (map #(assoc % :code (str/trim (:row %))) lines))
                      (if (= language "Markdown") (filter #(str/starts-with? (:row %) "#") lines) [])
                      (= language "Python")))))
@@ -102,7 +102,7 @@
                        :else nil)}))))
 
 (defn outlinePicked "A symbol of the outline, picked: the caret goes to its line." []
-  (let [line (number (first (str/split event.value ":")))]
+  (let [line (number (first (str/split event.value ":" -1)))]
     (when (> line 0) (goToLine line))))
 
 (defn outlineFollowsCaret "The caret moved: the outline is read again once it rests 300 ms." []
@@ -145,7 +145,7 @@
 (defn breadcrumbClicked
   "A breadcrumb clicked: a folder (the `si`th part of `path`) opens in the explorer, the file's name shows its symbols."
   [path si]
-  (let [parts (str/split path "/")]
+  (let [parts (str/split path "/" -1)]
     (if (< si (dec (count parts)))
       (revealFolder (str/join "/" (take (inc si) parts)))
       (goToSymbol))))
@@ -175,7 +175,7 @@
   [id label]
   (set "state.quickPick.recent"
        (take 10
-             (concat [{:id id :title label :detail (str/join "/" (butlast (str/split id "/")))}]
+             (concat [{:id id :title label :detail (str/join "/" (butlast (str/split id "/" -1)))}]
                      (remove #(= (:id %) id) (or-else state.quickPick.recent [])))))
   (refreshOutline))
 
@@ -203,6 +203,7 @@
     (set "state.activeGroup" (indexOf (map #(= (:active %) id) state.groups) true))))
 
 (defn holdingTab "The index of the group other than `to` that has the tab `id`, or nil." [id to]
+  ; style: keep, #(...) can't hold another #(...)
   (first (filter (fn [g] (and (not= g to) (some #(= (:id %) id) (get-in state.groups [g :tabs]))))
                  (range (count state.groups)))))
 
