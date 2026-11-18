@@ -34,8 +34,8 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		return identity ? identity->status() : json::object();
 	});
 	connections.onStatus([this] {
-		document.globalsChanged(); // the "connections" variable
-		reconciler.requestReconcile();
+		document.markVariableChanged("connections");
+		reconciler.requestStateUpdate();
 	});
 	document.addVariable("requests", [this] { return asks.list(); }); // the person's requests ("ask") and replies
 	document.addVariable("peers", [this] {                            // [{author, role}]: who is connected

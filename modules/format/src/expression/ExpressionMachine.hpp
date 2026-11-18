@@ -312,6 +312,11 @@ private:
 	/// @return The value, or null.
 	/// @throws DocumentError If its variable is unknown, or a key is invalid.
 	[[nodiscard]] Value get(const Node& node, const Place& place);
+	/// @brief A global, `window` or `revision`: built when read, where the runtime builds them (VariableLookup).
+	/// @param name Its name.
+	/// @param given Its value in the context, if the runtime doesn't build it.
+	/// @return Its value.
+	[[nodiscard]] Value global(std::string_view name, const json& given) const;
 	/// @brief Finds a variable by name, as a path's start.
 	/// @param root What kind of variable.
 	/// @param name Its name.

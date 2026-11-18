@@ -384,14 +384,20 @@ std::optional<std::string> Machine::namedPlace(std::string_view name) const {
 	return std::nullopt;
 }
 
+Value Machine::global(std::string_view name, const json& given) const {
+	if(context_.variables)
+		if(const json* built = (*context_.variables)(name)) return Value::fromJson(*built);
+	return Value::fromJson(given);
+}
+
 std::optional<Value> Machine::variable(Root root, std::string_view name, const Place& place) const {
 	switch(root) {
 	case Root::State:
 		return Value::fromJson(context_.state);
 	case Root::Window:
-		return Value::fromJson(context_.window);
+		return global("window", context_.window);
 	case Root::Revision:
-		return Value::fromJson(context_.revision);
+		return global("revision", context_.revision);
 	case Root::Event:
 		return Value::fromJson(context_.event);
 	case Root::Computed:
