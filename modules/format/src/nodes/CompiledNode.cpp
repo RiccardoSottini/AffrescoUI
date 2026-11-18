@@ -4,6 +4,7 @@
 #include "CompiledNode.hpp"
 
 #include "NodeKeys.hpp"
+#include "Reads.hpp"
 
 #include <algorithm>
 #include <array>
@@ -226,6 +227,11 @@ void keepOwnState(json& keys) {
 CompiledRef compileNode(const NodeRef& node) {
 	const auto children = node->find("children");
 	return compileNode(withoutChildren(*node), children == node->end() ? nullptr : &*children, node);
+}
+
+std::string childrenPlace(std::uint64_t serial) {
+	if(serial == 0U) return {};
+	return std::string(places::document) + "/~n" + std::to_string(serial);
 }
 
 RevisionCounters& revisionCounters() noexcept {

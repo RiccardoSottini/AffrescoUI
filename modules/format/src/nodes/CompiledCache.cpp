@@ -8,8 +8,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iterator>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco::format {
 
@@ -47,6 +50,20 @@ bool hasLayout(const json& node) {
 	return std::ranges::any_of(keys, [&node](const char* key) { return node.contains(key); });
 }
 
+/// @brief Whether two versions of the document name the same members of a section, in the same order.
+/// @param before The document before.
+/// @param after The document after.
+/// @param section The section: "screens" or "overlays".
+/// @return true if they do, or neither has it.
+bool sameNames(const json& before, const json& after, const char* section) {
+	const auto a = before.find(section);
+	const auto b = after.find(section);
+	if(a == before.end() || b == after.end()) return (a == before.end()) == (b == after.end());
+	if(!a->is_object() || !b->is_object()) return *a == *b;
+	if(a->size() != b->size()) return false;
+	return std::ranges::equal(a->items(), b->items(), [](const auto& x, const auto& y) { return x.key() == y.key(); });
+}
+
 /// @brief A node's "children", where it is.
 /// @param node The node.
 /// @return The array as written, or nullptr.
@@ -68,16 +85,23 @@ CompiledCache::Cache& CompiledCache::cache() const {
 
 void CompiledCache::forgetVersion() const noexcept { cache_ = Cache{}; }
 
+CompiledRef CompiledCache::numbered(CompiledRef node) const noexcept {
+	node->serial = ++serials_;
+	return node;
+}
+
 /// @brief carryOver()'s walk over the document before and after: what was compiled, what is kept, by its new place.
 struct CompiledCache::Carrier {
 	/// @brief The maps of compiled nodes kept by the place of their node.
 	static constexpr std::array<std::unordered_map<const json*, CompiledRef> Cache::*, 4> maps = {
 	    &Cache::children, &Cache::nodes, &Cache::screens, &Cache::overlays};
 
-	const Cache* old = nullptr;      // What was compiled for the version before.
-	Cache next;                      // What is kept, by the places of the version after.
-	std::vector<const json*> keeps;  // The instances of the kept nodes that hold their children.
-	std::size_t carried = 0;         // The nodes kept.
+	const Cache* old = nullptr;         // What was compiled for the version before.
+	Cache next;                         // What is kept, by the places of the version after.
+	std::vector<const json*> keeps;     // The instances of the kept nodes that hold their children.
+	std::size_t carried = 0;            // The nodes kept.
+	std::size_t topCarried = 0;         // Among them, the root, screens, templates and overlays.
+	std::vector<std::uint64_t> changed; // The kept nodes whose list of children changed, by their number.
 
 	/// @brief Walks a value of before and the value after at its place.
 	/// @param before The value before.
@@ -93,14 +117,22 @@ struct CompiledCache::Carrier {
 	/// @brief Walks two lists: item by item when they are as long, else their common start, then their common end.
 	/// @param before The list before.
 	/// @param after The list after.
+	/// @param shown Set, for a node's "children", when the list its panels show changed: a child added, removed or
+	/// moved, or one whose compiled node isn't kept for it (a child kept with other children only changes its own
+	/// list); nullptr for any other list.
 	/// @return Whether they are the same.
-	bool walkArray(const json& before, const json& after) {
+	bool walkArray(const json& before, const json& after, bool* shown = nullptr) {
 		const std::size_t common = std::min(before.size(), after.size());
 		if(before.size() == after.size()) {
 			bool same = true;
-			for(std::size_t i = 0; i < common; ++i) same = walk(before[i], after[i]) && same;
+			for(std::size_t i = 0; i < common; ++i) {
+				const bool item = walk(before[i], after[i]);
+				if(shown && !item && !keptFor(before[i], after[i])) *shown = true;
+				same = item && same;
+			}
 			return same;
 		}
+		if(shown) *shown = true;
 		std::size_t start = 0;
 		while(start < common && walk(before[start], after[start])) ++start;
 		const std::size_t limit = start < common ? common - start - 1U : 0U; // the end never meets the start
@@ -129,23 +161,49 @@ struct CompiledCache::Carrier {
 			own = walk(b.value(), a.value()) && own;
 		}
 		own = own && b == before.end() && a == after.end();
-		const bool same = walkChildren(before, after) && own;
-		if(own) keep(before, after, same);
+		bool shown = false; // whether the list of children its panels show changed
+		const bool same = walkChildren(before, after, shown) && own;
+		if(own) keep(before, after, same, shown);
 		return same;
 	}
 
 	/// @brief Walks two objects' "children".
 	/// @param before The object before.
 	/// @param after The object after.
+	/// @param shown Set when the list of children the panels of a node show changed (see walkArray()).
 	/// @return Whether they are the same, in the same place among the keys.
-	bool walkChildren(const json& before, const json& after) {
+	bool walkChildren(const json& before, const json& after, bool& shown) {
 		const auto childrenBefore = before.find("children");
 		const auto childrenAfter = after.find("children");
-		if(childrenBefore == before.end() || childrenAfter == after.end())
-			return childrenBefore == before.end() && childrenAfter == after.end();
+		if(childrenBefore == before.end() || childrenAfter == after.end()) {
+			const bool none = childrenBefore == before.end() && childrenAfter == after.end();
+			shown = !none;
+			return none;
+		}
 		const bool placed =
 		    std::distance(before.begin(), childrenBefore) == std::distance(after.begin(), childrenAfter);
-		return walk(*childrenBefore, *childrenAfter) && placed;
+		bool same = false;
+		if(childrenBefore->is_array() && childrenAfter->is_array())
+			same = walkArray(*childrenBefore, *childrenAfter, &shown);
+		else {
+			same = walk(*childrenBefore, *childrenAfter);
+			shown = !same;
+		}
+		return same && placed;
+	}
+
+	/// @brief Whether what was compiled for a value is all kept for the value after at its place.
+	/// @param before The value before.
+	/// @param after The value after.
+	/// @return false if something compiled for it, or nothing at all (a child no list built), isn't kept.
+	[[nodiscard]] bool keptFor(const json& before, const json& after) const {
+		bool compiled = false;
+		for(const auto map : maps)
+			if((old->*map).contains(&before)) {
+				if(!(next.*map).contains(&after)) return false;
+				compiled = true;
+			}
+		return compiled;
 	}
 
 	/// @brief Keeps what was compiled for a node whose keys but "children" are the same, pointing it at its children
@@ -153,7 +211,8 @@ struct CompiledCache::Carrier {
 	/// @param before The node before.
 	/// @param after The node after.
 	/// @param same Whether its children are the same too.
-	void keep(const json& before, const json& after, bool same) {
+	/// @param shown Whether the list of children its panels show changed: its number is then among changed.
+	void keep(const json& before, const json& after, bool same, bool shown) {
 		for(const auto map : maps) {
 			const auto found = (old->*map).find(&before);
 			if(found == (old->*map).end()) continue;
@@ -164,11 +223,19 @@ struct CompiledCache::Carrier {
 			} else {
 				const auto children = after.find("children");
 				repoint(*node, children == after.end() ? nullptr : &*children);
+				if(shown) changed.push_back(node->serial);
 			}
 			keepStyled(node);
 			(next.*map).emplace(&after, node);
-			++carried;
+			counted(map);
 		}
+	}
+
+	/// @brief Counts a compiled node kept.
+	/// @param map The map it was kept in.
+	void counted(std::unordered_map<const json*, CompiledRef> Cache::* map) {
+		++carried;
+		if(map != &Cache::children) ++topCarried;
 	}
 
 	/// @brief Points a node, and the nodes compiled for the styles it chose, at its children's new place.
@@ -206,7 +273,7 @@ struct CompiledCache::Carrier {
 				if(found->second->keep) keeps.push_back(found->second->keep.get());
 				keepStyled(found->second);
 				(next.*map).emplace(&value, found->second);
-				++carried;
+				counted(map);
 			}
 		if(value.is_structured())
 			for(const json& inner : value) keepInside(inner);
@@ -215,6 +282,8 @@ struct CompiledCache::Carrier {
 
 void CompiledCache::carryOver(const json& before, const json& after, const DocumentChange& change) const {
 	carried_ = 0;
+	changedLists_.clear();
+	listsOnly_ = false;
 	const bool everyNode = change.everything || std::ranges::any_of(change.sections, [](const std::string& section) {
 		                       return section == "styles" || section == "components" || section == "templates";
 	                       });
@@ -222,12 +291,19 @@ void CompiledCache::carryOver(const json& before, const json& after, const Docum
 		forgetVersion();
 		return;
 	}
-	Carrier carrier{.old = &cache_, .next = {}, .keeps = {}, .carried = 0};
+	Carrier carrier{.old = &cache_, .next = {}, .keeps = {}, .carried = 0, .topCarried = 0, .changed = {}};
 	static_cast<void>(carrier.walk(before, after));
 	carrier.keepInstances();
 	carrier.next.document = &engine_.versions.document();
 	carried_ = carrier.carried;
 	revisionCounters().nodesCarried += carrier.carried;
+	const std::size_t top = cache_.nodes.size() + cache_.screens.size() + cache_.overlays.size();
+	listsOnly_ =
+	    carrier.topCarried == top && sameNames(before, after, "screens") && sameNames(before, after, "overlays");
+	std::ranges::sort(carrier.changed);
+	const auto [last, end] = std::ranges::unique(carrier.changed);
+	carrier.changed.erase(last, end);
+	changedLists_ = std::move(carrier.changed);
 	cache_ = std::move(carrier.next);
 }
 
@@ -261,7 +337,7 @@ CompiledRef CompiledCache::compiled(const json& node, const std::string& path, b
 	if(const auto it = map.find(&node); it != map.end()) return it->second;
 	json merged = withStyles(withoutChildren(object(node, path)), path);
 	if(fill && !hasLayout(merged)) merged["fill"] = 0;
-	CompiledRef result = compileNode(std::move(merged), childrenOf(node));
+	CompiledRef result = numbered(compileNode(std::move(merged), childrenOf(node)));
 	map.emplace(&node, result);
 	return result;
 }
@@ -283,11 +359,11 @@ CompiledRef CompiledCache::compiledOverlay(const json& node, const std::string& 
 		}
 		json merged = withStyles(raw, path);
 		placed(merged);
-		result = compileNode(std::make_shared<const json>(std::move(merged))); // it holds the use's children
+		result = numbered(compileNode(std::make_shared<const json>(std::move(merged)))); // it holds the use's children
 	} else {
 		json merged = withStyles(withoutChildren(node), path);
 		placed(merged);
-		result = compileNode(std::move(merged), childrenOf(node));
+		result = numbered(compileNode(std::move(merged), childrenOf(node)));
 	}
 	cached.overlays.emplace(&node, result);
 	return result;
@@ -345,6 +421,7 @@ CompiledRef CompiledCache::styled(const CompiledRef& node, const json& style, co
 	if(style.is_null() || (style.is_string() && style.get_ref<const std::string&>().empty())) chosen.erase("style");
 	else chosen["style"] = style;
 	CompiledRef result = compileNode(withStyles(chosen, at), node->children, node->keep);
+	result->serial = node->serial;       // its panels' lists are the node's
 	choices.emplace_back(style, result); // kept: the children cache knows its children by their place
 	return result;
 }
@@ -359,11 +436,12 @@ CompiledRef CompiledCache::resolve(const json& child, const std::string& at) con
 			if(depth >= maxComponentDepth) fail(at, "components nested too deeply (a component uses itself?)");
 			raw = instantiateComponent(raw, at);
 		}
-		result = compileNode(std::make_shared<const json>(withStyles(raw, at))); // it holds the use's children
+		result =
+		    numbered(compileNode(std::make_shared<const json>(withStyles(raw, at)))); // it holds the use's children
 	} else if(child.contains("style") && !isDynamic(child["style"])) {
-		result = compileNode(withStyles(withoutChildren(child), at), childrenOf(child));
+		result = numbered(compileNode(withStyles(withoutChildren(child), at), childrenOf(child)));
 	} else {
-		result = compileNode(withoutChildren(child), childrenOf(child));
+		result = numbered(compileNode(withoutChildren(child), childrenOf(child)));
 	}
 	cached.children.emplace(&child, result);
 	return result;

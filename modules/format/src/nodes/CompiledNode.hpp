@@ -130,13 +130,17 @@ struct CompiledNode {
 	CompiledNode& operator=(CompiledNode&&) = delete;
 	~CompiledNode() = default;
 
-	json own;                       ///< The node's keys but "children": what the bindings refer to.
+	json own; ///< The node's keys but "children": what the bindings refer to.
 	/// Its "children" as written, or nullptr: in the document, or in keep. Mutable for CompiledCache::carryOver() only,
 	/// between updates, when the version it pointed into is replaced by one that holds the same node elsewhere.
 	mutable const json* children = nullptr;
-	NodeRef keep;                   ///< What holds children when the document doesn't (a component's instance).
-	std::string type = "panel";     ///< "type".
-	bool typeIsText = true;         ///< false: "type" isn't text, an error where the node is built.
+	NodeRef keep; ///< What holds children when the document doesn't (a component's instance).
+	/// Its number in the cache that compiled it, never reused, and the number of the node a dynamic style was chosen
+	/// for: the panels' lists of children built from it read their place by it (childrenPlace()), which stays the same
+	/// when a revision moves the node in the document. Mutable for CompiledCache only, as it compiles the node.
+	mutable std::uint64_t serial = 0;
+	std::string type = "panel";               ///< "type".
+	bool typeIsText = true;                   ///< false: "type" isn't text, an error where the node is built.
 	std::vector<CompiledProperty> properties; ///< Every key but "children", "style" and the scoping ones, in order.
 	std::size_t evaluatedCount = 0;           ///< How many values an update evaluates.
 	bool hasId = false;                       ///< It has an "id".
@@ -173,6 +177,13 @@ using CompiledRef = std::shared_ptr<const CompiledNode>;
 /// @param node The node, an object.
 /// @return The copy.
 [[nodiscard]] json withoutChildren(const json& node);
+
+/// @brief The place a list of children built from a node reads, so that a revision that changes that list (a child
+/// added, removed, moved or changed) runs it again: "/~doc/~n<serial>", under the document's places, whatever the
+/// node's place in the document (CompiledCache::carryOver() says which lists a revision changed).
+/// @param serial The node's number (CompiledNode::serial).
+/// @return The place; empty for 0, a node no cache numbered.
+[[nodiscard]] std::string childrenPlace(std::uint64_t serial);
 
 /// @brief What versions of the document cost on this thread, counted exactly, for the tests
 /// (tests/unit/revision_cost.cpp) and the benchmarks: they only ever grow.

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -90,6 +91,8 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 
 void Reconciler::listReconciled(Panel& /*panel*/, Record& record, ReadSet reads) {
 	rowRelative(record.locals.get(), reads);
+	if(record.node) // its node's children in the document: a revision that changes them runs it again
+		if(const std::string place = childrenPlace(record.node->serial); !place.empty()) reads.addPath(place);
 	engine_.tracker.setReads(record.listReader.id, std::move(reads));
 }
 
@@ -192,6 +195,9 @@ void Reconciler::runReader(const PanelReader& reader, const StateChanges& change
 		++statistics_.panelsVisited;
 		int depth = 0;
 		for(const Panel* above = panel.parent(); above; above = above->parent()) ++depth;
+		if(const std::string place = childrenPlace(record->node->serial);
+		   !place.empty() && std::ranges::find(changes.paths, place) != changes.paths.end())
+			record->list.node = nullptr; // a revision changed its children: matched again, not followed by the state
 		children_.reconcileChildren(*record->node, panel, *record, record->path, depth, &changes);
 		return;
 	}

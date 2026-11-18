@@ -4,9 +4,16 @@
 
 #include "Engine.hpp"
 
+#include <affresco/format/NodeIds.hpp>
+
+#include <algorithm>
 #include <array>
+#include <cstdint>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace affresco::format {
 
@@ -59,6 +66,83 @@ unsigned readersOf(const std::vector<std::string>& sections) {
 	return readers;
 }
 
+/// @brief How the panels follow a revision, per section it touches: only the lists of children it changed
+/// (CompiledCache::carryOver()) and the readers of the places it marks, or a full pass, for the reason given (what
+/// UpdateStatistics::fullReason then says). A section not listed takes the full pass: one the panels may read
+/// without a place saying so. Among sections, the first that takes a full pass gives its reason.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 21> revisionPasses{{
+    // The nodes: what each kept compiled node's panels show reads its place (childrenPlace()); a root, a screen or an
+    // overlay that changes in its own keys, or the screens and overlays named, take the full pass (listsOnly()).
+    {"root", {}},
+    {"screens", {}},
+    {"overlays", {}},
+    // The state: its places are marked, and their readers run, as an action's change runs them.
+    {"state", {}},
+    // Read by name by any binding or step: no place says which panels read them.
+    {"computed", "revision: computed"},
+    {"actions", "revision: actions"},
+    {"watch", "revision: watch"},
+    // What every node is compiled with: everything compiled is dropped (carryOver()).
+    {"styles", "revision: styles"},
+    {"components", "revision: components"},
+    {"templates", "revision: templates"},
+    // Read again for every panel's values (readDerived()).
+    {"colors", "revision: colors"},
+    {"tokens", "revision: tokens"},
+    {"fonts", "revision: fonts"},
+    {"strings", "revision: strings"},
+    // Read outside the panels (the menus, the shortcuts, the window), on a full pass.
+    {"commands", "revision: commands"},
+    {"menus", "revision: menus"},
+    {"settings", "revision: settings"},
+    {"window", "revision: window"},
+    // Read by the data layer and the program, whose results any binding may read.
+    {"models", "revision: models"},
+    {"queries", "revision: queries"},
+    {"program", "revision: program"},
+}};
+
+/// @brief The section a revision's place is in. A place written as a node's id ("#logo/text") is in the section of
+/// the node with that id, in the version after, else (a node removed) in the version before.
+/// @param place The place: a JSON Pointer, or "#id" and the rest.
+/// @param before The document before.
+/// @param after The document after.
+/// @return The section; empty if no node has that id.
+std::string sectionOf(const std::string& place, const json& before, const json& after) {
+	std::optional<std::string> pointer = place;
+	if(place.starts_with('#')) {
+		const std::string_view id = std::string_view(place).substr(1, place.find('/') - 1U);
+		pointer = findNodeWithId(after, id);
+		if(!pointer) pointer = findNodeWithId(before, id);
+	}
+	if(!pointer || !pointer->starts_with('/')) return {};
+	return json::json_pointer(pointer->substr(0, pointer->find('/', 1))).back();
+}
+
+/// @brief Whether a revision's places take a full pass of the panels (revisionPasses).
+/// @param change The revision.
+/// @param after The document after.
+/// @return The reason, or empty if only the lists and the places it changed need to be run.
+std::string_view fullPassFor(const DocumentChange& change, const json& after) {
+	for(const std::string& place : change.document) {
+		const std::string section = sectionOf(place, *change.before, after);
+		const auto* const pass =
+		    std::ranges::find(revisionPasses, section, &decltype(revisionPasses)::value_type::first);
+		if(pass == revisionPasses.end()) return "revision: another section";
+		if(!pass->second.empty()) return pass->second;
+	}
+	return {};
+}
+
+/// @brief Marks the places of the state a change says changed, for their readers.
+/// @param document The engine's document.
+/// @param change The change.
+void markStatePlaces(DocumentContext& document, const DocumentChange& change) {
+	for(const std::string& place : change.state)
+		if(place.empty()) document.markStateChanged(); // the whole state
+		else document.markStateChanged(json::json_pointer(place));
+}
+
 } // namespace
 
 void Engine::documentChanged() {
@@ -81,9 +165,7 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 		return;
 	}
 	if(change.document.empty()) { // the same document: a state update, with nothing compiled or reconciled
-		for(const std::string& place : change.state)
-			if(place.empty()) document.markStateChanged(); // the whole state
-			else document.markStateChanged(json::json_pointer(place));
+		markStatePlaces(document, change);
 		document.reviewChanged(); // the version's number and the history: what reads them is evaluated too
 		reconciler.updateNow();
 		return;
@@ -100,9 +182,18 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 	if((readers & reader::services) != 0U) serviceCalls.load();
 	if((readers & reader::sounds) != 0U) audio.documentChanged();
 	if((readers & reader::windows) != 0U) otherWindows.documentChanged();
-	document.reviewChanged();           // the version's number and the history are new globals
-	document.requestUpdate("revision"); // what reads outside the panels (the icon, the title, the menus) runs too
-	reconciler.reconcile("revision");
+	document.reviewChanged(); // the version's number and the history are new globals
+	markStatePlaces(document, change);
+	std::string_view full = fullPassFor(change, versions.document());
+	const CompiledCache& compiler = builder.compiler();
+	if(full.empty() && !compiler.listsOnly()) full = "revision: a root, screen or overlay";
+	if(!full.empty()) {
+		document.requestUpdate(full); // what reads outside the panels (the icon, the title, the menus) runs too
+		reconciler.reconcile(full);
+		return;
+	}
+	for(const std::uint64_t serial : compiler.changedLists()) document.markPlaceChanged(childrenPlace(serial));
+	reconciler.updateNow(); // the lists it changed and the places it marked: one update
 }
 
 void Engine::proposalsChanged() {
