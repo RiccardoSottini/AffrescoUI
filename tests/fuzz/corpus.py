@@ -16,6 +16,8 @@
 - text:       every text of the templates and of the rendering check's screens;
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
+- updates:    the screens and steps kept in seeds/updates/ (nested repeats, components, a program, a set past a
+              list's end).
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
 - data_uri:   the same PNG and JPEG files as data: URIs;
@@ -1198,6 +1200,8 @@ def main():
     write(out, "cli", cli_seeds(), words["cli"])
     write(out, "actions", action_seeds(), words["actions"])
     write(out, "layout", layout_seeds(), words["layout"])
+    write(out, "updates", checked_in_seeds("updates"), words["layout"] + ["steps", "screen", "set", "push", "remove",
+                                                                         "toggle", "increment", "repeat", "key", "when"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
     write(out, "data_uri", data_uri_seeds(), words["data_uri"])
