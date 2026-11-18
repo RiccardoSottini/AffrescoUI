@@ -1,6 +1,8 @@
 ;;; sidebar.lisp --- Flow's sidebar, included by index.screen.lisp: the workspace, the personal pages, the team's
 ;;; pages and its boards.
 
+(ns flow.sidebar)
+
 ;;; Components
 
 (defcomponent navItem "One row of the sidebar: an icon, a name and a count; the use gives its onClick"

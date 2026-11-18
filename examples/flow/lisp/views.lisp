@@ -1,6 +1,8 @@
 ;;; views.lisp --- Flow's other views, included by index.screen.lisp: the insights beside the board (burndown and
 ;;; activity), swimlanes by member, the timeline of due dates, and the settings.
 
+(ns flow.views)
+
 ;;; Components
 
 (defcomponent insights
