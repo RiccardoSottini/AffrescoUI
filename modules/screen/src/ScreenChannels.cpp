@@ -66,11 +66,16 @@ void Screen::Impl::run(const std::string& action, const json& event) {
 		runtime.runAction(action, window->root(), event);
 }
 
+void Screen::Impl::closed(DeclaredChannel& channel, const std::string& message) {
+	if(std::exchange(channel.closedRun, true)) return;
+	run(channel.name + ":closed", {{"type", "closed"}, {"message", message}});
+}
+
 void Screen::Impl::open(DeclaredChannel& channel) {
 	if(!executor) return;
 	if(Window* window = runtime.window(); window && channel.retry) window->cancelTimer(std::exchange(channel.retry, 0));
 	if(!channel.refused.empty()) { // trying again would be refused again
-		run(channel.name + ":closed", {{"type", "closed"}, {"message", "Not connected: " + channel.refused}});
+		closed(channel, "Not connected: " + channel.refused);
 		return;
 	}
 	if(!tryConnect(channel)) {
@@ -84,16 +89,14 @@ bool Screen::Impl::tryConnect(DeclaredChannel& channel) {
 	if(!channel.url.empty()) {
 		channel.remote = net::connectPeer(*executor, channel.url, channel.token);
 		if(channel.remote) return true;
-		run(channel.name + ":closed", {{"type", "closed"},
-		                               {"message", "Can't connect to " + channel.url +
-		                                               ": it takes a wss:// address (ws:// on the loopback) "
-		                                               "and a token from the host"}});
+		closed(channel, "Can't connect to " + channel.url +
+		                    ": it takes a wss:// address (ws:// on the loopback) and a token from the host");
 		return false;
 	}
 	try {
 		channel.socket = channel::SocketChannel::connect(*executor, channel.path);
 	} catch(const std::exception& error) {
-		run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
+		closed(channel, error.what());
 		return false;
 	}
 	return true;
@@ -119,10 +122,11 @@ void Screen::Impl::watch(DeclaredChannel& channel) {
 			DeclaredChannel& c = channels.at(name);
 			c.socket.reset();
 			c.remote.reset();
-			run(name + ":closed", {{"type", "closed"}, {"message", "The other end closed the connection"}});
+			closed(c, "The other end closed the connection");
 			retry(c);
 		});
 	});
+	channel.closedRun = false; // the next closing is reported
 	run(name + ":open", {{"type", "open"}});
 }
 
@@ -170,7 +174,8 @@ bool Screen::connectChannel(const std::string& name, std::string address, std::s
 	channel.remote.reset();
 	channel.url.clear();
 	channel.token.clear();
-	channel.refused.clear(); // the host's own address: neither the file's nor confined
+	channel.refused.clear();   // the host's own address: neither the file's nor confined
+	channel.closedRun = false; // a first try of the new address
 	if(isPeerAddress(address)) {
 		channel.url = std::move(address);
 		channel.token = std::move(token);

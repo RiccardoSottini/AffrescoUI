@@ -143,20 +143,48 @@ ColorScheme colorScheme() {
 
 bool reducedMotion() { return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion; }
 
-void watchColorScheme() {
-	[NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
-	                                                           object:nil
-	                                                            queue:NSOperationQueue.mainQueue
-	                                                       usingBlock:^(NSNotification*) {
-		                                                     glfwPostEmptyEvent();
-	                                                       }];
-	[NSWorkspace.sharedWorkspace.notificationCenter
-	    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
-	                object:nil
-	                 queue:NSOperationQueue.mainQueue
-	            usingBlock:^(NSNotification*) {
-		          glfwPostEmptyEvent();
-	            }];
+namespace {
+
+/// @brief The two observers of the appearance: the interface style's and the accessibility options'. Removed when
+/// destroyed, so no notification reaches a platform that has gone.
+class MacAppearanceWatch final : public AppearanceWatch {
+public:
+	/// @brief Starts observing.
+	/// @param changed Called on the main queue after each change.
+	explicit MacAppearanceWatch(std::function<void()> changed) {
+		void (^announce)(NSNotification*) = ^(NSNotification*) {
+		  changed();
+		};
+		theme_ =
+		    [NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
+		                                                               object:nil
+		                                                                queue:NSOperationQueue.mainQueue
+		                                                           usingBlock:announce];
+		motion_ = [NSWorkspace.sharedWorkspace.notificationCenter
+		    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
+		                object:nil
+		                 queue:NSOperationQueue.mainQueue
+		            usingBlock:announce];
+	}
+	/// @brief Stops observing.
+	~MacAppearanceWatch() override {
+		[NSDistributedNotificationCenter.defaultCenter removeObserver:theme_];
+		[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:motion_];
+	}
+	MacAppearanceWatch(const MacAppearanceWatch&) = delete;
+	MacAppearanceWatch& operator=(const MacAppearanceWatch&) = delete;
+	MacAppearanceWatch(MacAppearanceWatch&&) = delete;
+	MacAppearanceWatch& operator=(MacAppearanceWatch&&) = delete;
+
+private:
+	id theme_;  ///< The interface style's observer.
+	id motion_; ///< The accessibility display options' observer.
+};
+
+} // namespace
+
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	return std::make_unique<MacAppearanceWatch>(std::move(changed));
 }
 
 void keepOutOfSwitcher() { [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory]; }

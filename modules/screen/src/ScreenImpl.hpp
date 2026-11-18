@@ -80,6 +80,7 @@ struct Screen::Impl {
 		std::string token;               ///< The token for url, from the host (never from the document).
 		std::unique_ptr<Channel> remote; ///< While connected to url.
 		std::string refused;             ///< Why the socket may not be connected (confineChannels()), or "".
+		bool closedRun = false;          ///< "<name>:closed" ran since it last opened (or was first tried): not again.
 	};
 
 	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
@@ -148,8 +149,14 @@ struct Screen::Impl {
 	/// @param event Its event.
 	void run(const std::string& action, const json& event);
 
-	/// @brief Connects a declared channel; on failure runs "<name>:closed" and tries again later if it should (never
-	/// when it is refused).
+	/// @brief Runs a declared channel's "<name>:closed", once per closing: when it was open, or on the first try, and
+	/// not on every failed retry after (an app with no host would run it every few seconds for nothing).
+	/// @param channel The channel.
+	/// @param message Why, for the event.
+	void closed(DeclaredChannel& channel, const std::string& message);
+
+	/// @brief Connects a declared channel; on failure runs "<name>:closed" (closed()) and tries again later if it
+	/// should (never when it is refused).
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel);
 
