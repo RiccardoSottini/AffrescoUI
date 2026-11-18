@@ -43,7 +43,7 @@
 (defstate sideView explorer)
 
 (defn forgeShowView "Shows a view of the side bar, or hides the side bar if it shows that view already." [view]
-  (if (and (= state.sideView view) state.layout.sidebar)
+  (if (and (= state.sideView view) (true? state.layout.sidebar))
     (set "state.layout.sidebar" false)
     (do (set "state.sideView" view) (set "state.layout.sidebar" true))))
 
@@ -98,11 +98,11 @@
 
 (defn indexed "The folder's files as Go to File lists them: each its name, and the folder it is in." [files]
   (set "state.folder.files"
-       (map (fn [it] {:id it :title (baseName it) :detail (join "/" (slice (split it "/") 0 (- 1)))}) files)))
+       ; style: keep, #(...) can't give a map, and the host's split keeps the empty name after a last slash
+       (map (fn [it] {:id it :title (baseName it) :detail (str/join "/" (slice (split it "/") 0 (- 1)))}) files)))
 
 (defn openExplorerItem "An entry of the explorer, opened: a file opens in a tab." []
-  (when (and (not (empty? event.id))
-             (not= (:kind (or-else (find (fn [it] (= it.path event.id)) state.explorerTree.entries) {})) "folder"))
+  (when (and (seq event.id) (not= (:kind (find #(= (:path %) event.id) state.explorerTree.entries)) "folder"))
     (openPath event.id (baseName event.id))))
 
 (defkey "mod+o" openFolder)
@@ -135,29 +135,29 @@
    :bash "Shell"
    :zsh "Shell"})
 
-(defcomputed docIds (map (fn [it] it.id) state.docs))
+(defcomputed docIds (map :id state.docs))
 
-(defcomputed dirtyIds (map (fn [it] it.id) (filter (fn [it] it.dirty) state.docs)))
+(defcomputed dirtyIds (map :id (filter :dirty state.docs)))
 
-(defcomputed activeDoc (find (fn [it] (= it.id (get-in state.groups [state.activeGroup :active]))) state.docs))
+(defcomputed activeDoc (find #(= (:id %) (get-in state.groups [state.activeGroup :active])) state.docs))
 
 (defcomputed welcomeRecent
   (if (empty? state.folder.root)
         []
-        (slice (filter (fn [it] (contains (map (fn [it] it.id) (or-else state.folder.files [])) it.id))
+        (slice (filter #(contains (map :id (or-else state.folder.files [])) (:id %))
                        (or-else state.quickPick.recent []))
                0
                5)))
 
 (defn showTab "Shows a tab in the active group, adding it if it isn't there." [id label]
   (forgeRecordNav id)
-  (when (not (some (fn [it] (= it.id id)) (activeTabs)))
+  (when-not (some #(= (:id %) id) (activeTabs))
     (push (str "state.groups[" state.activeGroup "].tabs") {:id id :label label}))
   (set (str "state.groups[" state.activeGroup "].active") id))
 
 (defn openPage "Opens a page (the settings, the keyboard shortcuts...) as a document of its own, in a tab."
   [id label kind]
-  (when (not (contains computed.docIds id))
+  (when-not (contains computed.docIds id)
     (push "state.docs" {:id id :label label :kind kind :text "" :dirty false :language ""}))
   (showTab id label))
 
@@ -170,8 +170,8 @@
   :title ~(t "command.splitEditor") :category ~(t "category.view") :icon "columns-2"
   :description ~(t "command.splitEditor.about")
   :enablement ~(and (< (count state.groups) 2) (not (empty? (get-in state.groups [state.activeGroup :active])))) []
-  (push "state.groups" {:tabs (filter (fn [it] (= it.id (activeTabId))) (activeTabs)) :active (activeTabId)})
-  (set "state.activeGroup" (- (count state.groups) 1)))
+  (push "state.groups" {:tabs (filter #(= (:id %) (activeTabId)) (activeTabs)) :active (activeTabId)})
+  (set "state.activeGroup" (dec (count state.groups))))
 
 (defkey "mod+w" closeEditor)
 
@@ -185,15 +185,15 @@
   :title ~(t "command.navigateBack")
   :description ~(t "command.navigateBack") :category ~(t "category.go") :icon "arrow-left"
   :enablement ~(> (count state.nav.back) 0) []
-  (set "state.nav.forward" (concat (filter (fn [it] (= it.id (activeTabId))) (activeTabs)) state.nav.forward))
+  (set "state.nav.forward" (concat (filter #(= (:id %) (activeTabId)) (activeTabs)) state.nav.forward))
   (forgeNavigateTo (last state.nav.back))
-  (set "state.nav.back" (slice state.nav.back 0 (- (count state.nav.back) 1))))
+  (set "state.nav.back" (slice state.nav.back 0 (- 1))))
 
 (defcommand navigateForward "Go Forward"
   :title ~(t "command.navigateForward")
   :description ~(t "command.navigateForward") :category ~(t "category.go") :icon "arrow-right"
   :enablement ~(> (count state.nav.forward) 0) []
-  (set "state.nav.back" (concat state.nav.back (filter (fn [it] (= it.id (activeTabId))) (activeTabs))))
+  (set "state.nav.back" (concat state.nav.back (filter #(= (:id %) (activeTabId)) (activeTabs))))
   (forgeNavigateTo state.nav.forward.0)
   (set "state.nav.forward" (slice state.nav.forward 1)))
 
@@ -205,9 +205,9 @@
 (defn forgeRecordNav
   "Before a tab (`id`) is shown: the one shown goes into the history (the last 50), unless Back or Forward moves."
   [id]
-  (when (and (not state.nav.moving) (not (empty? (activeTabId))) (not= (activeTabId) id))
+  (when (and (not (true? state.nav.moving)) (seq (activeTabId)) (not= (activeTabId) id))
     (set "state.nav"
-         {:back (slice (concat state.nav.back (filter (fn [it] (= it.id (activeTabId))) (activeTabs)))
+         {:back (slice (concat state.nav.back (filter #(= (:id %) (activeTabId)) (activeTabs)))
                        (max 0 (- (count state.nav.back) 49)))
           :forward []
           :moving false})))
