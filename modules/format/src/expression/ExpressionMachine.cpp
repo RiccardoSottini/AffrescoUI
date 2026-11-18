@@ -6,6 +6,7 @@
 #include "ExpressionParser.hpp"
 #include "Models.hpp"
 #include "Reads.hpp"
+#include "ScopeLayers.hpp"
 
 #include <algorithm>
 #include <array>
@@ -282,7 +283,7 @@ const Value* Machine::accumulator() const noexcept {
 Value Machine::call(const Node& node, const Place& place) {
 	const Place at(place, node.label);
 	const Function* function = node.function;
-	if(function && function->changes && context_.reads) context_.reads->always = true; // the clock
+	if(function && function->changes && context_.reads) context_.reads->addAlways(AlwaysReason::Clock); // the clock
 	if(function && function->decide) return decide(*function, node, at);
 
 	// Arguments first, then their number, as evaluating the JSON form did
@@ -348,14 +349,14 @@ Value Machine::walk(Root root, std::string_view name, std::span<const PathKey> k
 
 void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const {
 	if(root == Root::Nodes) { // a panel's geometry: no state change announces it
-		context_.reads->always = true;
+		context_.reads->addAlways(AlwaysReason::Geometry);
 		return;
 	}
 	std::string pointer;
-	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
-		const std::string* origin = context_.locals.originOf(name);
-		if(!origin || (item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
-		pointer = *origin;
+	if(root == Root::Named) { // a repeat's item lying in the state reads it there, a tracked layer's variable its place
+		std::optional<std::string> place = namedReadPlace(name);
+		if(!place) return;
+		pointer = std::move(*place);
 	} else if(root != Root::State) {
 		return;
 	}
@@ -367,14 +368,48 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	context_.reads->addPath(pointer);
 }
 
+std::optional<std::string> Machine::namedReadPlace(std::string_view name) const {
+	if((item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return std::nullopt;
+	std::optional<std::string> place = namedPlace(name);
+	if(!place && name == "data" && !context_.locals.find(name)) place = places::data; // the records (DataLayer)
+	return place;
+}
+
+// A row's number is read under its list ("/items/~i"), which the children lists mark when rows are numbered again
+std::optional<std::string> Machine::namedPlace(std::string_view name) const {
+	for(const Scope* scope = &context_.locals; scope; scope = scope->parent) {
+		if(!scope->vars.contains(name)) continue;
+		if(scope->tracking && scope->tracking->tracks(name)) { // a layer's variable (ScopeLayers)
+			std::string place = layerPlace(scope->layer);
+			appendKey(place, name);
+			return place;
+		}
+		if(scope->fromState == name) return scope->origin();
+		if(scope->place.index == name && scope->place.row != ItemPlace::noRow) {
+			std::string list = scope->listPlace();
+			list += '/';
+			list += indexKey; // raw: no key escapes to it
+			return list;
+		}
+		return std::nullopt;
+	}
+	return std::nullopt;
+}
+
+Value Machine::global(std::string_view name, const json& given) const {
+	if(context_.variables)
+		if(const json* built = (*context_.variables)(name)) return Value::fromJson(*built);
+	return Value::fromJson(given);
+}
+
 std::optional<Value> Machine::variable(Root root, std::string_view name, const Place& place) const {
 	switch(root) {
 	case Root::State:
 		return Value::fromJson(context_.state);
 	case Root::Window:
-		return Value::fromJson(context_.window);
+		return global("window", context_.window);
 	case Root::Revision:
-		return Value::fromJson(context_.revision);
+		return global("revision", context_.revision);
 	case Root::Event:
 		return Value::fromJson(context_.event);
 	case Root::Computed:
@@ -406,9 +441,10 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 		// While an update records reads, a repeat's item is read where it lies now: an update that changes only
 		// inside it keeps the scope, and its copy, built before
 		if(context_.reads && scope->fromState == name) {
-			if(context_.models && scope->origin.starts_with(modelPlaces)) // a data model's row
-				if(json row = (*context_.models)(scope->origin); !row.is_null()) return Value::ownJson(std::move(row));
-			if(const json* live = lying(context_.state, scope->origin)) return Value::fromJson(*live);
+			if(context_.models && scope->origin().starts_with(modelPlaces)) // a data model's row
+				if(json row = (*context_.models)(scope->origin()); !row.is_null())
+					return Value::ownJson(std::move(row));
+			if(const json* live = lying(context_.state, scope->origin())) return Value::fromJson(*live);
 		}
 		return Value::fromJson(*local);
 	}

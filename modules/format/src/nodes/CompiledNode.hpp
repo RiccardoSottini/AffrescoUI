@@ -120,7 +120,8 @@ struct CompiledRepeat {
 /// panel built from it, so a repeat's thousand items share one. It owns the node's keys but "children", which its
 /// bindings refer to, so a record can keep it after the document changes. Its children are not copied: they stay in
 /// the document, or in the component's instance it keeps, and an update reads them while that version is current.
-/// Immutable once built.
+/// Immutable once built, but for where its children are: a new version of the document that keeps the node moves
+/// them, and CompiledCache::carryOver() points the node at them there.
 struct CompiledNode {
 	CompiledNode() = default;
 	CompiledNode(const CompiledNode&) = delete;
@@ -129,11 +130,17 @@ struct CompiledNode {
 	CompiledNode& operator=(CompiledNode&&) = delete;
 	~CompiledNode() = default;
 
-	json own;                       ///< The node's keys but "children": what the bindings refer to.
-	const json* children = nullptr; ///< Its "children" as written, or nullptr: in the document, or in keep.
-	NodeRef keep;                   ///< What holds children when the document doesn't (a component's instance).
-	std::string type = "panel";     ///< "type".
-	bool typeIsText = true;         ///< false: "type" isn't text, an error where the node is built.
+	json own; ///< The node's keys but "children": what the bindings refer to.
+	/// Its "children" as written, or nullptr: in the document, or in keep. Mutable for CompiledCache::carryOver() only,
+	/// between updates, when the version it pointed into is replaced by one that holds the same node elsewhere.
+	mutable const json* children = nullptr;
+	NodeRef keep; ///< What holds children when the document doesn't (a component's instance).
+	/// Its number in the cache that compiled it, never reused, and the number of the node a dynamic style was chosen
+	/// for: the panels' lists of children built from it read their place by it (childrenPlace()), which stays the same
+	/// when a revision moves the node in the document. Mutable for CompiledCache only, as it compiles the node.
+	mutable std::uint64_t serial = 0;
+	std::string type = "panel";               ///< "type".
+	bool typeIsText = true;                   ///< false: "type" isn't text, an error where the node is built.
 	std::vector<CompiledProperty> properties; ///< Every key but "children", "style" and the scoping ones, in order.
 	std::size_t evaluatedCount = 0;           ///< How many values an update evaluates.
 	bool hasId = false;                       ///< It has an "id".
@@ -170,6 +177,25 @@ using CompiledRef = std::shared_ptr<const CompiledNode>;
 /// @param node The node, an object.
 /// @return The copy.
 [[nodiscard]] json withoutChildren(const json& node);
+
+/// @brief The place a list of children built from a node reads, so that a revision that changes that list (a child
+/// added, removed, moved or changed) runs it again: "/~doc/~n<serial>", under the document's places, whatever the
+/// node's place in the document (CompiledCache::carryOver() says which lists a revision changed).
+/// @param serial The node's number (CompiledNode::serial).
+/// @return The place; empty for 0, a node no cache numbered.
+[[nodiscard]] std::string childrenPlace(std::uint64_t serial);
+
+/// @brief What versions of the document cost on this thread, counted exactly, for the tests
+/// (tests/unit/revision_cost.cpp) and the benchmarks: they only ever grow.
+struct RevisionCounters {
+	std::size_t nodesCompiled = 0; ///< Nodes compiled (compileNode()).
+	std::size_t nodesCarried = 0;  ///< Compiled nodes a new version kept (CompiledCache::carryOver()).
+	std::size_t derivedReads = 0;  ///< Times colours, tokens, fonts, languages and strings were read again.
+};
+
+/// @brief This thread's counters.
+/// @return Them.
+[[nodiscard]] RevisionCounters& revisionCounters() noexcept;
 
 /// @brief Compiles a resolved node. Malformed scoping keys are kept for the builder to report at each instance's
 /// place, as building reports them.

@@ -243,8 +243,8 @@ void SecondWindows::watchScreen(Shown& shown) {
 }
 
 void SecondWindows::changed() {
-	engine_.document.globalsChanged();
-	engine_.reconciler.requestReconcile();
+	engine_.document.markVariableChanged("windows");
+	engine_.reconciler.requestStateUpdate();
 }
 
 } // namespace affresco::format

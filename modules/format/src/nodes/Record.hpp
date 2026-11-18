@@ -4,10 +4,11 @@
 /// @brief What the runtime keeps about each panel it built (Record), the children it is about to build (Item), and
 /// the limits its subsystems share.
 
+#include "ChildList.hpp"
 #include "CompiledNode.hpp"
-#include "ItemIndex.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
+#include "Tracker.hpp"
 #include "TypeRegistry.hpp"
 
 #include "affresco/core/Signal.hpp"
@@ -33,6 +34,44 @@ struct Tween {
 	std::uint64_t timer = 0; ///< The next frame's timer, if running.
 };
 
+/// @brief One of the three readers of a panel's record (Tracker): the copies of the items its variables hold, its
+/// values, or its children's list. They run in the order of the panels, depth first: a panel's own before its
+/// children's, and among its own the items, the values, then the list. Defined with the reconciler, which runs them.
+class PanelReader final : public Reader {
+public:
+	/// @brief What it brings up to date.
+	enum class Kind : std::uint8_t {
+		Items,  ///< The copies of the items its variables hold (Reconciler::refreshItems()).
+		Values, ///< Its values.
+		List    ///< Its children's list.
+	};
+	/// @brief A reader of a kind, not added yet.
+	/// @param of Its kind.
+	explicit PanelReader(Kind of) noexcept : kind(of) {}
+
+	/// @brief Brings its part of the panel up to date (Reconciler::runReader()).
+	/// @param changes The update's changes.
+	void update(const StateChanges& changes) override;
+	/// @brief Unused: position() places it.
+	/// @return The last order.
+	[[nodiscard]] std::uint64_t order() const noexcept override { return ~std::uint64_t{0}; }
+	/// @brief Its kind and the panel's type, never a place of the state.
+	/// @return The name.
+	[[nodiscard]] std::string name() const override;
+	/// @brief Where it comes: 1, then the panel's place among its parent's children at each level from the root
+	/// (each plus 3), then its kind; so after every reader outside the panels, depth first.
+	/// @param out Gets the numbers.
+	void position(std::vector<std::uint32_t>& out) const override;
+	/// @brief A panel's: a full pass brings it up to date.
+	/// @return true.
+	[[nodiscard]] bool panelReader() const noexcept override { return true; }
+
+	Kind kind;                        ///< What it brings up to date.
+	ReaderId id = 0;                  ///< Its handle in the tracker (0: not added).
+	Reconciler* reconciler = nullptr; ///< Who runs it.
+	Panel* panel = nullptr;           ///< The panel.
+};
+
 /// @brief What the runtime knows about each panel it built. Kept by the Reconciler, from the panel's creation until
 /// it is destroyed (forgetSubtree()); the other subsystems read and update it through Reconciler::recordOf().
 struct Record {
@@ -47,22 +86,25 @@ struct Record {
 	CompiledRef node;                     ///< The compiled node last applied (what refresh() re-applies).
 	std::vector<json> values;             ///< Its values last applied: CompiledProperty::evaluated places them.
 	std::uint64_t appearance = 0;         ///< DocumentContext::appearance() when it was last applied.
-	ReadSet valueReads;                   ///< What its values read when last applied.
-	ReadSet expandReads;                  ///< What building its children's list read (repeat, when, with, ...).
-	ReadSet subtreeReads;                 ///< What it, its children's list and the panels below read (or more).
-	ItemIndex items;                      ///< Its children by the item they read, when there are many.
-	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
-	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
-	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
-	json context;                         ///< "context", unevaluated (read with the `context` variable).
-	json key;                             ///< A keyed repeat's key for this item (null: none).
-	std::optional<std::string> bind;      ///< State path the value mirrors.
-	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.
-	std::optional<std::string> view;      ///< State path a text editor writes what it shows to.
+	PanelReader itemsReader{PanelReader::Kind::Items};   ///< Reads the items its own variables hold, if any.
+	PanelReader valuesReader{PanelReader::Kind::Values}; ///< Reads what its values read when last applied.
+	PanelReader listReader{PanelReader::Kind::List};     ///< Reads what building its children's list read.
+	const Scope* itemsOf = nullptr;                      ///< The variables whose items itemsReader reads.
+	std::uint32_t rank = 0;           ///< Where it was last found among its parent's children (a hint).
+	ListState list;                   ///< What its children's list keeps between updates (ChildList).
+	json handlers = json::object();   ///< "onClick" and the others: an action name or steps each.
+	json keys;                        ///< Shortcuts: "cmd+k" -> handler (null: none).
+	std::size_t keysHash = 0;         ///< keys' hash, set with them: what keysFingerprint() reads.
+	json drag;                        ///< "drag", unevaluated (data is read when a drag starts).
+	json context;                     ///< "context", unevaluated (read with the `context` variable).
+	json key;                         ///< A keyed repeat's key for this item (null: none).
+	std::optional<std::string> bind;  ///< State path the value mirrors.
+	std::optional<std::string> caret; ///< State path a text editor writes its caret to.
+	std::optional<std::string> view;  ///< State path a text editor writes what it shows to.
 	/// The values last given to the apply function of its property set that runs only when they change (an
 	/// application's type); there is at most one such set, its type's own.
 	std::optional<json> ownProperties;
-	std::uint64_t ownLooks = 0; ///< DocumentContext::looks() when ownProperties were applied.
+	std::uint64_t ownLooks = 0;          ///< DocumentContext::looks() when ownProperties were applied.
 	std::optional<std::string> lastText; ///< "text" applied last time.
 	bool hovered = false;                ///< The pointer is over it ("hover" styles).
 	bool down = false;                ///< A mouse button went down on it or inside it, and is still down ("pressed").

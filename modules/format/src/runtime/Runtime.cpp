@@ -45,11 +45,11 @@ Runtime::~Runtime() {
 	setRunControl(nullptr); // the run control outlives the runtime and would call into it
 	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
-	impl_->programs.dismissQuestion(); // and so would the answer to a question it asked
+	impl_->programs.dismissQuestion();         // and so would the answer to a question it asked
 	impl_->picks.cancelRunning(impl_->window); // and so would the end of a pick it started
-	impl_->scheduler.cancelAll();      // and its timers and deferred tasks would run on freed memory
-	impl_->calls.cancelAll();          // and what slow calls return would reach it
-	impl_->serviceCalls.cancelAll();   // and so would what services return
+	impl_->scheduler.cancelAll();              // and its timers and deferred tasks would run on freed memory
+	impl_->calls.cancelAll();                  // and what slow calls return would reach it
+	impl_->serviceCalls.cancelAll();           // and so would what services return
 	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
 
@@ -89,8 +89,7 @@ Window& Runtime::createWindow(Application& app) {
 
 	for(const auto& [key, value] : settings.items()) {
 		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight" &&
-		   key != "menuBar" && key != "focusRing" && key != "icon" &&
-		   key != "keyLabels")
+		   key != "menuBar" && key != "focusRing" && key != "icon" && key != "keyLabels")
 			fail("window." + key, "unknown property");
 	}
 	if(settings.contains("keyLabels") && !knownKeyNotation(string(settings["keyLabels"], "window.keyLabels")))
@@ -135,7 +134,7 @@ void Runtime::build(Window& window) {
 	Engine& engine = *impl_;
 	engine.window = &window;
 	engine.serviceCalls.load(); // the grants are in place by now
-	engine.reconciler.reconcile();
+	engine.reconciler.reconcile("first");
 	engine.events.connect(window);
 
 	// "onLoad": once, after the first update
@@ -172,21 +171,21 @@ void Runtime::setExecutor(Executor* executor) noexcept {
 
 void Runtime::setServices(services::Services* services) {
 	impl_->serviceCalls.setServices(services);
-	impl_->document.globalsChanged(); // the "services" variable
-	impl_->reconciler.requestReconcile();
+	impl_->document.markVariableChanged("services");
+	impl_->reconciler.requestStateUpdate();
 }
 
 void Runtime::setNetwork(network::Network* network) {
 	impl_->connections.setNetwork(network);
 	impl_->audio.setNetwork(network); // the sounds' URLs
-	impl_->document.globalsChanged(); // the "connections" variable
-	impl_->reconciler.requestReconcile();
+	impl_->document.markVariableChanged("connections");
+	impl_->reconciler.requestStateUpdate();
 }
 
 void Runtime::setLocale(std::string tag) {
 	impl_->document.setHostLocale(std::move(tag));
-	impl_->document.globalsChanged(); // the "locale" variable
-	impl_->reconciler.requestReconcile();
+	impl_->document.markGlobalChanged("locale"); // the locale is chosen again, and a new one updates everything
+	impl_->reconciler.requestStateUpdate();
 }
 
 void Runtime::setIdentity(identity::Identity* identity) {
@@ -194,13 +193,15 @@ void Runtime::setIdentity(identity::Identity* identity) {
 	impl_->identity = identity;
 	if(identity)
 		identity->onStatus([engine = impl_.get()] {
-			engine->document.globalsChanged(); // the "auth" variable
+			engine->document.markVariableChanged("auth");
 			engine->connections.authChanged();
-			engine->reconciler.requestReconcile();
+			engine->document.markVariableChanged("connections");
+			engine->reconciler.requestStateUpdate();
 		});
 	impl_->connections.declareSignIns();
-	impl_->document.globalsChanged();
-	impl_->reconciler.requestReconcile();
+	impl_->document.markVariableChanged("auth");
+	impl_->document.markVariableChanged("connections");
+	impl_->reconciler.requestStateUpdate();
 }
 
 void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
@@ -254,6 +255,8 @@ void Runtime::runOnce(const json& steps, const std::string& commit) {
 
 void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }
 
+void Runtime::setVerifyUpdates(bool on) noexcept { impl_->verify.setOn(on); }
+
 bool Runtime::hasAction(std::string_view name) const {
 	const json& document = impl_->versions.document();
 	return (document.contains("actions") && document["actions"].contains(std::string(name))) ||
@@ -265,6 +268,8 @@ bool Runtime::receiveReply(const json& reply) { return impl_->asks.receive(reply
 Window* Runtime::window() const noexcept { return impl_->window; }
 
 const UpdateStatistics& Runtime::lastUpdate() const noexcept { return impl_->reconciler.statistics(); }
+
+std::optional<std::span<const std::string>> Runtime::lastChanges() const noexcept { return impl_->frame.lastChanges(); }
 
 json Runtime::inspect(const Panel& panel) {
 	const Panel* built = &panel;

@@ -493,9 +493,7 @@ void collectProgramUses(const json& document, std::vector<std::string>& found) {
 		const auto built = lisp::builtProgram(document["program"]);
 		// What a macro writes into a definition is in its use too, as its text doesn't change with it
 		std::string macros;
-		for(const auto& [file, entries] : document["program"].items())
-			for(const auto& [name, text] : entries.items())
-				if(kindOf(text.get<std::string>()) == "defmacro") macros += "\n" + text.get<std::string>();
+		for(const std::string& text : built->macros) macros.append("\n").append(text);
 		for(const auto& [file, entries] : document["program"].items())
 			for(const auto& [name, text] : entries.items()) {
 				const auto calls = built->namedCalls.find(name);
@@ -643,9 +641,70 @@ bool Rules::changesCodeUnder(const json& before, const json& after, std::string_
 	return programRunsChanged(before, after);
 }
 
+namespace {
+
+/// @brief Builds kept by builtTree(): the document before a revision and the one after it.
+constexpr std::size_t treesKept = 2U;
+
+/// @brief A document and what its program builds.
+struct KeptTree {
+	json source;                      ///< The document as versioned.
+	std::shared_ptr<const json> tree; ///< What it builds.
+};
+
+/// @brief The builds builtTree() keeps on this thread, the latest first, and how many it made.
+struct KeptTrees {
+	std::vector<KeptTree> trees; ///< At most treesKept.
+	std::size_t builds = 0;      ///< Builds made.
+};
+
+/// @brief This thread's kept builds.
+/// @return Them.
+KeptTrees& keptTrees() {
+	thread_local KeptTrees kept;
+	return kept;
+}
+
+} // namespace
+
+std::shared_ptr<const json> builtTree(const json& document) {
+	KeptTrees& kept = keptTrees();
+	const auto found =
+	    std::ranges::find_if(kept.trees, [&document](const KeptTree& entry) { return entry.source == document; });
+	if(found != kept.trees.end()) {
+		std::rotate(kept.trees.begin(), found, found + 1);
+		return kept.trees.front().tree;
+	}
+	auto tree = std::make_shared<const json>(lisp::buildDocument(document)); // throws before anything is kept
+	++kept.builds;
+	if(kept.trees.size() >= treesKept) kept.trees.pop_back();
+	kept.trees.insert(kept.trees.begin(), KeptTree{document, tree});
+	return tree;
+}
+
+std::size_t programBuildCount() noexcept { return keptTrees().builds; }
+
 std::optional<json> Rules::built(const json& document) const {
 	if(!lisp::hasProgram(document)) return std::nullopt;
-	return lisp::buildDocument(document);
+	return *builtTree(document);
+}
+
+std::optional<std::vector<std::string>> Rules::changedPlaces(const json& before, const json& after) {
+	if(!lisp::hasProgram(before) || !lisp::hasProgram(after)) return std::nullopt;
+	static_cast<void>(builtTree(before)); // each is built, and checked, as built() builds it: kept
+	static_cast<void>(builtTree(after));
+	std::vector<std::string> places =
+	    lisp::changedPlaces(*lisp::builtProgram(before.at("program")), *lisp::builtProgram(after.at("program")));
+	std::set<std::string> keys;
+	for(const json* document : {&before, &after})
+		for(const auto& [key, value] : document->items()) keys.insert(key);
+	for(const std::string& key : keys)
+		if(!before.contains(key) || !after.contains(key) || before[key] != after[key])
+			places.push_back((json::json_pointer() / key).to_string());
+	std::ranges::sort(places);
+	const auto [first, last] = std::ranges::unique(places);
+	places.erase(first, last);
+	return places;
 }
 
 // "/program/<file>/<name>/:key(/:key...)" becomes "replace /program/<file>/<name>" with the whole new text

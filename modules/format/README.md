@@ -128,15 +128,55 @@ theme, and a name can't be both a colour and a token.
   typing, scroll and drags survive. If a version can't be built, the runtime refuses it and version control rolls
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
-- **Cost follows the change** (4.1). Each record keeps what its values, its list of children and its subtree read
-  (`ReadSet`, `src/updates/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
-  repeat's reading of a list's shape only). A state step records the places it wrote (`StateChanges`); the update
-  after it visits only the records whose subtree reads one, applies again the values that do and builds again the
-  lists of children that do. A repeat over a place of the state gives each item that place (`Scope::origin`), so its
-  bindings read `/items/5/title`, not the whole list. A long list (64 children or more) looks the changed places up
-  by item (`ItemIndex`) instead of visiting every child. A revision, a resize, a new theme or screen, and a change no
-  place describes update everything. A subtree's reads may say more than it reads, never less: an update that
-  visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
+- **Cost follows the change** (4.1, `src/updates/`). An update costs what it touches: the readers of the places that
+  changed, the rows a list gained or lost, and the panels the layout moves.
+  - *Readers and places.* Each record's values, its list of children and the items its variables copy are readers
+    (`Reader`, `src/updates/Tracker.hpp`), each with what it read (`ReadSet`, `src/updates/Reads.hpp`): JSON Pointers
+    into the state, `~*` for any key once a set holds more than 32 places (`maxReadPaths`), and `~#` for a repeat that
+    reads only a list's shape. What isn't the state has a place of its own, which no JSON Pointer can name: the host's
+    variables `/~v`, the globals `/~g` (the theme, the window, `history`, `proposals`...), `computed.<name>` at
+    `/~c/<name>`, the variables of a scope at `/~s/<layer>/<name>`, records at `/~d/<name>`, model rows at
+    `/~m/<name>/<row>`. Reads may say more than a value reads, never less.
+  - *The index.* `PlaceIndex` (`src/updates/PlaceIndex.hpp`, a trie of keys) holds the readers by the place they read.
+    A step records the places it wrote (`StateChanges`); the update looks them up without walking the panels and runs
+    each reader they meet once, in the order of the panels (`Tracker::update()`); places a reader marks while it runs
+    join the same update. A write of the value already there marks nothing and runs no update (`StateSteps.cpp`).
+  - *Lists by key.* A repeat over a place of the state gives each item that place (`Scope::origin`), so a row's
+    bindings read `/items/5/title`, not the list; the index keeps a row's reads relative to its row (`~r`), so an
+    insert or a removal numbers the later rows again in place (`PlaceIndex::shift()`). A `push`, an insert or a
+    removal records a `ListChange`, and a repeat with a `key` builds or destroys only those rows
+    (`ChildList::partial()`, `Panel::insertChild`, `takeChild`); a reorder keeps every panel (`reorderChildren`). A
+    list written whole is matched by key, row by row.
+  - *Computed values, and where they stop.* `computed.<name>` (`src/runtime/ComputedValues.hpp`), a query
+    (`src/data/DataLayer.hpp`) and a `watch` (`src/updates/Watches.hpp`) are readers too: a change of what they read
+    makes them stale, they are evaluated again when next read, and their own place is marked only when the new value
+    differs. A change that leaves a computed value as it was stops there.
+  - *Records.* A write to a collection marks `/~d/<collection>`, and a query's place only when its results differ.
+  - *Component parameters, `with` and `let`.* Each scope's variables are a layer (`ScopeLayers`,
+    `src/updates/ScopeLayers.hpp`), a reader that evaluates them again in place and marks only those whose value
+    changed, so a parameter's change reaches only what reads it.
+  - *Around the panels.* The screen, the window, the theme, the locale, the title, the menu bar and `onUpdated` run
+    only when what they read changed (`UpdateFrame`, `src/updates/UpdateFrame.hpp`).
+  - *Revisions.* `Engine::documentChangedWith()` (`src/runtime/EngineVersions.cpp`) keeps compiled what a revision
+    didn't change (`CompiledCache::carryOver()`), marks the state places it changed, and runs only the lists and
+    places of the nodes it touched. A revision of a section any binding may read by name (`computed`, `actions`,
+    `styles`, `components`, `tokens`, `strings`, `commands`...) takes a full pass, named in `revisionPasses`. A
+    program's changed definition is built again alone (`modules/lisp/README.md`).
+  - *The fallback.* Some reads no change announces, so their readers run on every update (`ReadSet::always`, with
+    its `AlwaysReason`): a panel's geometry (`nodes.<id>`), the clock (`now()`, `today()`), a variable the host builds
+    without announcing it, a behaviour that reads more than its values, and a reader past the index's 4,000,000
+    entries (`Tracker::maxEntries`). An update does everything when there is no place to look up: a revision of the
+    sections above, a resize, a new appearance or screen, the first update, more than 64 places changed at once
+    (`maxChangedPaths`), or a reconcile requested. `UpdateStatistics::fullReason` says which.
+  - *Verify mode.* `Runtime::setVerifyUpdates(true)`, or `AFFRESCOUI_VERIFY_UPDATES=1` when the runtime is made,
+    runs a full pass after every partial update, with handlers suspended, and reports the first node and property
+    that differ (`src/updates/Verify.hpp`). The tests that hold all this: `tests/unit/updates.cpp`,
+    `update_index.cpp`, `update_lists.cpp`, `update_derived.cpp`, `update_scopes.cpp`, `update_frame.cpp`,
+    `update_verify.cpp` and the property test `update_property.cpp`, with the fuzz target `affrescoui_fuzz_updates`.
+  - *The counters.* `Runtime::lastUpdate()` gives the last update's `UpdateStatistics`: its time, the panels applied,
+    created and visited, the nodes and computed values evaluated, the lists and rows expanded, the variables built,
+    the readers that read always (`alwaysReaders`), and whether it was full and why. `Runtime::lastChanges()` gives
+    the places it changed, for the host only.
 - **Data models** (4.3). `setModel(name, model)` registers rows the application owns (`DataModel`), which
   `"repeat": {"in": "models.<name>"}` goes over (`src/updates/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
   places values read (`~m` is no JSON Pointer key, so it is never one of the state), and an item's bindings read its
@@ -151,8 +191,8 @@ theme, and a name can't be both a colour and a token.
   store set with `Rules::setData`); `reviewLines` asks review for a migration, a destructive model change and a new
   write step; `impact` gives the layers a change touches (`DocumentRules::impact`, carried by proposals and diffs).
   `DataLayer` makes the store follow each version (`Engine::documentChanged`, first: records that don't fit refuse
-  the version); `data.<name>` reads in place, at the place `/~d` plus what the queries read, so only its readers are
-  evaluated again after a write. The write steps (`DataSteps.cpp`) are no control steps; an author other than "app"
+  the version); `data.<name>` reads in place, at the place `/~d/<name>`: a write marks its collection's place, and a
+  query's place only when its results differ, so only their readers are evaluated again after a write. The write steps (`DataSteps.cpp`) are no control steps; an author other than "app"
   (`Runtime::setDataAuthor`) writes only where `permissions.data` lets it (`/data/<collection>`). The checker reads
   `data` as lists of records with their model's fields (`CheckerData.cpp`). `computed.<name>` is read in place
   (`Context::computedValues`): a large computed list is never copied by a value that reads one item of it.
@@ -308,7 +348,7 @@ src/
   updates/                 building panels, and updating only what reads a change
     Reconciler.*           records, building and reconciling panels; updates of only what reads a change
     Reads.*                what values read and what changed in the state, and when they meet
-    ItemIndex.*            the children of a long list by the item of the state they read
+    PlaceIndex.*           the readers of the state by the place they read
     ListItems.*            a list's and a tree's items, read within limits, without recursion
     Models.*               the application's data models, their rows' places and their outline for agents
   events/                  Events.*: input (EventsFocus.cpp, EventsKeys.cpp, EventsPointer.cpp); Shortcuts.* names

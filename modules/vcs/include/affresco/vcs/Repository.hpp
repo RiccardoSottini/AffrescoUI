@@ -375,6 +375,8 @@ private:
 		json sourceBefore, sourceAfter;   ///< For a program: as versioned, before and after; else null.
 		json patch = json::array();       ///< Its operations as plain JSON Patch ("set" became replace or add).
 		std::vector<std::string> touches; ///< What its operations touch (detail::area), each once.
+		json built;                       ///< For a program: what the new document builds; else null.
+		std::vector<std::string> programState; ///< Places of the live state the program's change set or took out.
 	};
 
 	/// @brief What the permission rules say about a change.
@@ -594,6 +596,37 @@ private:
 	/// @return The stored commit.
 	/// @throws DocumentError If the observer refuses it; then nothing changed.
 	const Commit& land(Commit commit, json document, json state);
+	/// @brief Puts a revision's commit on main, as land() does, and tells the observer what it changed: the places
+	/// its checked patch names (for a program, those of what it builds), or only the state's when the document is
+	/// the same. The document and the tree of before live until the observer returns.
+	/// @param commit The commit; main's head becomes its first parent.
+	/// @param next The revision, as prepare() made it from main's head (moved from).
+	/// @param described Whether @p next and the commit's patch say what changed; otherwise the observer hears
+	/// everything (a merge), as land() makes it; an import's revisions say everything too.
+	/// @return The stored commit.
+	/// @throws DocumentError If the observer refuses it; then nothing changed, and the observer heard everything.
+	const Commit& landRevision(Commit commit, Prepared& next, bool described = true);
+	/// @brief Tells the observer of a revision landRevision() made live: what it changed, and the document or tree of
+	/// before, which live until it returns.
+	/// @param change What changed; a program's places of the document are filled in from what it builds.
+	/// @param next The revision (its tree is moved from).
+	/// @param described Whether @p next says what changed; otherwise the tree is built again here.
+	/// @param oldDocument The document of before, or nullptr if the revision changed only the live state.
+	/// @param oldBuilt The tree of before, or null.
+	/// @throws DocumentError If the observer refuses it.
+	void announceLanded(DocumentChange& change, Prepared& next, bool described, const json* oldDocument,
+	                    const json& oldBuilt);
+	/// @brief What a revision changes, from its patch: the places of the live state it names, and the places of the
+	/// document (for a program, filled in by landRevision()). An undo (revertRevision()) and a restore
+	/// (restoreRevision(), by the message it writes) change everything: they may take back the live state too.
+	/// @param commit The commit, its patch as history keeps it (paths resolved).
+	/// @param next The revision.
+	/// @return The change.
+	[[nodiscard]] static DocumentChange changeOf(const Commit& commit, const Prepared& next);
+	/// @brief Tells the observer about a new version, its tree already in built_.
+	/// @param change What changed.
+	/// @throws DocumentError If the observer refuses it.
+	void documentChangedWith(const DocumentChange& change);
 
 	/// @brief Resolves a "#id/rest" path to the node's JSON Pointer followed by "/rest".
 	/// @param view The document as it is when the operation runs.

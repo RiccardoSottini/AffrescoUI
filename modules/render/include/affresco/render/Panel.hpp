@@ -145,6 +145,28 @@ public:
 	/// @throws std::out_of_range If there is no child at @p index.
 	Panel& replaceChild(std::size_t index, std::unique_ptr<Panel> child);
 
+	/// @brief Adds an existing panel as a child at a position, moving the later children one place on.
+	/// @param index Its position: at most the number of children (that number adds it last).
+	/// @param child The panel; this panel takes ownership.
+	/// @return The child.
+	/// @throws std::out_of_range If @p index is past the end.
+	Panel& insertChild(std::size_t index, std::unique_ptr<Panel> child);
+
+	/// @brief Takes a child out, moving the later children one place back. It no longer has a parent or a window:
+	/// the window drops its focus, hover and capture pointers to it and to the panels inside it.
+	/// @param index Its position.
+	/// @return The child, owned by the caller now.
+	/// @throws std::out_of_range If there is no child at @p index.
+	[[nodiscard]] std::unique_ptr<Panel> takeChild(std::size_t index);
+
+	/// @brief Puts the children from a position on in another order, keeping every panel (and its focus, hover and
+	/// capture), with one change of the tree.
+	/// @param first The first child reordered; those before it stay.
+	/// @param order The current positions of those children, in their new order: a permutation of first, first + 1,
+	/// ..., the number of children - 1.
+	/// @throws std::invalid_argument If @p order isn't such a permutation.
+	void reorderChildren(std::size_t first, std::vector<std::size_t> order);
+
 	/// @brief Destroys the children from a position to the end.
 	/// @param from The first child to destroy.
 	void removeChildren(std::size_t from = 0);

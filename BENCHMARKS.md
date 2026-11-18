@@ -5,18 +5,21 @@ missed is written as missed: the targets don't move, the code does.
 
 ## Method
 
-- **Where.** Every number below was measured on an Apple M4 Pro, macOS 27.0.1, on 2026-10-22: the budgets at commit
-  `1d60d3f`, the agent benchmark at commit `8b367ca` (the same code; that commit adds only the recorded budgets). The
-  picks ("What a pick saves") and the latest oracle runs were measured on the same machine on 2026-11-15, at commit
-  `6f3b7584`. Other machines give other numbers.
+- **Where.** The budgets were measured on an Apple M4 Pro, macOS 27.0.1, on 2026-11-18, at commit `9f683df6`, three
+  times: two runs to compare, then the recorded one. The three agree within 10%, but for `frame/14` (0.42, 0.473 and
+  0.401 ms, met each time) and idle (0.8%, 0.8% and 0.6%, a few milliseconds a second). The per-workload numbers
+  (lists, locks) come from two more runs the same day: the first ran 36% slower on every workload, with the machine
+  busy, so the second is the one given. The agent benchmark was measured at commit `8b367ca` on 2026-10-22, and the
+  picks ("What a pick saves") and the latest oracle runs on 2026-11-15, at commit `6f3b7584`, on the same machine.
+  Other machines give other numbers.
 - **Build.** Release (`-O3`), the benchmark alone:
   `cmake -S . -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_BUILD_TESTS=OFF -DAFFRESCOUI_BUILD_EXAMPLES=OFF`.
 - **Workloads.** `affrescoui_bench` (`tests/perf`, described in `tests/perf/README.md`): each workload runs once to
   warm up, then `runs` times, and reports the median per operation, in wall-clock time (frames: the main thread's CPU
   time). Typing and scrolling time each operation and report the 99th percentile. The memory budgets run each in a
   process of its own and read the whole process's memory after the last run (its footprint on macOS, its resident set
-  on Linux). Idle CPU is every thread's CPU time over one second of the Kanban template's event loop, with nothing
-  happening.
+  on Linux). Idle CPU is every thread's CPU time over one second of a template's event loop, with nothing
+  happening, for every template, in a process of its own.
 - **Worst case.** A budget that covers several workloads (every template's revisions, two sizes of state change) is
   the slowest of them, named in the table.
 - **Tokens.** Counted with tiktoken's `o200k_base` on what the MCP server sends or receives (`tests/perf/tokens.py`):
@@ -37,7 +40,13 @@ missed is written as missed: the targets don't move, the code does.
   noisy to compare, and fails when a budget is above its threshold: tokens for the token budgets, instructions per
   operation for the others. A threshold is `pending` until a Linux callgrind run sets it; wall-clock and percentile
   budgets (idle, frame, typing, scrolling) are not enforced there, with the reason in `budgets.json`. A missed token
-  budget's threshold is the value it was recorded at, so it can only get better.
+  budget's threshold is the value it was recorded at, so it can only get better. `budgets.py --propose-thresholds
+  --from <folder>` turns a Linux callgrind run into thresholds for the pending budgets that are met.
+- **Idle in CI.** Idle is not enforced as a time: an idle second is a wall-clock measure, and a loaded runner would
+  decide it. It is enforced as counts by `tests/unit/window/idle.cpp`: in an idle second of every template, no update,
+  no frame, and no wake of the event loop but the template's own timers (3 at most) and the quit.
+- **Gains held.** `tests/perf/locks.json` holds the ratios that keep the cost of a change flat as the screen grows
+  (`update/400` against `update/14`, and so on); the benchmarks job checks them beside its 3% gate.
 
 ## Budgets
 
@@ -45,50 +54,99 @@ missed is written as missed: the targets don't move, the code does.
 
 | Budget | Target | Measured | | Worst case | CI fails above |
 |---|---:|---:|---|---|---|
-| Idle CPU: 0% | 0.0% | 1.2% | **missed** | budgets/idle | not enforced |
-| A full frame: 1 ms at most | 1 ms | 0.438 ms | met | frame/14 | not enforced |
-| One state change: 1 ms at most at any size, a 50,000-panel screen included | 1 ms | 3.09 ms | **missed** | update/400 | pending |
-| A revision applied and reconciled: 2 ms at most | 2 ms | 3.23 ms | **missed** | revision/kanban/add-button | pending |
-| Typing in a 100,000-line file: 8 ms at most from key to frame, at p99 | 8 ms | 3.37 ms | met | editor/type-100k | not enforced |
-| Scrolling a 1,000,000-line file at 120 Hz (8.33 ms a frame at p99) | 8.33 ms | 2.05 ms | met | editor/scroll-1m | not enforced |
-| Opening a 50 MB file: 1 s at most | 1,000 ms | 246 ms | met | budgets/open-50mb | pending |
-| Opening a 50 MB file: memory at most 1.5 times the file plus 50 MB | 128.6 MB | 213.4 MB | **missed** | budgets/open-50mb | pending |
-| Forge cold start to interactive: 300 ms at most | 300 ms | 36.4 ms | met | budgets/forge-cold-start | pending |
-| Forge with 10 tabs and a terminal: 150 MB at most | 150.0 MB | 188.8 MB | **missed** | budgets/forge-10-tabs | pending |
-| Quick open over 100,000 files: 30 ms at most per keystroke | 30 ms | 2.5 ms | met | fuzzy/100000 | pending |
-| Expanding a 100,000-node tree: 4 ms at most | 4 ms | 0.163 ms | met | views/tree-expand-100k | pending |
+| Idle CPU: 0% | 0.0% | 0.6% | **missed** | budgets/idle-music-player | not enforced |
+| A full frame: 1 ms at most | 1 ms | 0.401 ms | met | frame/14 | not enforced |
+| One state change: 1 ms at most at any size, a 50,000-panel screen included | 1 ms | 19.4 ms | **missed** | update/record/400 | pending |
+| A peer's command run: 1 ms at most on a board of 400 cards, its update and layout included | 1 ms | 1.39 ms | **missed** | command/400 | pending |
+| A revision applied and reconciled: 2 ms at most | 2 ms | 27.3 ms | **missed** | revision/state-only/400 | pending |
+| An undo of an earlier change no later one touched: 2 ms at most, at any depth | 2 ms | 22.1 ms | **missed** | history/undo/independent/10000 | pending |
+| The plan of an undo with 8 conflicts, 10,000 commits back: 12 ms at most | 12 ms | 6.48 ms | met | history/undoPlan/conflicts/10000 | pending |
+| Typing in a 100,000-line file: 8 ms at most from key to frame, at p99 | 8 ms | 2.45 ms | met | editor/type-100k | not enforced |
+| Scrolling a 1,000,000-line file at 120 Hz (8.33 ms a frame at p99) | 8.33 ms | 0.418 ms | met | editor/scroll-1m | not enforced |
+| Opening a 50 MB file: 1 s at most | 1,000 ms | 175 ms | met | budgets/open-50mb | pending |
+| Opening a 50 MB file: memory at most 1.5 times the file plus 50 MB | 128.6 MB | 257.2 MB | **missed** | budgets/open-50mb | pending |
+| Forge cold start to interactive: 300 ms at most | 300 ms | 234 ms | met | budgets/forge-cold-start | pending |
+| Forge with 10 tabs and a terminal: 150 MB at most | 150.0 MB | 231.7 MB | **missed** | budgets/forge-10-tabs | pending |
+| Quick open over 100,000 files: 30 ms at most per keystroke | 30 ms | 1.99 ms | met | fuzzy/100000 | pending |
+| Expanding a 100,000-node tree: 4 ms at most | 4 ms | 0.13 ms | met | views/tree-expand-100k | pending |
 
 ### Tokens (o200k_base)
 
 | Budget | Target | Measured | | Worst case | CI fails above |
 |---|---:|---:|---|---|---|
-| A template's outline: 600 tokens at most | 600 | 1,272 | **missed** | studio | 1,272 tokens |
-| Forge's outline: 4,000 tokens at most | 4,000 | 2,169 | met | forge | 4,000 tokens |
-| A typical edit: 40 output tokens at most (the median canonical edit) | 40 | 24 | met | median of 35 canonical edits | 40 tokens |
-| A re-read after one commit: 150 tokens at most | 150 | 29 | met | forge | 150 tokens |
-| The format guide: 1,500 tokens at most per topic | 1,500 | 1,669 | **missed** | Top level | 1,669 tokens |
-| A whole feature request: 2,000 output tokens at most (the oracle's feature tasks) | 2,000 | 174 | met | forge-focus | 2,000 tokens |
+| A template's outline: 600 tokens at most | 600 | 9,164 | **missed** | smart-home | 1,272 tokens |
+| Forge's outline: 4,000 tokens at most | 4,000 | 6,114 | **missed** | forge | 4,000 tokens |
+| A typical edit: 40 output tokens at most (the median canonical edit) | 40 | 28 | met | median of 35 canonical edits | 40 tokens |
+| A re-read after one commit: 150 tokens at most | 150 | 27 | met | forge | 150 tokens |
+| The format guide: 1,500 tokens at most per topic | 1,500 | 1,806 | **missed** | Events | 1,669 tokens |
+| A whole feature request: 2,000 output tokens at most (the oracle's feature tasks) | 2,000 | 531 | met | clj-flow-label-counts | 2,000 tokens |
 | What an agent reads first for a request that points: 1,500 tokens at most | 1,500 | 2,603 | **missed** | sinopia-json thumbnails | not enforced |
-| A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json) | 120 | 75 | met | toolbar | 120 tokens |
-
+| A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json) | 120 | 111 | met | dock | 120 tokens |
+| An app's command list: 3,000 tokens at most (list_commands) | 3,000 | 2,156 | met | forge | 3,000 tokens |
+| A command's line: 20 tokens at most (the median, list_commands) | 20 | 12 | met | median of 191 commands | 20 tokens |
+| A run's answer of three changes: 120 tokens at most (run_command) | 120 | 61 | met | three changes | 120 tokens |
+| The tools to use an app: 1,000 tokens at most (list_commands, run_command, undo_run) | 1,000 | 653 | met | list_commands, run_command, undo_run | 1,000 tokens |
 
 ### The misses
 
-- **Idle CPU** is 1.2% of a core, not 0%: some 12 ms of CPU time in an idle second, across every thread.
-- **A state change** takes 3.09 ms at its worst (`update/400`), against 1 ms.
-- **A revision** takes 3.23 ms at its worst (`revision/kanban/add-button`), against 2 ms. Seven canonical edits of
-  `tests/perf/edits` no longer apply to the templates and were not measured: the three `change-colour` edits that set
-  `/colors/...` (the templates now have `tokens`), `kanban/add-filter`, `music-player/add-playlist`, and both
-  `sign-in` edits, which the sign-in screen's permissions reject.
-- **Opening a 50 MB file** holds 213.4 MB, against 128.6 MB (1.5 times the file plus 50 MB). An earlier run of the same
-  build measured 168.2 MB: this number varies from run to run, and both miss.
-- **Forge with 10 tabs and a terminal** holds 188.8 MB, against 150 MB.
-- **A template's outline** is 1,272 tokens at its largest (the Studio), against 600.
-- **The format guide's** largest topic ("Top level") is 1,669 tokens, against 1,500.
+Each cause below comes from a macOS `sample` profile of the workload in a loop (10 s, 7,100–7,900 main-thread samples,
+inclusive shares), made for this table on the same build.
+
+- **Idle CPU** is 0.6% of a core at its worst (the music player; 0.8% in the two runs before), not 0%. That template's
+  own timer moves the simulated song once a second, so its state changes and it draws once a second. The other
+  templates are at 0.1–0.4%. CI holds idle as counts, not time (Method).
+- **A state change** takes 19.4 ms at its worst (`update/record/400`, one card's record written), against 1 ms: 18.4 ms
+  over. A record write runs the queries over its collection again (`Store::run`, 19%), the computed values that read
+  them (22%) and the scope variables built on them (23%), and the repeat over a query's result is reconciled whole
+  (`ChildList::reconcileAll`, 27%): a query's new result is a new list, not a keyed edit. `update/record/14` and
+  `/100` take 1.5 and 5.4 ms, so this grows with the board. `update/list-append-25000` misses too, at 2.6 ms: 77% of
+  it is the layout of the 25,000-row stack (0.59 ms without it). The other ten workloads of the budget meet it:
+  `update/14`, `/100` and `/400` take 3 µs each, `update/read/400` 37 µs, `update/panels-50000` 0.56 ms,
+  `update/app-50000` 74 µs, `update/lisp-row/25000` 0.57 ms (these from the per-workload run, Method).
+- **A peer's command run** takes 1.39 ms on 400 cards, against 1 ms: 0.39 ms over. The same steps run as an action
+  take 3 µs (`command/400/action`), so the time is in the command's path around them, not in the update. Not profiled:
+  the bench's peer may run only 30 commands at once, too few for a sampler.
+- **A revision** takes 27.3 ms at its worst (`revision/state-only/400`), against 2 ms: 25.3 ms over. The template
+  edits take 4.9–26.4 ms (`revision/habit-tracker/change-colour` the slowest). The update is a small part: the
+  revision's reconcile is 14–20% of `state-only/400` and `one-label/400`. Every revision is a commit of the history,
+  and the commit's preparation is 67%: the document checker walks the whole document (`format::check`, 28–41%), and
+  the commit stores and hashes it (`Repository::store`, 12%; `landRevision` 26–30%).
+- **An undo of an earlier change** takes 22.2 ms at 10,000 commits, against 2 ms: 20.2 ms over, the same at 100
+  commits (21.8 ms), so it doesn't grow with the history. It is a commit too: the checker is 62% of it.
+- **Opening a 50 MB file** holds 257.2 MB, against 128.6 MB (1.5 times the file plus 50 MB). Not profiled here.
+- **Forge with 10 tabs and a terminal** holds 231.7 MB, against 150 MB. Not profiled here.
+- **A template's outline** is 9,164 tokens at its largest (the smart home), against 600, and **Forge's outline** 6,114,
+  against 4,000: the examples became whole applications after the last record (1,272 and 2,169 tokens then). Both are
+  above their CI thresholds.
+- **The format guide's** largest topic ("Events") is 1,806 tokens, against 1,500.
 - **What an agent reads first for a request that points** is 2,603 tokens at its largest (`#thumbnails` in Sinopia's
-  JSON notation), against 1,500. A JSON pick holds the node's whole subtree, and `#thumbnails` is a container of 346
-  lines; the same node in the Lisp notation is a definition that calls named views, 383 tokens. The other 51 picks are
-  within the budget, the next largest 858 tokens.
+  JSON notation), against 1,500. A JSON pick holds the node's whole subtree, and `#thumbnails` is a large container.
+
+### Beside the state-change budget
+
+Three list edits on 25,000 rows are reported here, not in the budget: they change where every later row is, so they
+are judged against a full pass of the list, not against 1 ms. Per-workload run, wall clock, the second of two runs:
+
+| Workload | Time | Without layout | Where the time goes |
+|---|---:|---:|---|
+| `update/list-insert-front-25000` | 14.1 ms | 11.4 ms | finding each reader's position (`Tracker::enqueue`, `Reconciler::positionOf`: 34%), renumbering the rows' reads (`Tracker::shift`, 15%), the layout (27%) |
+| `update/list-remove-front-25000` | 4.5 ms | 2.3 ms | the same shares as the insert |
+| `update/list-reverse-25000` | 99.5 ms | 97.9 ms | a reverse moves every row, so the list is reconciled whole (`ChildList::reconcileAll`, 88%), its rows built again (54%) |
+
+### The locks this measurement allows
+
+`tests/perf/locks.json` now holds `update/400` at 1.5 times `update/14` (measured 1.00),
+`update/panels-50000-without-layout` at 6 times (2.5) and `update/app-50000-without-layout` at 50 times (24.7). The
+ratios below were wanted as locks and are missed, so they are not in the file: a lock CI fails today would fail every
+pull request.
+
+| Ratio | Wanted at most | Measured | Why |
+|---|---:|---:|---|
+| `update/read/400` / `update/read/14` | 1.5 | 3.9–4.4 | after each update, a fingerprint of every panel's keys (`keysFingerprint` in `UpdateFrame::checkPanels`, 85%) |
+| `update/record/400` / `update/record/14` | 2 | 12.8–13.7 | the record write's queries and the whole reconcile of their lists (above) |
+| `update/list-append-25000` / `update/14` | a small multiple | 918–1,061 (209–242 without layout) | the layout of the whole stack |
+| `revision/one-label/400` / `revision/one-label/14` | 1.5 | 1.50–1.58 | the checker walks the whole document |
+| `revision/state-only/400` / `update/400` | 2 | 9,700–9,800 | the commit around the update (above) |
 
 ### What a pick saves
 

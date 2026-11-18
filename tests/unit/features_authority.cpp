@@ -9,6 +9,7 @@
 #include <affresco/format/Rules.hpp>
 #include <affresco/notation/Notation.hpp>
 #include <affresco/lisp/Document.hpp>
+#include <affresco/lisp/Program.hpp>
 #include "Composition.hpp"
 
 #include <doctest/doctest.h>
@@ -405,4 +406,32 @@ TEST_CASE("features authority: an install, or switching it off, is judged as a c
 	CHECK(plain.repository
 	          .commit({{"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/wordCount", record(named)}}}})
 	          .has_value());
+}
+
+TEST_CASE("features authority attack: an interpreter changed in place keeps a feature's code without the person's reach") {
+	// No hook in the app: a hook makes every revision load a new interpreter, and this is the path that doesn't
+	json document = app({{"host.go", R"((defcommand host.go "The person's." :title "Go" [] (wordCount-flip) (call "hit")))"},
+	                     {"host.other", R"((defn host.other "The person's." [] 1))"}});
+	document["program"]["app.lisp"].erase("after-save");
+	document["points"]["statusBar.right"].erase("hooks");
+	App host(document, true);
+	host.set("/features/wordCount", record());
+	const std::size_t before = affresco::lisp::rebuildStatistics().redefined;
+	// The person's own definition changed: the interpreter is changed in place, the feature's function kept
+	host.set("/program/app.lisp/host.other", R"((defn host.other "The person's." [] 2))", "user");
+	CHECK(affresco::lisp::rebuildStatistics().redefined == before + 1);
+	host.run("host.go");
+	INFO(host.errors);
+	CHECK(host.hits == 0);
+	CHECK(host.reported(ledHere));
+	// The feature's function changed: defined again in place, still the feature's
+	host.errors.clear();
+	json definitions = wordCount(R"((toggle "state.wordCount.characters") nil)");
+	host.set("/features/wordCount/provides/program/feature.lisp/wordCount-flip", definitions["wordCount-flip"]);
+	CHECK(affresco::lisp::rebuildStatistics().redefined == before + 2);
+	// The history credits who edited it; it runs as the feature's (Programs credits it so), as the refusal shows
+	host.run("host.go");
+	CHECK(host.hits == 0);
+	CHECK(host.reported(ledHere));
+	CHECK(host.runtime->find("wordCount-label") != nullptr);
 }

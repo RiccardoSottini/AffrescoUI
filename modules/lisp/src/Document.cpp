@@ -4,6 +4,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include "Rebuild.hpp"
 #include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
@@ -189,17 +190,23 @@ void expectOneForm(std::string_view value, const std::string& where) {
 		throw problemIn(where, "a keyword's new value is exactly one form");
 }
 
-/// @brief Builds a section, under the limits.
+/// @brief Builds a section, under the limits: in part from an earlier build if it can (Program::rebuild()).
 /// @param section The section.
+/// @param previous The earlier build, or nullptr.
 /// @return What it built.
 /// @throws LispError If it can't be built, naming the definition.
-std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
+std::shared_ptr<const BuiltProgram> buildSection(const json& section, const BuiltProgram* previous) {
 	Program program = programOf(section);
 	Limits limits;
 	limits.budget.operations = maxBuildOperations;
 	limits.budget.bytes = maxBuildBytes;
 	auto built = std::make_shared<BuiltProgram>();
-	built->tree = program.build(limits);
+	built->tree = previous && previous->record ? program.rebuild(*previous->record, limits) : program.build(limits);
+	built->record = program.record();
+	for(const Entry& entry : program.entries()) // the build read each entry, so its kind is the record's
+		if(const auto at = built->record->index.find(entry.name);
+		   at != built->record->index.end() && built->record->definitions[at->second]->kind == "defmacro")
+			built->macros.push_back(entry.text);
 	built->undefined = program.undefinedNames();
 	built->truth = program.truthTests();
 	built->extensions = program.extensions();
@@ -524,7 +531,9 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 		std::rotate(kept.begin(), found, found + 1);
 		return kept.front().second;
 	}
-	std::shared_ptr<const BuiltProgram> built = buildSection(section);
+	// The latest build is most likely the version before this one, which one revision changed
+	std::shared_ptr<const BuiltProgram> built =
+	    buildSection(section, kept.empty() ? nullptr : kept.front().second.get());
 	++buildsMade();
 	if(holdsFeatureFiles(section)) keepFeatureBuilds();
 	if(kept.size() >= keptLimit()) kept.pop_back();
@@ -564,6 +573,67 @@ json effectiveProgram(const json& document, std::span<const std::string> feature
 		for(const auto& [file, entries] : records->at(name).at("provides").at("program").items())
 			if(entries.is_object()) program[featureFiles(name) + file] = entries;
 	return program;
+}
+
+namespace {
+
+/// @brief The names two objects have, either or both.
+/// @param before One. @param after The other.
+/// @return Them, sorted.
+std::set<std::string> keysOfBoth(const json& before, const json& after) {
+	std::set<std::string> keys;
+	for(const json* tree : {&before, &after})
+		for(const auto& [key, value] : tree->items()) keys.insert(key);
+	return keys;
+}
+
+/// @brief The members of two objects that differ, as JSON pointers.
+/// @param before The earlier object.
+/// @param after The later.
+/// @param pointer Where the two are in their trees.
+/// @param places Gets them.
+void addMemberDifferences(const json& before, const json& after, const json::json_pointer& pointer,
+                          std::vector<std::string>& places) {
+	for(const std::string& member : keysOfBoth(before, after))
+		if(!before.contains(member) || !after.contains(member) || before[member] != after[member])
+			places.push_back((pointer / member).to_string());
+}
+
+/// @brief The members of two trees' objects that differ, as JSON pointers: each top-level key, or each member of
+/// one that is an object in both.
+/// @param before The earlier tree.
+/// @param after The later.
+/// @param places Gets them.
+void addDifferences(const json& before, const json& after, std::vector<std::string>& places) {
+	for(const std::string& key : keysOfBoth(before, after)) {
+		const json::json_pointer pointer = json::json_pointer() / key;
+		const bool both = before.contains(key) && after.contains(key);
+		if(both && before[key] == after[key]) continue;
+		if(!both || !before[key].is_object() || !after[key].is_object() || key == "root") {
+			places.push_back(pointer.to_string());
+			continue;
+		}
+		addMemberDifferences(before[key], after[key], pointer, places);
+	}
+}
+
+} // namespace
+
+std::vector<std::string> changedPlaces(const BuiltProgram& before, const BuiltProgram& after) {
+	std::vector<std::string> places;
+	if(!before.record || !after.record || after.record->whole || after.record->from != before.record->serial) {
+		addDifferences(before.tree, after.tree, places);
+		return places;
+	}
+	std::set<std::string> seen;
+	for(const std::string& place : after.record->touched) {
+		if(!seen.insert(place).second) continue;
+		const json::json_pointer pointer(place);
+		const bool had = before.tree.contains(pointer);
+		const bool has = after.tree.contains(pointer);
+		if(had != has || (had && before.tree[pointer] != after.tree[pointer])) places.push_back(place);
+	}
+	return places;
 }
 
 namespace {

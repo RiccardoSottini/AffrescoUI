@@ -67,7 +67,7 @@ std::string Asks::send(const std::string& text, const std::string& where, const 
 	request.text = text;
 	for(const ProposalInfo& proposal : engine_.versions.proposals()) request.heads[proposal.id] = proposal.head;
 	requests_.push_back(std::move(request));
-	engine_.document.globalsChanged();
+	engine_.document.markVariableChanged("requests");
 
 	json message = {
 	    {"type", "request"}, {"id", requests_.back().id}, {"text", text}, {"from", "user"}, {"source", "screen"}};
@@ -83,7 +83,7 @@ bool Asks::cancel(const std::string& id) {
 	const auto request = std::ranges::find(requests_, id, &Request::id);
 	if(request == requests_.end() || (request->state != "sent" && request->state != "working")) return false;
 	request->state = "cancelled";
-	engine_.document.globalsChanged();
+	engine_.document.markVariableChanged("requests");
 	relay({{"type", "cancel"}, {"request", id}, {"from", "user"}, {"source", "screen"}});
 	return true;
 }
@@ -108,7 +108,7 @@ bool Asks::receive(const json& reply) {
 	const std::string text = bounded(reply.value("text", json()), maxText);
 	if(!done && error.empty() && text.empty()) { // "working on it", with nothing to say yet
 		request->state = "working";
-		engine_.document.globalsChanged();
+		engine_.document.markVariableChanged("requests");
 		return true;
 	}
 	json entry = {{"from", from}, {"text", text}, {"time", millisecondsNow()}, {"done", done}};
@@ -123,8 +123,8 @@ bool Asks::receive(const json& reply) {
 	event["proposals"] = newProposals(*request, from);
 	for(const json& id : event["proposals"])
 		if(std::ranges::find(request->proposals, id) == request->proposals.end()) request->proposals.push_back(id);
-	engine_.document.globalsChanged();
-	engine_.reconciler.requestReconcile();
+	engine_.document.markVariableChanged("requests");
+	engine_.reconciler.requestStateUpdate();
 
 	if(engine_.window && engine_.owner.hasAction(action)) {
 		const Raised replying(replying_);

@@ -9,7 +9,9 @@
 #include "Machine.hpp"
 #include "Namespaces.hpp"
 #include "Reader.hpp"
+#include "Rebuild.hpp"
 #include "TopLevel.hpp"
+#include "TreeParts.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
@@ -65,326 +67,6 @@ void advance(std::string_view text, std::size_t& line, std::size_t& column) {
 		} else if((static_cast<unsigned char>(c) & 0xC0U) != 0x80U) {
 			++column; // a UTF-8 continuation byte isn't a character
 		}
-	}
-}
-
-/// @brief A section of the tree: its members in the order their definitions come in the program, as a JSON file's are
-/// in the order written (an overlay's place, the first key of a command, the order of watches), so a change to one
-/// definition never moves another. A `defdefaults` member takes its place where its definition is, and a definition
-/// that gives it later replaces its value there, as a JSON file's include gives a member its place and the file its
-/// value.
-class Section {
-public:
-	using Member = std::pair<std::string, json>; ///< A member: its name and value.
-
-	/// @brief Gives a member: added last, or replacing a default of that name where it is.
-	/// @param name The name.
-	/// @param value The value.
-	/// @return false if a definition gave it already.
-	bool give(const std::string& name, json value) {
-		const auto [found, added] = index_.emplace(name, members_.size());
-		if(added) {
-			members_.emplace_back(name, std::move(value));
-			return true;
-		}
-		if(defaulted_.erase(name) == 0) return false;
-		members_[found->second].second = std::move(value);
-		return true;
-	}
-	/// @brief Gives a default: added last, unless a member of that name is there already, which it yields to.
-	/// @param name The name.
-	/// @param value The value.
-	/// @return false if a default gave it already.
-	bool giveDefault(const std::string& name, json value) {
-		if(index_.contains(name)) return !defaulted_.contains(name);
-		index_.emplace(name, members_.size());
-		members_.emplace_back(name, std::move(value));
-		defaulted_.insert(name);
-		return true;
-	}
-	/// @brief Whether a member is a default no definition replaced.
-	/// @param name The name.
-	/// @return true if so.
-	[[nodiscard]] bool isDefault(const std::string& name) const { return defaulted_.contains(name); }
-	/// @brief Whether it has no member.
-	/// @return true if so.
-	[[nodiscard]] bool empty() const noexcept { return members_.empty(); }
-	/// @brief The first member.
-	/// @return An iterator.
-	[[nodiscard]] std::vector<Member>::iterator begin() noexcept { return members_.begin(); }
-	/// @brief Past the last member.
-	/// @return An iterator.
-	[[nodiscard]] std::vector<Member>::iterator end() noexcept { return members_.end(); }
-
-private:
-	std::vector<Member> members_;              ///< In order.
-	std::map<std::string, std::size_t> index_; ///< Each member's place.
-	std::set<std::string> defaulted_;          ///< The members a default gave, that nothing has replaced.
-};
-
-/// @brief Adds a section to the tree, if it has anything; `defscreen main` may have given some of it.
-/// @param tree The tree.
-/// @param key The section's key.
-/// @param section The section.
-/// @param defaulted Gets each default left, `{section, member}`: one that `defscreen main` gives yields to it.
-/// @throws Problem If `defscreen main` gave something other than an object there, or a member both give.
-void addSection(json& tree, const std::string& key, Section& section,
-                std::set<std::pair<std::string, std::string>>& defaulted) {
-	if(section.empty()) return;
-	json object = tree.contains(key) ? std::move(tree[key]) : json::object();
-	if(!object.is_object()) {
-		if(std::ranges::all_of(section, [&](const auto& member) { return section.isDefault(member.first); }))
-			return; // only defaults, which the value there replaces
-		throw Problem("defscreen main gives \"" + key + "\" as something other than a map");
-	}
-	for(auto& [name, value] : section) {
-		if(section.isDefault(name)) {
-			if(object.contains(name)) continue;
-			defaulted.emplace(key, name);
-		} else if(object.contains(name)) {
-			throw Problem("\"" + name + "\" of \"" + key + "\" is given by defscreen main and by a definition");
-		}
-		object[name] = std::move(value);
-	}
-	tree[key] = std::move(object);
-}
-
-/// @brief A command's action: its options, its docstring as the description, and the step that runs its function.
-/// @param options What it was given.
-/// @param name Its name, its function's too.
-/// @param doc Its docstring.
-/// @param parameters Its function's parameters, what a caller by name gives.
-/// @return The action.
-json commandAction(json options, const std::string& name, const std::string& doc,
-                   const std::vector<std::string>& parameters) {
-	if(!doc.empty() && !options.contains("description")) options["description"] = doc;
-	if(!options.contains("do")) options["do"] = json::array({{{"lisp", name}}});
-	if(!parameters.empty() && !options.contains("arguments")) options["arguments"] = parameters;
-	return options;
-}
-
-/// @brief Refuses a hook or advice whose function the program doesn't define: a host's primitive is no hook, so a step
-/// can't be run this way, and neither can what isn't there yet.
-/// @param machine The machine.
-/// @param definition The hook or advice.
-/// @throws Problem If it isn't a function of the program.
-void checkExtensionFunction(const Machine& machine, const Definition& definition) {
-	if(definition.kind == "remove-hook" || definition.targets.empty()) return;
-	const Definition* function = machine.definition(definition.targets.back());
-	if(!function || (function->kind != "defn" && function->kind != "defcommand"))
-		throw Problem("\"" + definition.name + "\" names \"" + notation::Lexer::excerpt(definition.targets.back()) +
-		              "\", which is no function of the program");
-}
-
-/// @brief Adds the names a piece of compiled code uses, with the functions inside it.
-/// @brief What a definition's code uses by name, and how.
-struct Uses {
-	std::set<std::string> names;                         ///< Every name.
-	std::map<std::string, std::set<std::string>> called; ///< Those called with a text written out first: the texts.
-	std::set<std::string> otherwise;                     ///< Those used any other way.
-};
-
-/// @brief Adds what a piece of code uses by name, and what the functions inside it use.
-/// @param code The code, or nullptr.
-/// @param uses Gets them.
-void addNamesUsed(const Code* code, Uses& uses) {
-	if(!code) return;
-	std::vector<const Code*> waiting = {code};
-	while(!waiting.empty()) {
-		const Code* next = waiting.back();
-		waiting.pop_back();
-		std::vector<bool> named(next->globals.size(), false);
-		for(const NamedCall& call : next->named) {
-			named[call.global] = true;
-			uses.called[next->globals[call.global]->name].insert(call.text);
-		}
-		for(std::size_t at = 0; at < next->globals.size(); ++at) {
-			uses.names.insert(next->globals[at]->name);
-			if(!named[at]) uses.otherwise.insert(next->globals[at]->name);
-		}
-		waiting.insert(waiting.end(), next->functions.begin(), next->functions.end());
-	}
-}
-
-/// @brief What a definition's code uses by name.
-/// @param definition The definition.
-/// @return The names, and how.
-Uses namesUsedBy(const Definition& definition) {
-	Uses uses;
-	addNamesUsed(definition.data, uses);
-	if(const Global* global = definition.global) {
-		addNamesUsed(global->thunk, uses);
-		if(global->value.kind() == Kind::Function)
-			addNamesUsed(static_cast<const ClosureObject*>(global->value.pointer())->code, uses);
-	}
-	return uses;
-}
-
-/// @brief The names a definition calls with a text written out first, those texts, and which it also uses otherwise.
-/// @param uses What it uses.
-/// @return Them.
-CallsByName namedCallsOf(const Uses& uses) {
-	CallsByName named;
-	for(const auto& [name, texts] : uses.called) {
-		named.texts.emplace(name, std::vector<std::string>(texts.begin(), texts.end()));
-		if(uses.otherwise.contains(name)) named.otherwise.insert(name);
-	}
-	return named;
-}
-
-/// @brief A setting: its `type`, its `default`, then its other options, and its docstring as the description.
-/// @param options What it was given.
-/// @param value Its value.
-/// @param doc Its docstring.
-/// @return The setting.
-json customSetting(const json& options, json value, const std::string& doc) {
-	json setting = json::object();
-	if(options.contains("type")) setting["type"] = options["type"];
-	setting["default"] = std::move(value);
-	for(const auto& [key, member] : options.items()) setting[key] = member;
-	if(!doc.empty() && !setting.contains("description")) setting["description"] = doc;
-	return setting;
-}
-
-/// @brief What a build gathers: the tree's parts, each in its order.
-struct BuiltParts {
-	json main = json::object(); ///< `defscreen main`'s properties and `root`.
-	/// Each section's members (`screens`, `actions`, `keys`, `settings`, and what `defstate`, `defcomputed`,
-	/// `defpart`, `defdefaults`... add to), each in the order of its definitions.
-	std::map<std::string, Section> sections;
-	std::map<std::string, json> values; ///< What `defpart` gives that isn't a map: a list joins, a value is given once.
-};
-
-/// @brief Adds a member to a section: one defined twice, as `deftokens` can, is an error naming it.
-/// @param section The section.
-/// @param kind The form that adds it.
-/// @param name The member.
-/// @param value Its value.
-/// @throws Problem If the section has it already.
-void addMember(Section& section, std::string_view kind, const std::string& name, json value) {
-	if(!section.give(name, std::move(value)))
-		throw Problem("\"" + notation::Lexer::excerpt(name) + "\" is given twice, the second time by " +
-		              std::string(kind));
-}
-
-/// @brief Builds what `defpart` gives: each section's members, as a definition of each would.
-/// @param machine The machine.
-/// @param definition The definition.
-/// @param data Its options.
-/// @param parts Gets them.
-void buildPart(Machine& machine, const Definition& definition, const Value& data, BuiltParts& parts) {
-	json options = valueToTree(machine, data, definition.name);
-	const bool defaults = definition.kind == "defdefaults";
-	for(auto& [key, value] : options.items()) {
-		if(defaults) {
-			if(!value.is_object()) throw Problem("defdefaults gives members of sections: \"" + key + "\" isn't a map");
-			for(auto& [member, given] : value.items())
-				if(!parts.sections[key].giveDefault(member, given))
-					throw Problem("\"" + notation::Lexer::excerpt(member) +
-					              "\" is given twice, the second time by defdefaults");
-			continue;
-		}
-		if(value.is_object()) {
-			for(auto& [member, given] : value.items()) addMember(parts.sections[key], "defpart", member, given);
-			continue;
-		}
-		const auto [found, added] = parts.values.try_emplace(key, value);
-		if(added) continue;
-		if(found->second.is_array() && value.is_array())
-			found->second.insert(found->second.end(), value.begin(), value.end());
-		else if(found->second != value)
-			throw Problem("\"" + notation::Lexer::excerpt(key) + "\" is given twice, differently, by defpart");
-	}
-}
-
-/// @brief Adds what `defpart` gives that isn't a map to the tree: a list joins the one there, a value must be the same.
-/// @param tree The tree.
-/// @param values The values.
-void addValues(json& tree, std::map<std::string, json>& values) {
-	for(auto& [key, value] : values) {
-		const auto found = tree.find(key);
-		if(found == tree.end()) tree[key] = std::move(value);
-		else if(found->is_array() && value.is_array()) found->insert(found->end(), value.begin(), value.end());
-		else if(*found != value)
-			throw Problem("\"" + notation::Lexer::excerpt(key) + "\" is given by defscreen main and by defpart");
-	}
-}
-
-/// @brief Puts the gathered parts together into the document's tree: the format's own sections first.
-/// @param machine The machine, for the `defstate` definitions.
-/// @param parts The parts; their members are taken.
-/// @param defaulted Gets each section's member that is a default (Program::defaulted()).
-/// @return The tree.
-json treeOf(const Machine& machine, BuiltParts& parts, std::set<std::pair<std::string, std::string>>& defaulted) {
-	json tree = {{"format", "affrescoui-screen"}, {"version", 2}};
-	for(auto& [key, member] : parts.main.items()) tree[key] = std::move(member);
-	defaulted.clear();
-	for(const char* key : {"screens", "actions", "keys", "settings"}) // the format's own first
-		if(const auto found = parts.sections.find(key); found != parts.sections.end()) {
-			addSection(tree, key, found->second, defaulted);
-			parts.sections.erase(found);
-		}
-	for(auto& [key, section] : parts.sections) addSection(tree, key, section, defaulted);
-	addValues(tree, parts.values);
-	for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
-		if(definition->kind == "defstate") defaulted.emplace("state", definition->name.substr(6));
-	return tree;
-}
-
-/// @brief Builds the part of a form that defines a member of a section (sectionOfForm()).
-/// @param machine The machine.
-/// @param definition The definition.
-/// @param data What it built.
-/// @param parts Gets it.
-void buildSectionMember(Machine& machine, const Definition& definition, const Value& data, BuiltParts& parts) {
-	const std::string& name = definition.name;
-	const std::string member = name.substr(name.find('.') + 1);
-	const std::string section(sectionOfForm(definition.kind));
-	if(definition.kind == "defstate") {
-		addMember(parts.sections["state"], definition.kind, member, valueToTree(machine, data.at(0), name));
-		json options = valueToTree(machine, data.at(1), name);
-		if(options.contains("type")) addMember(parts.sections["stateTypes"], definition.kind, member, options["type"]);
-	} else if(definition.kind == "deftokens") {
-		json tokens = valueToTree(machine, data, name);
-		if(!tokens.is_object()) throw Problem("deftokens takes a map of tokens");
-		for(auto& [token, value] : tokens.items())
-			addMember(parts.sections[section], definition.kind, token, std::move(value));
-	} else {
-		addMember(parts.sections[section], definition.kind, member, valueToTree(machine, data, name));
-	}
-}
-
-/// @brief Builds one definition's part of the tree.
-/// @param machine The machine.
-/// @param definition The definition.
-/// @param parts Gets it.
-void buildDefinition(Machine& machine, const Definition& definition, BuiltParts& parts) {
-	if(!definition.data) return;
-	const Value data = machine.runThunk(definition.data);
-	const std::string& name = definition.name;
-	if(definition.kind == "defkey") {
-		addMember(parts.sections["keys"], definition.kind, name.substr(std::string_view("defkey ").size()),
-		          valueToTree(machine, data, name));
-	} else if(definition.kind == "defcommand") {
-		addMember(parts.sections["actions"], definition.kind, name,
-		          commandAction(valueToTree(machine, data, name), name, definition.doc,
-		                        Interpreter::parametersOf(definition.global->value)));
-	} else if(definition.kind == "defcustom") {
-		const Value value = machine.force(*definition.global);
-		addMember(parts.sections["settings"], definition.kind, name,
-		          customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc));
-	} else if(!sectionOfForm(definition.kind).empty()) {
-		buildSectionMember(machine, definition, data, parts);
-	} else if(definition.kind == "defpart" || definition.kind == "defdefaults") {
-		buildPart(machine, definition, data, parts);
-	} else if(name == "main") {
-		// A named tree: a loop over a temporary's items() reads it after it is gone
-		json settings = valueToTree(machine, data.at(0), name);
-		for(auto& [key, member] : settings.items()) parts.main[key] = std::move(member);
-		parts.main["root"] = valueToTree(machine, data.at(1), name);
-	} else {
-		json screen = valueToTree(machine, data.at(1), name);
-		addMember(parts.sections["screens"], definition.kind, name, std::move(screen));
 	}
 }
 
@@ -779,34 +461,40 @@ json Program::build(const Limits& limits) {
 	used_.clear();
 	named_.clear();
 	places_.clear();
+	record_.reset();
 	std::vector<NodeNote> notes; // what the tree builder notes, if this build records
 	if(recording_) machine.nodeNotes = &notes;
 	return leavingAsLispError(machine, [&] {
 		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
+		std::vector<DefinitionBuilt> kept;
+		kept.reserve(machine.definitions().size());
 		for(const auto& definition : machine.definitions()) {
-			if(isExtensionWord(definition->kind)) {
-				extensions_.push_back({definition->kind, definition->name, definition->targets, definition->doc,
-				                       definition->author, machine.authorNames(definition->authors)});
-				checkExtensionFunction(machine, *definition);
-			}
-			buildDefinition(machine, *definition, parts);
-			const Uses uses = namesUsedBy(*definition);
-			used_[definition->name] = {uses.names.begin(), uses.names.end()};
-			if(CallsByName named = namedCallsOf(uses); !named.texts.empty())
-				named_[definition->name] = std::move(named);
+			kept.push_back(recordDefinition(machine, *definition, &parts));
+			if(kept.back().extension) extensions_.push_back(*kept.back().extension);
+			used_[definition->name] = kept.back().uses;
+			if(kept.back().named) named_[definition->name] = *kept.back().named;
 		}
-		truth_.clear();
-		for(const auto& [path, place, definition] : machine.truthTests())
-			truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
-		for(const GlobalUse& use : machine.uses())
-			if(use.global->state == Global::State::Undefined)
-				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
-				                      use.place.column, use.definition});
-		json tree = treeOf(machine, parts, defaulted_);
+		keepTestsAndUndefined(machine);
+		json tree = treeOf(parts, defaulted_);
+		for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
+			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
 		keepNodePlaces(notes);
+		keepRecord(machine, std::move(kept), limits);
 		return tree;
 	});
+}
+
+void Program::keepTestsAndUndefined(const Machine& machine) {
+	truth_.clear();
+	for(const auto& [path, place, definition] : machine.truthTests())
+		truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
+	for(const GlobalUse& use : machine.uses())
+		if(use.global->state == Global::State::Undefined)
+			undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
+			                      use.place.column, use.definition});
+	sortByDefinitionOrder(machine, truth_);
+	sortByDefinitionOrder(machine, undefined_);
 }
 
 void Program::keepNodePlaces(const std::vector<NodeNote>& notes) {

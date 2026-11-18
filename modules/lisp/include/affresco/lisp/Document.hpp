@@ -38,6 +38,9 @@ struct BuiltProgram {
 	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
 	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
 	std::set<std::pair<std::string, std::string>> defaulted; ///< Members a `defdefaults` gave (Program::defaulted()).
+	std::vector<std::string> macros; ///< The texts of its `defmacro` entries, in the order of the entries.
+	/// What the build kept of each definition, for the build of a later version (Program::rebuild()).
+	std::shared_ptr<const BuildRecord> record;
 };
 
 /// @brief Tells whether a document holds a program.
@@ -124,6 +127,14 @@ void checkProgramShape(const json& section);
 /// @return What it built.
 /// @throws LispError If it can't be built or a limit runs out, naming the definition.
 [[nodiscard]] std::shared_ptr<const BuiltProgram> builtProgram(const json& section);
+
+/// @brief The places of the tree that differ between two builds, as JSON pointers: where the later build was built in
+/// part from the earlier (Program::rebuild()), those its definitions gave; else each top-level key, or each member of
+/// a section, that differs. A revision may offer them to whoever shows the tree.
+/// @param before The earlier build.
+/// @param after The later.
+/// @return The places, in order, each once.
+[[nodiscard]] std::vector<std::string> changedPlaces(const BuiltProgram& before, const BuiltProgram& after);
 
 /// @brief Where the form that built a node is written, or, when a call handed the node's id to the view that built it,
 /// where that call writes the id: in which definition, and where inside the definition's own text (the history keeps
