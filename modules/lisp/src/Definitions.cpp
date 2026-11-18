@@ -485,6 +485,40 @@ Definition& Machine::addDefinition(const Value& form, const std::string& kind, c
 	return made;
 }
 
+void Machine::forgetDefinition(std::string_view name) {
+	const auto found = definitionNames_.find(name);
+	if(found == definitionNames_.end()) return;
+	const std::size_t at = found->second;
+	if(Global* cell = definitions_[at]->global; cell && !cell->library && !cell->host) {
+		cell->state = Global::State::Undefined;
+		cell->value = Value();
+		cell->thunk = nullptr;
+		cell->macro = false;
+		cell->view = false;
+		cell->pending = nullptr;
+	}
+	definitions_.erase(definitions_.begin() + static_cast<std::ptrdiff_t>(at));
+	definitionNames_.erase(found);
+	for(auto& [other, index] : definitionNames_)
+		if(index > at) --index;
+	compiled_ = std::min(compiled_, at);
+}
+
+void Machine::orderDefinitions(const std::vector<std::string>& names) {
+	std::vector<std::unique_ptr<Definition>> ordered;
+	ordered.reserve(definitions_.size());
+	for(const std::string& name : names)
+		if(const auto found = definitionNames_.find(name);
+		   found != definitionNames_.end() && definitions_[found->second])
+			ordered.push_back(std::move(definitions_[found->second]));
+	for(auto& definition : definitions_)
+		if(definition) ordered.push_back(std::move(definition));
+	definitions_ = std::move(ordered);
+	definitionNames_.clear();
+	for(std::size_t at = 0; at < definitions_.size(); ++at) definitionNames_.emplace(definitions_[at]->name, at);
+	compiled_ = 0; // compilePending() passes over what is compiled
+}
+
 Value Machine::commandData(Definition& definition, const Value& form, const CompileContext& context) {
 	std::size_t at = pastDoc(form, 2);
 	const Value data = optionsOf(*this, form, at, definition.name);

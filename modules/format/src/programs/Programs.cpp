@@ -118,12 +118,22 @@ void Programs::load() {
 		live_.reset();
 		extensions_.reset();
 		loaded_ = nullptr;
+		program_.reset();
 		return;
 	}
 	if(live_ && loaded_ == *section) return;
 	json authors = engine_.versions.programAuthors();
 	creditTheRest(*section, authors);
-	const lisp::Program program = lisp::programOf(*section, authors);
+	if(redefine(*section, authors)) return;
+	lisp::Program program = lisp::programOf(*section, authors);
+	live_ = loadedInterpreter(program);
+	extensions_ = std::move(extensionsNext_);
+	loaded_ = *section;
+	program_ = std::move(program);
+	redefinitions_ = 0;
+}
+
+std::shared_ptr<lisp::Interpreter> Programs::loadedInterpreter(const lisp::Program& program) {
 	lisp::Limits limits;
 	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
 	auto next = std::make_shared<lisp::Interpreter>(limits);
@@ -134,9 +144,43 @@ void Programs::load() {
 	next->setPure(false);
 	loadExtensions(*next);
 	next->setGate([this](const lisp::CallContext& call) { check(call); });
-	live_ = std::move(next);
-	extensions_ = std::move(extensionsNext_);
-	loaded_ = *section;
+	return next;
+}
+
+/// The changes made in place before a new interpreter is made instead: what each leaves in the heap stays there.
+constexpr int maxRedefinitions = 64;
+
+bool Programs::redefine(const json& section, const json& authors) {
+	// Running code holds its own reference: it keeps the code it started with, in the interpreter it started in
+	if(!live_ || live_.use_count() != 1 || !program_ || redefinitions_ >= maxRedefinitions ||
+	   (extensions_ && (!extensions_->hooks.empty() || !extensions_->advice.empty())))
+		return false;
+	std::shared_ptr<const lisp::BuiltProgram> built;
+	try {
+		built = lisp::builtProgram(section); // judging the version built it: kept
+	} catch(const DocumentError&) {
+		return false; // loading it says why
+	}
+	if(!built->extensions.empty() || !built->record) return false;
+	lisp::Program program = lisp::programOf(section, authors);
+	lisp::Limits limits;
+	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
+	bool done = false;
+	live_->setPure(true);
+	try {
+		done = program.redefine(*live_, *program_, *built->record, limits);
+	} catch(const std::exception&) { // half changed: the earlier version again, afresh, and load() says what is wrong
+		live_ = loadedInterpreter(*program_);
+		extensions_ = std::move(extensionsNext_);
+		redefinitions_ = 0;
+		return false;
+	}
+	live_->setPure(false);
+	if(!done) return false;
+	loaded_ = section;
+	program_ = std::move(program);
+	++redefinitions_;
+	return true;
 }
 
 bool Programs::defines(std::string_view name) const { return live_ && live_->isProgramFunction(name); }
