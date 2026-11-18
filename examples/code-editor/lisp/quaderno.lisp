@@ -5,6 +5,8 @@
 ;;; running app through paths (`state.tabs`, `computed.resultsFile`, `event.value`) and changes it only through steps
 ;;; (`set`, `push`, `edit`...). A handler runs one by name, as it would an action: {:run open :with {:file 2}}.
 
+(ns code-editor.quaderno)
+
 ;;; A form the others use
 
 ; style: keep, unused now that replaceInFiles writes doseq; removing a definition changes the program's entries
