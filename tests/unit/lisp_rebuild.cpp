@@ -307,6 +307,22 @@ TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, build
 	CHECK(lisp::changedPlaces(*second, *lisp::builtProgram(program("two"))).empty());
 }
 
+TEST_CASE("lisp rebuild: a function a view's expression calls by name, gone, builds the view again") {
+	const json section = sectionOf("(defstate query \"\")\n(defn shout \"\" [x] (str x \"!\"))\n(defn other \"\" [] 1)\n"
+	                               "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
+	                               "(defscreen main (column#c ~(caption)))\n");
+	lisp::Program first = lisp::programOf(section);
+	const json tree = first.build(buildLimits());
+	REQUIRE(tree.dump().contains("lisp('shout'"));
+	json after = section;
+	after["app.lisp"].erase("shout");
+	bool whole = false;
+	const json part = buildFrom(*first.record(), after, whole);
+	CHECK(part == buildInFull(after));
+	CHECK(!part.dump().contains("lisp('shout'"));
+	CHECK(!whole);
+}
+
 TEST_CASE("lisp rebuild: a macro changed builds everything, and the interpreter isn't changed in place") {
 	const auto program = [](const std::string& body) {
 		return sectionOf("(defmacro twice \"\" [x] " + body +
