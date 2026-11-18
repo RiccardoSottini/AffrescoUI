@@ -208,8 +208,9 @@ public:
 	/// It gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
 	/// it can't be sure: a changed or removed macro, hook or advice, a definition named as one of the language's (a
 	/// macro of the language may call it), a form that isn't a definition (a macro's call at
-	/// the top level, `do`), namespaces, a recording build, a definition that would use one it didn't load, and any
-	/// error, which build() then reports. The budget is the one build() has, less what the record's build spent.
+	/// the top level, `do`), a file's `ns` form added, removed, moved or changed (with the same forms, names resolve as
+	/// they did), a recording build, a definition that would use one it didn't load, and any error, which build() then
+	/// reports. The budget is the one build() has, less what the record's build spent.
 	/// @param previous The earlier build's record (record()).
 	/// @param limits The limits.
 	/// @return The tree.
@@ -221,7 +222,8 @@ public:
 	/// those that went are taken away, and those that use either are defined again, so that the values they work out
 	/// are worked out again. Where it can't be sure it gives what load() gives, it changes nothing and returns false:
 	/// a changed or removed macro, hook, advice or form that isn't a definition, a definition whose kind changed or
-	/// whose name is one of the language's, namespaces. The interpreter must be pure while it runs (setPure()).
+	/// whose name is one of the language's, a file's `ns` form added, removed, moved or changed. The interpreter must
+	/// be pure while it runs (setPure()).
 	/// @param interpreter The interpreter.
 	/// @param before The earlier version, as it was loaded.
 	/// @param built The record of this version's build (record()): who uses what.
@@ -296,6 +298,10 @@ private:
 	std::vector<Entry> entries_;                                  ///< See entries().
 	std::map<std::string, std::size_t> names_;                    ///< Where each entry is in entries_, by its name.
 	std::vector<std::pair<std::string, std::string>> namespaces_; ///< See namespaceForms().
+	/// For a program that holds only some of a program's entries (what a build in part loads): each file's definitions
+	/// in the whole program, so that its namespaces hold what the whole program's do; empty otherwise, and load() takes
+	/// them from the entries.
+	std::map<std::string, std::set<std::string, std::less<>>, std::less<>> definedInWhole_;
 	std::vector<std::pair<std::string, Primitive>> primitives_;   ///< See definePure().
 	std::vector<Extension> extensions_;                           ///< See extensions().
 	std::vector<UndefinedName> undefined_;                        ///< See undefinedNames().

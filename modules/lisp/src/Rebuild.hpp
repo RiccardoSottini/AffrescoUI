@@ -14,6 +14,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -41,6 +42,9 @@ struct BuildRecord {
 	std::map<std::string, std::size_t, std::less<>> index;           ///< Each one's place in definitions, by its name.
 	std::map<std::string, std::vector<std::size_t>, std::less<>> users; ///< By name, the definitions that use it.
 	bool inPart = false;        ///< A later build may start from it: see Program::rebuild() for when one may not.
+	/// The program's files' `ns` forms, as file and text, in order (Program::namespaceForms()): a later build starts
+	/// from it only when its own are the same, as names then resolve as they did.
+	std::vector<std::pair<std::string, std::string>> namespaces;
 	bool extensions = false;    ///< The program has hooks or advice.
 	Budget spent;               ///< What the build spent, at most: a build in part adds what it spent to its base's.
 	std::size_t macroSpent = 0; ///< What macro expansion spent, at most, likewise.

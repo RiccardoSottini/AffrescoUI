@@ -439,9 +439,8 @@ void Program::load(Interpreter& interpreter, bool everything) const {
 			forms.emplace_back(*read, &entry);
 		}
 		if(!namespaces_.empty() || !machine.namespaces().programless()) {
-			std::map<std::string, std::set<std::string, std::less<>>, std::less<>> definedIn;
-			for(const Entry& entry : entries_) definedIn[entry.file].insert(entry.name);
-			applyNamespaces(machine, namespaces_, definedIn);
+			const DefinitionsByFile own = definedInWhole_.empty() ? definitionsByFile(entries_) : DefinitionsByFile{};
+			applyNamespaces(machine, namespaces_, definedInWhole_.empty() ? own : definedInWhole_);
 		}
 		const auto authorsOf = [&machine](const Entry& entry) { return machine.authorSet(entry.author); };
 		for(const auto& [form, entry] : forms)
