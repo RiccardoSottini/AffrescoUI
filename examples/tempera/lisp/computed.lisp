@@ -5,23 +5,23 @@
 
 ;;; Layers
 
-(defcomputed activeLayer "The active layer, or nil." (find (fn [it] (= it.id state.doc.active)) state.doc.layers))
+(defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
 
 (defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
-  (slice state.doc.layers (+ (indexOf (map (fn [it] it.id) state.doc.layers) state.doc.active) 1)))
+  (slice state.doc.layers (+ (indexOf (map :id state.doc.layers) state.doc.active) 1)))
 
 (defcomputed layerBelow "The layer Merge Down merges into: the next one at the active layer's depth or above."
-  (find (fn [it] (<= it.depth (or-else computed.activeLayer.depth 0))) computed.layersAfterActive))
+  (find #(<= (:depth %) (or-else computed.activeLayer.depth 0)) computed.layersAfterActive))
 
 (defcomputed groupChildren "The active group's own layers: those one level deeper, until the group ends."
-  (map (fn [it] it.layer)
-       (filter (fn [it] (and (not it.ended) (= it.layer.depth (+ computed.activeLayer.depth 1))))
+  (map :layer
+       (filter #(and (not (:ended %)) (= (-> % :layer :depth) (+ computed.activeLayer.depth 1)))
                (scan computed.layersAfterActive
                      (fn [acc it] {:ended (or acc.ended (<= it.depth computed.activeLayer.depth)) :layer it})
                      {:ended false}))))
 
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
-  (t "layer.groupName" {:n (+ (count (filter (fn [it] (= it.kind "group")) state.doc.layers)) 1)}))
+  (t "layer.groupName" {:n (+ (count (filter #(= (:kind %) "group") state.doc.layers)) 1)}))
 
 (defcomputed adjustment "The active adjustment layer's values, or nil." computed.activeLayer.adjustment)
 
@@ -32,8 +32,8 @@
   (t (str "blend." (or-else computed.activeLayer.blend "normal"))))
 
 (defcomputed layerShown "The layers the panel lists: a folded group's layers are hidden."
-  (map (fn [it] it.layer)
-       (filter (fn [it] (not it.hide))
+  (map :layer
+       (filter #(not (:hide %))
                (scan state.doc.layers
                      (fn [acc it]
                        (if (< acc.cut it.depth)
@@ -45,7 +45,7 @@
 
 (defcomputed layerRows "The Layers panel's rows: the layers shown, of the kinds its filter lets through."
   (if (and state.layerFilter.on (not (empty? state.layerFilter.kinds)))
-    (filter (fn [it] (contains state.layerFilter.kinds it.kind)) computed.layerShown)
+    (filter #(contains state.layerFilter.kinds (:kind %)) computed.layerShown)
     computed.layerShown))
 
 ;;; The selection and the image
@@ -70,15 +70,15 @@
    {:id "white" :title (t "fill.white") :color "#ffffff"}])
 
 (defcomputed filterTitle "The open filter's name, the filter dialog's title."
-  (if (some (fn [it] (= it.id state.filter.kind)) state.filters)
+  (if (some #(= (:id %) state.filter.kind) state.filters)
     (t (str "filter." state.filter.kind))
     (t "filter.any")))
 
 ;;; The tool
 
 (defcomputed tool "The current tool, from the tools bar's groups."
-  (or-else (find (fn [it] (= it.id state.doc.tool))
-                 (or-else (find (fn [group] (some (fn [it] (= it.id state.doc.tool)) group)) state.tools) []))
+  (or-else (find #(= (:id %) state.doc.tool)
+                 (or-else (find (fn [group] (some #(= (:id %) state.doc.tool) group)) state.tools) []))
            {}))
 
 (defcomputed toolTitle "The current tool's name, as its tooltip says it." (t (str "tool." computed.tool.name)))
@@ -105,7 +105,7 @@
     (- window.height 24 6 36 6 6 26 24 (if state.view.rulers 16 0))))
 
 (defcomputed rulerStep "The rulers' step in image pixels: the first that leaves 64 screen pixels between numbers."
-  (or-else (find (fn [it] (>= (* it computed.px) 64)) [1 2 5 10 20 50 100 200 500 1000 2000 5000]) 10000))
+  (or-else (find #(>= (* % computed.px) 64) [1 2 5 10 20 50 100 200 500 1000 2000 5000]) 10000))
 
 (defcomputed rulerTicksX "The horizontal ruler's numbered ticks, in image pixels."
   (map (fn [it]
@@ -122,16 +122,16 @@
        (range (min 200 (+ (ceil (/ computed.canvasHeight (* computed.rulerStep computed.px))) 2)))))
 
 (defcomputed rulerMinorX "The horizontal ruler's small ticks, five to a step."
-  (map (fn [it] (+ (first computed.rulerTicksX) (/ (* it computed.rulerStep) 5)))
+  (map #(+ (first computed.rulerTicksX) (/ (* % computed.rulerStep) 5))
        (range (min 400 (* 5 (count computed.rulerTicksX))))))
 
 (defcomputed rulerMinorY "The vertical ruler's small ticks, five to a step."
-  (map (fn [it] (+ (first computed.rulerTicksY) (/ (* it computed.rulerStep) 5)))
+  (map #(+ (first computed.rulerTicksY) (/ (* % computed.rulerStep) 5))
        (range (min 400 (* 5 (count computed.rulerTicksY))))))
 
 ;;; The command search
 
 (defcomputed searchItems "The command search's items: every command that can run, its category before its title."
   (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
-       (filter (fn [it] (and (not= it.enabled false) (not (empty? (or-else it.title ""))) (not= it.name "unavailable")))
+       (filter #(and (not= (:enabled %) false) (not (empty? (or-else (:title %) ""))) (not= (:name %) "unavailable"))
                commands)))
