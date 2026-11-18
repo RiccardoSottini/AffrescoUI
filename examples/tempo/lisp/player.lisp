@@ -65,11 +65,11 @@
 
 (defview repeat-button "Repeat: off, the whole list, or one song." []
   `(node#repeatButton :style control
-     :icon ~(if (= state.repeat "one") "repeat-1" "repeat")
+     :icon ~(if (= state.repeat :one) "repeat-1" "repeat")
      :anchors {:left 168 :top 16}
      :width 32
-     :textColor ~(if (= state.repeat "off") "@muted" "@accent")
-     :checked ~(not= state.repeat "off")
+     :textColor ~(if (= state.repeat :off) "@muted" "@accent")
+     :checked ~(not= state.repeat :off)
      :label ~(t (str "player.repeat." state.repeat))
      :tooltip ~(t (str "player.repeat." state.repeat))
      :onClick cycleRepeat))
