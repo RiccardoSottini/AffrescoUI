@@ -3,18 +3,6 @@
 		"calamaio/lisp"
 	],
 	"allowed": {
-		"fn-one-parameter": 45,
-		"when-not": 3,
-		"if-not": 1,
-		"when-some": 4,
-		"cond-one-value": 1,
-		"or-equals": 3,
-		"contains-vector": 2,
-		"minus-one": 5,
-		"plus-one": 6,
-		"count-zero": 2,
-		"string-function": 9,
-		"four-nested-calls": 75,
-		"entry-include": 1
+		"four-nested-calls": 44
 	}
 }
