@@ -411,3 +411,76 @@ TEST_CASE("lisp rebuild: a function running while its program changes finishes w
 	app.press(affresco::Key::C);
 	CHECK(app.state("got") == 2);
 }
+
+namespace {
+
+/// @brief A feature's program, its file `feature.lisp`: its own state, a function, a command and a view that use it.
+/// @return The program.
+json featureProgram() {
+	return {{"feature.lisp",
+	         {{"state.counter", R"((defstate counter {:count 0} "The feature's state."))"},
+	          {"counter-label", R"((defn counter-label "Its text." [n] (str "Count " n)))"},
+	          {"counter.add", R"((defcommand counter.add "Adds one." :title "Add" [] (increment "state.counter.count")))"},
+	          {"counter-view",
+	           R"((defview counter-view "Its view." [] `(label#counter-view :text ~(counter-label 1))))"}}}};
+}
+
+/// @brief The authors of a section as Programs credits them: a feature's files to the feature, the rest to the app.
+/// @param section The effective section.
+/// @return By file, then by entry.
+json featureAuthors(const json& section) {
+	json authors = json::object();
+	for(const auto& [file, entries] : section.items())
+		for(const auto& [name, text] : entries.items())
+			authors[file][name] = lisp::featureOfFile(file).empty() ? "app" : "feature:" + lisp::featureOfFile(file);
+	return authors;
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a program with a feature's joined, changed, builds in part and redefines as in full") {
+	std::size_t inPart = 0;
+	std::size_t inPlace = 0;
+	std::size_t total = 0;
+	for(const auto& [app, own] : examplePrograms()) {
+		const json document = {
+		    {"program", own},
+		    {"features", {{"counter", {{"enabled", true}, {"provides", {{"program", featureProgram()}}}}}}}};
+		const json section = lisp::effectiveProgram(document);
+		REQUIRE(section.contains(lisp::featureFiles("counter") + "feature.lisp"));
+		// The build in part compares with a record of the same authors: buildFrom() builds without any
+		lisp::Program plain = lisp::programOf(section);
+		static_cast<void>(plain.build(buildLimits()));
+		REQUIRE(plain.record());
+		lisp::Program first = lisp::programOf(section, featureAuthors(section));
+		static_cast<void>(first.build(buildLimits()));
+		REQUIRE(first.record());
+		for(const Change& change : changesOf(section)) {
+			INFO(app, ": ", change.what, " (", change.file, " ", change.name, ")");
+			const json after = changed(section, change);
+			const json authors = featureAuthors(after);
+			bool whole = false;
+			CHECK(buildFrom(*plain.record(), after, whole) == buildInFull(after));
+			++total;
+			if(!whole) ++inPart;
+			// In place, each definition by its author: a feature's stays the feature's
+			const std::unique_ptr<lisp::Interpreter> loaded = loadedInterpreter(lisp::programOf(after, authors));
+			const std::unique_ptr<lisp::Interpreter> patched = loadedInterpreter(first);
+			if(!loaded || !patched) continue;
+			lisp::Program next = lisp::programOf(after, authors);
+			try {
+				static_cast<void>(next.rebuild(*first.record(), buildLimits()));
+			} catch(const std::exception&) {
+				continue; // refused: nothing to load
+			}
+			patched->setPure(true);
+			if(!next.redefine(*patched, first, *next.record(), buildLimits())) continue;
+			patched->setPure(false);
+			CHECK(definitionsOf(*patched) == definitionsOf(*loaded));
+			++inPlace;
+		}
+	}
+	MESSAGE(inPart, " in part and ", inPlace, " in place, of ", total, " changes");
+	CHECK(inPart * 2 > total);
+	CHECK(inPlace * 2 > total);
+}
