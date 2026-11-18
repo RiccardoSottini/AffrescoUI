@@ -105,6 +105,16 @@ public:
 	[[nodiscard]] static const std::string& typeOf(const CompiledNode& node, const std::string& path);
 
 private:
+	/// @brief Before a list is reconciled: the rows' readers of each list among the changes whose shape changed, left
+	/// to the panels that repeat over it, run (all of them if this list isn't tracked).
+	/// @param state The list as it was.
+	/// @param changes The update's changes.
+	void rerunRows(const ListState& state, const StateChanges& changes);
+	/// @brief After a list is reconciled: its rows read where they lie now, so the lists among the changes it repeats
+	/// over aren't shifted again by another panel of them.
+	/// @param state The list as it is now.
+	/// @param changes The update's changes.
+	void listsRebuilt(const ListState& state, const StateChanges& changes);
 	/// @brief The children to build: the current screen for an outlet, else the node's "children" (and for the root,
 	/// the document's "overlays" after them, those whose "when" holds).
 	/// @param node The node.
@@ -234,6 +244,17 @@ private:
 	/// @return false if a row's key changes, or it can't get or lose its panel in place: every child is built again.
 	bool prepareRows(ListState& state, std::size_t index, const StateChanges& changes, EntryPlan& plan,
 	                 const Panel& panel, std::size_t first);
+	/// @brief Whether a row built again can get or lose its panel in place: at the end of the children, only the first
+	/// of an update's rows can.
+	/// @param state The rows.
+	/// @param position The row's place among the panel's children.
+	/// @param row The row as it was.
+	/// @param item What it builds now, if anything.
+	/// @param panel The panel.
+	/// @param flips The rows that got or lost their panel so far in this update, counted here.
+	/// @return Whether it can.
+	bool canFlip(const ListState& state, std::size_t position, const ListRow& row, const std::optional<Item>& item,
+	             const Panel& panel, std::size_t& flips) const;
 	/// @brief Inserts, removes and builds again the rows of the plan, numbering the rows after them again.
 	/// @param panel The panel.
 	/// @param record Its record.

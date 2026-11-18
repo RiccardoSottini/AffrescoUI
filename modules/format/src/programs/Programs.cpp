@@ -166,11 +166,14 @@ std::shared_ptr<lisp::Interpreter> Programs::loadedInterpreter(const lisp::Progr
 /// The changes made in place before a new interpreter is made instead: what each leaves in the heap stays there.
 constexpr int maxRedefinitions = 64;
 
-bool Programs::redefine(const json& section, const json& authors) {
+bool Programs::redefinable() const {
 	// Running code holds its own reference: it keeps the code it started with, in the interpreter it started in
-	if(!live_ || live_.use_count() != 1 || !program_ || redefinitions_ >= maxRedefinitions ||
-	   (extensions_ && (!extensions_->hooks.empty() || !extensions_->advice.empty())))
-		return false;
+	return live_ && live_.use_count() == 1 && program_ && redefinitions_ < maxRedefinitions &&
+	       (!extensions_ || (extensions_->hooks.empty() && extensions_->advice.empty()));
+}
+
+bool Programs::redefine(const json& section, const json& authors) {
+	if(!redefinable()) return false;
 	std::shared_ptr<const lisp::BuiltProgram> built;
 	try {
 		built = lisp::builtProgram(section); // judging the version built it: kept

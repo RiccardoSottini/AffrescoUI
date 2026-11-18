@@ -154,6 +154,15 @@ void countKey(ListState& state, const std::string& type, const json& key, bool a
 	if(found != state.keys.end() && --found->second == 0U) state.keys.erase(found);
 }
 
+/// @brief Whether one of a list of children's repeats goes over a list.
+/// @param state The list of children.
+/// @param place The list, as a JSON Pointer.
+/// @return Whether a repeat goes over it.
+bool repeatsOver(const ListState& state, const std::string& place) {
+	return std::ranges::any_of(state.entries,
+	                           [&](const ListEntry& entry) { return entry.placed && entry.place() == place; });
+}
+
 } // namespace
 
 const std::string& ChildList::typeOf(const CompiledNode& node, const std::string& path) {
@@ -364,19 +373,21 @@ void ChildList::reconcileChildren(const CompiledNode& node, Panel& panel, Record
 		fail(path, "nodes nested too deeply (more than " + std::to_string(maxNodeDepth) +
 		               " levels: a component or a screen inside itself?)");
 	if(changes && record.list.tracked && record.list.node == &node && partial(panel, record, depth, *changes)) return;
-	if(changes) // the rows' readers of a list whose shape changed were left to this list: they run
-		for(const ListChange& change : changes->lists)
-			if(!record.list.tracked || std::ranges::any_of(record.list.entries, [&](const ListEntry& entry) {
-				   return entry.placed && entry.place() == change.place;
-			   }))
-				engine_.tracker.rerunRows(change.place);
+	if(changes) rerunRows(record.list, *changes);
 	reconcileAll(node, panel, record, path, depth, changes);
-	if(changes) // its rows read where they lie now: another panel of the list mustn't shift them again
-		for(const ListChange& change : changes->lists)
-			if(std::ranges::any_of(record.list.entries, [&](const ListEntry& entry) {
-				   return entry.placed && entry.place() == change.place;
-			   }))
-				engine_.tracker.listRebuilt(change.place);
+	if(changes) listsRebuilt(record.list, *changes);
+}
+
+void ChildList::rerunRows(const ListState& state, const StateChanges& changes) {
+	// the rows' readers of a list whose shape changed were left to this list: they run
+	for(const ListChange& change : changes.lists)
+		if(!state.tracked || repeatsOver(state, change.place)) engine_.tracker.rerunRows(change.place);
+}
+
+void ChildList::listsRebuilt(const ListState& state, const StateChanges& changes) {
+	// its rows read where they lie now: another panel of the list mustn't shift them again
+	for(const ListChange& change : changes.lists)
+		if(repeatsOver(state, change.place)) engine_.tracker.listRebuilt(change.place);
 }
 
 // --- Partial updates: an insert, a removal, or changes inside items ---
@@ -489,19 +500,23 @@ bool ChildList::prepareRows(ListState& state, std::size_t index, const StateChan
 		ListRow fresh;
 		std::optional<Item> item = engine_.builder.row(entry, k, itemOf(entry, row), fresh);
 		if(fresh.key != row.key) return false; // its panel would move
-		if(item.has_value() != (row.panel != nullptr)) {
-			const std::size_t position = positionOf(state, first, index, k);
-			const bool last = position + (row.panel ? 1U : 0U) == panel.children().size();
-			const std::string& type = item ? typeOf(*item->node, item->path) : reconciler_.recordOf(row.panel)->type;
-			const bool alone = flips == 0U; // a second flip at the end would find the first's panel there
-			++flips;
-			if(!movable(state, row.key, type, !row.panel, last && alone) || (last && !alone)) return false;
-		}
+		if(item.has_value() != (row.panel != nullptr) &&
+		   !canFlip(state, positionOf(state, first, index, k), row, item, panel, flips))
+			return false;
 		plan.rows.push_back(std::move(fresh));
 		plan.items.push_back(std::move(item));
 		plan.numbers.push_back(k);
 	}
 	return true;
+}
+
+bool ChildList::canFlip(const ListState& state, std::size_t position, const ListRow& row,
+                        const std::optional<Item>& item, const Panel& panel, std::size_t& flips) const {
+	const bool last = position + (row.panel ? 1U : 0U) == panel.children().size();
+	const std::string& type = item ? typeOf(*item->node, item->path) : reconciler_.recordOf(row.panel)->type;
+	const bool alone = flips == 0U; // a second flip at the end would find the first's panel there
+	++flips;
+	return movable(state, row.key, type, !row.panel, last && alone) && (!last || alone);
 }
 
 void ChildList::replaceRow(Panel& panel, ListState& state, std::size_t index, std::size_t number, ListRow row,

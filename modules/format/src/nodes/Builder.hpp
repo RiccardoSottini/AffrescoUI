@@ -86,6 +86,13 @@ private:
 	/// @throws DocumentError If it isn't a list, or names no registered model.
 	[[nodiscard]] json listOf(const CompiledRepeat& repeat, const Scope& locals, const std::string& at,
 	                          std::optional<ItemPlace>& place) const;
+	/// @brief A data model's rows, for a "repeat" over "models.<name>" (listOf()), read for their shape only.
+	/// @param name The model.
+	/// @param at The node's place, for errors.
+	/// @param place Gets where the rows lie.
+	/// @return The rows.
+	/// @throws DocumentError If no model of that name is registered.
+	[[nodiscard]] json modelRows(std::string_view name, const std::string& at, std::optional<ItemPlace>& place) const;
 	/// @brief Adds the instances of one child: one, or one per item of its "repeat".
 	/// @param node The child, compiled.
 	/// @param locals The parent's variables.

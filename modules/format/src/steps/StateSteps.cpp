@@ -60,23 +60,40 @@ constexpr std::size_t comparedValues = 4096;
 /// @param b Another.
 /// @param budget The values it may still look at; spent as it looks.
 /// @return true if they are the same; false if they differ, or the budget ran out first.
+bool sameValue(const json& a, const json& b, std::size_t& budget);
+
+/// @brief Whether two objects have the same members, each the same value (sameValue()).
+/// @param a An object.
+/// @param b Another.
+/// @param budget As sameValue()'s.
+/// @return Whether they have.
+bool sameMembers(const json& a, const json& b, std::size_t& budget) {
+	if(a.size() != b.size()) return false;
+	for(auto it = a.begin(); it != a.end(); ++it) {
+		const auto other = b.find(it.key());
+		if(other == b.end() || !sameValue(*it, *other, budget)) return false;
+	}
+	return true;
+}
+
+/// @brief Whether two arrays have the same items, each the same value (sameValue()).
+/// @param a An array.
+/// @param b Another.
+/// @param budget As sameValue()'s.
+/// @return Whether they have.
+bool sameItems(const json& a, const json& b, std::size_t& budget) {
+	if(a.size() != b.size()) return false;
+	for(std::size_t i = 0; i < a.size(); ++i)
+		if(!sameValue(a[i], b[i], budget)) return false;
+	return true;
+}
+
 bool sameValue(const json& a, const json& b, std::size_t& budget) {
-	if(budget == 0 || (a.type() != b.type() && !(a.is_number_integer() && b.is_number_integer()))) return false;
+	const bool comparable = a.type() == b.type() || (a.is_number_integer() && b.is_number_integer());
+	if(budget == 0 || !comparable) return false;
 	--budget;
-	if(a.is_object()) {
-		if(a.size() != b.size()) return false;
-		for(auto it = a.begin(); it != a.end(); ++it) {
-			const auto other = b.find(it.key());
-			if(other == b.end() || !sameValue(*it, *other, budget)) return false;
-		}
-		return true;
-	}
-	if(a.is_array()) {
-		if(a.size() != b.size()) return false;
-		for(std::size_t i = 0; i < a.size(); ++i)
-			if(!sameValue(a[i], b[i], budget)) return false;
-		return true;
-	}
+	if(a.is_object()) return sameMembers(a, b, budget);
+	if(a.is_array()) return sameItems(a, b, budget);
 	return a == b;
 }
 

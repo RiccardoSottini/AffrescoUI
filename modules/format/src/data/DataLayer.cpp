@@ -224,31 +224,36 @@ void DataLayer::runQueries(bool rebuilt, const std::set<std::string, std::less<>
 	if(queries.is_object())
 		for(const auto& [name, declaration] : queries.items()) {
 			if(store.models().contains(name)) continue; // a collection's name: refused by the rules
-			json arguments;
-			try {
-				const DocumentContext::ReadScope reads(engine_.document, &queryReads_); // what the queries read
-				arguments = engine_.document.evaluate(declaration, Scope{}, json::object(), "queries." + name);
-			} catch(const DocumentError& error) {
-				engine_.report(error.what());
-				continue;
-			}
-			const json& from = arguments.is_object() ? sectionOf(arguments, "from") : arguments;
-			const bool recordsMoved = !from.is_string() || changed.contains(from.get_ref<const std::string&>());
-			const auto last = queryArguments_.find(name);
-			if(last != queryArguments_.end() && last->second == arguments && !recordsMoved) continue; // the same
-			json results;
-			try {
-				results = store.run(arguments, "queries." + name);
-			} catch(const DocumentError& error) {
-				engine_.report(error.what());
-				results = json::array();
-			}
-			const bool differs = !value_.contains(name) || value_[name] != results;
-			if(differs) value_[name] = std::move(results);
-			if(differs && !rebuilt) markChanged(name);
-			queryArguments_[name] = std::move(arguments);
+			runQuery(name, declaration, rebuilt, changed);
 		}
 	engine_.tracker.setReads(queriesId_, queriesReads(queryReads_, store)); // they run again when one changes
+}
+
+void DataLayer::runQuery(const std::string& name, const json& declaration, bool rebuilt,
+                         const std::set<std::string, std::less<>>& changed) {
+	json arguments;
+	try {
+		const DocumentContext::ReadScope reads(engine_.document, &queryReads_); // what the queries read
+		arguments = engine_.document.evaluate(declaration, Scope{}, json::object(), "queries." + name);
+	} catch(const DocumentError& error) {
+		engine_.report(error.what());
+		return;
+	}
+	const json& from = arguments.is_object() ? sectionOf(arguments, "from") : arguments;
+	const bool recordsMoved = !from.is_string() || changed.contains(from.get_ref<const std::string&>());
+	const auto last = queryArguments_.find(name);
+	if(last != queryArguments_.end() && last->second == arguments && !recordsMoved) return; // the same
+	json results;
+	try {
+		results = store().run(arguments, "queries." + name);
+	} catch(const DocumentError& error) {
+		engine_.report(error.what());
+		results = json::array();
+	}
+	const bool differs = !value_.contains(name) || value_[name] != results;
+	if(differs) value_[name] = std::move(results);
+	if(differs && !rebuilt) markChanged(name);
+	queryArguments_[name] = std::move(arguments);
 }
 
 json DataLayer::outline() const {

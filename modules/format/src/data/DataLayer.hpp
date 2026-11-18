@@ -158,6 +158,14 @@ private:
 	/// @param rebuilt Every collection was read again: nothing is marked (the update is full).
 	/// @param changed The collections read again.
 	void runQueries(bool rebuilt, const std::set<std::string, std::less<>>& changed);
+	/// @brief Runs one query if its collection changed or its declaration evaluates differently, and marks its results'
+	/// place if they differ; an error is reported and the query is left as it was.
+	/// @param name The query.
+	/// @param declaration Its declaration.
+	/// @param rebuilt Every collection was read again: nothing is marked.
+	/// @param changed The collections read again.
+	void runQuery(const std::string& name, const json& declaration, bool rebuilt,
+	              const std::set<std::string, std::less<>>& changed);
 	/// @brief Marks the place of a collection's records or of a query's results, for what reads them.
 	/// @param name The collection or query.
 	void markChanged(std::string_view name);

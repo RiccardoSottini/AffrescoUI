@@ -92,19 +92,31 @@ bool hidden(const Panel* panel, const std::string& property) {
 	return area && area->secret() && (property == "text" || property.starts_with("values["));
 }
 
+/// @brief How a property of a panel differs between two writings of it, its values masked if a secret field holds them.
+/// @param a The writing after the partial update.
+/// @param x The property there, or nullptr if it has none there.
+/// @param y The property after the full pass, or nullptr; one of the two is given.
+/// @return The difference.
+Difference propertyDifference(const Written& a, const Property* x, const Property* y) {
+	const std::string& name = x ? x->name : y->name;
+	if(hidden(a.panel, name)) return Difference{a.place, name, "(secret)", "(secret, not the same)"};
+	return Difference{a.place, name, x ? x->value : "none", y ? y->value : "none"};
+}
+
 /// @brief The first difference between two writings of the same panel.
 /// @param a After the partial update.
 /// @param b After the full pass.
 /// @return It, or std::nullopt if they are the same.
 std::optional<Difference> panelDifference(const Written& a, const Written& b) {
 	if(a.panel != b.panel) return Difference{a.place, "children", "kept", "another panel"};
+	const auto at = [](const Written& written, std::size_t k) {
+		return k < written.properties.size() ? &written.properties[k] : nullptr;
+	};
 	for(std::size_t k = 0; k < a.properties.size() || k < b.properties.size(); ++k) {
-		const Property* x = k < a.properties.size() ? &a.properties[k] : nullptr;
-		const Property* y = k < b.properties.size() ? &b.properties[k] : nullptr;
+		const Property* x = at(a, k);
+		const Property* y = at(b, k);
 		if(x && y && x->name == y->name && x->value == y->value) continue;
-		const std::string& name = x ? x->name : y->name;
-		if(hidden(a.panel, name)) return Difference{a.place, name, "(secret)", "(secret, not the same)"};
-		return Difference{a.place, name, x ? x->value : "none", y ? y->value : "none"};
+		return propertyDifference(a, x, y);
 	}
 	return std::nullopt;
 }

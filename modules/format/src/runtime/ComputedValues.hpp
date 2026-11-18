@@ -149,6 +149,13 @@ private:
 	/// moved, are stale; the others are fresh at the state's version.
 	/// @param changes The update's changes.
 	void settle(const StateChanges& changes);
+	/// @brief Settles one value at the start of an update (settle()): dropped when everything or the appearance
+	/// changed, stale when the changes meet what it read.
+	/// @param name Its name.
+	/// @param entry It.
+	/// @param changes The update's changes.
+	/// @param appearance The appearance now (DocumentContext::appearance()).
+	void settleOne(const std::string& name, Entry& entry, const StateChanges& changes, std::uint64_t appearance);
 	/// @brief Makes stale the values that read places marked since the last look: of those evaluated in this update,
 	/// only places other than values' own.
 	/// @param changes The update's changes.

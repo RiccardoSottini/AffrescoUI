@@ -283,6 +283,13 @@ bool Tracker::update(StateChanges& changes, bool panels) {
 		if(panels || !entries_[slotOf(id)].panel) found_.push_back(id); // a full pass builds the panels again
 	enqueue(found_, 0, 0);
 	StateChanges again; // marked places a reader run already reads: for the next update
+	if(!runDue(changes, panels, again)) return false;
+	for(const std::string& path : again.paths) context.markPlaceChanged(path);
+	return true;
+}
+
+bool Tracker::runDue(StateChanges& changes, bool panels, StateChanges& again) {
+	DocumentContext& context = engine_.document;
 	for(std::size_t next = 0; next < due_.size(); ++next) {
 		const Due due = due_[next];
 		Entry* entry = live(due.id);
@@ -305,7 +312,6 @@ bool Tracker::update(StateChanges& changes, bool panels) {
 		if(panels) rerunAlways();
 		if(enqueue(found_, due.round + 1, next + 1)) join(again, marked);
 	}
-	for(const std::string& path : again.paths) context.markPlaceChanged(path);
 	return true;
 }
 

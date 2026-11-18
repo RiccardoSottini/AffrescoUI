@@ -200,23 +200,26 @@ json Builder::repeated(const CompiledRepeat& repeat, const Scope& locals, const 
 	return list;
 }
 
+json Builder::modelRows(std::string_view name, const std::string& at, std::optional<ItemPlace>& place) const {
+	const DataModel* model = engine_.models.find(name);
+	if(!model)
+		fail(at + ".repeat.in", "no data model '" + std::string(name) + "' (the application registers them; it has " +
+		                            engine_.models.names() + ")");
+	place.emplace().list = Models::placeOf(name);
+	if(ReadSet* const outer = engine_.document.reads()) outer->addPath(place->list + "/" + std::string(shapeKey));
+	json rows = json::array();
+	for(std::size_t k = 0, count = model->size(); k < count; ++k) rows.push_back(model->row(k));
+	return rows;
+}
+
 // A list that lies in the state, or a data model's rows, is read for its shape only: its items read what they read
 // inside it, so a change inside one item updates what reads it and leaves the list alone (Reads.hpp, shapeKey)
 json Builder::listOf(const CompiledRepeat& repeat, const Scope& locals, const std::string& at,
                      std::optional<ItemPlace>& place) const {
 	ReadSet* const outer = engine_.document.reads();
 	const std::string* path = repeat.path ? &repeat.path->get_ref<const std::string&>() : nullptr;
-	if(const std::optional<std::string_view> name = path ? modelName(*path) : std::nullopt) {
-		const DataModel* model = engine_.models.find(*name);
-		if(!model)
-			fail(at + ".repeat.in", "no data model '" + std::string(*name) +
-			                            "' (the application registers them; it has " + engine_.models.names() + ")");
-		place.emplace().list = Models::placeOf(*name);
-		if(outer) outer->addPath(place->list + "/" + std::string(shapeKey));
-		json rows = json::array();
-		for(std::size_t k = 0, count = model->size(); k < count; ++k) rows.push_back(model->row(k));
-		return rows;
-	}
+	if(const std::optional<std::string_view> name = path ? modelName(*path) : std::nullopt)
+		return modelRows(*name, at, place);
 	ReadSet listReads;
 	json list;
 	{

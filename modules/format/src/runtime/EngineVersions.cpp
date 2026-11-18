@@ -159,17 +159,7 @@ void Engine::documentChanged() {
 	reconciler.reconcile("revision");
 }
 
-void Engine::documentChangedWith(const DocumentChange& change) {
-	if(change.everything || !change.before) {
-		documentChanged();
-		return;
-	}
-	if(change.document.empty()) { // the same document: a state update, with nothing compiled or reconciled
-		markStatePlaces(document, change);
-		document.reviewChanged(); // the version's number and the history: what reads them is evaluated too
-		reconciler.updateNow();
-		return;
-	}
+void Engine::readChangedSections(const DocumentChange& change) {
 	const unsigned readers = readersOf(change.sections);
 	if((readers & reader::dataModels) != 0U) data.documentChanged(); // first: records that don't fit refuse the version
 	if((readers & reader::program) != 0U) programs.load();
@@ -182,6 +172,20 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 	if((readers & reader::services) != 0U) serviceCalls.load();
 	if((readers & reader::sounds) != 0U) audio.documentChanged();
 	if((readers & reader::windows) != 0U) otherWindows.documentChanged();
+}
+
+void Engine::documentChangedWith(const DocumentChange& change) {
+	if(change.everything || !change.before) {
+		documentChanged();
+		return;
+	}
+	if(change.document.empty()) { // the same document: a state update, with nothing compiled or reconciled
+		markStatePlaces(document, change);
+		document.reviewChanged(); // the version's number and the history: what reads them is evaluated too
+		reconciler.updateNow();
+		return;
+	}
+	readChangedSections(change);
 	document.reviewChanged(); // the version's number and the history are new globals
 	markStatePlaces(document, change);
 	std::string_view full = fullPassFor(change, versions.document());

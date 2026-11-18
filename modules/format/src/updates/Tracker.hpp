@@ -172,6 +172,14 @@ private:
 	/// @param round Their round: the running reader's.
 	/// @param from The first due reader not run yet.
 	void enqueuePending(std::uint32_t round, std::size_t from);
+	/// @brief Runs the due readers in order, each at most once, joining the places each marks to the update and making
+	/// their readers due in the next round (update()).
+	/// @param changes The update's changes; gets the places marked.
+	/// @param panels Whether the panels' readers run too.
+	/// @param again Gets the places marked that a reader run already reads, for the next update.
+	/// @return false if everything changed: the readers stopped, a full pass must follow.
+	/// @throws DocumentError From a reader.
+	bool runDue(StateChanges& changes, bool panels, StateChanges& again);
 	/// @brief Adds to found_ the panels' readers that read always and ran in this update, so they run again: a place
 	/// marked after them may change what they read (a variable built from the state).
 	void rerunAlways();

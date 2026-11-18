@@ -139,6 +139,29 @@ std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext:
 	return result;
 }
 
+void DocumentContext::readFonts(const json& doc, const NumberTable& numbers,
+                                std::map<std::string, std::shared_ptr<const Font>, std::less<>>& fonts,
+                                std::map<std::uint64_t, FontSource>& sources) {
+	for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
+		const std::string path = "fonts." + name;
+		object(value, path);
+		if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
+
+		const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
+		const float size = fontSize(value["size"], path + ".size", numbers);
+		const std::vector<std::filesystem::path> fallbacks = fallbackFiles(doc["fonts"], value, path, baseDirectory_);
+		const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
+		                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
+		try {
+			std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
+			sources[font->id()] = {file, fallbacks};
+			fonts.emplace(name, std::move(font));
+		} catch(const std::runtime_error& error) {
+			fail(path, error.what());
+		}
+	}
+}
+
 // Throws, changing nothing, if a color or a font is invalid
 void DocumentContext::readDerived() {
 	const json& doc = engine_.versions.document();
@@ -154,27 +177,7 @@ void DocumentContext::readDerived() {
 	if(languagesSource != languagesSource_)
 		newLanguages = languagesSource.is_null() ? nullptr : LanguageCatalog::read(languagesSource);
 
-	if(doc.contains("fonts")) {
-		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
-			const std::string path = "fonts." + name;
-			object(value, path);
-			if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
-
-			const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
-			const float size = fontSize(value["size"], path + ".size", newNumbers);
-			const std::vector<std::filesystem::path> fallbacks =
-			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
-			const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
-			                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
-			try {
-				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
-				newSources[font->id()] = {file, fallbacks};
-				newFonts.emplace(name, std::move(font));
-			} catch(const std::runtime_error& error) {
-				fail(path, error.what());
-			}
-		}
-	}
+	if(doc.contains("fonts")) readFonts(doc, newNumbers, newFonts, newSources);
 
 	colors_ = std::move(newColors);
 	numberTokens_ = std::move(newNumbers);

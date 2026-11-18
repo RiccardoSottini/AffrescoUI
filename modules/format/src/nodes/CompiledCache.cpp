@@ -114,6 +114,21 @@ struct CompiledCache::Carrier {
 		return before == after;
 	}
 
+	/// @brief Walks two lists as long as each other, item by item.
+	/// @param before The list before.
+	/// @param after The list after.
+	/// @param shown As walkArray()'s.
+	/// @return Whether they are the same.
+	bool walkItems(const json& before, const json& after, bool* shown) {
+		bool same = true;
+		for(std::size_t i = 0; i < before.size(); ++i) {
+			const bool item = walk(before[i], after[i]);
+			if(shown && !item && !keptFor(before[i], after[i])) *shown = true;
+			same = item && same;
+		}
+		return same;
+	}
+
 	/// @brief Walks two lists: item by item when they are as long, else their common start, then their common end.
 	/// @param before The list before.
 	/// @param after The list after.
@@ -122,16 +137,8 @@ struct CompiledCache::Carrier {
 	/// list); nullptr for any other list.
 	/// @return Whether they are the same.
 	bool walkArray(const json& before, const json& after, bool* shown = nullptr) {
+		if(before.size() == after.size()) return walkItems(before, after, shown);
 		const std::size_t common = std::min(before.size(), after.size());
-		if(before.size() == after.size()) {
-			bool same = true;
-			for(std::size_t i = 0; i < common; ++i) {
-				const bool item = walk(before[i], after[i]);
-				if(shown && !item && !keptFor(before[i], after[i])) *shown = true;
-				same = item && same;
-			}
-			return same;
-		}
 		if(shown) *shown = true;
 		std::size_t start = 0;
 		while(start < common && walk(before[start], after[start])) ++start;

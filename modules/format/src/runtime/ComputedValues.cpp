@@ -122,25 +122,26 @@ void ComputedValues::placeChanged(std::string_view place) {
 		if(entry.known && !entry.stale && meets(entry.reads, std::span(&changed, 1))) makeStale(entry);
 }
 
+void ComputedValues::settleOne(const std::string& name, Entry& entry, const StateChanges& changes,
+                               std::uint64_t appearance) {
+	// A new appearance (a locale, a theme) changes what t() and the colours give, though no place it read changed
+	if(entry.known && (changes.all || entry.appearance != appearance)) { // dropped, whatever it read
+		entry.known = false;
+		entry.stale = false;
+		// evaluated when next read, maybe late in the walk: what read it before is evaluated again now
+		if(!changes.all) engine_.document.markPlaceChanged(computedPlace(name));
+		return;
+	}
+	if(!entry.known || entry.stale) return;
+	if(meets(entry.reads, changes.paths) || (entry.reads.always && !current(entry))) makeStale(entry);
+}
+
 void ComputedValues::settle(const StateChanges& changes) {
 	++epoch_;
 	swept_ = changes.paths.size();
 	const std::uint64_t now = engine_.document.stateVersion();
 	const std::uint64_t appearance = engine_.document.appearance();
-	for(auto& [name, entry] : values_) {
-		// A new appearance (a locale, a theme) changes what t() and the colours give, though no place it read changed
-		if(entry.known && (changes.all || entry.appearance != appearance)) { // dropped, whatever it read
-			entry.known = false;
-			entry.stale = false;
-			// evaluated when next read, maybe late in the walk: what read it before is evaluated again now
-			if(!changes.all) engine_.document.markPlaceChanged(computedPlace(name));
-			continue;
-		}
-		if(!entry.known || entry.stale) continue;
-		if(meets(entry.reads, changes.paths) || (entry.reads.always && !current(entry))) {
-			makeStale(entry);
-		}
-	}
+	for(auto& [name, entry] : values_) settleOne(name, entry, changes, appearance);
 	for(auto& [name, entry] : values_)
 		if(entry.known && !entry.stale) { // untouched: fresh at the state as it is now
 			entry.version = now;

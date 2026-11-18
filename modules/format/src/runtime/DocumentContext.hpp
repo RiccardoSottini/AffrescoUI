@@ -384,6 +384,15 @@ private:
 		std::filesystem::path file;                   ///< Its file.
 		std::vector<std::filesystem::path> fallbacks; ///< Its fallbacks' files.
 	};
+	/// @brief Loads the fonts of "fonts" (readDerived()).
+	/// @param doc The document, which has "fonts".
+	/// @param numbers The number tokens, for the sizes.
+	/// @param fonts Gets each font, by name.
+	/// @param sources Gets where each comes from, by Font::id().
+	/// @throws DocumentError If one is invalid or can't be loaded.
+	void readFonts(const json& doc, const NumberTable& numbers,
+	               std::map<std::string, std::shared_ptr<const Font>, std::less<>>& fonts,
+	               std::map<std::uint64_t, FontSource>& sources);
 	std::map<std::uint64_t, FontSource> fontSources_;                          ///< By Font::id(), for fonts_.
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
 	FontCache fontCache_; ///< By file, size and fallbacks: kept across revisions, within its bound.

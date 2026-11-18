@@ -15,6 +15,26 @@ namespace affresco::format {
 
 namespace {
 
+/// @brief The ring a "window.focusRing" value gives: a colour, { "color", "width", "offset" }, true (the default
+/// ring) or false (none).
+/// @param engine The runtime, for the colours.
+/// @param value The value.
+/// @return The ring, or none.
+/// @throws DocumentError If it is wrong.
+std::optional<FocusRing> focusRingOf(Engine& engine, const json& value) {
+	const std::string at = "window.focusRing";
+	if(value.is_boolean() && !value.get<bool>()) return std::nullopt;
+	if(!value.is_object()) return FocusRing{.color = engine.document.color(value, at)};
+	FocusRing ring;
+	for(const auto& [key, item] : value.items()) {
+		if(key == "color") ring.color = engine.document.color(item, at + ".color");
+		else if(key == "width") ring.width = pixels(item, at + ".width");
+		else if(key == "offset") ring.offset = pixels(item, at + ".offset");
+		else fail(std::format("{}.{}", at, key), "unknown property");
+	}
+	return ring;
+}
+
 /// @brief Gives the window the ring of "window.focusRing" (a colour, { "color", "width", "offset" }, or false; the
 /// default ring when it is left out), if it changed. Errors are reported, and leave the ring as it was.
 /// @param engine The runtime, with a window.
@@ -23,21 +43,8 @@ void showFocusRing(Engine& engine) {
 	const json& document = engine.versions.document();
 	std::optional<FocusRing> ring = FocusRing{}; // on unless the document says otherwise
 	try {
-		if(document.contains("window") && document["window"].is_object() && document["window"].contains("focusRing")) {
-			ring.reset();
-			const json& value = document["window"]["focusRing"];
-			const std::string at = "window.focusRing";
-			if(value.is_object()) {
-				ring.emplace();
-				for(const auto& [key, item] : value.items()) {
-					if(key == "color") ring->color = engine.document.color(item, at + ".color");
-					else if(key == "width") ring->width = pixels(item, at + ".width");
-					else if(key == "offset") ring->offset = pixels(item, at + ".offset");
-					else fail(std::format("{}.{}", at, key), "unknown property");
-				}
-			} else if(!value.is_boolean() || value.get<bool>())
-				ring = FocusRing{.color = engine.document.color(value, at)};
-		}
+		if(document.contains("window") && document["window"].is_object() && document["window"].contains("focusRing"))
+			ring = focusRingOf(engine, document["window"]["focusRing"]);
 	} catch(const DocumentError& error) {
 		engine.report(error.what());
 		return;

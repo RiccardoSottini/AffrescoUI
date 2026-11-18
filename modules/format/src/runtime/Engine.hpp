@@ -152,6 +152,10 @@ struct Engine : VersionObserver {
 	/// one, the compiled nodes of what didn't change are kept, and every panel is reconciled.
 	/// @param change What changed.
 	void documentChangedWith(const DocumentChange& change) override;
+	/// @brief Has each part that reads sections of the document read again those a revision changed, keeps the
+	/// compiled nodes of what didn't change, and moves the state's version on (documentChangedWith()).
+	/// @param change What changed: some sections, with the document of before.
+	void readChangedSections(const DocumentChange& change);
 	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
 	void proposalsChanged() override;
 
