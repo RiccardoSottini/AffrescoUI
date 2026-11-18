@@ -6,27 +6,14 @@
 ;;; invented; built from the public docs only (see README.md next to it). What each part shows is in parts/, what it
 ;;; does in arcadia.lisp. Alt+Left and Alt+Right go back and forward, Cmd+1 to Cmd+3 change page, Cmd+, opens Settings.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "parts/data.lisp"
-         "parts/look.lisp"
-         "parts/places.lisp"
-         "parts/chrome.lisp"
-         "parts/library.lisp"
-         "parts/game.lisp"
-         "parts/store.lisp"
-         "parts/store-game.lisp"
-         "parts/cart.lisp"
-         "parts/downloads.lisp"
-         "parts/friends.lisp"
-         "parts/profile.lisp"
-         "parts/manage.lisp"
-         "parts/settings.lisp"
-         "parts/client.lisp"
-         "parts/hub.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "arcadia.lisp")
+(ns arcadia.index
+  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp"
+            arcadia.parts.data arcadia.parts.look arcadia.parts.places arcadia.parts.chrome arcadia.parts.library
+            arcadia.parts.game arcadia.parts.store arcadia.parts.store-game arcadia.parts.cart arcadia.parts.downloads
+            arcadia.parts.friends arcadia.parts.profile arcadia.parts.manage arcadia.parts.settings
+            arcadia.parts.client arcadia.parts.hub
+            "../../shared/addons/assistant/assistant.lisp"
+            arcadia.arcadia))
 
 ;;; The window, and what is in it, in the order it is drawn
 
