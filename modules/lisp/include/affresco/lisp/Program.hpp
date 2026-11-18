@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -120,7 +121,10 @@ struct UndefinedName {
 	std::string definition; ///< The definition it is in.
 };
 
-struct NodeNote; // what a recording build notes as it makes a node (Machine.hpp)
+class Machine;          // the interpreter's state (Machine.hpp)
+struct DefinitionBuilt; // what a build keeps of one definition (Rebuild.hpp)
+struct NodeNote;        // what a recording build notes as it makes a node (Machine.hpp)
+struct BuildRecord;     // what a build keeps of each definition, for the build of a later version (Rebuild.hpp)
 
 /// @brief Where a recording build (Program::recordOrigins()) made a node with an id, from a form of the source: the
 /// places of the node's form and of its id's text, as the program's entries were read. They differ when a call hands
@@ -199,6 +203,37 @@ public:
 	/// @throws LispError If building fails or a limit runs out, naming the place.
 	[[nodiscard]] json build(const Limits& limits = {});
 
+	/// @brief Builds the tree as build() does, from the record of a build of an earlier version of the program: only
+	/// the definitions that changed, and those that use them, are run; what the others gave is taken from the record.
+	/// It gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
+	/// it can't be sure: a changed or removed macro, hook or advice, a definition named as one of the language's (a
+	/// macro of the language may call it), a form that isn't a definition (a macro's call at
+	/// the top level, `do`), namespaces, a recording build, a definition that would use one it didn't load, and any
+	/// error, which build() then reports. The budget is the one build() has, less what the record's build spent.
+	/// @param previous The earlier build's record (record()).
+	/// @param limits The limits.
+	/// @return The tree.
+	/// @throws LispError If building fails or a limit runs out, naming the place, as build() would.
+	[[nodiscard]] json rebuild(const BuildRecord& previous, const Limits& limits = {});
+
+	/// @brief Changes an interpreter that has loaded an earlier version of the program (load(), without everything)
+	/// into one that has loaded this one: the definitions that changed are defined again, with their entries' authors,
+	/// those that went are taken away, and those that use either are defined again, so that the values they work out
+	/// are worked out again. Where it can't be sure it gives what load() gives, it changes nothing and returns false:
+	/// a changed or removed macro, hook, advice or form that isn't a definition, a definition whose kind changed or
+	/// whose name is one of the language's, namespaces. The interpreter must be pure while it runs (setPure()).
+	/// @param interpreter The interpreter.
+	/// @param before The earlier version, as it was loaded.
+	/// @param built The record of this version's build (record()): who uses what.
+	/// @param limits What the change may spend.
+	/// @return true if it changed it; false if nothing was done.
+	/// @throws LispError If a definition fails: the interpreter is then half changed, for the caller to throw away.
+	[[nodiscard]] bool redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
+	                            const Limits& limits = {}) const;
+	/// @brief What the last build kept of each definition, for the build of a later version (rebuild()).
+	/// @return It; nullptr before a build.
+	[[nodiscard]] std::shared_ptr<const BuildRecord> record() const noexcept { return record_; }
+
 	/// @brief Makes the next builds note where they make each node with an id (nodePlaces()), or stop.
 	/// Off by default: a build that records nothing costs one test per node more than before.
 	/// @param on Whether to record.
@@ -237,6 +272,16 @@ private:
 	/// interpreter still owns the files' names.
 	/// @param notes The notes.
 	void keepNodePlaces(const std::vector<NodeNote>& notes);
+	/// @brief Builds the tree from a record, running only what changed (rebuild()).
+	/// @param previous The record.
+	/// @param limits The limits.
+	/// @return The tree, or std::nullopt where it can't be sure, or the build failed: build() then says why.
+	[[nodiscard]] std::optional<json> buildInPart(const BuildRecord& previous, const Limits& limits);
+	/// @brief Keeps what a build in full found (record()), and whether a later build may start from it.
+	/// @param machine The build's machine.
+	/// @param record What it kept of each definition, in its order.
+	/// @param limits Its limits.
+	void keepRecord(Machine& machine, std::vector<DefinitionBuilt> record, const Limits& limits);
 
 	std::vector<Entry> entries_;                                  ///< See entries().
 	std::map<std::string, std::size_t> names_;                    ///< Where each entry is in entries_, by its name.
@@ -250,6 +295,20 @@ private:
 	std::set<std::pair<std::string, std::string>> defaulted_;     ///< See defaulted().
 	std::vector<NodePlace> places_;                               ///< See nodePlaces().
 	bool recording_ = false;                                      ///< See recordOrigins().
+	std::shared_ptr<BuildRecord> record_;                         ///< See record().
 };
+
+/// @brief What this thread's builds did (Program::build(), Program::rebuild()): for the tests, which take the
+/// difference of two readings.
+struct RebuildStatistics {
+	std::size_t whole = 0;        ///< Builds that ran every definition.
+	std::size_t inPart = 0;       ///< Builds in part.
+	std::size_t compiled = 0;     ///< The definitions they loaded and compiled, all of them together.
+	std::size_t redefined = 0;    ///< Interpreters changed in place (Program::redefine()).
+	std::size_t definedAgain = 0; ///< The definitions those changes defined again, all of them together.
+};
+
+/// @brief What this thread's builds did so far. @return It.
+[[nodiscard]] const RebuildStatistics& rebuildStatistics() noexcept;
 
 } // namespace affresco::lisp

@@ -36,8 +36,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
 | `Interpreter.hpp` | `Interpreter` (`addAppVariable`, `eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`, `recordOrigins`, `nodePlaces`), `NamedCalls`, `CallsByName`, `NodePlace`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
-| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `nodeOrigins` (`NodeOrigin`), `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `rebuild`, `redefine`, `record`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`, `recordOrigins`, `nodePlaces`), `NamedCalls`, `CallsByName`, `NodePlace`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
+| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `changedPlaces`, `nodeOrigins` (`NodeOrigin`), `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
 
 ## Values
 
@@ -226,6 +226,15 @@ one data value, a **template**.
   building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
   revision judges before and after, and a build under a document has tighter limits than running does (`maxBuildOperations`,
   `maxBuildBytes`), as every revision pays for one.
+- **One definition changes, one is built again.** A build keeps a record (`Program::record`): what each definition uses, what it
+  gave the tree, what it found. `Program::rebuild(previous)` runs only the definitions that changed and those that use them, over
+  and over, in a fresh interpreter that loads them and what they use, and puts the rest of the tree back from the record; the
+  result is the build in full's, key for key, and `record()->touched` names the places it could have changed (`changedPlaces`).
+  It builds in full when that can't be sure: a macro, `add-hook`, `remove-hook` or `advice` changed or gone, a form that isn't a
+  definition, a definition named as one of the language's, namespaces, or nothing left to save (`Rebuild.cpp` lists them).
+  `builtProgram` builds each version from the one it built last. `Program::redefine(interpreter, before, record)` does the same to
+  a running interpreter: it defines again what changed and what uses it, with its entry's author, and takes away what went; where
+  it can't be sure it does nothing, and a failure leaves the interpreter for the caller to throw away.
 - **Where a node comes from.** `nodeOrigins(section)` gives, by node id, the definition that holds the form that built the node:
   its file and name (the address `/program/<file>/<definition>`), its kind, and the line and column of the node's `(` inside the
   definition's own text (the history keeps definitions; a file on disk may be laid out differently). A view's node comes from that

@@ -27,6 +27,8 @@ affrescoui_module(lisp
 	src/Forms.cpp
 	src/FormCache.cpp
 	src/Program.cpp
+	src/TreeParts.cpp
+	src/Rebuild.cpp
 	src/Document.cpp)
 target_link_libraries(affrescoui_lisp PUBLIC affrescoui::core affrescoui::notation nlohmann_json::nlohmann_json)
 # A program that runs whatever links the language gets the 8 MiB main-thread stack of macOS and Linux, which the depth

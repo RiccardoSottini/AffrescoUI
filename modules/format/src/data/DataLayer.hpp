@@ -6,6 +6,7 @@
 /// declared query's results), and who the write steps write as.
 
 #include "Reads.hpp"
+#include "Tracker.hpp"
 
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
@@ -16,22 +17,32 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco::format {
 
 struct Engine;
 
-/// Where the records lie among the places values read (places::data, Reads.hpp): a change of the store marks "/~d",
-/// so an update evaluates again only what reads `data`.
+/// Where the records lie among the places values read (places::data, Reads.hpp): `data.<collection>` and
+/// `data.<query>` read "/~d/<name>" (collections and queries share data's keys), so a change of one collection's
+/// records marks its place, and a query's place is marked only when its results differ.
 inline constexpr std::string_view dataPlaces = places::data;
+
+/// @brief The place `data.<name>` reads: "/~d/<name>".
+/// @param name A collection or a query.
+/// @return The place.
+[[nodiscard]] std::string dataPlace(std::string_view name);
 
 /// @brief The runtime's data layer.
 ///
 /// The store is the host's (setStore(), a file per app) or, until it gives one, an in-memory store of the layer's
 /// own, so every screen has one. While a proposal is previewed, the screen reads and writes a copy of the store that
 /// follows the proposal's models, dropped when the preview ends: the store itself only follows main.
+/// Each collection's records are read again only when the store says it changed, and each query, a reader of the
+/// state (Tracker), runs again only when its collection changed or its evaluated declaration differs.
 /// Invariants: main thread only; the `data` value stays valid until the next state or store change.
 class DataLayer {
 public:
@@ -67,8 +78,9 @@ public:
 	/// @return It, built if the state or the store changed since.
 	[[nodiscard]] const json* variable();
 
-	/// @brief The places of the state the declared queries read (their "where", "limit", ...): what reads `data`
-	/// reads them too, so it is evaluated again when a query's results may change.
+	/// @brief The places of the state the declared queries read (their "where", "limit", ...): when one changes,
+	/// the queries are evaluated again at the start of the next update, and the places of those whose results
+	/// differ are marked.
 	/// @return They, as of the last variable().
 	[[nodiscard]] const ReadSet& queryReads() const noexcept { return queryReads_; }
 
@@ -118,6 +130,37 @@ public:
 	[[nodiscard]] static json evaluate(const std::string& expression, const json& variables);
 
 private:
+	/// @brief The declared queries as a reader of the state (queriesOrder): what their declarations read.
+	class Queries final : public Reader {
+	public:
+		/// @brief The queries of a layer.
+		/// @param layer The layer; outlives it.
+		explicit Queries(DataLayer& layer) noexcept : layer_(layer) {}
+		/// @brief A place a declaration read changed, or records did: the queries are brought up to date.
+		/// @param changes The update's changes.
+		void update(const StateChanges& changes) override;
+		/// @brief After the computed values settle, before they are evaluated (queriesOrder).
+		/// @return queriesOrder.
+		[[nodiscard]] std::uint64_t order() const noexcept override;
+		/// @brief "queries".
+		/// @return The name.
+		[[nodiscard]] std::string name() const override { return "queries"; }
+
+	private:
+		DataLayer& layer_; ///< The layer.
+	};
+
+	/// @brief The store says records changed: their collection's place is marked, and it is read again when next read.
+	/// @param collection The collection ("": any of them).
+	void recordsChanged(const std::string& collection);
+	/// @brief Reads again the collections the store changed since, and runs the queries whose collection changed or
+	/// whose declaration evaluates differently; the places of results that differ are marked.
+	/// @param rebuilt Every collection was read again: nothing is marked (the update is full).
+	/// @param changed The collections read again.
+	void runQueries(bool rebuilt, const std::set<std::string, std::less<>>& changed);
+	/// @brief Marks the place of a collection's records or of a query's results, for what reads them.
+	/// @param name The collection or query.
+	void markChanged(std::string_view name);
 	/// @brief Refuses a write the screen's data rules don't let one author make (checkWrite()).
 	/// @param writer The author.
 	/// @param collection The collection written.
@@ -145,6 +188,10 @@ private:
 	bool building_ = false;                                   ///< variable() is running.
 	ReadSet queryReads_;                                      ///< See queryReads().
 	std::map<std::string, json, std::less<>> queryArguments_; ///< Each query's evaluated declaration, last built.
+	std::set<std::string, std::less<>> changed_;              ///< The collections changed since they were read.
+	bool allChanged_ = false;                                 ///< Any collection may have changed since.
+	Queries queries_{*this};                                  ///< See Queries.
+	ReaderId queriesId_ = 0;                                  ///< queries_'s handle in the tracker.
 	std::unique_ptr<data::Store::Batch> eventBatch_; ///< The running event's writes (groupEvent()); goes first.
 };
 
