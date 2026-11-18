@@ -36,12 +36,10 @@
        :with {:open ~(str "state.menus." (case key :scorePeriod "score" "history"))
               :width 160
               :placement below-end
-              ; style: keep, a fn that gives a map
+              ; style: keep, gives a map
               :items ~(map (fn [it]
-                             {:title (t (str "period." it))
-                              :checked (= (get state key) it)
-                              :run "setPeriod"
-                              :with {:key key :value it}})
+                             {:title (t (str "period." it)) :checked (= (get state key) it)
+                              :run "setPeriod" :with {:key key :value it}})
                            ["day" "week" "month" "quarter" "year"])})))
 
 (defcomponent prefRow "A settings row: a title, a summary under it, and its control (the children) at the end."

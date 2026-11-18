@@ -101,12 +101,10 @@
                   :with {:open state.menus.filter
                          :width 220
                          :placement below-end
-                         ; style: keep, a fn that gives a map
+                         ; style: keep, gives a map
                          :items ~(concat (map (fn [it]
-                                                {:title (t (str "sort." it))
-                                                 :checked (= state.sort it)
-                                                 :run "setSort"
-                                                 :with {:by it}})
+                                                {:title (t (str "sort." it)) :checked (= state.sort it)
+                                                 :run "setSort" :with {:by it}})
                                               ["manual" "name" "color" "score" "status"])
                                          [{:separator true}
                                           {:title (t "hideCompleted") :checked state.hideCompleted :run "toggleHideCompleted"}

@@ -303,7 +303,7 @@
                        (filter (fn [it]
                                  (and (pos? (get-in computed.runs [it :len]))
                                       (or (= it (dec computed.n)) (zero? (get-in computed.runs [(inc it) :len]))))))
-                       ; style: keep, a fn that gives a map
+                       ; style: keep, gives a map
                        (map (fn [it]
                               {:len (get-in computed.runs [it :len])
                                :from (get computed.dates (get-in computed.runs [it :start]))
@@ -324,7 +324,7 @@
 (defcomputed goals "A measurable habit's goals: this week's, month's, quarter's and year's."
   (if (or (neg? computed.sel) (not= computed.h.kind :measurable))
       []
-      ; style: keep, a fn that gives a map
+      ; style: keep, gives a map
       (map (fn [it]
              {:period it
               :start (case it
@@ -338,7 +338,7 @@
            ["day" "week" "month" "quarter" "year"])))
 
 (defcomputed goalRows "How far each goal is."
-  ; style: keep, a fn that gives a map
+  ; style: keep, gives a map
   (map (fn [it]
          {:period it.period
           :value (- (get computed.p (dec computed.n))
@@ -354,7 +354,7 @@
        computed.goals))
 
 (defcomputed palette "The command palette's rows: the commands, but those an agent runs with arguments (habitAdd...)."
-  ; style: keep, a fn that gives a map
+  ; style: keep, gives a map
   (map (fn [it] {:title (t (str "cmd." it.name)) :detail (or-else it.keyLabel "") :run it.name})
        (filter #(and (:enabled %) (not= (:name %) "commandPalette") (not= (slice (:name %) 0 5) "habit")) commands)))
 
