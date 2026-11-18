@@ -1,0 +1,15 @@
+{
+	"folders": [
+		"orrery/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 90,
+		"when-not": 2,
+		"cond-one-value": 6,
+		"or-equals": 1,
+		"minus-one": 6,
+		"plus-one": 12,
+		"four-nested-calls": 116,
+		"entry-include": 1
+	}
+}

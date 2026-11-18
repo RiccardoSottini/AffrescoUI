@@ -245,6 +245,10 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# examples/<app>/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps, but for programs
 		add_test(NAME cli_lisp_examples COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_examples.py --check --cli $<TARGET_FILE:affrescoui_cli>)
+		# The examples' Lisp code writes no more of the old spellings than tools/notation/idioms/ allows (the counter's
+		# own tests first)
+		add_test(NAME cli_lisp_idioms COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_idioms.py --check --self-test)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The end-to-end tests of the apps written both as JSON and as a Lisp program: each version has its own
 		# (<name> for the JSON, <name>_lisp for the program)

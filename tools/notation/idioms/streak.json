@@ -1,0 +1,19 @@
+{
+	"folders": [
+		"streak/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 37,
+		"when-not": 1,
+		"if-not": 1,
+		"if-nil": 2,
+		"when-some": 1,
+		"cond-one-value": 10,
+		"minus-one": 22,
+		"plus-one": 15,
+		"count-zero": 4,
+		"string-function": 14,
+		"four-nested-calls": 84,
+		"entry-include": 1
+	}
+}

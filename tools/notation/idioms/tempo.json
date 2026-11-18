@@ -1,0 +1,17 @@
+{
+	"folders": [
+		"tempo/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 25,
+		"when-not": 5,
+		"if-nil": 4,
+		"when-some": 4,
+		"cond-one-value": 2,
+		"plus-one": 3,
+		"count-zero": 6,
+		"string-function": 8,
+		"four-nested-calls": 47,
+		"entry-include": 1
+	}
+}
