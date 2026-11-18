@@ -236,8 +236,8 @@ class TopForms {
 public:
 	/// @brief Takes the next token.
 	/// @param token The token.
-	/// @return true once a second form starts; std::nullopt for a bracket that closes nothing (the reader says so);
-	/// else false.
+	/// @return true once a second form starts, or a bracket closes nothing after a definition (the program's reader
+	/// says where); std::nullopt for any other bracket that closes nothing (the reader says so); else false.
 	std::optional<bool> take(const notation::Token& token) {
 		using notation::TokenKind;
 		if(std::exchange(wantHead_, false) && token.kind == TokenKind::Word) head_ = token.text;
@@ -246,7 +246,7 @@ public:
 			return open(token.kind);
 		if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
 		   token.kind == TokenKind::CloseMap) {
-			if(depth_ == 0) return std::nullopt;
+			if(depth_ == 0) return startsWithDefinition() ? std::optional(true) : std::nullopt;
 			--depth_;
 			return false;
 		}
@@ -254,11 +254,16 @@ public:
 	}
 
 	/// @brief Whether the text, all its tokens taken, is one definition form.
-	/// @return std::nullopt if a bracket is left open (the reader says so), else whether it is.
+	/// @return std::nullopt if a bracket is left open (the reader says so), else whether it is. A definition left open
+	/// is a program, whose reader says where.
 	[[nodiscard]] std::optional<bool> oneDefinition() const {
-		if(depth_ != 0) return std::nullopt;
-		return forms_ == 1 && (isDefinitionWord(head_) || head_ == "ns"); // a file with only its ns form
+		if(depth_ != 0) return startsWithDefinition() ? std::optional(true) : std::nullopt;
+		return forms_ == 1 && startsWithDefinition(); // or a file with only its ns form
 	}
+
+	/// @brief Whether the first form is a definition or an ns form.
+	/// @return Whether it is.
+	[[nodiscard]] bool startsWithDefinition() const { return isDefinitionWord(head_) || head_ == "ns"; }
 
 private:
 	/// @brief Takes a 'x, `x or ~x: at the top, the form it prefixes is the same form.
