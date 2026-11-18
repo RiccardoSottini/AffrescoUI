@@ -483,32 +483,34 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 
 namespace {
 
+/// @brief The names two objects have, either or both.
+/// @param before One. @param after The other.
+/// @return Them, sorted.
+std::set<std::string> keysOfBoth(const json& before, const json& after) {
+	std::set<std::string> keys;
+	for(const json* tree : {&before, &after})
+		for(const auto& [key, value] : tree->items()) keys.insert(key);
+	return keys;
+}
+
 /// @brief The members of two trees' objects that differ, as JSON pointers: each top-level key, or each member of
 /// one that is an object in both.
 /// @param before The earlier tree.
 /// @param after The later.
 /// @param places Gets them.
 void addDifferences(const json& before, const json& after, std::vector<std::string>& places) {
-	std::set<std::string> keys;
-	for(const json* tree : {&before, &after})
-		for(const auto& [key, value] : tree->items()) keys.insert(key);
-	for(const std::string& key : keys) {
+	for(const std::string& key : keysOfBoth(before, after)) {
 		const json::json_pointer pointer = json::json_pointer() / key;
-		const bool had = before.contains(key);
-		const bool has = after.contains(key);
-		if(had && has && before[key] == after[key]) continue;
-		if(had && has && before[key].is_object() && after[key].is_object() && key != "root") {
-			std::set<std::string> members;
-			for(const json* section : {&before[key], &after[key]})
-				for(const auto& [member, value] : section->items()) members.insert(member);
-			for(const std::string& member : members) {
-				const json::json_pointer at = pointer / member;
-				if(!before.contains(at) || !after.contains(at) || before[at] != after[at])
-					places.push_back(at.to_string());
-			}
+		const bool both = before.contains(key) && after.contains(key);
+		if(both && before[key] == after[key]) continue;
+		if(!both || !before[key].is_object() || !after[key].is_object() || key == "root") {
+			places.push_back(pointer.to_string());
 			continue;
 		}
-		places.push_back(pointer.to_string());
+		for(const std::string& member : keysOfBoth(before[key], after[key])) {
+			const json::json_pointer at = pointer / member;
+			if(!before.contains(at) || !after.contains(at) || before[at] != after[at]) places.push_back(at.to_string());
+		}
 	}
 }
 

@@ -10,6 +10,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <format>
 #include <string>
 #include <utility>
 #include <vector>
@@ -57,7 +58,7 @@ void addSection(json& tree, const std::string& key, Section& section,
 			if(object.contains(name)) continue;
 			defaulted.emplace(key, name);
 		} else if(object.contains(name)) {
-			throw Problem("\"" + name + "\" of \"" + key + "\" is given by defscreen main and by a definition");
+			throw Problem(std::format(R"("{}" of "{}" is given by defscreen main and by a definition)", name, key));
 		}
 		object[name] = std::move(value);
 	}

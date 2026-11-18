@@ -611,7 +611,7 @@ std::optional<json> Rules::built(const json& document) const {
 	return *builtTree(document);
 }
 
-std::optional<std::vector<std::string>> Rules::changedPlaces(const json& before, const json& after) const {
+std::optional<std::vector<std::string>> Rules::changedPlaces(const json& before, const json& after) {
 	if(!lisp::hasProgram(before) || !lisp::hasProgram(after)) return std::nullopt;
 	static_cast<void>(builtTree(before)); // each is built, and checked, as built() builds it: kept
 	static_cast<void>(builtTree(after));

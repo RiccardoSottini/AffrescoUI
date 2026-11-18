@@ -30,6 +30,7 @@ namespace affresco::lisp {
 
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): a thread's own count, read by its tests
 thread_local RebuildStatistics statistics; ///< See rebuildStatistics().
 
 /// @brief What a build in part runs and loads, by the program's entries.
@@ -150,7 +151,8 @@ void markLoaded(const BuildRecord& previous, const std::vector<Entry>& entries,
 		waiting.push_back(at);
 	};
 	for(std::size_t at = 0; at < entries.size(); ++at) {
-		const bool macro = !plan.changed[at] && previous.definitions[*plan.before[at]]->kind == "defmacro";
+		const std::optional<std::size_t> was = plan.before[at]; // an entry unchanged has one
+		const bool macro = !plan.changed[at] && was && previous.definitions[*was]->kind == "defmacro";
 		if(plan.affected[at] || macro || shadows(entries[at].name)) load(at);
 	}
 	const auto use = [&](std::string_view name) {
@@ -159,13 +161,33 @@ void markLoaded(const BuildRecord& previous, const std::vector<Entry>& entries,
 	while(!waiting.empty()) {
 		const std::size_t at = waiting.back();
 		waiting.pop_back();
-		if(plan.changed[at]) forEachWord(entries[at].text, use);
-		else {
-			const DefinitionBuilt& was = *previous.definitions[*plan.before[at]];
-			for(const std::string& name : was.uses) use(name);
-			for(const std::string& name : was.words) use(name);
+		if(plan.changed[at]) {
+			forEachWord(entries[at].text, use);
+		} else if(const std::optional<std::size_t> was = plan.before[at]) {
+			for(const std::string& name : previous.definitions[*was]->uses) use(name);
+			for(const std::string& name : previous.definitions[*was]->words) use(name);
 		}
 	}
+}
+
+/// @brief Notes what the record had of an entry, and whether it changed.
+/// @param previous The record.
+/// @param entry The entry.
+/// @param at Its place.
+/// @param shadows Whether a name is the language's or a primitive's.
+/// @param plan Gets it.
+/// @return false where only a build in full can be sure of the change.
+bool markChange(const BuildRecord& previous, const Entry& entry, std::size_t at,
+                const std::function<bool(std::string_view)>& shadows, PartPlan& plan) {
+	const auto found = previous.index.find(entry.name);
+	const DefinitionBuilt* was = found == previous.index.end() ? nullptr : previous.definitions[found->second].get();
+	if(was) plan.before[at] = found->second;
+	if(was && was->text == entry.text && was->file == entry.file && was->author == entry.author) return true;
+	plan.changed[at] = true;
+	if(shadows(entry.name)) return false; // a library macro anywhere may call it now, or no more
+	const std::string kind = headOf(entry.text);
+	if(reachesAnywhere(kind) || (was && reachesAnywhere(was->kind))) return false;
+	return !was || was->kind == kind || !previous.extensions; // a hook's function may be no more
 }
 
 /// @brief Works out what a build in part runs and loads.
@@ -182,19 +204,8 @@ std::optional<PartPlan> planPart(const BuildRecord& previous, const std::vector<
 	plan.changed.assign(entries.size(), false);
 	plan.affected.assign(entries.size(), false);
 	plan.loaded.assign(entries.size(), false);
-	for(std::size_t at = 0; at < entries.size(); ++at) {
-		const Entry& entry = entries[at];
-		const auto found = previous.index.find(entry.name);
-		const DefinitionBuilt* was =
-		    found == previous.index.end() ? nullptr : previous.definitions[found->second].get();
-		if(was) plan.before[at] = found->second;
-		if(was && was->text == entry.text && was->file == entry.file && was->author == entry.author) continue;
-		plan.changed[at] = true;
-		if(shadows(entry.name)) return std::nullopt; // a library macro anywhere may call it now, or no more
-		const std::string kind = headOf(entry.text);
-		if(reachesAnywhere(kind) || (was && reachesAnywhere(was->kind))) return std::nullopt;
-		if(was && was->kind != kind && previous.extensions) return std::nullopt; // a hook's function may be no more
-	}
+	for(std::size_t at = 0; at < entries.size(); ++at)
+		if(!markChange(previous, entries[at], at, shadows, plan)) return std::nullopt;
 	for(const auto& definition : previous.definitions)
 		if(!names.contains(definition->name)) {
 			if(reachesAnywhere(definition->kind) || previous.extensions || shadows(definition->name))
@@ -257,7 +268,7 @@ std::optional<PartBuilt> runPart(const std::vector<Entry>& entries, const std::m
 	for(const auto& [name, primitive] : primitives) interpreter.definePrimitive(name, primitive);
 	program.load(interpreter);
 	Machine& machine = interpreter.machine();
-	return leavingAsLispError(machine, [&]() -> std::optional<PartBuilt> {
+	return leavingAsLispError(machine, [&] -> std::optional<PartBuilt> {
 		machine.workOutDefinitions();
 		if(!usesOnlyLoaded(machine, names, plan)) return std::nullopt;
 		PartBuilt part;
@@ -300,8 +311,9 @@ std::vector<std::shared_ptr<const DefinitionBuilt>> inBuildOrder(const BuildReco
                                                                  PartBuilt& part) {
 	std::vector<std::shared_ptr<const DefinitionBuilt>> each(plan.before.size());
 	for(std::size_t at = 0; at < each.size(); ++at)
-		each[at] = part.built[at] ? std::make_shared<const DefinitionBuilt>(std::move(*part.built[at]))
-		                          : previous.definitions[*plan.before[at]];
+		if(std::optional<DefinitionBuilt>& ran = part.built[at])
+			each[at] = std::make_shared<DefinitionBuilt>(std::move(*ran));
+		else if(const std::optional<std::size_t> was = plan.before[at]) each[at] = previous.definitions[*was];
 	std::vector<std::shared_ptr<const DefinitionBuilt>> ordered;
 	ordered.reserve(each.size());
 	for(const bool macros : {true, false})
@@ -439,19 +451,53 @@ json Program::rebuild(const BuildRecord& previous, const Limits& limits) {
 	return tree;
 }
 
+namespace {
+
+/// @brief Whether what a record's build spent leaves some of the limits for a build in part.
+/// @param previous The record. @param limits The limits.
+/// @return true if so.
+bool leavesBudget(const BuildRecord& previous, const Limits& limits) {
+	return previous.spent.operations < limits.budget.operations && previous.spent.bytes < limits.budget.bytes &&
+	       previous.macroSpent < limits.macroOperations;
+}
+
+/// @brief Whether a name is one of the language's or a primitive's: a library macro anywhere may call it.
+/// @param primitives The program's primitives. @param name The name.
+/// @return true if so.
+bool shadowsName(const std::vector<std::pair<std::string, Primitive>>& primitives, std::string_view name) {
+	static const std::set<std::string, std::less<>> language = [] {
+		const std::vector<std::string> all = Interpreter().machine().globalNames();
+		return std::set<std::string, std::less<>>(all.begin(), all.end());
+	}();
+	return language.contains(name) ||
+	       std::ranges::any_of(primitives, [name](const auto& primitive) { return primitive.first == name; });
+}
+
+/// @brief The places a build in part could have changed: what the definitions that ran gave, before and now, and
+/// what those that went gave.
+/// @param previous The record. @param plan The plan. @param definitions The build's definitions.
+/// @param names Each entry's place, by its name.
+/// @return Them.
+std::vector<std::string> placesTouched(const BuildRecord& previous, const PartPlan& plan,
+                                       const std::vector<std::shared_ptr<const DefinitionBuilt>>& definitions,
+                                       const std::map<std::string, std::size_t>& names) {
+	std::vector<std::string> places;
+	for(const auto& definition : definitions)
+		if(const std::size_t entry = names.at(definition->name); plan.affected[entry]) {
+			addPlacesGiven(*definition, places);
+			if(const std::optional<std::size_t> was = plan.before[entry])
+				addPlacesGiven(*previous.definitions[*was], places);
+		}
+	for(const std::string& name : plan.removed)
+		addPlacesGiven(*previous.definitions[previous.index.find(name)->second], places);
+	return places;
+}
+
+} // namespace
+
 std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limits& limits) {
-	if(!previous.inPart || recording_ || !namespaces_.empty() ||
-	   previous.spent.operations >= limits.budget.operations || previous.spent.bytes >= limits.budget.bytes ||
-	   previous.macroSpent >= limits.macroOperations)
-		return std::nullopt;
-	const auto shadows = [this](std::string_view name) {
-		static const std::set<std::string, std::less<>> language = [] {
-			const std::vector<std::string> all = Interpreter().machine().globalNames();
-			return std::set<std::string, std::less<>>(all.begin(), all.end());
-		}();
-		return language.contains(name) ||
-		       std::ranges::any_of(primitives_, [name](const auto& primitive) { return primitive.first == name; });
-	};
+	if(!previous.inPart || recording_ || !namespaces_.empty() || !leavesBudget(previous, limits)) return std::nullopt;
+	const auto shadows = [this](std::string_view name) { return shadowsName(primitives_, name); };
 	const std::optional<PartPlan> plan = planPart(previous, entries_, names_, shadows);
 	if(!plan) return std::nullopt;
 	Limits part = limits;
@@ -481,13 +527,7 @@ std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limi
 			if(definition->named) named_[definition->name] = *definition->named;
 			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
 		}
-		for(const auto& definition : record->definitions)
-			if(const std::size_t entry = names_.at(definition->name); plan->affected[entry]) {
-				addPlacesGiven(*definition, record->touched);
-				if(plan->before[entry]) addPlacesGiven(*previous.definitions[*plan->before[entry]], record->touched);
-			}
-		for(const std::string& name : plan->removed)
-			addPlacesGiven(*previous.definitions[previous.index.find(name)->second], record->touched);
+		record->touched = placesTouched(previous, *plan, record->definitions, names_);
 		record->inPart = true;
 		record->whole = false;
 		record->spent = {previous.spent.operations + ran->spent.operations, previous.spent.bytes + ran->spent.bytes};
@@ -549,6 +589,99 @@ std::vector<bool> redefined(const BuildRecord& built, std::vector<std::string> s
 	return again;
 }
 
+/// @brief What a later version changes, by name.
+struct InPlace {
+	std::vector<std::string> changed; ///< The entries that changed or came.
+	std::vector<std::string> removed; ///< Those that went.
+};
+
+/// @brief Whether an entry that changed or came can be defined in place.
+/// @param machine The machine, which loaded the earlier version.
+/// @param entry The entry.
+/// @param had Whether the earlier version had it.
+/// @return false where it may reach anywhere, is named as the language's, or is now another kind of definition.
+bool changesInPlace(const Machine& machine, const Entry& entry, bool had) {
+	const std::string kind = headOf(entry.text);
+	return !reachesAnywhere(kind) && !isLanguageName(machine, entry.name) &&
+	       (!had || machine.definition(entry.name)->kind == kind);
+}
+
+/// @brief What a later version changes of the program an interpreter loaded, if it can be changed in place.
+/// @param machine The interpreter's machine, which loaded the earlier version.
+/// @param entries The later version's entries. @param names Their places, by name.
+/// @param before The earlier version's entries. @param beforeNames Their places, by name.
+/// @return The names that changed, then those that went; std::nullopt where only a new interpreter can be sure.
+std::optional<InPlace> changeInPlace(const Machine& machine, const std::vector<Entry>& entries,
+                                     const std::map<std::string, std::size_t>& names, const std::vector<Entry>& before,
+                                     const std::map<std::string, std::size_t>& beforeNames) {
+	for(const auto& definition : machine.definitions())
+		if(!beforeNames.contains(definition->name) || isExtensionWord(definition->kind)) return std::nullopt; // advice
+	InPlace change;
+	for(const Entry& entry : entries) {
+		const auto was = beforeNames.find(entry.name);
+		const Entry* old = was == beforeNames.end() ? nullptr : &before[was->second];
+		if(old && old->text == entry.text && old->file == entry.file && old->author == entry.author) continue;
+		if(!changesInPlace(machine, entry, old != nullptr)) return std::nullopt;
+		change.changed.push_back(entry.name);
+	}
+	for(const Entry& entry : before)
+		if(!names.contains(entry.name)) {
+			if(isLanguageName(machine, entry.name)) return std::nullopt;
+			change.removed.push_back(entry.name);
+		}
+	return change;
+}
+
+/// @brief Defines again the entries marked, and takes away those that went, in a machine that loaded the program.
+/// @param machine The machine.
+/// @param entries The later version's entries.
+/// @param again Which to define again.
+/// @param removed The names that went.
+/// @throws LispError If one doesn't read, define or compile: the machine is then half changed.
+void defineAgain(Machine& machine, const std::vector<Entry>& entries, const std::vector<bool>& again,
+                 const std::vector<std::string>& removed) {
+	for(const std::string& name : removed) machine.forgetDefinition(name);
+	for(std::size_t at = 0; at < entries.size(); ++at) {
+		if(!again[at]) continue;
+		const Entry& entry = entries[at];
+		machine.heap.setBudget(nullptr); // reading is bounded by the text's size, as load()'s
+		const std::optional<Value> read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
+		machine.heap.setBudget(&machine.budget());
+		if(!read || definitionAddress(*read).second != entry.name)
+			throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
+		static_cast<void>(machine.define(*read, entry.author, machine.authorSet(entry.author), false));
+	}
+	machine.compilePending(true);
+	machine.workOutDefinitions();
+	std::vector<std::string> order; // load()'s: the macros, then the rest, each in the order of the entries
+	for(const bool macros : {true, false})
+		for(const Entry& entry : entries)
+			if((machine.definition(entry.name)->kind == "defmacro") == macros) order.push_back(entry.name);
+	machine.orderDefinitions(order);
+}
+
+/// @brief A machine's budget, as it was, back however a change ends.
+class RestoredBudget {
+public:
+	/// @brief Keeps the budget, and gives the machine another. @param machine The machine. @param budget The other.
+	RestoredBudget(Machine& machine, const Budget& budget) : machine_(machine), saved_(machine.budget()) {
+		machine.budget() = budget;
+	}
+	RestoredBudget(const RestoredBudget&) = delete;
+	RestoredBudget& operator=(const RestoredBudget&) = delete;
+	RestoredBudget(RestoredBudget&&) = delete;
+	RestoredBudget& operator=(RestoredBudget&&) = delete;
+	/// @brief Puts it back.
+	~RestoredBudget() {
+		machine_.heap.setBudget(&machine_.budget());
+		machine_.budget() = saved_;
+	}
+
+private:
+	Machine& machine_; ///< The machine.
+	Budget saved_;     ///< Its budget.
+};
+
 } // namespace
 
 bool Program::redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
@@ -557,62 +690,18 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 	if(!namespaces_.empty() || !before.namespaces_.empty() || !machine.namespaces().programless() ||
 	   machine.definitions().size() != before.entries_.size())
 		return false;
-	for(const auto& definition : machine.definitions())
-		if(!before.names_.contains(definition->name) || isExtensionWord(definition->kind)) return false; // advice wraps
-	std::vector<std::string> seeds; // the names that changed or went
-	for(const Entry& entry : entries_) {
-		const auto was = before.names_.find(entry.name);
-		const Entry* old = was == before.names_.end() ? nullptr : &before.entries_[was->second];
-		if(old && old->text == entry.text && old->file == entry.file && old->author == entry.author) continue;
-		const std::string kind = headOf(entry.text);
-		if(reachesAnywhere(kind) || isLanguageName(machine, entry.name) ||
-		   (old && machine.definition(entry.name)->kind != kind))
-			return false;
-		seeds.push_back(entry.name);
-	}
-	std::vector<std::string> removed;
-	for(const Entry& entry : before.entries_)
-		if(!names_.contains(entry.name)) {
-			if(isLanguageName(machine, entry.name)) return false;
-			removed.push_back(entry.name);
-		}
-	if(seeds.empty() && removed.empty()) return true;
-	seeds.insert(seeds.end(), removed.begin(), removed.end());
+	std::optional<InPlace> change = changeInPlace(machine, entries_, names_, before.entries_, before.names_);
+	if(!change) return false;
+	if(change->changed.empty() && change->removed.empty()) return true;
+	std::vector<std::string> seeds = change->changed;
+	seeds.insert(seeds.end(), change->removed.begin(), change->removed.end());
 	const std::vector<bool> again = redefined(built, std::move(seeds), names_);
-	/// The interpreter's budget, as it was, back however the change ends.
-	struct Restore {
-		Machine& machine; ///< The machine.
-		Budget saved;     ///< Its budget.
-		~Restore() {
-			machine.heap.setBudget(&machine.budget());
-			machine.budget() = saved;
-		}
-	} restore{machine, machine.budget()};
-	machine.budget() = limits.budget;
+	const RestoredBudget restore(machine, limits.budget);
 	return leavingAsLispError(machine, [&] {
-		for(const std::string& name : removed) machine.forgetDefinition(name);
-		for(std::size_t at = 0; at < entries_.size(); ++at) {
-			if(!again[at]) continue;
-			const Entry& entry = entries_[at];
-			machine.heap.setBudget(nullptr); // reading is bounded by the text's size, as load()'s
-			const std::optional<Value> read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
-			machine.heap.setBudget(&machine.budget());
-			if(!read || definitionAddress(*read).second != entry.name)
-				throw LispError(entry.file, entry.line, entry.column, entry.name,
-				                "an entry's text defines its own name");
-			static_cast<void>(machine.define(*read, entry.author, machine.authorSet(entry.author), false));
-		}
-		machine.compilePending(true);
-		machine.workOutDefinitions();
-		std::vector<std::string> order; // load()'s: the macros, then the rest, each in the order of the entries
-		for(const bool macros : {true, false})
-			for(const Entry& entry : entries_)
-				if((machine.definition(entry.name)->kind == "defmacro") == macros) order.push_back(entry.name);
-		machine.orderDefinitions(order);
+		defineAgain(machine, entries_, again, change->removed);
 		++statistics.redefined;
 		statistics.definedAgain += static_cast<std::size_t>(std::ranges::count(again, true));
 		return true;
 	});
 }
-
 } // namespace affresco::lisp
