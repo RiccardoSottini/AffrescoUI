@@ -12,7 +12,8 @@ the host's two windows (`examples/shared/host/*.screen.lisp`) and the assistant'
 path and both texts, sorted into "a binding's text" (a string holding `{{` on either side) and "anything else", and the
 count of `lisp(` calls (bindings that call a Lisp function) before and after. The document's `program` (each file's
 definitions as source text) is the code being rewritten: a definition written otherwise is counted as "a definition's
-text", not listed, while a file or a definition added, removed, renamed or moved is "anything else". It exits with 0
+text", not listed, while a file or a definition added, removed, renamed or moved is "anything else". A file's `ns`
+form is a label, not a definition: adding, changing or removing one is a definition's text. It exits with 0
 when every difference is a binding's or a definition's text and no app calls `lisp(` more often, else with 1 (or 2
 when a build fails). No app is given: every one.
 `--examples` reads the apps from another copy of `examples/` (a scratch copy, to try a change on).
@@ -37,6 +38,7 @@ SHOWN = 160
 BINDING = "a binding's text"
 DEFINITION = "a definition's text"
 OTHER = "anything else"
+NS = "ns"  # the program entry an `ns` form is kept as
 
 
 def apps(examples):
@@ -112,11 +114,18 @@ def program_differences(before, after, path):
     for file in sorted(set(before) | set(after)):
         place = f"{path}/{escaped(file)}"
         old, new = before.get(file), after.get(file)
-        if old is None or new is None or list(old) != list(new):
+        if old is None or new is None or names(old) != names(new):
             found.append((place, MISSING if old is None else list(old), MISSING if new is None else list(new), OTHER))
             continue
-        found += [(f"{place}/{escaped(name)}", old[name], new[name], DEFINITION) for name in old if old[name] != new[name]]
+        found += [(f"{place}/{escaped(name)}", old.get(name, MISSING), new.get(name, MISSING), DEFINITION)
+                  for name in dict.fromkeys([*old, *new]) if old.get(name) != new.get(name)]
     return found
+
+
+def names(definitions):
+    """A file's definitions by name, in order, without its `ns` form: a label (decision D2) names the file and defines
+    nothing, so adding, changing or removing one is a definition's text, not a definition added or moved."""
+    return [name for name in definitions if name != NS]
 
 
 def differences(before, after, path=""):
