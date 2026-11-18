@@ -4,6 +4,8 @@
 /// the `parse-` functions; and that a long text goes through `split`, `replace` and `join` in time linear in it,
 /// within the budget or with the budget's error.
 
+#include "Helpers.hpp"
+
 #include <affresco/lisp/Interpreter.hpp>
 
 #include <doctest/doctest.h>
@@ -12,8 +14,10 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -360,37 +364,67 @@ TEST_CASE("lisp parse-long, parse-double and parse-boolean") {
 	CHECK(failsSaying("(parse-boolean true)", "\"parse-boolean\" takes a string"));
 }
 
+// Linear time is a growth: four times the text takes less than eight times as long, where a naive search, which
+// compares a part a sixteenth of the text long at every place, takes sixteen. A ratio, not a time, so a loaded or
+// instrumented machine passes as an idle one does
 TEST_CASE("lisp clojure.string: a 1 MiB text goes through split, replace and join in linear time") {
 	constexpr std::size_t mebibyte = 1U << 20U;
-	const std::string as(mebibyte, 'a');
-	const std::string part = std::string(65536, 'a') + "b"; // a naive search compares it at every place
-	lisp::Interpreter interpreter;
-	CHECK(std::abs(secondsFor(interpreter, "clojure.string/split", {as, part})) < 1.0);
-	CHECK(std::abs(secondsFor(interpreter, "clojure.string/replace", {as, part, "x"})) < 1.0);
-	CHECK(std::abs(secondsFor(interpreter, "clojure.string/includes?", {as, part})) < 1.0);
-	CHECK(std::abs(secondsFor(interpreter, "clojure.string/last-index-of", {as, "aa"})) < 1.0);
-	std::string commas;
-	for(std::size_t at = 0; at < mebibyte / 2; ++at) commas += "a,";
-	lisp::Interpreter splitting;
-	CHECK(std::abs(secondsFor(splitting, "clojure.string/split", {commas, ","})) < 1.0);
-	lisp::Interpreter characters;
-	CHECK(std::abs(secondsFor(characters, "clojure.string/split", {as, ""})) < 1.0);
-	lisp::Interpreter growing; // a long replacement at every match: the budget's error, before the text is made
-	CHECK(secondsFor(growing, "clojure.string/replace", {as, "a", std::string(1024, 'x')}) < 0.0);
-	lisp::Interpreter joining;
-	std::string items;
-	for(int at = 0; at < 65536; ++at) items += "ab,";
-	const std::array<lisp::Value, 2> toSplit = {joining.makeString(items), joining.makeString(",")};
-	const lisp::Value join = joining.global("clojure.string/join").value_or(lisp::Value());
-	const lisp::Value pieces = joining.call(joining.global("clojure.string/split").value_or(lisp::Value()), toSplit);
-	const std::array<lisp::Value, 2> arguments = {joining.makeString(std::string(1024, '-')), pieces};
-	const auto started = std::chrono::steady_clock::now();
-	try {
-		static_cast<void>(joining.call(join, arguments));
-	} catch(const lisp::LispError& error) {
-		CHECK(error.message().contains("budget"));
+	const auto as = [](std::size_t size) { return std::string(size, 'a'); };
+	const auto part = [](std::size_t size) { return std::string(size / 16U, 'a') + "b"; };
+	const auto commas = [](std::size_t size) {
+		std::string text;
+		for(std::size_t at = 0; at < size / 2U; ++at) text += "a,";
+		return text;
+	};
+	using Arguments = std::function<std::vector<std::string>(std::size_t)>;
+	const std::vector<std::pair<std::string, Arguments>> calls = {
+	    {"clojure.string/split", [&](std::size_t size) { return std::vector{as(size), part(size)}; }},
+	    {"clojure.string/replace", [&](std::size_t size) { return std::vector<std::string>{as(size), part(size), "x"}; }},
+	    {"clojure.string/includes?", [&](std::size_t size) { return std::vector{as(size), part(size)}; }},
+	    {"clojure.string/last-index-of", [&](std::size_t size) { return std::vector<std::string>{as(size), "aa"}; }},
+	    {"clojure.string/split", [&](std::size_t size) { return std::vector<std::string>{commas(size), ","}; }},
+	    {"clojure.string/split", [&](std::size_t size) { return std::vector<std::string>{as(size), ""}; }}};
+	for(const auto& [name, arguments] : calls) {
+		CAPTURE(name);
+		CAPTURE(arguments(16).back());
+		const double growth = affresco::test::growthOfFour(
+		    [&](std::size_t size) {
+			    const std::vector<std::string> texts = arguments(size);
+			    lisp::Interpreter interpreter;
+			    return std::abs(secondsFor(interpreter, name, texts));
+		    },
+		    mebibyte);
+		CAPTURE(growth);
+		CHECK(growth < 8.0);
 	}
-	CHECK(std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count() < 1.0);
+	lisp::Interpreter growing; // a long replacement at every match: the budget's error, before the text is made
+	CHECK(secondsFor(growing, "clojure.string/replace", {as(mebibyte), "a", std::string(1024, 'x')}) < 0.0);
+	// A long separator between many pieces, more than the budget at either size: the budget's error, as the text grows,
+	// and so no more work for more pieces than for fewer
+	const double joins = affresco::test::growthOfFour(
+	    [](std::size_t pieces) {
+		    lisp::Interpreter joining;
+		    std::string items;
+		    for(std::size_t at = 0; at < pieces; ++at) items += "ab,";
+		    const std::array<lisp::Value, 2> toSplit = {joining.makeString(items), joining.makeString(",")};
+		    const lisp::Value join = joining.global("clojure.string/join").value_or(lisp::Value());
+		    const lisp::Value split = joining.global("clojure.string/split").value_or(lisp::Value());
+		    const std::array<lisp::Value, 2> arguments = {joining.makeString(std::string(4096, '-')),
+		                                                  joining.call(split, toSplit)};
+		    bool refused = false;
+		    const double seconds = affresco::test::secondsOf([&] {
+			    try {
+				    static_cast<void>(joining.call(join, arguments));
+			    } catch(const lisp::LispError& error) {
+				    refused = error.message().contains("budget");
+			    }
+		    });
+		    CHECK(refused);
+		    return seconds;
+	    },
+	    65536U);
+	CAPTURE(joins);
+	CHECK(joins < 8.0);
 }
 
 TEST_CASE("lisp clojure.string: the bare names an app's expressions have stay theirs") {

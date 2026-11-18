@@ -8,7 +8,11 @@
 #include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <functional>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -109,6 +113,31 @@ constexpr double timeLimit(double seconds) {
 #else
 	return seconds * 24;
 #endif
+}
+
+/// @brief How many times longer a piece of work takes at four times a size: about 4 when its cost follows the size,
+/// 16 when it grows with its square. Each size takes the fastest of a few runs, and a loaded or instrumented machine
+/// slows both sizes alike, so the ratio holds where a wall-clock limit fails.
+/// @param seconds Runs the work at a size, and says how many seconds what it measures took.
+/// @param size The larger size.
+/// @param runs Runs at each size.
+/// @return The larger size's time over the smaller's.
+inline double growthOfFour(const std::function<double(std::size_t)>& seconds, std::size_t size, int runs = 3) {
+	const auto fastest = [&](std::size_t at) {
+		double best = std::numeric_limits<double>::max();
+		for(int run = 0; run < runs; ++run) best = std::min(best, seconds(at));
+		return std::max(best, 1e-9);
+	};
+	return fastest(size) / fastest(size / 4U);
+}
+
+/// @brief How long something takes, in seconds.
+/// @param work It.
+/// @return The seconds.
+inline double secondsOf(const std::function<void()>& work) {
+	const auto started = std::chrono::steady_clock::now();
+	work();
+	return std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
 }
 
 } // namespace affresco::test
