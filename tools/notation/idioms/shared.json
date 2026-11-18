@@ -3,18 +3,7 @@
 		"shared"
 	],
 	"allowed": {
-		"fn-one-parameter": 47,
-		"when-not": 2,
-		"if-not": 1,
-		"if-nil": 3,
-		"when-some": 4,
-		"cond-one-value": 2,
-		"or-equals": 2,
-		"minus-one": 4,
-		"plus-one": 8,
-		"count-zero": 4,
-		"string-function": 5,
-		"four-nested-calls": 48,
-		"entry-include": 5
+		"when-some": 3,
+		"four-nested-calls": 11
 	}
 }
