@@ -6,7 +6,7 @@
 ;;; Values
 
 (defcomputed library "The library's songs as table rows: number, title, artist, album and time."
-  ; style: keep, #(...) can't give a map
+  ; style: keep, gives a map
   (map (fn [it] {:id it.id :cells [it.number it.title it.artist it.album it.time] :sound it.sound}) data.songs))
 
 (defcomputed list "The playlist shown."
@@ -34,9 +34,7 @@
   (cond (>= state.playingList 0) computed.playing.name (not= state.source "") state.source :else (t "library.all")))
 
 (defcomputed duration "The song playing's length, in seconds."
-  (let [parts (str/split computed.track.time ":")]
-    (+ (* (number (get parts 0)) 60)
-       (number (get parts 1)))))
+  (+ (* (number (get (str/split computed.track.time ":") 0)) 60) (number (get (str/split computed.track.time ":") 1))))
 
 (defcomputed elapsedText "How far the song is, as minutes:seconds."
   (str (floor (/ state.elapsed 60)) ":" (-> (mod state.elapsed 60) floor (pad 2))))
@@ -56,13 +54,12 @@
                  (if (neg? it.list)
                      (< it.track (count computed.library))
                      (< it.track (or-else (get computed.listSizes it.list) 0))))
-               ; style: keep, #(...) can't give a map
-               (map (fn [it] (let [parts (str/split it ":")]
-                               {:key it :list (number (get parts 0)) :track (number (get parts 1))}))
+               ; style: keep, gives a map
+               (map (fn [it] {:key it :list (number (get (str/split it ":") 0)) :track (number (get (str/split it ":") 1))})
                     state.queue))))
 
 (defcomputed upNext "The queue's rows: title and artist."
-  ; style: keep, #(...) can't give a map
+  ; style: keep, gives a map
   (map (fn [it] {:id it.key :label (str it.title "  ·  " it.artist)}) computed.queueSongs))
 
 (defcomputed queueAt "Where the song picked in the queue is, or -1."
@@ -91,12 +88,10 @@
 
 (defcomputed listMinutes "The playlist's length in minutes."
   (round (/ (sum (or-else computed.list.tracks [])
-                 ; style: keep, sum's function takes no #(...)
-
+                 ; style: keep, sum takes no #(...)
                  (fn [it]
-                   (let [parts (str/split (or-else it.time "0:0") ":")]
-                     (+ (* (number (get parts 0)) 60)
-                        (number (get parts 1))))))
+                   (+ (* (number (get (str/split (or-else it.time "0:0") ":") 0)) 60)
+                      (number (get (str/split (or-else it.time "0:0") ":") 1)))))
             60)))
 
 (defcomputed songMenuItems "The song menu: play, play next, add to the queue or a playlist, like, remove."
@@ -138,19 +133,16 @@
        (filter #(and (:enabled %) (not= (slice (:name %) 0 4) "song")) commands)))
 
 (defcomputed wave "The song's waveform: 64 heights, from its title and place."
-  (let [seed (+ (count computed.track.title) state.playingTrack)]
-    (map-indexed (fn [index it]
-                   (-> (* index index seed) (+ (* index 7)) (mod 21) (+ 3)))
-                 (range 64))))
-
+  (map-indexed (fn [index it]
+                 (-> (* index index (+ (count computed.track.title) state.playingTrack)) (+ (* index 7)) (mod 21) (+ 3)))
+               (range 64)))
 
 (defcomputed played "How many of the waveform's 64 lines are played."
   (-> (* 64 state.elapsed) (/ (max computed.duration 1)) floor (clamp 0 64)))
 
 (defcomputed wavePlayed "The waveform played, as a path."
   (or (join " "
-            (map-indexed (fn [index it]
-                           (str "M " (inc (* index 2)) " " (- 28 it) " V " (+ 28 it)))
+            (map-indexed (fn [index it] (str "M " (inc (* index 2)) " " (- 28 it) " V " (+ 28 it)))
                          (slice computed.wave 0 computed.played)))
       "M -40 -40"))
 
@@ -168,7 +160,5 @@
                             (+ 2 (* index 4))
                             " 20 V "
                             (- 20
-                               (if state.isPlaying
-                                   (-> (* state.elapsed (+ index 3)) (+ (* index 7)) (mod 15) (+ 3))
-                                   2))))
+                               (if state.isPlaying (-> (* state.elapsed (+ index 3)) (+ (* index 7)) (mod 15) (+ 3)) 2))))
                      (range 8))))
