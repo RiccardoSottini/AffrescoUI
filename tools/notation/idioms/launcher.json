@@ -3,6 +3,6 @@
 		"launcher/lisp"
 	],
 	"allowed": {
-		"four-nested-calls": 6
+		"four-nested-calls": 5
 	}
 }

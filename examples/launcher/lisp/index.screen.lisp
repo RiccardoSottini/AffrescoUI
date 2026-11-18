@@ -10,9 +10,20 @@
 ;;; apps.
 
 (ns launcher.index
-  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "apps.lisp"
-            launcher.state launcher.look launcher.keys launcher.sidebar launcher.catalog launcher.mine launcher.create
-            launcher.settings launcher.share launcher.catalogue
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "apps.lisp"
+            launcher.state
+            launcher.look
+            launcher.keys
+            launcher.sidebar
+            launcher.catalog
+            launcher.mine
+            launcher.create
+            launcher.settings
+            launcher.share
+            launcher.catalogue
             "../../shared/addons/intelligence/settings.lisp"
             launcher.launcher))
 

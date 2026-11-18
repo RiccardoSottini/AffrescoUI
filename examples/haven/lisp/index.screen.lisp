@@ -9,10 +9,27 @@
 ;;; Down the room.
 
 (ns haven.index
-  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "../../shared/components/charts.lisp"
-            haven.state haven.computed haven.look haven.keys haven.shell haven.search haven.home haven.edit
-            haven.moreinfo haven.plan haven.automations haven.energy haven.areas haven.history haven.settings
-            haven.security haven.haven
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "../../shared/components/charts.lisp"
+            haven.state
+            haven.computed
+            haven.look
+            haven.keys
+            haven.shell
+            haven.search
+            haven.home
+            haven.edit
+            haven.moreinfo
+            haven.plan
+            haven.automations
+            haven.energy
+            haven.areas
+            haven.history
+            haven.settings
+            haven.security
+            haven.haven
             "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; The window, and what is in it, in the order it is drawn
