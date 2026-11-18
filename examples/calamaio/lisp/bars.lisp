@@ -4,12 +4,14 @@
 ;;; for the selected buffer's major mode, and Help (menus.lisp). F10 opens the first menu, also with the bar hidden;
 ;;; there are no Alt mnemonics, since M-f is a motion here.
 
+(ns calamaio.bars)
+
 ;;; The top bar
 
 (defview top-bar "The bar across the top: the menu bar at its start and the tool bar at its end, each if it is on." []
   `(row#topBar :height 40 :alignSelf stretch :alignItems center :color @bar
      (node#menuBar :use frameMenuBar
-       :when ~(or (get settings "menu-bar-mode") (some (fn [it] (= it true)) (vals (or-else state.menuBar {})))))
+       :when ~(or (get settings "menu-bar-mode") (some #(= % true) (vals (or-else state.menuBar {})))))
      (node#topBarGap :grow 1 :height 1 :color transparent)
      (node#tool-bar-root :when ~(get settings "tool-bar-mode") :use toolBar)
      (node#topBarEnd :width 6 :height 1 :color transparent)))
@@ -26,6 +28,7 @@
            (get-in state.modes [computed.buf.mode :title])))
 
 (defcomputed buffersMenu "The Buffers menu: a buffer an item, the most recent first."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:title (get-in state.bufs [it :name]) :run "show" :with {:b it}}) state.order))
 
 (defcomputed menuList "The menu bar's menus, in their order: the major mode's menu only while its buffer is selected."
@@ -40,7 +43,7 @@
           [{:name "help" :title (t "menu.help") :items menus.help}]))
 
 (defcomputed menuBar "The menus, each as wide as its title."
-  (map (fn [it] (merge it {:width (+ (round (* (count it.title) 7.2)) 14)})) computed.menuList))
+  (map #(merge % {:width (+ (round (* (count (:title %)) 7.2)) 14)}) computed.menuList))
 
 (defcomponent frameMenuBar
   "The menu bar: titles as wide as their text, no Alt mnemonics (M-f is a motion here); F10 opens the first menu."
@@ -82,7 +85,7 @@
 (defcomponent toolBar "The tool bar: a button a command, with a tip naming it and its key." {}
   `(row :height 34 :fitContent width :color @bar :role toolbar :label ~(t "toolBar.label") :gap 2 :alignItems center
      (node :width 4 :height 1 :color transparent)
-     ~@(map (fn [tool] (if tool (tool-button tool) (tool-separator))) tools)))
+     ~@(for [tool tools] (if tool (tool-button tool) (tool-separator)))))
 
 (defview tool-button "A button of the tool bar: its icon, its tip, and the command a click runs." [tool]
   (let [tip (str "toolBar." (:tip tool))]
