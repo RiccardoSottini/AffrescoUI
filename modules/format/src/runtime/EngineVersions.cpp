@@ -6,7 +6,6 @@
 
 #include <affresco/format/NodeIds.hpp>
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -126,10 +125,11 @@ std::string sectionOf(const std::string& place, const json& before, const json& 
 std::string_view fullPassFor(const DocumentChange& change, const json& after) {
 	for(const std::string& place : change.document) {
 		const std::string section = sectionOf(place, *change.before, after);
-		const auto* const pass =
-		    std::ranges::find(revisionPasses, section, &decltype(revisionPasses)::value_type::first);
-		if(pass == revisionPasses.end()) return "revision: another section";
-		if(!pass->second.empty()) return pass->second;
+		const std::string_view* reason = nullptr;
+		for(const auto& [name, why] : revisionPasses)
+			if(name == section) reason = &why;
+		if(reason == nullptr) return "revision: another section";
+		if(!reason->empty()) return *reason;
 	}
 	return {};
 }
