@@ -94,6 +94,7 @@ struct Record {
 	ListState list;                   ///< What its children's list keeps between updates (ChildList).
 	json handlers = json::object();   ///< "onClick" and the others: an action name or steps each.
 	json keys;                        ///< Shortcuts: "cmd+k" -> handler (null: none).
+	std::size_t keysHash = 0;         ///< keys' hash, set with them: what keysFingerprint() reads.
 	json drag;                        ///< "drag", unevaluated (data is read when a drag starts).
 	json context;                     ///< "context", unevaluated (read with the `context` variable).
 	json key;                         ///< A keyed repeat's key for this item (null: none).

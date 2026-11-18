@@ -140,6 +140,7 @@ bool Properties::bindable(const Panel& panel, const Record& record) {
 Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) const {
 	record.handlers = json::object();
 	record.keys = nullptr;
+	record.keysHash = 0;
 	record.drag = nullptr;
 	record.context = nullptr;
 	record.bind.reset();
@@ -195,6 +196,7 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 	} else if(slot == Slot::Keys) {
 		record.keys = json::object();
 		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeChord(name)] = handler;
+		record.keysHash = std::hash<json>{}(record.keys);
 	} else if(slot == Slot::Drag) {
 		record.drag = object(value, at);
 	} else if(slot == Slot::Context) {

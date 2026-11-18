@@ -418,8 +418,7 @@ std::size_t keysFingerprint(Engine& engine) {
 	std::size_t sum = 0;
 	for(const auto& [panel, record] : engine.reconciler.records())
 		if(!panel->id().empty() && record.keys.is_object() && !record.keys.empty())
-			sum += std::hash<std::string>{}(
-			    panel->id() + '\0' + record.keys.dump(-1, ' ', false, json::error_handler_t::replace));
+			sum += std::hash<std::string>{}(panel->id()) ^ (record.keysHash * 31u);
 	return sum;
 }
 
