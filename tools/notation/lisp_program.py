@@ -25,8 +25,13 @@ defcommand of its folder) as `~(handler f args...)`, the arguments in the functi
 the parameters it uses, until each is at most 40 lines or has no such child: its docstring names the node, for a person
 to write what it is.
 
+Every draft starts with its ns label (`(ns flow.board)`: the app, the folders below lisp/, the file), and its includes
+become the label's (:require ...), in their order: a code file of the app that declares its own label by that dotted
+name, any other file (data, a shared file, a code file with no label) by its path. Its code is written as the commands
+it calls give it: the draft writes no form of its own that a shorter one says (not=, when-not, inc, empty?...).
+
 --entry writes the screen's own sections (window, fonts, strings, persist, permissions, theme) as defscreen main's
-options, and its includes as an include form; without it, they go in a defpart. --locales moves each language of
+options; without it, they go in a defpart. --locales moves each language of
 its strings section to a data file of its own (locales/en.lisp), which it includes. --defaults, for a shared add-on,
 writes its tokens, keys and default language as a defdefaults, which an app's own replace. A text it can't translate stays as
 written, and is listed on standard error. Only the standard library, and the built affrescoui program.
@@ -480,13 +485,53 @@ def draft_program(path, entry, cli, lines, locales=None, defaults=False):
         header += [";;;"] + [";;; " + line for line in wrap(note.split(". ", 1)[1], 114)]
     includes = document.get("include", [])
     includes = ([includes] if isinstance(includes, str) else includes) + locale_files
-    parts = ["\n".join(header)]
-    if includes:
-        parts.append("(include " + "\n         ".join(json.dumps(name) for name in includes) + ")")
+    parts = ["\n".join(header), ns_form(path, includes)]
     parts += [";;; Definitions\n\n" + "\n\n".join(out)] if out else []
     parts += [";;; Views\n\n" + "\n\n".join(draft.views)] if draft.views else []
     parts += [";;; The screen\n\n" + "\n\n".join(screens)] if screens else []
     return "\n\n".join(parts) + "\n", draft.untranslated
+
+
+def namespace_of(path):
+    """The ns label of a program file (modules/lisp/reference/namespaces.md): the app's name, then the folders below its
+    lisp/ folder and the file's name, `examples/forge/lisp/features/debug/debug.json` as `forge.features.debug.debug`.
+    Outside a lisp/ folder, the file's folder is the app's."""
+    folders = os.path.abspath(path).split(os.sep)
+    top = len(folders) - 2 - folders[-2::-1].index("lisp") if "lisp" in folders[:-1] else len(folders) - 1
+    words = [folders[top - 1]] + folders[top + 1:-1] + [os.path.basename(path).split(".")[0]]
+    return ".".join(re.sub(r"[^a-z0-9-]+", "-", kebab(word)).strip("-") or "app" for word in words)
+
+
+def required_name(folder, label, include):
+    """How an ns form requires an included file: a code file of the app that declares its label by that dotted name,
+    any other file (data, a file outside the app's folder, a code file with no label) by its path, as the include
+    did; a code file with no label is named on standard error."""
+    by_path = f"[{json.dumps(include)}]"
+    stem = include[:-len(".lisp")] if include.endswith(".lisp") else ""
+    if not re.fullmatch(r"[a-z0-9-]+(/[a-z0-9-]+)*", stem):
+        return by_path
+    name = ".".join(label.split(".")[:-1] + stem.split("/"))
+    try:
+        with open(os.path.join(folder, include), encoding="utf-8") as file:
+            text = file.read()
+    except OSError:
+        return by_path
+    declared = re.match(r"(?:\s|;[^\n]*\n)*\(ns\s+([^\s()]+)", text)
+    if declared and declared.group(1) == name:
+        return name
+    if not text.lstrip().startswith("{"):
+        print(f"required by its path: {include} doesn't start with (ns {name})", file=sys.stderr)
+    return by_path
+
+
+def ns_form(path, includes):
+    """The file's ns form: its label, and the files it includes as a :require, in their order."""
+    label = namespace_of(path)
+    if not includes:
+        return f"(ns {label})"
+    folder = os.path.dirname(os.path.abspath(path))
+    names = [required_name(folder, label, include) for include in includes]
+    return f"(ns {label}\n  (:require " + "\n            ".join(names) + "))"
 
 
 def collect_repeats(value, found):
