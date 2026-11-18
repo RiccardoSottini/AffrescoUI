@@ -5,9 +5,10 @@
 ;;; other proposal waiting for review: this is where the person reviews. Everything here is named assistant..., so it
 ;;; merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp")
+(ns shared.assistant
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"))
 
 ;;; Definitions
 
@@ -110,9 +111,10 @@ how many other forms it runs, and whether the person typed it all (describe-form
          :width 16
          :height 16
          :viewBox "0 0 24 24"
-         :d ~(cond (= assistantKind "image/") "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
-                   (= assistantKind "audio/") "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0"
-                   :else "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4")
+         :d ~(case assistantKind
+               "image/" "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
+               "audio/" "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0"
+               "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4")
          :stroke @assistant.dim
          :strokeWidth 2
          :strokeCap round
@@ -222,7 +224,7 @@ how many other forms it runs, and whether the person typed it all (describe-form
 
 (defn assistant-model-options "The model the person chose, or their default, for the host's agent." []
   (if (and (some? state.assistant.models) (not= state.assistant.models.default ""))
-    {:model (if (some (fn [model] (= (:id model) state.assistant.model)) state.assistant.models.models)
+    {:model (if (some #(= (:id %) state.assistant.model) state.assistant.models.models)
               state.assistant.model
               state.assistant.models.default)}
     {}))
@@ -231,19 +233,19 @@ how many other forms it runs, and whether the person typed it all (describe-form
   "Asks the agents, with the files attached and the elements pointed at: what goes with it, the person's message, then
 the request (whose picks are spent once sent)."
   [text]
-  (when (> (count (or text "")) 0)
+  (when (seq text)
     (assistant-keep-current-points)
-    (when (> (count state.assistant.attachments) 0)
+    (when (seq state.assistant.attachments)
       (push "state.assistant.messages"
             :value {:kind "files" :mine true :files state.assistant.attachments :time (now)}))
-    (when (> (count state.assistant.pointed) 0)
+    (when (seq state.assistant.pointed)
       (push "state.assistant.messages"
             :value {:kind "pointed" :mine true :items state.assistant.pointed :time (now)}))
     (push "state.assistant.messages" :value {:mine true :from (t "assistant.you") :text text :time (now) :error false})
     (assistant-trim)
     (ask text
-         :attachments (map (fn [file] (:id file)) state.assistant.attachments)
-         :picks (map (fn [record] (:id record)) state.assistant.pointed)
+         :attachments (map :id state.assistant.attachments)
+         :picks (map :id state.assistant.pointed)
          :into "state.assistant.pending"
          :options (assistant-model-options))
     (set "state.assistant.attachments" [])
@@ -252,7 +254,7 @@ the request (whose picks are spent once sent)."
 
 (defn assistant-start "Opens the panel and asks what the app was given (event.text): the host's own way in." []
   (assistant-open)
-  (assistant-ask (trim (or event.text ""))))
+  (assistant-ask (str/trim (or event.text ""))))
 
 (defn assistant-form-of "What a text would do evaluated (describe-form): the engine decides what is Lisp." [text]
   (describe-form text))
@@ -261,7 +263,7 @@ the request (whose picks are spent once sent)."
   (if (some? computed.assistantForm) (assistant-evaluate) (assistant-ask-draft)))
 
 (defn assistant-ask-draft "Asks what the person wrote, whatever it reads as, and empties the field." []
-  (assistant-ask (trim state.assistant.draft))
+  (assistant-ask (str/trim state.assistant.draft))
   (set "state.assistant.draft" ""))
 
 (defn assistant-evaluate
@@ -269,7 +271,7 @@ the request (whose picks are spent once sent)."
 and one they didn't (pasted, or set by code) runs only once they say yes to the window's own question. The field keeps
 the draft until it has run, as the engine reads the field to tell whether the person typed it: it is never copied."
   []
-  (assistant-said {:kind "code" :mine true :from (t "assistant.you") :text (trim state.assistant.draft) :time (now)})
+  (assistant-said {:kind "code" :mine true :from (t "assistant.you") :text (str/trim state.assistant.draft) :time (now)})
   (evaluate state.assistant.draft :file assistant-new-file :confirm true :then assistant-evaluated))
 
 (defn assistant-evaluated
@@ -328,14 +330,13 @@ message an app gives."
           :onError assistant-attach-failed))
 
 (defn assistant-drop "Attaches files dropped on the panel from the OS, as picked ones." [files]
-  (when (> (count (or files [])) 0)
+  (when (seq files)
     (attach {:from files :multiple true} :into "state.assistant.picked" :onError assistant-attach-failed)))
 
 (defn assistant-attach-picked "Adds the files picked to the next message's, eight at most, each once." []
-  (let [ids (map (fn [file] (:id file)) state.assistant.attachments)]
+  (let [ids (into #{} (map :id state.assistant.attachments))]
     (set "state.assistant.attachments"
-         (slice (concat state.assistant.attachments
-                        (filter (fn [file] (not (contains ids (:id file)))) (or state.assistant.picked [])))
+         (slice (concat state.assistant.attachments (remove #(ids (:id %)) (or state.assistant.picked [])))
                 0
                 8)))
   (set "state.assistant.picked" nil)
@@ -345,7 +346,7 @@ message an app gives."
   (when (some? state.assistant.picked) (assistant-attach-picked)))
 
 (defn assistant-unattach "Takes a file from the next message's." [id]
-  (set "state.assistant.attachments" (remove (fn [file] (= (:id file) id)) state.assistant.attachments))
+  (set "state.assistant.attachments" (remove #(= (:id %) id) state.assistant.attachments))
   (focus "#assistantComposer"))
 
 (defn assistant-point
@@ -366,13 +367,12 @@ modal), the focus staying where it was, and comes back when they pick or cancel.
   "When the person picked: the element joins the next message's (once: one already there, or the assistant's own, is
 forgotten again), and the panel opens on the field."
   []
-  (let [record state.assistant.justPointed]
-    (when (some? record)
-      (if (or (some (fn [it] (= (:node it) (:node record))) state.assistant.pointed)
-              (clojure.string/starts-with? (or-else (:node record) "") "#assistant")
-              (>= (count state.assistant.pointed) 4))
-        (unpick (:id record))
-        (push "state.assistant.pointed" :value record))))
+  (when-some [record state.assistant.justPointed]
+    (if (or (some #(= (:node %) (:node record)) state.assistant.pointed)
+            (str/starts-with? (or-else (:node record) "") "#assistant")
+            (>= (count state.assistant.pointed) 4))
+      (unpick (:id record))
+      (push "state.assistant.pointed" :value record)))
   (set "state.assistant.justPointed" nil)
   (set "state.assistant.pointing" false)
   (assistant-open))
@@ -383,7 +383,7 @@ forgotten again), and the panel opens on the field."
 
 (defn assistant-unpoint "Takes an element from the next message's: the engine forgets its record." [id]
   (unpick id)
-  (set "state.assistant.pointed" (remove (fn [it] (= (:id it) id)) state.assistant.pointed))
+  (set "state.assistant.pointed" (remove #(= (:id %) id) state.assistant.pointed))
   (focus "#assistantComposer"))
 
 (defn assistant-stale "Whether an element was pointed at before the latest commit." [record]
@@ -393,8 +393,8 @@ forgotten again), and the panel opens on the field."
   "Drops the elements pointed at before the latest commit, quietly: where they were may have moved."
   []
   (let [stale (filter assistant-stale state.assistant.pointed)]
-    (when (> (count stale) 0)
-      (unpick (map (fn [it] (:id it)) stale))
+    (when (seq stale)
+      (unpick (map :id stale))
       (set "state.assistant.pointed" (remove assistant-stale state.assistant.pointed)))))
 
 (defn assistant-show-source
@@ -402,11 +402,11 @@ forgotten again), and the panel opens on the field."
 nothing."
   [record]
   (call "changes.open"
-        :with {:source (:address (:source record)) :line (:line (:source record))}
+        :with {:source (-> record :source :address) :line (-> record :source :line)}
         :onError assistant-ignored))
 
 (defn assistant-asked "What the request a reply answers asked, or nothing." [id]
-  (or (:text (find (fn [request] (= (:id request) id)) requests)) ""))
+  (or (->> requests (find #(= (:id %) id)) :text) ""))
 
 (defn assistant-add-card "A proposal as a message: a card, then what it adds beside its edits, if anything."
   [proposal time]
@@ -417,7 +417,7 @@ nothing."
                 :title (:message proposal)
                 :summary (t "assistant.touches" {:n (count (or (:touches proposal) []))})
                 :lines (slice (or (:changes proposal) []) 0 3)})
-  (when (> (+ (count (or (:assets proposal) [])) (count (or (:run proposal) []))) 0)
+  (when (or (seq (:assets proposal)) (seq (:run proposal)))
     (push "state.assistant.messages"
           :value {:kind "extras"
                   :id (:id proposal)
@@ -429,18 +429,19 @@ nothing."
   (let [text (or event.text "")
         error (or event.error "")
         opened (or event.proposals [])]
-    (when (or (> (count text) 0) (> (count error) 0) (> (count opened) 0))
+    (when (or (seq text) (seq error) (seq opened))
       (push "state.assistant.messages"
             :value {:mine false
                     :from event.from
-                    :text (if (> (count error) 0) error text)
+                    :text (if (seq error) error text)
                     :time event.time
-                    :error (> (count error) 0)
+                    :error (boolean (seq error))
                     :asked (assistant-asked event.request)})
-      (map (fn [proposal] (assistant-add-card proposal event.time))
-           (filter (fn [proposal] (contains opened (:id proposal))) (or state.assistant.simulate.proposals proposals)))
+      (let [opened (into #{} opened)]
+        (doseq [proposal (filter #(opened (:id %)) (or state.assistant.simulate.proposals proposals))]
+          (assistant-add-card proposal event.time)))
       (assistant-trim)
-      (when (not state.assistant.open) (increment "state.assistant.unread"))
+      (when-not state.assistant.open (increment "state.assistant.unread"))
       (scrollTo "#assistantEnd"))))
 
 (defn assistant-stop
@@ -453,8 +454,7 @@ nothing."
                    :error false
                    :note true
                    :asked (assistant-asked state.assistant.pending)})
-  (cancelAsk (map (fn [request] (:id request))
-                  (filter (fn [request] (or (= (:state request) "sent") (= (:state request) "working"))) requests)))
+  (cancelAsk (->> requests (filter #(#{:sent :working} (:state %))) (map :id)))
   (when (some? state.assistant.simulate) (set "state.assistant.simulate.working" false))
   (focus "#assistantComposer"))
 
@@ -477,7 +477,7 @@ nothing."
 (defn assistant-ignored "Nothing: a host without the call changes nothing." [])
 
 (defn assistant-accept "Accepts a proposal, as the person saw it (its head)." [id]
-  (accept id :head (:head (find (fn [proposal] (= (:id proposal) id)) proposals)))
+  (accept id :head (->> proposals (find #(= (:id %) id)) :head))
   (set (str "state.assistant.decided[" id "]") "accepted"))
 
 (defn assistant-reject "Rejects a proposal." [id]
@@ -491,7 +491,7 @@ nothing."
 Only the hosts whose own agent is connected (the peer 'agent') have it; without it (MCP-only setups, other hosts, the
 rendering check) models stays nil and the picker hides."
   []
-  (if (some (fn [peer] (= (:author peer) "agent")) peers)
+  (if (some #(= (:author %) "agent") peers)
     (call "assistant.models" :into "state.assistant.models" :onError assistant-no-models)
     (assistant-no-models)))
 
@@ -520,30 +520,31 @@ rendering check) models stays nil and the picker hides."
   (undoRun id))
 
 (defn assistant-run-text "Text people or peers wrote, on one line: its line breaks as spaces." [text]
-  (join " " (split (str text) "\n")))
+  (str/join " " (str/split (str text) "\n")))
 
 (defn assistant-run-line "An argument of a run as a line of its card: `name: value`, the value cut at 60 characters."
   [arguments k]
   (let [value (get arguments k)
-        letters (split (assistant-run-text (if (string? value) value (pr-str value))) "")]
+        letters (str/split (assistant-run-text (if (string? value) value (pr-str value))) "")]
     (str (assistant-run-text (if (keyword? k) (name k) k))
          ": "
-         (join "" (take 60 letters))
+         (str/join "" (take 60 letters))
          (if (> (count letters) 60) "…" ""))))
 
 (defn assistant-run-lines "A run's arguments as its card's lines: the first three." [arguments]
-  (map (fn [k] (assistant-run-line arguments k)) (take 3 (keys (or-else arguments {})))))
+  (map #(assistant-run-line arguments %) (take 3 (keys (or-else arguments {})))))
 
 (defn assistant-run-status "A run's card's status: its buttons while it waits, else what became of it." [run]
-  (cond (= (:state run) "waiting") (if (:personOnly run) "asking" "pending")
-        (= (:state run) "ran") (if (> (count (or-else (:errors run) [])) 0) "ranErrors" "accepted")
-        :else (:state run)))
+  (case (:state run)
+    :waiting (if (:personOnly run) "asking" "pending")
+    :ran (if (seq (:errors run)) "ranErrors" "accepted")
+    (:state run)))
 
 (defn assistant-run-summary "Who and what: who wants to run it, that the window asks, who it ran for, or why not." [run]
-  (cond (= (:state run) "waiting") (if (:personOnly run)
-                                     (t "assistant.run.windowAsks")
-                                     (t "assistant.run.wants" {:author (:author run)}))
-        (or (= (:state run) "ran") (= (:state run) "undone")) (t "assistant.run.ranFor" {:author (:author run)})
+  (cond (= (:state run) :waiting) (if (:personOnly run)
+                                    (t "assistant.run.windowAsks")
+                                    (t "assistant.run.wants" {:author (:author run)}))
+        (#{:ran :undone} (:state run)) (t "assistant.run.ranFor" {:author (:author run)})
         (empty? (:reason run)) (t "assistant.run.notRunBare")
         :else (t "assistant.run.notRun" {:reason (assistant-run-text (:reason run))})))
 
@@ -583,15 +584,15 @@ run) and overlays: its launcher and its panel."
             :assistant.denyRun [{:lisp assistant-deny-run}]
             :assistant.undoRun [{:lisp assistant-undo-run}]}
   :overlays {:assistantLauncher (node#assistantLauncher :when ~(or (or-else state.assistant.simulate.online
-                                                                            (> (count peers) 0))
-                                                                   (> (count state.assistant.messages) 0)
+                                                                            (pos? (count peers)))
+                                                                   (pos? (count state.assistant.messages))
                                                                    state.assistant.show)
                                   :use chatLauncher
                                   :anchors {:right 24 :bottom ~(+ 24 state.assistant.lift)}
                                   :with {:isOpen ~state.assistant.open
                                          :run assistant.toggle
                                          :unread ~(+ state.assistant.unread
-                                                     (count (filter (fn [it] (= it.state "waiting"))
+                                                     (count (filter #(= (:state %) :waiting)
                                                                     (or-else state.assistant.simulate.runs runs))))
                                          :label ~(t (if state.assistant.open "assistant.close" "assistant.open"))
                                          :tooltip ~(t "assistant.shortcut")
@@ -685,7 +686,7 @@ run) and overlays: its launcher and its panel."
      :color @assistant.raised
      :role listitem
      :text ~(or-else step.note
-                     (if (or (= step.image "open") (= step.image "openAsset"))
+                     (if (contains? #{:open :openAsset} step.image)
                          (t "assistant.opens" {:name (or-else step.with.asset step.asset "")})
                          (t "assistant.runs"
                             {:step (slice (str (or-else (get (keys step) 0) "")
@@ -761,7 +762,7 @@ run) and overlays: its launcher and its panel."
 
 (defview assistant-retry "A message's Retry button." [message m]
   `(node :id ~(str "assistantRetry" m)
-     :when ~(> (count (or-else message.asked "")) 0)
+     :when ~(pos? (count (or-else message.asked "")))
      :width 26
      :height 26
      :radius 6
@@ -791,7 +792,7 @@ run) and overlays: its launcher and its panel."
      :gap 2
      :justifySelf stretch
      :color transparent
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      (node :id ~(str "assistantBubble" m)
        :use chatBubble
        :with {:text ~message.text
@@ -823,12 +824,12 @@ run) and overlays: its launcher and its panel."
 code font, with Copy and never Retry."
   [message m]
   `(column :id ~(str "assistantCode" m)
-     :when ~(or (= message.kind "code") (= message.kind "result"))
+     :when ~(contains? #{:code :result} message.kind)
      :fitContent height
      :gap 2
      :justifySelf stretch
      :color transparent
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      (label :id ~(str "assistantCodeText" m)
        :text ~message.text
        :font ~state.assistant.codeFont
@@ -857,7 +858,7 @@ code font, with Copy and never Retry."
   `(node :id ~(str "assistantCard" message.id)
      :when ~(= message.kind "card")
      :use proposalCard
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      :with {:title ~message.title
             :summary ~message.summary
             :lines ~(or-else message.lines [])
@@ -888,10 +889,10 @@ code font, with Copy and never Retry."
 (defview assistant-waiting "A proposal waiting for review that no message brought." [proposal l]
   `(node :id ~(str "assistantWaiting" proposal.id)
      :use proposalCard
-     :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) l 1)}
+     :cell {:column 1 :row ~(+ assistantCount (if (zero? assistantCount) 4 0) l 1)}
      :with {:title ~proposal.message
             :summary ~(t "assistant.touches" {:n (count (or-else proposal.touches []))})
-            :lines ~(slice (concat (map (fn [it] (str "+ " it.name)) (or-else proposal.assets []))
+            :lines ~(slice (concat (map #(str "+ " (:name %)) (or-else proposal.assets []))
                                    (or-else proposal.changes []))
                            0
                            3)
@@ -923,7 +924,7 @@ it waits for a yes, and Undo once it ran."
   [run r]
   `(node :id ~(str "assistantRun" run.id)
      :use proposalCard
-     :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) r 1)}
+     :cell {:column 1 :row ~(+ assistantCount (if (zero? assistantCount) 4 0) (count assistantLoose) r 1)}
      :with {:title ~(assistant-run-text (if (empty? run.title) run.command run.title))
             :summary ~(assistant-run-summary run)
             :lines ~(assistant-run-lines run.arguments)
@@ -962,10 +963,10 @@ it waits for a yes, and Undo once it ran."
      :role list
      :label ~(t "assistant.messages")
      :let {:assistantCount ~(count state.assistant.messages)
-           :assistantLoose ~(filter (fn [it] (not (contains assistantCarded it.id)))
+           :assistantLoose ~(filter #(not (contains assistantCarded (:id %)))
                                     (or-else state.assistant.simulate.proposals proposals))
            :assistantRuns ~(slice (or-else state.assistant.simulate.runs runs) -20)}
-     (label#assistantEmpty :when ~(= assistantCount 0)
+     (label#assistantEmpty :when ~(zero? assistantCount)
        :cell {:column 1 :row 1}
        :text ~(t "assistant.empty")
        :textColor @assistant.dim
@@ -994,13 +995,13 @@ it waits for a yes, and Undo once it ran."
      (node#assistantEnd :height 1
        :color transparent
        :cell {:column 1
-              :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) (count assistantRuns) 2)})))
+              :row ~(+ assistantCount (if (zero? assistantCount) 4 0) (count assistantLoose) (count assistantRuns) 2)})))
 
 (defview assistant-suggestion "Suggestion `n` of three, a chip to ask with, while the conversation is empty." [n]
   `(node :id ~(str "assistantChip" n)
-     :when ~(= assistantCount 0)
+     :when ~(zero? assistantCount)
      :use assistantChip
-     :cell {:column 1 :row ~(+ n 1)}
+     :cell {:column 1 :row ~(inc n)}
      :with {:text ~(t (str "assistant.chip" n))}))
 
 (defview assistant-sent-files "The files message `m` attached, as cards, where it is a message of files." [message m]
@@ -1010,7 +1011,7 @@ it waits for a yes, and Undo once it ran."
      :fitContent height
      :gap 6
      :justify end
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      :role list
      :label ~(t "assistant.attached")
      ~(repeat [file message.files :index f]
@@ -1023,7 +1024,7 @@ it waits for a yes, and Undo once it ran."
      :fitContent height
      :gap 6
      :justify end
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      :role list
      :label ~(t "assistant.pointed")
      ~(repeat [item message.items :index p]
@@ -1034,14 +1035,14 @@ it waits for a yes, and Undo once it ran."
   `(node :id ~(str "assistantAdds" message.id)
      :when ~(= message.kind "extras")
      :use assistantExtras
-     :cell {:column 1 :row ~(+ m 1)}
+     :cell {:column 1 :row ~(inc m)}
      :justifySelf start
      :with {:id ~message.id :assets ~(or-else message.assets []) :run ~(or-else message.run [])}))
 
 (defview assistant-typing "Three dots that blink while the agent works, under the conversation." []
   `(node#assistantTyping :when ~assistantWorking
      :cell {:column 1
-            :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) (count assistantRuns) 1)}
+            :row ~(+ assistantCount (if (zero? assistantCount) 4 0) (count assistantLoose) (count assistantRuns) 1)}
      :use typingIndicator
      :every {:ms 400 :do [{:increment state.assistant.phase}]}
      :with {:label ~(t "assistant.typing")
@@ -1098,7 +1099,7 @@ it waits for a yes, and Undo once it ran."
        :strokeJoin round)))
 
 (defview assistant-model-picker "The menu of the models the host's agent can use." []
-  `(row#assistantModelPicker :when ~(> (count (or-else assistantModels.models [])) 0)
+  `(row#assistantModelPicker :when ~(pos? (count (or-else assistantModels.models [])))
      :fitContent width
      :height 32
      :gap 4
@@ -1117,7 +1118,7 @@ it waits for a yes, and Undo once it ran."
      {:width 4 :height 1 :color transparent}
      (label#assistantModelName :fitText {:maxWidth 150}
        :textColor @assistant.dim
-       :text ~(or-else (:name (find (fn [it] (= it.id assistantModel)) assistantModels.models)) assistantModel))
+       :text ~(or-else (:name (find #(= (:id %) assistantModel) assistantModels.models)) assistantModel))
      ~(assistant-model-chevron)
      {:width 4 :height 1 :color transparent}
      ~(assistant-model-menu)))
@@ -1137,6 +1138,7 @@ it waits for a yes, and Undo once it ran."
      :with {:open state.assistant.modelMenu
             :placement above
             :width 260
+            ; style: keep, a #(...) can't give a map
             :items ~(map (fn [it]
                            {:title it.name
                             :checked (= it.id assistantModel)
@@ -1178,7 +1180,7 @@ it waits for a yes, and Undo once it ran."
 (defview assistant-pointed-row
   "The elements pointed at for the next message, as chips, and a line that says they go with it."
   []
-  `(node#assistantPointedRow :when ~(> (count state.assistant.pointed) 0)
+  `(node#assistantPointedRow :when ~(pos? (count state.assistant.pointed))
      :alignSelf stretch
      :height 62
      :color transparent
@@ -1224,7 +1226,7 @@ while the draft is a request: building it would build the field again, and the c
      :borderColor @assistant.border
      :shadow {:x 0 :y 2 :blur 8 :color "#0000001a"}
      ~(assistant-pointed-row)
-     (node#assistantAttachments :when ~(> (count state.assistant.attachments) 0)
+     (node#assistantAttachments :when ~(pos? (count state.assistant.attachments))
        :alignSelf stretch
        :height 54
        :color transparent
@@ -1259,13 +1261,13 @@ while the draft is a request: building it would build the field again, and the c
      :keys {:escape assistant.close
             "mod+enter" assistant.askDraft}
      :onDrop ~(handler assistant-drop (or-else event.files []))
-     :let {:assistantOnline ~(or-else state.assistant.simulate.online (> (count peers) 0))
-           :assistantPending ~(or-else state.assistant.simulate.pending (map (fn [it] it.id) proposals))
+     :let {:assistantOnline ~(or-else state.assistant.simulate.online (pos? (count peers)))
+           :assistantPending ~(or-else state.assistant.simulate.pending (map :id proposals))
            :assistantWorking ~(or-else state.assistant.simulate.working
-                                       (some (fn [it] (or (= it.state "sent") (= it.state "working"))) requests))
-           :assistantCarded ~(map (fn [it] it.id) (filter (fn [it] (= it.kind "card")) state.assistant.messages))
+                                       (some #(contains? #{:sent :working} (:state %)) requests))
+           :assistantCarded ~(->> state.assistant.messages (filter #(= (:kind %) :card)) (map :id))
            :assistantModels ~(or-else state.assistant.simulate.models state.assistant.models)
-           :assistantModel ~(if (some (fn [it] (= it.id state.assistant.model)) (or-else assistantModels.models []))
+           :assistantModel ~(if (some #(= (:id %) state.assistant.model) (or-else assistantModels.models []))
                                 state.assistant.model
                                 (or-else assistantModels.default ""))}
      ~(assistant-header)
@@ -1275,8 +1277,8 @@ while the draft is a request: building it would build the field again, and the c
      (node#assistantInput :alignSelf stretch
        :color transparent
        :height ~(+ 112
-                   (if (> (count state.assistant.attachments) 0) 54 0)
-                   (if (> (count state.assistant.pointed) 0) 62 0)
+                   (if (pos? (count state.assistant.attachments)) 54 0)
+                   (if (pos? (count state.assistant.pointed)) 62 0)
                    (assistant-preview-height computed.assistantForm))
        ~(assistant-input-card))))
 
