@@ -12,9 +12,9 @@ namespace {
 /// @brief The place of the item a child's variables come from: the nearest scope with one.
 /// @param locals The variables.
 /// @return The place, or empty if none comes from the state.
-std::string_view originOf(const Scope* locals) noexcept {
+std::string_view originOf(const Scope* locals) {
 	for(const Scope* scope = locals; scope; scope = scope->parent)
-		if(!scope->origin.empty()) return scope->origin;
+		if(!scope->origin().empty()) return scope->origin();
 	return {};
 }
 

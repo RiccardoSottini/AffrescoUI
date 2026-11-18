@@ -17,6 +17,7 @@
 #include <exception>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -336,6 +337,11 @@ private:
 	/// @param name Its name (a repeat's item reads where it lies in the state).
 	/// @param keys Its keys.
 	void noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const;
+	/// @brief Where a read of a variable is recorded: a repeat's item where it lies, a row's number under its list
+	/// (indexKey).
+	/// @param name The variable.
+	/// @return The place, or std::nullopt for a variable that never changes while it is in scope.
+	[[nodiscard]] std::optional<std::string> namedPlace(std::string_view name) const;
 
 	const Context& context_;     ///< What paths can see.
 	const Item* item_ = nullptr; ///< The innermost list function's item, if one is running.
