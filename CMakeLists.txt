@@ -293,7 +293,8 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/syntax.cpp
 		tests/perf/lisp.cpp
 		tests/perf/tempera.cpp
-		tests/perf/commands.cpp)
+		tests/perf/commands.cpp
+		tests/perf/tracking.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
