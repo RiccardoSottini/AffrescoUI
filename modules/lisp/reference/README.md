@@ -14,6 +14,7 @@ that area.
 | `sets.md` | Sets, `#{...}`, the functions on them, and `clojure.set`, written `set/` | `src/CoreSets.cpp`, `words/Sets.hpp` |
 | `namespaces.md` | Qualified names, aliases, `ns` | `src/Namespaces.cpp`, `words/Namespaces.hpp` |
 | `bindings.md` | Which forms a template's `~form` lowers to a binding the expression machine runs | `src/CompilerLowering.cpp` |
+| `style.md` | How the examples' programs are written in the dialect: what a rewrite keeps, which form to choose, the traps, `ns` and keywords, and how to check an app | `tools/notation/lisp_idioms.py`, `lisp_tree.py` |
 | `differences.md` | What differs from Clojure on purpose, and what to write instead | RFC 0006, "Intended differences" |
 
 A page appears when its package does. Until then, the module's page and RFC 0006 are the reference.
