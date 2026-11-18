@@ -570,7 +570,7 @@ constexpr std::size_t treesKept = 2U;
 
 /// @brief A document and what its program builds.
 struct KeptTree {
-	json source;                     ///< The document as versioned.
+	json source;                      ///< The document as versioned.
 	std::shared_ptr<const json> tree; ///< What it builds.
 };
 
@@ -591,7 +591,8 @@ KeptTrees& keptTrees() {
 
 std::shared_ptr<const json> builtTree(const json& document) {
 	KeptTrees& kept = keptTrees();
-	const auto found = std::ranges::find_if(kept.trees, [&document](const KeptTree& entry) { return entry.source == document; });
+	const auto found =
+	    std::ranges::find_if(kept.trees, [&document](const KeptTree& entry) { return entry.source == document; });
 	if(found != kept.trees.end()) {
 		std::rotate(kept.trees.begin(), found, found + 1);
 		return kept.trees.front().tree;

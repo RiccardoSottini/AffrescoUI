@@ -20,15 +20,15 @@ namespace affresco::lisp {
 
 /// @brief What a build kept of one definition: its entry, what its code uses, and what it gave.
 struct DefinitionBuilt {
-	std::string name;                    ///< Its address, its entry's name.
-	std::string kind;                    ///< Its form's word: `defn`, `defstate`...
-	std::string file;                    ///< Its entry's file.
-	std::string text;                    ///< Its entry's text.
-	std::string author;                  ///< Its entry's author.
-	std::vector<std::string> uses;       ///< What its code uses by name (Program::namesUsed()).
-	std::optional<CallsByName> named;    ///< What it calls with a text written out first, if anything.
-	std::vector<Gift> gifts;             ///< What it gave the tree, in order.
-	std::optional<Extension> extension;  ///< Itself, if it is a hook or advice.
+	std::string name;                     ///< Its address, its entry's name.
+	std::string kind;                     ///< Its form's word: `defn`, `defstate`...
+	std::string file;                     ///< Its entry's file.
+	std::string text;                     ///< Its entry's text.
+	std::string author;                   ///< Its entry's author.
+	std::vector<std::string> uses;        ///< What its code uses by name (Program::namesUsed()).
+	std::optional<CallsByName> named;     ///< What it calls with a text written out first, if anything.
+	std::vector<Gift> gifts;              ///< What it gave the tree, in order.
+	std::optional<Extension> extension;   ///< Itself, if it is a hook or advice.
 	std::vector<UndefinedName> undefined; ///< The names it uses that nothing defined.
 	std::vector<UndefinedName> truth;     ///< Its truth tests (Program::truthTests()).
 };
@@ -39,9 +39,9 @@ struct BuildRecord {
 	std::vector<std::shared_ptr<const DefinitionBuilt>> definitions; ///< Each definition's.
 	std::map<std::string, std::size_t, std::less<>> index;           ///< Each one's place in definitions, by its name.
 	std::map<std::string, std::vector<std::size_t>, std::less<>> users; ///< By name, the definitions that use it.
-	bool inPart = false;      ///< A later build may start from it: see Program::rebuild() for when one may not.
-	bool extensions = false;  ///< The program has hooks or advice.
-	Budget spent;             ///< What the build spent, at most: a build in part adds what it spent to its base's.
+	bool inPart = false;        ///< A later build may start from it: see Program::rebuild() for when one may not.
+	bool extensions = false;    ///< The program has hooks or advice.
+	Budget spent;               ///< What the build spent, at most: a build in part adds what it spent to its base's.
 	std::size_t macroSpent = 0; ///< What macro expansion spent, at most, likewise.
 	std::size_t compiled = 0;   ///< The definitions the build loaded and compiled.
 	bool whole = true;          ///< It ran every definition.

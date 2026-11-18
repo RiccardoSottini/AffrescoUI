@@ -123,8 +123,8 @@ struct UndefinedName {
 
 class Machine;          // the interpreter's state (Machine.hpp)
 struct DefinitionBuilt; // what a build keeps of one definition (Rebuild.hpp)
-struct NodeNote;    // what a recording build notes as it makes a node (Machine.hpp)
-struct BuildRecord; // what a build keeps of each definition, for the build of a later version (Rebuild.hpp)
+struct NodeNote;        // what a recording build notes as it makes a node (Machine.hpp)
+struct BuildRecord;     // what a build keeps of each definition, for the build of a later version (Rebuild.hpp)
 
 /// @brief Where a recording build (Program::recordOrigins()) made a node with an id, from a form of the source: the
 /// places of the node's form and of its id's text, as the program's entries were read. They differ when a call hands
@@ -203,9 +203,9 @@ public:
 	/// @throws LispError If building fails or a limit runs out, naming the place.
 	[[nodiscard]] json build(const Limits& limits = {});
 
-	/// @brief Builds the tree as build() does, from the record of a build of an earlier version of the program: only the
-	/// definitions that changed, and those that use them, are run; what the others gave is taken from the record. It
-	/// gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
+	/// @brief Builds the tree as build() does, from the record of a build of an earlier version of the program: only
+	/// the definitions that changed, and those that use them, are run; what the others gave is taken from the record.
+	/// It gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
 	/// it can't be sure: a changed or removed macro, hook or advice, a definition named as one of the language's (a
 	/// macro of the language may call it), a form that isn't a definition (a macro's call at
 	/// the top level, `do`), namespaces, a recording build, a definition that would use one it didn't load, and any
@@ -301,10 +301,10 @@ private:
 /// @brief What this thread's builds did (Program::build(), Program::rebuild()): for the tests, which take the
 /// difference of two readings.
 struct RebuildStatistics {
-	std::size_t whole = 0;    ///< Builds that ran every definition.
-	std::size_t inPart = 0;   ///< Builds in part.
-	std::size_t compiled = 0; ///< The definitions they loaded and compiled, all of them together.
-	std::size_t redefined = 0;   ///< Interpreters changed in place (Program::redefine()).
+	std::size_t whole = 0;        ///< Builds that ran every definition.
+	std::size_t inPart = 0;       ///< Builds in part.
+	std::size_t compiled = 0;     ///< The definitions they loaded and compiled, all of them together.
+	std::size_t redefined = 0;    ///< Interpreters changed in place (Program::redefine()).
 	std::size_t definedAgain = 0; ///< The definitions those changes defined again, all of them together.
 };
 

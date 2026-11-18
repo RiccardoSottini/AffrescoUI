@@ -474,7 +474,8 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 		return kept.front().second;
 	}
 	// The latest build is most likely the version before this one, which one revision changed
-	std::shared_ptr<const BuiltProgram> built = buildSection(section, kept.empty() ? nullptr : kept.front().second.get());
+	std::shared_ptr<const BuiltProgram> built =
+	    buildSection(section, kept.empty() ? nullptr : kept.front().second.get());
 	if(kept.size() >= keptBuilds) kept.pop_back();
 	kept.emplace(kept.begin(), section, built);
 	return built;

@@ -179,8 +179,8 @@ json definitionsOf(lisp::Interpreter& interpreter) {
 		const std::optional<lisp::DefinitionInfo> info = interpreter.describe(name);
 		json definition = {name};
 		if(info)
-			definition.push_back(
-			    json::array({info->kind, info->doc, info->author, *info->place.file, info->place.line, info->place.column}));
+			definition.push_back(json::array(
+			    {info->kind, info->doc, info->author, *info->place.file, info->place.line, info->place.column}));
 		if(const std::optional<lisp::Value> value = interpreter.global(name)) {
 			definition.push_back(interpreter.print(*value));
 			definition.push_back(lisp::Interpreter::authorOf(*value));
@@ -291,7 +291,8 @@ TEST_CASE("lisp rebuild: one of 200 functions changed compiles that one, and red
 
 TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, builds the view again") {
 	const auto program = [](const std::string& word) {
-		return sectionOf("(defn word \"\" [] \"" + word + "\")\n(defn other \"\" [] 1)\n"
+		return sectionOf("(defn word \"\" [] \"" + word +
+		                 "\")\n(defn other \"\" [] 1)\n"
 		                 "(defview caption \"\" [] `(label#cap :text ~(word)))\n"
 		                 "(defscreen main (column#c ~(caption) (label#l :text \"x\")))\n");
 	};
@@ -300,8 +301,7 @@ TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, build
 	const std::shared_ptr<const lisp::BuiltProgram> second = lisp::builtProgram(program("two"));
 	CHECK(lisp::rebuildStatistics().inPart == inPart + 1);
 	CHECK(second->tree.dump().contains("\"two\""));
-	CHECK(resultOf(lisp::programOf(program("two")), second->tree)["tree"] ==
-	      buildInFull(program("two"))["tree"]);
+	CHECK(resultOf(lisp::programOf(program("two")), second->tree)["tree"] == buildInFull(program("two"))["tree"]);
 	const std::vector<std::string> places = lisp::changedPlaces(*first, *second);
 	CHECK(places == std::vector<std::string>{"/root"});
 	CHECK(lisp::changedPlaces(*second, *lisp::builtProgram(program("two"))).empty());
@@ -309,7 +309,8 @@ TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, build
 
 TEST_CASE("lisp rebuild: a macro changed builds everything, and the interpreter isn't changed in place") {
 	const auto program = [](const std::string& body) {
-		return sectionOf("(defmacro twice \"\" [x] " + body + ")\n(defn f \"\" [] (twice 1))\n"
+		return sectionOf("(defmacro twice \"\" [x] " + body +
+		                 ")\n(defn f \"\" [] (twice 1))\n"
 		                 "(defscreen main (column#c (label#l :text \"x\")))\n");
 	};
 	lisp::Program first = lisp::programOf(program("`(+ ~x ~x)"));
@@ -355,8 +356,10 @@ TEST_CASE("lisp rebuild: a revision of a running program redefines what it chang
 	CHECK(app.reported("agent/x"));
 
 	// Refused as a new interpreter refuses it, and the program running is untouched
-	const std::optional<std::string> error = app.repository.commit(
-	    {{"author", "agent/x"}, {"message", "m"}, {"set", {{"/program/app.lisp/other", "(defn other \"\" [] (let [x] x))"}}}});
+	const std::optional<std::string> error =
+	    app.repository.commit({{"author", "agent/x"},
+		                       {"message", "m"},
+		                       {"set", {{"/program/app.lisp/other", "(defn other \"\" [] (let [x] x))"}}}});
 	CHECK(error.has_value());
 	app.write("reach", R"lisp((defn reach "The person's." [] (call "hit")))lisp", "user");
 	app.press(affresco::Key::C);
@@ -384,3 +387,4 @@ TEST_CASE("lisp rebuild: a function running while its program changes finishes w
 	app.press(affresco::Key::C);
 	CHECK(app.state("got") == 2);
 }
+
