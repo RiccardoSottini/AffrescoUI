@@ -6,32 +6,32 @@
 ;;; moves to a collection; the numpad turns the view, Z and the grave key open the pie menus; I keys, Space plays;
 ;;; Ctrl Z undoes, F3 searches the commands. Every change of the scene keeps an undo snapshot first.
 
-; style: keep, an ns form is kept as a program entry of its own, which the tree check counts as a definition added
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "look.lisp"
-         "state.lisp"
-         "scene.lisp"
-         "widgets.lisp"
-         "menus.lisp"
-         "keys.lisp"
-         "bars.lisp"
-         "viewport.lisp"
-         "sidebar.lisp"
-         "outliner.lisp"
-         "properties.lisp"
-         "timeline.lisp"
-         "shader.lisp"
-         "dialogs.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "modello.lisp"
-         "transform.lisp"
-         "collections.lisp"
-         "navigation.lisp"
-         "animation.lisp"
-         "materials.lisp"
-         "files.lisp")
+(ns modello.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            modello.look
+            modello.state
+            modello.scene
+            modello.widgets
+            modello.menus
+            modello.keys
+            modello.bars
+            modello.viewport
+            modello.sidebar
+            modello.outliner
+            modello.properties
+            modello.timeline
+            modello.shader
+            modello.dialogs
+            "../../shared/addons/assistant/assistant.lisp"
+            modello.modello
+            modello.transform
+            modello.collections
+            modello.navigation
+            modello.animation
+            modello.materials
+            modello.files))
 
 ;;; The window, and what is in it, in the order it is drawn
 
