@@ -59,7 +59,9 @@
 (defn orbitAround "A link taken away in the graph: the body orbits the Sun again, where it was." []
   (let [to event.to
         place (at to)]
-    (when (and (pos? place) (not= (:parent (body to)) "sun") (<= (inc (get computed.below place)) 3))
+    (when (and (pos? place)
+               (not= (:parent (body to)) "sun")
+               (<= (inc (get computed.below place)) 3))
       (set "state.bodies"
            (map #(if (= (:id %) to) (merge % {:parent "sun" :radius (or (:home %) (:radius %))}) %)
                 state.bodies)))))
@@ -148,7 +150,8 @@
 
 (defn slower "Ten times slower, down to real time." []
   (let [speed (/ state.speed 10)]
-    (set "state.speed" (if (neg? state.speed) (min speed (- slowest)) (max speed slowest)))))
+    (set "state.speed"
+         (if (neg? state.speed) (min speed (- slowest)) (max speed slowest)))))
 
 (defcommand realTime "Plays at real time, in the direction time runs."
   :title ~(t "command.realTime")
