@@ -20,8 +20,10 @@
                (filter #(not= (:parent %) "") computed.placed))
           (map (fn [it]
                  {:id (str "body-" it.id)
-                  :x (- (* it.x 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
-                  :y (- (* it.z 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :x (- (* it.x 22)
+                        (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :y (- (* it.z 22)
+                        (if (= it.parent "") 9 (+ 4 (* it.size 10))))
                   :width (if (= it.parent "") 18 (+ 8 (* it.size 20)))
                   :height (if (= it.parent "") 18 (+ 8 (* it.size 20)))
                   :radius (if (= it.parent "") 9 (+ 4 (* it.size 10)))
@@ -137,6 +139,7 @@
        :fitText true
        :font small
        :textColor ~(if (= state.skyMode "ground") "#dfe7f2" "@onSkyMuted")
+       ; style: keep, its values are different texts, so not case
        :text ~(cond (= state.skyMode "ground") (or-else computed.skyInfo.0 (t "chart.whereYouStand"))
                     (= computed.selectedBody.parent "") (t "chart.centre")
                     :else (t "chart.orbit"
