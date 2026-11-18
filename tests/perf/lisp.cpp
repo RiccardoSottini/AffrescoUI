@@ -11,6 +11,7 @@
 #include <affresco/lisp/Interpreter.hpp>
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
@@ -98,14 +99,21 @@ void addStartWorkload(std::vector<Workload>& workloads) {
 	workloads.push_back(std::move(start));
 }
 
+/// The examples written as programs, each opened by "lisp/open-<app>" (and "lisp/open-<app>-json" beside its JSON
+/// version, where it has one).
+constexpr std::array openedApps{"arcadia", "calamaio", "code-editor", "flow",  "forge", "haven",  "launcher",
+                                "modello", "orrery",   "sign-in",     "sinopia", "streak", "tempera", "tempo"};
+
 /// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
 /// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
-/// written as a program costs beside its JSON version, once the process has opened it before.
+/// written as a program costs beside its JSON version, once the process has opened it before. An app with no json/
+/// folder (Calamaio) has the first only.
 /// @param context The context.
 /// @param workloads Gets them.
 void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
-	for(const char* app : {"flow", "haven", "arcadia", "orrery", "forge", "sinopia", "code-editor", "launcher"})
+	for(const char* app : openedApps)
 		for(const char* notation : {"lisp", "json"}) {
+			if(!std::filesystem::is_directory(context.examples() / app / notation)) continue;
 			// Shared, so copying a workload's function copies no path, and can't throw
 			const auto folder = std::make_shared<const std::filesystem::path>(context.examples() / app / notation);
 			const auto window = std::make_shared<Window*>(nullptr);
