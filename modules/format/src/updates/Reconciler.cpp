@@ -10,6 +10,7 @@
 namespace affresco::format {
 
 std::unique_ptr<Panel> Reconciler::create(const std::string& type, const std::string& path) const {
+	engine_.verify.created(path); // a full pass after a partial update creates none
 	return engine_.types.create(type, path, engine_.placeholderTypes);
 }
 
@@ -41,6 +42,8 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 	}
 	if(item.node->alwaysApply) reads.addAlways(AlwaysReason::Behaviour); // its behaviour reads more than its values
 	if(reads.always) ++statistics_.alwaysReaders;
+	if(const std::string& dropped = testing::droppedReads(); !dropped.empty() && panel.id() == dropped)
+		reads.clear(); // a read dropped, as a bug would (test-only)
 	record.valueReads = std::move(reads);
 }
 
@@ -209,6 +212,7 @@ void Reconciler::update(bool full, std::string_view reason) {
 	++statistics_.updates;
 	statistics_.milliseconds =
 	    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+	if(part && engine_.verify.on()) engine_.verify.check(root, [&] { updateRoot(root, record, nullptr); });
 	engine_.frame.end(changes, !part);
 }
 

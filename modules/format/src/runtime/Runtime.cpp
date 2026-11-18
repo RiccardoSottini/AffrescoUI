@@ -254,6 +254,8 @@ void Runtime::runOnce(const json& steps, const std::string& commit) {
 
 void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }
 
+void Runtime::setVerifyUpdates(bool on) noexcept { impl_->verify.setOn(on); }
+
 bool Runtime::hasAction(std::string_view name) const {
 	const json& document = impl_->versions.document();
 	return (document.contains("actions") && document["actions"].contains(std::string(name))) ||
