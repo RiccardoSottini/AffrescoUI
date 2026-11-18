@@ -94,3 +94,27 @@ TEST_CASE("update check: a read dropped is reported once, naming the node and th
 	CHECK_FALSE(checks.front().contains("s3cr3t"));
 	CHECK_FALSE(checks.front().contains("1x"));
 }
+
+TEST_CASE("update check: a difference in a secret field logs where it is, and not what it holds") {
+	constexpr const char* form = R"json({
+		"format": "affrescoui-screen",
+		"version": 2,
+		"state": { "word": "first-word" },
+		"actions": { "change": [{ "set": "state.word", "to": "second-word" }] },
+		"root": { "type": "panel", "children": [
+			{ "type": "textarea", "id": "word", "text": "{{state.word}}", "secret": true }
+		] }
+	})json";
+	std::string logged;
+	affresco::setLogSink([&](affresco::LogLevel, std::string_view message) { logged += message; });
+	affresco::format::testing::dropReadsOf("word");
+	Verified verified(form);
+	verified.screen.runAction("change", verified.window->root()); // #word dropped its read: the update misses it
+	verified.window->render();
+	affresco::format::testing::dropReadsOf({});
+	affresco::setLogSink(nullptr);
+	CHECK(verified.checks().size() == 1);
+	CHECK(logged.contains("update check: root.children[0]"));
+	CHECK_FALSE(logged.contains("first-word"));
+	CHECK_FALSE(logged.contains("second-word"));
+}

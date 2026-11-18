@@ -6,6 +6,7 @@
 
 #include "affresco/core/Log.hpp"
 #include "affresco/render/Label.hpp"
+#include "affresco/render/TextArea.hpp"
 
 #include <cstdlib>
 #include <format>
@@ -82,6 +83,15 @@ struct Difference {
 	std::string full;     ///< And after the full one.
 };
 
+/// @brief Whether a property's value is what a secret field holds, which the log mustn't show.
+/// @param panel The panel.
+/// @param property The property.
+/// @return Whether it is.
+bool hidden(const Panel* panel, const std::string& property) {
+	const auto* area = dynamic_cast<const TextArea*>(panel);
+	return area && area->secret() && (property == "text" || property.starts_with("values["));
+}
+
 /// @brief The first difference between two writings of the same panel.
 /// @param a After the partial update.
 /// @param b After the full pass.
@@ -92,7 +102,9 @@ std::optional<Difference> panelDifference(const Written& a, const Written& b) {
 		const Property* x = k < a.properties.size() ? &a.properties[k] : nullptr;
 		const Property* y = k < b.properties.size() ? &b.properties[k] : nullptr;
 		if(x && y && x->name == y->name && x->value == y->value) continue;
-		return Difference{a.place, x ? x->name : y->name, x ? x->value : "none", y ? y->value : "none"};
+		const std::string& name = x ? x->name : y->name;
+		if(hidden(a.panel, name)) return Difference{a.place, name, "(secret)", "(secret, not the same)"};
+		return Difference{a.place, name, x ? x->value : "none", y ? y->value : "none"};
 	}
 	return std::nullopt;
 }
