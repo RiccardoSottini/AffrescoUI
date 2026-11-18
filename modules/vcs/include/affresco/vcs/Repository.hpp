@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -570,6 +571,15 @@ private:
 	/// @brief Credits the author of the proposal shown with every definition it changes.
 	/// @param credited The authors: `{file: {name: author}}`.
 	void creditPreviewed(json& credited) const;
+	/// @brief Credits a feature's entries that the app's file or the person is credited with to the feature
+	/// (`feature:<name>`), except what the app's own file shipped of a feature that was never installed
+	/// (installedFeatures()), which stays the file's.
+	/// @param credited The authors: `{file: {name: author}}`.
+	void creditFeatures(json& credited) const;
+	/// @brief The features installed at any time on main: a record that held an origin key (holdsFeatureOrigin()) in
+	/// the screen file, on main's head or in the proposal shown, or a commit that wrote or removed one.
+	/// @return Their names.
+	[[nodiscard]] std::set<std::string> installedFeatures() const;
 	/// @brief Hashes a commit and stores it with its delta, and a snapshot if one is due (storing the same content
 	/// twice gives the same commit).
 	/// @param commit The commit, without its id, tree, delta or snapshot.

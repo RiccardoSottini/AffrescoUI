@@ -1,9 +1,11 @@
 /// @file
 /// @brief vcs::Repository's documents: rebuilding a commit's document from the nearest snapshot and the deltas after
 /// it, blame, which follows a node or a path back through the deltas to the commit that last changed it (Trail.hpp),
-/// the live state's changes a commit records for its undo, and the revision that restores a commit.
+/// the live state's changes a commit records for its undo, the revision that restores a commit, and who each definition
+/// of the program counts as (programAuthors()).
 
 #include "affresco/vcs/Repository.hpp"
+#include "affresco/core/FeatureOrigin.hpp"
 
 #include "revisions/Deltas.hpp"
 #include "revisions/Trail.hpp"
@@ -13,6 +15,8 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
+#include <set>
 #include <array>
 #include <cctype>
 #include <ranges>
@@ -328,21 +332,75 @@ private:
 	std::size_t missing_ = 0;       ///< How many entries have no author.
 };
 
-/// @brief Credits a feature's entries that the app's file or the person is credited with to the feature: its code has
-/// a revision's authority, whoever installed it.
-/// @param credited `{file: {name: author}}`, changed.
-void creditFeatures(json& credited) {
+/// @brief Notes the features of a "features" section whose records say they were installed (holdsFeatureOrigin()).
+/// @param records The section, or nullptr.
+/// @param installed Gets their names.
+void noteRecords(const json* records, std::set<std::string>& installed) {
+	if(!records || !records->is_object()) return;
+	for(const auto& [name, record] : records->items())
+		if(holdsFeatureOrigin(record)) installed.insert(name);
+}
+
+/// @brief Notes the features whose records an operation of a commit's delta shows were installed: it writes or removes
+/// one of their origin keys, or writes a record, a "features" section or a document that holds one with one.
+/// @param op The operation.
+/// @param installed Gets their names.
+void noteInstalled(const json& op, std::set<std::string>& installed) {
+	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
+	if(!path.empty() && path[0] != "features") return;
+	if(path.size() >= 3) {
+		if(std::ranges::find(featureOriginKeys, path[2]) != featureOriginKeys.end()) installed.insert(path[1]);
+		return;
+	}
+	const auto value = op.find("value");
+	if(value == op.end()) return;
+	if(path.size() == 2) {
+		if(holdsFeatureOrigin(*value)) installed.insert(path[1]);
+		return;
+	}
+	noteRecords(path.empty() ? below(&*value, "features") : &*value, installed);
+}
+
+} // namespace
+
+// A feature's code runs as the feature, a revision's authority, whoever installed it: only what the app's own file
+// shipped, for a feature nothing on main ever installed, is the app's own
+void Repository::creditFeatures(json& credited) const {
+	std::optional<std::set<std::string>> installed; // worked out for the first entry the file is credited with
 	for(auto& [file, entries] : credited.items()) {
 		const std::string feature = featureOf(file);
 		if(feature.empty()) continue;
 		for(auto& [name, author] : entries.items()) {
 			const auto& who = author.get_ref<const std::string&>();
+			if(who == "file" && !(installed ? *installed : installed.emplace(installedFeatures())).contains(feature))
+				continue;
 			if(who == "file" || who == "user" || who.starts_with("user/")) author = "feature:" + feature;
 		}
 	}
 }
 
-} // namespace
+// Where it was installed, at any time on main: an origin key in the screen file, written or removed by a commit, on
+// main's head or in the proposal shown. Removing one later never makes the feature the app's own
+std::set<std::string> Repository::installedFeatures() const {
+	std::set<std::string> installed;
+	const Commit& screenFile = objects_.at(main_.front());
+	const json rebuilt = screenFile.snapshot ? json() : documentOf(screenFile);
+	for(const json* document :
+	    {screenFile.snapshot ? screenFile.snapshot.get() : &rebuilt, &mainDocument(), &document_}) {
+		const json* records = below(document, "features");
+		noteRecords(records, installed);
+		const json* own = below(document, "program");
+		if(records && !records->is_object() && own && own->is_object()) // no record to tell: none is the app's own
+			for(const auto& [file, entries] : own->items())
+				if(const std::string feature = featureOf(file); !feature.empty()) installed.insert(feature);
+	}
+	for(std::size_t n = 1; n < main_.size(); ++n) {
+		const Commit& commit = objects_.at(main_[n]);
+		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
+		for(const json& op : commit.delta.is_null() ? worked : commit.delta) noteInstalled(op, installed);
+	}
+	return installed;
+}
 
 // Only revisions that reach the live state can change it: what actions change between commits isn't a commit's
 void Repository::recordStateChange(Commit& commit, const json& before, const json& after) {

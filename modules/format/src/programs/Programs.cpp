@@ -137,7 +137,7 @@ void Programs::load() {
 void Programs::loadSection(const json& section) {
 	json authors = engine_.versions.programAuthors();
 	creditTheRest(section, authors);
-	creditFeatures(section, authors);
+	creditFeatures(engine_.versions.sourceDocument(), section, authors);
 	const lisp::Program program = lisp::programOf(section, authors);
 	lisp::Limits limits;
 	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};

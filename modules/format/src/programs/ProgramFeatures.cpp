@@ -7,6 +7,7 @@
 #include "ComposedVersions.hpp"
 #include "Engine.hpp"
 
+#include <affresco/core/FeatureOrigin.hpp>
 #include <affresco/lisp/Document.hpp>
 
 #include <algorithm>
@@ -88,12 +89,17 @@ std::string_view featureOfAuthor(std::string_view author) noexcept {
 	return author.contains('/') ? std::string_view() : author;
 }
 
-void creditFeatures(const json& section, json& authors) {
+// Only what the history says the file shipped stays the file's, and only for a feature never installed: an install's
+// record names where it came from, and version control confines one that ever did (Repository::creditFeatures())
+void creditFeatures(const json& source, const json& section, json& authors) {
 	for(const auto& [file, entries] : section.items()) {
 		const std::string feature = lisp::featureOfFile(file);
 		if(feature.empty() || !entries.is_object()) continue;
 		json& ofFile = authors[file];
-		for(const auto& [name, text] : entries.items()) ofFile[name] = featureAuthor(feature);
+		const bool shipped = !installedFeature(source, feature);
+		for(const auto& [name, text] : entries.items())
+			if(!shipped || !ofFile.is_object() || ofFile.value(name, json()) != "file")
+				ofFile[name] = featureAuthor(feature);
 	}
 }
 

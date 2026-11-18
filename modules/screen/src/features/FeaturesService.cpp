@@ -8,6 +8,7 @@
 #include "CompositionProofRevision.hpp"
 #include "FeatureUpgrade.hpp"
 
+#include <affresco/core/FeatureOrigin.hpp>
 #include <affresco/vcs/Merge.hpp>
 
 #include <format>
@@ -23,8 +24,9 @@ using services::MethodSpec;
 /// The author of the revisions the service submits: the document's "permissions" decide whether they are reviewed.
 constexpr std::string_view author = "features";
 
-/// The keys of a record that say which release it is: an upgrade takes the new release's, whatever was edited.
-constexpr std::array<std::string_view, 5> originKeys = {"release", "source", "digest", "publisher", "installed"};
+/// The keys of a record that say which release it is: an upgrade takes the new release's, whatever was edited. The same
+/// keys tell an installed feature from what the app's own file shipped.
+constexpr const auto& originKeys = featureOriginKeys;
 
 /// @brief What a submitted revision became, for the screen.
 /// @param result The result.
