@@ -6,6 +6,7 @@
 ;;; moves to a collection; the numpad turns the view, Z and the grave key open the pie menus; I keys, Space plays;
 ;;; Ctrl Z undoes, F3 searches the commands. Every change of the scene keeps an undo snapshot first.
 
+; style: keep, an ns form is kept as a program entry of its own, which the tree check counts as a definition added
 (include "locales/en.lisp"
          "locales/es.lisp"
          "locales/fr.lisp"
