@@ -85,6 +85,8 @@ std::vector<std::string> Screen::inspectorTrace() const {
 	return {trace.begin(), trace.end()};
 }
 
+const format::UpdateStatistics& Screen::lastUpdate() const noexcept { return impl_->runtime.lastUpdate(); }
+
 std::vector<CommitInfo> Screen::log() const { return impl_->repository.log(); }
 
 bool Screen::restore(int revision, std::string* error) {

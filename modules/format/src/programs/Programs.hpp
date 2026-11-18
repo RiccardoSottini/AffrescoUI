@@ -22,6 +22,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -120,6 +121,17 @@ public:
 	/// values worked out, purely.
 	/// @throws DocumentError If it can't be loaded: the version is refused.
 	void load();
+	/// @brief Changes the program now into a later version of it in place (lisp::Program::redefine()): the definitions
+	/// that changed are defined again, with the authors given, those that went are taken away, and those that use
+	/// either are defined again, their values worked out again. load() goes through it; an editor's "evaluate one
+	/// definition" may too. Where that can't be sure to give what a new interpreter gives, it does nothing and
+	/// returns false, for the caller to load a new one: a function running (it keeps the code it started with), hooks
+	/// or advice, a macro changed, and the cases lisp::Program::redefine() lists. On any failure the program is the
+	/// earlier version again, in a new interpreter, and it returns false.
+	/// @param section The later version's `program` section.
+	/// @param authors Who wrote each of its entries (VersionControl::programAuthors()), each given one.
+	/// @return true if the program now is the later version.
+	bool redefine(const json& section, const json& authors);
 	/// The most text one evaluation takes: what a file of a person's definitions takes (four of lisp::maxEntryBytes).
 	static constexpr std::size_t maxEvaluatedBytes = std::size_t{4} << 20U;
 	/// The file a new definition goes in when nothing names one.
@@ -269,6 +281,10 @@ public:
 	/// @}
 
 private:
+	/// @brief Whether the live interpreter may be changed in place (the caller checks that a program is loaded): one
+	/// not running anything, fewer than the changes allowed in it so far, and no hooks or advice.
+	/// @return Whether it may.
+	[[nodiscard]] bool redefinable() const;
 	/// @brief Refuses a step a feature's code leads to that it may not run (featureRunning()).
 	/// @param step The step.
 	/// @param where Its place, for the error.
@@ -299,6 +315,7 @@ private:
 	class Entered;
 	class Linked;
 	class Seeing;
+	class Reading;
 	struct Share;
 	/// @brief The forms of a text, as `evaluate` takes them.
 	struct FormsRead {
@@ -383,6 +400,11 @@ private:
 	/// @param interpreter Its interpreter.
 	/// @throws DocumentError If one names what isn't there.
 	void loadExtensions(lisp::Interpreter& interpreter);
+	/// @brief A new interpreter that has loaded a program, purely, its hooks and advice read into extensionsNext_.
+	/// @param program The program.
+	/// @return It.
+	/// @throws DocumentError If it can't be loaded.
+	[[nodiscard]] std::shared_ptr<lisp::Interpreter> loadedInterpreter(const lisp::Program& program);
 	/// @brief What a hook or advice by a stranger sees of where it is called from: only the panel.
 	/// @return It.
 	[[nodiscard]] Frame blindFrame() const;
@@ -546,6 +568,19 @@ private:
 	/// @return The value.
 	/// @throws lisp::LispError If the budget runs out.
 	static lisp::Value viewOf(lisp::Interpreter& interpreter, json value);
+	/// @brief JSON read from the app while a value is read for the screen, as a value viewing it where it lies, with
+	/// no copy: nothing can change it until the read returns, and the read's result is its own tree. It costs what
+	/// its size costs, worked out once a place per read.
+	/// @param interpreter The interpreter.
+	/// @param value The JSON, where it lies; it stays there until the read returns.
+	/// @return The value.
+	/// @throws lisp::LispError If the budget runs out.
+	lisp::Value viewInPlace(lisp::Interpreter& interpreter, const json& value);
+	/// @brief Spends what a value read from the app costs: its size in bytes, and an operation per 16 of them.
+	/// @param interpreter The interpreter.
+	/// @param size The size.
+	/// @throws lisp::LispError If the budget runs out.
+	static void charge(lisp::Interpreter& interpreter, std::size_t size);
 	/// @brief The function of a name.
 	/// @param interpreter The interpreter.
 	/// @param name The name.
@@ -587,11 +622,17 @@ private:
 		return action();
 	}
 
-	Engine& engine_;                                   ///< The runtime.
-	std::shared_ptr<lisp::Interpreter> live_;          ///< The program now; running code holds its own.
-	json loaded_;                                      ///< The section it was loaded from.
-	Frame* frame_ = nullptr;                           ///< What the running function is called from.
-	int reading_ = 0;                                  ///< Values being read: nothing but reading runs.
+	Engine& engine_;                          ///< The runtime.
+	std::shared_ptr<lisp::Interpreter> live_; ///< The program now; running code holds its own.
+	json loaded_;                             ///< The section it was loaded from.
+	std::optional<lisp::Program> program_;    ///< What live_ loaded, its entries' authors with it (redefine()).
+	int redefinitions_ = 0;                   ///< Changes made in place since live_ was made: its heap only grows.
+	std::size_t redefinedBytesLeft_ = 0;      ///< What they may still allocate together, of one load's budget.
+	Frame* frame_ = nullptr;                  ///< What the running function is called from.
+	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
+	/// The size of each structured value the running read viewed in place (viewInPlace()), so that a place read again
+	/// is charged again without being walked again. Its keys are never dereferenced, and go when the read ends.
+	std::unordered_map<const json*, std::size_t> chargedInRead_;
 	mutable WorkBudget ownBudget_;                     ///< With no event or update running (a tool).
 	bool ownInput_ = false;                            ///< What the person's own input asked to evaluate is running.
 	std::shared_ptr<const Extensions> extensions_;     ///< The hooks and advice of live_.
@@ -620,6 +661,25 @@ public:
 private:
 	Programs& programs_; ///< The programs.
 	Frame* outer_;       ///< What it was.
+};
+
+/// @brief A value read for the screen, as long as it lasts (Programs::read()): only what reads runs, and the state
+/// stays as it is, so what it reads is viewed where it lies.
+class Programs::Reading {
+public:
+	/// @brief Starts it.
+	/// @param programs The programs.
+	explicit Reading(Programs& programs) noexcept;
+	/// @brief Ends it.
+	~Reading();
+	Reading(const Reading&) = delete;
+	Reading& operator=(const Reading&) = delete;
+	Reading(Reading&&) = delete;
+	Reading& operator=(Reading&&) = delete;
+
+private:
+	Programs& programs_;                                 ///< The programs.
+	std::unordered_map<const json*, std::size_t> outer_; ///< What the read around it charged, if any.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it

@@ -64,7 +64,10 @@ inline bool waitForRoom(Backlog& backlog, const Delivery& to) {
 	std::unique_lock lock(backlog.mutex);
 	while(backlog.bytes >= to.maxWaitingBytes) {
 		if(!*to.alive) return false;
-		backlog.handled.wait_for(lock, std::chrono::milliseconds(100)); // a destroyed channel posts nothing more
+		// Timed, as a wake-up can be lost here: the channel's destructor clears alive without this backlog's condition
+		// to notify, and an executor that has stopped never runs the tasks that would. It runs only while the backlog
+		// is full, never while idle
+		backlog.handled.wait_for(lock, std::chrono::milliseconds(100));
 	}
 	return true;
 }

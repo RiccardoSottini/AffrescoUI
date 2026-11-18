@@ -16,10 +16,6 @@
 namespace affresco::bench {
 namespace {
 
-/// @brief Runs the updates that state changes have queued, without drawing (as screens.cpp does).
-/// @param window The window.
-void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
-
 /// @brief The first text field in a tree, depth first.
 /// @param panel Where to start.
 /// @return The field, or nullptr.
@@ -29,10 +25,6 @@ TextArea* firstTextArea(Panel& panel) {
 		if(TextArea* field = firstTextArea(*child)) return field;
 	return nullptr;
 }
-
-/// @brief Lays the window out, without drawing.
-/// @param window The window.
-void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 
 /// @brief The Kanban template with n cards and a "renameBoard" action, loaded into a hidden window.
 /// @param context The context.

@@ -490,10 +490,11 @@ std::string repeated(const std::string& item, int count, char open, char close) 
 	return text + close;
 }
 
-/// @brief One object of wideCount keys, at its place in a document.
+/// @brief One object of wideCount keys, or one list of wideCount items, at its place in a document.
 struct Wide {
 	const char* pointer; ///< Its place, as a JSON pointer.
-	const char* entry;   ///< Each key and its value, `"<key>", <value>`, `$` its number.
+	const char* entry;   ///< Each key and its value, `"<key>", <value>`, or each item; `$` its number.
+	bool list = false;   ///< Whether it is a list of items.
 };
 
 /// @brief A row of a table: a wide document.
@@ -503,20 +504,45 @@ struct WideCase {
 	std::vector<Wide> objects; ///< The objects.
 };
 
-/// @brief Checks wide documents, which must be checked (not too large) and have no findings.
+/// @brief A row's document, its objects of a number of keys.
+/// @param row The row.
+/// @param count The number.
+/// @return It.
+json wideDocument(const WideCase& row, int count) {
+	json document = screen(row.sections);
+	for(const Wide& wide : row.objects) { // read as text, a JSON object would find each key among those before it
+		json& object = document[json::json_pointer(wide.pointer)];
+		if(wide.list) {
+			object = json::parse(repeated(wide.entry, count, '[', ']'));
+			continue;
+		}
+		object = json::object();
+		for(json& entry : json::parse(repeated(std::string("[") + wide.entry + "]", count, '[', ']')))
+			object.get_ref<json::object_t&>().emplace_back(entry[0].get<std::string>(), std::move(entry[1]));
+	}
+	return document;
+}
+
+/// @brief Checks wide documents, which must be checked (not too large) and have no findings, at a cost that follows
+/// their size: four times the keys take less than eight times as long (a search among those before each takes
+/// sixteen). A ratio, not a time, so a loaded or instrumented machine passes as an idle one does.
 /// @param cases The table.
 void checkWide(const std::vector<WideCase>& cases) {
 	for(const WideCase& row : cases) {
 		CAPTURE(row.what);
-		json document = screen(row.sections);
-		for(const Wide& wide : row.objects) { // read as text, a JSON object would find each key among those before it
-			json& object = document[json::json_pointer(wide.pointer)] = json::object();
-			for(json& entry : json::parse(repeated(std::string("[") + wide.entry + "]", wideCount, '[', ']')))
-				object.get_ref<json::object_t&>().emplace_back(entry[0].get<std::string>(), std::move(entry[1]));
-		}
+		const json document = wideDocument(row, wideCount);
 		const auto found = affresco::format::check(document, document.value("state", json::object()));
 		REQUIRE(found);
 		CHECK(found->empty());
+		const double growth = affresco::test::growthOfFour(
+		    [&row](std::size_t count) {
+			    const json sized = wideDocument(row, static_cast<int>(count));
+			    const json state = sized.value("state", json::object());
+			    return affresco::test::secondsOf([&] { static_cast<void>(affresco::format::check(sized, state)); });
+		    },
+		    static_cast<std::size_t>(wideCount), 2);
+		CAPTURE(growth);
+		CHECK(growth < 8.0);
 	}
 }
 
@@ -526,9 +552,10 @@ const std::string panel = R"("root": {"type": "panel", "id": "main"})";
 } // namespace
 
 // Sections and a node's properties were found by name in a list, once for each name: a hundred thousand actions,
-// components or properties took seconds to check, and each revision is checked
+// components or properties took seconds to check, and each revision is checked. The growth checkWide() measures is
+// what proves it; the time limit only ends a run that would take minutes
 TEST_CASE("checker: many sections and properties are checked at the cost of their number" *
-          doctest::timeout(affresco::test::timeLimit(5))) {
+          doctest::timeout(affresco::test::timeLimit(120))) {
 	checkWide({
 	    {"actions",
 		 R"("state": {"p": 0}, "actions": null, )" + panel,
@@ -543,16 +570,15 @@ TEST_CASE("checker: many sections and properties are checked at the cost of thei
 }
 
 // The shape of an object, of what a list's items hold or of what the state's types let it hold was built a key at a
-// time, each found among those before it: a hundred thousand keys took from seconds to a minute to check
+// time, each found among those before it: a hundred thousand keys took from seconds to a minute to check (the growth
+// checkWide() measures proves it)
 TEST_CASE("checker: the shapes of wide values are built at the cost of their size" *
-          doctest::timeout(affresco::test::timeLimit(5))) {
+          doctest::timeout(affresco::test::timeLimit(120))) {
 	checkWide({
 	    {"items of many keys",
 		 R"("state": {"rows": [null, null]}, )" + panel,
 		 {{"/state/rows/0", R"("k$", $)"}, {"/state/rows/1", R"("j$", $)"}}},
-	    {"items of one key each",
-		 R"("state": {"rows": )" + repeated(R"({"k$": 1})", wideCount, '[', ']') + "}, " + panel,
-		 {}},
+	    {"items of one key each", R"("state": {"rows": null}, )" + panel, {{"/state/rows", R"({"k$": 1})", true}}},
 	    {"state types",
 		 R"("state": {}, "stateTypes": null, )" + panel,
 		 {{"/stateTypes", R"("k$", {"type": "number"})"}}},

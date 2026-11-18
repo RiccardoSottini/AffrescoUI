@@ -199,6 +199,8 @@ TEST_CASE("fs watch: a directory model lists folders first, by name, and leaves 
 	CHECK_FALSE(model->find(".git"));
 }
 
+// The rows the changes report, applied to the rows before, are the rows after: however the system splits its events
+// (under load one removal can come as several), the ranges say what happened, and no small change is a reset
 TEST_CASE("fs watch: a watched model reports what changes as ranges of rows") {
 	const TemporaryFolder folder("affrescoui-fs-watch-change");
 	std::filesystem::create_directories(folder.path / "old" / "inner");
@@ -207,32 +209,47 @@ TEST_CASE("fs watch: a watched model reports what changes as ranges of rows") {
 	PumpedExecutor executor;
 	const auto model =
 	    DirectoryModel::open(executor, folder.path, {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
-	std::vector<ModelChange> changes;
-	(void)model->onChange.connect([&](const ModelChange& change) { changes.push_back(change); });
 	REQUIRE(executor.pumpUntil([&] { return model->ready(); }));
 	CHECK(model->watching());
 	REQUIRE(model->size() == 4);
-	changes.clear();
+	std::vector<std::string> rows = paths(*model); // what the changes say the rows are
+	std::size_t resets = 0;
+	(void)model->onChange.connect([&](const ModelChange& change) { // sent as each change is made
+		const auto first = rows.begin() + static_cast<std::ptrdiff_t>(std::min(change.first, rows.size()));
+		switch(change.kind) {
+		case ModelChange::Kind::Inserted:
+			for(std::size_t at = 0; at < change.count; ++at)
+				rows.insert(first + static_cast<std::ptrdiff_t>(at), model->entry(change.first + at).path);
+			break;
+		case ModelChange::Kind::Removed: {
+			const std::size_t end = std::min(change.first + change.count, rows.size());
+			if(change.first < end) rows.erase(first, rows.begin() + static_cast<std::ptrdiff_t>(end));
+			break;
+		}
+		case ModelChange::Kind::Changed: break; // the same paths
+		case ModelChange::Kind::Reset:
+			++resets;
+			rows = paths(*model);
+			break;
+		}
+	});
 
 	writeText(folder.path / "new.txt", "n");
 	REQUIRE(executor.pumpUntil([&] { return model->find("new.txt").has_value(); }));
-	CHECK(paths(*model).back() == "new.txt");
-	CHECK(std::ranges::any_of(changes, [](const ModelChange& change) {
-		return change.kind == ModelChange::Kind::Inserted && change.first == 4 && change.count == 1;
-	}));
+	CHECK(paths(*model) == std::vector<std::string>{"old", "old/inner", "old/inner/one.txt", "keep.txt", "new.txt"});
+	CHECK(rows == paths(*model));
 
-	changes.clear();
 	std::filesystem::remove_all(folder.path / "old");
 	REQUIRE(executor.pumpUntil([&] { return !model->find("old").has_value(); }));
 	CHECK(paths(*model) == std::vector<std::string>{"keep.txt", "new.txt"});
-	CHECK(std::ranges::any_of(changes, [](const ModelChange& change) {
-		return change.kind == ModelChange::Kind::Removed && change.first == 0 && change.count == 3;
-	}));
+	CHECK(rows == paths(*model));
 
 	std::filesystem::create_directories(folder.path / "made" / "sub");
 	writeText(folder.path / "made" / "sub" / "f.txt", "f");
 	REQUIRE(executor.pumpUntil([&] { return model->find("made/sub/f.txt").has_value(); }));
 	CHECK(paths(*model) == std::vector<std::string>{"made", "made/sub", "made/sub/f.txt", "keep.txt", "new.txt"});
+	CHECK(rows == paths(*model));
+	CHECK(resets == 0);
 }
 
 TEST_CASE("fs watch: the watch provider streams changes under its root, without ignored ones, at most 4 at once") {

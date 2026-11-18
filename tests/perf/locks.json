@@ -1,5 +1,5 @@
 {
-	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400;, editor/type-100k 3.4 of editor/type-1k, editor/scroll-1m 1.0 of editor/scroll-10k, search/capped 0.23 of search/word; forge/type 0.036, forge/switch-tab 0.037 and forge/palette 0.071 of forge/open (0.011, 0.013 and 0.023 once the bench registered the editor's natives, with forge/find 0.033, forge/secondary-side-bar 0.012 and forge/minimap 0.012); the limits leave room for runners and callgrind.",
+	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400;, editor/type-100k 3.4 of editor/type-1k, editor/scroll-1m 1.0 of editor/scroll-10k, search/capped 0.23 of search/word; forge/type 0.036, forge/switch-tab 0.037 and forge/palette 0.071 of forge/open (0.011, 0.013 and 0.023 once the bench registered the editor's natives, with forge/find 0.033, forge/secondary-side-bar 0.012 and forge/minimap 0.012); the limits leave room for runners and callgrind. Dependency tracking (2026-11-18, macOS wall clock, the second of two runs): update/400 1.00 of update/14, update/panels-50000-without-layout 2.5 and update/app-50000-without-layout 24.7 of update/14 (2.7 and 24.5 in the first run).",
 	"locks": [
 		{
 			"name": "layout/5000/change",
@@ -96,6 +96,24 @@
 			"of": "syntax/open-100k",
 			"atMost": 0.05,
 			"why": "a keystroke in a 100,000-line file parses again only what it changed and highlights one screen"
+		},
+		{
+			"name": "update/400",
+			"of": "update/14",
+			"atMost": 1.5,
+			"why": "a state change costs the same on 400 cards as on 14: the index finds its readers without walking the panels"
+		},
+		{
+			"name": "update/panels-50000-without-layout",
+			"of": "update/14",
+			"atMost": 6,
+			"why": "a state change on a 50,000-panel screen evaluates only what reads it"
+		},
+		{
+			"name": "update/app-50000-without-layout",
+			"of": "update/14",
+			"atMost": 50,
+			"why": "an app's state change on 50,000 panels stays a fixed cost, far from the 3,571 times a walk of every panel would cost"
 		}
 	]
 }

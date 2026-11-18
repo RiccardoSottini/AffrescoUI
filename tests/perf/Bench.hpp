@@ -314,6 +314,38 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If the app can't be read, or its issues have no seed records.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);
 
+/// @brief Runs the updates that state changes have queued, as the end of a routed event does, without drawing: a key
+/// release that no panel has the focus for and no shortcut uses.
+/// @param window The window.
+inline void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
+
+/// @brief Lays the window out, without drawing.
+/// @param window The window.
+inline void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
+
+/// @brief A screen of 50,000 panels: a keyed list of 25,000 rows, each a row and a label showing its item's value,
+/// with a "touch" action that changes one item's value (screens.cpp).
+/// @return The document.
+[[nodiscard]] json fiftyThousandPanels();
+
+/// @brief How many panels a tree has (screens.cpp).
+/// @param panel The tree's root.
+/// @return The panels, the root included.
+[[nodiscard]] std::size_t panelCount(const Panel& panel);
+
+/// @brief The "update" workloads that dependency tracking is judged on (tracking.cpp, tests/perf/PROFILE.md): a state
+/// change one label reads, a record written, an app-shaped screen of 50,000 panels, list edits, a computed value and
+/// parameters, a program's rows and an animation's frame. Registered in screenGroups() as a second "update" group;
+/// each sets its screen up on its first run.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> trackingUpdateWorkloads(Context& context);
+/// @brief The "revision" workloads that dependency tracking is judged on (tracking.cpp): a revision that sets one
+/// state key, and one that changes one label, on the Kanban template filled to 14, 100 and 400 cards.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> trackingRevisionWorkloads(Context& context);
+
 /* Allocation counting (allocations.cpp): every operator new in the process is counted */
 
 /// @brief How many times operator new has been called since the program started.

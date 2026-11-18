@@ -5,9 +5,11 @@ written down. Used by run.py --budgets.
     python3 tests/perf/run.py --budgets --markdown      # the tables of BENCHMARKS.md
     python3 tests/perf/run.py --budgets --record        # writes the measured values into budgets.json
     python3 tests/perf/run.py --budgets --from DIR      # CI: the instructions and tokens already measured in DIR
+    python3 tests/perf/budgets.py --check               # budgets.json's own checks: every entry well formed
+    python3 tests/perf/budgets.py --propose-thresholds --from DIR   # the lines that set the "pending" thresholds
 
 Sources: "bench" budgets are affrescoui_bench workloads (wall clock here; instructions under callgrind in CI), the
-memory ones each in a process of its own; "tokens" budgets are counted with tokens.py's functions (tiktoken's
+memory ones and the idle seconds each in a process of their own; "tokens" budgets are counted with tokens.py's functions (tiktoken's
 o200k_base) and the oracle's tasks in benchmarks/agents/tasks. A budget fails CI only above its ciThreshold: a number
 in what CI measures (tokens, or instructions per operation), "pending" until a Linux callgrind run sets it, or null
 with a reason. A miss stays a miss: the targets are never moved, and a missed token budget's threshold is the value
@@ -47,14 +49,24 @@ def bench_results(bench, names):
 
 def measure_bench(bench, targets):
     """Every bench budget's workloads, wall clock: the memory budgets' each in a process of its own (the process's
-    memory is what they report), the others together."""
+    memory is what they report), the idle seconds together in another (a window an earlier workload left open runs in
+    the same event loop and would count), the others together."""
     alone = sorted({name for target in targets if target.get("field") == "residentBytes" for name in target["workloads"]})
+    idle = sorted({name for target in targets if target.get("field") == "processMs" for name in target["workloads"]})
     together = sorted({name for target in targets if target["source"] == "bench" for name in target["workloads"]} -
-                      set(alone))
+                      set(alone) - set(idle))
     results = bench_results(bench, together) if together else {}
+    if idle:
+        results.update(bench_results(bench, idle))
     for name in alone:
         results.update(bench_results(bench, [name]))
     return results
+
+
+def matches(name, entry):
+    """Whether a workload is one a budget's entry names: the entry itself, or any name it starts when it ends with "/"
+    or "-" ("revision/" for every revision, "budgets/idle-" for every template's idle second)."""
+    return name == entry or (entry.endswith(("/", "-")) and name.startswith(entry))
 
 
 def workload_value(result, field, unit):
@@ -70,8 +82,7 @@ def workload_value(result, field, unit):
 def bench_value(target, results):
     """A bench budget's value: its field of each matching workload, aggregated; and the workload it came from."""
     values = [(workload_value(result, target["field"], target["unit"]), name) for name, result in results.items()
-              if any(name == prefix or (prefix.endswith("/") and name.startswith(prefix))
-                     for prefix in target["workloads"]) and target["field"] in result]
+              if any(matches(name, entry) for entry in target["workloads"]) and target["field"] in result]
     if not values:
         return None, None
     if target["aggregate"] == "median":
@@ -238,11 +249,21 @@ def record(budgets, values):
         file.write(json.dumps(budgets, indent=2) + "\n")
 
 
+def counted(folder):
+    """What CI counted in a folder: callgrind.jsonl's results (instructions per operation), by name."""
+    with open(os.path.join(folder, "callgrind.jsonl"), encoding="utf-8") as file:
+        return {result["name"]: result for result in map(json.loads, filter(str.strip, file))}
+
+
+def instructions(target, results):
+    """A bench budget's instructions per operation in CI's results: the most of its workloads', and which one."""
+    return bench_value({**target, "field": "value", "unit": "instructions"}, results)
+
+
 def check(budgets, folder):
     """CI: each budget with a numeric threshold against what CI measured in a folder (callgrind.jsonl's instructions
     per operation; the tokens counted now). The failures, as lines."""
-    with open(os.path.join(folder, "callgrind.jsonl"), encoding="utf-8") as file:
-        counted = {result["name"]: result for result in map(json.loads, filter(str.strip, file))}
+    results = counted(folder)
     tokens = None
     failures = []
     for target in budgets["targets"]:
@@ -254,7 +275,7 @@ def check(budgets, folder):
                 tokens = token_values(tiktoken.get_encoding("o200k_base"))
             value, source = tokens[target["id"]]
         else:
-            value, source = bench_value({**target, "field": "value", "unit": "instructions"}, counted)
+            value, source = instructions(target, results)
         if value is None:
             failures.append(f"{target['id']}: not measured in {folder}")
         elif value > target["ciThreshold"]:
@@ -262,3 +283,92 @@ def check(budgets, folder):
         else:
             print(f"budget {target['id']}: {value:,.0f} ({source}), threshold {target['ciThreshold']:,}")
     return failures
+
+
+#: The room a proposed threshold leaves above the count it is proposed from, in percent: compare.py's gate.
+THRESHOLD_ROOM = 3.0
+
+
+def propose_thresholds(budgets, folder):
+    """The thresholds a CI run's counts set: for each bench budget whose ciThreshold is "pending" and whose recorded
+    value meets its target, its workloads' most instructions per operation in the folder plus THRESHOLD_ROOM percent.
+    A missed budget stays "pending": a threshold would lock a miss in as if it were the target. Lines to print: one
+    per budget, the proposed ones as the "ciThreshold" line to put in budgets.json."""
+    results = counted(folder)
+    lines = []
+    for target in budgets["targets"]:
+        if target["ciThreshold"] != "pending" or target["source"] != "bench":
+            continue
+        recorded = (target.get("measured") or {}).get("value")
+        if not met(recorded, target):
+            lines.append(f"{target['id']}: stays \"pending\" (recorded {shown(recorded, target['unit'])}, "
+                         f"target {shown(target['limit'], target['unit'])})")
+            continue
+        value, source = instructions(target, results)
+        if value is None:
+            lines.append(f"{target['id']}: stays \"pending\" (none of its workloads was counted in {folder})")
+            continue
+        proposed = int(value * (1.0 + THRESHOLD_ROOM / 100.0) + 0.5)
+        lines.append(f"{target['id']}: \"ciThreshold\": {proposed},  (from {value:,.0f} instructions, {source})")
+    return lines
+
+
+#: The keys every budget has, and the ones a bench budget adds.
+REQUIRED = ("id", "budget", "source", "limit", "unit", "ciThreshold", "measured")
+BENCH_REQUIRED = ("workloads", "field", "aggregate")
+MEASURED_REQUIRED = ("value", "from", "machine", "commit", "date")
+
+
+def problems(budgets):
+    """budgets.json's own checks: each budget has its keys, a known source and aggregate, a threshold that is a number,
+    "pending" (bench only) or null with its reason, and a recorded value with its machine, commit and date. The
+    problems, as lines."""
+    found, seen = [], set()
+    for index, target in enumerate(budgets.get("targets", [])):
+        name = target.get("id", f"targets[{index}]")
+        missing = [key for key in REQUIRED + (BENCH_REQUIRED if target.get("source") == "bench" else ())
+                   if key not in target]
+        found += [f"{name}: no \"{key}\"" for key in missing]
+        if missing:
+            continue
+        if name in seen:
+            found.append(f"{name}: a second budget with this id")
+        seen.add(name)
+        if target["source"] not in ("bench", "tokens"):
+            found.append(f"{name}: source \"{target['source']}\" is neither \"bench\" nor \"tokens\"")
+        if target["source"] == "bench" and target["aggregate"] not in ("max", "median"):
+            found.append(f"{name}: aggregate \"{target['aggregate']}\" is neither \"max\" nor \"median\"")
+        threshold_value = target["ciThreshold"]
+        if threshold_value is None and not target.get("ciReason"):
+            found.append(f"{name}: a null ciThreshold needs its ciReason")
+        elif threshold_value == "pending" and target["source"] != "bench":
+            found.append(f"{name}: only a bench budget waits for a callgrind run (\"pending\")")
+        elif not (threshold_value is None or threshold_value == "pending" or isinstance(threshold_value, (int, float))):
+            found.append(f"{name}: ciThreshold is neither a number, \"pending\" nor null")
+        found += [f"{name}: measured has no \"{key}\"" for key in MEASURED_REQUIRED
+                  if key not in (target["measured"] or {})]
+    return found
+
+
+def main():
+    """budgets.py on its own: --check, or --propose-thresholds --from DIR (measuring is run.py --budgets)."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="check budgets.json's entries")
+    parser.add_argument("--propose-thresholds", action="store_true",
+                        help="print the ciThreshold lines a CI run's counts set for the pending budgets it meets")
+    parser.add_argument("--from", dest="from_folder", help="with --propose-thresholds: CI's measurements (callgrind.jsonl)")
+    args = parser.parse_args()
+    budgets = load()
+    if args.propose_thresholds:
+        if not args.from_folder:
+            parser.error("--propose-thresholds needs --from DIR")
+        print("\n".join(propose_thresholds(budgets, args.from_folder)))
+        return 0
+    found = problems(budgets)
+    print("\n".join(found) if found else f"budgets.json: {len(budgets['targets'])} budgets, well formed")
+    return 1 if found else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

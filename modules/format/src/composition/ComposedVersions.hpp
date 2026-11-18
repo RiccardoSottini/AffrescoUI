@@ -8,6 +8,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 namespace affresco::format {
 
@@ -142,12 +143,18 @@ public:
 private:
 	/// @brief Recomposes the screen and brings the live state in line with the features, then tells the observer.
 	void documentChanged() override;
+	/// @brief As documentChanged(), passing on what changed: as it is when nothing is composed, or only the state
+	/// changed (the composed screen is then kept, the same object); everything when composing, since a place of the
+	/// document as written isn't one of the composed screen. The screen of before lives until the observer returns.
+	/// @param change What the inner version control says changed.
+	void documentChangedWith(const DocumentChange& change) override;
 	/// @brief Tells the observer.
 	void proposalsChanged() override;
 	/// @brief Recomposes the screen from the inner document.
 	void recompose();
 	/// @brief Gives the live state each enabled feature's state it lacks, and drops that of features gone.
-	void syncState();
+	/// @return The places of the state it changed.
+	std::vector<std::string> syncState();
 
 	VersionControl& inner_;               ///< The version control wrapped.
 	VersionObserver* observer_ = nullptr; ///< Who is told about changes.

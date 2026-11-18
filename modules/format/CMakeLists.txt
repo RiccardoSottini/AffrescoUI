@@ -87,6 +87,9 @@ target_sources(affrescoui_format PRIVATE
 	src/runtime/Runtime.cpp
 	src/runtime/Engine.cpp
 	src/runtime/DocumentContext.cpp
+	src/runtime/HostVariables.cpp
+	src/runtime/ComputedValues.cpp
+	src/runtime/EngineVersions.cpp
 	src/runtime/Settings.cpp
 	src/runtime/Scheduler.cpp
 	src/runtime/Usage.cpp)
@@ -94,14 +97,22 @@ target_include_directories(affrescoui_format PRIVATE src/runtime)
 # src/nodes/: compiled nodes: the builder, bindings, node keys and records
 target_sources(affrescoui_format PRIVATE
 	src/nodes/Builder.cpp
+	src/nodes/CompiledCache.cpp
 	src/nodes/CompiledNode.cpp
 	src/nodes/Binding.cpp)
 target_include_directories(affrescoui_format PRIVATE src/nodes)
-# src/updates/: reads, models, list items, the item index and the reconciler
+# src/updates/: reads, models, list items, the reconciler and its children lists, the update's frame,
+# watches, the tracker of readers, the place index, scope layers and the check of partial updates (Verify)
 target_sources(affrescoui_format PRIVATE
 	src/updates/Reconciler.cpp
+	src/updates/ChildList.cpp
+	src/updates/UpdateFrame.cpp
+	src/updates/Watches.cpp
+	src/updates/Tracker.cpp
+	src/updates/PlaceIndex.cpp
+	src/updates/ScopeLayers.cpp
+	src/updates/Verify.cpp
 	src/updates/Reads.cpp
-	src/updates/ItemIndex.cpp
 	src/updates/Models.cpp
 	src/updates/ListItems.cpp)
 target_include_directories(affrescoui_format PRIVATE src/updates)
