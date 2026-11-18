@@ -52,6 +52,10 @@ public:
 	/// @brief Schedules one update after the current event for the state changes recorded with their places
 	/// (DocumentContext::markStateChanged()): only what reads them is evaluated again.
 	void requestStateUpdate();
+	/// @brief Brings the panels in line now with the state changes recorded, as the update requestStateUpdate()
+	/// schedules does (a full one if the changes call for it): a revision of the state only is shown before it returns.
+	/// @throws DocumentError If the document can't be built (the version is then refused).
+	void updateNow() { update(false); }
 	/// @brief Builds a node outside reconciliation (Runtime::instantiate).
 	/// @param node The node.
 	/// @param parent Where to add it.
@@ -177,7 +181,8 @@ private:
 	/// @param written The place changed.
 	/// @return false when nothing is left to copy for it (copied whole, or gone).
 	bool refreshItem(const Scope& scope, const std::string& written) const;
-	/// @brief Where a panel is among its parent's children, from the hint in its record if it holds.
+	/// @brief Where a panel is among its parent's children, from the hint in its record if it holds; if not, every
+	/// sibling's hint is set again (after a reorder, each is found at once).
 	/// @param panel The panel; has a parent.
 	/// @return Its index.
 	[[nodiscard]] std::uint32_t rankOf(const Panel& panel);

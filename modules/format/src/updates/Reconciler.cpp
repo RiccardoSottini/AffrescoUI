@@ -12,6 +12,31 @@
 
 namespace affresco::format {
 
+namespace {
+
+/// @brief Writes what panels read of the items of the rows they lie in under the rows' keys (rowKey), for the index:
+/// an insert or a removal before a row numbers those reads again in place (Tracker::shift()). A row's number is read
+/// under its row's key too, so that only the rows numbered again run.
+/// @param locals The panels' variables, the rows' scopes among them (innermost first).
+/// @param reads What they read: places of the state, rewritten.
+void rowRelative(const Scope* locals, ReadSet& reads) {
+	for(const Scope* scope = locals; scope; scope = scope->parent) {
+		if(scope->place.row == ItemPlace::noRow) continue;
+		const std::string& origin = scope->origin();
+		const std::string list = scope->listPlace();
+		const std::string number = std::to_string(scope->place.row);
+		for(std::string& path : reads.paths) {
+			if(path.size() == list.size() + 1U + indexKey.size() && path.starts_with(list) &&
+			   std::string_view(path).substr(list.size() + 1U) == indexKey)
+				path.insert(list.size() + 1U, std::string(rowKey) + number + '/');
+			else if(path.starts_with(origin) && (path.size() == origin.size() || path[origin.size()] == '/'))
+				path.insert(list.size() + 1U, rowKey);
+		}
+	}
+}
+
+} // namespace
+
 std::unique_ptr<Panel> Reconciler::create(const std::string& type, const std::string& path) const {
 	engine_.verify.created(path); // a full pass after a partial update creates none
 	return engine_.types.create(type, path, engine_.placeholderTypes);
@@ -54,14 +79,17 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 		const DocumentContext::ReadScope scope(engine_.document, &reads); // the bound value, and what behaviour reads
 		engine_.properties.apply(panel, record, item.node, std::move(values), item.path, isRoot, created);
 	}
-	if(item.node->alwaysApply) reads.addAlways(AlwaysReason::Behaviour); // its behaviour reads more than its values
+	// A node whose behaviour reads more than its values (an overlay's "open" path, a bound path) is applied whole each
+	// time it runs (Properties::apply()), which records those reads: it runs when they change, not on every update
 	if(reads.always) ++statistics_.alwaysReaders;
 	if(const std::string& dropped = testing::droppedReads(); !dropped.empty() && panel.id() == dropped)
 		reads.clear(); // a read dropped, as a bug would (test-only)
+	rowRelative(item.locals.get(), reads);
 	engine_.tracker.setReads(record.valuesReader.id, std::move(reads));
 }
 
 void Reconciler::listReconciled(Panel& /*panel*/, Record& record, ReadSet reads) {
+	rowRelative(record.locals.get(), reads);
 	engine_.tracker.setReads(record.listReader.id, std::move(reads));
 }
 
@@ -77,12 +105,13 @@ void Reconciler::readItems(const Panel& panel, Record& record) {
 	ReadSet reads;
 	const Scope* stop = parentLocals(panel);
 	for(const Scope* scope = record.locals.get(); scope && scope != stop; scope = scope->parent)
-		if(!scope->fromState.empty()) reads.addPath(scope->origin);
+		if(!scope->fromState.empty()) reads.addPath(scope->origin());
 	Tracker& tracker = engine_.tracker;
 	if(reads.paths.empty()) {
 		tracker.remove(std::exchange(record.itemsReader.id, 0));
 		return;
 	}
+	rowRelative(record.locals.get(), reads);
 	if(record.itemsReader.id == 0) record.itemsReader.id = tracker.add(record.itemsReader);
 	tracker.setReads(record.itemsReader.id, std::move(reads)); // copied with these variables: up to date
 }
@@ -94,12 +123,12 @@ void Reconciler::refreshItems(const Panel& panel, const Record& record, const St
 	for(const Scope* scope = record.locals.get(); scope && scope != stop; scope = scope->parent) {
 		if(scope->fromState.empty()) continue;
 		for(const std::string& written : changes.paths)
-			if(overlaps(scope->origin, written) && !refreshItem(*scope, written)) break;
+			if(overlaps(scope->origin(), written) && !refreshItem(*scope, written)) break;
 	}
 }
 
 bool Reconciler::refreshItem(const Scope& scope, const std::string& written) const {
-	const std::string& origin = scope.origin;
+	const std::string& origin = scope.origin();
 	const json& state = engine_.versions.state();
 	json& copy = scope.vars[scope.fromState]; // vars is mutable for this refresh
 	const bool inside = !origin.starts_with(modelPlaces) && contains(origin, written) && written.size() > origin.size();
@@ -124,11 +153,14 @@ void Reconciler::updatePanel(Panel& /*panel*/, Record& /*record*/, const StateCh
 
 std::uint32_t Reconciler::rankOf(const Panel& panel) {
 	const auto children = panel.parent()->children();
-	Record* record = recordOf(&panel);
+	const Record* record = recordOf(&panel);
 	if(record && record->rank < children.size() && children[record->rank].get() == &panel) return record->rank;
-	const auto found = std::ranges::find_if(children, [&panel](const auto& child) { return child.get() == &panel; });
-	const auto rank = static_cast<std::uint32_t>(found - children.begin());
-	if(record) record->rank = rank;
+	// moved: number all its siblings again, so that theirs (moved too, after a reorder) are found at once
+	std::uint32_t rank = 0;
+	for(std::uint32_t i = 0; i < children.size(); ++i) {
+		if(children[i].get() == &panel) rank = i;
+		if(Record* sibling = recordOf(children[i].get())) sibling->rank = i;
+	}
 	return rank;
 }
 
@@ -226,8 +258,12 @@ void Reconciler::updateRoot(Panel& root, Record& record) {
 bool Reconciler::runReaders(Panel& root, Record& record, StateChanges& changes, bool part) {
 	Tracker& tracker = engine_.tracker;
 	if(part) {
-		if(tracker.update(changes) && !rootScopeReads_.touchedBy(changes)) return true;
-		statistics_.fullReason = changes.all ? "too many changes" : "requested"; // or the root's own variables
+		const bool ran = tracker.update(changes);
+		const bool restyled = engine_.document.appearance() != syncedAppearance_; // the theme reader ran: every token
+		if(ran && !restyled && !rootScopeReads_.touchedBy(changes)) return true;
+		statistics_.fullReason = restyled      ? "appearance"
+		                         : changes.all ? "too many changes"
+		                                       : "requested"; // or the root's own variables
 		statistics_.full = true;
 	} else {
 		tracker.update(changes, false); // the readers outside the panels: what they mark joins this update

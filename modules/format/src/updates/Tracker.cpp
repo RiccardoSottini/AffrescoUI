@@ -207,6 +207,40 @@ void Tracker::collect(const StateChanges& changes, bool panels) {
 	if(!panels) std::erase_if(found_, [this](ReaderId id) { return entries_[slotOf(id)].panel; });
 }
 
+void Tracker::shift(const std::string& list, std::size_t from, std::ptrdiff_t by) {
+	if(by == 0 || std::ranges::find(shifted_, list) != shifted_.end()) return;
+	if(running_) shifted_.push_back(list);
+	index_.shift(list, from, by, pending_);
+	if(!running_) {
+		pending_.clear();
+		return;
+	}
+	for(const ReaderId id : pending_)
+		if(Entry* entry = live(id)) entry->ran = 0; // numbered again: they run even if kept (keepRows())
+}
+
+void Tracker::keepRows(const std::string& list, const StateChanges& changes) {
+	if(!running_) return;
+	std::vector<ReaderId> rows;
+	index_.collectRows(list, rows);
+	if(rows.empty()) return;
+	StateChanges others;
+	for(const std::string& path : changes.paths)
+		if(path != list) others.add(path);
+	for(const ListChange& change : changes.lists)
+		if(change.place != list) others.lists.push_back(change);
+	std::vector<ReaderId> reading;
+	index_.collect(others, reading);
+	std::ranges::sort(reading);
+	for(const ReaderId id : rows)
+		if(Entry* entry = live(id); entry && !std::ranges::binary_search(reading, id)) entry->ran = stamp_;
+}
+
+void Tracker::rerunRows(const std::string& list) {
+	if(!running_) return; // a full pass follows
+	index_.collectRows(list, pending_);
+}
+
 void Tracker::rerunAlways() {
 	for(const ReaderId id : always_) {
 		Entry& entry = entries_[slotOf(id)];
@@ -216,11 +250,19 @@ void Tracker::rerunAlways() {
 	}
 }
 
+void Tracker::enqueuePending(std::uint32_t round, std::size_t from) {
+	if(pending_.empty()) return;
+	enqueue(pending_, round, from);
+	pending_.clear();
+}
+
 bool Tracker::update(StateChanges& changes, bool panels) {
 	if(changes.empty()) return true;
 	DocumentContext& context = engine_.document;
 	const DocumentContext::UpdatingScope updating(context, changes);
 	const Running running(*this);
+	pending_.clear();
+	shifted_.clear();
 	if(changes.all) {
 		runAll(changes);
 		return false;
@@ -242,6 +284,7 @@ bool Tracker::update(StateChanges& changes, bool panels) {
 		}
 		entry->ran = stamp_;
 		entry->reader->update(changes);
+		enqueuePending(due.round, next + 1);
 		const StateChanges marked = context.takeChanges(); // the places it marked belong to this update
 		if(marked.empty()) continue;
 		join(changes, marked);

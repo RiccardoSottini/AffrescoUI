@@ -34,7 +34,10 @@ inline constexpr unsigned readerGenerationBits = 9;
 ///
 /// A change of a place collects the readers on the way down to it (they read a place that contains it), those at it,
 /// and every reader below it (it contains what they read); the shape readers of a list only when the change is the
-/// list or around it, never inside one of its items. anyKey in a read matches every key at its level. Each key is
+/// list or around it, never inside one of its items. anyKey in a read matches every key at its level, and a row's key
+/// (rowKey and a number) the number's: what rows read of their own items, which an insert or a removal numbers again
+/// in place (shift()) and a change of the list's shape announced as one (StateChanges::lists) leaves to the list's
+/// panel, since the items stay what they were (collectRows() when it can't follow it). Each key is
 /// kept once, as a number; a reader keeps where it is in the trie, so removing it costs what it read, and a trie node
 /// nobody reads at or below is freed with its key.
 ///
@@ -65,6 +68,18 @@ public:
 	/// @param changes The changes; `all` collects nothing (the caller updates everything).
 	/// @param out Gets the readers, appended in no particular order.
 	void collect(const StateChanges& changes, std::vector<ReaderId>& out);
+	/// @brief Numbers again what rows of a list read of their own items after an insert or a removal before them:
+	/// the rows' keys from a number on move by as many; what reads where a key moves to (rows being removed, read by
+	/// another list's panels, which follow the same change) is dropped and collected.
+	/// @param list The list, as a JSON Pointer; every node it reaches (its rows' keys among its keys) moves.
+	/// @param from The first row that moves, numbered as before.
+	/// @param by How far: the rows inserted less those removed.
+	/// @param out Gets the readers dropped, and those of the rows moved that read their number (indexKey).
+	void shift(std::string_view list, std::size_t from, std::ptrdiff_t by, std::vector<ReaderId>& out);
+	/// @brief Collects what the rows of a list read of their own items, which a change of its shape leaves out.
+	/// @param list The list, as a JSON Pointer.
+	/// @param out Gets the readers.
+	void collectRows(std::string_view list, std::vector<ReaderId>& out);
 
 	/// @brief The places recorded, over every reader.
 	/// @return Their number.
@@ -99,6 +114,7 @@ private:
 	struct Key {
 		std::string text{};     ///< The key, escaped as in a JSON Pointer.
 		std::uint32_t uses = 0; ///< The trie nodes with it.
+		std::size_t row = 0;    ///< 1 + the row's number for a row's key (rowKey), else 0.
 	};
 	/// @brief A reader's slot.
 	struct Slot {
@@ -143,13 +159,17 @@ private:
 	/// @param link The entry.
 	/// @param pruned Whether to free the nodes that leaves empty (prune()).
 	void unlink(const Link& link, bool pruned) noexcept;
+	/// @brief Forgets one use of a key, and the key with its last.
+	/// @param key The key's number.
+	void release(std::uint32_t key) noexcept;
 	/// @brief Frees a node and those above it that nobody reads at or below any more.
 	/// @param node The node; one freed already does nothing.
 	void prune(std::uint32_t node) noexcept;
 	/// @brief Collects the readers of one changed place.
 	/// @param place The place.
 	/// @param out Gets them.
-	void collectPlace(std::string_view place, std::vector<ReaderId>& out);
+	/// @param rows Whether the rows' keys right below it too (false: a list whose shape changed, as announced).
+	void collectPlace(std::string_view place, std::vector<ReaderId>& out, bool rows);
 	/// @brief Collects the shape readers of a list whose shape changed.
 	/// @param place The list.
 	/// @param out Gets them.
@@ -162,7 +182,23 @@ private:
 	/// @brief Collects every reader at a node and below it.
 	/// @param node The node.
 	/// @param out Gets them.
-	void collectBelow(std::uint32_t node, std::vector<ReaderId>& out);
+	/// @param rows Whether below its rows' keys too.
+	void collectBelow(std::uint32_t node, std::vector<ReaderId>& out, bool rows = true);
+	/// @brief Starts collecting: no reader counts as collected yet.
+	void startCollect();
+	/// @brief Takes every reader off a node and the nodes below it, and frees them.
+	/// @param node The node.
+	/// @param out Gets the readers.
+	void dropBelow(std::uint32_t node, std::vector<ReaderId>& out);
+	/// @brief The node of a row's key (rowKey and a number) below a node.
+	/// @param node The node.
+	/// @param number The row's number.
+	/// @return It, or nullptr if there is none.
+	[[nodiscard]] const std::uint32_t* rowChild(std::uint32_t node, std::size_t number) const;
+	/// @brief The number of a row's key (rowKey), interned if it isn't yet.
+	/// @param number The row's number.
+	/// @return The key's number.
+	std::uint32_t rowKeyMade(std::size_t number);
 	/// @brief Finds the nodes of a place, anyKey in the trie matching any key: the trie nodes the change reaches.
 	/// @param place The place.
 	/// @param ancestors Whether to collect the readers of the nodes on the way (not their shape readers).
@@ -180,11 +216,13 @@ private:
 	std::vector<Slot> slots_;                                                         ///< The readers, by slot.
 	std::size_t entries_ = 0;                                                         ///< See entries().
 	std::vector<std::uint32_t> frontier_;                                             ///< reach()'s nodes (reused).
-	std::vector<std::uint32_t> next_;  ///< reach()'s next nodes (reused).
-	std::vector<std::uint32_t> below_; ///< collectBelow()'s stack (reused).
-	std::vector<std::uint32_t> seen_;  ///< Per slot: the collect() it was last collected in.
-	std::uint32_t collecting_ = 0;     ///< The collect() running.
-	std::vector<Link> scratch_;        ///< set()'s old links (reused).
+	std::vector<std::uint32_t> next_;    ///< reach()'s next nodes (reused).
+	std::vector<std::uint32_t> below_;   ///< collectBelow()'s stack (reused).
+	std::vector<std::uint32_t> seen_;    ///< Per slot: the collect() it was last collected in.
+	std::uint32_t collecting_ = 0;       ///< The collect() running.
+	std::vector<Link> scratch_;          ///< set()'s old links (reused).
+	std::string rowText_;                ///< A row's key being made (reused).
+	std::vector<std::uint32_t> rowKeys_; ///< By a row's number: 1 + its key's number, or 0 if it has none.
 };
 
 } // namespace affresco::format

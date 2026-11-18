@@ -23,6 +23,10 @@ inline constexpr std::string_view anyKey = "~*";
 /// The key a repeat reads below a list of the state to read only its shape: "/items/~#" changes when "/items" or a
 /// place around it changes, not when a place inside one item does (the items read that themselves).
 inline constexpr std::string_view shapeKey = "~#";
+/// The start of the key a row's panels read their own item under, in the index only (Reconciler::rowRelative()):
+/// "/items/~r5/v" is what row 5 reads of its item, so an insert or a removal before it numbers its reads again in
+/// place (PlaceIndex::shift()) instead of running them. A change of "/items/5/v" meets it as it meets "/items/5/v".
+inline constexpr std::string_view rowKey = "~r";
 
 /// @brief The places values read that aren't places of the state: each starts with a key "~" followed by a letter,
 /// which no JSON Pointer has ("~" escapes only "0" and "1"), so none can be a state key, nor meet a place of the

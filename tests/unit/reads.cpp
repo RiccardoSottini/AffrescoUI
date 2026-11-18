@@ -2,6 +2,7 @@
 /// @brief Unit tests for what values read and what changed (src/Reads.hpp), and for the readers of the state by the
 /// place they read (src/PlaceIndex.hpp).
 
+#include "Expression.hpp"
 #include "PlaceIndex.hpp"
 #include "Reads.hpp"
 
@@ -198,4 +199,49 @@ TEST_CASE("place index: one change among 100,000 readers of one list collects on
 	CHECK(collected(index, changesOf({"/items/4321/title"})) == std::vector<ReaderId>{handle(4322)});
 	CHECK(collected(index, changesOf({"/items/4321/done"})).empty());
 	CHECK(collected(index, changesOf({"/items"})).size() == count);
+}
+
+TEST_CASE("place index: rows' reads of their items move with an insert or a removal, and an announced one skips them") {
+	PlaceIndex index;
+	const std::string row(affresco::format::rowKey);
+	const std::string number(affresco::format::indexKey);
+	for(std::uint32_t i = 0; i < 4; ++i) { // row i reads its item's title; row 3 also its number
+		std::string title = "/items/" + row;
+		title += std::to_string(i);
+		title += "/title";
+		std::vector<std::string> places{title};
+		if(i == 3) {
+			std::string read = "/items/" + row;
+			read += "3/";
+			read += number;
+			places.push_back(read);
+		}
+		index.add(handle(i + 1), places);
+	}
+	CHECK(collected(index, changesOf({"/items/2/title"})) == std::vector<ReaderId>{handle(3)}); // as "/items/2/title"
+	CHECK(collected(index, changesOf({"/items/2"})) == std::vector<ReaderId>{handle(3)});
+	StateChanges inserted = changesOf({"/items"}); // announced: the items stayed what they were
+	inserted.lists.push_back({"/items", ListChange::Kind::Inserted, 1, 1});
+	CHECK(collected(index, inserted).empty());
+	CHECK(collected(index, changesOf({"/items"})).size() == 4U); // written whole: every row
+
+	std::vector<ReaderId> out;
+	index.shift("/items", 1, 1, out);               // one inserted at 1: rows 1, 2 and 3 become 2, 3 and 4
+	CHECK(out == std::vector<ReaderId>{handle(4)}); // only the row that reads its number runs
+	CHECK(collected(index, changesOf({"/items/1/title"})).empty());
+	CHECK(collected(index, changesOf({"/items/2/title"})) == std::vector<ReaderId>{handle(2)});
+	CHECK(collected(index, changesOf({"/items/4/title"})) == std::vector<ReaderId>{handle(4)});
+
+	out.clear();
+	index.remove(handle(2));           // the row at 2 goes, as a removal removes its panels
+	index.shift("/items", 3, -1, out); // removed at 2: rows 3 and 4 become 2 and 3
+	CHECK(out == std::vector<ReaderId>{handle(4)});
+	CHECK(collected(index, changesOf({"/items/2/title"})) == std::vector<ReaderId>{handle(3)});
+	CHECK(collected(index, changesOf({"/items/3/title"})) == std::vector<ReaderId>{handle(4)});
+
+	out.clear();
+	index.collectRows("/items", out);
+	std::ranges::sort(out);
+	CHECK(out == std::vector<ReaderId>{handle(1), handle(3), handle(4)});
+	CHECK(index.keys() <= 8U); // the old rows' keys freed
 }

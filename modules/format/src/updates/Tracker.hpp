@@ -89,6 +89,23 @@ public:
 	/// @return false if everything changed, during it or before: the panels' readers didn't run, a full pass must.
 	/// @throws DocumentError From a reader.
 	bool update(StateChanges& changes, bool panels = true);
+	/// @brief Numbers again what the rows of a list read of their own items after an insert or a removal before them
+	/// (PlaceIndex::shift()), once in an update however many panels show the list; the rows that read their number,
+	/// and what read where the rows move to, run after the reader running.
+	/// @param list The list, as a JSON Pointer.
+	/// @param from The first row that moves, numbered as before.
+	/// @param by How far: the rows inserted less those removed.
+	void shift(const std::string& list, std::size_t from, std::ptrdiff_t by);
+	/// @brief Leaves out, in the running update, what the rows of a list read of their own items when the list was
+	/// written whole and its rows kept their items (ChildList::partial()): the index collected them below its place.
+	/// What also reads another place changed still runs.
+	/// @param list The list, as a JSON Pointer.
+	/// @param changes The update's changes.
+	void keepRows(const std::string& list, const StateChanges& changes);
+	/// @brief Runs, after the reader running, what the rows of a list read of their own items, which a change of its
+	/// shape announced as one leaves out (PlaceIndex::collect()): for a list's panel that can't follow the change.
+	/// @param list The list, as a JSON Pointer.
+	void rerunRows(const std::string& list);
 	/// @brief The readers that read always.
 	/// @return Their number.
 	[[nodiscard]] std::size_t alwaysReaders() const noexcept { return always_.size(); }
@@ -143,6 +160,10 @@ private:
 	/// @param from The first due reader not run yet.
 	/// @return Whether one of them had run already.
 	bool enqueue(const std::vector<ReaderId>& ids, std::uint32_t round, std::size_t from);
+	/// @brief Makes the readers a shift() of the running reader collected (pending_) due, after it, and clears them.
+	/// @param round Their round: the running reader's.
+	/// @param from The first due reader not run yet.
+	void enqueuePending(std::uint32_t round, std::size_t from);
 	/// @brief Adds to found_ the panels' readers that read always and ran in this update, so they run again: a place
 	/// marked after them may change what they read (a variable built from the state).
 	void rerunAlways();
@@ -170,6 +191,8 @@ private:
 	std::vector<Due> due_;                ///< The readers due in the running update (reused).
 	std::vector<std::uint32_t> keys_;     ///< Their positions (reused).
 	mutable std::vector<ReaderId> found_; ///< What the index collected (reused).
+	std::vector<ReaderId> pending_;       ///< What shift() and rerunRows() found, due after the reader running.
+	std::vector<std::string> shifted_;    ///< The lists shift() numbered again in the running update.
 	std::uint32_t stamp_ = 0;             ///< The number of the update running, or of the last one.
 	bool running_ = false;                ///< Whether an update runs.
 	bool warned_ = false;                 ///< Whether maxEntries was reported.

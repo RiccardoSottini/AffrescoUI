@@ -87,6 +87,7 @@ target_sources(affrescoui_format PRIVATE
 	src/runtime/Runtime.cpp
 	src/runtime/Engine.cpp
 	src/runtime/DocumentContext.cpp
+	src/runtime/HostVariables.cpp
 	src/runtime/ComputedValues.cpp
 	src/runtime/EngineVersions.cpp
 	src/runtime/Settings.cpp

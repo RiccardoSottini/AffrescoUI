@@ -2,9 +2,11 @@
 /// @brief format::PlaceIndex: the readers of the state by the place they read.
 
 #include "PlaceIndex.hpp"
+#include "Expression.hpp"
 
 #include <algorithm>
 #include <limits>
+#include <ranges>
 #include <utility>
 
 namespace affresco::format {
@@ -32,6 +34,19 @@ std::string_view shapeless(std::string_view place, bool& shape) noexcept {
 	    place.ends_with(shapeKey) && place.size() > shapeKey.size() && place[place.size() - shapeKey.size() - 1] == '/';
 	if(shape) place.remove_suffix(shapeKey.size() + 1);
 	return place;
+}
+
+/// @brief The number a key is, if it is one as a list's index is written.
+/// @param key The key.
+/// @return 1 + the number, or 0 if it isn't one.
+std::size_t numberOf(std::string_view key) noexcept {
+	if(key.empty() || key.size() > 18U || (key.size() > 1U && key.front() == '0')) return 0;
+	std::size_t number = 0;
+	for(const char c : key) {
+		if(c < '0' || c > '9') return 0;
+		number = number * 10U + static_cast<std::size_t>(c - '0');
+	}
+	return number + 1U;
 }
 
 /// @brief The key of the map of children: a parent and a key's number.
@@ -69,6 +84,11 @@ std::uint32_t PlaceIndex::intern(std::string_view key) {
 		freeKeys_.pop_back();
 	}
 	keys_[id].text = key;
+	keys_[id].row = key.starts_with(rowKey) ? numberOf(key.substr(rowKey.size())) : 0U;
+	if(const std::size_t row = keys_[id].row; row != 0U) {
+		if(rowKeys_.size() < row) rowKeys_.resize(row);
+		rowKeys_[row - 1U] = id + 1U;
+	}
 	keyIds_.emplace(std::string(key), id);
 	return id;
 }
@@ -161,17 +181,22 @@ void PlaceIndex::prune(std::uint32_t node) noexcept {
 		nodes_[last].position = gone.position;
 		siblings.pop_back();
 		childOf_.erase(childKey(parent, gone.key));
-		if(--keys_[gone.key].uses == 0) {
-			keyIds_.erase(keys_[gone.key].text);
-			keys_[gone.key].text.clear();
-			keepFree(freeKeys_, gone.key);
-		}
+		release(gone.key);
 		std::vector<Entry>().swap(gone.readers);
 		std::vector<std::uint32_t>().swap(gone.children);
 		gone.parent = freed;
 		keepFree(freeNodes_, node);
 		node = parent;
 	}
+}
+
+void PlaceIndex::release(std::uint32_t key) noexcept {
+	if(--keys_[key].uses != 0) return;
+	keyIds_.erase(keys_[key].text);
+	keys_[key].text.clear();
+	if(keys_[key].row != 0U) rowKeys_[keys_[key].row - 1U] = 0;
+	keys_[key].row = 0;
+	keepFree(freeKeys_, key);
 }
 
 void PlaceIndex::remove(ReaderId reader) noexcept {
@@ -200,8 +225,11 @@ void PlaceIndex::collectAt(std::uint32_t node, bool shape, std::vector<ReaderId>
 	}
 }
 
-void PlaceIndex::collectBelow(std::uint32_t node, std::vector<ReaderId>& out) {
-	below_.assign(1, node);
+void PlaceIndex::collectBelow(std::uint32_t node, std::vector<ReaderId>& out, bool rows) {
+	below_.clear();
+	collectAt(node, true, out);
+	for(const std::uint32_t child : nodes_[node].children)
+		if(rows || keys_[nodes_[child].key].row == 0U) below_.push_back(child);
 	while(!below_.empty()) {
 		const std::uint32_t at = below_.back();
 		below_.pop_back();
@@ -215,21 +243,35 @@ bool PlaceIndex::reach(std::string_view place, bool ancestors, std::vector<Reade
 	while(!place.empty() && !frontier_.empty()) {
 		const std::string_view key = takeKey(place);
 		const auto found = keyIds_.find(key);
+		const std::size_t number = numberOf(key);
 		next_.clear();
 		for(const std::uint32_t node : frontier_) {
 			if(ancestors) collectAt(node, false, out); // they read a place that contains it
 			if(found != keyIds_.end() && found->second != anyKeyId_)
 				if(const std::uint32_t* below = child(node, found->second)) next_.push_back(*below);
 			if(const std::uint32_t* any = child(node, anyKeyId_)) next_.push_back(*any);
+			if(number != 0U)
+				if(const std::uint32_t* row = rowChild(node, number - 1U)) next_.push_back(*row); // its own item
 		}
 		frontier_.swap(next_);
 	}
 	return !frontier_.empty();
 }
 
-void PlaceIndex::collectPlace(std::string_view place, std::vector<ReaderId>& out) {
+const std::uint32_t* PlaceIndex::rowChild(std::uint32_t node, std::size_t number) const {
+	return number < rowKeys_.size() && rowKeys_[number] != 0U ? child(node, rowKeys_[number] - 1U) : nullptr;
+}
+
+std::uint32_t PlaceIndex::rowKeyMade(std::size_t number) {
+	if(number < rowKeys_.size() && rowKeys_[number] != 0U) return rowKeys_[number] - 1U;
+	rowText_ = rowKey;
+	rowText_ += std::to_string(number);
+	return intern(rowText_);
+}
+
+void PlaceIndex::collectPlace(std::string_view place, std::vector<ReaderId>& out, bool rows) {
 	if(!reach(place, true, out)) return;
-	for(const std::uint32_t node : frontier_) collectBelow(node, out);
+	for(const std::uint32_t node : frontier_) collectBelow(node, out, rows);
 }
 
 void PlaceIndex::collectShape(std::string_view place, std::vector<ReaderId>& out) {
@@ -237,15 +279,93 @@ void PlaceIndex::collectShape(std::string_view place, std::vector<ReaderId>& out
 	for(const std::uint32_t node : frontier_) collectAt(node, true, out);
 }
 
-void PlaceIndex::collect(const StateChanges& changes, std::vector<ReaderId>& out) {
-	if(changes.all) return;
+void PlaceIndex::startCollect() {
 	if(seen_.size() < slots_.size()) seen_.resize(slots_.size(), 0);
 	if(++collecting_ == 0) { // wrapped: no slot may look collected already
 		std::ranges::fill(seen_, 0);
 		collecting_ = 1;
 	}
-	for(const std::string& place : changes.paths) collectPlace(place, out);
+}
+
+void PlaceIndex::collect(const StateChanges& changes, std::vector<ReaderId>& out) {
+	if(changes.all) return;
+	startCollect();
+	for(const std::string& place : changes.paths) {
+		const bool shaped = std::ranges::find(changes.lists, place, &ListChange::place) != changes.lists.end();
+		collectPlace(place, out, !shaped); // its rows read items that stayed what they were: the list's panel follows
+	}
 	for(const ListChange& list : changes.lists) collectShape(list.place, out);
+}
+
+void PlaceIndex::dropBelow(std::uint32_t node, std::vector<ReaderId>& out) {
+	std::vector<std::uint32_t> nodes{node};
+	for(std::size_t i = 0; i < nodes.size(); ++i)
+		nodes.insert(nodes.end(), nodes_[nodes[i]].children.begin(), nodes_[nodes[i]].children.end());
+	for(const std::uint32_t at : nodes) {
+		std::vector<Entry>& readers = nodes_[at].readers;
+		while(!readers.empty()) {
+			const Entry entry = readers.back();
+			const ReaderId id = entry.reader & ~shapeBit;
+			if(std::uint32_t& seen = seen_[slotOf(id)]; seen != collecting_) {
+				seen = collecting_;
+				out.push_back(id);
+			}
+			std::vector<Link>& links = slots_[slotOf(id)].links;
+			const Link last = links.back();
+			links[entry.link] = last;
+			links.pop_back();
+			if(entry.link < links.size()) nodes_[last.node].readers[last.position].link = entry.link;
+			readers.pop_back();
+			--entries_;
+		}
+	}
+	for(const std::uint32_t at : std::views::reverse(nodes)) prune(at);
+}
+
+void PlaceIndex::shift(std::string_view list, std::size_t from, std::ptrdiff_t by, std::vector<ReaderId>& out) {
+	startCollect();
+	std::vector<ReaderId> none;
+	if(by == 0 || !reach(list, false, none)) return;
+	const std::vector<std::uint32_t> lists = frontier_;
+	const auto number = keyIds_.find(indexKey);
+	std::vector<std::pair<std::uint32_t, std::size_t>> moving; // a row's node, and its number after
+	std::vector<decltype(childOf_)::node_type> entries;        // their entries in childOf_, taken out to re-key
+	std::vector<std::uint32_t> before; // their keys before, released once all have their new ones (a key kept in use
+	                                   // isn't freed and interned again by the next row)
+	for(const std::uint32_t node : lists) {
+		moving.clear();
+		entries.clear();
+		before.clear();
+		for(const std::uint32_t row : nodes_[node].children)
+			if(const std::size_t at = keys_[nodes_[row].key].row; at > from)
+				moving.emplace_back(row, static_cast<std::size_t>(static_cast<std::ptrdiff_t>(at - 1U) + by));
+		entries.reserve(moving.size());
+		for(const auto& [row, after] : moving) entries.push_back(childOf_.extract(childKey(node, nodes_[row].key)));
+		for(std::size_t i = 0; i < moving.size(); ++i) {
+			const auto& [row, after] = moving[i];
+			if(number != keyIds_.end())
+				if(const std::uint32_t* reads = child(row, number->second)) collectAt(*reads, true, out);
+			// a row there: one going (its panels are removed), or another list's row read through this one
+			if(const std::uint32_t* taken = rowChild(node, after)) dropBelow(*taken, out);
+			const std::uint32_t key = rowKeyMade(after);
+			++keys_[key].uses;
+			before.push_back(nodes_[row].key);
+			nodes_[row].key = key;
+			entries[i].key() = childKey(node, key);
+			childOf_.insert(std::move(entries[i]));
+		}
+		for(const std::uint32_t key : before) release(key);
+	}
+}
+
+void PlaceIndex::collectRows(std::string_view list, std::vector<ReaderId>& out) {
+	startCollect();
+	std::vector<ReaderId> none;
+	if(!reach(list, false, none)) return;
+	const std::vector<std::uint32_t> lists = frontier_;
+	for(const std::uint32_t node : lists)
+		for(const std::uint32_t row : nodes_[node].children)
+			if(keys_[nodes_[row].key].row != 0U) collectBelow(row, out);
 }
 
 } // namespace affresco::format

@@ -1,0 +1,14 @@
+{
+	"change-colour": {
+		"message": "Purple accent",
+		"change": [{ "definition": "parts/look.lisp/part.look", "from": ":accent {:dark \"#a08ff5\" :light \"#5b48c8\"}", "to": ":accent \"#7c3aed\"" }]
+	},
+	"rename-label": {
+		"message": "Call the open files Tabs",
+		"change": [{ "definition": "explorer.lisp/explorer", "from": ":text ~(t \"side.openFiles\")", "to": ":text \"Tabs\"" }]
+	},
+	"add-node": {
+		"message": "Add an outline heading to the explorer",
+		"change": [{ "definition": "explorer.lisp/explorer", "append": "(node :style caption :text \"OUTLINE\" :anchors {:left 20 :bottom 14})" }]
+	}
+}

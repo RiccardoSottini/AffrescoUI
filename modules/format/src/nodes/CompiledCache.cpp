@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <utility>
 
 namespace affresco::format {
@@ -66,6 +67,169 @@ CompiledCache::Cache& CompiledCache::cache() const {
 }
 
 void CompiledCache::forgetVersion() const noexcept { cache_ = Cache{}; }
+
+/// @brief carryOver()'s walk over the document before and after: what was compiled, what is kept, by its new place.
+struct CompiledCache::Carrier {
+	/// @brief The maps of compiled nodes kept by the place of their node.
+	static constexpr std::array<std::unordered_map<const json*, CompiledRef> Cache::*, 4> maps = {
+	    &Cache::children, &Cache::nodes, &Cache::screens, &Cache::overlays};
+
+	const Cache* old = nullptr;      // What was compiled for the version before.
+	Cache next;                      // What is kept, by the places of the version after.
+	std::vector<const json*> keeps;  // The instances of the kept nodes that hold their children.
+	std::size_t carried = 0;         // The nodes kept.
+
+	/// @brief Walks a value of before and the value after at its place.
+	/// @param before The value before.
+	/// @param after The value after.
+	/// @return Whether they are the same.
+	bool walk(const json& before, const json& after) {
+		if(before.type() != after.type()) return false;
+		if(before.is_object()) return walkObject(before, after);
+		if(before.is_array()) return walkArray(before, after);
+		return before == after;
+	}
+
+	/// @brief Walks two lists: item by item when they are as long, else their common start, then their common end.
+	/// @param before The list before.
+	/// @param after The list after.
+	/// @return Whether they are the same.
+	bool walkArray(const json& before, const json& after) {
+		const std::size_t common = std::min(before.size(), after.size());
+		if(before.size() == after.size()) {
+			bool same = true;
+			for(std::size_t i = 0; i < common; ++i) same = walk(before[i], after[i]) && same;
+			return same;
+		}
+		std::size_t start = 0;
+		while(start < common && walk(before[start], after[start])) ++start;
+		const std::size_t limit = start < common ? common - start - 1U : 0U; // the end never meets the start
+		std::size_t end = 0;
+		while(end < limit && walk(before[before.size() - 1U - end], after[after.size() - 1U - end])) ++end;
+		return false;
+	}
+
+	/// @brief Walks two objects key by key, in order, "children" apart, then keeps what was compiled for them.
+	/// @param before The object before.
+	/// @param after The object after.
+	/// @return Whether they are the same.
+	bool walkObject(const json& before, const json& after) {
+		const auto skip = [](const json& object, json::const_iterator it) {
+			while(it != object.end() && it.key() == "children") ++it;
+			return it;
+		};
+		bool own = true; // every key but "children" the same, in the same order
+		auto b = skip(before, before.begin());
+		auto a = skip(after, after.begin());
+		for(; b != before.end() && a != after.end(); b = skip(before, ++b), a = skip(after, ++a)) {
+			if(b.key() != a.key()) {
+				own = false;
+				break;
+			}
+			own = walk(b.value(), a.value()) && own;
+		}
+		own = own && b == before.end() && a == after.end();
+		const bool same = walkChildren(before, after) && own;
+		if(own) keep(before, after, same);
+		return same;
+	}
+
+	/// @brief Walks two objects' "children".
+	/// @param before The object before.
+	/// @param after The object after.
+	/// @return Whether they are the same, in the same place among the keys.
+	bool walkChildren(const json& before, const json& after) {
+		const auto childrenBefore = before.find("children");
+		const auto childrenAfter = after.find("children");
+		if(childrenBefore == before.end() || childrenAfter == after.end())
+			return childrenBefore == before.end() && childrenAfter == after.end();
+		const bool placed =
+		    std::distance(before.begin(), childrenBefore) == std::distance(after.begin(), childrenAfter);
+		return walk(*childrenBefore, *childrenAfter) && placed;
+	}
+
+	/// @brief Keeps what was compiled for a node whose keys but "children" are the same, pointing it at its children
+	/// after; a node whose children differ and are its own instance's is dropped.
+	/// @param before The node before.
+	/// @param after The node after.
+	/// @param same Whether its children are the same too.
+	void keep(const json& before, const json& after, bool same) {
+		for(const auto map : maps) {
+			const auto found = (old->*map).find(&before);
+			if(found == (old->*map).end()) continue;
+			const CompiledRef& node = found->second;
+			if(node->keep) {
+				if(!same) continue; // its instance holds the children as they were
+				keeps.push_back(node->keep.get());
+			} else {
+				const auto children = after.find("children");
+				repoint(*node, children == after.end() ? nullptr : &*children);
+			}
+			keepStyled(node);
+			(next.*map).emplace(&after, node);
+			++carried;
+		}
+	}
+
+	/// @brief Points a node, and the nodes compiled for the styles it chose, at its children's new place.
+	/// @param node The node.
+	/// @param children Its children after.
+	void repoint(const CompiledNode& node, const json* children) const {
+		const json* was = node.children;
+		node.children = children;
+		if(const auto styled = old->styled.find(&node); styled != old->styled.end())
+			for(const auto& [style, chosen] : styled->second)
+				if(chosen->children == was && !chosen->keep) chosen->children = children;
+	}
+
+	/// @brief Keeps the nodes compiled for the styles a kept node chose.
+	/// @param node The node.
+	void keepStyled(const CompiledRef& node) {
+		if(const auto styled = old->styled.find(node.get()); styled != old->styled.end())
+			next.styled.emplace(node.get(), styled->second);
+	}
+
+	/// @brief Keeps, as they are, the nodes compiled inside the kept nodes' instances, and inside theirs.
+	void keepInstances() {
+		while(!keeps.empty()) {
+			const json* instance = keeps.back();
+			keeps.pop_back();
+			keepInside(*instance);
+		}
+	}
+
+	/// @brief Keeps what was compiled for a value inside an instance, and for the values inside it.
+	/// @param value The value.
+	void keepInside(const json& value) {
+		for(const auto map : maps)
+			if(const auto found = (old->*map).find(&value); found != (old->*map).end()) {
+				if(found->second->keep) keeps.push_back(found->second->keep.get());
+				keepStyled(found->second);
+				(next.*map).emplace(&value, found->second);
+				++carried;
+			}
+		if(value.is_structured())
+			for(const json& inner : value) keepInside(inner);
+	}
+};
+
+void CompiledCache::carryOver(const json& before, const json& after, const DocumentChange& change) const {
+	carried_ = 0;
+	const bool everyNode = change.everything || std::ranges::any_of(change.sections, [](const std::string& section) {
+		                       return section == "styles" || section == "components" || section == "templates";
+	                       });
+	if(everyNode || !cache_.document) {
+		forgetVersion();
+		return;
+	}
+	Carrier carrier{.old = &cache_, .next = {}, .keeps = {}, .carried = 0};
+	static_cast<void>(carrier.walk(before, after));
+	carrier.keepInstances();
+	carrier.next.document = &engine_.versions.document();
+	carried_ = carrier.carried;
+	revisionCounters().nodesCarried += carrier.carried;
+	cache_ = std::move(carrier.next);
+}
 
 // The node's properties on top of its styles' (in order: later styles override earlier ones)
 json CompiledCache::withStyles(const json& node, const std::string& path, int depth) const {

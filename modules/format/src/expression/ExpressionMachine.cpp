@@ -353,9 +353,10 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	}
 	std::string pointer;
 	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
-		const std::string* origin = context_.locals.originOf(name);
-		if(!origin || (item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
-		pointer = *origin;
+		if((item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
+		std::optional<std::string> place = namedPlace(name);
+		if(!place) return;
+		pointer = std::move(*place);
 	} else if(root != Root::State) {
 		return;
 	}
@@ -367,14 +368,36 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	context_.reads->addPath(pointer);
 }
 
+// A row's number is read under its list ("/items/~i"), which the children lists mark when rows are numbered again
+std::optional<std::string> Machine::namedPlace(std::string_view name) const {
+	for(const Scope* scope = &context_.locals; scope; scope = scope->parent) {
+		if(!scope->vars.contains(name)) continue;
+		if(scope->fromState == name) return scope->origin();
+		if(scope->place.index == name && scope->place.row != ItemPlace::noRow) {
+			std::string list = scope->listPlace();
+			list += '/';
+			list += indexKey; // raw: no key escapes to it
+			return list;
+		}
+		return std::nullopt;
+	}
+	return std::nullopt;
+}
+
+Value Machine::global(std::string_view name, const json& given) const {
+	if(context_.variables)
+		if(const json* built = (*context_.variables)(name)) return Value::fromJson(*built);
+	return Value::fromJson(given);
+}
+
 std::optional<Value> Machine::variable(Root root, std::string_view name, const Place& place) const {
 	switch(root) {
 	case Root::State:
 		return Value::fromJson(context_.state);
 	case Root::Window:
-		return Value::fromJson(context_.window);
+		return global("window", context_.window);
 	case Root::Revision:
-		return Value::fromJson(context_.revision);
+		return global("revision", context_.revision);
 	case Root::Event:
 		return Value::fromJson(context_.event);
 	case Root::Computed:
@@ -406,9 +429,10 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 		// While an update records reads, a repeat's item is read where it lies now: an update that changes only
 		// inside it keeps the scope, and its copy, built before
 		if(context_.reads && scope->fromState == name) {
-			if(context_.models && scope->origin.starts_with(modelPlaces)) // a data model's row
-				if(json row = (*context_.models)(scope->origin); !row.is_null()) return Value::ownJson(std::move(row));
-			if(const json* live = lying(context_.state, scope->origin)) return Value::fromJson(*live);
+			if(context_.models && scope->origin().starts_with(modelPlaces)) // a data model's row
+				if(json row = (*context_.models)(scope->origin()); !row.is_null())
+					return Value::ownJson(std::move(row));
+			if(const json* live = lying(context_.state, scope->origin())) return Value::fromJson(*live);
 		}
 		return Value::fromJson(*local);
 	}
