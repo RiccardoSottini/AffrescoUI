@@ -3,6 +3,8 @@
 ;;; The page is a file's editor (with the find bar and the merge conflict bar over it), or one of the pages other
 ;;; features give: the settings, the keybindings, search results, a diff, a debugged source.
 
+(ns forge.features.editor.views)
+
 ;;; The groups
 
 (defcomponent forgeEditors "The editor groups, side by side: each its tabs, its breadcrumbs and its page."
@@ -16,11 +18,11 @@
        `(column#group :color @color.editor :onClick ~(handler focusGroup gi)
           ~(group-tabs g gi)
           (node :when ~(and settings.breadcrumbs.enabled
-                            (some (fn [it] (and (= it.id g.active) (= it.kind "file"))) state.docs))
+                            (some #(and (= (:id %) g.active) (= (:kind %) :file)) state.docs))
             :use forgeBreadcrumbs
             :with {:path ~g.active})
           (node :when ~(and (empty? g.active) (= gi 0) (= settings.workbench.startupEditor "welcome")) :use forgeWelcome)
-          ~(repeat [d (filter (fn [it] (>= it 0)) [(indexOf computed.docIds g.active)]) :key d]
+          ~(repeat [d (filter #(>= % 0) [(indexOf computed.docIds g.active)]) :key d]
             (group-body gi d))))))
 
 (defview group-tabs "A group's tabs: a dirty file's has a marker, the preview's is in italics, each its file's icon."
@@ -34,13 +36,12 @@
      :activeBackground @color.tabActive
      :accentEdge bottom
      :accentColor ~(if (= gi state.activeGroup) "@color.accent" "@color.border")
-     :tabs ~(map (fn [it]
-                   (merge it
-                          {:italic (= it.preview true)
-                           :marker (contains computed.dirtyIds it.id)
-                           :closable (not it.sticky)
-                           :icon (:icon (tab-icon it))
-                           :iconColor (:color (tab-icon it))}))
+     :tabs ~(map #(merge %
+                         {:italic (true? (:preview %))
+                          :marker (contains computed.dirtyIds (:id %))
+                          :closable (not (:sticky %))
+                          :icon (:icon (tab-icon %))
+                          :iconColor (:color (tab-icon %))})
                  g.tabs)
      :onClose {:run closeTab :with {:gi ~gi :id ~event.id}}
      :drag {}
@@ -53,7 +54,8 @@
   [tab]
   `(if (and settings.workbench.fileIcons (contains ~(symbol (str tab ".label")) "."))
      (or-else (get state.iconTheme.names ~(symbol (str tab ".label")))
-              (get state.iconTheme.extensions (lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
+              ; style: keep, str/split with -1 is a slow call in a binding, and without -1 it drops a trailing empty part
+              (get state.iconTheme.extensions (str/lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
               state.iconTheme.file)
      nil))
 
@@ -78,7 +80,7 @@
   `(= (get-in state.docs [~d :kind]) ~kind))
 
 (defmacro file-page? "Whether the open document `d` is a file." [d]
-  `(page? ~d "file"))
+  `(page? ~d :file))
 
 (defmacro doc-of "A field of the open document `d`." [d field]
   `(get-in state.docs [~d ~field]))
@@ -95,8 +97,8 @@
      :grammar ~(doc-of d :label)
      :lineNumbers ~settings.editor.lineNumbers
      :goTo ~(if (and (= gi state.activeGroup) (> state.goTo.request 0))
-                {:line (max (- state.goTo.line 1) 0)
-                 :column (max (- (or-else state.goTo.column 1) 1) 0)
+                {:line (max (dec state.goTo.line) 0)
+                 :column (max (dec (or-else state.goTo.column 1)) 0)
                  :request state.goTo.request}
                 nil)
      :caret state.caret
@@ -107,10 +109,10 @@
      :indentGuides ~settings.editor.guides.indentation
      :tabSize ~(or-else settings.editor.tabSize 4)
      :find ~(if (= gi state.activeGroup) computed.findQuery nil)
-     :decorations ~(concat (or-else (:decorations (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
-                           (map (fn [it] it.mark) (filter (fn [it] (= it.path (doc-of d :id))) computed.debugMarks))
+     :decorations ~(concat (or-else (:decorations (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
+                           (map :mark (filter #(= (:path %) (doc-of d :id)) computed.debugMarks))
                            (if (= gi state.activeGroup) computed.conflictDecorations []))
-     :tokens ~(or-else (:tokens (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
+     :tokens ~(or-else (:tokens (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
      :onTextHover lspHoverAt
      :onType lspTyped
      :popup ~(and (= gi state.activeGroup) state.lsp.completion.open)

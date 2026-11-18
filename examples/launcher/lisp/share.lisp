@@ -5,6 +5,8 @@
 ;;; installing it would do, and shows that as a review; Install makes a new app of it, whose changes wait in it as a
 ;;; proposal only the person accepts.
 
+(ns launcher.share)
+
 ;;; What it keeps
 
 (defstate exporting {:open false :id "" :name "" :description "" :author "" :summary {} :leftOut {} :busy false}
@@ -16,10 +18,10 @@
 
 (defcomputed installSlug "The installed app's folder: its name as Create makes one."
   (slice (join "-"
-               (filter (fn [it] (not= it ""))
-                       (split (join ""
-                                    (map (fn [it] (if (contains "abcdefghijklmnopqrstuvwxyz0123456789" it) it " "))
-                                         (split (lower-case (trim state.install.name)) "")))
+               (filter #(not= % "")
+                       (split (->> (split (lower-case (trim state.install.name)) "")
+                                   (map #(if (contains "abcdefghijklmnopqrstuvwxyz0123456789" %) % " "))
+                                   (join ""))
                               " ")))
          0
          40))
@@ -36,8 +38,8 @@
 
 (defcomputed installable "Whether the file reviewed can be installed: it read, has no problem, and isn't a feature
   (one is added from inside an app)."
-  (and (= state.install.error "") (= (count (or state.install.summary.problems [])) 0)
-       (not= state.install.summary.kind "feature")))
+  (and (= state.install.error "") (empty? (or state.install.summary.problems []))
+       (not= state.install.summary.kind :feature)))
 
 (defcomputed exportLines "What the package holds, in plain lines." (exportLinesOf state.exporting))
 
@@ -58,85 +60,79 @@
 (defn line "A line of a summary, in a tone: heading, text, muted, added or danger." [text tone] {:text text :tone tone})
 
 (defn section "A heading and its lines, or nothing when there are none." [heading lines]
-  (if (= (count lines) 0) [] (concat [(line (t heading) "heading")] lines)))
+  (if (empty? lines) [] (concat [(line (t heading) "heading")] lines)))
 
 (defn exportLinesOf "An export's summary: what it is, its definitions and layers, and what it leaves out." [exporting]
-  (let [summary (:summary exporting)
-        definitions (or (:definitions summary) {})
-        impact (or (:impact summary) {})
-        leftOut (or (:leftOut exporting) {})]
-    [(line (if (= (:kind summary) "changes")
-             (t "share.kindChanges" {:base (nameOf (:base summary))})
-             (t "share.kindApp"))
-           "text")
-     (line (t "share.definitions" {:added (count (or (:added definitions) []))
-                                   :changed (count (or (:changed definitions) []))
-                                   :removed (count (or (:removed definitions) []))})
-           "text")
+  (let [{:keys [summary leftOut]} exporting
+        {:keys [kind base definitions impact]} summary
+        {:keys [added changed removed]} definitions]
+    [(line (if (= kind :changes) (t "share.kindChanges" {:base (nameOf base)}) (t "share.kindApp")) "text")
+     (line (t "share.definitions" {:added (count added) :changed (count changed) :removed (count removed)}) "text")
      (line (t "share.layers" {:view (or (:view impact) 0) :logic (or (:logic impact) 0)}) "text")
      (line (t "share.leftOut" {:records (or (:records leftOut) 0) :commits (or (:commits leftOut) 0)}) "muted")]))
 
 (defn reviewOf "A review, a section each: the base, what doesn't merge, the layers, definitions, hooks and advice, what
   it writes and uses, capabilities, who may change it, its state, pictures and records, and its problems." [summary]
-  (concat (if (= (:kind summary) "feature")
-            (section "review.needs"
-                     (map (fn [it] (line (t "review.need" {:name (:name it) :kind (:kind it)}) "text"))
-                          (or (:needs summary) [])))
-            (baseLines summary))
-          (section "review.conflicts"
-                   (map (fn [it] (line (:path it) "danger")) (or (:conflicts summary) [])))
-          (section "review.layers" (layerLines (or (:impact summary) {})))
-          (section "review.definitions" (definitionLines (or (:definitions summary) {})))
-          (section "review.extensions" (extensionLines (or (:extensions summary) {})))
-          (section "review.effects"
-                   (concat (map (fn [it] (line (t "review.writes" {:what (or (:collection it) (:step it))}) "text"))
-                                (or (:writes summary) []))
-                           (map (fn [it] (line (t "review.uses" {:what (:use it)}) "text")) (or (:uses summary) []))))
-          (section "review.capabilities" (capabilityLines (or (:capabilities summary) [])))
-          (section "review.permissions" (map (fn [it] (line it "text")) (or (:permissions summary) [])))
-          (section "review.contents" (contentLines summary))
-          (section "review.problems" (map (fn [it] (line it "danger")) (or (:problems summary) [])))))
+  (let [{:keys [kind needs conflicts impact definitions extensions writes uses capabilities permissions problems]}
+        summary]
+    (concat (if (= kind :feature)
+              (section "review.needs" (map #(line (t "review.need" {:name (:name %) :kind (:kind %)}) "text") needs))
+              (baseLines summary))
+            (section "review.conflicts" (map #(line (:path %) "danger") conflicts))
+            (section "review.layers" (layerLines (or impact {})))
+            (section "review.definitions" (definitionLines (or definitions {})))
+            (section "review.extensions" (extensionLines (or extensions {})))
+            (section "review.effects"
+                     (concat (map #(line (t "review.writes" {:what (or (:collection %) (:step %))}) "text") writes)
+                             (map #(line (t "review.uses" {:what (:use %)}) "text") uses)))
+            (section "review.capabilities" (capabilityLines (or capabilities [])))
+            (section "review.permissions" (map #(line % "text") permissions))
+            (section "review.contents" (contentLines summary))
+            (section "review.problems" (map #(line % "danger") problems)))))
 
 (defn nameOf "The name of an app the summary names, or \"an unnamed app\" when it has none." [app]
-  (if (= (or (:name app) "") "") (t "review.unnamed") (:name app)))
+  (if (empty? (:name app)) (t "review.unnamed") (:name app)))
 
 (defn baseLines "What the package was made on, and how that compares with what the person has." [summary]
-  (let [base (or (:base summary) {})]
+  (let [base (or (:base summary) {})
+        app? (= (:kind summary) :app)
+        exact? (true? (:exact base))
+        about {:name (nameOf base) :release (or (:release base) "")}]
     [(line (t "review.base") "heading")
-     (line (cond (= (:kind summary) "app") (t "review.baseApp")
-                 (= (:exact base) true) (t "review.baseExact" {:name (nameOf base) :release (or (:release base) "")})
-                 :else (t "review.baseOther" {:name (nameOf base) :release (or (:release base) "")}))
-           (if (or (= (:kind summary) "app") (= (:exact base) true)) "text" "danger"))]))
+     (line (cond app? (t "review.baseApp")
+                 exact? (t "review.baseExact" about)
+                 :else (t "review.baseOther" about))
+           (if (or app? exact?) "text" "danger"))]))
 
 (defn layerLines "How many changes each layer has: what it shows, what it does, its data." [impact]
-  (concat (if (> (or (:view impact) 0) 0) [(line (t "review.view" {:n (:view impact)}) "text")] [])
-          (if (> (or (:logic impact) 0) 0) [(line (t "review.logic" {:n (:logic impact)}) "text")] [])
-          (if (and (:data impact) (not= (:data impact) "none")) [(line (t "review.data" {:effect (:data impact)}) "danger")] [])))
+  (let [{:keys [view logic data]} impact]
+    (concat (when (pos? (or view 0)) [(line (t "review.view" {:n view}) "text")])
+            (when (pos? (or logic 0)) [(line (t "review.logic" {:n logic}) "text")])
+            (when (and data (not= data :none)) [(line (t "review.data" {:effect data}) "danger")]))))
 
 (defn definitionLines "Each definition added, changed or taken away, by name." [definitions]
-  (concat (map (fn [it] (line (t "review.added" {:name it}) "added")) (or (:added definitions) []))
-          (map (fn [it] (line (t "review.changed" {:name it}) "text")) (or (:changed definitions) []))
-          (map (fn [it] (line (t "review.removed" {:name it}) "muted")) (or (:removed definitions) []))))
+  (concat (map #(line (t "review.added" {:name %}) "added") (:added definitions))
+          (map #(line (t "review.changed" {:name %}) "text") (:changed definitions))
+          (map #(line (t "review.removed" {:name %}) "muted") (:removed definitions))))
 
 (defn extensionLines "Each hook and advice it adds or takes away, one per line." [extensions]
-  (concat (map (fn [it] (line (t "review.extension" {:kind (:kind it) :name (:name it) :target (:target it)}) "added"))
-               (or (:added extensions) []))
-          (map (fn [it] (line (t "review.extensionRemoved" {:kind (:kind it) :name (:name it)}) "muted"))
-               (or (:removed extensions) []))))
+  (concat (map #(line (t "review.extension" {:kind (:kind %) :name (:name %) :target (:target %)}) "added")
+               (:added extensions))
+          (map #(line (t "review.extensionRemoved" {:kind (:kind %) :name (:name %)}) "muted") (:removed extensions))))
 
 (defn capabilityLines "What it asks the person for, those they haven't given it yet marked new." [capabilities]
-  (map (fn [it] (line (if (:added it)
-                        (t "review.capabilityNew" {:what (:capability it) :why (:why it)})
-                        (t "review.capability" {:what (:capability it) :why (:why it)}))
-                      (if (:added it) "added" "text")))
+  (map (fn [{:keys [added capability why]}]
+         (line (if added
+                 (t "review.capabilityNew" {:what capability :why why})
+                 (t "review.capability" {:what capability :why why}))
+               (if added "added" "text")))
        capabilities))
 
 (defn contentLines "The state values it brings, its pictures and its first records." [summary]
-  (concat (map (fn [it] (line (t "review.state" {:key (:key it) :value (json (:value it))}) "text"))
+  (concat (map #(line (t "review.state" {:key (:key %) :value (json (:value %))}) "text")
                (entries (or (:state summary) {})))
-          (map (fn [it] (line (t "review.picture" {:name (:name it)}) "text")) (or (:assets summary) []))
-          (map (fn [it] (line (t "review.seed" {:collection (:collection it) :n (or (:records it) 0)}) "text"))
-               (or (:seed summary) []))))
+          (map #(line (t "review.picture" {:name (:name %)}) "text") (:assets summary))
+          (map #(line (t "review.seed" {:collection (:collection %) :n (or (:records %) 0)}) "text") (:seed summary))))
 
 ;;; Exporting
 
@@ -162,8 +158,8 @@
 
 (defn exportSave "Makes the package again with the name, description and author given, to save it." []
   (invoke "packages.export"
-          :with {:root "apps" :app state.exporting.id :name (trim state.exporting.name)
-                 :description (trim state.exporting.description) :author (trim state.exporting.author)}
+          :with {:root "apps" :app state.exporting.id :name (str/trim state.exporting.name)
+                 :description (str/trim state.exporting.description) :author (str/trim state.exporting.author)}
           :onDone [exportMade state.exporting.id] :onError showError))
 
 (defn exportMade "Asks where to save the package." [id result]
@@ -192,7 +188,7 @@
   (set "state.install.busy" false)
   (set "state.install.entry" {})
   (set "state.install.listed" {})
-  (go "install"))
+  (go :install))
 
 (defn showReview "Shows the review of a file as event gives it ({summary, package?, error?}): scenarios play the
   service's answer with it." []
@@ -205,10 +201,10 @@
     (set "state.install.busy" true)
     (invoke "packages.install"
             :with (if (= (or-else state.install.entry.catalogue "") "")
-                    {:package state.install.package :id computed.installSlug :name (trim state.install.name)}
+                    {:package state.install.package :id computed.installSlug :name (str/trim state.install.name)}
                     {:catalogue state.install.entry.catalogue :release state.install.entry.release
-                     :id computed.installSlug :name (trim state.install.name)})
-            :onDone [installed (trim state.install.name)] :onError notInstalled)))
+                     :id computed.installSlug :name (str/trim state.install.name)})
+            :onDone [installed (str/trim state.install.name)] :onError notInstalled)))
 
 (defn notInstalled "Says why it wasn't installed: nothing was made." [error]
   (set "state.install.busy" false)
@@ -223,13 +219,14 @@
   [id sub title proposal]
   (set "state.install.busy" false)
   (listNew id sub title)
-  (go "mine")
+  (go :mine)
   (openMine id title "")
   (toast (t (if proposal "toast.installedProposal" "toast.installed") {:name title}) false)
   (after 1 refreshMine))
 
 (defn cancelInstall "Leaves the review, for the page it came from: nothing is installed." []
-  (go (if (= (or-else state.install.entry.catalogue "") "") "mine" "catalogue"))
+  (go (if (empty? state.install.entry.catalogue) :mine :catalogue))
+
   (set "state.install" {:package {} :summary {} :error "" :name "" :tried false :busy false :entry {} :listed {}}))
 
 ;;; The export dialog
@@ -275,7 +272,7 @@
 ;;; The review
 
 (defview install-page "The review of a file: what it is, what installing it would do, and Install." []
-  `(node#installPage :when ~(= state.page "install") :fill true :color transparent :role tabpanel
+  `(node#installPage :when ~(= state.page :install) :fill true :color transparent :role tabpanel
      :label ~(t "review.title")
      (node#installTitle :style pageTitle :text ~(or state.install.summary.name (t "review.title")) :role heading)
      ~(install-header)
@@ -284,8 +281,7 @@
        ~(repeat [it computed.reviewLines :index i]
          `(label#reviewLine :text ~it.text :height ~(if (= it.tone "heading") 30 22) :anchors {:left 0 :right 0}
             :font ~(if (= it.tone "heading") "strong" "default")
-            :textColor ~(cond (= it.tone "muted") "@c.muted" (= it.tone "added") "@c.accent"
-                              (= it.tone "danger") "@c.danger" :else "@c.text")))
+            :textColor ~(case it.tone "muted" "@c.muted" "added" "@c.accent" "danger" "@c.danger" "@c.text")))
        (node#reviewListEnd :height 12 :color transparent :anchors {:left 0 :right 0}))
      ~(install-footer)))
 
@@ -317,7 +313,8 @@
   []
   `(node#installFooter :anchors {:left 36 :right 36 :bottom 0} :height 120 :color transparent
      (label#installCant :when ~(not computed.installable)
-       :text ~(if (= state.install.summary.kind "feature") (t "review.featureHere") (t "review.cant")) :textColor @c.danger
+       :text ~(if (= state.install.summary.kind :feature) (t "review.featureHere") (t "review.cant"))
+       :textColor @c.danger
        :anchors {:left 0 :right 160 :top 20} :height 22 :role status)
      (node#installName :when ~computed.installable :style field :bind state.install.name :maxLength 80
        :label ~(t "review.name") :anchors {:left 0 :right 320 :top 14} :height 42 :onSubmit installApp
@@ -334,6 +331,7 @@
        :anchors {:right 0 :top 14} :width 150 :height 42 :onClick installApp)))
 
 (defn signatureOf "The signature line: a publisher the person trusts, one they don't know, or none." [signature]
-  (cond (= (slice signature 0 8) "trusted:") (t "review.signedTrusted" {:name (subs signature 8)})
-        (= (slice signature 0 8) "unknown:") (t "review.signedUnknown" {:key (subs signature 8)})
-        :else (t "review.unsigned")))
+  (case (slice signature 0 8)
+    "trusted:" (t "review.signedTrusted" {:name (subs signature 8)})
+    "unknown:" (t "review.signedUnknown" {:key (subs signature 8)})
+    (t "review.unsigned")))

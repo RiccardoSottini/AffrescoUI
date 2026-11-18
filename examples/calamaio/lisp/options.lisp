@@ -3,6 +3,8 @@
 ;;; Each minor mode is a variable of settings.lisp that its command of the same name toggles; Customize lists the
 ;;; variables to change and reset, and the theme is the variable custom-enabled-themes.
 
+(ns calamaio.options)
+
 ;;; Minor modes
 
 (defn mode-said "Says whether a minor mode is now on or off." [name on]

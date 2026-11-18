@@ -1,5 +1,7 @@
 ;;; look.lisp --- the Launcher's colours, light and dark, and the named styles its nodes share
 
+(ns launcher.look)
+
 ;;; Colours
 
 (deftokens tokens "The palette, light and dark, and the colours of the kit and the intelligence add-on, from it."

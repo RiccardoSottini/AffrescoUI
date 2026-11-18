@@ -4,6 +4,8 @@
 ;;; signed in. Each page fills the rest of the window above the status bar. Over them: the dialogs, each over a scrim,
 ;;; and the notes in the corner. The small parts every page uses (a menu, a level bar, a note, a tab) are here too.
 
+(ns haven.shell)
+
 ;;; What the shell keeps
 
 (defstate sidebarCollapsed false "Whether the sidebar is folded to its icons.")
@@ -11,7 +13,7 @@
 (defcomputed sideWidth "The sidebar's width, open or folded." (if state.sidebarCollapsed 56 256))
 
 (defcomputed navPages "The pages the sidebar lists above its foot, where Settings is."
-  (filter (fn [it] (not= it.id "settings")) state.pages))
+  (filter #(not= (:id %) "settings") state.pages))
 
 ;;; The sidebar
 
@@ -60,7 +62,7 @@
        :role tab
        :with {:icon settings
               :title ~(t "page.settings")
-              :selected ~(and (= state.page "settings") (not= state.settingsView "profile"))
+              :selected ~(and (= state.page :settings) (not= state.settingsView "profile"))
               :keyLabel "Cmd+,"}
        :onClick goSettings)
      (node#bellButton :use sideItem
@@ -189,6 +191,7 @@
   {:open "" :items [] :width 200}
   `(node :overlay {:placement below-end :open ~open :dismiss outside :modal true}
      :width ~width
+     ;; style: keep, a binding's function given to sum names its item it
      :height ~(+ 16 (sum items (fn [it] (if (= it.separator true) 17 48))))
      :radius 8
      :color @card
@@ -259,7 +262,8 @@
       :onClick ~(handler closeAt open)}
      (node :when ~(some? progress) :anchors {:left 0 :right 0 :bottom 0} :height 3 :color "#ffffff1f"
        {:anchors {:left 0 :top 0 :bottom 0}
-        :width ~(str (* (clamp (or-else progress 0) 0 1) 100) "%")
+        :width ~(str (-> (or-else progress 0) (clamp 0 1) (* 100)) "%")
+
         :color @snackAction})))
 
 (defcomponent viewTab "A view in the top bar: its title in a pill, filled while it is the one shown."

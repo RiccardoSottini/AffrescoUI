@@ -4,6 +4,8 @@
 ;;; The sections (profile, emails, security, devices, connected accounts, activity, data) are tabs down the side on a
 ;;; wide window, and chips across the top on a narrow one. What the buttons run is in profile.lisp.
 
+(ns sign-in.account)
+
 ;;; The screen
 
 (defview account-screen "The account page: its card, the session ticking each second, and the photo's colours." []
@@ -128,7 +130,7 @@
               :icon user
               :fieldName ~(t "name")
               :placeholder ~(t "namePlaceholder")
-              :valid ~(> (count (trim state.profile.name)) 0)
+              :valid ~(> (count (str/trim state.profile.name)) 0)
               :message ~(t "enterName")
               :submitted ~state.profile.submitted
               :maxLength 60})
@@ -197,7 +199,7 @@
      :font iconsSmall
      :align center
      :icon ~(if (= (or-else state.user.avatar 0) colour) "check" "")
-     :label ~(if (= colour 0) (t "photoColor" {:n 1}) (t "photoColor" {:n (+ colour 1)}))
+     :label ~(if (= colour 0) (t "photoColor" {:n 1}) (t "photoColor" {:n (inc colour)}))
      :selected ~(= (or-else state.user.avatar 0) colour)
      :color ~(if (= colour 0) "@color.accentSoft" (str "@color.avatar" colour))
      :textColor ~(if (= colour 0) "@color.accent" "@color.avatarText")

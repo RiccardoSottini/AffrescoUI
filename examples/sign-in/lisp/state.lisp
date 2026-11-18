@@ -3,6 +3,8 @@
 ;;; Each defstate is one key of the state, with the value it starts from and, for some, its type. Only the theme, the
 ;;; language and "remember this device" persist (index.screen.lisp); never a password or a code.
 
+(ns sign-in.state)
+
 ;;; The look and the demo's switches
 
 (defstate theme light "The colours: light or dark." :type {:enum [light dark]})

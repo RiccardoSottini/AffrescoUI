@@ -571,3 +571,141 @@ TEST_CASE("lisp rebuild: what changes in place keeps in the heap is bounded, as 
 	CHECK(inPlace < revisions);
 	CHECK(app.errors.empty());
 }
+
+namespace {
+
+/// @brief A program whose files have `ns` forms, as a document's section holds them: the entry requires `app.a` by its
+/// name, `app.b` through an alias and `x.lisp` by its path; `y.lisp` has none.
+/// @return Its section.
+json namespacedProgram() {
+	return {
+	    {"index.screen.lisp",
+		 {{"ns", R"((ns app.index (:require app.a [app.b :as b] ["x.lisp"])))"},
+		  {"main", R"((defscreen main (column#c (label#t :text ~(b/title)) (label#s :text ~(shout (named "x"))))))"}}},
+	    {"a.lisp", {{"ns", "(ns app.a)"}, {"named", R"((defn named "" [n] (str "the " n)))"}}},
+	    {"b.lisp", {{"ns", "(ns app.b (:require app.a))"}, {"title", R"((defn title "" [] (app.a/named "board")))"}}},
+	    {"x.lisp",
+		 {{"ns", "(ns app.x)"},
+		  {"shout", R"((defn shout "" [s] (str s "!")))"},
+		  {"unused", R"((defn unused "" [] 1))"}}},
+	    {"y.lisp", {{"helper", R"((defn helper "" [] 2))"}}},
+	};
+}
+
+/// @brief What a build from a record and a change in place did, as counted: whether each was made, and what the build
+/// compiled.
+struct Counted {
+	bool inPart = false;      ///< The build ran in part.
+	bool inPlace = false;     ///< The interpreter was changed in place.
+	std::size_t compiled = 0; ///< The definitions the build compiled.
+};
+
+/// @brief Builds a later version of a program from the earlier's record, and changes an interpreter of the earlier in
+/// place, checking each against a build and a load in full of the later.
+/// @param before The earlier version. @param after The later.
+/// @return What each did, by the counters.
+Counted checkedAgainstFull(const json& before, const json& after) {
+	lisp::Program first = lisp::programOf(before);
+	static_cast<void>(first.build(buildLimits()));
+	REQUIRE(first.record());
+	const lisp::RebuildStatistics start = lisp::rebuildStatistics();
+	bool whole = true;
+	const json part = buildFrom(*first.record(), after, whole);
+	const lisp::RebuildStatistics built = lisp::rebuildStatistics();
+	CHECK(part == buildInFull(after));
+	CHECK(built.inPart - start.inPart == (whole ? 0 : 1));
+	if(!part.contains("error")) CHECK(built.whole - start.whole == (whole ? 1 : 0)); // a build that fails counts none
+	const json patched = redefinedFrom(first, after);
+	const std::unique_ptr<lisp::Interpreter> fresh = loadedInterpreter(lisp::programOf(after));
+	if(!patched.is_null()) CHECK((fresh && patched == definitionsOf(*fresh)));
+	CHECK(lisp::rebuildStatistics().redefined - built.redefined == (patched.is_null() ? 0 : 1));
+	return {!whole, !patched.is_null(), built.compiled - start.compiled};
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a program with ns forms, a definition changed, builds in part and redefines as in full") {
+	const json section = namespacedProgram();
+	const std::string tree = buildInFull(section)["tree"].dump();
+	REQUIRE(tree.contains("the board"));
+	REQUIRE(tree.contains("the x!"));
+	struct Case {
+		std::string what;                ///< What changes.
+		std::string file;                ///< The entry's file.
+		std::string name;                ///< Its name.
+		std::optional<std::string> text; ///< Its new text, or std::nullopt to remove it.
+	};
+	const std::vector<Case> cases = {
+	    {"a function called by its file's name", "a.lisp", "named", R"((defn named "" [n] (str "a " n)))"},
+	    {"a function called through an alias", "b.lisp", "title", R"((defn title "" [] (app.a/named "table")))"},
+	    {"a function of a file required by its path", "x.lisp", "shout", R"((defn shout "" [s] (str s "?")))"},
+	    {"a function nothing uses", "x.lisp", "unused", R"((defn unused "" [] 3))"},
+	    {"a function of a file with no ns form", "y.lisp", "helper", R"((defn helper "" [] 4))"},
+	    {"a definition added to a file", "a.lisp", "other", R"((defn other "" [] (named "y")))"},
+	    {"a definition removed", "x.lisp", "unused", std::nullopt},
+	};
+	for(const Case& change : cases) {
+		INFO(change.what);
+		json after = section;
+		if(change.text) after[change.file][change.name] = *change.text;
+		else after[change.file].erase(change.name);
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK(counted.inPart);
+		CHECK(counted.inPlace);
+		if(change.name == "unused" && change.text) CHECK(counted.compiled == 1);
+	}
+}
+
+TEST_CASE("lisp rebuild: with ns forms, what a qualified name names gone or moved fails as a build in full fails") {
+	const json section = namespacedProgram();
+	json gone = section;
+	gone["a.lisp"].erase("named");
+	json moved = gone;
+	moved["x.lisp"]["named"] = section["a.lisp"]["named"];
+	for(const json& after : {gone, moved}) {
+		CHECK(buildInFull(after).contains("error")); // app.a/named: "named" isn't defined in a.lisp
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK_FALSE(counted.inPlace);
+	}
+	// A name that comes to the file another's alias names builds what calls it again, as in full
+	json named = section;
+	named["b.lisp"]["title"] = R"((defn title "" [] (app.a/later "board")))";
+	REQUIRE(buildInFull(named).contains("error"));
+	json later = named;
+	later["a.lisp"]["later"] = R"((defn later "" [n] (str "later " n)))";
+	lisp::Program first = lisp::programOf(section);
+	static_cast<void>(first.build(buildLimits()));
+	bool whole = true;
+	CHECK(buildFrom(*first.record(), later, whole) == buildInFull(later));
+	CHECK_FALSE(whole);
+}
+
+TEST_CASE("lisp rebuild: a file's ns form changed, added, removed or moved in :require builds in full, not in place") {
+	const json section = namespacedProgram();
+	const std::string entry = "index.screen.lisp";
+	std::vector<std::pair<std::string, json>> cases;
+	json changedText = section;
+	changedText["a.lisp"]["ns"] = R"((ns app.a "Names."))";
+	cases.emplace_back("an ns form's text changed", changedText);
+	json added = section;
+	added["y.lisp"]["ns"] = "(ns app.y)";
+	cases.emplace_back("an ns form added", added);
+	json removed = section;
+	removed["x.lisp"].erase("ns");
+	cases.emplace_back("an ns form removed", removed);
+	json moved = section;
+	moved[entry]["ns"] = R"((ns app.index (:require [app.b :as b] app.a ["x.lisp"])))";
+	cases.emplace_back("a file moved in :require", moved);
+	json aliased = section;
+	aliased[entry]["ns"] = R"((ns app.index (:require app.a [app.b :as board] ["x.lisp"])))";
+	aliased[entry]["main"] = section[entry]["main"].get<std::string>().replace(
+	    section[entry]["main"].get<std::string>().find("b/title"), 7, "board/title");
+	cases.emplace_back("an alias renamed with its uses", aliased);
+	for(const auto& [what, after] : cases) {
+		INFO(what);
+		REQUIRE_FALSE(buildInFull(after).contains("error"));
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK_FALSE(counted.inPart);
+		CHECK_FALSE(counted.inPlace);
+	}
+}

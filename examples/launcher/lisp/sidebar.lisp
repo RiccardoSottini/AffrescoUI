@@ -2,6 +2,8 @@
 ;;;
 ;;; In a narrow window the sidebar folds to its icons: the names and the keys go, the tooltips say them.
 
+(ns launcher.sidebar)
+
 ;;; The sidebar
 
 (defview sidebar "The sidebar: the mark and its name, the pages, a note, and New app." []
@@ -41,7 +43,7 @@
   ;; A macro, so that the label stays an expression of the running app.
   "A key's label, as the platform writes it: with ⌘ on a Mac, Ctrl elsewhere."
   [mac other]
-  `(if (= context.platform "mac") ~mac ~other))
+  `(if (= context.platform :mac) ~mac ~other))
 
 (defview pages-nav "The pages, each with its key." []
   `(column#nav :anchors {:left 12 :right 12 :top 90}

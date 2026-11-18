@@ -5,6 +5,8 @@
 ;;; pickers. The settings page lists every setting the features define, searchable, in groups; the keyboard
 ;;; shortcuts page lists every key.
 
+(ns forge.features.palette.palette)
+
 ;;; The quick pick
 
 (defstate quickPick {:open false :query ""})
@@ -16,7 +18,7 @@
            {:title (+ (if it.category (str it.category ": ") "") it.title)
             :detail (or-else it.keyLabel "")
             :run it.name})
-         (filter (fn [it] it.enabled) commands)))
+         (filter :enabled commands)))
 
 (defcomputed lineItems
   (if (> (or-else (number (slice (or-else state.quickPick.query "") 1)) 0) 0)
@@ -86,7 +88,7 @@
 (defcommand changeIndentation "Change Indentation"
   :title ~(t "command.changeIndentation")
   :description ~(t "command.changeIndentation") :category ~(t "category.view") :icon "indent-increase"
-  :enablement ~(= computed.activeDoc.kind "file") []
+  :enablement ~(= computed.activeDoc.kind :file) []
   (set "state.quickPick.query" "indent ")
   (set "state.quickPick.open" true))
 
@@ -110,13 +112,12 @@
 
 (defn setEol "The line endings the active file is saved with, LF or CRLF: a change to save, like an edit."
   [eol]
-  (doseq [doc (filter (fn [it] (= it.id computed.activeDoc.id)) state.docs)]
+  (doseq [doc (filter #(= (:id %) computed.activeDoc.id) state.docs)]
     (markDirty doc.id (or (not= doc.text doc.saved) (not= eol doc.savedEol)))
-    (set "state.docs" (map (fn [it] (if (= it.id doc.id) (merge it {:eol eol}) it)) state.docs))))
+    (set "state.docs" (map #(if (= (:id %) doc.id) (assoc % :eol eol) %) state.docs))))
 
 (defn setLanguage "The active file's language, as state.languages names them ('' is plain text)." [language]
-  (set "state.docs"
-       (map (fn [it] (if (= it.id computed.activeDoc.id) (merge it {:language language}) it)) state.docs)))
+  (set "state.docs" (map #(if (= (:id %) computed.activeDoc.id) (assoc % :language language) %) state.docs)))
 
 ;;; The settings and keyboard shortcuts pages
 
@@ -124,16 +125,17 @@
 
 (defstate keysQuery "")
 
-(defcomputed settingsGroups (map (fn [it] (get (split it.key ".") 0)) settingsList))
+(defcomputed settingsGroups (map #(get (split (:key %) ".") 0) settingsList))
 
 (defcomputed settingsToc
   (concat [{:query "" :label (t "settingsToc.all")}]
             (map (fn [it]
                    {:query (str it ".")
-                    :label (cond (= it "editor") (t "settingsToc.editor")
-                                 (= it "diffEditor") (t "settingsToc.diffEditor")
-                                 (= it "accounts") (t "settingsToc.accounts")
-                                 :else (+ (upper-case (slice it 0 1)) (slice it 1)))})
+                    :label (case it
+                             "editor" (t "settingsToc.editor")
+                             "diffEditor" (t "settingsToc.diffEditor")
+                             "accounts" (t "settingsToc.accounts")
+                             (+ (upper-case (slice it 0 1)) (slice it 1)))})
                  (filter (fn [it index] (= (indexOf computed.settingsGroups it) index)) computed.settingsGroups))))
 
 (defcomputed settingsRows
@@ -174,7 +176,7 @@
   (set (str "settings." key) value))
 
 (defn setNumberSetting "A number typed for a setting, kept once it reads as one." [key text]
-  (when (some? (number text)) (setSetting key (number text))))
+  (when-some [n (number text)] (setSetting key n)))
 
 (defn resetSetting "A setting back to its default: the value set is taken away." [key]
   (remove-state (str "settings." key)))

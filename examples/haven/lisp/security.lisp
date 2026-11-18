@@ -4,6 +4,8 @@
 ;;; The notifications open beside the sidebar's bell. A timer stands in for the devices: each room drifts towards its
 ;;; target, and while the home is away, the hall reports motion.
 
+(ns haven.security)
+
 ;;; The settings
 
 (defcustom security.motionAlerts
@@ -33,7 +35,7 @@
 (defcomputed securityLabel "The security mode's name." (t (str "security." state.security)))
 
 (defcomputed alarmColor "The alarm's colour: green while it is off, red while it is on."
-  (if (= state.security "off") "@ok" "@alert"))
+  (if (= state.security :off) "@ok" "@alert"))
 
 ;;; The alarm
 
@@ -46,10 +48,10 @@
      :role group
      :label ~(t "alarm.title")
      :onClick ~(handler openInfo "alarm" 0)
-     (label#alarmIcon :icon ~(if (= state.security "off") "shield-off" "shield-check")
+     (label#alarmIcon :icon ~(if (= state.security :off) "shield-off" "shield-check")
        :text ""
        :textColor ~computed.alarmColor
-       :color ~(if (= state.security "off") "@okSoft" "@alertSoft")
+       :color ~(if (= state.security :off) "@okSoft" "@alertSoft")
        :anchors {:left 12 :top 18}
        :width 36
        :height 36
@@ -80,6 +82,7 @@
   `(node :anchors {:left 0 :right 0 :top 120 :bottom 0} :color transparent
      (label#alarmCode :text ~(if (empty? state.alarmCode)
                                  (t "alarm.code")
+                                 ;; style: keep, a function that leaves out its item has no #(...) form
                                  (join " " (map (fn [it] "●") (split state.alarmCode ""))))
        :textColor ~(if (empty? state.alarmCode) "@muted" "@text")
        :anchors {:left 100 :right 100 :top 0}
@@ -103,7 +106,7 @@
           :height 50
           :radius 25
           :font ~(if (= (count key) 1) "heading" "icons")
-          :icon ~(cond (= key "clear") "x" (= key "back") "delete" :else "")
+          :icon ~(case key "clear" "x" "back" "delete" "")
           :text ~(if (= (count key) 1) key "")
           :label ~(if (= (count key) 1) key (t (str "alarm." key)))
           :onClick ~(handler pressAlarmKey key)))))
@@ -154,7 +157,7 @@
        :width 96
        :height 26
        :onClick clearNotifications)
-     (node#notificationsEmpty :when ~(= (count state.notifications) 0)
+     (node#notificationsEmpty :when ~(empty? state.notifications)
        :style caption
        :text ~(t "notify.empty")
        :anchors {:left 16 :top 60})

@@ -5,6 +5,8 @@
 ;;; task of .forge/tasks.json, read through files.read and parsed with parseJsonc, in a new terminal, through
 ;;; runInTerminal.
 
+(ns forge.features.terminal.terminal)
+
 ;;; Terminals
 
 (defstate terminals {:list [] :active "" :next 1})
@@ -29,10 +31,10 @@
 
 (defn terminalClose "Closes a terminal and its shell; the Output tab shows when the last one goes." [id]
   (closeTerminal id)
-  (set "state.terminals.list" (filter (fn [it] (not= it.id id)) state.terminals.list))
+  (set "state.terminals.list" (remove #(= (:id %) id) state.terminals.list))
   (when (= state.terminals.active id)
-    (set "state.terminals.active" (if (> (count state.terminals.list) 0) state.terminals.list.0.id "")))
-  (when (and (= (count state.terminals.list) 0) (= state.panelTab "terminal")) (set "state.panelTab" "output")))
+    (set "state.terminals.active" (if (seq state.terminals.list) state.terminals.list.0.id "")))
+  (when (and (empty? state.terminals.list) (= state.panelTab "terminal")) (set "state.panelTab" "output")))
 
 (defcommand terminalKill "Kill the Active Terminal"
   :title ~(t "command.terminalKill")
@@ -43,7 +45,7 @@
 (defcommand showTerminal "Focus Terminal"
   :title ~(t "command.showTerminal")
   :description ~(t "command.showTerminal") :category ~(t "category.view") :icon "terminal" []
-  (if (= (count state.terminals.list) 0)
+  (if (empty? state.terminals.list)
     (terminalNew)
     (do (set "state.layout.panel" true) (set "state.panelTab" "terminal") (after 0 focusTerminal))))
 
@@ -76,7 +78,7 @@
   :title ~(t "command.rerunLastTask")
   :description ~(t "command.rerunLastTask") :category ~(t "category.terminal") :icon "refresh-cw"
   :enablement ~(not= state.tasks.last "") []
-  (taskStart (find (fn [it] (= it.title state.tasks.last)) state.tasks.items)))
+  (taskStart (find #(= (:title %) state.tasks.last) state.tasks.items)))
 
 (defkey "mod+shift+b" runBuildTask)
 
@@ -104,9 +106,9 @@
   (tasksReadFile event.file (or-else event.then "")))
 
 (defn tasksReadFile "The tasks file's tasks, if it has some." [file then]
-  (if (nil? file)
-    (tasksFail (t "tasks.notJson"))
-    (tasksRead then (if (and (= (type file) "object") (= (type file.tasks) "list")) file.tasks []))))
+  (if (some? file)
+    (tasksRead then (if (and (= (type file) "object") (= (type file.tasks) "list")) file.tasks []))
+    (tasksFail (t "tasks.notJson"))))
 
 (defn tasksRead
   "The tasks Forge runs (shell or process; ${workspaceFolder} as '.', other variables skipped), the first 100 kept."
@@ -117,41 +119,35 @@
                      {:t it
                       :shell (not= it.type "process")
                       :group (if (= (type it.group) "object") it.group.kind it.group)
-                      :command (if (= (type it.command) "string")
-                                 (join "." (split it.command "${workspaceFolder}"))
-                                 nil)
+                      :command (when (= (type it.command) "string") (str/replace it.command "${workspaceFolder}" "."))
                       :args (cond
                               (nil? it.args) []
                               (and (= (type it.args) "list") (<= (count it.args) 1000))
-                                (map (fn [it]
-                                       (if (= (type it) "string") (join "." (split it "${workspaceFolder}")) nil))
-                                     it.args)
+                                (map #(when (= (type %) "string") (str/replace % "${workspaceFolder}" ".")) it.args)
                               :else nil)})
-                   (filter (fn [it]
-                             (and (= (type it) "object")
-                                  (some? it.command)
-                                  (or (nil? it.type) (= it.type "shell") (= it.type "process"))))
+                   (filter #(and (= (type %) "object")
+                                 (some? (:command %))
+                                 (or (nil? (:type %)) (#{:shell :process} (:type %))))
                            listed))))
 
 (defn tasksQuote "Each task's command and arguments quoted for the shell; a task that can't be is left out."
   [then total known]
   (tasksLine then
              total
-             (filter (fn [it] (and (some? it.quotedCommand) (some? it.quotedArgs)))
-                     (map (fn [it]
-                            (merge it {:quotedCommand (shellLine [it.command]) :quotedArgs (shellLine it.args)}))
+             (filter #(and (some? (:quotedCommand %)) (some? (:quotedArgs %)))
+                     (map #(merge % {:quotedCommand (shellLine [(:command %)]) :quotedArgs (shellLine (:args %))})
                           (filter (fn [it]
                                     (and (some? it.command)
                                          (not= it.command "")
                                          (some? it.args)
-                                         (not (contains it.command "${"))
-                                         (every? (fn [it] (or (nil? it) (not (contains it "${")))) it.args)))
+                                         (not (str/includes? it.command "${"))
+                                         (every? #(or (nil? %) (not (str/includes? % "${"))) it.args)))
                                   known)))))
 
 (defn tasksLine "Each task's line, as the shell runs it, its label and its group." [then total quoted]
   (tasksKeep then
              total
-             (filter (fn [it] (<= (count it.line) 60000))
+             (filter #(<= (count (:line %)) 60000)
                      (map (fn [it]
                             {:label (if (and (= (type it.t.label) "string")
                                              (not= it.t.label "")
@@ -160,7 +156,7 @@
                                       it.command)
                              :line (str (if it.shell it.command it.quotedCommand)
                                         (if (= it.quotedArgs "") "" (str " " it.quotedArgs)))
-                             :group (if (or (= it.group "build") (= it.group "test")) it.group "")})
+                             :group (if (#{:build :test} it.group) it.group "")})
                           quoted))))
 
 (defn tasksKeep "The first 100 tasks; the rest are counted as skipped." [then total kept]
@@ -168,12 +164,13 @@
 
 (defn tasksApply "The tasks found: the build task runs, or the palette lists them to pick one." [found then]
   (set "state.tasks.items"
+       ; style: keep, #(...) can't give a map
        (map (fn [it] {:title it.label :detail it.line :line it.line :group it.group}) (or-else found.tasks [])))
   (set "state.tasks.skipped" (or-else found.skipped 0))
   (set "state.tasks.error" "")
   (cond
-    (and (= then "build") (= (count (filter (fn [it] (= it.group "build")) state.tasks.items)) 1))
-      (taskStart (find (fn [it] (= it.group "build")) state.tasks.items))
+    (and (= then "build") (= (count (filter #(= (:group %) "build") state.tasks.items)) 1))
+      (taskStart (find #(= (:group %) "build") state.tasks.items))
     (and (not= then "") (empty? state.tasks.items)) (notify "info" (t "tasks.none"))
     (not= then "") (do (set "state.quickPick.query" "task ") (set "state.quickPick.open" true))))
 
@@ -188,5 +185,5 @@
       (set "state.tasks.last" item.title)
       (terminalNew)
       (set "state.terminals.list"
-           (map (fn [it] (if (= it.id state.terminals.active) (merge it {:label (t "terminal.task" {:title item.title})}) it))
+           (map #(if (= (:id %) state.terminals.active) (merge % {:label (t "terminal.task" {:title item.title})}) %)
                 state.terminals.list)))))

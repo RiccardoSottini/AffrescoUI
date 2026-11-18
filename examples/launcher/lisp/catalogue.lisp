@@ -5,6 +5,8 @@
 ;;; where it was listed. Listing an entry says it was reviewed and unchanged since, not that it is harmless: what it
 ;;; changes still waits as a proposal only the person accepts.
 
+(ns launcher.catalogue)
+
 ;;; What it keeps
 
 (defstate catalogue {:available false :name "" :updated "" :signed false :entries []}
@@ -13,9 +15,9 @@
 (defstate catalogueQuery "" "The Catalogue page's search.")
 
 (defcomputed catalogueShown "The entries whose title, description or id holds the search."
-  (filter (fn [it] (or (= (trim state.catalogueQuery) "")
-                       (contains (lower-case (str it.title " " it.description " " it.id))
-                                 (lower-case (trim state.catalogueQuery)))))
+  (filter #(or (= (trim state.catalogueQuery) "")
+               (contains (lower-case (str (:title %) " " (:description %) " " (:id %)))
+                         (lower-case (trim state.catalogueQuery))))
           state.catalogue.entries))
 
 (defcomputed listedLine "Where the entry reviewed was listed, or empty for a file."
@@ -28,7 +30,7 @@
 ;;; The page
 
 (defview catalogue-page "The Catalogue page: its title, the search, when it was updated, and the cards." []
-  `(node#cataloguePage :when ~(= state.page "catalogue") :fill true :color transparent :role tabpanel
+  `(node#cataloguePage :when ~(= state.page :catalogue) :fill true :color transparent :role tabpanel
      :label ~(t "nav.catalogue")
      (node#catalogueTitle :style pageTitle :text ~(t "catalogue.title") :role heading)
      (node#catalogueSub :style pageSub :text ~(t "catalogue.sub") :anchors {:left 36 :right 320 :top 72})
@@ -37,7 +39,7 @@
               :placeholder ~(t "catalogue.search")
               :label ~(t "catalogue.search")
               :clearLabel ~(t "apps.clear")
-              :width ~(min 280 (- (- window.width computed.sideWidth) 420))
+              :width ~(min 280 (- window.width computed.sideWidth 420))
               :height 38
               :color @c.surface}
        :anchors {:right 36 :top 36})
@@ -57,7 +59,7 @@
        :label ~(t "nav.catalogue")
        ~(repeat [entry computed.catalogueShown :key entry.id]
          `(node#catalogueCard :use catalogueCard :with {:entry ~entry})))
-     (label#catalogueNone :when ~(= (count computed.catalogueShown) 0)
+     (label#catalogueNone :when ~(empty? computed.catalogueShown)
        :textColor @c.muted
        :align center
        :wrap true
@@ -82,7 +84,7 @@
      :hover {:borderColor @c.accent :shadow {:y 8 :blur 22 :color @c.shadow}}
      :focused {:borderColor @c.accent :borderWidth 2}
      :onClick ~(handler reviewListed entry.id entry.release entry.description)
-     (label#catalogueCardIcon :icon ~(if (= entry.kind "feature") "puzzle" "package")
+     (label#catalogueCardIcon :icon ~(if (= entry.kind :feature) "puzzle" "package")
        :font bigIcons
        :align center
        :textColor @c.accent
@@ -95,7 +97,7 @@
        :textColor @c.muted
        :align "end center"
        :text ~(cond entry.installed (t "catalogue.installed")
-                    (= entry.kind "feature") (t "catalogue.kindFeature")
+                    (= entry.kind :feature) (t "catalogue.kindFeature")
                     :else (t "catalogue.kindVersion" {:base entry.base}))
        :anchors {:right 16 :top 16}
        :height 22
@@ -151,4 +153,4 @@
 (defcommand showCatalogue "Shows the Catalogue page."
   :title ~(t "nav.catalogue") :description ~(t "command.showCatalogue.about") :category ~(t "category.view")
   :icon "library" []
-  (when state.catalogue.available (go "catalogue")))
+  (when state.catalogue.available (go :catalogue)))

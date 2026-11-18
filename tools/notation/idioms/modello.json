@@ -3,17 +3,6 @@
 		"modello/lisp"
 	],
 	"allowed": {
-		"fn-one-parameter": 126,
-		"when-not": 15,
-		"if-nil": 7,
-		"when-some": 11,
-		"cond-one-value": 24,
-		"contains-vector": 1,
-		"minus-one": 13,
-		"plus-one": 5,
-		"count-zero": 8,
-		"string-function": 11,
-		"four-nested-calls": 113,
-		"entry-include": 1
+		"four-nested-calls": 33
 	}
 }

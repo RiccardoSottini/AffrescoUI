@@ -3,6 +3,8 @@
 ;;; A colour is named once with its light and dark values (@card, @accent...); a style is a node's look that many
 ;;; nodes name (:style card).
 
+(ns haven.look)
+
 ;;; Colours
 
 (defpart colours "The palette, light and dark: the surfaces, the text, the accent, and the climate's and energy's own."

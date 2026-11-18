@@ -2,6 +2,8 @@
 ;;;
 ;;; The tokens are the palette, light and dark; a style is a node's look that many nodes name (:style toolButton).
 
+(ns flow.look)
+
 ;;; Colours
 
 (deftokens tokens "Tokens."

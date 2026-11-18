@@ -8,28 +8,29 @@
 ;;; Cmd+Shift+A the security mode, Cmd+Shift+N the notifications, Up and Down the target temperature, Alt and Up or
 ;;; Down the room.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "../../shared/components/charts.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "shell.lisp"
-         "search.lisp"
-         "home.lisp"
-         "edit.lisp"
-         "moreinfo.lisp"
-         "plan.lisp"
-         "automations.lisp"
-         "energy.lisp"
-         "areas.lisp"
-         "history.lisp"
-         "settings.lisp"
-         "security.lisp"
-         "haven.lisp"
-         "../../shared/addons/assistant/assistant.lisp")
+(ns haven.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "../../shared/components/charts.lisp"
+            haven.state
+            haven.computed
+            haven.look
+            haven.keys
+            haven.shell
+            haven.search
+            haven.home
+            haven.edit
+            haven.moreinfo
+            haven.plan
+            haven.automations
+            haven.energy
+            haven.areas
+            haven.history
+            haven.settings
+            haven.security
+            haven.haven
+            "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; The window, and what is in it, in the order it is drawn
 

@@ -4,6 +4,8 @@
 ;;; this file asks it about the active file, shows its answers, and applies the edits a rename or a format proposes
 ;;; after a review. Its diagnostics squiggle the editors and fill Problems.
 
+(ns forge.features.lsp.lsp)
+
 ;;; The server
 
 (defstate lsp
@@ -41,40 +43,41 @@
   "Asks the server about the active file, its text sent along; line and column from 0, or nil for the caret's."
   [kind line column newName query]
   (when (not= kind "outline") (increment "state.lsp.request" :by 1))
-  (when (some? computed.lspLanguage)
+  (when-some [language computed.lspLanguage]
     (lspListen)
     (lspCall kind
              state.lsp.request
              (if (= kind "workspaceSymbols") "" computed.activeDoc.id)
              (if (= kind "workspaceSymbols")
                {:query (or-else query "")}
-               (merge {:path computed.activeDoc.id :text computed.activeDoc.text :language computed.lspLanguage}
-                      (if (contains ["hover" "completion" "signature" "definition" "references" "rename"] kind)
-                        {:line (or-else line (max (- state.caret.line 1) 0))
-                         :column (or-else column (max (- state.caret.column 1) 0))}
+               (merge {:path computed.activeDoc.id :text computed.activeDoc.text :language language}
+                      (if (contains? #{:hover :completion :signature :definition :references :rename} kind)
+                        {:line (or-else line (max (dec state.caret.line) 0))
+                         :column (or-else column (max (dec state.caret.column) 0))}
                         {})
                       (if (= kind "rename") {:newName newName} {})
                       (if (= kind "format") {:tabSize (or-else settings.editor.tabSize 4) :insertSpaces true} {}))))
     (when (and (not= kind "workspaceSymbols") (not (contains state.lsp.open computed.activeDoc.id)))
-      (set "state.lsp.open" (slice (concat state.lsp.open [computed.activeDoc.id]) (- 256))))))
+      (set "state.lsp.open" (slice (conj state.lsp.open computed.activeDoc.id) (- 256))))))
 
 (defn lspCall
   "Asks one kind of question, each a step naming its method; the silent kinds cancel the last. Answers go to lspAnswer."
   [kind request path arguments]
   (let [done [lspAnswered kind request path]
         failed [lspFailed kind request path]]
-    (cond
-      (= kind "hover") (invoke "lsp.hover" :with arguments :id "lsp-hover" :onDone done :onError failed)
-      (= kind "completion") (invoke "lsp.completion" :with arguments :id "lsp-completion" :onDone done :onError failed)
-      (= kind "signature") (invoke "lsp.signature" :with arguments :id "lsp-signature" :onDone done :onError failed)
-      (= kind "tokens") (invoke "lsp.tokens" :with arguments :id "lsp-tokens" :onDone done :onError failed)
-      (= kind "definition") (invoke "lsp.definition" :with arguments :onDone done :onError failed)
-      (= kind "references") (invoke "lsp.references" :with arguments :onDone done :onError failed)
-      (= kind "rename") (invoke "lsp.rename" :with arguments :onDone done :onError failed)
-      (= kind "format") (invoke "lsp.format" :with arguments :onDone done :onError failed)
-      (= kind "outline") (invoke "lsp.symbols" :with arguments :id "lsp-outline" :onDone done :onError failed)
-      (= kind "symbols") (invoke "lsp.symbols" :with arguments :onDone done :onError failed)
-      (= kind "workspaceSymbols") (invoke "lsp.workspaceSymbols" :with arguments :onDone done :onError failed))))
+    (case kind
+      :hover (invoke "lsp.hover" :with arguments :id "lsp-hover" :onDone done :onError failed)
+      :completion (invoke "lsp.completion" :with arguments :id "lsp-completion" :onDone done :onError failed)
+      :signature (invoke "lsp.signature" :with arguments :id "lsp-signature" :onDone done :onError failed)
+      :tokens (invoke "lsp.tokens" :with arguments :id "lsp-tokens" :onDone done :onError failed)
+      :definition (invoke "lsp.definition" :with arguments :onDone done :onError failed)
+      :references (invoke "lsp.references" :with arguments :onDone done :onError failed)
+      :rename (invoke "lsp.rename" :with arguments :onDone done :onError failed)
+      :format (invoke "lsp.format" :with arguments :onDone done :onError failed)
+      :outline (invoke "lsp.symbols" :with arguments :id "lsp-outline" :onDone done :onError failed)
+      :symbols (invoke "lsp.symbols" :with arguments :onDone done :onError failed)
+      :workspaceSymbols (invoke "lsp.workspaceSymbols" :with arguments :onDone done :onError failed)
+      nil)))
 
 (defn lspAnswered "The server's answer to a question." [kind request path result]
   (lspAnswer {:kind kind :request request :path path :result result :error nil}))
@@ -100,27 +103,26 @@
   [answer]
   (if (some? answer.error)
     (lspRefused answer)
-    (do
-      (when (and (= answer.kind "hover") (= answer.request state.lsp.hover.request)) (lspShowHover answer))
-      (when (and (= answer.kind "completion") (= answer.request state.lsp.completion.request))
-        (lspShowCompletions answer.result.items))
-      (when (= answer.kind "signature") (lspShowSignature answer.result))
-      (when (and (= answer.kind "definition") (= (count answer.result.locations) 1))
-        (lspOpenLocation (first answer.result.locations)))
-      (when (or (and (= answer.kind "definition") (not= (count answer.result.locations) 1)) (= answer.kind "references"))
-        (lspPeek answer))
-      (when (or (= answer.kind "rename") (= answer.kind "format")) (lspReview answer))
-      (when (and (= answer.kind "outline") (= answer.path (or-else computed.activeDoc.id ""))) (lspShowOutline answer))
-      (when (or (= answer.kind "symbols") (= answer.kind "workspaceSymbols"))
-        (set "state.lsp.symbols" answer.result.symbols))
-      (when (= answer.kind "tokens") (lspShowTokens answer.path answer.result.tokens)))))
+    (case answer.kind
+      :hover (when (= answer.request state.lsp.hover.request) (lspShowHover answer))
+      :completion (when (= answer.request state.lsp.completion.request) (lspShowCompletions answer.result.items))
+      :signature (lspShowSignature answer.result)
+      :definition
+        (if (= (count answer.result.locations) 1)
+          (lspOpenLocation (first answer.result.locations))
+          (lspPeek answer))
+      :references (lspPeek answer)
+      (:rename :format) (lspReview answer)
+      :outline (when (= answer.path (or-else computed.activeDoc.id "")) (lspShowOutline answer))
+      (:symbols :workspaceSymbols) (set "state.lsp.symbols" answer.result.symbols)
+      :tokens (lspShowTokens answer.path answer.result.tokens)
+      nil)))
 
 (defn lspRefused "Says why the server didn't answer, but for the kinds asked as the person types." [answer]
-  (cond
-    (or (= answer.kind "rename") (= answer.kind "format"))
-      (notify "warning" (t "lsp.notApplied" {:error answer.error.message}))
-    (not (contains ["hover" "completion" "signature" "tokens" "outline"] answer.kind))
-      (notify "info" (t "lsp.refused" {:error answer.error.message}))))
+  (case answer.kind
+    (:rename :format) (notify "warning" (t "lsp.notApplied" {:error answer.error.message}))
+    (:hover :completion :signature :tokens :outline) nil
+    (notify "info" (t "lsp.refused" {:error answer.error.message}))))
 
 (defn lspShowHover "The hover's text, at the place asked about." [answer]
   (set "state.lsp.hover"
@@ -133,13 +135,13 @@
 (defn lspShowCompletions "The completions, the first chosen." [items]
   (set "state.lsp.completion.items" items)
   (set "state.lsp.completion.index" 0)
-  (set "state.lsp.completion.open" (> (count items) 0)))
+  (set "state.lsp.completion.open" (pos? (count items))))
 
 (defn lspShowSignature "The signature of the call at the caret, if there is one." [result]
   (set "state.lsp.signature"
-       (if (nil? result)
-         {:open false :label "" :documentation ""}
-         {:open true :label result.label :documentation result.documentation})))
+       (if (some? result)
+         {:open true :label result.label :documentation result.documentation}
+         {:open false :label "" :documentation ""})))
 
 (defn lspPeek "Definitions or references, listed in the peek." [answer]
   (set "state.lsp.peek"
@@ -150,7 +152,7 @@
                   {:n (count answer.result.locations) :more (if answer.result.truncated "+" "")})}))
 
 (defn lspReview "A rename's or a format's edits, to review before they apply." [answer]
-  (if (= (count answer.result.edits) 0)
+  (if (empty? answer.result.edits)
     (log-line (t "lsp.nothingToChange"))
     (set "state.lsp.review"
          {:open true
@@ -161,22 +163,23 @@
 
 (defn lspShowOutline "The active file's symbols, as the outline lists them (lines from 1)." [answer]
   (set "state.outline"
-       (map (fn [it] {:line (+ it.line 1) :depth it.depth :label it.name :kind it.kind}) answer.result.symbols))
+       ; style: keep, #(...) can't give a map
+       (map (fn [it] {:line (inc it.line) :depth it.depth :label it.name :kind it.kind}) answer.result.symbols))
   (set "state.outlineSymbols" answer.path))
 
 (defn lspShowTokens "A file's semantic tokens, beside its diagnostics." [path tokens]
   (set "state.lsp.files"
-       (concat (filter (fn [it] (not= it.id path)) state.lsp.files)
-               [{:id path
-                 :decorations (or-else (:decorations (or-else (find (fn [it] (= it.id path)) state.lsp.files) {})) [])
-                 :tokens tokens}])))
+       (conj (remove #(= (:id %) path) state.lsp.files)
+             {:id path
+              :decorations (or-else (:decorations (find #(= (:id %) path) state.lsp.files)) [])
+              :tokens tokens})))
 
 ;;; Diagnostics
 
 (defn lspListen
   "Listens to the server's diagnostics, file by file, from its first request on (again after the stream ends)."
   []
-  (when (not state.lsp.listening)
+  (when-not (true? state.lsp.listening)
     (set "state.lsp.listening" true)
     (subscribe "lsp.diagnostics" :id "lsp-diagnostics" :do lspListenEach :onError lspListenFailed)))
 
@@ -190,32 +193,29 @@
   "A file's diagnostics (`published`, from 0): squiggles in its editor, and rows (from 1) in Problems."
   [published]
   (set "state.lsp.files"
-       (concat (filter (fn [it] (not= it.id published.path)) state.lsp.files)
-               [{:id published.path
-                 :tokens (or-else (:tokens (or-else (find (fn [it] (= it.id published.path)) state.lsp.files) {})) [])
-                 :decorations (map (fn [it]
-                                     {:line it.line
-                                      :column it.column
-                                      :endLine it.endLine
-                                      :endColumn (if (and (= it.endLine it.line) (<= it.endColumn it.column))
-                                                   (+ it.column 1)
-                                                   it.endColumn)
-                                      :kind "squiggle"
-                                      :color (cond
-                                               (= it.severity "error") "#f85149"
-                                               (= it.severity "warning") "#cca700"
-                                               :else "#3794ff")
-                                      :text it.message})
-                                   published.diagnostics)}]))
+       (conj (remove #(= (:id %) published.path) state.lsp.files)
+             {:id published.path
+              :tokens (or-else (:tokens (find #(= (:id %) published.path) state.lsp.files)) [])
+              :decorations (map (fn [it]
+                                  {:line it.line
+                                   :column it.column
+                                   :endLine it.endLine
+                                   :endColumn (if (and (= it.endLine it.line) (<= it.endColumn it.column))
+                                                (inc it.column)
+                                                it.endColumn)
+                                   :kind "squiggle"
+                                   :color (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
+                                   :text it.message})
+                                published.diagnostics)}))
   (set "state.problems"
-       (concat (filter (fn [it] (or (not (or-else it.server false)) (not= it.file published.path))) state.problems)
+       (concat (remove #(and (or-else (:server %) false) (= (:file %) published.path)) state.problems)
                (map (fn [it]
                       {:severity (if (= it.severity "hint") "info" it.severity)
                        :message (if (empty? it.source) it.message (str it.message " (" it.source ")"))
                        :file published.path
                        :label (baseName published.path)
-                       :line (+ it.line 1)
-                       :column (+ it.column 1)
+                       :line (inc it.line)
+                       :column (inc it.column)
                        :source "lsp"
                        :server true})
                     published.diagnostics)))
@@ -229,12 +229,12 @@
   (when (contains state.lsp.open id) (debounce 500 lspChangedLater id)))
 
 (defn lspChangedLater "Sends an edited file's text to the server." [id]
-  (doseq [doc (filter (fn [it] (and (= it.id id) (= it.kind "file"))) state.docs)]
+  (doseq [doc (filter #(and (= (:id %) id) (= (:kind %) "file")) state.docs)]
     (invoke "lsp.sync"
             :with {:path doc.id
                    :text doc.text
-                   :language (or-else (get state.lsp.languages (lower-case (get (reverse (split doc.id ".")) 0)))
-                                      "cpp")}
+                   ; style: keep, the host's split keeps the empty text after a last dot: a name ending in one has no language
+                   :language (or-else (get state.lsp.languages (str/lower-case (last (split doc.id ".")))) "cpp")}
             :onError lspChangedLaterFailed)))
 
 (defn lspChangedLaterFailed "A text the server didn't take: nothing to do." []
@@ -242,7 +242,7 @@
 
 (defn lspClosed "A file no longer open in Forge (`id`): the server reads it from disk again." [id]
   (when (contains state.lsp.open id)
-    (set "state.lsp.open" (filter (fn [it] (not= it id)) state.lsp.open))
+    (set "state.lsp.open" (remove #{id} state.lsp.open))
     (invoke "lsp.close" :with {:path id} :onError lspClosedFailed)))
 
 (defn lspClosedFailed "A file the server didn't close: nothing to do." []
@@ -253,45 +253,45 @@
 (defcomputed lspCompletions (fuzzySort state.lsp.completion.items state.lsp.completion.word "filter" 50))
 
 (defn lspHoverAt "The pointer rests over a word: asks for its hover, or hides it." []
-  (if (or (not event.over) (nil? computed.activeDoc))
-    (set "state.lsp.hover.open" false)
+  (if (and (true? event.over) (some? computed.activeDoc))
     (do
       (set "state.lsp.at" {:x event.x :y event.y :top event.top})
       (lspAsk "hover" event.line event.column nil nil)
-      (set "state.lsp.hover.request" state.lsp.request))))
+      (set "state.lsp.hover.request" state.lsp.request))
+    (set "state.lsp.hover.open" false)))
 
 (defn lspTyped "A word typed: asks for completions, and for the signature after an open bracket or a comma." []
   (set "state.lsp.at" {:x event.x :y event.y :top event.top})
   (set "state.lsp.hover.open" false)
   (set "state.lsp.completion.word" event.word)
   (set "state.lsp.completion.index" 0)
-  (when (or (= event.text "(") (= event.text ",")) (lspAsk "signature" event.line event.column nil nil))
+  (when (#{"(" ","} event.text) (lspAsk "signature" event.line event.column nil nil))
   (when (= event.text ")") (set "state.lsp.signature.open" false))
   (cond
     (and (empty? event.word) (not= event.text ".")) (set "state.lsp.completion.open" false)
-    (or (= event.text ".") (= (count event.word) 1) (not state.lsp.completion.open))
+    (or (= event.text ".") (= (count event.word) 1) (not (true? state.lsp.completion.open)))
       (do
         (lspAsk "completion" event.line event.column nil nil)
         (set "state.lsp.completion.request" state.lsp.request))))
 
 (defn lspPopupKey "A key in the completion popup: Up and Down choose, Enter and Tab insert, Escape closes." []
-  (when (or (= event.key "escape") (= (count computed.lspCompletions) 0)) (set "state.lsp.completion.open" false))
-  (when (= event.key "down")
-    (set "state.lsp.completion.index" (min (+ state.lsp.completion.index 1) (- (count computed.lspCompletions) 1))))
-  (when (= event.key "up") (set "state.lsp.completion.index" (max (- state.lsp.completion.index 1) 0)))
-  (when (= event.key "pageDown")
-    (set "state.lsp.completion.index" (min (+ state.lsp.completion.index 10) (- (count computed.lspCompletions) 1))))
-  (when (= event.key "pageUp") (set "state.lsp.completion.index" (max (- state.lsp.completion.index 10) 0)))
-  (when (and (or (= event.key "enter") (= event.key "tab"))
-             state.lsp.completion.open
-             (> (count computed.lspCompletions) 0))
-    (lspComplete state.lsp.completion.index)))
+  (when (or (= event.key "escape") (empty? computed.lspCompletions)) (set "state.lsp.completion.open" false))
+  (let [index state.lsp.completion.index
+        last-index (dec (count computed.lspCompletions))]
+    (case event.key
+      :down (set "state.lsp.completion.index" (min (inc index) last-index))
+      :up (set "state.lsp.completion.index" (max (dec index) 0))
+      :pageDown (set "state.lsp.completion.index" (min (+ index 10) last-index))
+      :pageUp (set "state.lsp.completion.index" (max (- index 10) 0))
+      (:enter :tab)
+        (when (and (true? state.lsp.completion.open) (seq computed.lspCompletions)) (lspComplete index))
+      nil)))
 
 (defn lspComplete "Inserts a completion, by its place in the list." [index]
   (set "state.lsp.insert"
        {:text (get-in computed.lspCompletions [index :item :insert])
         :before (count state.lsp.completion.word)
-        :request (+ state.lsp.insert.request 1)})
+        :request (inc state.lsp.insert.request)})
   (set "state.lsp.completion.open" false))
 
 (defcommand triggerSuggest "Trigger Suggest"
@@ -321,7 +321,7 @@
 (defcomputed lspPeekRows
   (map-indexed (fn [index it]
                    {:id index
-                    :cells [(str (get (reverse (split it.path "/")) 0) ":" (+ it.line 1)) it.path (+ it.line 1)]})
+                    :cells [(str (get (reverse (split it.path "/")) 0) ":" (inc it.line)) it.path (inc it.line)]})
                  state.lsp.peek.items))
 
 (defcommand goToDefinition "Go to Definition"
@@ -338,8 +338,8 @@
 
 (defn lspOpenLocation "Opens a location (`at`: path, line, column, from 0) at its place." [at]
   (openPath at.path (baseName at.path))
-  (set "state.goTo.line" (+ at.line 1))
-  (set "state.goTo.column" (+ at.column 1))
+  (set "state.goTo.line" (inc at.line))
+  (set "state.goTo.column" (inc at.column))
   (increment "state.goTo.request" :by 1))
 
 (defn lspPeekOpen "A row of the peek, opened." []
@@ -366,7 +366,7 @@
   (lspOpenLocation item))
 
 (defn searchWorkspaceSymbols "A query typed in the symbol picker after #: the workspace's symbols are asked for." []
-  (when (and state.symbolPick.open (= (slice event.value 0 1) "#") (> (count event.value) 1))
+  (when (and (true? state.symbolPick.open) (str/starts-with? event.value "#") (> (count event.value) 1))
     (lspAsk "workspaceSymbols" nil nil nil (slice event.value 1))))
 
 ;;; Renaming and formatting
@@ -379,7 +379,8 @@
 
 (defn lspRenameSend "Renames the symbol at the caret to the name typed." []
   (set "state.lsp.rename.open" false)
-  (when (not (empty? (trim state.lsp.rename.name))) (lspAsk "rename" nil nil (trim state.lsp.rename.name) nil)))
+  (let [trimmed (str/trim state.lsp.rename.name)]
+    (when (seq trimmed) (lspAsk "rename" nil nil trimmed nil))))
 
 (defcommand formatDocument "Format Document"
   :title ~(t "command.formatDocument")
@@ -390,35 +391,28 @@
 (defn lspApply
   "Applies the edits reviewed: in an open file's editor (one undo step, unsaved), else read, changed and written."
   []
-  (doseq [file (keys (fromEntries (map (fn [it] {:key it.path :value true}) state.lsp.review.edits)))]
-    (lspApplyTo file
-                (map (fn [it]
-                       {:line it.line :column it.column :endLine it.endLine :endColumn it.endColumn :text it.text})
-                     (filter (fn [it] (= it.path file)) state.lsp.review.edits))))
+  (doseq [[file edits] (group-by :path state.lsp.review.edits)]
+    (lspApplyTo file (map #(select-keys % [:line :column :endLine :endColumn :text]) edits)))
   (log-line (t "lsp.applied" {:edits (count state.lsp.review.edits) :files state.lsp.review.files}))
   (set "state.lsp.review.open" false))
 
 (defn lspApplyTo "Applies edits to a file, in its editor if it is open." [file edits]
-  (if (some (fn [it] (and (= it.id file) (= it.kind "file"))) state.docs)
-    (do
-      (doseq [doc (filter (fn [it] (and (= it.id file) (= it.kind "file"))) state.docs)]
-        (if (nil? (applyEdits doc.text edits))
-          (notify "error" (t "lsp.overlap" {:file file}))
-          (set "state.docs"
-               (map (fn [it]
-                      (if (= it.id file)
-                        (merge it
-                               {:text (applyEdits it.text edits) :dirty (not= (applyEdits it.text edits) it.saved)})
-                        it))
-                    state.docs)))))
+  (if (some #(and (= (:id %) file) (= (:kind %) "file")) state.docs)
+    (doseq [doc (filter #(and (= (:id %) file) (= (:kind %) "file")) state.docs)]
+      (if (some? (applyEdits doc.text edits))
+        (set "state.docs"
+             (map (fn [it]
+                    (if (= it.id file)
+                      (let [edited (applyEdits it.text edits)] (merge it {:text edited :dirty (not= edited it.saved)}))
+                      it))
+                  state.docs))
+        (notify "error" (t "lsp.overlap" {:file file}))))
     (invoke "files.read" :with {:path file} :onError [lspApplyToFailed file] :onDone [lspApplyToDone edits file])))
 
 (defn lspApplyToDone "A file read: its edits applied, and written." [edits file result]
-  (if (nil? (applyEdits result.text edits))
-    (notify "error" (t "lsp.overlap" {:file file}))
-    (invoke "files.write"
-            :with {:path file :text (applyEdits result.text edits)}
-            :onError [lspApplyToDoneFailed file])))
+  (if-some [edited (applyEdits result.text edits)]
+    (invoke "files.write" :with {:path file :text edited} :onError [lspApplyToDoneFailed file])
+    (notify "error" (t "lsp.overlap" {:file file}))))
 
 (defn lspApplyToFailed "Says why a file couldn't be changed." [file error]
   (notify "error" (t "lsp.notAppliedTo" {:file file :error error.message})))

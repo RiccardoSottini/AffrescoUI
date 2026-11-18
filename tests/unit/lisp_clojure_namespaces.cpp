@@ -330,6 +330,29 @@ TEST_CASE("lisp namespaces: the fixture app builds, through its aliases") {
 	CHECK(tree["root"]["children"][1]["children"][1]["text"] == "cell b");
 }
 
+TEST_CASE("lisp namespaces: an app's definition changed builds in part and changes in place, through its aliases") {
+	Files files = board(); // a definition nothing uses: else the change reaches all, and a build in full is as cheap
+	files["parts/cell.lisp"] += "(defn spare [] 1)\n";
+	affresco::Screen screen = affresco::Screen::fromApp(writeApp("rebuild", files), {});
+	const json section = screen.versions().sourceDocument().at("program");
+	lisp::Program first = lisp::programOf(section);
+	static_cast<void>(first.build());
+	lisp::Interpreter interpreter;
+	interpreter.setPure(true);
+	first.load(interpreter, false);
+	json after = section;
+	after["parts/cell.lisp"]["named"] = R"((defn named [n] (str "a " n)))";
+	lisp::Program next = lisp::programOf(after);
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	const json tree = next.rebuild(*first.record());
+	CHECK(lisp::rebuildStatistics().inPart - before.inPart == 1);
+	CHECK(tree == lisp::programOf(after).build());
+	CHECK(tree["root"]["text"] == "A BOARD");
+	REQUIRE(next.redefine(interpreter, first, *next.record()));
+	interpreter.setPure(false);
+	CHECK(interpreter.print(interpreter.eval("(title)")) == R"("a board")");
+}
+
 TEST_CASE("lisp namespaces: an error in an included or required file says where it is in that file") {
 	constexpr std::array<std::string_view, 4> kinds = {"reader", "compile", "run", "event"};
 	for(const std::string_view kind : kinds) {

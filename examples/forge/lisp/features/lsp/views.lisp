@@ -1,6 +1,8 @@
 ;;; views.lisp --- what the language server shows over the editor: the hover, the signature, completions, the
 ;;; peek, the rename and review dialogs, and the symbol picker
 
+(ns forge.features.lsp.views)
+
 ;;; Over the editor
 
 (defcomponent forgeLsp "What the language server shows over the editor, each an overlay: the hover first."
@@ -122,7 +124,7 @@
        :items ~(map-indexed (fn [index it]
                               {:id index
                                :cells [it.path
-                                       (str (+ it.line 1) ":" (+ it.column 1))
+                                       (str (inc it.line) ":" (inc it.column))
                                        (slice (join "⏎" (split it.text "\n")) 0 80)]})
                             state.lsp.review.edits)
        :rowHeight 20

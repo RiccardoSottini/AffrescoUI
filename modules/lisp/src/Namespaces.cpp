@@ -9,6 +9,7 @@
 #include "TopLevel.hpp"
 
 #include <affresco/lisp/Interpreter.hpp>
+#include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
@@ -226,9 +227,6 @@ std::string namespacePath(std::string_view name, std::string_view own) {
 
 namespace {
 
-/// The files' namespaces and definitions, by file, as applyNamespaces() works them out.
-using Definitions = std::map<std::string, std::set<std::string, std::less<>>, std::less<>>;
-
 /// @brief The program's file a require names, as the program calls it.
 /// @param file The requiring file, as the program calls it.
 /// @param path The path it requires, relative to it.
@@ -268,7 +266,7 @@ void checkLanguageRefers(const Machine& machine, const std::string& file, const 
 /// @param definedIn Each file's definitions.
 /// @param aliases Gets the spec's aliases.
 void addProgramRequire(Machine& machine, const std::string& file, const Required& required,
-                       const std::map<std::string, std::string, std::less<>>& names, const Definitions& definedIn,
+                       const std::map<std::string, std::string, std::less<>>& names, const DefinitionsByFile& definedIn,
                        AliasMap& aliases) {
 	const std::string target = requiredFile(file, required.path);
 	const auto declared = names.find(target);
@@ -298,7 +296,7 @@ void addProgramRequire(Machine& machine, const std::string& file, const Required
 } // namespace
 
 void applyNamespaces(Machine& machine, std::span<const std::pair<std::string, std::string>> declared,
-                     const Definitions& definedIn) {
+                     const DefinitionsByFile& definedIn) {
 	machine.namespaces().clearProgram();
 	if(declared.empty()) return;
 	std::vector<std::pair<const std::string*, NamespaceDeclaration>> read;
@@ -321,6 +319,12 @@ void applyNamespaces(Machine& machine, std::span<const std::pair<std::string, st
 		}
 		machine.namespaces().setFileAliases(*file, std::move(aliases));
 	}
+}
+
+DefinitionsByFile definitionsByFile(std::span<const Entry> entries) {
+	DefinitionsByFile definedIn;
+	for(const Entry& entry : entries) definedIn[entry.file].insert(entry.name);
+	return definedIn;
 }
 
 void declareNamespace(Machine& machine, const Value& form, const std::string& file) {

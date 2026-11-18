@@ -1,9 +1,11 @@
 ;;; outliner.lisp --- the outliner: the scene's collections and objects as a tree (or a list), each row's eye, arrow
 ;;; and camera, renaming in place, and its header (editor type, display mode, search, filter, new collection)
 
+(ns modello.outliner)
+
 ;;; The rows
 
-(defcomputed objectRows "The scene's objects, by name." (sort-by (fn [it] it.name) state.scene.nodes))
+(defcomputed objectRows "The scene's objects, by name." (sort-by :name state.scene.nodes))
 
 (defcomputed outlinerRows "The objects listed: those the search, the filter and Only Selected let through."
   (filter (fn [it]
@@ -14,16 +16,16 @@
 
 ;; In the view layer, a collection's k puts it before its objects: each collection has 100000 places.
 (defcomputed outlinerItems "The rows under the root: each object in the list mode; else the collections, each followed by its open objects."
-  (cond (= state.outlinerMode "list") (map-indexed (fn [index it] {:node it :k index}) computed.outlinerRows)
+  (cond (= state.outlinerMode :list) (map-indexed (fn [index it] {:node it :k index}) computed.outlinerRows)
         (not= state.outlinerOpen.root true) []
-        :else (sort-by (fn [it] it.k)
-                       (concat (map-indexed (fn [index it] {:coll it :k (- (* index 100000) 1)}) computed.collections)
+        :else (sort-by :k
+                       (concat (map-indexed (fn [index it] {:coll it :k (dec (* index 100000))}) computed.collections)
                                (map-indexed (fn [index it]
                                               {:node it :k (+ (* (indexOf computed.collectionIds (or-else it.collection "collection")) 100000) index)})
-                                            (filter (fn [it] (= (get state.outlinerOpen (or-else it.collection "collection")) true))
+                                            (filter #(true? (get state.outlinerOpen (or-else (:collection %) "collection")))
                                                     computed.outlinerRows))))))
 
-(defcomputed outlinerDepth "How deep an object's row is: under its collection in the view layer, at the edge in the list." (if (= state.outlinerMode "list") 0 2))
+(defcomputed outlinerDepth "How deep an object's row is: under its collection in the view layer, at the edge in the list." (if (= state.outlinerMode :list) 0 2))
 
 (defcomputed outlinerFlags "The switches at a row's end: selectable, visible, rendered."
   [{:key "selectable" :on "mouse-pointer-2" :off "mouse-pointer-2" :title (t "outliner.disableSelection")}
@@ -65,7 +67,7 @@
               :open state.open.editorOutliner
               :items ~(editor-choices "outliner")})
      (node#outliner-display :use hButton
-       :with {:icon ~(if (= state.outlinerMode "list") "list" "layers-2")
+       :with {:icon ~(if (= state.outlinerMode :list) "list" "layers-2")
               :chevron true
               :width 38
               :tooltip ~(t "outliner.displayMode")
@@ -77,7 +79,7 @@
               :chevron true
               :width 38
               :tooltip ~(t "outliner.filter")
-              :on ~(or (> (count state.outlinerHide) 0) state.outlinerSelectedOnly)
+              :on ~(or (pos? (count state.outlinerHide)) state.outlinerSelectedOnly)
               :open state.open.outlinerFilter
               :items ~computed.outlinerFilterItems})
      (node#outliner-new :use hButton
@@ -89,7 +91,7 @@
   [item i]
   `(column :let {:n ~(or-else item.node {:id ""})}
      :width "100%"
-     :height ~(if (and item.node (= (get state.outlinerOpen n.id) true)) (* 20 (if n.material 3 2)) 20)
+     :height ~(if (and item.node (true? (get state.outlinerOpen n.id))) (* 20 (if n.material 3 2)) 20)
      :gap 0
      :color transparent
      (node :when ~(some? item.coll)
@@ -100,7 +102,7 @@
               :coll ~item.coll
               :icon package-open
               :iconColor @text
-              :stripe ~(= (mod i 2) 0)
+              :stripe ~(even? i)
               :expand ~item.coll.id
               :onSelect collection})
      (node :when ~(some? item.node)
@@ -111,24 +113,24 @@
               :iconColor @object
               :data ~(get computed.kindIcons n.kind)
               :node ~n
-              :stripe ~(= (mod (if (= state.outlinerMode "list") (+ i 1) i) 2) 0)
+              :stripe ~(if (= state.outlinerMode :list) (odd? i) (even? i))
               :expand ~(if n.mesh n.id "")})
      ~@(object-data-rows)))
 
 (defview object-data-rows "An open object's mesh and material, a level deeper: two rows." []
-  [`(node :when ~(and (some? item.node) (= (get state.outlinerOpen n.id) true))
+  [`(node :when ~(and (some? item.node) (true? (get state.outlinerOpen n.id)))
       :use outlinerRow
-      :with {:depth ~(+ computed.outlinerDepth 1)
+      :with {:depth ~(inc computed.outlinerDepth)
              :key ~(str n.id "-data")
-             :name ~(str (upper-case (slice (or-else n.mesh "") 0 1)) (slice (or-else n.mesh "") 1))
+             :name ~(let [mesh (or-else n.mesh "")] (str (str/upper-case (slice mesh 0 1)) (slice mesh 1)))
              :icon triangle
              :iconColor @data
              :onSelect data})
-   `(node :when ~(and (= (get state.outlinerOpen n.id) true) (some? n.material))
+   `(node :when ~(and (true? (get state.outlinerOpen n.id)) (some? n.material))
       :use outlinerRow
-      :with {:depth ~(+ computed.outlinerDepth 1)
+      :with {:depth ~(inc computed.outlinerDepth)
              :key ~(str n.id "-material")
-             :name ~(or-else (:name (find (fn [it] (= it.id n.material)) state.scene.materials)) n.material)
+             :name ~(or-else (:name (find #(= (:id %) n.material) state.scene.materials)) n.material)
              :icon circle
              :iconColor @data
              :onSelect material})])
@@ -151,7 +153,7 @@
      :focusable true
      :label ~name
      :selected ~(if node (contains state.view.selection node.id) nil)
-     :let {:open ~(= (get state.outlinerOpen expand) true)
+     :let {:open ~(true? (get state.outlinerOpen expand))
            :editing ~(or (and (some? node) (not= data "") (= state.renaming node.id)) (and (some? coll) (= state.renaming (str "coll:" coll.id))))}
      :onClick ~(handler pickRow node.id coll.id onSelect event.shift)
      :onDoubleClick ~(handler startRowRename node.id coll.id data)
@@ -160,7 +162,7 @@
      ~(row-icon depth icon iconColor)
      (label :when ~(not editing)
        :text ~name
-       :textColor ~(if (and node (= node.visible false)) "@dim" "@text")
+       :textColor ~(if (and node (false? node.visible)) "@dim" "@text")
        :x ~(+ (* depth 18) 40)
        :anchors {:top 0 :bottom 0}
        :fitText true)

@@ -1,12 +1,14 @@
 ;;; views.lisp --- the Terminal tab: the terminals' tabs, and the one shown
 
+(ns forge.features.terminal.views)
+
 ;;; The terminals
 
 (defcomponent forgeTerminal "The Terminal tab: a tab per terminal, then the active one's shell."
   {}
   `(column#terminal-panel :width "100%" :grow 1 :color @color.panel
      ~(terminal-head)
-     ~(repeat [session (filter (fn [it] (= it state.terminals.active)) (map (fn [it] it.id) state.terminals.list))
+     ~(repeat [session (filter #(= % state.terminals.active) (map :id state.terminals.list))
                :key session]
        `(terminal#terminal :session ~session
           :font code
