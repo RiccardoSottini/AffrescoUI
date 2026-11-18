@@ -4,6 +4,8 @@
 ;;; (the activity feed, the presence, the burndown) is in board.lisp; the issue page's, in issue.lisp; the pages', in
 ;;; pages.lisp.
 
+(ns flow.state)
+
 ;;; The boards and their cards
 
 (defstate theme light :type {:enum [light dark]})
