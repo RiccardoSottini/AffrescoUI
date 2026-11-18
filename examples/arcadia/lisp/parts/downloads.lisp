@@ -3,6 +3,8 @@
 ;;; The current download over its game's art, with its network and disk graph; the queue to reorder; the unscheduled
 ;;; items and the completed ones. Every second, the download in progress moves on (downloadTick, in arcadia.lisp).
 
+(ns arcadia.parts.downloads)
+
 ;;; What the page keeps
 
 (defstate dlPaused false)
@@ -60,15 +62,15 @@
    38])
 
 (defcomputed dlSize "The size of the download in progress, in GB."
-  (if (nil? computed.download) 0 (or-else computed.download.sizeGb computed.downloadGame.sizeGb)))
+  (if-some [download computed.download] (or-else download.sizeGb computed.downloadGame.sizeGb) 0))
 
 (defcomputed dlQueue "The downloads waiting, each with its place in the list of downloads."
-  (filter (fn [it] (= it.d.status "queued")) (map-indexed (fn [index it] {:d it :at index}) state.downloads)))
+  (filter #(= (:status (:d %)) :queued) (map-indexed (fn [index it] {:d it :at index}) state.downloads)))
 
 (defcomputed dlParked "The downloads taken off the schedule."
-  (filter (fn [it] (= it.status "paused")) state.downloads))
+  (filter #(= (:status %) :paused) state.downloads))
 
-(defcomputed dlDone "The downloads finished." (filter (fn [it] (= it.status "done")) state.downloads))
+(defcomputed dlDone "The downloads finished." (filter #(= (:status %) :done) state.downloads))
 
 (defcomputed dlNow "The rate now, in MB/s: the last sample, or 0 while paused or idle."
   (if (or state.dlPaused (nil? computed.download)) 0 state.dlRate.47))
@@ -128,7 +130,7 @@
        (panel :color transparent :grow 1 :height 1)
        (label :text "" :fitText true :icon settings :font small :textColor @color.muted)
        (label :text ~(t "dl.autoUpdates") :fitText true :font small :textColor @color.muted))
-     (label :when ~(= (count computed.dlQueue) 0)
+     (label :when ~(empty? computed.dlQueue)
        :font small
        :text ~(t "dl.queueEmpty")
        :height 30
@@ -289,7 +291,7 @@
 (defview download-name "A download's game, which opens its page, over how much of it is done." [d]
   `(column :grow 1 :height 52 :gap 4
      (label :font strong
-       :text ~(:title (find (fn [it] (= it.id d.id)) data.games))
+       :text ~(:title (find #(= (:id %) d.id) data.games))
        :height 24
        :anchors {:left 0 :right 0}
        :textColor @color.bright
@@ -298,7 +300,7 @@
      (label :font small
        :text ~(t "dl.sizeOf"
                  {:done (formatNumber d.doneGb 1 1)
-                  :size (formatNumber (or-else d.sizeGb (:sizeGb (find (fn [it] (= it.id d.id)) data.games))) 1 1)})
+                  :size (formatNumber (or-else d.sizeGb (:sizeGb (find #(= (:id %) d.id) data.games))) 1 1)})
        :height 18
        :anchors {:left 0 :right 0}
        :textColor @color.muted)))
@@ -327,8 +329,8 @@
      (label :id ~(str "dl-down-" q.d.id)
        :style roundButton
        :icon arrow-down
-       :color ~(if (< k (- (count computed.dlQueue) 1)) "@color.raised" "transparent")
-       :textColor ~(if (< k (- (count computed.dlQueue) 1)) "@color.text" "@color.dim")
+       :color ~(if (< k (dec (count computed.dlQueue))) "@color.raised" "transparent")
+       :textColor ~(if (< k (dec (count computed.dlQueue))) "@color.text" "@color.dim")
        :label ~(t "dl.moveDown")
        :tooltip ~(t "dl.moveDown")
        :onClick ~(handler dlDown k))
@@ -372,7 +374,7 @@
      ~(download-art 'd.id)
      (column :grow 1 :height 52 :gap 4
        (label :font strong
-         :text ~(:title (find (fn [it] (= it.id d.id)) data.games))
+         :text ~(:title (find #(= (:id %) d.id) data.games))
          :height 24
          :anchors {:left 0 :right 0}
          :textColor @color.bright
@@ -380,7 +382,7 @@
          :onClick ~(handler openGame d.id))
        (label :font small
          :text ~(t "dl.doneSize"
-                   {:n (formatNumber (or-else d.sizeGb (:sizeGb (find (fn [it] (= it.id d.id)) data.games))) 1 1)})
+                   {:n (formatNumber (or-else d.sizeGb (:sizeGb (find #(= (:id %) d.id) data.games))) 1 1)})
          :height 18
          :anchors {:left 0 :right 0}
          :textColor @color.muted))
