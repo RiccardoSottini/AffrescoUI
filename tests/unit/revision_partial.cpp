@@ -177,7 +177,7 @@ TEST_CASE("revision partial: a label's text set in the Kanban template applies t
 }
 
 TEST_CASE("revision partial: a label's text set in a large screen applies that label only") {
-	Built built(largeScreen());
+	const Built built(largeScreen());
 	REQUIRE(built.errors.empty());
 	const auto& one = built.apply({{"set", {{"#l7_42/text", "changed"}}}});
 	CHECK_FALSE(one.full);
@@ -232,7 +232,7 @@ TEST_CASE("revision partial: a node added, removed or moved") {
 }
 
 TEST_CASE("revision partial: a handler replaced runs on the next click") {
-	Built built(largeScreen());
+	const Built built(largeScreen());
 	built.click("btn");
 	CHECK(built.state("clicked") == 1);
 	const auto& replaced = built.apply({{"set", {{"#btn/onClick", "two"}}}});
@@ -256,7 +256,7 @@ TEST_CASE("revision partial: a node and a place of the state in one revision are
 }
 
 TEST_CASE("revision partial: a section the panels read without a place takes the full pass") {
-	Built built(largeScreen());
+	const Built built(largeScreen());
 	const auto& styled = built.apply({{"set", {{"/styles/extra", {{"textColor", "#ff0000"}}}}}});
 	CHECK(styled.full);
 	CHECK(std::string(styled.fullReason) == "revision: styles");
