@@ -1,5 +1,7 @@
 ;;; computed.lisp --- what Quaderno works out from its state: the file shown, the tree, the pickers, find
 
+(ns code-editor.computed)
+
 ;;; Computed values
 
 (defcomputed file "The file shown, or nil." (when (>= state.active 0) (get state.files state.active)))
