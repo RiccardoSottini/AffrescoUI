@@ -175,6 +175,14 @@ json lookup(std::string_view path, const Context& context, const std::string& wh
 	return machine.lookup(path, outermost(where)).toJson();
 }
 
+const json* lookupInPlace(std::string_view path, const Context& context, const std::string& where, json& made) {
+	detail::Machine machine(context);
+	const Value value = machine.lookup(path, outermost(where));
+	if(const json* lying = value.borrowed()) return lying;
+	made = value.toJson();
+	return nullptr;
+}
+
 json::json_pointer statePointer(std::string_view path, const Context& context, const std::string& where) {
 	detail::Machine machine(context);
 	const std::vector<Value> keys = machine.segments(path, outermost(where));
