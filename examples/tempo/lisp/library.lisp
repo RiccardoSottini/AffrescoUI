@@ -1,6 +1,8 @@
 ;;; library.lisp --- the main area: the page shown beside the queue; the playlist page (its header and its songs) and
 ;;; the library (its header and the table of its 3,000 songs)
 
+(ns tempo.library)
+
 ;;; The main area
 
 (defview main-area "The page shown (state.page), and the queue beside it; hidden in the mini player." []

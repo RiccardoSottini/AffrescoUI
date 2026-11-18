@@ -1,6 +1,8 @@
 ;;; look.lisp --- Tempo's looks: its colours, dark and light, the assistant's and the shared kit's, and the styles its
 ;;; controls share
 
+(ns tempo.look)
+
 ;;; Colours
 
 (defpart colours "Every colour, dark and light, by name: @name in a view."

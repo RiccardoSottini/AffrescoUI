@@ -9,24 +9,26 @@
 ;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser and the crossfade are
 ;;; visual only.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "models.lisp"
-         "sound.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "sidebar.lisp"
-         "library.lisp"
-         "queue.lisp"
-         "player.lisp"
-         "pages.lisp"
-         "nowplaying.lisp"
-         "dialogs.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "tempo.lisp")
+(ns tempo.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "models.lisp"
+            "sound.lisp"
+            tempo.state
+            tempo.computed
+            tempo.look
+            tempo.keys
+            tempo.sidebar
+            tempo.library
+            tempo.queue
+            tempo.player
+            tempo.pages
+            tempo.nowplaying
+            tempo.dialogs
+            "../../shared/addons/assistant/assistant.lisp"
+            tempo.tempo))
+
 
 ;;; The window, and what is in it, in the order it is drawn
 

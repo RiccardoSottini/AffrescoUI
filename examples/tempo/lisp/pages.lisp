@@ -1,6 +1,8 @@
 ;;; pages.lisp --- the pages of songs: albums and artists as tiles, one album's or artist's songs, the liked songs,
 ;;; and the search
 
+(ns tempo.pages)
+
 ;;; What the pages show
 
 (defcomputed contentWidth "How wide the page is: the window but the sidebar, and the queue while it is open."

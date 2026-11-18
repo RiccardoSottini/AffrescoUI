@@ -1,5 +1,7 @@
 ;;; sidebar.lisp --- the sidebar: the logo, back and forward, the theme and the language, the pages, and the playlists
 
+(ns tempo.sidebar)
+
 ;;; The sidebar
 
 (defview sidebar "The sidebar, hidden in the mini player." []

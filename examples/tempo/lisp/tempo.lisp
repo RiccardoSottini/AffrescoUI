@@ -6,6 +6,8 @@
 ;;; with its arguments, ~(handler play index 0); keys.lisp binds the keys. At the end, the sound and what the app does by
 ;;; itself: what the state watches, and what runs on load.
 
+(ns tempo.tempo)
+
 ;;; Songs, as keys
 
 (defn keyOf "A song's key: list:track, the list -1 for the library." [list track]

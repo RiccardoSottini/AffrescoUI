@@ -1,6 +1,8 @@
 ;;; computed.lisp --- what Tempo works out from its state: the library, the song playing, the queue, the menus, the
 ;;; waveform and the level meter
 
+(ns tempo.computed)
+
 ;;; Values
 
 (defcomputed library "The library's songs as table rows: number, title, artist, album and time."

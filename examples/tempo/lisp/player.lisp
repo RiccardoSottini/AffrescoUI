@@ -1,6 +1,8 @@
 ;;; player.lisp --- the player at the bottom (shuffle, the transport, repeat, the song playing and its seek bar, the
 ;;; level, the mini player, the queue and the volume), and the mini player, one card in the middle of the window
 
+(ns tempo.player)
+
 ;;; The player
 
 (defview player "The floating player at the bottom, hidden in the mini player." []

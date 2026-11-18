@@ -1,6 +1,8 @@
 ;;; nowplaying.lisp --- now playing (the cover, the visualiser of the spectrum of what plays, the lyrics) and the
 ;;; sound page (the equaliser on a curves control, its presets, the crossfade, the theme and the language)
 
+(ns tempo.nowplaying)
+
 ;;; The song playing
 
 (defcomputed fade "How loud the song playing is through the crossfade: 1, falling to 0 over its last seconds."

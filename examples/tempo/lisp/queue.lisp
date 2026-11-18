@@ -1,6 +1,8 @@
 ;;; queue.lisp --- the queue beside the page: the song playing, its waveform and time, and the songs up next, which
 ;;; drag or Alt and the arrows reorder
 
+(ns tempo.queue)
+
 ;;; The queue
 
 (defview queue-pane "The queue: the song playing, then the songs up next." []

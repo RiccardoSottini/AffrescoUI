@@ -1,5 +1,7 @@
 ;;; keys.lisp --- Tempo's keyboard shortcuts, each running a command of tempo.lisp, and its settings
 
+(ns tempo.keys)
+
 ;;; Keys
 
 (defkey "space" playPause)
