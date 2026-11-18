@@ -6,6 +6,7 @@
 
 #include "CompiledCache.hpp"
 #include "Record.hpp"
+#include "ScopeLayers.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -27,7 +28,7 @@ class Builder {
 public:
 	/// @brief A builder for an engine's document.
 	/// @param engine The runtime; outlives this object.
-	explicit Builder(Engine& engine) : engine_(engine), compiler_(engine) {}
+	explicit Builder(Engine& engine) : engine_(engine), compiler_(engine), layers_(engine) {}
 
 	/// @brief The nodes of the document compiled for its current version.
 	/// @return The cache, owned by the builder.
@@ -60,7 +61,8 @@ public:
 	/// @throws DocumentError If it can't be built.
 	[[nodiscard]] std::optional<Item> row(const ListEntry& entry, std::size_t number, const json& item,
 	                                      ListRow& row) const;
-	/// @brief The variables and the final node of one built instance: "with", "let", "check", dynamic style.
+	/// @brief The variables and the final node of one built instance: "with", "let", "check", dynamic style; not
+	/// tracked (what they read goes to the reads being recorded).
 	/// @param node The compiled node.
 	/// @param scope Its variables so far; gets the new ones.
 	/// @param at Its place, for errors.
@@ -114,9 +116,19 @@ private:
 	/// @param layer The instance's variables so far; gets the new ones.
 	/// @param at Its place, for errors.
 	void check(const json& node, Scope& layer, const std::string& at) const;
+	/// @brief scoped(), its variables tracked as a layer when the node's are (ScopeLayers::tracked()): what they read
+	/// goes to the layer, not to the reads being recorded.
+	/// @param node The compiled node.
+	/// @param scope Its variables so far; gets the new ones.
+	/// @param at Its place, for errors.
+	/// @param reads Gets what the layer's variables read (nullptr: not tracked, as scoped()).
+	/// @return The node, with a dynamic style merged.
+	[[nodiscard]] CompiledRef scoped(const CompiledRef& node, SharedScope& scope, const std::string& at,
+	                                 LayerReads* reads) const;
 
-	Engine& engine_;         ///< The runtime.
-	CompiledCache compiler_; ///< The nodes compiled for the current version.
+	Engine& engine_;             ///< The runtime.
+	CompiledCache compiler_;     ///< The nodes compiled for the current version.
+	mutable ScopeLayers layers_; ///< The tracked layers of the scopes it builds (building makes them).
 };
 
 } // namespace affresco::format

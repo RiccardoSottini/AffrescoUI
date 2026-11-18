@@ -6,6 +6,7 @@
 #include "ExpressionParser.hpp"
 #include "Models.hpp"
 #include "Reads.hpp"
+#include "ScopeLayers.hpp"
 
 #include <algorithm>
 #include <array>
@@ -352,7 +353,7 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 		return;
 	}
 	std::string pointer;
-	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
+	if(root == Root::Named) { // a repeat's item lying in the state reads it there, a tracked layer's variable its place
 		if((item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
 		std::optional<std::string> place = namedPlace(name);
 		if(!place && name == "data" && !context_.locals.find(name)) place = places::data; // the records (DataLayer)
@@ -373,6 +374,11 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 std::optional<std::string> Machine::namedPlace(std::string_view name) const {
 	for(const Scope* scope = &context_.locals; scope; scope = scope->parent) {
 		if(!scope->vars.contains(name)) continue;
+		if(scope->tracking && scope->tracking->tracks(name)) { // a layer's variable (ScopeLayers)
+			std::string place = layerPlace(scope->layer);
+			appendKey(place, name);
+			return place;
+		}
 		if(scope->fromState == name) return scope->origin();
 		if(scope->place.index == name && scope->place.row != ItemPlace::noRow) {
 			std::string list = scope->listPlace();

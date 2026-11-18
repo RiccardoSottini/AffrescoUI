@@ -32,6 +32,7 @@ struct ReadSet;
 class Strings;
 
 struct Scope;
+class ScopeLayer;
 
 /// The key under a list's place that a read of a row's number records: "/items/~i" changes when rows of "/items" are
 /// numbered again after an insert or a removal before them. No JSON Pointer has it ("~" escapes only "0" and "1").
@@ -66,6 +67,11 @@ struct Scope {
 	mutable json vars = json::object();
 	std::string fromState; ///< A variable whose value lies in the state (a repeat's item), or empty.
 	ItemPlace place;       ///< Where in the state it lies (origin()).
+	/// The number of its layer when its "with" and "let" are tracked (ScopeLayers): a read of one of its variables
+	/// records "/~s/<layer>/<name>" (Reads.hpp, places::scopes), which the layer marks when the value changes. 0: none.
+	std::uint32_t layer = 0;
+	const ScopeLayer* tracking = nullptr; ///< The layer when there is one: which variables it tracks.
+	std::shared_ptr<void> hold{};         ///< Gives the layer back when the scope dies (null: no layer).
 
 	/// @brief Where in the state (or under a place outside it, Reads.hpp, `places`) the item of fromState lies now,
 	/// as a JSON Pointer: the list's place, its base's origin first, then the row's number. Built when asked, and
