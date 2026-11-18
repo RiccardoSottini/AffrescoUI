@@ -35,16 +35,17 @@
 (defcomputed viewMenu "The View menu's items, checked as they are on."
   (map (fn [it]
          (merge it
-                {:checked (cond (= it.run "toggleTheme") (= state.theme "light")
-                                (= it.run "toggleOrbits") state.showOrbits
-                                (= it.run "toggleLabels") state.showLabels
-                                (= it.run "toggleBrowser") state.showBrowser
-                                (= it.run "toggleStars") state.showStars
-                                (= it.run "toggleShading") state.showShading
-                                (= it.run "toggleGlow") state.showGlow
-                                (= it.run "toggleMarker") (>= (indexOf state.markers state.selected) 0)
-                                (= it.run "follow") (and (not= state.follow "") (some? state.follow))
-                                :else false)}))
+                {:checked (case it.run
+                            :toggleTheme (= state.theme :light)
+                            :toggleOrbits state.showOrbits
+                            :toggleLabels state.showLabels
+                            :toggleBrowser state.showBrowser
+                            :toggleStars state.showStars
+                            :toggleShading state.showShading
+                            :toggleGlow state.showGlow
+                            :toggleMarker (>= (indexOf state.markers state.selected) 0)
+                            :follow (and (not= state.follow "") (some? state.follow))
+                            false)}))
        menus.view))
 
 (defview menu-bar "The View and Time menus, drawn in the window when it has no menu bar of its own." []
@@ -57,10 +58,11 @@
                       :title (t "menu.time")
                       :items (map (fn [it]
                                     (merge it
-                                           {:checked (cond (= it.run "realTime") (and state.playing computed.realTime)
-                                                           (= it.run "reverse") (< state.speed 0)
-                                                           (= it.run "togglePlay") (not state.playing)
-                                                           :else nil)}))
+                                           {:checked (case it.run
+                                                       :realTime (and state.playing computed.realTime)
+                                                       :reverse (neg? state.speed)
+                                                       :togglePlay (not state.playing)
+                                                       nil)}))
                                   menus.time)}]
             :width 260
             :color @panel
@@ -124,7 +126,7 @@
     :text (cond (not computed.selectedBody) (t "status.nothing")
                 computed.selectedBody.parent (t "status.orbits"
                    {:name computed.selectedBody.name
-                    :parent (or-else (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies))
+                    :parent (or-else (:name (find #(= (:id %) computed.selectedBody.parent) state.bodies))
                                      computed.selectedBody.parent)
                     :days (text computed.selectedBody.period)})
                 :else (t "status.centre" {:name computed.selectedBody.name}))}])
