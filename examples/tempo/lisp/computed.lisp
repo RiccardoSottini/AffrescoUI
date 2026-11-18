@@ -91,7 +91,8 @@
 
 (defcomputed listMinutes "The playlist's length in minutes."
   (round (/ (sum (or-else computed.list.tracks [])
-                 ; style: keep, sum's function is the expression's own: it names its item it, and takes no #(...)
+                 ; style: keep, sum's function takes no #(...)
+
                  (fn [it]
                    (let [parts (str/split (or-else it.time "0:0") ":")]
                      (+ (* (number (get parts 0)) 60)
@@ -140,7 +141,6 @@
   (let [seed (+ (count computed.track.title) state.playingTrack)]
     (map-indexed (fn [index it]
                    (-> (* index index seed) (+ (* index 7)) (mod 21) (+ 3)))
-
                  (range 64))))
 
 
@@ -171,6 +171,4 @@
                                (if state.isPlaying
                                    (-> (* state.elapsed (+ index 3)) (+ (* index 7)) (mod 15) (+ 3))
                                    2))))
-
                      (range 8))))
-
