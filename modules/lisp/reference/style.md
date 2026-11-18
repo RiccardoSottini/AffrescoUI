@@ -23,22 +23,25 @@ template and a `defcomputed`, which run as the app's expressions (`bindings.md`)
 
 | Today | Written as | In a function | In a binding |
 |---|---|---|---|
-| `(fn [it] (= it.tag tag))` | `#(= (:tag %) tag)` | One line, no `#(` inside | Yes |
-| `(map (fn [it] it.ref) xs)` | `(map :ref xs)` | Yes | Yes |
+| `(fn [it] (= it.tag tag))` | `#(= (:tag %) tag)` | One line, no `#(` inside | Yes, but not given to `sum` |
+| `(map (fn [it] it.ref) xs)` | `(map :ref xs)` | Yes | Yes, but not given to `sum` |
 | Three or more nested calls | `->`, `->>` | Yes | When each step is an expression |
+| `(if (nil? x) nil (:k x))` | `(:k x)`: a keyword gives `nil` on `nil` | Yes | Yes |
 | `(if (nil? x) nil (f x))` | `(some-> x f)` | Yes | Yes |
-| `(if (nil? x) a (f x))`, `(when (some? x) ...)` | `if-some`, `when-some` | Yes | When `x` is a path or used once |
+| `(if (nil? x) a (f x))`, `(when (some? x) ...)` | `if-some`, `when-some` | Yes | A plain name, read as `name.key` |
 | `(let [v e] (when v ...))` | `when-let` | Only where the test was truth | No |
 | A `cond` comparing one value | `case`, always with a default | Yes | Yes |
 | An `or` of `=`, `(contains [...] x)` | `(#{:a :b} x)` | Yes | Only where a set is an expression (`sets.md`) |
 | `(not (= a b))`, `(when (not c))`, `(if (not c) a b)` | `not=`, `when-not`, `if-not` | Yes | Yes |
 | `(- n 1)`, `(+ n 1)`, `(= (count xs) 0)` | `dec`, `inc`, `empty?` | Yes | Yes |
+| `(> (count xs) 0)` | `(seq xs)` | Yes | No: `(pos? (count xs))`, the same expression |
 | `(= n 0)`, `(> n 0)` | `zero?`, `pos?` | Only where `n` is surely a number | Yes |
 | `(trim s)` and the other string functions | `str/trim`... | Yes | Only the rows of `bindings.md` |
 | `(join ", " xs)` | `str/join` | Yes | No: `join` stays |
 | A tally by hand | `frequencies`, `group-by`, `merge-with`, `update-vals` | Yes | No |
 | `(filter some? (map f xs))` | `(keep f xs)` | Yes | No |
-| `(let [a (:a m) b (:b m)] ...)` | `{:keys [a b]}` | Yes | No |
+| `(let [a (:a m) b (:b m)] ...)` | `{:keys [a b]}`, `[a b]` | Yes | No |
+| `(merge m {:k v})` | `(assoc m :k v)` | Yes | No: `assoc` is a call, `merge` an expression |
 | `map` run for its steps | `doseq` | Yes | |
 | A parameter that is `nil` when left out | Several parameter lists | `defn` only | |
 | Definitions that differ in one word | A vector and `for` or `doseq` | Where the tree stays identical | |
@@ -58,25 +61,34 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
 (inc (reduce max -1 (map :order (cardsOf c))))
 (->> (cardsOf c) (map :order) (reduce max -1) inc)
 
-;; nil, or a function of the value (flow.lisp, announcePresence)
+;; nil, or a member of the value (flow.lisp, announcePresence): a keyword gives nil on nil
 (if (nil? computed.card) nil computed.card.title)
-(some-> computed.card :title)
+(:title computed.card)
 
-;; nil, or another value (computed.lisp, next)
-(if (nil? state.selected) computed.visible.0 (find ... computed.visible))
-(if-some [selected state.selected] (find ... computed.visible) computed.visible.0)
+;; nil, or a function of the value (not in Flow today)
+(if (nil? state.user) nil (str/upper-case state.user.name))
+(some-> state.user :name str/upper-case)
+
+;; nil, or another value, in a binding (computed.lisp, next): a plain name, read as at.c
+(if (nil? state.selected) computed.visible.0 (find #(... state.selected.c ...) computed.visible))
+(if-some [at state.selected] (find #(... at.c ...) computed.visible) computed.visible.0)
+
+;; A test of nil where the value isn't used (flow.lisp, setTag): check --truth lists (when computed.card ...)
+(when computed.card (updateCard {:tag tag}))
+(when-some [_ computed.card] (updateCard {:tag tag}))
 
 ;; A test that was a value's truth (not in Flow today)
 (let [col (column c)] (when col (notify (:name col))))
 (when-let [col (column c)] (notify (:name col)))
 
-;; A cond on one value (flow.lisp, setFilter)
+;; A cond on one value (flow.lisp, setFilter; computed.lisp, filterOptions, in a binding)
 (cond (= prop "status") (set "state.fStatus" (if on -1 v)) (= prop "assignee") ...)
-(case prop "status" (set "state.fStatus" (if on -1 v)) "assignee" ... nil)
+(case prop :status (set "state.fStatus" (if on -1 v)) :assignee ... nil)
 
-;; Membership (flow.lisp, the owner of a reference; computed.lisp, the card's commands)
-(or (= (lower (:who it)) wanted) (= (lower (:name it)) wanted))   ; two values: stays an or
-(contains ["changeStatus" "changePriority" "editCard"] it.id)  ->  (#{"changeStatus" "changePriority" "editCard"} it.id)
+;; Membership (flow.lisp, memberNamed; computed.lisp, paletteFirst, in a binding)
+(or (= (lower (:who it)) wanted) (= (lower (:name it)) wanted) (= (first (split (lower (:name it)) " ")) wanted))
+(some #{wanted} [(str/lower-case (:who member)) full (first (str/split full " "))])
+(contains ["changeStatus" "changePriority" ...] (:name %))  ->  (#{:changeStatus :changePriority ...} (:name %))
 
 ;; not (flow.lisp, selectCard and toggleSwimlanes)
 (when (not (and (some? state.selected) (= state.selected.c c) (= state.selected.i i))) ...)
@@ -86,33 +98,38 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
 (< (+ state.inboxAt 1) (count computed.inboxShown))  ->  (< (inc state.inboxAt) (count computed.inboxShown))
 (if (= (count state.undoStack) 0) ...)  ->  (if (empty? state.undoStack) ...)
 
-;; Zero and positive (flow.lisp, the marked cards)
-(if (> (count state.marked) 0) ...)
-(if (pos? (count state.marked)) ...)
+;; Some, and positive (flow.lisp, the marked cards: seq in a function, pos? in a binding)
+(if (> (count state.marked) 0) ...)                ->  (if (seq state.marked) ...)
+:enablement ~(> (count state.marked) 0)            ->  :enablement ~(pos? (count state.marked))
 
-;; The string functions (flow.lisp, addCard)
-(let [title (trim state.newCard)] ...)
-(let [title (str/trim state.newCard)] ...)
+;; The string functions, and blank text (flow.lisp, addCard)
+(let [title (trim state.newCard)] (when (not= title "") ...))
+(let [title (str/trim state.newCard)] (when-not (str/blank? title) ...))
 
 ;; Joining, in a binding (columns.lisp, a card's labels): join stays
 :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels [])))
 :tooltip ~(join ", " (map #(t (str "label." %)) (or-else card.labels [])))
 
-;; A tally (not in Flow today)
-(reduce (fn [counts it] (assoc counts it.tag (inc (or-else (get counts it.tag) 0)))) {} cards)
+;; A tally, and a grouping (flow.lisp, buildTimeline)
+(map (fn [m] {... :clips (map ... (filter #(= (:who %) (:who m)) cards))}) state.members)
+(let [owned (group-by :who (filter :due computed.allCards))]
+  (map (fn [{:keys [who name]}] {... :clips (map ... (get owned who []))}) state.members))
+(reduce (fn [counts it] (assoc counts it.tag (inc (or-else (get counts it.tag) 0)))) {} cards)  ; not in Flow
 (frequencies (map :tag cards))
 
 ;; The values that are there (flow.lisp, columnOf)
 (first (filter some? (map-indexed (fn [c col] (when ... c)) computed.columns)))
 (first (keep-indexed (fn [c col] (when ... c)) computed.columns))
 
-;; Members read one by one (flow.lisp, checkLimit)
+;; Members read one by one (flow.lisp, checkLimit; openRow's "c-i")
 (let [col (column c)] ... (:limit col) ... (:cards col) ... (:name col))
 (let [{:keys [limit cards name]} (column c)] ...)
+(let [parts (split event.id "-")] (selectCard (number (first parts)) (number (second parts))))
+(let [[c i] (map number (str/split event.id "-"))] (selectCard c i))
 
-;; Steps for each item (not in Flow today)
-(map (fn [it] (remove-state "state.marked" :at 0)) state.marked)
-(doseq [_ state.marked] (remove-state "state.marked" :at 0))
+;; Steps for each item (flow.lisp, moveSelected)
+(map #(moveMarked % (columnOf %) to) state.marked)
+(doseq [ref state.marked] (moveMarked ref (columnOf ref) to))
 
 ;; A parameter left out (not in Flow today)
 (defn notifyCard [ref message] (notify (or-else message (t "toast.noCard" {:ref ref}))))
@@ -133,11 +150,17 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
   them only where the value is surely a number.
 - **A binding's `let` writes its value at each use** (`bindings.md`, "The cap"): a name used five times is its text
   five times. A `let` in a binding is for reading, not for saving work.
-- **Some forms in a binding become slow calls or are refused:** `str/join`, `mapv`, `filterv`, `not-any?` and `format`
-  stay calls of the function (`{{lisp(...)}}`), and patterns (`{:keys [...]}`, `[a b]`) are refused. Keep `join`,
-  `map`, `filter` and plain names there.
+- **Some forms in a binding become slow calls or are refused:** `str/join`, `mapv`, `filterv`, `not-any?`, `assoc`
+  and `format` stay calls of the function (`{{lisp(...)}}`), and patterns (`{:keys [...]}`, `[a b]`) are refused, in
+  a `let`, an `if-some` and a `when-some` alike. Keep `join`, `merge`, `map`, `filter` and plain names there.
+- **`sum` is the expression's own function, not the library's:** the function it takes names its item `it`, so
+  `(sum xs (fn [it] (or-else it.points 0)))` stays, marked keep; `#(...)` is refused, and `:points` becomes the text
+  `'points'`.
+- **`#(...)` can't give a map:** `(fn [it] {:v it.who ...})` stays, marked keep.
 - **A step's method, service or path stays written text:** `(set "state.x" 1)`, `(call "service" ...)`. Only the
   values a step writes may become keywords.
+- **`str` writes a keyword with its colon:** `(str :es)` is `":es"`. A keyword stays out of `str` and of a
+  translation's key; compared, written by `set`, matched by `case` or passed to a handler, it is its text.
 - **A handler that names a function passes its arguments by parameter name:** renaming a parameter changes what the
   handler sends.
 - **`set`, `find`, `empty`, `time`, `type` and `repeat` are the host's** (`differences.md`, "The host's words"): `set`
@@ -151,6 +174,11 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
   value. Keep `or-else` where it is.
 
 ## `ns`
+
+**Not yet (Flow, the first rewrite):** an `ns` form is kept in the program as an entry of its own, `ns`, beside the
+file's definitions, so `lisp_tree.py --compare` counts it as a definition added ("anything else", exit 1), in a code
+file and in the entry alike. Until the tree check reads `ns` as a label, an app keeps its `(include ...)`, marked
+`; style: keep, ...`, and its files get no label. What follows is the form once it does.
 
 Every code file gets a label, `(ns <app>.<file>)`, as its first form, after its `;;;` header: `(ns flow.computed)` for
 `computed.lisp`, `(ns forge.features.editor.editor)` for `features/editor/editor.lisp` (`namespaces.md`, "Which file a
@@ -206,5 +234,5 @@ ctest --test-dir build -R "scenarios/flow/|lisp_parity|cli_lisp_idioms|cli_lisp_
 python3 tests/render/check.py                                           # every frame identical
 ```
 
-Once a rule's count drops, write the new count into the app's `tools/notation/idioms/<app>.json` (`--write` writes
-every file's), so that it never grows back.
+Once a rule's count drops, write the new count into the app's `tools/notation/idioms/<app>.json` by hand (`--write`
+writes every app's file, other apps' too), and drop the rules that reach 0, so that it never grows back.
