@@ -48,7 +48,7 @@
 
 (defn checkLimit "A notice when a column is over its limit." [c]
   (let [{:keys [limit cards name]} (column c)]
-    (when (and settings.board.wipWarnings (some? limit) (> (count cards) limit))
+    (when (and (true? settings.board.wipWarnings) (some? limit) (> (count cards) limit))
       (notify (t "toast.wip" {:column name :limit limit})))))
 
 (defn insertCard "A new card at the end of column c, with the next id, as one step undo can take back." [title c p who tag notes]
@@ -76,7 +76,7 @@
 (defn moveCard "A card from one column to the end of another." [from at to]
   (when (and (not= from to) (>= to 0) (<= to computed.lastColumn))
     (remember)
-    (update-record "issues" :id (:id (get (cardsOf from) at)) :fields {:status to :order (nextOrder to)})
+    (update-record "issues" :id (-> (cardsOf from) (get at) :id) :fields {:status to :order (nextOrder to)})
     (set "state.selected" {:c to :i (dec (count (cardsOf to)))})
     (logActivity "moved" (:title (lastCard to)) (:name (column to)))
     (checkLimit to)))
@@ -249,22 +249,22 @@
 (defn setPriority "The priority from 0 (none) to 4 (low); every marked card while some are." [p]
   (if (seq state.marked)
     (bulkPriority p)
-    (when computed.card
+    (when (some? computed.card)
       (updateCard {:priority p})
       (set "state.issuePriorityOpen" false))))
 
 (defn setEstimate "The points." [n]
   (set "state.issueEstimateOpen" false)
-  (when computed.card (updateCard {:points n})))
+  (when (some? computed.card) (updateCard {:points n})))
 
 (defn setTag "The issue's main label; its project follows it." [tag]
   (set "state.issueTagOpen" false)
-  (when computed.card (updateCard {:tag tag})))
+  (when (some? computed.card) (updateCard {:tag tag})))
 
 (defn setAssignee "A member's initials; every marked card while some are." [who]
   (if (seq state.marked)
     (bulkAssignee who)
-    (when computed.card
+    (when (some? computed.card)
       (updateCard {:who who})
       (set "state.issueWhoOpen" false))))
 
@@ -272,22 +272,22 @@
   (set "state.issueStatusOpen" false)
   (if (seq state.marked)
     (bulkStatus to)
-    (when computed.card (moveCard state.selected.c state.selected.i to))))
+    (when (some? computed.card) (moveCard state.selected.c state.selected.i to))))
 
 (defn setDue "A date, or nil to clear it." [date]
-  (when computed.card
+  (when (some? computed.card)
     (updateCard {:due date})
     (set "state.dueOpen" false)))
 
 (defn setCardDates "A card's dates and owner, from the timeline." [c i start due who]
   (remember)
-  (update-record "issues" :id (:id (get (cardsOf c) i)) :fields {:start start :due due :who who}))
+  (update-record "issues" :id (-> (cardsOf c) (get i) :id) :fields {:start start :due due :who who}))
 
 (defn listOf "A list field of the selected card: labels, assignees, checklist, comments, attachments." [field]
   (or (get computed.card field) []))
 
 (defn toggleListItem "Adds a label or an assignee to the selected card, or removes it." [field value]
-  (when computed.card
+  (when (some? computed.card)
     (let [items (listOf field)]
       (updateCard {field (if (contains items value) (remove #{value} items) (conj items value))}))))
 
@@ -305,10 +305,10 @@
                                        computed.card.checklist)}))
 
 (defn editNotes "Edits the chosen card's description in place." []
-  (when computed.card (set "state.draft" {:editing true :notes (or computed.card.notes "")})))
+  (when (some? computed.card) (set "state.draft" {:editing true :notes (or computed.card.notes "")})))
 
 (defn saveNotes "Keeps the description being edited." []
-  (when computed.card
+  (when (some? computed.card)
     (updateCard {:notes state.draft.notes})
     (set "state.draft.editing" false)
     (notify (t "toast.saved"))))
@@ -747,13 +747,13 @@
 (defcommand nextNotification "Chooses the next notification."
   :title ~(t "command.nextNotification") :description ~(t "command.nextNotification.about")
   :category ~(t "category.inbox") :icon "arrow-down"
-  :enablement ~(and (= state.page "inbox") (< (inc state.inboxAt) (count computed.inboxShown))) []
+  :enablement ~(and (= state.page :inbox) (< (inc state.inboxAt) (count computed.inboxShown))) []
   (pickNotification (inc state.inboxAt)))
 
 (defcommand previousNotification "Chooses the notification before."
   :title ~(t "command.previousNotification") :description ~(t "command.previousNotification.about")
   :category ~(t "category.inbox") :icon "arrow-up"
-  :enablement ~(and (= state.page "inbox") (> state.inboxAt 0)) []
+  :enablement ~(and (= state.page :inbox) (> state.inboxAt 0)) []
   (pickNotification (dec state.inboxAt)))
 
 (defcommand toggleRead "Marks the chosen notification read, or unread."
@@ -772,7 +772,7 @@
   :category ~(t "category.inbox") :icon "alarm-clock"
   :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:snoozed true})
-  (set "state.inboxAt" (max (min state.inboxAt (- (count computed.inboxShown) 2)) 0))
+  (set "state.inboxAt" (-> state.inboxAt (min (- (count computed.inboxShown) 2)) (max 0)))
   (notify (t "inbox.snoozed")))
 
 (defcommand openNotification "Opens the issue of the chosen notification."
