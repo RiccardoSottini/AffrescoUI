@@ -245,3 +245,25 @@ TEST_CASE("place index: rows' reads of their items move with an insert or a remo
 	CHECK(out == std::vector<ReaderId>{handle(1), handle(3), handle(4)});
 	CHECK(index.keys() <= 8U); // the old rows' keys freed
 }
+
+TEST_CASE("place index: a shift that drops the only reader of a row's number goes on moving the rows after it") {
+	PlaceIndex index;
+	const std::string row(affresco::format::rowKey);
+	const std::string number(affresco::format::indexKey);
+	const std::size_t keys = index.keys();
+	const std::vector<std::string> first{"/items/" + row + "0/" + number}; // the only place that reads a number
+	const std::vector<std::string> second{"/items/" + row + "1/title"};
+	const std::vector<std::string> third{"/items/" + row + "2/title"};
+	index.add(handle(1), first);
+	index.add(handle(2), second);
+	index.add(handle(3), third);
+	std::vector<ReaderId> out;
+	index.shift("/items", 1, -1, out); // rows 1 and 2 become 0 and 1: row 0's reader goes, and its number's key
+	CHECK(out == std::vector<ReaderId>{handle(1)});
+	CHECK(collected(index, changesOf({"/items/0/title"})) == std::vector<ReaderId>{handle(2)});
+	CHECK(collected(index, changesOf({"/items/1/title"})) == std::vector<ReaderId>{handle(3)});
+	CHECK(collected(index, changesOf({"/items/2/title"})).empty());
+	index.remove(handle(2));
+	index.remove(handle(3));
+	CHECK(index.keys() == keys);
+}

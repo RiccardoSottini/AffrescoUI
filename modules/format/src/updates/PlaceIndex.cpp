@@ -322,12 +322,18 @@ void PlaceIndex::dropBelow(std::uint32_t node, std::vector<ReaderId>& out) {
 	for(const std::uint32_t at : std::views::reverse(nodes)) prune(at);
 }
 
+std::uint32_t PlaceIndex::keyNumber(std::string_view key) const {
+	const auto found = keyIds_.find(key);
+	return found == keyIds_.end() ? freed : found->second;
+}
+
 void PlaceIndex::shift(std::string_view list, std::size_t from, std::ptrdiff_t by, std::vector<ReaderId>& out) {
 	startCollect();
 	std::vector<ReaderId> none;
 	if(by == 0 || !reach(list, false, none)) return;
 	const std::vector<std::uint32_t> lists = frontier_;
-	const auto number = keyIds_.find(indexKey);
+	// indexKey's number, found again after a row is dropped (which may free it)
+	std::uint32_t number = keyNumber(indexKey);
 	std::vector<std::pair<std::uint32_t, std::size_t>> moving; // a row's node, and its number after
 	std::vector<decltype(childOf_)::node_type> entries;        // their entries in childOf_, taken out to re-key
 	std::vector<std::uint32_t> before; // their keys before, released once all have their new ones (a key kept in use
@@ -343,10 +349,13 @@ void PlaceIndex::shift(std::string_view list, std::size_t from, std::ptrdiff_t b
 		for(const auto& [row, after] : moving) entries.push_back(childOf_.extract(childKey(node, nodes_[row].key)));
 		for(std::size_t i = 0; i < moving.size(); ++i) {
 			const auto& [row, after] = moving[i];
-			if(number != keyIds_.end())
-				if(const std::uint32_t* reads = child(row, number->second)) collectAt(*reads, true, out);
+			if(number != freed)
+				if(const std::uint32_t* reads = child(row, number)) collectAt(*reads, true, out);
 			// a row there: one going (its panels are removed), or another list's row read through this one
-			if(const std::uint32_t* taken = rowChild(node, after)) dropBelow(*taken, out);
+			if(const std::uint32_t* taken = rowChild(node, after)) {
+				dropBelow(*taken, out);
+				number = keyNumber(indexKey);
+			}
 			const std::uint32_t key = rowKeyMade(after);
 			++keys_[key].uses;
 			before.push_back(nodes_[row].key);

@@ -195,6 +195,10 @@ private:
 	/// @param number The row's number.
 	/// @return It, or nullptr if there is none.
 	[[nodiscard]] const std::uint32_t* rowChild(std::uint32_t node, std::size_t number) const;
+	/// @brief The number of a key, if a place reads it.
+	/// @param key The key.
+	/// @return Its number, or freed if no place has it.
+	[[nodiscard]] std::uint32_t keyNumber(std::string_view key) const;
 	/// @brief The number of a row's key (rowKey), interned if it isn't yet.
 	/// @param number The row's number.
 	/// @return The key's number.
