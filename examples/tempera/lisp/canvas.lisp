@@ -134,7 +134,8 @@
 (defview document-facts "The facts the status bar can show, one at a time: sizes, dimensions, profile, undo memory." []
   [`(node#status-doc :style dim
       :when ~(= state.statusInfo "doc")
-      :text ~(t "status.docSize" {:size (fixed (/ (* state.doc.width state.doc.height (bytes-per-pixel)) 1048576) 2)}))
+      :text ~(t "status.docSize"
+                 {:size (-> (* state.doc.width state.doc.height (bytes-per-pixel)) (/ 1048576) (fixed 2))}))
    `(node#status-size :style dim
       :when ~(= state.statusInfo "size")
       :text ~(t "status.dimensions" {:width (text state.doc.width) :height (text state.doc.height)}))
