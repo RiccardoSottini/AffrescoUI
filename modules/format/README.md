@@ -128,15 +128,16 @@ theme, and a name can't be both a colour and a token.
   typing, scroll and drags survive. If a version can't be built, the runtime refuses it and version control rolls
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
-- **Cost follows the change** (4.1). Each record keeps what its values, its list of children and its subtree read
-  (`ReadSet`, `src/updates/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
-  repeat's reading of a list's shape only). A state step records the places it wrote (`StateChanges`); the update
-  after it visits only the records whose subtree reads one, applies again the values that do and builds again the
-  lists of children that do. A repeat over a place of the state gives each item that place (`Scope::origin`), so its
-  bindings read `/items/5/title`, not the whole list. A long list (64 children or more) looks the changed places up
-  by item (`ItemIndex`) instead of visiting every child. A revision, a resize, a new theme or screen, and a change no
-  place describes update everything. A subtree's reads may say more than it reads, never less: an update that
-  visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
+- **Cost follows the change** (4.1). Each record's values, its list of children and the items its variables copy are
+  readers of the state (`ReadSet`, `src/updates/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are
+  too many, and `~#` for a repeat's reading of a list's shape only), kept by the place they read
+  (`src/updates/PlaceIndex.hpp`: a trie of keys). A state step records the places it wrote (`StateChanges`); the
+  update after it looks those places up, without walking the panels, and runs their readers once each, in the order
+  of the panels: it applies again the values that read one and builds again the lists of children that do. A repeat
+  over a place of the state gives each item that place (`Scope::origin`), so its bindings read `/items/5/title`, not
+  the whole list. A revision, a resize, a new theme or screen, and a change no place describes update everything.
+  Reads may say more than a value reads, never less: an update that runs only some readers gives the panels a full
+  build gives (`tests/unit/updates.cpp`, `tests/unit/update_index.cpp`).
 - **Data models** (4.3). `setModel(name, model)` registers rows the application owns (`DataModel`), which
   `"repeat": {"in": "models.<name>"}` goes over (`src/updates/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
   places values read (`~m` is no JSON Pointer key, so it is never one of the state), and an item's bindings read its
@@ -308,7 +309,7 @@ src/
   updates/                 building panels, and updating only what reads a change
     Reconciler.*           records, building and reconciling panels; updates of only what reads a change
     Reads.*                what values read and what changed in the state, and when they meet
-    ItemIndex.*            the children of a long list by the item of the state they read
+    PlaceIndex.*           the readers of the state by the place they read
     ListItems.*            a list's and a tree's items, read within limits, without recursion
     Models.*               the application's data models, their rows' places and their outline for agents
   events/                  Events.*: input (EventsFocus.cpp, EventsKeys.cpp, EventsPointer.cpp); Shortcuts.* names
