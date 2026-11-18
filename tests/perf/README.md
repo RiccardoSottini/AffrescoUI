@@ -27,7 +27,9 @@ python3 tests/perf/tokens.py --table
 
 `--annotate a,b` keeps those workloads' callgrind output beside `--out` (or in the current folder), with
 `callgrind_annotate --inclusive=yes` of each in `<name>.annotate.txt`: the instructions per function, callees included.
-[PROFILE.md](PROFILE.md) is a profile of the missed budgets made this way and with a sampler.
+[PROFILE.md](PROFILE.md) is a profile of the missed budgets made this way and with a sampler. On macOS, sample one workload in a loop
+(`./build-release/affrescoui_bench --only update/record/400 --runs 2000 &`, then `sample <pid> 10 -file out.txt`);
+BENCHMARKS.md's causes of the misses come from that. The `command/` workloads stop after 30 runs (a peer's run burst).
 
 `run.py` only passes its options to `./build/affrescoui_bench`, which you can also run yourself. The workloads that need
 a window open hidden ones, so a display is needed, like the rendering check (`xvfb-run` on a Linux server).
@@ -183,12 +185,27 @@ python3 tests/perf/run.py --build build-release --budgets --record     # writes 
 python3 tests/perf/run.py --budgets --from "$out/head"                 # CI: fails above a threshold
 ```
 
+A budget's `workloads` are names, or prefixes when they end in `/` or `-` (`update/read/` is every size of it,
+`budgets/idle-` every template); a budget is met when its worst workload is. `budgets.py` itself checks that
+`budgets.json` is well formed, and proposes thresholds from a Linux callgrind run:
+
+```sh
+python3 tests/perf/budgets.py --check                                  # every budget has its fields
+python3 tests/perf/budgets.py --propose-thresholds --from "$out/head"  # a ciThreshold for each pending budget
+```
+
+`--propose-thresholds` reads the `callgrind.jsonl` of a folder `ci.sh` measured and prints, for each `"pending"`
+budget that met its target when recorded, a threshold three times its worst workload's instruction count, as a line
+to paste into `budgets.json`. A budget that missed stays pending: a threshold above a miss would hold the miss.
+
 The `budgets` group measures what no other workload does:
 
 - `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
   of every thread in that second.
-- `budgets/idle-<template>`: the same for each template in `examples/templates.json`. Run them alone
-  (`--only budgets/idle`): a window left open by an earlier workload runs in the same event loop.
+- `budgets/idle-<template>`: the same for each template in `examples/templates.json`. `budgets.py` runs them in a
+  process of their own: a window left open by an earlier workload runs in the same event loop. CI doesn't time idle;
+  `tests/unit/window/idle.cpp` holds it as counts instead: in a second of every template with nothing happening, no
+  update, no frame, and no wake of the event loop but its own timers' (3 at most) and the quit (`Application::turns()`).
 - `budgets/open-50mb`: a 50 MiB file read into the library's text editor.
 - `budgets/forge-cold-start`: Forge from its document to its first frame.
 - `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab
@@ -320,8 +337,14 @@ same unit. `compare.py` checks them on the head's results and fails the job like
 | `layout/5000/change` / `layout/5000` | 0.05 | incremental layout: one change lays out only what it moves |
 | `frame/blink/400/drawn` / `frame/400` | 0.5 | damage regions: a blinking caret redraws only its region |
 | `frame/blink/400` / `frame/400` | 0.8 | an unchanged frame reuses the cached draw list |
+| `update/400` / `update/14` | 1.5 | a state change finds its readers by place: 400 cards cost what 14 do |
+| `update/panels-50000-without-layout` / `update/14` | 6 | a 50,000-panel screen evaluates only what reads the change |
+| `update/app-50000-without-layout` / `update/14` | 50 | an app of 50,000 panels too, far below the 3,571 times of a walk |
 
-When set, the ratios were 0.007, 0.21 and 0.46; the limits leave room for noisy runners. The compiled screens and the
+When set, the ratios were 0.007, 0.21 and 0.46, then 1.00, 2.5 and 24.7 (macOS, wall clock); the limits leave room for
+noisy runners and for callgrind, whose ratios CI sees. `locks.json`'s note lists every lock's measured ratio, and
+BENCHMARKS.md the ratios wanted as locks that the code doesn't reach yet. A new lock must hold on the head when it is
+added, at about twice its measured ratio, and never so loose that linear growth would pass it. The compiled screens and the
 expression cache are held by the scaling gate instead (`update`, `revision` and `expressions/*`, above). Where layout,
 images, icons and partial redraws put each node is held by the scenario suites in `tests/render/screens/` (ctest
 `scenarios`), so a faster path can't change what the tree holds.
