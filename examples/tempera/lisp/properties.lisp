@@ -101,7 +101,7 @@
    (adjust-slider "adjust-output-white" "levels" "outputWhite" 0 255 255)])
 
 (defmacro tones "The image's tones for a chart: each bin at most four times the average, so a peak flattens nothing." []
-  '(map (fn [it] (min it (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram))))
+  '(map #(min % (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram)))
         (or-else state.doc.histogram [])))
 
 (defview adjust-slider "An adjustment's slider, id its node's, shown for one kind of adjustment: key names its value."
