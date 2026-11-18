@@ -58,8 +58,7 @@
   (if (neg? list) computed.library.length (count (get-in data.playlists [list :tracks]))))
 
 (defn play "Plays a song; the queue is the songs after it, up to 50." [list track]
-  (let [after (-> (songCount list) (- track) dec (min 50) (max 0))]
-    (startList list track "" (map #(keyOf list (+ track 1 %)) (range after)))))
+  (startList list track "" (map #(keyOf list (+ track 1 %)) (range (-> (songCount list) (- track) dec (min 50) (max 0))))))
 
 (defn advance "The queue's first song plays, from `at` seconds; with an empty queue, the songs start again when repeating all, else playback stops. Songs no longer there (a playlist changed) leave the queue first." [at]
   (when (and (empty? state.queue) (= state.repeat :all) (seq state.order))
@@ -98,8 +97,7 @@
         (if (= state.repeat :one) (replay) (advance fade))))))
 
 (defn seekLyric "The song goes to where a line of the lyrics starts: offset, the lines from the current one (-2 to 2)." [offset]
-  (let [limit (max (dec computed.duration) 0)]
-    (set "state.elapsed" (-> (/ state.elapsed 12) floor (+ offset) (* 12) (clamp 0 limit)))))
+  (set "state.elapsed" (-> (/ state.elapsed 12) floor (+ offset) (* 12) (clamp 0 (max (dec computed.duration) 0)))))
 
 ;;; Sound: a host that gives none fails these quietly
 
@@ -150,19 +148,15 @@
   (set "state.queuePick" nil))
 
 (defn addToQueue "Any song, as list:track, goes to the end of the queue." [key]
-  (let [others (without state.queue key)]
-    (set "state.queue" (take 1000 (conj others key))))
+  (set "state.queue" (take 1000 (conj (without state.queue key) key)))
   (set "state.queuePick" nil))
 
 (defn toggleLike "A song, as list:track, is liked, or no longer." [key]
-  (set "state.liked" (if (has state.liked key)
-                         (without state.liked key)
-                         (->> key (conj state.liked) (take 5000)))))
+  (set "state.liked" (if (has state.liked key) (without state.liked key) (take 5000 (conj state.liked key)))))
 
 (defn jumpTo "A song of the queue opened: it plays, and the songs before it leave the queue." []
-  (let [key (opened)
-        at (indexOf state.queue key)]
-    (set "state.queue" (drop (inc at) state.queue))
+  (let [key (opened)]
+    (set "state.queue" (drop (inc (indexOf state.queue key)) state.queue))
     (playKey key)))
 
 (defn placeQueued "Moves a song of the queue (its key) to a place." [song at]
@@ -172,10 +166,9 @@
     (set "state.queue" (concat (take at others) [song] (drop at others)))))
 
 (defn moveQueued "Moves the song picked in the queue up (-1) or down (1)." [by]
-  (let [at computed.queueAt
-        end (dec (count state.queue))]
+  (let [at computed.queueAt]
     (when (>= at 0)
-      (placeQueued (get state.queue at) (clamp (+ at by) 0 end)))))
+      (placeQueued (get state.queue at) (clamp (+ at by) 0 (dec (count state.queue)))))))
 
 (defn dropQueued "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows." []
   (let [song event.data.id]
@@ -194,8 +187,7 @@
   (play -1 item.track))
 
 (defn playFromCollection "A row of the album or artist opened: the songs after it in the table come next." []
-  (let [id (opened)]
-    (startList -1 (number id) state.collection.name (libraryKeys (idsAfter computed.collectionRows id)))))
+  (startList -1 (number (opened)) state.collection.name (libraryKeys (idsAfter computed.collectionRows (opened)))))
 
 (defn playCollection "The album or artist from its first song." []
   (let [rows computed.collectionRows]
@@ -203,15 +195,13 @@
       (startList -1 (number (:id top)) state.collection.name (->> rows (map :id) (drop 1) (take 50) libraryKeys)))))
 
 (defn playFromSearch "A search result opened: the results after it come next." []
-  (let [id (opened)]
-    (startList -1 (number id) "" (libraryKeys (idsAfter computed.searchRows id)))))
+  (startList -1 (number (opened)) "" (libraryKeys (idsAfter computed.searchRows (opened)))))
 
 (defn playLikedAt "A liked song, by its place in computed.likedSongs (-1: none): the liked songs after it come next." [at]
   (when (>= at 0)
     (let [liked computed.likedSongs
           {:keys [list track]} (get liked at)]
-      (startList list track (t "liked.title")
-                 (->> liked (drop (inc at)) (take 50) (map :id))))))
+      (startList list track (t "liked.title") (->> liked (drop (inc at)) (take 50) (map :id))))))
 
 (defn playLiked "A liked song plays, by its key, and the liked songs after it come next." [key]
   (playLikedAt (indexOf (map :id computed.likedSongs) key)))
@@ -279,10 +269,7 @@
     (update-record "playlists" :id id :fields {:tracks (take 1000 (conj tracks computed.songMenuSong))})))
 
 (defn shiftTrack "A key after a song left a list: the songs after it in that list move up one." [key list track]
-  (let [at (trackOf key)]
-    (if (and (= (listOf key) list) (> at track))
-        (keyOf list (dec at))
-        key)))
+  (if (and (= (listOf key) list) (> (trackOf key) track)) (keyOf list (dec (trackOf key))) key))
 
 (defn removeFromPlaylist "A song leaves a playlist; the liked songs, the queue and the song playing follow the places that moved." [list track]
   (let [gone (keyOf list track)
@@ -300,8 +287,7 @@
       (advance 0))))
 
 (defn shiftList "A key after a list was deleted: the lists after it move up one." [key list]
-  (let [at (listOf key)]
-    (if (> at list) (keyOf (dec at) (trackOf key)) key)))
+  (if (> (listOf key) list) (keyOf (dec (listOf key)) (trackOf key)) key))
 
 (defn deleteList "A playlist goes; the liked songs, the queue and the playing list follow the lists that moved, and going back starts again." [list]
   (let [kept (fn [keys]
@@ -354,10 +340,7 @@
     {:id (str index)
      :number (inc index)
      :title (str (get words.adjectives (mod index 16)) " " (get words.nouns (mod (whole index 16) 20))
-                 (if (< index 320)
-                     ""
-                     (str " (" (->> (whole index 320) dec (get words.versions)) ")")))
-
+                 (if (< index 320) "" (str " (" (get words.versions (dec (whole index 320))) ")")))
      :artist (get words.artists (mod (* index 7) 12))
      :album (get words.albums (mod (whole index 5) 18))
      :time (str (whole seconds 60) ":" (twoDigits (mod seconds 60)))}))
@@ -379,10 +362,7 @@
 (defn songNamed "The library song with that title, and by that artist when given, in any case: its key, or nil." [title artist]
   (let [wanted (-> title str/trim str/lower-case)
         by (some-> artist str/trim str/lower-case)
-        song (find (fn [song]
-                     (and (-> song :title str/lower-case (= wanted))
-                          (or (nil? by) (-> song :artist str/lower-case (= by)))))
-
+        song (find #(and (= (str/lower-case (:title %)) wanted) (or (nil? by) (= (str/lower-case (:artist %)) by)))
                    data.songs)]
     (some->> song :id number (keyOf -1))))
 
@@ -532,7 +512,6 @@
   :category ~(t "category.view") :icon "chevron-left" :enablement ~(pos? (count state.backStack)) []
   (when (seq state.backStack)
     (set "state.forwardStack" (concat [state.where] (take 49 state.forwardStack)))
-
     (goTo (last state.backStack))
     (set "state.backStack" (drop-last state.backStack))))
 
