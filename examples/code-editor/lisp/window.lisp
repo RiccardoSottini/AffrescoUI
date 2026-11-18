@@ -11,7 +11,7 @@
        :anchors {:left 520 :right 44 :top 0 :bottom 0}
        :align {:horizontal end :vertical center})
      (label#themeSwitch :text ""
-       :icon ~(if (= computed.theme "dark") "moon" "sun")
+       :icon ~(if (= computed.theme :dark) "moon" "sun")
        :font small
        :anchors {:right 10 :top 3}
        :width 24
@@ -235,9 +235,9 @@
                     {:title ~(t "ui.closeTabsToTheRight")
                      :run closeToTheRight
                      :with {:file ~state.tabMenu.file}
-                     :enabled ~(< (indexOf state.tabs state.tabMenu.file) (- (count state.tabs) 1))}
+                     :enabled ~(< (indexOf state.tabs state.tabMenu.file) (dec (count state.tabs)))}
                     {:separator true}
-                    {:title ~(t "ui.reopenClosedFile") :run reopenClosed :enabled ~(> (count state.closed) 0)}]}))
+                    {:title ~(t "ui.reopenClosedFile") :run reopenClosed :enabled ~(pos? (count state.closed))}]}))
 
 (defview editor-menu "The editor's context menu." []
   `(node#editorMenu :use contextMenu
