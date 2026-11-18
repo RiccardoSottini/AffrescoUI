@@ -2,6 +2,8 @@
 ;;;
 ;;; A key runs a command of launcher.lisp by name, or the action the host runs (launcher.refresh).
 
+(ns launcher.keys)
+
 ;;; Pages
 
 (defkey "mod+1" showApps)

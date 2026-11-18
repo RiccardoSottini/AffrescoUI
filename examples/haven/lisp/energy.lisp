@@ -4,6 +4,8 @@
 ;;; the sun, the grid and the home; what it cost; how much of the home the sun ran, against the daily budget; and the
 ;;; week by day, by device or by room.
 
+(ns haven.energy)
+
 ;;; What the page keeps
 
 (defstate solar
@@ -17,7 +19,7 @@
 ;;; What it works out
 
 (defcomputed gridHourly "What came from the grid, hour by hour: the use the sun didn't cover."
-  (map-indexed (fn [index it] (max (- it (get state.solar index)) 0)) state.hourly))
+  (map-indexed (fn [index it] (-> it (- (get state.solar index)) (max 0))) state.hourly))
 
 (defcomputed gridIn "What came from the grid today." (sum computed.gridHourly))
 
@@ -52,6 +54,7 @@
 (defcomputed flowY "Where the flow's lower circles are." (- computed.flowHeight 56))
 
 (defcomputed roomRows "The rooms table's rows: each room's energy this week and temperature."
+  ;; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.name :cells [it.name (t "kwh" {:n (fixed it.kwh 1)}) (str it.temp "°")]}) state.rooms))
 
 (defcomputed roomColumns "The rooms table's columns."
@@ -153,7 +156,7 @@
             :textColor @muted
             :anchors {:top 0 :bottom 0}
             :grow 1
-            :align {:horizontal ~(cond (= index 0) "start" (= index 4) "end" :else "center") :vertical center})))))
+            :align {:horizontal ~(case index 0 "start" 4 "end" "center") :vertical center})))))
 
 (defview usage-scale "The chart's scale: a line at 1 and 2 kWh, and the axis." []
   `(node#usageAxis :anchors {:left 24 :right 24 :top 80 :bottom 36} :color transparent
@@ -275,7 +278,8 @@
          :basis 0
          :grow ~(clamp (/ (number computed.today) settings.energy.dailyBudget) 0.001 1)
          :color ~(if (> (number computed.today) settings.energy.dailyBudget) "@warm" "@accent"))
-       (node#budgetRest :basis 0 :grow ~(- 1.001 (clamp (/ (number computed.today) settings.energy.dailyBudget) 0 1))))
+       (node#budgetRest :basis 0
+         :grow ~(- 1.001 (-> (number computed.today) (/ settings.energy.dailyBudget) (clamp 0 1)))))
      (node#budgetLine :anchors {:left 24 :right 24 :bottom 56} :height 1 :color @divider)
      (row#budget :anchors {:left 24 :right 24 :bottom 16} :height 40 :gap 8 :alignItems center
        (label#label-budget :textColor @muted :text ~(t "stat.budget") :height 20 :grow 1 :align start)
@@ -322,9 +326,7 @@
 (defview week-card "The week by day or by device as bars, or by room as a table." []
   `(node#weekCard :style card :anchors {:top 0 :bottom 0} :grow 1 :basis 0
      (node#label-week-caption :style cardTitle
-       :text ~(cond (= state.energyView "day") (t "week.byDay")
-                    (= state.energyView "device") (t "week.byDevice")
-                    :else (t "byRoom.title")))
+       :text ~(case state.energyView :day (t "week.byDay") :device (t "week.byDevice") (t "byRoom.title")))
      (label#label-this-week :font heading
        :textColor @text
        :text ~(t "kwh" {:n computed.energyTotal})
@@ -335,14 +337,14 @@
      ~(week-choices)
      (node#weekBars :when ~(not= state.energyView "room")
        :use barChart
-       :with {:values ~(if (= state.energyView "day") computed.weekValues computed.deviceValues)
-              :color ~(if (= state.energyView "day") "@accent" "@warm")
+       :with {:values ~(if (= state.energyView :day) computed.weekValues computed.deviceValues)
+              :color ~(if (= state.energyView :day) "@accent" "@warm")
               :gap 0.4}
        :anchors {:left 24 :right 24 :top 92 :bottom 36}
        :role img
-       :label ~(if (= state.energyView "day") (t "week.byDay") (t "week.byDevice")))
+       :label ~(if (= state.energyView :day) (t "week.byDay") (t "week.byDevice")))
      ~(week-labels)
-     (table#roomTable :when ~(= state.energyView "room")
+     (table#roomTable :when ~(= state.energyView :room)
        :anchors {:left 12 :right 12 :top 92 :bottom 12}
        :rowHeight 30
        :color @card
@@ -377,7 +379,7 @@
 (defview week-labels "The bars' labels: the days, the peak in its colour, or the devices." []
   `(row#weekDays :when ~(not= state.energyView "room") :anchors {:left 24 :right 24 :bottom 10} :height 18
      ~(repeat [d data.energy]
-       `(label#weekDay :when ~(= state.energyView "day")
+       `(label#weekDay :when ~(= state.energyView :day)
           :text ~(t (str "day." d.day))
           :font small
           :textColor ~(if (= d.day computed.peakDay) "@warm" "@muted")
@@ -386,7 +388,7 @@
           :basis 0
           :align center))
      ~(repeat [d state.deviceEnergy]
-       `(label#weekDevice :when ~(= state.energyView "device")
+       `(label#weekDevice :when ~(= state.energyView :device)
           :text ~(t (str "use." d.id))
           :font small
           :tooltip ~(str (t (str "use." d.id)) ": " (t "kwh" {:n d.kwh}))

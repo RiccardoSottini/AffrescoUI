@@ -3,6 +3,8 @@
 ;;; Each defstate is one key of the state, with the value it starts from; the examples are state.examples, in
 ;;; apps.lisp. A defcomputed is a value the views read as computed.<name>.
 
+(ns launcher.state)
+
 ;;; The page and the person's choices
 
 (defstate page apps "The page shown." :type {:enum [apps mine create settings install catalogue]})
@@ -38,7 +40,7 @@
 (defstate tileColors ["#5b4fe0" "#e0569a" "#1f9d62" "#e08a1e" "#2a86d6" "#9b4fd6"]
   "The colours of the apps' initials, in turn.")
 
-(defcomputed myIds "The folders of the person's apps." (map (fn [it] it.id) state.mine))
+(defcomputed myIds "The folders of the person's apps." (map :id state.mine))
 
 ;;; Creating an app
 
@@ -58,28 +60,26 @@
   "The features of other apps a new app can ask for: what the assistant is told for each.")
 
 (defcomputed starters "The examples a new app can start from: those the host runs, but those that say no."
-  (filter (fn [it] (and (= it.program "host") (not= it.starter false))) state.examples))
+  (filter #(and (= (:program %) :host) (not= (:starter %) false)) state.examples))
 
 (defcomputed reserved "The folder names an app can't take."
-  (concat (map (fn [it] it.folder) state.examples) ["shared" "launcher"]))
+  (concat (map :folder state.examples) ["shared" "launcher"]))
 
 (defcomputed slug "The new app's folder: its name in lower case, letters and digits, words joined by dashes."
   (slice (join "-"
-               (filter (fn [it] (not= it ""))
-                       (split (join ""
-                                    (map (fn [it] (if (contains "abcdefghijklmnopqrstuvwxyz0123456789" it) it " "))
-                                         (split (lower-case (trim state.create.name)) "")))
+               (filter #(not= % "")
+                       (split (->> (split (lower-case (trim state.create.name)) "")
+                                   (map #(if (contains "abcdefghijklmnopqrstuvwxyz0123456789" %) % " "))
+                                   (join ""))
                               " ")))
          0
          40))
 
 (defcomputed askText "What the assistant is asked: the description, and the features from other apps."
   (trim (+ (trim state.create.describe)
-           (if (> (count state.create.features) 0)
+           (if (pos? (count state.create.features))
              (str "\n\nAlso add these features from other apps: "
-                  (join "; "
-                        (map (fn [it] it.ask)
-                             (filter (fn [it] (contains state.create.features it.id)) state.featureChoices)))
+                  (->> state.featureChoices (filter #(contains state.create.features (:id %))) (map :ask) (join "; "))
                   ".")
              ""))))
 
@@ -94,9 +94,9 @@
         :else ""))
 
 (defcomputed fromName "The name of what the new app starts from."
-  (if (= state.create.from "blank")
+  (if (= state.create.from :blank)
     (t "create.blank")
-    (or-else (:name (find (fn [it] (= it.id state.create.from)) state.examples)) "")))
+    (or-else (:name (find #(= (:id %) state.create.from) state.examples)) "")))
 
 (defcomputed excluded "What a copy of an example leaves out: its C++, its build files, its hidden files."
   ["*.cpp" "*.hpp" "*.h" "*.c" "*.cc" "*.mm" "*.cmake" "CMakeLists.txt" "*.py" ".*"])
@@ -108,14 +108,14 @@
 (defcomputed sideWidth "The sidebar's width." (if computed.wide 232 72))
 
 (defcomputed columns "How many cards the Apps page fits in a row."
-  (max 1 (floor (/ (- (- window.width computed.sideWidth) 52) 290))))
+  (-> (- window.width computed.sideWidth 52) (/ 290) floor (max 1)))
 
 (defcomputed everyApp "The person's apps, then the examples, as cards."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (concat (map (fn [it] {:id it.id :name it.name :modified it.modified :mine true}) state.mine) state.examples))
 
 (defcomputed shown "The apps whose name, or tagline, holds the search."
-  (filter (fn [it]
-            (or (= (trim state.query) "")
-                (contains (lower-case (str it.name " " (if it.mine it.id (t (str "tagline." it.id)))))
-                          (lower-case (trim state.query)))))
+  (filter #(or (= (trim state.query) "")
+               (contains (lower-case (str (:name %) " " (if (:mine %) (:id %) (t (str "tagline." (:id %))))))
+                         (lower-case (trim state.query))))
           computed.everyApp))
