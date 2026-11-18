@@ -630,9 +630,10 @@ An update builds again only what read a place that changed (`Tracker`, `PlaceInd
 the running interpreter instead of a new one. Neither is a way around a rule:
 
 - **What is judged is what is built.** A revision's rules and the checker run on the tree the update builds, in part or in
-  full alike, and a feature's checks on every step it runs; where tracking can't tell what a change reaches, the update is a
-  full one. Verify mode (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and
-  the property test and the `updates` fuzz target compare the two after random sequences of changes.
+  full alike, and a feature's checks on every step it runs; where tracking can't tell what a change reaches, the update is
+  a full one, and a step that fails marks the places it made on its way before it failed. Verify mode
+  (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and the property test and
+  the `updates` fuzz target compare the two after random sequences of changes.
 - **A change made in place is bounded as a load is.** At most 64 changes, and together at most what one load may allocate
   (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, or touches
   a name the language or the host defines, is never made in place.
