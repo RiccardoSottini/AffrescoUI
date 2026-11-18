@@ -525,7 +525,7 @@ TEST_CASE("lisp rebuild: a function a view's expression names, defined now, buil
 	const json tree = first.build(buildLimits());
 	REQUIRE(!tree.dump().contains("lisp('shout'"));
 	json after = section;
-	after["app.lisp"]["shout"] = "(defn shout \"\" [x] (str x \"!\"))";
+	after["app.lisp"]["shout"] = R"((defn shout "" [x] (str x "!")))";
 	bool whole = false;
 	const json part = buildFrom(*first.record(), after, whole);
 	CHECK(part == buildInFull(after));

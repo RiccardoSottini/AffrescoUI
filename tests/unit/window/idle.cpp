@@ -36,7 +36,7 @@ affresco::Screen templateScreen(const std::filesystem::path& folder) {
 		return Screen::fromString(app.documentJson(), folder);
 	}
 	const std::filesystem::path index = folder / "index.screen.json";
-	std::ifstream file(std::filesystem::exists(index) ? index : folder / (folder.filename().string() + ".screen.json"));
+	const std::ifstream file(std::filesystem::exists(index) ? index : folder / (folder.filename().string() + ".screen.json"));
 	std::stringstream text;
 	text << file.rdbuf();
 	return Screen::fromString(text.str(), folder);
@@ -45,7 +45,7 @@ affresco::Screen templateScreen(const std::filesystem::path& folder) {
 /// @brief Runs the event loop for one real second: a thread posts quit() at its end, as the idle benchmark does.
 /// @param app The application.
 void runOneSecond(affresco::Application& app) {
-	std::jthread stopper([&app] {
+	const std::jthread stopper([&app] {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		app.post([&app] { app.quit(); });
 	});
@@ -82,7 +82,7 @@ TEST_CASE("idle: an idle second of every template runs no update, draws nothing 
 		affresco::Screen screen = templateScreen(templateDirectory(examples, name));
 		screen.setPlaceholderTypes(true); // as affrescoui_launcher does
 		screen.setSocketDirectory(noHost);
-		affresco::Window& window = screen.createWindow(app);
+		const affresco::Window& window = screen.createWindow(app);
 
 		runOneSecond(app); // settles: onLoad, the first frame and the first timers do their work
 		const bool timerPending = window.secondsToNextTimer().has_value();

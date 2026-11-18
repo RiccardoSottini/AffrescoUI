@@ -69,7 +69,7 @@ json kanban(int cards) {
 	for(const json& card : seed)
 		if(card["board"] == "launch") originals.push_back(card);
 	if(originals.empty()) throw std::invalid_argument("the Kanban template has no cards to copy");
-	for(std::size_t count = originals.size(); count < static_cast<std::size_t>(cards); ++count) {
+	for(std::size_t count = originals.size(); std::cmp_less(count, cards); ++count) {
 		json card = originals[count % originals.size()];
 		card["id"] = card["ref"] = "FLO-P" + std::to_string(count);
 		card["status"] = count % 4;
@@ -105,7 +105,7 @@ struct Built {
 	/// @brief Applies a revision, which must apply, and renders.
 	/// @param revision Its edits.
 	/// @return What its update cost.
-	const affresco::format::UpdateStatistics& apply(json revision) {
+	const affresco::format::UpdateStatistics& apply(json revision) const {
 		revision["author"] = "agent/x";
 		revision["message"] = "m";
 		std::string error;
@@ -118,7 +118,7 @@ struct Built {
 	/// @brief A label's text.
 	/// @param id Its id.
 	/// @return The text.
-	[[nodiscard]] std::string text(const char* id) {
+	[[nodiscard]] std::string text(const char* id) const {
 		const auto* label = dynamic_cast<const affresco::Label*>(screen->find(id));
 		REQUIRE(label != nullptr);
 		return label->text();
@@ -126,7 +126,7 @@ struct Built {
 	/// @brief The ids of a panel's children.
 	/// @param id Its id.
 	/// @return Them, in order.
-	[[nodiscard]] std::vector<std::string> childIds(const char* id) {
+	[[nodiscard]] std::vector<std::string> childIds(const char* id) const {
 		const affresco::Panel* panel = screen->find(id);
 		REQUIRE(panel != nullptr);
 		std::vector<std::string> ids;
@@ -135,7 +135,7 @@ struct Built {
 	}
 	/// @brief Clicks a panel in its middle.
 	/// @param id Its id.
-	void click(const char* id) {
+	void click(const char* id) const {
 		const affresco::Rect bounds = screen->find(id)->bounds();
 		const affresco::Vec2 at{(bounds.left + bounds.right) / 2.0f, (bounds.top + bounds.bottom) / 2.0f};
 		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, at});

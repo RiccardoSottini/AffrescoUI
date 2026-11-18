@@ -246,7 +246,7 @@ struct ListScreen {
 /// @brief Takes back the edit applied last, if any, and lays out, unmeasured.
 /// @param screen The screen.
 void takeBackPending(ListScreen& screen) {
-	if(screen.pending.empty()) return;
+	if(screen.pending.empty() || !screen.loaded) return;
 	runAndUpdate(*screen.loaded, screen.pending.c_str(), json::object());
 	screen.pending.clear();
 }
@@ -357,12 +357,13 @@ json lispRows() {
 /// @param context The context.
 /// @param workloads Gets them.
 void addValueWorkloads(Context& context, std::vector<Workload>& workloads) {
-	const std::filesystem::path folder = context.templateFolder("kanban");
 	workloads.push_back(actionWorkload(
-	    "update/computed-unrelated/400", [&context, folder] { return context.load(computedScreen(), folder); }, "other",
+	    "update/computed-unrelated/400",
+	    [&context] { return context.load(computedScreen(), context.templateFolder("kanban")); }, "other",
 	    [](int run) { return json{{"v", run}}; }));
 	workloads.push_back(actionWorkload(
-	    "update/parameter/400", [&context, folder] { return context.load(parameterScreen(), folder); }, "change",
+	    "update/parameter/400",
+	    [&context] { return context.load(parameterScreen(), context.templateFolder("kanban")); }, "change",
 	    [](int run) { return json{{"key", std::format("k{}", run * 37 % itemCount)}, {"v", -run}}; }));
 	workloads.push_back(actionWorkload(
 	    "update/lisp-row/25000", [&context] { return context.load(lispRows(), {}); }, "touch",
