@@ -30,6 +30,7 @@ const json& settingValue(const json& state, const std::string& key, const json& 
 /// @param engine The runtime.
 /// @return The object, e.g. `{ "editor": { "fontSize": 14 } }`.
 json settingsOf(Engine& engine) {
+	if(ReadSet* reads = engine.document.reads()) reads->addPath("/settings"); // read in place, not through a path
 	const json& document = engine.versions.document();
 	json nested = json::object();
 	if(!document.contains("settings") || !document["settings"].is_object()) return nested;
@@ -51,6 +52,7 @@ json settingsOf(Engine& engine) {
 /// @param engine The runtime.
 /// @return `{ key, title, description, type, value, default, modified, enum, minimum, maximum }` per setting, by key.
 json settingsListOf(Engine& engine) {
+	if(ReadSet* reads = engine.document.reads()) reads->addPath("/settings"); // read in place, not through a path
 	const json& document = engine.versions.document();
 	json list = json::array();
 	if(!document.contains("settings") || !document["settings"].is_object()) return list;

@@ -9,6 +9,7 @@
 #include "affresco/core/Assets.hpp"
 
 #include <format>
+#include <utility>
 
 namespace affresco::format {
 
@@ -73,42 +74,125 @@ void showIcon(Engine& engine) {
 
 } // namespace
 
-bool UpdateFrame::begin(const StateChanges& changes) {
-	static_cast<void>(changes); // every update reads the same window-wide values, whatever changed
+UpdateFrame::UpdateFrame(Engine& engine) : engine_(engine) {
+	for(std::size_t i = 0; i < partCount; ++i) {
+		PartReader& reader = parts_.at(i).emplace(*this, static_cast<Part>(i));
+		reader.id = engine_.tracker.add(reader); // read nothing yet: the first update, of everything, evaluates it
+	}
+}
+
+UpdateFrame::~UpdateFrame() {
+	for(const std::optional<PartReader>& reader : parts_)
+		if(reader) engine_.tracker.remove(reader->id);
+}
+
+void UpdateFrame::PartReader::update(const StateChanges& changes) {
+	static_cast<void>(changes);
+	if(part_ == Part::Theme || part_ == Part::Locale || part_ == Part::Icon) frame_.evaluate(part_);
+	else due = true; // after the walk, as the panels are then
+}
+
+std::string UpdateFrame::PartReader::name() const {
+	static constexpr std::array<const char*, partCount> names = {"theme",        "strings.locale", "window.icon",
+	                                                             "window.title", "window.menuBar", "window.focusRing"};
+	return names.at(static_cast<std::size_t>(part_));
+}
+
+void UpdateFrame::evaluate(Part part) {
+	ReadSet reads;
+	{
+		const DocumentContext::ReadScope scope(engine_.document, &reads);
+		switch(part) {
+		case Part::Theme:
+			engine_.document.updateTheme();
+			break;
+		case Part::Locale:
+			engine_.document.updateLocale();
+			break;
+		case Part::Icon:
+			showIcon(engine_);
+			break; // a file outside the allowed folders refuses the revision
+		case Part::Title:
+			showWindowTitle(engine_);
+			break;
+		case Part::MenuBar:
+			showMenuBar(engine_);
+			break;
+		case Part::FocusRing:
+			showFocusRing(engine_);
+			break;
+		}
+	}
+	if(part == Part::Locale) reads.addPath(std::string(places::globals) + "/locale"); // the host's (setLocale())
+	if(part == Part::FocusRing || part == Part::MenuBar)                              // its colours are the theme's
+		reads.addPath(std::string(places::globals) + "/theme");
+	if(const std::optional<PartReader>& reader = parts_.at(static_cast<std::size_t>(part)))
+		engine_.tracker.setReads(reader->id, std::move(reads));
+}
+
+bool UpdateFrame::begin(StateChanges& changes) {
 	Window& window = *engine_.window;
 	DocumentContext& context = engine_.document;
+	if(changes.all) context.globalsChanged(); // a revision, or what no place describes: everything is built again
+	context.hostValues().updateStarted();
 
 	// The screen an outlet shows: the first one, unless navigation chose another that still exists
+	const std::string screen = context.screen();
 	context.keepScreen(engine_.versions.document());
-	context.globalsChanged(); // window size, history, proposals, screen: refreshed once per update
-	// Computed values are cached per state version, and may read the window: a resize makes them stale too
-	std::string windowNow = std::to_string(window.width()) + "x" + std::to_string(window.height()) + "@" +
-	                        std::to_string(window.contentScale()) +
-	                        (window.colorScheme() == ColorScheme::Dark ? "d" : "l");
+	if(context.screen() != screen) context.markGlobalChanged("screen");
+	// What `window` holds, and what computed values that read it read
+	std::string windowNow = std::format("{}x{}@{}{}{}{}{}", window.width(), window.height(), window.contentScale(),
+	                                    window.colorScheme() == ColorScheme::Dark ? 'd' : 'l', window.nativeMenuBar(),
+	                                    window.reducedMotion(), window.capsLock());
 	bool resized = false;
 	if(windowNow != window_) {
 		resized = !window_.empty();
-		if(resized) context.bumpStateVersion();
+		if(resized) context.markGlobalChanged("window");
 		window_ = std::move(windowNow);
 	}
-	context.updateTheme();
-	context.updateLocale();
+	const StateChanges marked = context.takeChanges(); // they belong to this update
+	if(marked.all) changes.addAll();
+	for(const std::string& place : marked.paths) changes.add(place);
 
 	// Revisions can change the fonts: the default one is the window's
 	if(const auto font = context.findFont("default"); font && window.defaultFont() != font.get())
 		window.setDefaultFont(font);
-	showIcon(engine_); // and the icon: a file outside the allowed folders refuses the revision, as an image node's does
 	return resized;
 }
 
+void UpdateFrame::checkPanels() {
+	const UpdateStatistics& counters = engine_.reconciler.counters();
+	const std::size_t records = engine_.reconciler.records().size();
+	if(counters.panelsApplied == 0 && counters.panelsCreated == 0 && records == records_) return;
+	records_ = records;
+	DocumentContext& context = engine_.document;
+	bool marked = false;
+	if(context.hostValues().built("keybindings") && keysFingerprint(engine_) != keysBuiltFrom_) {
+		context.markVariableChanged("keybindings");
+		marked = true;
+	}
+	if(context.hostValues().built("context") && overlayShown(engine_) != overlayBuiltFrom_) {
+		context.markVariableChanged("context");
+		marked = true;
+	}
+	if(marked) engine_.reconciler.requestStateUpdate();
+}
+
 void UpdateFrame::end(const StateChanges& changes, bool full) {
-	static_cast<void>(changes);
-	static_cast<void>(full);
 	if(!engine_.handlersSuspended) engine_.watches.watch(engine_.window->root());
-	showWindowTitle(engine_);
-	showMenuBar(engine_);
-	showFocusRing(engine_);
+	for(const Part part : {Part::Title, Part::MenuBar, Part::FocusRing})
+		if(std::optional<PartReader>& reader = parts_.at(static_cast<std::size_t>(part));
+		   reader && std::exchange(reader->due, false))
+			evaluate(part);
+	checkPanels();
+	lastAll_ = full || changes.all;
+	lastChanges_ = changes.paths;
 	engine_.owner.onUpdated();
+}
+
+std::optional<std::span<const std::string>> UpdateFrame::lastChanges() const noexcept {
+	if(lastAll_) return std::nullopt;
+	return std::span<const std::string>(lastChanges_);
 }
 
 } // namespace affresco::format
