@@ -126,7 +126,9 @@
     :label (t ~title)
     :locked (>= (indexOf state.locked ~kind) 0)
     :muted (>= (indexOf state.muted ~kind) 0)
+    ; style: keep, #(...) can't give a map, and the clip's colour is the macro's
     :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color ~colour})
+                ; style: keep, in the macro's template, the kind unquoted
                 (filter (fn [it] (= it.kind ~kind)) computed.events))})
 
 (defmacro all-tracks
@@ -153,6 +155,7 @@
      :timeFormat frames
      :pixelsPerSecond 2.6
      :headerWidth 130
+     ; style: keep, #(...) can't give a map
      :markers ~(map (fn [it] {:time it.time :label ""})
                     (filter #(and (= (:kind %) "eclipse") (< (indexOf state.muted "eclipse") 0))
                             computed.events))

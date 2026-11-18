@@ -77,6 +77,7 @@
   (if (not= state.flying "") (find #(= (:id %) state.flying) computed.placed) nil))
 
 (defcomputed catalogue "Every body for the features: id, name, parent and its thumbnail."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.id :name it.name :parent it.parent :thumbnail (str "body:" (or-else it.look it.id))})
        state.bodies))
 
@@ -132,6 +133,7 @@
        (filter #(= (get-in state.bodies [% :parent]) "") (range (count state.bodies)))))
 
 (defcomputed bookmarkRows "The bookmarks, as the browser's list."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.id :label it.label :icon "bookmark"}) state.bookmarks))
 
 ;;; The orbit graph
@@ -148,5 +150,6 @@
                state.bodies))
 
 (defcomputed graphLinks "What orbits what, as the graph's links."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:from it.parent :output "satellites" :to it.id :input "orbits"})
        (filter #(not= (:parent %) "") state.bodies)))

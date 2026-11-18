@@ -179,6 +179,7 @@
 ;;; The scene
 
 (defcomputed orbitRings "Each orbit: its centre and its radius."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.id :cx it.cx :cz it.cz :radius it.radius})
        (filter #(not= (:parent %) "") computed.placed)))
 
