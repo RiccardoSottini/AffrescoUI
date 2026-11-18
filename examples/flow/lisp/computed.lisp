@@ -4,6 +4,8 @@
 ;;; expression's speed (SCREEN_FORMAT.md, "Values, expressions and state"). The forms are Lisp; `%` is the item of a
 ;;; one-line function on each item, as in (filter #(...) list), and `it` the item of a longer one, (fn [it] ...).
 
+(ns flow.computed)
+
 ;;; The board's columns and cards
 
 (defcomputed columns
