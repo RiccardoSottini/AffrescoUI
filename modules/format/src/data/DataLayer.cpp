@@ -72,6 +72,17 @@ private:
 	bool& flag_; ///< The flag.
 };
 
+/// @brief What the declared queries read: what their declarations read, and each collection's place. Not all of
+/// dataPlaces: that holds their own results, and marking one that differs would find them again.
+/// @param declared What their declarations read.
+/// @param store The records.
+/// @return The reads.
+ReadSet queriesReads(const ReadSet& declared, const data::Store& store) {
+	ReadSet reads = declared;
+	for(const auto& [name, model] : store.models()) reads.addPath(dataPlace(name));
+	return reads;
+}
+
 } // namespace
 
 std::string dataPlace(std::string_view name) {
@@ -237,11 +248,7 @@ void DataLayer::runQueries(bool rebuilt, const std::set<std::string, std::less<>
 			if(differs && !rebuilt) markChanged(name);
 			queryArguments_[name] = std::move(arguments);
 		}
-	// The queries run again when what they read changes, or a collection's records do. They read each collection's
-	// place, not all of dataPlaces: that holds their own results, and marking one that differs would find them again.
-	ReadSet reads = queryReads_;
-	for(const auto& [name, model] : store.models()) reads.addPath(dataPlace(name));
-	engine_.tracker.setReads(queriesId_, std::move(reads));
+	engine_.tracker.setReads(queriesId_, queriesReads(queryReads_, store)); // they run again when one changes
 }
 
 json DataLayer::outline() const {
