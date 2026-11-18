@@ -3,6 +3,7 @@
 /// without walking the panels (src/updates/PlaceIndex.hpp).
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/format/Runtime.hpp>
@@ -134,9 +135,9 @@ TEST_CASE("update index: a change of a large screen visits only the panels that 
 }
 
 TEST_CASE("update index: a reader whose parent's list is built again is updated once, or destroyed") {
-	::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+	affresco::test::verifyNextRuntimes(true);
 	Built built;
-	::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+	affresco::test::verifyNextRuntimes(false);
 
 	// The row changed, and one before it removed: the list keeps it by its key, and builds it again or keeps it
 	const auto& shifted = built.run("textAndRemove", {{"s", 5}, {"g", 2}, {"r", 10}, {"v", "kept"}, {"at", 3}});

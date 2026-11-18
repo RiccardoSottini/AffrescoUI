@@ -3,6 +3,7 @@
 /// nothing, and the panels are those a full build of the same document and state gives.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/render/Label.hpp>
@@ -176,7 +177,7 @@ void step(affresco::Screen& screen, affresco::Panel& sender, std::mt19937& rando
 /// @param steps The updates per seed.
 void checkProperty(unsigned seeds, int steps) {
 	const ManualClock clock;
-	::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+	affresco::test::verifyNextRuntimes(true);
 	for(unsigned seed = 1; seed <= seeds; ++seed) {
 		std::mt19937 random(seed);
 		const json document = generate(random, seed % 2 == 0);
@@ -211,7 +212,7 @@ void checkProperty(unsigned seeds, int steps) {
 			REQUIRE(incremental == full);
 		}
 	}
-	::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+	affresco::test::verifyNextRuntimes(false);
 }
 
 } // namespace
@@ -221,7 +222,7 @@ TEST_CASE("update property: generated documents and steps, each update checked a
 }
 
 TEST_CASE("update property, regression: a set past a list's end grows the list, and what reads its length sees it") {
-	::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+	affresco::test::verifyNextRuntimes(true);
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(640, 480, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({ "format": "affrescoui-screen", "version": 2,
@@ -230,7 +231,7 @@ TEST_CASE("update property, regression: a set past a list's end grows the list, 
 		"root": { "type": "column", "children": [
 			{ "type": "label", "repeat": { "for": "item", "in": "state.items" }, "text": "{{item.title ?? '-'}}" },
 			{ "type": "label", "text": "{{length(state.items)}} {{state.made ? 'made' : ''}}" } ] } })json");
-	::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+	affresco::test::verifyNextRuntimes(false);
 	std::vector<std::string> errors;
 	[[maybe_unused]] const affresco::Connection listening =
 	    screen.onError([&](const std::string& message) { errors.push_back(message); });

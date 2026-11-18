@@ -4,6 +4,7 @@
 /// Every screen runs in verify mode, so each partial update is compared with a full pass.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -91,11 +92,11 @@ struct Built {
 	/// @param document Its document.
 	/// @param folder Where its files are.
 	explicit Built(const json& document, const std::filesystem::path& folder = ".") {
-		::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+		affresco::test::verifyNextRuntimes(true);
 		screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(document.dump(), folder));
 		listening = screen->onError([this](const std::string& message) { errors.push_back(message); });
 		screen->build(*window);
-		::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+		affresco::test::verifyNextRuntimes(false);
 		window->render();
 	}
 	Built(const Built&) = delete;

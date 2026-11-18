@@ -3,6 +3,7 @@
 /// first difference is reported, naming the node and the property, without the values.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 #include "Verify.hpp"
 
 #include <affresco/affresco.hpp>
@@ -51,9 +52,9 @@ struct Verified {
 	/// @param document The document.
 	/// @return It.
 	static affresco::Screen made(const char* document) {
-		::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+		affresco::test::verifyNextRuntimes(true);
 		affresco::Screen screen = affresco::Screen::fromString(document);
-		::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+		affresco::test::verifyNextRuntimes(false);
 		return screen;
 	}
 

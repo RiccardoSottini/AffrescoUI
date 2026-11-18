@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -138,6 +139,17 @@ inline double secondsOf(const std::function<void()>& work) {
 	const auto started = std::chrono::steady_clock::now();
 	work();
 	return std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+}
+
+/// @brief Turns verify mode on or off for the runtimes made next: each reads AFFRESCOUI_VERIFY_UPDATES as it starts.
+/// @param on Whether it is on.
+inline void verifyNextRuntimes(bool on) {
+#ifdef _WIN32
+	_putenv_s("AFFRESCOUI_VERIFY_UPDATES", on ? "1" : ""); // an empty value unsets it
+#else
+	if(on) ::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+	else ::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+#endif
 }
 
 } // namespace affresco::test

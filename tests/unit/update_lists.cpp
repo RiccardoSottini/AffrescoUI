@@ -3,6 +3,7 @@
 /// panel by its key and its number until it moves, and Panel's moves keep the focus, hover and capture.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/format/Runtime.hpp>
@@ -32,8 +33,7 @@ namespace {
 /// @param on Whether it is on.
 /// @return @p on.
 bool verifying(bool on) {
-	if(on) ::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
-	else ::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+	affresco::test::verifyNextRuntimes(on);
 	return on;
 }
 

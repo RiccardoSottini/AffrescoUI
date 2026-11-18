@@ -5,13 +5,13 @@
 #include "Engine.hpp"
 
 #include "affresco/core/Log.hpp"
+#include "affresco/core/Portable.hpp"
 #include "affresco/render/Label.hpp"
 #include "affresco/render/TextArea.hpp"
 
-#include <cstdlib>
+#include <cstddef>
 #include <format>
 #include <optional>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -131,8 +131,7 @@ std::string& dropped() noexcept {
 } // namespace
 
 Verify::Verify(Engine& engine) noexcept : engine_(engine) {
-	const char* const variable = std::getenv("AFFRESCOUI_VERIFY_UPDATES"); // NOLINT(concurrency-mt-unsafe): once
-	on_ = variable && std::string_view(variable) == "1";
+	on_ = environmentVariable("AFFRESCOUI_VERIFY_UPDATES") == "1"; // read once, as the runtime starts
 }
 
 void Verify::check(Panel& root, const std::function<void()>& fullPass) {

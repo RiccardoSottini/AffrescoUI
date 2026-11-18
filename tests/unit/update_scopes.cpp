@@ -3,6 +3,7 @@
 /// place; siblings are left alone and no component is built again.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/format/Runtime.hpp>
@@ -28,8 +29,7 @@ namespace {
 /// @param on Whether it is on.
 /// @return @p on.
 bool verifying(bool on) {
-	if(on) ::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
-	else ::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
+	affresco::test::verifyNextRuntimes(on);
 	return on;
 }
 
