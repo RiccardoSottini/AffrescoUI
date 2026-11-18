@@ -41,7 +41,7 @@
             (and (or (= state.scope :all)
                      (if (= state.scope :backlog)
                        (zero? it.c)
-                       (and (pos? it.c) (< it.c (dec (count computed.columns))))))
+                       (and (pos? it.c) (< it.c computed.lastColumn))))
                  (or (= state.filter :all) (= it.tag state.filter))
                  (or (neg? state.fStatus) (= it.c state.fStatus))
                  (or (neg? state.fPrio) (= (or-else it.priority 0) state.fPrio))
@@ -64,12 +64,14 @@
                             :color it.color
                             :on (= state.fStatus index)})
                          computed.columns)
+    ; style: keep, #(...) can't give a map, and a binding's function names its item it
     :assignee (map (fn [it] {:v it.who :title it.name :icon "circle-user" :color it.color :on (= state.owner it.who)})
                    state.members)
     :priority (map-indexed (fn [index it]
                              {:v index :title (t (str "priority." index)) :icon it :color "@color.muted"
                               :on (= state.fPrio index)})
                            state.priorities)
+    ; style: keep, #(...) can't give a map, and a binding's function names its item it
     (map (fn [it] {:v it :title (t (str "tag." it)) :icon "circle" :color (str "@" it) :on (= state.filter it)})
          (slice state.filters 1))))
 
@@ -128,6 +130,7 @@
 
 (defcomputed palette
   "The palette's rows: the commands, but those an agent runs with arguments (cardMove, cardAdd...), which it can't give."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:title it.title :detail (or-else it.keyLabel "") :run it.name})
        (concat computed.paletteFirst
                (filter (fn [it]
