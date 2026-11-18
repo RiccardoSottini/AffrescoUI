@@ -1,5 +1,7 @@
 ;;; views.lisp --- the Search view in the side bar, and the results shown as text in an editor
 
+(ns forge.features.search.views)
+
 ;;; The Search view
 
 (defcomponent forgeSearchEditor

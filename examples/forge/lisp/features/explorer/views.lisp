@@ -1,5 +1,7 @@
 ;;; views.lisp --- the explorer: its title and buttons, the folder's tree, its menu and its dialogs
 
+(ns forge.features.explorer.views)
+
 ;;; The title
 
 (defcomponent forgeExplorerTitle "The explorer's title, and its buttons once a folder is open."
@@ -77,9 +79,10 @@
   `(node#explorer-name-dialog :use dialog
      :with {:open state.explorerEdit.naming
             :height 150
-            :title ~(cond (= state.explorerEdit.mode "rename") (t "explorer-name-dialog.rename")
-                          (= state.explorerEdit.mode "newFolder") (t "explorer-name-dialog.newFolder")
-                          :else (t "explorer-name-dialog.newFile"))
+            :title ~(case state.explorerEdit.mode
+                      :rename (t "explorer-name-dialog.rename")
+                      :newFolder (t "explorer-name-dialog.newFolder")
+                      (t "explorer-name-dialog.newFile"))
             :message ""
             :buttons [{:title ~(t "explorer-name-dialog.ok") :run explorerSubmitName}
                       {:title ~(t "explorer-name-dialog.cancel")}]}
@@ -99,7 +102,7 @@
   `(node#explorer-delete-dialog :use dialog
      :with {:open state.explorerEdit.confirm
             :title ~(t "explorer-delete-dialog.title" {:name state.explorerEdit.name})
-            :message ~(if (= state.explorerEdit.mode "folder")
+            :message ~(if (= state.explorerEdit.mode :folder)
                           (t "explorer-delete-dialog.folder")
                           (t "explorer-delete-dialog.file"))
             :buttons [{:title ~(t "explorer-delete-dialog.delete") :run explorerDeleteConfirmed}
