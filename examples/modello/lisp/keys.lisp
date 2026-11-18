@@ -2,6 +2,8 @@
 ;;;
 ;;; A key that does one thing while a transform runs and another otherwise lists both, the first that applies winning.
 
+(ns modello.keys)
+
 ;;; Moving, turning and scaling after the pointer: the keys work while a transform runs
 
 (defkey "g" grab)

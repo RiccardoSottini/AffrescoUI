@@ -3,6 +3,8 @@
 ;;; Each defstate is one key of the state, with the value it starts from. The start scene has a camera, a cube and a
 ;;; light; onLoad keeps it, for New.
 
+(ns modello.state)
+
 ;;; The window and the editors
 
 (defstate theme dark "dark or light.")

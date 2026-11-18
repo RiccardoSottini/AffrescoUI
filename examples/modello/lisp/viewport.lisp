@@ -4,6 +4,8 @@
 ;;;
 ;;; The sidebar (N) is in sidebar.lisp; what a click and a transform do, in transform.lisp.
 
+(ns modello.viewport)
+
 ;;; The area
 
 (defcomponent viewportArea "The 3D viewport's area: the scene, and everything drawn over it." {}
@@ -36,8 +38,8 @@
      :up z
      :glyphs true
      :cursor3d ~(if (and state.overlays state.overlay.cursor) state.cursor nil)
-     :shading ~(if (= state.shading "rendered") "material" state.shading)
-     :lighting ~(if (and (= state.shading "material") (not computed.lit)) "studio" "scene")
+     :shading ~(if (= state.shading :rendered) "material" state.shading)
+     :lighting ~(if (and (= state.shading :material) (not computed.lit)) "studio" "scene")
      :xray ~(if state.xray 0.5 0)
      :exposure ~state.render.exposure
      :grid ~(and state.overlays state.overlay.grid)
@@ -58,14 +60,16 @@
   (if state.inCamera
     (t "view.camera")
     (t (if state.view.camera.orthographic "view.orthographic" "view.perspective")
-       {:side (t (cond (< (abs (- (abs state.view.camera.pitch) (/ (pi) 2))) 0.001)
-                         (if (> state.view.camera.pitch 0) "side.top" "side.bottom")
-                       (> (abs state.view.camera.pitch) 0.001) "side.user"
-                       (< (abs state.view.camera.yaw) 0.001) "side.front"
-                       (< (abs (- state.view.camera.yaw (/ (pi) 2))) 0.001) "side.right"
-                       (< (abs (+ state.view.camera.yaw (/ (pi) 2))) 0.001) "side.left"
-                       (< (abs (- (abs state.view.camera.yaw) (pi))) 0.001) "side.back"
-                       :else "side.user"))})))
+       {:side (let [pitch state.view.camera.pitch
+                    yaw state.view.camera.yaw
+                    half (/ (pi) 2)]
+                (t (cond (< (abs (- (abs pitch) half)) 0.001) (if (pos? pitch) "side.top" "side.bottom")
+                         (> (abs pitch) 0.001) "side.user"
+                         (< (abs yaw) 0.001) "side.front"
+                         (< (abs (- yaw half)) 0.001) "side.right"
+                         (< (abs (+ yaw half)) 0.001) "side.left"
+                         (< (abs (- (abs yaw) (pi))) 0.001) "side.back"
+                         :else "side.user")))})))
 
 (defview view-texts "The view's name, the frame and the active object's collection and name, and the counts: three labels." []
   [`(label#view-name
@@ -77,7 +81,7 @@
    `(label#view-collection :when ~(and state.overlays state.overlay.text)
       :text ~(str "(" state.frame ") "
                   (if computed.activeNode
-                    (str (or-else (:name (find (fn [it] (= it.id (or-else computed.activeNode.collection "collection"))) computed.collections))
+                    (str (or-else (:name (find #(= (:id %) (or-else computed.activeNode.collection "collection")) computed.collections))
                                   (t "collection.default"))
                          " | "
                          computed.activeNode.name)
@@ -88,14 +92,14 @@
    `(label#view-stats :when ~(and state.overlays state.overlay.stats)
       :text ~(t "viewport.stats" {:selected (count state.view.selection)
                                   :objects (count state.scene.nodes)
-                                  :lights (count (filter (fn [it] (= it.kind "light")) state.scene.nodes))
-                                  :cameras (count (filter (fn [it] (= it.kind "camera")) state.scene.nodes))})
+                                  :lights (count (filter #(= (:kind %) :light) state.scene.nodes))
+                                  :cameras (count (filter #(= (:kind %) :camera) state.scene.nodes))})
       :textColor @text
       :anchors {:left 54 :top ~(if state.overlay.text 78 42)}
       :fitText true)])
 
 (defview measure-hint "What the Measure tool asks for, or the distance it measured." []
-  `(label#measure-hint :when ~(= state.tool "measure")
+  `(label#measure-hint :when ~(= state.tool :measure)
      :live polite
      :text ~(cond (some? computed.measured) (t "measure.distance" {:length (fixed computed.measured 3)})
                   (= (count state.measure.points) 1) (t "measure.second")
@@ -107,14 +111,13 @@
 ;;; The Measure tool
 
 (defcomputed measureShown "Whether the Measure tool's line is shown: it has points, picked from this view."
-  (and (= state.tool "measure") (> (count state.measure.screen) 0) (= state.measure.camera state.view.camera)))
+  (and (= state.tool :measure) (pos? (count state.measure.screen)) (= state.measure.camera state.view.camera)))
 
 (defcomputed measured "The distance between the two points measured, or nil."
-  (if (= (count state.measure.points) 2)
+  (when (= (count state.measure.points) 2)
     (sqrt (+ (pow (- state.measure.points.1.0 state.measure.points.0.0) 2)
              (pow (- state.measure.points.1.1 state.measure.points.0.1) 2)
-             (pow (- state.measure.points.1.2 state.measure.points.0.2) 2)))
-    nil))
+             (pow (- state.measure.points.1.2 state.measure.points.0.2) 2)))))
 
 (defcomponent measureLine "The Measure tool's points, the line between them, and its length." {}
   `(node#measure :x 0
@@ -141,11 +144,13 @@
 (defview measure-ruler "The line between the two points, turned to join them." []
   `{:when ~(= (count state.measure.screen) 2)
     :x ~state.measure.screen.0.0
-    :y ~(- state.measure.screen.0.1 1)
+    :y ~(dec state.measure.screen.0.1)
     :height 2
     :color @active
     :width ~(hypot (- state.measure.screen.1.0 state.measure.screen.0.0) (- state.measure.screen.1.1 state.measure.screen.0.1))
-    :rotate ~(degrees (atan2 (- state.measure.screen.1.1 state.measure.screen.0.1) (- state.measure.screen.1.0 state.measure.screen.0.0)))
+    :rotate ~(let [dx (- state.measure.screen.1.0 state.measure.screen.0.0)
+                   dy (- state.measure.screen.1.1 state.measure.screen.0.1)]
+               (degrees (atan2 dy dx)))
     :transformOrigin [0 50]})
 
 ;;; Adjust Last Operation
@@ -166,15 +171,13 @@
        :color transparent
        (node :use vectorField
          :with {:title ~(or-else state.lastOp.label
-                                 (cond (= state.lastOp.kind "scale") (t "op.scale")
-                                       (= state.lastOp.kind "rotate") (t "op.rotation")
-                                       :else (t "op.move")))
+                                 (case state.lastOp.kind :scale (t "op.scale") :rotate (t "op.rotation") (t "op.move")))
                 :values ~state.lastOp.values
                 :key redo
-                :unit ~(cond (= state.lastOp.kind "scale") "" (= state.lastOp.kind "rotate") "°" :else " m")
-                :step ~(cond (= state.lastOp.kind "scale") 0.005 (= state.lastOp.kind "rotate") 0.5 :else 0.01)
-                :digits ~(if (= state.lastOp.kind "rotate") 1 3)
-                :exact ~(= state.lastOp.kind "scale")}))))
+                :unit ~(case state.lastOp.kind :scale "" :rotate "°" " m")
+                :step ~(case state.lastOp.kind :scale 0.005 :rotate 0.5 0.01)
+                :digits ~(if (= state.lastOp.kind :rotate) 1 3)
+                :exact ~(= state.lastOp.kind :scale)}))))
 
 (defview redo-header "The panel's header: a chevron that opens or closes it, and the operation's name." []
   `(node#redo-header :anchors {:left 0 :right 0 :top 0}
@@ -222,8 +225,8 @@
               :items ~(editor-choices "viewport")})
      (node :use gap :with {:width 6})
      (node#mode :use hButton
-       :with {:icon ~(if (= state.mode "edit") "pen-tool" "box")
-              :text ~(if (= state.mode "edit") (t "mode.edit") (t "mode.object"))
+       :with {:icon ~(if (= state.mode :edit) "pen-tool" "box")
+              :text ~(if (= state.mode :edit) (t "mode.edit") (t "mode.object"))
               :chevron true
               :width 116
               :tooltip ~(t "viewport.modeTip")
@@ -258,11 +261,12 @@
               :items ~computed.orientationItems
               :menuWidth 160})
      (node#pivot :use hButton
-       :with {:icon ~(cond (= state.pivot "cursor") "crosshair"
-                           (= state.pivot "individual") "dot"
-                           (= state.pivot "active") "circle-dot"
-                           (= state.pivot "bounds") "square-dashed-bottom"
-                           :else "git-commit-horizontal")
+       :with {:icon ~(case state.pivot
+                       :cursor "crosshair"
+                       :individual "dot"
+                       :active "circle-dot"
+                       :bounds "square-dashed-bottom"
+                       "git-commit-horizontal")
               :chevron true
               :width 38
               :tooltip ~(t "viewport.pivotTip")
@@ -382,11 +386,12 @@
 
 (defcomputed lens "The view's lens, in millimetres, from its field of view." (/ 18 (tan (/ state.view.camera.fieldOfView 2))))
 
-(defcomputed toolName "The active tool's name." (:title (find (fn [it] (= it.id state.tool)) (flat computed.tools))))
+(defcomputed toolName "The active tool's name." (:title (find #(= (:id %) state.tool) (flat computed.tools))))
 
 (defcomponent viewportToolbar "The toolbar on the left: the tools in groups, a line between groups." {}
   `(column#toolbar :anchors {:left 8 :top 42}
      :width 34
+     ; style: keep, sum is the expression's own function: the function it takes names its item it
      :height ~(- (sum computed.tools (fn [it] (+ (* (count it) 30) 9))) 3)
      :gap 0
      :color @toolGroup
@@ -398,12 +403,12 @@
 
 (defview tool-group "A group of tools, and a line under it but the last." [group g]
   `(column :width 34
-     :height ~(+ (* (count group) 30) (if (< g (- (count computed.tools) 1)) 9 6))
+     :height ~(+ (* (count group) 30) (if (< g (dec (count computed.tools))) 9 6))
      :color transparent
      :gap 0
-     {:height ~(if (= g 0) 3 0) :width 1 :color transparent}
+     {:height ~(if (zero? g) 3 0) :width 1 :color transparent}
      ~(repeat [tool group] (tool-button tool))
-     (node :when ~(< g (- (count computed.tools) 1)) :height 9 :width 34 :color transparent
+     (node :when ~(< g (dec (count computed.tools))) :height 9 :width 34 :color transparent
        {:x 9 :y 4 :width 16 :height 1 :color @faint})))
 
 (defview tool-button "A tool: chosen with a click; its tooltip says its key, or that it is to come." [tool]
@@ -414,11 +419,11 @@
             :on ~(= state.tool tool.id)
             :width 30
             :radius 6
-            :tooltip ~(cond (= tool.disabled true) (t "tool.notYet" {:title tool.title})
+            :tooltip ~(cond (true? tool.disabled) (t "tool.notYet" {:title tool.title})
                             (not= tool.key "") (t "tool.withKey" {:title tool.title :key tool.key})
                             :else tool.title)
             :back transparent
-            :disabled ~(= tool.disabled true)
+            :disabled ~(true? tool.disabled)
             :run setTool
             :with {:tool ~tool.id}}
      :height 30))
@@ -432,18 +437,17 @@
    :sp (sin state.view.camera.pitch)})
 
 (defcomputed navAxes "The gizmo's six axis ends, where they are drawn as the view turns, the farthest first."
-  ;; sort-by with a function giving "d" is the expressions' sort by the key d.
-  (sort-by (fn [it] "d")
-           [{:name "x" :label "X" :x computed.nav.cy :y (* computed.nav.sp computed.nav.sy) :d (* computed.nav.cp computed.nav.sy)
-             :color "#e8604c" :view "right"}
-            {:name "-x" :label "" :x (- computed.nav.cy) :y (* (- computed.nav.sp) computed.nav.sy)
-             :d (* (- computed.nav.cp) computed.nav.sy) :color "#e8604c40" :view "left"}
-            {:name "y" :label "Y" :x computed.nav.sy :y (* (- computed.nav.sp) computed.nav.cy) :d (* (- computed.nav.cp) computed.nav.cy)
-             :color "#4cbf7a" :view "back"}
-            {:name "-y" :label "" :x (- computed.nav.sy) :y (* computed.nav.sp computed.nav.cy) :d (* computed.nav.cp computed.nav.cy)
-             :color "#4cbf7a40" :view "front"}
-            {:name "z" :label "Z" :x 0 :y (- computed.nav.cp) :d computed.nav.sp :color "#5b74f0" :view "top"}
-            {:name "-z" :label "" :x 0 :y computed.nav.cp :d (- computed.nav.sp) :color "#5b74f040" :view "bottom"}]))
+  ; style: keep, the order written: the JSON version sorts by the text 'd', which leaves it so, and sorting by :d changes the pixels
+  [{:name "x" :label "X" :x computed.nav.cy :y (* computed.nav.sp computed.nav.sy) :d (* computed.nav.cp computed.nav.sy)
+    :color "#e8604c" :view "right"}
+   {:name "-x" :label "" :x (- computed.nav.cy) :y (* (- computed.nav.sp) computed.nav.sy)
+    :d (* (- computed.nav.cp) computed.nav.sy) :color "#e8604c40" :view "left"}
+   {:name "y" :label "Y" :x computed.nav.sy :y (* (- computed.nav.sp) computed.nav.cy) :d (* (- computed.nav.cp) computed.nav.cy)
+    :color "#4cbf7a" :view "back"}
+   {:name "-y" :label "" :x (- computed.nav.sy) :y (* computed.nav.sp computed.nav.cy) :d (* computed.nav.cp computed.nav.cy)
+    :color "#4cbf7a40" :view "front"}
+   {:name "z" :label "Z" :x 0 :y (- computed.nav.cp) :d computed.nav.sp :color "#5b74f0" :view "top"}
+   {:name "-z" :label "" :x 0 :y computed.nav.cp :d (- computed.nav.sp) :color "#5b74f040" :view "bottom"}])
 
 (defcomputed navButtons "The buttons under the gizmo: zoom, pan, the camera's view, and the projection."
   [{:id "zoom" :icon "zoom-in" :title (t "nav.zoom")}
@@ -472,7 +476,7 @@
      :label ~(t "nav.ball")
      :onPress {:set state.dragLast :to [0 0]}
      :onDrag orbitByDrag
-     ~(repeat [a (filter (fn [it] (not= it.label "")) computed.navAxes) :key a.name] (nav-axis-line a))
+     ~(repeat [a (filter #(not= (:label %) "") computed.navAxes) :key a.name] (nav-axis-line a))
      ~(repeat [a computed.navAxes :key a.name] (nav-axis-end a))))
 
 (defview nav-axis-line "The line from the ball's middle to a positive axis's end." [a]

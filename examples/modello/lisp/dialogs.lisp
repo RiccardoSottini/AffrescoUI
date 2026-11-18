@@ -1,6 +1,8 @@
 ;;; dialogs.lisp --- what opens over the window: the menu that pops up, the pie menu, the About dialog, the render
 ;;; window and F3's search, and the timer that plays the animation
 
+(ns modello.dialogs)
+
 ;;; Over the window
 
 (defview playback-timer "A timer, while the animation plays: a frame on every 42 ms, 24 a second." []
@@ -12,7 +14,7 @@
             :x ~state.ctx.x
             :y ~state.ctx.y
             :items ~(or-else state.ctx.items (get menus state.ctx.menu) [])
-            :icons ~(some (fn [it] (some? it.icon)) (or-else state.ctx.items (get menus state.ctx.menu) []))}))
+            :icons ~(some #(some? (:icon %)) (or-else state.ctx.items (get menus state.ctx.menu) []))}))
 
 (defview pie "The pie menu: the views, or the shading modes." []
   `(node#pie :use pieMenu
