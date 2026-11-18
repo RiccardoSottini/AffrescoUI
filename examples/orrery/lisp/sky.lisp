@@ -139,7 +139,7 @@
   "Everything in the sky: the bodies, the stars, the figures and the grid, each with its direction."
   (if (not= state.skyMode "ground")
     []
-    (concat (map #(merge % {:r (/ (round (* (max 0.5 (- 2.8 (* (:mag %) 0.4))) 100)) 100)})
+    (concat (map #(merge % {:r (-> % :mag (* 0.4) (->> (- 2.8) (max 0.5)) (* 100) round (/ 100))})
                  computed.skyStars)
             (map (fn [it]
                    (merge it
@@ -161,43 +161,43 @@
                             (radians
                               (max 0.4
                                    (+ 1.6
-                                      (* 1.3 (sin (+ (radians (* 15 it)) 1)))
-                                      (* 0.8 (sin (radians (* 35 it))))
-                                      (* 0.5 (sin (+ (radians (* 85 it)) 2)))))))})
+                                      (->> it (* 15) radians inc sin (* 1.3))
+                                      (->> it (* 35) radians sin (* 0.8))
+                                      (as-> it x (* 85 x) (radians x) (+ x 2) (sin x) (* 0.5 x))))))})
                    (range 73))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "gridLabel"
                       :id (str "g" it)
-                      :text (if (< it 12) (str (* 30 it) "°") (str (round (+ 30 (* 30 (mod it 2)))) "°"))
+                      :text (if (< it 12) (str (* 30 it) "°") (str (->> (mod it 2) (* 30) (+ 30) round) "°"))
                       :e (if (< it 12)
                            (sin (radians (* 30 it)))
-                           (* (sin (radians (* 90 (floor (/ (- it 12) 2)))))
-                              (cos (radians (+ 30 (* 30 (mod it 2)))))))
+                           (* (->> (/ (- it 12) 2) floor (* 90) radians sin)
+                              (->> (mod it 2) (* 30) (+ 30) radians cos)))
                       :n (if (< it 12)
                            (cos (radians (* 30 it)))
-                           (* (cos (radians (* 90 (floor (/ (- it 12) 2)))))
-                              (cos (radians (+ 30 (* 30 (mod it 2)))))))
-                      :up (if (< it 12) 0.02 (sin (radians (+ 30 (* 30 (mod it 2))))))})
+                           (* (->> (/ (- it 12) 2) floor (* 90) radians cos)
+                              (->> (mod it 2) (* 30) (+ 30) radians cos)))
+                      :up (if (< it 12) 0.02 (->> (mod it 2) (* 30) (+ 30) radians sin))})
                    (range 20))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "grid"
                       :line (floor (/ it 37))
-                      :e (* (cos (radians (* 30 (floor (/ it 37))))) (sin (radians (* 10 (mod it 37)))))
-                      :n (* (cos (radians (* 30 (floor (/ it 37))))) (cos (radians (* 10 (mod it 37)))))
-                      :up (sin (radians (* 30 (floor (/ it 37)))))})
+                      :e (* (->> (/ it 37) floor (* 30) radians cos) (->> (mod it 37) (* 10) radians sin))
+                      :n (* (->> (/ it 37) floor (* 30) radians cos) (->> (mod it 37) (* 10) radians cos))
+                      :up (->> (/ it 37) floor (* 30) radians sin)})
                    (range 111))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "grid"
                       :line (+ 3 (floor (/ it 9)))
-                      :e (* (cos (radians (* 10 (mod it 9)))) (sin (radians (* 30 (floor (/ it 9))))))
-                      :n (* (cos (radians (* 10 (mod it 9)))) (cos (radians (* 30 (floor (/ it 9))))))
-                      :up (sin (radians (* 10 (mod it 9))))})
+                      :e (* (->> (mod it 9) (* 10) radians cos) (->> (/ it 9) floor (* 30) radians sin))
+                      :n (* (->> (mod it 9) (* 10) radians cos) (->> (/ it 9) floor (* 30) radians cos))
+                      :up (->> (mod it 9) (* 10) radians sin)})
                    (range 108))
               []))))
 
@@ -206,7 +206,7 @@
          (if (or (= it.kind "cardinal") (= it.kind "grid") (= it.kind "land") (= it.kind "gridLabel"))
            it
            (merge it
-                  {:e (* (- (sqrt (- 1 (* it.u it.u)))) (sin (- computed.skyEarth.sidereal it.t)))
+                  {:e (* (->> (* it.u it.u) (- 1) sqrt -) (sin (- computed.skyEarth.sidereal it.t)))
                    :n (- (* computed.skyEarth.cosLatitude it.u)
                          (* computed.skyEarth.sinLatitude
                             (sqrt (- 1 (* it.u it.u)))
@@ -249,7 +249,7 @@
 
 (defcomputed daylight "How light the sky is, 0 at night to 1 by day."
   (if (and state.skyLayers.atmosphere computed.skySun)
-    (* (pow (clamp (/ (+ computed.skySun.up 0.21) 0.31) 0 1) 1.6) (- 1 (* 0.92 computed.eclipseCover)))
+    (* (-> computed.skySun.up (+ 0.21) (/ 0.31) (clamp 0 1) (pow 1.6)) (- 1 (* 0.92 computed.eclipseCover)))
     0))
 
 (defcomputed skyLimit "The faintest stars shown, less by day." (- state.limitMag (* 9 computed.daylight)))
@@ -296,15 +296,15 @@
                     " "
                     (fixed (get-in computed.skyGridPoints [it :y]) 1)
                     "L"
-                    (fixed (get-in computed.skyGridPoints [(+ it 1) :x]) 1)
+                    (fixed (get-in computed.skyGridPoints [(inc it) :x]) 1)
                     " "
-                    (fixed (get-in computed.skyGridPoints [(+ it 1) :y]) 1)))
+                    (fixed (get-in computed.skyGridPoints [(inc it) :y]) 1)))
              (filter (fn [it]
                        (and (= (get-in computed.skyGridPoints [it :line])
-                               (get-in computed.skyGridPoints [(+ it 1) :line]))
+                               (get-in computed.skyGridPoints [(inc it) :line]))
                             (get-in computed.skyGridPoints [it :ahead])
-                            (get-in computed.skyGridPoints [(+ it 1) :ahead])))
-                     (range (max (- (count computed.skyGridPoints) 1) 0))))))
+                            (get-in computed.skyGridPoints [(inc it) :ahead])))
+                     (range (-> computed.skyGridPoints count dec (max 0)))))))
 
 (defcomputed skySelected "The selected body, on the sky view."
   (find #(and (= (:kind %) "body") (= (:id %) state.selected)) computed.skyPlaced))
@@ -312,10 +312,10 @@
 (defcomputed skyInfo "What the sky view says of the selected body: where it is and when it rises."
   (if computed.skySelected
     [(t "sky.azAlt"
-        {:az (fixed (mod (+ (degrees (atan2 computed.skySelected.e computed.skySelected.n)) 360) 360) 1)
+        {:az (-> (atan2 computed.skySelected.e computed.skySelected.n) degrees (+ 360) (mod 360) (fixed 1))
          :alt (fixed (degrees (asin computed.skySelected.up)) 1)})
      (t "sky.raDec"
-        {:ra (fixed (mod (+ (/ (degrees computed.skySelected.t) 15) 24) 24) 2)
+        {:ra (-> computed.skySelected.t degrees (/ 15) (+ 24) (mod 24) (fixed 2))
          :dec (fixed (degrees (asin computed.skySelected.u)) 1)})]
     []))
 
