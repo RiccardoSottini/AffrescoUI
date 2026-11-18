@@ -15,7 +15,8 @@
        state.bodies))
 
 (defcomputed rel "Each body's place relative to its parent (lx, lz)."
-  (map #(merge % {:lx (* (:radius %) (cos (* 2 (pi) (:f %)))) :lz (* (- (:radius %)) (sin (* 2 (pi) (:f %))))})
+  (map #(merge % {:lx (->> (:f %) (* 2 (pi)) cos (* (:radius %)))
+                  :lz (* (- (:radius %)) (sin (* 2 (pi) (:f %))))})
        computed.local))
 
 (defcomputed up1 "Each body's parent's place, or -1." (map :pi computed.local))
@@ -94,7 +95,7 @@
                  (filter #(>= % 0)
                          (slice computed.bodyCells
                                 (* index (count state.bodies))
-                                (* (+ index 1) (count state.bodies)))))
+                                (* (inc index) (count state.bodies)))))
                state.bodies))
 
 (defcomputed bodyRows "The browser's rows, a body and its satellites."
