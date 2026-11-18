@@ -1,5 +1,7 @@
 ;;; keys.lisp --- Quaderno's menus and its keyboard
 
+(ns code-editor.keys)
+
 ;;; The menus
 
 (defmenu file "The File menu."
