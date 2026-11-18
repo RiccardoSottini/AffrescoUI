@@ -7,9 +7,22 @@
 ;;; F follows it, B shows the browser, Cmd+D bookmarks the view.
 
 (ns orrery.index
-  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "offers.lisp" "features.lisp"
-            orrery.state orrery.bodies orrery.time orrery.look orrery.keys orrery.bars orrery.view orrery.browser
-            orrery.chart orrery.sky orrery.orrery
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "offers.lisp"
+            "features.lisp"
+            orrery.state
+            orrery.bodies
+            orrery.time
+            orrery.look
+            orrery.keys
+            orrery.bars
+            orrery.view
+            orrery.browser
+            orrery.chart
+            orrery.sky
+            orrery.orrery
             "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; The window, and what is in it, in the order it is drawn

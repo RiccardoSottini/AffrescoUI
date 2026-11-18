@@ -7,11 +7,29 @@
 ;;; an adjustment layer, Cmd+F searches the commands, F changes the screen mode (keys.lisp).
 
 (ns tempera.index
-  (:require "locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "offers.lisp"
-            tempera.state tempera.image tempera.computed tempera.look tempera.commands tempera.keys tempera.menus
-            tempera.controls tempera.menu tempera.menubar tempera.options tempera.tools tempera.canvas tempera.panels
-            tempera.properties tempera.layers tempera.dialogs
-            "../../shared/addons/assistant/assistant.lisp" "../../shared/components/charts.lisp"
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "offers.lisp"
+            tempera.state
+            tempera.image
+            tempera.computed
+            tempera.look
+            tempera.commands
+            tempera.keys
+            tempera.menus
+            tempera.controls
+            tempera.menu
+            tempera.menubar
+            tempera.options
+            tempera.tools
+            tempera.canvas
+            tempera.panels
+            tempera.properties
+            tempera.layers
+            tempera.dialogs
+            "../../shared/addons/assistant/assistant.lisp"
+            "../../shared/components/charts.lisp"
             tempera.tempera))
 
 ;;; The window, and what is in it, in the order it is drawn
