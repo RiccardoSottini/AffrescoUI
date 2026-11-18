@@ -60,7 +60,7 @@
 (defn line "A line of a summary, in a tone: heading, text, muted, added or danger." [text tone] {:text text :tone tone})
 
 (defn section "A heading and its lines, or nothing when there are none." [heading lines]
-  (if (empty? lines) [] (cons (line (t heading) "heading") lines)))
+  (if (empty? lines) [] (concat [(line (t heading) "heading")] lines)))
 
 (defn exportLinesOf "An export's summary: what it is, its definitions and layers, and what it leaves out." [exporting]
   (let [{:keys [summary leftOut]} exporting

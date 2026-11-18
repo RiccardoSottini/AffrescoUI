@@ -149,7 +149,7 @@
   (set "state.mineLoaded" true))
 
 (defn listNew "Shows an app just made at the top of the list at once, before the folder is read again." [id sub title]
-  (set "state.mine" (cons {:id id :sub sub :name title :modified (now)} (remove #(= (:id %) id) state.mine))))
+  (set "state.mine" (concat [{:id id :sub sub :name title :modified (now)}] (remove #(= (:id %) id) state.mine))))
 
 (defn subOf "Where an app's files are in its folder: '', '/json' or '/lisp'." [id]
   (or (:sub (find #(= (:id %) id) state.mine)) ""))
