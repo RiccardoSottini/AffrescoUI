@@ -1,5 +1,7 @@
 ;;; toolbar.lisp --- the top bar and the toolbar: scopes, members, filters, search and the Display menu
 
+(ns flow.toolbar)
+
 ;;; The top bar
 
 (defview top-bar "The top bar: the logo and the board's name, the scope tabs and who is on the board." []

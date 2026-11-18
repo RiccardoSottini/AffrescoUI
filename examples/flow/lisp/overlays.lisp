@@ -3,6 +3,8 @@
 ;;; index.screen.lisp lists these in the order they are drawn. A view takes what differs between its uses as
 ;;; arguments: a quoted name of the running app ('menus.card) is read while the app runs, as a binding.
 
+(ns flow.overlays)
+
 ;;; The toolbar and the status bar
 
 (defview toolbar "The toolbar under the top bar: the filters and the search, and the Display button with its menu." []
