@@ -1,5 +1,7 @@
 ;;; columns.lisp --- the work area: the board's columns and cards, the table, and the side panel
 
+(ns flow.columns)
+
 ;;; The work area
 
 (defview work-area

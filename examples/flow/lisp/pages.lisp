@@ -3,6 +3,8 @@
 ;;;
 ;;; The sidebar and the G chords switch between them and the issues.
 
+(ns flow.pages)
+
 ;;; State
 
 (defstate page issues)
