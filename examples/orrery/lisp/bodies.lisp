@@ -10,13 +10,15 @@
 (defcomputed local "Each body with how far round its orbit it is now (f, 0 to 1) and the place of its parent (pi)."
   (map (fn [it]
          (merge it
-                {:f (if (= it.parent "") 0 (mod (+ it.phase (/ state.time it.period)) 1))
+                {:f (if (= it.parent "")
+                      0
+                      (mod (+ it.phase (/ state.time it.period)) 1))
                  :pi (indexOf computed.ids it.parent)}))
        state.bodies))
 
 (defcomputed rel "Each body's place relative to its parent (lx, lz)."
   (map #(merge % {:lx (->> (:f %) (* 2 (pi)) cos (* (:radius %)))
-                  :lz (* (- (:radius %)) (sin (* 2 (pi) (:f %))))})
+                  :lz (->> (:f %) (* 2 (pi)) sin (* (-> % :radius -)))})
        computed.local))
 
 (defcomputed up1 "Each body's parent's place, or -1." (map :pi computed.local))
