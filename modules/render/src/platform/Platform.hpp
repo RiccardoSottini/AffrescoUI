@@ -201,7 +201,7 @@ public:
 	/// event loop can tell what woke it (Application::lastWake()). The default counts none.
 	/// @return The count since the platform started.
 	[[nodiscard]] virtual std::uint64_t eventsDelivered() const noexcept { return 0; }
-	/// @brief How many times the system announced a change of colourScheme() or reducedMotion(), so the event loop
+	/// @brief How many times the system announced a change of colorScheme() or reducedMotion(), so the event loop
 	/// reads them again only after one. The default announces none.
 	/// @return The count since the platform started, or std::nullopt where the system announces nothing: they must
 	/// then be read after every wake.
