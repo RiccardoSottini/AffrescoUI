@@ -108,6 +108,27 @@ std::vector<std::string> entryWords(std::string_view text, std::string_view own,
 	return {found.begin(), found.end()};
 }
 
+/// @brief Marks the entries whose text names one of some names, which no record's words hold: a name that came, in the
+/// earlier version's record, or one that went, in the later's (entryWords() keeps only the entries of its version).
+/// @param entries The entries.
+/// @param words The names.
+/// @param marked Each entry's mark, set for those that name one.
+/// @param found Gets the names of those it marked.
+void markNaming(const std::vector<Entry>& entries, const std::set<std::string, std::less<>>& words,
+                std::vector<bool>& marked, std::vector<std::string>& found) {
+	if(words.empty()) return;
+	for(std::size_t at = 0; at < entries.size(); ++at) {
+		if(marked[at]) continue;
+		bool names = false;
+		forEachWord(entries[at].text, [&](std::string_view word) {
+			names = names || (word != entries[at].name && words.contains(word));
+		});
+		if(!names) continue;
+		marked[at] = true;
+		found.push_back(entries[at].name);
+	}
+}
+
 /// @brief Marks the entries that run: those that changed, and those that use one that changed or went, over and over.
 /// @param previous The record.
 /// @param entries The entries.
@@ -115,12 +136,15 @@ std::vector<std::string> entryWords(std::string_view text, std::string_view own,
 /// @param plan Gets them.
 void markAffected(const BuildRecord& previous, const std::vector<Entry>& entries,
                   const std::map<std::string, std::size_t>& names, PartPlan& plan) {
-	std::vector<std::string_view> waiting(plan.removed.begin(), plan.removed.end());
+	std::vector<std::string> waiting(plan.removed.begin(), plan.removed.end());
+	std::set<std::string, std::less<>> came;
 	for(std::size_t at = 0; at < entries.size(); ++at)
 		if(plan.changed[at]) {
 			plan.affected[at] = true;
 			waiting.emplace_back(entries[at].name);
+			if(!plan.before[at]) came.insert(entries[at].name);
 		}
+	markNaming(entries, came, plan.affected, waiting); // the record's words of them were left out: they weren't entries
 	while(!waiting.empty()) {
 		const auto users = previous.users.find(waiting.back());
 		waiting.pop_back();
@@ -568,12 +592,17 @@ bool isLanguageName(const Machine& machine, std::string_view name) {
 /// @param built The new version's build record.
 /// @param seeds The names that changed or went.
 /// @param names Each entry of the new version's place, by its name.
+/// @param entries The new version's entries.
+/// @param removed The names that went.
 /// @return Each entry's: whether it is defined again.
 std::vector<bool> redefined(const BuildRecord& built, std::vector<std::string> seeds,
-                            const std::map<std::string, std::size_t>& names) {
+                            const std::map<std::string, std::size_t>& names, const std::vector<Entry>& entries,
+                            const std::vector<std::string>& removed) {
 	std::vector<bool> again(names.size(), false);
 	for(const std::string& name : seeds)
 		if(const auto found = names.find(name); found != names.end()) again[found->second] = true;
+	// The build's words of a name that went were left out: it isn't an entry now
+	markNaming(entries, {removed.begin(), removed.end()}, again, seeds);
 	while(!seeds.empty()) {
 		const auto users = built.users.find(seeds.back());
 		seeds.pop_back();
@@ -695,7 +724,7 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 	if(change->changed.empty() && change->removed.empty()) return true;
 	std::vector<std::string> seeds = change->changed;
 	seeds.insert(seeds.end(), change->removed.begin(), change->removed.end());
-	const std::vector<bool> again = redefined(built, std::move(seeds), names_);
+	const std::vector<bool> again = redefined(built, std::move(seeds), names_, entries_, change->removed);
 	const RestoredBudget restore(machine, limits.budget);
 	return leavingAsLispError(machine, [&] {
 		defineAgain(machine, entries_, again, change->removed);

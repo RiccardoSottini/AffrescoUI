@@ -484,3 +484,62 @@ TEST_CASE("lisp rebuild: a program with a feature's joined, changed, builds in p
 	CHECK(inPart * 2 > total);
 	CHECK(inPlace * 2 > total);
 }
+
+namespace {
+
+/// @brief What an expression gives in an interpreter changed in place from one version into the next, and in one that
+/// loaded the next afresh. @param before The earlier version. @param after The later. @param text The expression.
+/// @return The two printed values, or the errors' messages; the first is null if Program::redefine() declined.
+std::pair<json, json> evaluatedBoth(const json& before, const json& after, const std::string& text) {
+	const auto evaluated = [&](lisp::Interpreter& interpreter) -> json {
+		try {
+			return interpreter.print(interpreter.eval(text));
+		} catch(const std::exception& error) {
+			return std::string("error");
+		}
+	};
+	lisp::Program first = lisp::programOf(before);
+	static_cast<void>(first.build(buildLimits()));
+	const std::unique_ptr<lisp::Interpreter> fresh = loadedInterpreter(lisp::programOf(after));
+	const json full = fresh ? evaluated(*fresh) : json("error");
+	const std::unique_ptr<lisp::Interpreter> patched = loadedInterpreter(first);
+	lisp::Program next = lisp::programOf(after);
+	try {
+		static_cast<void>(next.rebuild(*first.record(), buildLimits()));
+		patched->setPure(true);
+		if(!next.redefine(*patched, first, *next.record(), buildLimits())) return {nullptr, full};
+		patched->setPure(false);
+	} catch(const std::exception&) {
+		return {nullptr, full};
+	}
+	return {evaluated(*patched), full};
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a function a view's expression names, defined now, builds the view again") {
+	const json section = sectionOf("(defstate query \"\")\n(defn other \"\" [] 1)\n"
+	                               "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
+	                               "(defscreen main (column#c ~(caption)))\n");
+	lisp::Program first = lisp::programOf(section);
+	const json tree = first.build(buildLimits());
+	REQUIRE(!tree.dump().contains("lisp('shout'"));
+	json after = section;
+	after["app.lisp"]["shout"] = "(defn shout \"\" [x] (str x \"!\"))";
+	bool whole = false;
+	const json part = buildFrom(*first.record(), after, whole);
+	CHECK(part == buildInFull(after));
+	CHECK(part.dump().contains("lisp('shout'"));
+}
+
+TEST_CASE("lisp rebuild: a function a view names, gone or defined now, changes in place as a fresh load has it") {
+	const std::string with = "(defn shout \"\" [x] (str x \"!\"))\n";
+	const std::string rest = "(defn other \"\" [] 1)\n(defview caption \"\" [] `(label#cap :text ~(shout \"a\")))\n"
+	                         "(defscreen main (column#c ~(caption)))\n";
+	for(const bool adding : {false, true}) {
+		CAPTURE(adding);
+		const json one = sectionOf(rest), two = sectionOf(with + rest);
+		const auto [patched, full] = evaluatedBoth(adding ? one : two, adding ? two : one, "(caption)");
+		if(!patched.is_null()) CHECK(patched == full);
+	}
+}
