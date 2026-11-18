@@ -80,14 +80,14 @@
                          :icons true
                          :items ~[{:title (t "kind.yesNo")
                                    :icon "circle-check"
-                                   :keyLabel (:keyLabel (find (fn [it] (= it.name "addYesNo")) commands))
+                                   :keyLabel (:keyLabel (find #(= (:name %) "addYesNo") commands))
                                    :run "newHabit"
-                                   :with {:kind "yesNo"}}
+                                   :with {:kind :yesNo}}
                                   {:title (t "kind.measurable")
                                    :icon "ruler"
-                                   :keyLabel (:keyLabel (find (fn [it] (= it.name "addMeasurable")) commands))
+                                   :keyLabel (:keyLabel (find #(= (:name %) "addMeasurable") commands))
                                    :run "newHabit"
-                                   :with {:kind "measurable"}}]})]
+                                   :with {:kind :measurable}}]})]
      :isOpen ~state.menus.add))
 
 (defview filter-button "Filter, and its menu: the sort, and what is shown." []
@@ -101,6 +101,7 @@
                   :with {:open state.menus.filter
                          :width 220
                          :placement below-end
+                         ; style: keep, a fn that gives a map
                          :items ~(concat (map (fn [it]
                                                 {:title (t (str "sort." it))
                                                  :checked (= state.sort it)
@@ -118,16 +119,16 @@
             :width 220
             :placement below-end
             :items ~[{:title (t "darkMode")
-                      :checked (not= computed.theme "light")
-                      :keyLabel (:keyLabel (find (fn [it] (= it.name "toggleTheme")) commands))
+                      :checked (not= computed.theme :light)
+                      :keyLabel (:keyLabel (find #(= (:name %) "toggleTheme") commands))
                       :run "toggleTheme"}
                      {:title (t "settings")
-                      :keyLabel (:keyLabel (find (fn [it] (= it.name "openSettings")) commands))
+                      :keyLabel (:keyLabel (find #(= (:name %) "openSettings") commands))
                       :run "openSettings"}
                      {:title (t "exportAll") :run "exportAll"}
                      {:separator true}
                      {:title (t "syncNow")
-                      :keyLabel (:keyLabel (find (fn [it] (= it.name "syncNow")) commands))
+                      :keyLabel (:keyLabel (find #(= (:name %) "syncNow") commands))
                       :run "syncNow"}
                      {:title (if computed.signedIn (t "signOut") (t "signIn"))
                       :run (if computed.signedIn "signOutOfServer" "signInToServer")}]}))
@@ -135,7 +136,7 @@
 (defview list-pane "The list: the days' header, the habits, the empty message, and the app bar." []
   `(node#listPane :anchors {:left 0 :top 0 :bottom 0}
      :width ~computed.listWidth
-     :visible ~(or computed.wide (= state.page "list"))
+     :visible ~(or computed.wide (= state.page :list))
      :color @c.bg
      (node#dayHeader :anchors {:left 0 :right 0 :top 56} :height 44 :color @c.bg
        ~(row-day-header))
@@ -215,7 +216,7 @@
 
 (defview cell-view "A day of a habit's row: a box to tick, or the number entered; a dot when it has a note." [h d]
   `(node#cell :let {:li ~(daysBetween hb.from d)
-                    :v ~(if (>= li 0) (get-in computed.vals [h li]) nil)
+                    :v ~(when (>= li 0) (get-in computed.vals [h li]))
                     :r ~(if (>= li 0) (get-in computed.ratio [h li :r]) 0)
                     :date ~(formatDate (dateMs d) "EEE d MMM" "utc")}
      :width 44
@@ -223,11 +224,11 @@
      :color transparent
      :cursor hand
      :hover {:color @c.hover}
-     :role ~(if (= hb.kind "measurable") "button" "checkbox")
+     :role ~(if (= hb.kind :measurable) "button" "checkbox")
      :label ~(cond (nil? v) (t "cell.none" {:date date})
-                   (= hb.kind "measurable") (t "cell.value" {:date date :value v :unit hb.unit})
+                   (= hb.kind :measurable) (t "cell.value" {:date date :value v :unit hb.unit})
                    (= v 1) (t "cell.yes" {:date date})
-                   (= v (- 1)) (t "cell.skip" {:date date})
+                   (= v -1) (t "cell.skip" {:date date})
                    (>= r 1) (t "cell.auto" {:date date})
                    :else (t "cell.no" {:date date}))
      :onClick ~(handler cellClick h d event.x event.y)
@@ -238,41 +239,41 @@
      ~(cell-note-dot d)))
 
 (defview cell-tick "A yes-or-no day's box: empty, ticked, or skipped; tinted when the target is met anyway." []
-  `(label#label-cell :when ~(not= hb.kind "measurable")
+  `(label#label-cell :when ~(not= hb.kind :measurable)
      :font icons
      :align center
-     :icon ~(cond (or (nil? v) (and (= v 0) (< r 1))) "" (= v (- 1)) "chevrons-right" :else "check")
+     :icon ~(cond (or (nil? v) (and (zero? v) (< r 1))) "" (= v -1) "chevrons-right" :else "check")
      :textColor ~(if (= v 1) computed.onColor col)
      :anchors {:left 8 :top 14}
      :width 28
      :height 28
      :radius 8
-     :color ~(cond (= v 1) col (or (= v (- 1)) (>= r 1)) (str col "2e") :else "transparent")
-     :borderWidth ~(if (and (= v 0) (< r 1)) 1.5 0)
+     :color ~(cond (= v 1) col (or (= v -1) (>= r 1)) (str col "2e") :else "transparent")
+     :borderWidth ~(if (and (zero? v) (< r 1)) 1.5 0)
      :borderColor @c.faint))
 
 (defview cell-number "A measurable day's number, in the habit's colour once it counts." []
-  `(label#label-format-number-v :when ~(and (= hb.kind "measurable") (some? v))
+  `(label#label-format-number-v :when ~(and (= hb.kind :measurable) (some? v))
      :anchors {:left 0 :right 0 :top 9}
      :height 18
      :align center
      :text ~(formatNumber v 0 1)
-     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (pos? v)) col "@c.faint") (pos? v) col
                    :else "@c.faint")))
 
 (defview cell-unit "A measurable day's unit, under its number, coloured as the number is." []
-  `(label#label-hb-unit :when ~(and (= hb.kind "measurable") (some? v))
+  `(label#label-hb-unit :when ~(and (= hb.kind :measurable) (some? v))
      :anchors {:left 0 :right 0 :top 27}
      :height 14
      :align center
      :font tiny
      :text ~hb.unit
-     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (pos? v)) col "@c.faint") (pos? v) col
                    :else "@c.faint")))
 
 (defview cell-note-dot "A dot in the corner of day `d` when it has a note." [d]
   `(node#panel-cell
-     :when ~(not= (trim (or-else (get hb.notes d) "")) "")
+     :when ~(not= (str/trim (or-else (get hb.notes d) "")) "")
      :anchors {:top 8 :right 8}
      :width 5
      :height 5
@@ -281,7 +282,7 @@
 
 (defview empty-list "What the list says while it has no habit." []
   `(node#emptyList
-     :when ~(= (count computed.order) 0)
+     :when ~(empty? computed.order)
      :anchors {:left 0 :right 0 :top 160}
      :height 120
      :color transparent
