@@ -172,7 +172,7 @@ theme, and a name can't be both a colour and a token.
     runs a full pass after every partial update, with handlers suspended, and reports the first node and property
     that differ (`src/updates/Verify.hpp`). The tests that hold all this: `tests/unit/updates.cpp`,
     `update_index.cpp`, `update_lists.cpp`, `update_derived.cpp`, `update_scopes.cpp`, `update_frame.cpp`,
-    `update_verify.cpp` and the property test `update_property.cpp`, with the fuzz target `fuzz_updates`.
+    `update_verify.cpp` and the property test `update_property.cpp`, with the fuzz target `affrescoui_fuzz_updates`.
   - *The counters.* `Runtime::lastUpdate()` gives the last update's `UpdateStatistics`: its time, the panels applied,
     created and visited, the nodes and computed values evaluated, the lists and rows expanded, the variables built,
     the readers that read always (`alwaysReaders`), and whether it was full and why. `Runtime::lastChanges()` gives

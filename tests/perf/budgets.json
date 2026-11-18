@@ -1,7 +1,7 @@
 {
   "format": "affrescoui-budgets",
   "version": 1,
-  "note": "The budgets of BENCHMARKS.md. run.py --budgets measures them; --record writes 'measured'. ciThreshold: what CI fails above, in the unit CI measures (tokens; instructions under callgrind). 'pending' needs a Linux callgrind run to be set; null has its reason in ciReason. A missed token budget's ciThreshold is its recorded value (a ratchet); a met one's is its target.",
+  "note": "The budgets of BENCHMARKS.md. run.py --budgets measures them; --record writes 'measured'. ciThreshold: what CI fails above, in the unit CI measures (tokens; instructions under callgrind). 'pending' needs a Linux callgrind run to be set; null has its reason in ciReason. A missed token budget's ciThreshold is its recorded value (a ratchet); a met one's is its target. A workload ending in '/' or '-' is a prefix (every size, every template); a budget is met when its worst workload is.",
   "targets": [
     {
       "id": "idle-cpu",
@@ -16,7 +16,7 @@
       "limit": 0.0,
       "unit": "percent",
       "ciThreshold": null,
-      "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps.",
+      "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps. CI holds idle as counts instead: tests/unit/window/idle.cpp checks that an idle second of every template runs no update, draws no frame and wakes the event loop only for its own timers (3 at most) and the quit.",
       "measured": {
         "value": 1.166,
         "from": "budgets/idle",

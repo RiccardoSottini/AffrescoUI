@@ -183,12 +183,27 @@ python3 tests/perf/run.py --build build-release --budgets --record     # writes 
 python3 tests/perf/run.py --budgets --from "$out/head"                 # CI: fails above a threshold
 ```
 
+A budget's `workloads` are names, or prefixes when they end in `/` or `-` (`update/read/` is every size of it,
+`budgets/idle-` every template); a budget is met when its worst workload is. `budgets.py` itself checks that
+`budgets.json` is well formed, and proposes thresholds from a Linux callgrind run:
+
+```sh
+python3 tests/perf/budgets.py --check                                  # every budget has its fields
+python3 tests/perf/budgets.py --propose-thresholds --from "$out/head"  # a ciThreshold for each pending budget
+```
+
+`--propose-thresholds` reads the `callgrind.jsonl` of a folder `ci.sh` measured and prints, for each `"pending"`
+budget that met its target when recorded, a threshold three times its worst workload's instruction count, as a line
+to paste into `budgets.json`. A budget that missed stays pending: a threshold above a miss would hold the miss.
+
 The `budgets` group measures what no other workload does:
 
 - `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
   of every thread in that second.
-- `budgets/idle-<template>`: the same for each template in `examples/templates.json`. Run them alone
-  (`--only budgets/idle`): a window left open by an earlier workload runs in the same event loop.
+- `budgets/idle-<template>`: the same for each template in `examples/templates.json`. `budgets.py` runs them in a
+  process of their own: a window left open by an earlier workload runs in the same event loop. CI doesn't time idle;
+  `tests/unit/window/idle.cpp` holds it as counts instead: in a second of every template with nothing happening, no
+  update, no frame, and no wake of the event loop but its own timers' (3 at most) and the quit (`Application::turns()`).
 - `budgets/open-50mb`: a 50 MiB file read into the library's text editor.
 - `budgets/forge-cold-start`: Forge from its document to its first frame.
 - `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab

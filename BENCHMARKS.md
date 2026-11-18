@@ -15,8 +15,8 @@ missed is written as missed: the targets don't move, the code does.
   warm up, then `runs` times, and reports the median per operation, in wall-clock time (frames: the main thread's CPU
   time). Typing and scrolling time each operation and report the 99th percentile. The memory budgets run each in a
   process of its own and read the whole process's memory after the last run (its footprint on macOS, its resident set
-  on Linux). Idle CPU is every thread's CPU time over one second of the Kanban template's event loop, with nothing
-  happening.
+  on Linux). Idle CPU is every thread's CPU time over one second of a template's event loop, with nothing
+  happening, for every template, in a process of its own.
 - **Worst case.** A budget that covers several workloads (every template's revisions, two sizes of state change) is
   the slowest of them, named in the table.
 - **Tokens.** Counted with tiktoken's `o200k_base` on what the MCP server sends or receives (`tests/perf/tokens.py`):
@@ -37,7 +37,13 @@ missed is written as missed: the targets don't move, the code does.
   noisy to compare, and fails when a budget is above its threshold: tokens for the token budgets, instructions per
   operation for the others. A threshold is `pending` until a Linux callgrind run sets it; wall-clock and percentile
   budgets (idle, frame, typing, scrolling) are not enforced there, with the reason in `budgets.json`. A missed token
-  budget's threshold is the value it was recorded at, so it can only get better.
+  budget's threshold is the value it was recorded at, so it can only get better. `budgets.py --propose-thresholds
+  --from <folder>` turns a Linux callgrind run into thresholds for the pending budgets that are met.
+- **Idle in CI.** Idle is not enforced as a time: an idle second is a wall-clock measure, and a loaded runner would
+  decide it. It is enforced as counts by `tests/unit/window/idle.cpp`: in an idle second of every template, no update,
+  no frame, and no wake of the event loop but the template's own timers (3 at most) and the quit.
+- **Gains held.** `tests/perf/locks.json` holds the ratios that keep the cost of a change flat as the screen grows
+  (`update/400` against `update/14`, and so on); CI checks them on every run, beside the 3% gate.
 
 ## Budgets
 
