@@ -645,6 +645,7 @@
                          :kind "scope"
                          :expensive (or-else it.expensive false)})
                       (slice (or-else body.scopes []) 0 20)))
+    ; style: keep, a scope is cheap unless the adapter's expensive is there and not false, as Lisp tests it
     (when (and (seq state.debug.variables) (not state.debug.variables.0.expensive)) (debugExpand "s0"))))
 
 (defn debugExpand "Expands or collapses a row of the variables, by its path." [path]
