@@ -52,7 +52,9 @@
         (set "state.bodies"
              (map (fn [b]
                     (if (= (:id b) to)
-                      (orbiting b from (if (= from "sun") (or (:home b) (:radius b)) (-> siblings (* 0.35) (+ 0.65))))
+                      (orbiting b
+                                from
+                                (if (= from "sun") (or (:home b) (:radius b)) (-> siblings (* 0.35) (+ 0.65))))
                       b))
                   state.bodies))))))
 
