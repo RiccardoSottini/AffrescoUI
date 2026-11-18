@@ -354,9 +354,7 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	}
 	std::string pointer;
 	if(root == Root::Named) { // a repeat's item lying in the state reads it there, a tracked layer's variable its place
-		if((item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
-		std::optional<std::string> place = namedPlace(name);
-		if(!place && name == "data" && !context_.locals.find(name)) place = places::data; // the records (DataLayer)
+		std::optional<std::string> place = namedReadPlace(name);
 		if(!place) return;
 		pointer = std::move(*place);
 	} else if(root != Root::State) {
@@ -368,6 +366,13 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 		else break;
 	}
 	context_.reads->addPath(pointer);
+}
+
+std::optional<std::string> Machine::namedReadPlace(std::string_view name) const {
+	if((item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return std::nullopt;
+	std::optional<std::string> place = namedPlace(name);
+	if(!place && name == "data" && !context_.locals.find(name)) place = places::data; // the records (DataLayer)
+	return place;
 }
 
 // A row's number is read under its list ("/items/~i"), which the children lists mark when rows are numbered again

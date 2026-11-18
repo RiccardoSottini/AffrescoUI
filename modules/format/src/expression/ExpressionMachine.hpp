@@ -337,6 +337,11 @@ private:
 	/// @param name Its name (a repeat's item reads where it lies in the state).
 	/// @param keys Its keys.
 	void noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const;
+	/// @brief Where a read of a named variable is recorded, as noteRead() records it: none for the item and the
+	/// accumulator a list's own expressions are given, the records for "data" no scope names, else namedPlace().
+	/// @param name The variable.
+	/// @return The place, or std::nullopt when nothing is recorded.
+	[[nodiscard]] std::optional<std::string> namedReadPlace(std::string_view name) const;
 	/// @brief Where a read of a variable is recorded: a repeat's item where it lies, a row's number under its list
 	/// (indexKey), a tracked "with" or "let" under its layer ("/~s/<layer>/<name>", ScopeLayers).
 	/// @param name The variable.
