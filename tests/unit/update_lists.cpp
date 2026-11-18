@@ -446,7 +446,7 @@ TEST_CASE("lists: a state step that fails after making the places on its way upd
 	for(const std::string action : {"drop", "add"}) {
 		CAPTURE(action);
 		Built built(document, true);
-		built.runtime.runAction(action.c_str(), built.window->root(), json{{"c", 3}});
+		built.runtime.runAction(action, built.window->root(), json{{"c", 3}});
 		built.window->routeKey({affresco::Key::Unknown, 0, affresco::Action::Release, {}}); // runs what was deferred
 		CHECK(std::ranges::none_of(built.errors, [](const std::string& e) { return e.contains("update check"); }));
 		CHECK(asBuiltAgain(built));

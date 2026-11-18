@@ -27,7 +27,7 @@ class Verify {
 public:
 	/// @brief The check of an engine's updates, on if AFFRESCOUI_VERIFY_UPDATES is "1".
 	/// @param engine The runtime; outlives this object.
-	explicit Verify(Engine& engine) noexcept;
+	explicit Verify(Engine& engine);
 
 	/// @brief Turns verify mode on or off.
 	/// @param on true to check every partial update.

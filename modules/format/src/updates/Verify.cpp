@@ -130,7 +130,7 @@ std::string& dropped() noexcept {
 
 } // namespace
 
-Verify::Verify(Engine& engine) noexcept : engine_(engine) {
+Verify::Verify(Engine& engine) : engine_(engine) {
 	on_ = environmentVariable("AFFRESCOUI_VERIFY_UPDATES") == "1"; // read once, as the runtime starts
 }
 
