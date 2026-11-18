@@ -6,23 +6,24 @@
 ;;; English, Italian and Arabic, right to left (Cmd+L). F1 lists the commands and their keys, Escape goes back from
 ;;; the inner screens, Shift+Cmd+H shows the passwords, Shift+Cmd+Q signs out.
 
-(include "locales/en.lisp"
-         "locales/it.lisp"
-         "locales/ar.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "components.lisp"
-         "chrome.lisp"
-         "dialogs.lisp"
-         "sign-in-form.lisp"
-         "create-account.lisp"
-         "codes.lisp"
-         "account.lisp"
-         "account-sections.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "sign-in.lisp"
-         "profile.lisp")
+(ns sign-in.index
+  (:require "locales/en.lisp"
+            "locales/it.lisp"
+            "locales/ar.lisp"
+            sign-in.state
+            sign-in.computed
+            sign-in.look
+            sign-in.components
+            sign-in.chrome
+            sign-in.dialogs
+            sign-in.sign-in-form
+            sign-in.create-account
+            sign-in.codes
+            sign-in.account
+            sign-in.account-sections
+            "../../shared/addons/assistant/assistant.lisp"
+            sign-in.sign-in
+            sign-in.profile))
 
 ;;; The window, and what is in it, in the order it is drawn
 

@@ -4,6 +4,8 @@
 ;;; variables share their name with the command that toggles them (menu-bar-mode is both, as in the editor Calamaio
 ;;; follows), and a program has one name for one thing: so they are the settings of one part, not defcustoms.
 
+(ns calamaio.settings)
+
 ;;; The editor's variables
 
 (defpart variables "The editor's variables, by the names the editor Calamaio follows gives them."

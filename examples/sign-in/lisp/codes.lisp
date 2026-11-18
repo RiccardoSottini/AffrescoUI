@@ -4,6 +4,8 @@
 ;;; Each screen counts down each second: the two-step one until a new code can be sent, the reset one until its code
 ;;; expires. What the buttons run is in sign-in.lisp.
 
+(ns sign-in.codes)
+
 ;;; Two-step
 
 (defview two-step-card "The code screen: its card, centred, the resend countdown ticking." []
@@ -15,7 +17,7 @@
 
 (defmacro by-code-mode "A choice by which code is asked for: pairs of a codeMode and its choice, then the default."
   [pairs default]
-  `(cond ~@(apply concat (map (fn [[mode choice]] [(list '= 'state.codeMode mode) choice]) pairs)) :else ~default))
+  `(case state.codeMode ~@(apply concat pairs) ~default))
 
 (defview two-step-form "The code form: what is asked and where, the code, Remember this device and the buttons." []
   `(node#stack-two-step :style form

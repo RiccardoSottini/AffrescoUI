@@ -6,6 +6,8 @@
 ;;; real server: `serverCall` answers at once, or after 800 ms with Slow network on, by running the function named
 ;;; to answer. What the account page does is in profile.lisp.
 
+(ns sign-in.sign-in)
+
 ;;; The provider
 
 (defpart provider "Example ID, the made-up OAuth 2 provider the sign-in form offers."
@@ -42,10 +44,10 @@
   (when (= state.focus key) (set "state.focus" "")))
 
 (defn accountOf "The account of an email, whatever its case." [email]
-  (find (fn [it] (same-email? (:email it) email)) state.accounts))
+  (find #(same-email? (:email %) email) state.accounts))
 
 (defn serverCall "Asks the fake server: what marks the busy button, answer the function that answers." [answer what]
-  (when (= state.busy "")
+  (when (empty? state.busy)
     (set "state.busy" what)
     (if state.slow (after 800 answered answer) (answered answer))))
 
@@ -62,12 +64,13 @@
         computed.passwordValid (serverCall "checkPassword" "signIn")))
 
 (defn lookup "The identifier step's answer: with an account for the email, the password step follows." []
-  (if (nil? computed.account)
-      (set "state.formError" "noAccount")
-      (do (set "state.submitted" false)
-          (set "state.step" "password")
-          ;; the email field is gone on this step, so the first field is the password
-          (focus "#textarea-placeholder"))))
+  (if-some [_ computed.account]
+    (do (set "state.submitted" false)
+        (set "state.step" "password")
+        ;; the email field is gone on this step, so the first field is the password
+        (focus "#textarea-placeholder"))
+    (set "state.formError" "noAccount")))
+
 
 (defn changeEmail "Not you?: back to the email step." []
   (set "state.step" "email")
@@ -89,7 +92,7 @@
             (refuse "state.formError" "locked" "#unlock"))
         (wrongPassword?)
         (do (hideToast)
-            (push "state.failures" (lower-case (trim state.email)))
+            (push "state.failures" (str/lower-case (str/trim state.email)))
             (set "state.formError" (if computed.locked "locked" "wrongPassword")))
         :else
         (do (set "state.submitted" false)
@@ -141,7 +144,7 @@
   (when (= (count state.code) 6) (verify)))
 
 (defn verify "Verify: a backup code, or the six digits." []
-  (cond (= state.codeMode "backup") (if (= (trim state.backupCode) "")
+  (cond (= state.codeMode "backup") (if (empty? (str/trim state.backupCode))
                                         (set "state.codeError" "shortBackup")
                                         (serverCall "checkBackup" "verify"))
         (< (count state.code) 6) (set "state.codeError" "short")
@@ -164,10 +167,10 @@
         (passTwoStep)))
 
 (defn checkBackup "A backup code's answer: a code of the list works once." []
-  (let [typed (upper-case (trim state.backupCode))]
-    (if (not (contains state.backupCodes typed))
+  (let [typed (str/upper-case (str/trim state.backupCode))]
+    (if-not (contains state.backupCodes typed)
         (refuse "state.codeError" "wrongBackup" "#backupField")
-        (do (set "state.backupCodes" (remove (fn [it] (= it typed)) state.backupCodes))
+        (do (set "state.backupCodes" (remove #{typed} state.backupCodes))
             (set "state.backupCode" "")
             (notify (t "backupUsed" {:n (count state.backupCodes)}))
             (passTwoStep)))))
@@ -200,7 +203,7 @@
   (notify (t "codeResent" {:email state.pending.email})))
 
 (defn countDown "Each second on the code screen: the wait before a new code can be sent." []
-  (when (> state.resendLeft 0) (increment "state.resendLeft" :by -1)))
+  (when (pos? state.resendLeft) (increment "state.resendLeft" :by -1)))
 
 (defn codeBack "Back: to the create-account screen while verifying a new account, else to the sign-in form." []
   (if (= state.codeMode "verify")
@@ -210,25 +213,25 @@
       (goBack)))
 
 (defn emailCodeSignIn "A code sent to the account's email instead of the password." []
-  (if (nil? computed.account)
-      (set "state.formError" "noAccount")
-      (do (set "state.formError" "")
-          (set "state.submitted" false)
-          (set "state.pending" computed.account)
-          (set "state.codeMode" "email")
-          (serverCall "startTwoStep" "emailCode"))))
+  (if-some [account computed.account]
+    (do (set "state.formError" "")
+        (set "state.submitted" false)
+        (set "state.pending" account)
+        (set "state.codeMode" "email")
+        (serverCall "startTwoStep" "emailCode"))
+    (set "state.formError" "noAccount")))
 
 ;;; Creating an account
 
 (defn submitNewAccount "Create account: once every field is right, the fake server makes it." []
   (set "state.submitted" true)
-  (when (= computed.createErrors 0) (serverCall "finishCreate" "create")))
+  (when (zero? computed.createErrors) (serverCall "finishCreate" "create")))
 
 (defn finishCreate "The account waits for its email to be verified, by a code." []
   (set "state.submitted" false)
-  (set "state.pending" {:email (trim state.email)
-                        :name (trim state.name)
-                        :username (lower-case (trim state.username))
+  (set "state.pending" {:email (str/trim state.email)
+                        :name (str/trim state.name)
+                        :username (str/lower-case (str/trim state.username))
                         :twoStep false
                         :provider false
                         :passkey false})
@@ -236,7 +239,7 @@
   (startTwoStep))
 
 (defn finishVerify "The email is verified: the account exists, and its session opens." []
-  (set "state.accounts" (concat (remove (fn [it] (same-email? (:email it) state.pending.email)) state.accounts)
+  (set "state.accounts" (concat (remove #(same-email? (:email %) state.pending.email) state.accounts)
                                 [(merge state.pending {:password state.password})]))
   (set "state.codeMode" "twoStep")
   (enter)
@@ -254,7 +257,7 @@
   (debounce 600 checkUsername))
 
 (defn checkUsername "The demo server's check of the username typed." []
-  (set "state.usernameChecked" (lower-case (trim state.username))))
+  (set "state.usernameChecked" (str/lower-case (str/trim state.username))))
 
 (defn toggleTerms "Ticks the terms, or not." [] (set "state.terms" (not state.terms)))
 
@@ -265,13 +268,13 @@
 ;;; Other ways in
 
 (defn passkeySignIn "The device's passkey picker, faked: the accounts on this device that saved one." []
-  (when (= state.busy "")
+  (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.passkeyOpen" true)))
 
 (defn choosePasskey "An account chosen in the passkey picker, by its email." [email]
   (set "state.passkeyOpen" false)
-  (set "state.pending" (merge (find (fn [it] (= (:email it) email)) state.accounts) {:twoStep false}))
+  (set "state.pending" (merge (find #(= (:email %) email) state.accounts) {:twoStep false}))
   (serverCall "passkeyDone" "passkey"))
 
 (defn passkeyDone "A passkey is two factors already, so it skips two-step." []
@@ -286,7 +289,7 @@
   (after 0 focusPasskey))
 
 (defn providerSignIn "Example ID's button: its sign-in page, through the connection; scenarios play its answers." []
-  (when (= state.busy "")
+  (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.providerName" "exampleId")
     (set "state.busy" "provider")
@@ -307,7 +310,7 @@
   (failProvider (or-else event.message "")))
 
 (defn otherProvider "A made-up provider that always says yes, after a moment." [provider]
-  (when (= state.busy "")
+  (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.providerName" provider)
     (set "state.busy" "provider")
@@ -319,11 +322,11 @@
   [email given-name]
   (when (= state.busy "provider")
     (set "state.busy" "")
-    (if (not (isEmail email))
+    (if-not (isEmail email)
         (failProvider "")
-        (do (when (nil? (accountOf email))
+        (do (when-not (accountOf email)
               (push "state.accounts" {:email email
-                                      :name (if (not= given-name "") given-name (first (split email "@")))
+                                      :name (or (not-empty given-name) (first (str/split email "@")))
                                       :password ""
                                       :twoStep false
                                       :provider true}))
@@ -351,8 +354,8 @@
 (defn closeForgot "Closes the forgot-password dialog." [] (set "state.forgot.open" false))
 
 (defn sendReset "Sends a reset code to the email, and opens the new-password screen." []
-  (let [email (trim state.forgot.email)]
-    (if (not (isEmail email))
+  (let [email (str/trim state.forgot.email)]
+    (if-not (isEmail email)
         (set "state.forgot.error" (t "emailOfAccount"))
         (do (set "state.forgot.open" false)
             (set "state.reset" {:email email :code "" :password "" :confirm "" :submitted false :error "" :left 600})
@@ -364,7 +367,7 @@
   (set "state.reset.error" (if (<= state.reset.left 0) "expired" "")))
 
 (defn resetTick "Each second on the reset screen: the emailed code lasts 10 minutes." []
-  (when (> state.reset.left 0)
+  (when (pos? state.reset.left)
     (increment "state.reset.left" :by -1)
     (when (<= state.reset.left 0) (set "state.reset.error" "expired"))))
 
@@ -378,7 +381,7 @@
 (defn setPassword "Set password: once the code and the new password are right, the fake server saves it." []
   (set "state.reset.submitted" true)
   (set "state.reset.error" (if (< (count state.reset.code) 6) "short" ""))
-  (when (and (= state.reset.error "") (= computed.resetErrors 0)) (serverCall "finishReset" "setPassword")))
+  (when (and (empty? state.reset.error) (zero? computed.resetErrors)) (serverCall "finishReset" "setPassword")))
 
 (defn finishReset "The reset's answer: an expired or wrong code is refused, else the new password is saved." []
   (cond (<= state.reset.left 0)
@@ -391,7 +394,7 @@
 
 (defn passwordReset "The new password, saved: the lock lifts, and the password step waits with the email." []
   (updateAccount state.reset.email {:password state.reset.password :passwordDays 0})
-  (set "state.failures" (remove (fn [it] (= it (lower-case state.reset.email))) state.failures))
+  (set "state.failures" (remove #{(str/lower-case state.reset.email)} state.failures))
   (set "state.email" state.reset.email)
   (set "state.password" "")
   (set "state.submitted" false)
@@ -436,9 +439,9 @@
   (increment "state.clock" :by 1)
   (when (some arrived? state.emails)
     (notify (t "emailVerified" {:email (:address (find arrived? state.emails))}))
-    (set "state.emails" (map (fn [it] (if (arrived? it) (merge it {:verified true :sent false}) it)) state.emails))
+    (set "state.emails" (map #(if (arrived? %) (merge % {:verified true :sent false}) %) state.emails))
     (logEvent "emailVerified"))
-  (when (> state.confirmedLeft 0) (increment "state.confirmedLeft" :by -1))
+  (when (pos? state.confirmedLeft) (increment "state.confirmedLeft" :by -1))
   (increment "state.session.left" :by -1)
   (when (and (<= state.session.left 60) (not state.session.warned))
     (set "state.session.warned" true)

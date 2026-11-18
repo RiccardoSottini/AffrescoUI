@@ -4,6 +4,8 @@
 ;;; or the minibuffer (minibuffer.lisp): a prompt, the answer being typed and a note. `message` is how every
 ;;; command speaks, and *Messages* keeps what it said.
 
+(ns calamaio.echo)
+
 ;;; Messages
 
 (defn message "Shows a text in the echo area, and keeps it in *Messages*." [m]
@@ -13,7 +15,7 @@
 (defcomputed echoText
   "The echo area's line, the minibuffer closed: a prefix typed, the search, the replace's question, or the message."
   (cond (some? context.chord) (str (keyLabel context.chord "letters") "-")
-        state.is.on (if (and (not= state.is.text "") (= (or-else (get-in state.win [state.sel :caret :matches]) 0) 0))
+        state.is.on (if (and (not= state.is.text "") (zero? (or-else (get-in state.win [state.sel :caret :matches]) 0)))
                       (if state.is.back
                         (t "echo.failingBackward" {:text state.is.text})
                         (t "echo.failing" {:text state.is.text}))
@@ -80,8 +82,8 @@
      :onClick ~(handler minibuffer-choose c)
      (label :font code :textColor @fg :anchors {:left 12 :top 1} :fitText true
        :runs [{:text ~(slice c 0 typed) :color @compCommon}
-              {:text ~(slice c typed (+ typed 1)) :bold true :color @compFirst}
-              ~(slice c (+ typed 1))])))
+              {:text ~(slice c typed (inc typed)) :bold true :color @compFirst}
+              ~(slice c (inc typed))])))
 
 (defview completions-mode-line "The *Completions* window's mode line, as an inactive window's." []
   `(row :height 26 :alignSelf stretch :alignItems center :gap 8 :color @mli
