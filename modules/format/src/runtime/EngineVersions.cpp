@@ -99,6 +99,7 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 	if((readers & reader::services) != 0U) serviceCalls.load();
 	if((readers & reader::sounds) != 0U) audio.documentChanged();
 	if((readers & reader::windows) != 0U) otherWindows.documentChanged();
+	document.reviewChanged();           // the version's number and the history are new globals
 	document.requestUpdate("revision"); // what reads outside the panels (the icon, the title, the menus) runs too
 	reconciler.reconcile("revision");
 }
