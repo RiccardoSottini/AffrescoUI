@@ -8,20 +8,20 @@
 (defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
 
 (defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
-  (slice state.doc.layers (+ (indexOf (map :id state.doc.layers) state.doc.active) 1)))
+  (->> (indexOf (map :id state.doc.layers) state.doc.active) inc (slice state.doc.layers)))
 
 (defcomputed layerBelow "The layer Merge Down merges into: the next one at the active layer's depth or above."
   (find #(<= (:depth %) (or-else computed.activeLayer.depth 0)) computed.layersAfterActive))
 
 (defcomputed groupChildren "The active group's own layers: those one level deeper, until the group ends."
   (map :layer
-       (filter #(and (not (:ended %)) (= (-> % :layer :depth) (+ computed.activeLayer.depth 1)))
+       (filter #(and (not (:ended %)) (= (-> % :layer :depth) (inc computed.activeLayer.depth)))
                (scan computed.layersAfterActive
                      (fn [acc it] {:ended (or acc.ended (<= it.depth computed.activeLayer.depth)) :layer it})
                      {:ended false}))))
 
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
-  (t "layer.groupName" {:n (+ (count (filter #(= (:kind %) "group") state.doc.layers)) 1)}))
+  (t "layer.groupName" {:n (->> state.doc.layers (filter #(= (:kind %) "group")) count inc)}))
 
 (defcomputed adjustment "The active adjustment layer's values, or nil." computed.activeLayer.adjustment)
 
@@ -56,7 +56,7 @@
 (defcomputed box "The selection's box, or else the image's: x, y, width and height."
   (if state.doc.selection state.doc.bounds [0 0 state.doc.width state.doc.height]))
 
-(defcomputed zoomPercent "The zoom, as a percentage to a tenth." (/ (round (* state.doc.view.zoom 1000)) 10))
+(defcomputed zoomPercent "The zoom, as a percentage to a tenth." (-> state.doc.view.zoom (* 1000) round (/ 10)))
 
 (defcomputed mode "The image's mode, as the document's tab shows it: RGB or Gray, and its bits."
   (str (if (contains state.doc.profile "Grey") (t "mode.gray") (t "mode.rgb"))
@@ -78,6 +78,7 @@
 
 (defcomputed tool "The current tool, from the tools bar's groups."
   (or-else (find #(= (:id %) state.doc.tool)
+                 ; style: keep, #(...) can't hold another #(...)
                  (or-else (find (fn [group] (some #(= (:id %) state.doc.tool) group)) state.tools) []))
            {}))
 
@@ -109,29 +110,38 @@
 
 (defcomputed rulerTicksX "The horizontal ruler's numbered ticks, in image pixels."
   (map (fn [it]
-         (+ (* (floor (/ (- state.doc.view.x (/ computed.canvasWidth 2 computed.px)) computed.rulerStep))
+         (+ (* (-> state.doc.view.x
+                   (- (/ computed.canvasWidth 2 computed.px))
+                   (/ computed.rulerStep)
+                   floor)
                computed.rulerStep)
             (* it computed.rulerStep)))
-       (range (min 200 (+ (ceil (/ computed.canvasWidth (* computed.rulerStep computed.px))) 2)))))
+       (-> (/ computed.canvasWidth (* computed.rulerStep computed.px)) ceil (+ 2) (->> (min 200)) range)))
 
 (defcomputed rulerTicksY "The vertical ruler's numbered ticks, in image pixels."
   (map (fn [it]
-         (+ (* (floor (/ (- state.doc.view.y (/ computed.canvasHeight 2 computed.px)) computed.rulerStep))
+         (+ (* (-> state.doc.view.y
+                   (- (/ computed.canvasHeight 2 computed.px))
+                   (/ computed.rulerStep)
+                   floor)
                computed.rulerStep)
             (* it computed.rulerStep)))
-       (range (min 200 (+ (ceil (/ computed.canvasHeight (* computed.rulerStep computed.px))) 2)))))
+       (-> (/ computed.canvasHeight (* computed.rulerStep computed.px)) ceil (+ 2) (->> (min 200)) range)))
 
 (defcomputed rulerMinorX "The horizontal ruler's small ticks, five to a step."
   (map #(+ (first computed.rulerTicksX) (/ (* % computed.rulerStep) 5))
-       (range (min 400 (* 5 (count computed.rulerTicksX))))))
+       (->> computed.rulerTicksX count (* 5) (min 400) range)))
 
 (defcomputed rulerMinorY "The vertical ruler's small ticks, five to a step."
   (map #(+ (first computed.rulerTicksY) (/ (* % computed.rulerStep) 5))
-       (range (min 400 (* 5 (count computed.rulerTicksY))))))
+       (->> computed.rulerTicksY count (* 5) (min 400) range)))
 
 ;;; The command search
 
 (defcomputed searchItems "The command search's items: every command that can run, its category before its title."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
-       (filter #(and (not= (:enabled %) false) (not (empty? (or-else (:title %) ""))) (not= (:name %) "unavailable"))
+       (filter #(and (not= (:enabled %) false)
+                     (-> % :title (or-else "") empty? not)
+                     (not= (:name %) "unavailable"))
                commands)))
