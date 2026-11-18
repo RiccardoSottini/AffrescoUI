@@ -5,6 +5,8 @@
 ;;; Each tab is a component of groups; the screen shows the chosen one. A button is a label, so the use gives it its
 ;;; onClick, tooltip and menu.
 
+(ns sinopia.parts.ribbon)
+
 ;;; Definitions
 
 (defcomponent rbBig
@@ -19,7 +21,7 @@
        :align {:horizontal center :vertical start}
        :runs ~(concat [{:icon icon :size 30}
                        {:text "\n" :size 6}
-                       {:text (if (= drop "") title (join " " (split title "\n"))) :size (if (= drop "") 12 11)}]
+                       {:text (if (= drop "") title (join " " (str/split title "\n"))) :size (if (= drop "") 12 11)}]
                       (if (and menu (= drop "")) [{:text " " :size 12} {:icon "chevron-down" :size 10}] [])))
      (label :id ~(str drop "-more")
        :when ~(not= drop "")
@@ -28,7 +30,7 @@
        :align center
        :disabled ~(not enabled)
        :tooltip ~(t "ribbon.moreOptions")
-       :style ~(if (not enabled) "rbButtonOff" "rbButton")
+       :style ~(if enabled "rbButton" "rbButtonOff")
        :runs [{:icon chevron-down :size 10}]
        :onClick ~(handler openDrop drop))))
 
@@ -91,8 +93,8 @@
 
 (defview rb-small-row "A small button's row: its icon and title, and the arrow of its menu."
   [icon title menu on enabled tint drop colors]
-  `(row :fitContent width :height ~(if (nil? tint) 24 21) :color transparent
-     (label :height ~(if (nil? tint) 24 21)
+  `(row :fitContent width :height ~(if (some? tint) 21 24) :color transparent
+     (label :height ~(if (some? tint) 21 24)
        :fitText true
        :padding 4
        :style ~(cond (not enabled) "rbButtonOff" on "rbButtonOn" :else "rbButton")
@@ -102,11 +104,11 @@
      (label :id ~(str drop "-arrow")
        :when ~(not= drop "")
        :width 13
-       :height ~(if (nil? tint) 24 21)
+       :height ~(if (some? tint) 21 24)
        :align center
        :disabled ~(not enabled)
        :tooltip ~(t "ribbon.moreOptions")
-       :style ~(if (not enabled) "rbButtonOff" "rbButton")
+       :style ~(if enabled "rbButton" "rbButtonOff")
        :runs [{:icon chevron-down :size 10}]
        :onClick ~(handler openMenu colors drop))))
 
