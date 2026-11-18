@@ -81,7 +81,8 @@
                  :description (:description s)
                  :type (str (:type s)
                             (when-let [values (:enum s)] (t "help.oneOf" {:values (str/join ", " values)}))
-                            (when-some [from (:minimum s)] (t "help.range" {:from (str from) :to (str (:maximum s))})))})))
+                            (when-some [from (:minimum s)]
+                              (t "help.range" {:from (str from) :to (str (:maximum s))})))})))
 
 ;;; Keys
 

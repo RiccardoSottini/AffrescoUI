@@ -3,6 +3,6 @@
 		"calamaio/lisp"
 	],
 	"allowed": {
-		"four-nested-calls": 44
+		"four-nested-calls": 43
 	}
 }
