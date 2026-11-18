@@ -6,16 +6,18 @@
 ;;; `computed.objects`) and changes it only through steps (`set`, `push`...). A handler runs one by name, as it would an
 ;;; action: {:run moveSlide :with {:from 2 :to 0}}.
 
+(ns sinopia.sinopia)
+
 ;;; A form the others use
 
 (defmacro each "Runs the body once for each item of a list, the item bound to a name: (each [o objects] (f o))."
   [[item items] & body]
-  `(reduce (fn [_ ~item] ~@body nil) nil ~items))
+  `(doseq [~item ~items] ~@body))
 
 ;;; Undo and redo
 
 (defn either "A value, or another when it is nil: an expression's ??." [v otherwise]
-  (if (nil? v) otherwise v))
+  (if-some [value v] value otherwise))
 
 (defn snapshot "The deck as it is, and the slide shown: what Undo goes back to." []
   {:deck state.deck :current state.current})
@@ -28,9 +30,9 @@
 (defn travel "Undo and Redo: the deck as it is goes on one stack, and the last of the other takes its place."
   [from onto stack]
   (push onto (snapshot))
-  (let [kept (last stack)]
-    (set "state.deck" (:deck kept))
-    (set "state.current" (:current kept)))
+  (let [{:keys [deck current]} (last stack)]
+    (set "state.deck" deck)
+    (set "state.current" current))
   (remove-state from :at (dec (count stack)))
   (set "state.board.selection" []))
 
@@ -59,7 +61,7 @@
 (defn newSlide "Adds a slide after this one, with its layout's placeholders, empty." [layout]
   (commit)
   (let [next state.deck.next
-        holders (either (:ph (find (fn [l] (= (:id l) layout)) computed.layouts)) [])]
+        holders (either (:ph (find #(= (:id %) layout) computed.layouts)) [])]
     (set "state.deck.slides"
          (after-current {:id (str "s" next)
                          :layout layout
@@ -75,11 +77,10 @@
   (commit)
   (let [next state.deck.next]
     (set "state.deck.slides"
-         (after-current (merge computed.slide
-                               {:id (str "s" next)
-                                :objects (map-indexed (fn [i o] (merge o {:id (str "o" (+ next 1 i))}))
-                                                      computed.objects)
-                                :animations []}))))
+         (after-current (assoc computed.slide
+                               :id (str "s" next)
+                               :objects (map-indexed (fn [i o] (assoc o :id (str "o" (+ next 1 i)))) computed.objects)
+                               :animations []))))
   (increment "state.deck.next" :by (+ (count computed.objects) 2))
   (show-next))
 
@@ -108,42 +109,44 @@
   (set "state.deck.slides[state.current].objects" objects))
 
 (defn capital "A text with its first letters, up to an index, in upper case, and the rest in lower case." [text at]
-  (let [letters (split text "")]
+  (let [letters (str/split text "")]
     (str (upper (join "" (slice letters 0 at))) (lower (join "" (slice letters at))))))
 
 ;; toggle turns each letter the other way; sentence puts each line's first letter up, words each word's, the rest down
 (defn cased "An object's text in a case: upper, lower, toggle, sentence or words."
   [how object]
   (let [text (either (:text object) "")]
-    (cond (= how "upper") (upper text)
-          (= how "lower") (lower text)
-          (= how "toggle") (join "" (map (fn [c] (if (= (upper c) c) (lower c) (upper c))) (split text "")))
-          (= how "sentence") (join "\n" (map (fn [line] (capital line (inc (indexOf line (trim line)))))
-                                             (split text "\n")))
-          (= how "words")
-          (join "\n" (map (fn [line] (join " " (map (fn [word] (capital word 1)) (split line " ")))) (split text "\n")))
-          :else (:text object))))
+    (case how
+      :upper (upper text)
+      :lower (lower text)
+      :toggle (->> (str/split text "") (map #(if (= (upper %) %) (lower %) (upper %))) (join ""))
+      ; style: keep, the host's split keeps the empty lines at the end, which the join gives back
+      :sentence (->> (split text "\n") (map #(capital % (inc (indexOf % (str/trim %))))) (join "\n"))
+      ; style: keep, the host's split keeps the empty lines and spaces at the end; #(...) can't hold another
+      :words (->> (split text "\n") (map (fn [line] (join " " (map #(capital % 1) (split line " "))))) (join "\n"))
+      (:text object))))
 
 (defn changeCase "Changes the case of the selected objects' text." [how]
-  (when (> (count computed.selected) 0)
+  (when (seq computed.selected)
     (commit)
-    (set-objects (map (fn [o] (if (selected? o) (merge o {:text (cased how o)}) o)) computed.objects))))
+    (set-objects (map #(if (selected? %) (assoc % :text (cased how %)) %) computed.objects))))
 
 (defn order "The selected objects move together in the slide's drawing order: front, forward, backward or back." [how]
-  (when (> (count computed.selected) 0)
+  (when (seq computed.selected)
     (let [objects computed.objects
           selected computed.selected
           at computed.selectedAt
-          others (filter (fn [o] (not (selected? o))) objects)
-          ids (map (fn [o] (:id o)) others)
+          others (remove selected? objects)
+          ids (map :id others)
           above (:id (get objects (inc (apply max at))))
-          below (when (> (apply min at) 0) (:id (get objects (dec (apply min at)))))
-          between (fn [k] (concat (take k others) selected (drop k others)))]
+          below (when (pos? (apply min at)) (:id (get objects (dec (apply min at)))))
+          between #(concat (take % others) selected (drop % others))]
       (commit)
-      (set-objects (cond (= how "front") (concat others selected)
-                         (= how "back") (concat selected others)
-                         (= how "forward") (if (nil? above) objects (between (inc (indexOf ids above))))
-                         :else (if (nil? below) objects (between (indexOf ids below))))))))
+      (set-objects (case how
+                     :front (concat others selected)
+                     :back (concat selected others)
+                     :forward (if-some [id above] (between (inc (indexOf ids id))) objects)
+                     (if-some [id below] (between (indexOf ids id)) objects))))))
 
 (defn total "The sum of numbers." [xs]
   (reduce + 0 xs))
@@ -155,21 +158,20 @@
 (defn align "Aligns the selected objects: left, center, right, top, middle or bottom."
   [how]
   (let [boxes computed.boxes]
-    (when (> (count boxes) 0)
-      (let [ids (map (fn [box] (:id box)) boxes)
-            b (if (= (count boxes) 1) computed.slideBounds computed.selectionBounds)
+    (when (seq boxes)
+      (let [ids (map :id boxes)
+            {:keys [left top right bottom]} (if (= (count boxes) 1) computed.slideBounds computed.selectionBounds)
             place (fn [o]
-                    (let [box (get boxes (indexOf ids (:id o)))]
-                      (cond (= how "left") {:x (:left b)}
-                            (= how "center") {:x (tenth (- (/ (+ (:left b) (:right b)) 2) (/ (:w box) 2)))}
-                            (= how "right") {:x (- (:right b) (:w box))}
-                            (= how "top") {:y (:top b)}
-                            (= how "middle") {:y (tenth (- (/ (+ (:top b) (:bottom b)) 2) (/ (:h box) 2)))}
-                            :else {:y (- (:bottom b) (:h box))})))]
+                    (let [{:keys [w h]} (get boxes (indexOf ids (:id o)))]
+                      (case how
+                        :left {:x left}
+                        :center {:x (tenth (- (/ (+ left right) 2) (/ w 2)))}
+                        :right {:x (- right w)}
+                        :top {:y top}
+                        :middle {:y (tenth (- (/ (+ top bottom) 2) (/ h 2)))}
+                        {:y (- bottom h)})))]
         (commit)
-        (set-objects (map (fn [o] (if (or (not (contains ids (:id o))) (either (:locked o) false))
-                                    o
-                                    (merge o (place o))))
+        (set-objects (map #(if (or (not (contains ids (:id %))) (either (:locked %) false)) % (merge % (place %)))
                           computed.objects))))))
 
 ;; From the first to the last, or across the slide for two objects; locked objects stay
@@ -178,18 +180,18 @@
   (let [boxes computed.boxes
         n (count boxes)]
     (when (> n 1)
-      (let [along (sort-by (fn [box] (get box axis)) boxes)
-            ids (map (fn [box] (:id box)) along)
-            sizes (map (fn [box] (if (= axis "x") (:w box) (:h box))) along)
-            b computed.selectionBounds
-            start (cond (= n 2) 0 (= axis "x") (:left b) :else (:top b))
-            span (cond (= n 2) (if (= axis "x") 960 540)
-                       (= axis "x") (- (:right b) (:left b))
-                       :else (- (:bottom b) (:top b)))
+      (let [along (sort-by #(get % axis) boxes)
+            ids (map :id along)
+            sizes (map (if (= axis :x) :w :h) along)
+            {:keys [left top right bottom]} computed.selectionBounds
+            start (cond (= n 2) 0 (= axis :x) left :else top)
+            span (cond (= n 2) (if (= axis :x) 960 540)
+                       (= axis :x) (- right left)
+                       :else (- bottom top))
             free (- span (total sizes))
             place (fn [o]
                     (let [i (indexOf ids (:id o))]
                       (assoc o axis (tenth (+ start (total (take i sizes)) (/ (* i free) (dec n)))))))]
         (commit)
-        (set-objects (map (fn [o] (if (or (not (contains ids (:id o))) (either (:locked o) false)) o (place o)))
+        (set-objects (map #(if (or (not (contains ids (:id %))) (either (:locked %) false)) % (place %))
                           computed.objects))))))
