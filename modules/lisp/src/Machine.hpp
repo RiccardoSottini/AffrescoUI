@@ -186,6 +186,13 @@ public:
 	[[nodiscard]] const Definition* definition(std::string_view name) const;
 	/// @brief Every definition, in order. @return Them.
 	[[nodiscard]] const std::vector<std::unique_ptr<Definition>>& definitions() const noexcept { return definitions_; }
+	/// @brief Takes a definition away, its global undefined again (Program::redefine()): one of the program's, which
+	/// no language name.
+	/// @param name Its name.
+	void forgetDefinition(std::string_view name);
+	/// @brief Puts the definitions in an order, as a load of the program gives them (Program::redefine()).
+	/// @param names Their names, in that order; those not named follow, as they were.
+	void orderDefinitions(const std::vector<std::string>& names);
 	/// @brief Notes a use of a global, for undefined names.
 	/// @param use The use.
 	void noteUse(GlobalUse use) { uses_.push_back(std::move(use)); }

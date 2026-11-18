@@ -38,6 +38,7 @@ struct BuiltProgram {
 	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
 	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
 	std::set<std::pair<std::string, std::string>> defaulted; ///< Members a `defdefaults` gave (Program::defaulted()).
+	std::vector<std::string> macros; ///< The texts of its `defmacro` entries, in the order of the entries.
 	/// What the build kept of each definition, for the build of a later version (Program::rebuild()).
 	std::shared_ptr<const BuildRecord> record;
 };

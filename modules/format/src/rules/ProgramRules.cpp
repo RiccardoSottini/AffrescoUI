@@ -427,9 +427,7 @@ void collectProgramUses(const json& document, std::vector<std::string>& found) {
 		const auto built = lisp::builtProgram(document["program"]);
 		// What a macro writes into a definition is in its use too, as its text doesn't change with it
 		std::string macros;
-		for(const auto& [file, entries] : document["program"].items())
-			for(const auto& [name, text] : entries.items())
-				if(kindOf(text.get<std::string>()) == "defmacro") macros += "\n" + text.get<std::string>();
+		for(const std::string& text : built->macros) macros.append("\n").append(text);
 		for(const auto& [file, entries] : document["program"].items())
 			for(const auto& [name, text] : entries.items()) {
 				const auto calls = built->namedCalls.find(name);
