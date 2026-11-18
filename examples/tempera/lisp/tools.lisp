@@ -31,7 +31,7 @@
 (defview tool-group "A group of the bar, g its tools and n its place: a dot for an empty one, else its tool." [g n]
   `(node :id ~(str "tool-group-" n)
      :style clear
-     :let {:tool ~(or-else (find (fn [it] (= it.id state.doc.tool)) g) (first g))}
+     :let {:tool ~(or-else (find #(= (:id %) state.doc.tool) g) (first g))}
      :width 32
      :height ~(if (empty? g) 7 26)
      (node :when ~(empty? g) :x 14 :y 2 :width 3 :height 3 :radius 999 :color @border)
