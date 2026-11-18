@@ -117,6 +117,7 @@
   (debugKeepConfigurations total (keep #(when (debugRunnable? %) (debugConfiguration %)) known)))
 
 (defn debugRunnable? "Whether a configuration can run: a program to launch, a port or a process to attach to." [config]
+  ; style: keep, the tests read two fields, the request and then the adapter
   (cond
     (= config.request "launch") (and (= (type config.c.program) "string") (<= (count config.c.program) 4096))
     (= config.adapter "python")
@@ -516,6 +517,7 @@
                     :icon (if (= it.id state.debug.frameId) "arrow-right" "")
                     :iconColor (if it.inside "#e5c07b" "#848484")})
                  state.debug.frames)
+            ; style: keep, #(...) can't give a map
             (map (fn [it] {:id (str "t:" it.id) :label it.name :icon "list-tree"})
                  (slice state.debug.threads
                         (inc (indexOf (map :id state.debug.threads) state.debug.threadId))))))
@@ -529,6 +531,7 @@
 
 (defn debugOnThreads "The program's threads." [body]
   (set "state.debug.threads"
+       ; style: keep, #(...) can't give a map
        (map (fn [it] {:id it.id :name (text (or-else it.name it.id))}) (or-else body.threads []))))
 
 (defn debugOnExceptionInfo "The exception the program stopped on: its name and description." [body]

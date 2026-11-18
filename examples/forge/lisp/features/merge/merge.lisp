@@ -19,6 +19,7 @@
   ; style: keep, a binding's filter takes a function that names its item it
   (filter (fn [it] (some? it))
             (map-indexed (fn [index it]
+                           ; style: keep, a marker is a line's first 7 characters, but ======= is the whole line
                            (cond (= (slice it 0 7) "<<<<<<<") {:kind "start" :line index}
                                  (= (slice it 0 7) "|||||||") {:kind "base" :line index}
                                  (= it "=======") {:kind "mid" :line index}
