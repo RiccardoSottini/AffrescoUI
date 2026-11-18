@@ -10,30 +10,24 @@
 
 (defcomputed browseItems "The albums or the artists, as tiles: a name, a kind, a count of songs and a colour."
   (if (= state.page :artists)
-      (map-indexed (fn [index it] {:name it :kind "artist" :count 250 :hue index}) state.words.artists)
-      (map-indexed (fn [index it] {:name it :kind "album" :count (if (< index 6) 170 165) :hue index}) state.words.albums)))
+    (map-indexed (fn [index it] {:name it :kind "artist" :count 250 :hue index}) state.words.artists)
+    (map-indexed (fn [index it] {:name it :kind "album" :count (if (< index 6) 170 165) :hue index}) state.words.albums)))
 
-(defcomputed browseColumns "How many tiles fit across the page, from 2 to 8."
-  (-> computed.contentWidth (- 48) (/ 176) floor (clamp 2 8)))
+(defcomputed browseColumns "How many tiles fit across the page, from 2 to 8." (-> computed.contentWidth (- 48) (/ 176) floor (clamp 2 8)))
 
 (defcomputed collectionRows "The songs of the album or the artist shown."
   (if (not= state.page :collection)
-      []
-      (let [at (if (= state.collection.kind :album) 3 2)]
-        (filter #(= (get (:cells %) at) state.collection.name) computed.library))))
+    []
+    (let [at (if (= state.collection.kind :album) 3 2)]
+      (filter #(= (get (:cells %) at) state.collection.name) computed.library))))
 
 (defcomputed collectionHue "The colour of the album or the artist shown, as its place among them."
   (indexOf (if (= state.collection.kind :album) state.words.albums state.words.artists) state.collection.name))
 
 (defcomputed likedSongs "The songs liked that are still there, as {id, list, track}."
-  (filter (fn [it]
-            (if (neg? it.list)
-                (< it.track (count computed.library))
-                (< it.track (or-else (get computed.listSizes it.list) 0))))
-          ; style: keep, #(...) can't give a map
-          (map (fn [it] (let [parts (str/split it ":")]
-                          {:id it :list (number (get parts 0)) :track (number (get parts 1))}))
-               state.liked)))
+  (filter #(if (neg? (:list %)) (< (:track %) (count computed.library)) (< (:track %) (or-else (get computed.listSizes (:list %)) 0)))
+          ; style: keep, gives a map
+          (map (fn [it] {:id it :list (number (get (str/split it ":") 0)) :track (number (get (str/split it ":") 1))}) state.liked)))
 
 (defcomputed likedRows "The liked songs as rows of the table: title, artist, album and time."
   (map (fn [it]
@@ -48,11 +42,8 @@
 
 (defcomputed searchRows "The library's songs whose title and artist the search matches, loosely."
   (if (or (not= state.page :search) (= (str/trim state.search) ""))
-      []
-      (filter (fn [it]
-                (some? (fuzzy (str/trim state.search) (str it.cells.1 " " it.cells.2))))
-              computed.library)))
-
+    []
+    (filter #(some? (fuzzy (str/trim state.search) (str (get (:cells %) 1) " " (get (:cells %) 2)))) computed.library)))
 
 ;;; Tables of songs
 
