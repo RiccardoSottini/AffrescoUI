@@ -4,6 +4,8 @@
 ;;; The ribbon under the command bar is parts/ribbon.lisp and parts/tabs.lisp; the other views of the deck (the
 ;;; outline, the sorter) and the panes beside the canvas are parts/views.lisp and parts/review.lisp.
 
+(ns sinopia.parts.window)
+
 ;;; What the window keeps
 
 (defstate current 0 "The index of the slide shown.")
@@ -117,17 +119,19 @@
 ;;; Sections
 
 (defcomputed slideTitle "The slide's title: the first line of its title placeholder's text."
-  (trim (get (split (or-else (:text (find (fn [it] (or (= it.ph "title") (= it.ph "ctrTitle"))) computed.objects))
-                             "")
-                    "\n")
-             0)))
+  (-> (find #(contains? #{:title :ctrTitle} (:ph %)) computed.objects)
+      :text
+      (or-else "")
+      (str/split "\n")
+      (get 0)
+      str/trim))
 
 (defcomputed sectionFirsts "The index of each section's first slide."
-  (map (fn [it] it.first) (or-else state.deck.sections [])))
+  (map :first (or-else state.deck.sections [])))
 
 (defcomputed sectionAt "For each slide, the section that starts there, or nil."
   (map-indexed (fn [index it]
-                 (if (< (indexOf computed.sectionFirsts index) 0)
+                 (if (neg? (indexOf computed.sectionFirsts index))
                      nil
                      (get state.deck.sections (indexOf computed.sectionFirsts index))))
                state.deck.slides))
@@ -137,12 +141,12 @@
         (fn [acc it] (if (some? (get computed.sectionAt index)) (get-in computed.sectionAt [index :id]) acc))))
 
 (defcomputed folded "For each slide, whether its section is folded."
-  (map (fn [it] (and (some? it) (contains state.foldedSections it))) computed.sectionOf))
+  (map #(and (some? %) (contains state.foldedSections %)) computed.sectionOf))
 
 (defn toggleSection "Folds a section in the thumbnails, or unfolds it." [id]
   (set "state.foldedSections"
        (if (contains state.foldedSections id)
-         (filter (fn [it] (not= it id)) state.foldedSections)
+         (remove #(= % id) state.foldedSections)
          (concat state.foldedSections [id]))))
 
 ;;; What a click does
@@ -161,12 +165,12 @@
 
 (defn canvasMenu "Opens the canvas's menu at the pointer; a click there, not a key, selects nothing first."
   [keyboard x y]
-  (when (not (or-else keyboard false))
+  (when-not (or-else keyboard false)
     (set "state.board.selection" []))
   (openContext x y "canvas"))
 
 (defn objectMenu "Opens an object's menu at the pointer, selecting it unless it already is." [id x y]
-  (when (not (contains state.board.selection id))
+  (when-not (contains state.board.selection id)
     (set "state.board.selection" [id]))
   (openContext x y "object"))
 
@@ -303,12 +307,12 @@
      :role list
      :label ~(t "bar.slides")
      :onContextMenu ~(handler openContext event.x event.y "slide")
-     :keys {:up ~(handler pickSlide (- state.current 1))
-            :down ~(handler pickSlide (+ state.current 1))
-            :pageup ~(handler pickSlide (- state.current 1))
-            :pagedown ~(handler pickSlide (+ state.current 1))
+     :keys {:up ~(handler pickSlide (dec state.current))
+            :down ~(handler pickSlide (inc state.current))
+            :pageup ~(handler pickSlide (dec state.current))
+            :pagedown ~(handler pickSlide (inc state.current))
             :home ~(handler pickSlide 0)
-            :end ~(handler pickSlide (- (count state.deck.slides) 1))
+            :end ~(handler pickSlide (dec (count state.deck.slides)))
             :enter ~(handler newSlide "content")
             :delete deleteSlide
             :backspace deleteSlide}
@@ -350,7 +354,7 @@
      :runs [{:icon ~(if (get computed.folded i) "chevron-right" "chevron-down") :size 11}
             {:text ~(str " " (upper-case (get-in computed.sectionAt [i :name]))) :size 9 :bold true}
             {:text ~(if (get computed.folded i)
-                      (str "  " (plural (count (filter (fn [it] (= it (get-in computed.sectionAt [i :id])))
+                      (str "  " (plural (count (filter #(= % (get-in computed.sectionAt [i :id]))
                                                           computed.sectionOf))
                                            "slide"))
                       "")
@@ -367,7 +371,7 @@
      :role listitem
      :alignItems center
      :selected ~(= i state.current)
-     :label ~(t "slide.n" {:n (+ i 1)})
+     :label ~(t "slide.n" {:n (inc i)})
      :drag {:data {:slide ~i}}
      :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
      :onClick ~(handler chooseSlide i "#thumbnails")
@@ -397,9 +401,9 @@
        :fitText true
        :height 16
        :textColor ~(if (= i state.current) "@brandLine" "@rbMuted")
-       :runs [{:text ~(text (+ i 1)) :size 11 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current)}])
      (label :id ~(str "thumb-" s.id "-star")
-       :when ~(or (not= (or-else s.transition.kind "none") "none") (> (count (or-else s.animations [])) 0))
+       :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :width 14 :height 16 :align center :textColor @rbMuted
        :runs [{:icon wand-sparkles :size 10}]
        :tooltip ~(t "bar.hasATransitionOrAnimations"))
@@ -432,8 +436,8 @@
      :rulers ~state.ruler
      :grid ~(if state.gridlines 12 0)
      :label ~(if (= computed.slideTitle "")
-               (t "slide.n" {:n (+ state.current 1)})
-               (t "slide.titled" {:n (+ state.current 1) :title computed.slideTitle}))
+               (t "slide.n" {:n (inc state.current)})
+               (t "slide.titled" {:n (inc state.current) :title computed.slideTitle}))
      :onChange ~(handler viewChanged event.value)
      :onTransform ~(handler placeObjects event.items)
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
@@ -468,7 +472,7 @@
      ~(status-views)
      (node#status-gap-1 :width 6 :height 1 :color transparent)
      (label#status-slide :style barButton
-       :runs [{:text ~(t "slide.nOfCount" {:n (+ state.current 1) :count (count state.deck.slides)}) :size 11}])
+       :runs [{:text ~(t "slide.nOfCount" {:n (inc state.current) :count (count state.deck.slides)}) :size 11}])
      (label#status-notes :style ~(if state.notes "barButtonOn" "barButton")
        :runs [{:icon notebook-pen :size 13} {:text ~(t "bar.notes2") :size 11}]
        :onClick [{:toggle state.notes}])
@@ -502,7 +506,7 @@
   `(label#status-comments
      :style ~(if (and (= state.sidePane "comments") (not state.formatPane)) "barButtonOn" "barButton")
      :runs [{:icon message-square :size 13}
-            {:text ~(if (> (count computed.comments) 0)
+            {:text ~(if (pos? (count computed.comments))
                       (t "bar.commentsCount" {:n (count computed.comments)})
                       (t "bar.comments"))
              :size 11}]
