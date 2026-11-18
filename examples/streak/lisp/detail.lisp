@@ -1,6 +1,8 @@
 ;;; detail.lisp --- the detail of the selected habit: its bar, its facts, and its cards (overview, target, score,
 ;;; history, calendar, streaks, frequency and notes)
 
+(ns streak.detail)
+
 ;;; The detail
 (defview detail-bar "The detail's bar: back to the list on narrow windows, the habit's name, and its menu." []
   `(node#detailBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 1 :blur 3 :color "#00000020"}

@@ -3,21 +3,22 @@
 ;;; The habits with their last days to tick on the left, the selected habit's detail on the right (one of them on a
 ;;; narrow window); the popup of a day, the dialog that edits a habit, the settings, sync with the document server.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "widgets.lisp"
-         "list.lisp"
-         "detail.lisp"
-         "dialogs.lisp"
-         "settings.lisp"
-         "server.lisp"
-         "sync.lisp"
-         "habits.lisp")
+(ns streak.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "../../shared/addons/assistant/assistant.lisp"
+            streak.state
+            streak.computed
+            streak.look
+            streak.widgets
+            streak.list
+            streak.detail
+            streak.dialogs
+            streak.settings
+            "server.lisp"
+            streak.sync
+            streak.habits))
 
 ;;; The app
 

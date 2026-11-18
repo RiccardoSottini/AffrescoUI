@@ -1,5 +1,7 @@
 ;;; dialogs.lisp --- what opens over the app: the day's popup, and the dialog that adds or edits a habit
 
+(ns streak.dialogs)
+
 ;;; The day's popup
 (defview entry-popup "The day's popup: the value or yes, skip, no, and a note." []
   `(node#entryPopup :overlay {:placement window :open state.popup.open :dismiss outside :modal true}

@@ -1,6 +1,8 @@
 ;;; computed.lisp --- what Streak works out: the theme and its palette, the layout, the days shown, each habit's
 ;;; entries, scores and streaks, the selected habit's charts and goals, the sync's state, and the CSV
 
+(ns streak.computed)
+
 ;;; Values
 (defcomputed theme "The theme shown: light, dark or black, the system's when it is system."
   (if (= (if (= state.theme :system) window.colorScheme state.theme) :dark)

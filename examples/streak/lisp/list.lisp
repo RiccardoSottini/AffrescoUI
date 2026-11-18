@@ -1,6 +1,8 @@
 ;;; list.lisp --- the list of habits: the app bar (add, filter, the menu, the pick bar), the days' header, a row a habit
 ;;; with its last days to tick, and what the list says while empty
 
+(ns streak.list)
+
 ;;; The list
 (defview app-bar "The app bar: the flame and the name, add, filter and the menu; the pick bar over it while picking." []
   `(node#appBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 2 :blur 4 :color "#00000030"}

@@ -1,6 +1,8 @@
 ;;; widgets.lisp --- the pieces the pages share: the score ring, a period's button, settings rows, a number of the
 ;;; overview, and switches
 
+(ns streak.widgets)
+
 ;;; Widgets
 (defcomponent ring "A score ring: value from 0 to 1 drawn clockwise from the top over a full track."
   {:value 0 :color "#888888" :size 22 :stroke 3}

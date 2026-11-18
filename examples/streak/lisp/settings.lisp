@@ -1,5 +1,7 @@
 ;;; settings.lisp --- the settings page: the interface and the data
 
+(ns streak.settings)
+
 ;;; Settings
 (defview settings-page "The settings, a page over the app." []
   `(node#settingsPage :overlay {:placement window :open state.settingsOpen :dismiss outside :modal true}

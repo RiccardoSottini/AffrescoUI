@@ -1,5 +1,7 @@
 ;;; look.lisp --- Streak's colours, light, dark and pure black, and its styles
 
+(ns streak.look)
+
 ;;; Colours and styles
 (deftokens tokens "Tokens."
   {:c.bg {:light "#f2efec" :dark "#1f1d1c" :black "#000000"}

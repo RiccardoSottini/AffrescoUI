@@ -4,6 +4,8 @@
 ;;; through paths (`state.today`, `data.ordered`, `computed.h`) and changes it only through steps (`set`, `push`,
 ;;; `update-record`...). A handler runs one by name: {:run "cellClick" :with {:h 1 :d "2026-10-15"}} gives its parameters.
 
+(ns streak.habits)
+
 ;;; The habits as records
 
 (defn habit "The habit on a row of the ordered list." [h] (get data.ordered h))
