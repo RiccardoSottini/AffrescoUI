@@ -237,8 +237,10 @@ void DataLayer::runQueries(bool rebuilt, const std::set<std::string, std::less<>
 			if(differs && !rebuilt) markChanged(name);
 			queryArguments_[name] = std::move(arguments);
 		}
-	ReadSet reads = queryReads_; // the queries run again when what they read changes, or records do
-	reads.addPath(dataPlaces);
+	// The queries run again when what they read changes, or a collection's records do. They read each collection's
+	// place, not all of dataPlaces: that holds their own results, and marking one that differs would find them again.
+	ReadSet reads = queryReads_;
+	for(const auto& [name, model] : store.models()) reads.addPath(dataPlace(name));
 	engine_.tracker.setReads(queriesId_, std::move(reads));
 }
 
