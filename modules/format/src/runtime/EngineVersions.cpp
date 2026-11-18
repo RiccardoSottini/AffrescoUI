@@ -12,6 +12,7 @@ void Engine::documentChanged() {
 	builder.compiler().forgetVersion(); // what was compiled belongs to the version before
 	document.readDerived();
 	document.bumpStateVersion();    // a revision may change the state too
+	computed.documentChanged();     // and the computed values' definitions
 	serviceCalls.load();            // a restore may change the services or the connections
 	audio.documentChanged();        // and the sounds, through an include or a feature
 	otherWindows.documentChanged(); // and the other windows

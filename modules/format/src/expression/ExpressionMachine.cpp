@@ -354,8 +354,9 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	std::string pointer;
 	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
 		const std::string* origin = context_.locals.originOf(name);
-		if(!origin || (item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
-		pointer = *origin;
+		if(!origin && name == "data") pointer = places::data; // the records: "/~d/<collection or query>" (DataLayer)
+		else if(!origin || (item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
+		else pointer = *origin;
 	} else if(root != Root::State) {
 		return;
 	}

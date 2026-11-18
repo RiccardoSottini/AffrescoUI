@@ -137,7 +137,10 @@ void Verify::check(Panel& root, const std::function<void()>& fullPass) {
 	checking_ = true;
 	firstCreated_.clear();
 	try {
-		fullPass();
+		// The computed values kept as fresh: evaluated again, as the full pass reads them kept
+		if(std::optional<std::string> kept = engine_.computed.checkKept())
+			difference = Difference{"computed", "value", *kept, "evaluated again"};
+		else fullPass();
 	} catch(const DocumentError& error) {
 		difference = Difference{"root", "build", "built", error.what()};
 	}
