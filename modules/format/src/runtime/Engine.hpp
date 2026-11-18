@@ -147,6 +147,11 @@ struct Engine : VersionObserver {
 	/* VersionObserver (EngineVersions.cpp) */
 	/// @brief Re-reads colours and fonts, then reconciles.
 	void documentChanged() override;
+	/// @brief As documentChanged(), doing only what the change needs: a change of the state only is an update of what
+	/// reads it; otherwise each part that reads sections of the document reads them again only if the change touched
+	/// one, the compiled nodes of what didn't change are kept, and every panel is reconciled.
+	/// @param change What changed.
+	void documentChangedWith(const DocumentChange& change) override;
 	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
 	void proposalsChanged() override;
 

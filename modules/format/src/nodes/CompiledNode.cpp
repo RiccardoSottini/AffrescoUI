@@ -228,7 +228,13 @@ CompiledRef compileNode(const NodeRef& node) {
 	return compileNode(withoutChildren(*node), children == node->end() ? nullptr : &*children, node);
 }
 
+RevisionCounters& revisionCounters() noexcept {
+	thread_local RevisionCounters counters;
+	return counters;
+}
+
 CompiledRef compileNode(json keys, const json* children, NodeRef keep) {
+	++revisionCounters().nodesCompiled;
 	auto node = std::make_shared<CompiledNode>();
 	if(const auto styled = keys.find("children"); styled != keys.end()) { // a style's children
 		if(!children) {
