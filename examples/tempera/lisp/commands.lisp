@@ -76,13 +76,13 @@
 
 (defcommand cutPixels "Cuts the selected pixels of the active layer."
   :title ~(t "command.cutPixels") :description ~(t "command.cutPixels.about") :category ~(t "category.edit")
-  :icon "scissors" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scissors" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "cut"))
 
 (defcommand copyPixels "Copies the selected pixels of the active layer."
   :title ~(t "command.copyPixels") :description ~(t "command.copyPixels.about") :category ~(t "category.edit")
-  :icon "copy" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "copy" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "copy"))
 
@@ -100,7 +100,7 @@
 
 (defcommand clearPixels "Clears the selected pixels of the active layer."
   :title ~(t "command.clearPixels") :description ~(t "command.clearPixels.about") :category ~(t "category.edit")
-  :icon "delete" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "delete" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "clear"))
 
@@ -152,7 +152,7 @@
 
 (defcommand showTransform "Opens the Free Transform dialog on the active layer."
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
-  :icon "scaling" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (set "state.transform" {:open true :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
@@ -213,14 +213,14 @@
   [args]
   (let [w state.doc.width
         h state.doc.height
-        size (if (> (* w (:height args)) (* h (:width args)))
-               [(max 1 (floor (/ (* h (:width args)) (:height args)))) h]
-               [w (max 1 (floor (/ (* w (:height args)) (:width args))))])]
+        wide (:width args)
+        high (:height args)
+        size (if (> (* w high) (* h wide))
+               [(-> h (* wide) (/ high) floor (max 1)) h]
+               [w (-> w (* high) (/ wide) floor (max 1))])
+        [width height] size]
     (set "state.cropSize" size)
-    (crop {:x (floor (/ (- w (first size)) 2))
-           :y (floor (/ (- h (second size)) 2))
-           :width (first size)
-           :height (second size)})))
+    (crop {:x (floor (/ (- w width) 2)) :y (floor (/ (- h height) 2)) :width width :height height})))
 
 (defcommand rotateCanvas180 "Turns the whole image half a turn."
   :title ~(t "command.rotateCanvas180") :description ~(t "command.rotateCanvas180.about")
@@ -325,7 +325,7 @@
 
 (defcommand deleteHidden "Deletes every hidden layer."
   :title ~(t "command.deleteHidden") :description ~(t "command.deleteHidden.about") :category ~(t "category.layer")
-  :icon "eye-off" :enablement ~(some (fn [it] (not it.visible)) state.doc.layers)
+  :icon "eye-off" :enablement ~(some #(not (:visible %)) state.doc.layers)
   []
   (image "deleteHidden"))
 
@@ -337,14 +337,14 @@
 
 (defcommand layerViaCopy "Copies the selected pixels to a new layer."
   :title ~(t "command.layerViaCopy") :description ~(t "command.layerViaCopy.about") :category ~(t "category.layer")
-  :icon "copy-plus" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "copy-plus" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "copy")
   (image "paste" :with {:name (t "layer.copyName" {:name computed.activeLayer.name})}))
 
 (defcommand layerViaCut "Cuts the selected pixels to a new layer."
   :title ~(t "command.layerViaCut") :description ~(t "command.layerViaCut.about") :category ~(t "category.layer")
-  :icon "scissors" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scissors" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "cut")
   (image "paste" :with {:name (t "layer.cutName" {:name computed.activeLayer.name})}))
@@ -399,7 +399,7 @@
 
 (defcommand alignActive "Lines an edge of the active layer up with the selection's, or the image's: args.edge, which."
   :title ~(t "command.alignActive") :description ~(t "command.alignActive.about") :category ~(t "category.layer")
-  :icon "align-start-vertical" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "align-start-vertical" :enablement ~(= computed.activeLayer.kind :pixel)
   [args]
   (image "alignLayer" :with args))
 
@@ -416,19 +416,19 @@
   :category ~(t "category.layer") :icon "folder-output" :enablement ~(= computed.activeLayer.kind "group")
   []
   (set "state.grouping" state.doc.active)
-  (map (fn [child] (moveLayer {:id (:id child) :onto state.grouping})) (reverse computed.groupChildren))
+  (doseq [child (reverse computed.groupChildren)] (moveLayer {:id (:id child) :onto state.grouping}))
   (deleteLayer {:id state.grouping}))
 
 (defcommand mergeDown "Merges the active layer into the pixel layer below it."
   :title ~(t "command.mergeDown") :description ~(t "command.mergeDown.about") :category ~(t "category.layer")
   :icon "arrow-down-to-line"
-  :enablement ~(and (= computed.layerBelow.kind "pixel") (= computed.layerBelow.depth computed.activeLayer.depth))
+  :enablement ~(and (= computed.layerBelow.kind :pixel) (= computed.layerBelow.depth computed.activeLayer.depth))
   []
   (image "mergeDown"))
 
 (defcommand mergeVisible "Merges every visible layer into one."
   :title ~(t "command.mergeVisible") :description ~(t "command.mergeVisible.about") :category ~(t "category.layer")
-  :icon "layers-2" :enablement ~(some (fn [it] (and (= it.depth 0) it.visible)) state.doc.layers)
+  :icon "layers-2" :enablement ~(some #(and (= (:depth %) 0) (:visible %)) state.doc.layers)
   []
   (image "mergeVisible"))
 
@@ -524,13 +524,13 @@
   :title ~(t "command.cycleScreenMode") :description ~(t "command.cycleScreenMode.about")
   :category ~(t "category.view") :icon "monitor"
   []
-  (set "state.screenMode" (if (= state.screenMode "standard") "full" "standard")))
+  (set "state.screenMode" (if (= state.screenMode :standard) :full :standard)))
 
 (defcommand toggleTheme "Switches between the dark and the light colours."
   :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about") :category ~(t "category.view")
   :icon "moon"
   []
-  (set "state.theme" (if (= state.theme "dark") "light" "dark")))
+  (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
 ;;; Window and Help
 
@@ -540,7 +540,7 @@
   []
   (set "state.panels" {:colour "colour" :properties "properties" :layers "layers"})
   (set "state.popout" {:history false :navigator false})
-  (set "state.screenMode" "standard"))
+  (set "state.screenMode" :standard))
 
 (defcommand showSearch "Searches the commands, and runs the one chosen."
   :title ~(t "command.showSearch") :description ~(t "command.showSearch.about") :category ~(t "category.help")
