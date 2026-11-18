@@ -44,15 +44,15 @@
                                (max (- it.phase it.host.phase)
                                     (+ (- it.phase it.host.phase)
                                        (* (- (/ 1 it.period) (/ 1 it.host.period)) state.duration)))))}))
-       (filter (fn [it] (and (= it.host.parent "sun") (not= it.period it.host.period)))
-               (map (fn [it] (merge it {:host (get state.bodies (indexOf computed.ids it.parent))}))
-                    (filter (fn [it] (and (not= it.parent "") (not= it.parent "sun"))) state.bodies)))))
+       (filter #(and (= (-> % :host :parent) "sun") (not= (:period %) (-> % :host :period)))
+               (map #(merge % {:host (get state.bodies (indexOf computed.ids (:parent %)))})
+                    (filter #(and (not= (:parent %) "") (not= (:parent %) "sun")) state.bodies)))))
 
 (defcomputed eclipseSpan "The longest run of those days."
-  (max (concat [0] (map (fn [it] (+ (- it.to it.from) 1)) computed.eclipseOrbits))))
+  (max (concat [0] (map #(+ (- (:to %) (:from %)) 1) computed.eclipseOrbits))))
 
 (defcomputed eclipses "The eclipses, solar and lunar, in order."
-  (sort-by (fn [it] it.time)
+  (sort-by :time
            (map (fn [it]
                   {:id (str it.m.id "-" it.n)
                    :time (/ (round (* it.time 10)) 10)
@@ -73,8 +73,8 @@
                                                2)))
                                     2)
                                  it.m.eclipseSeason)))
-                        (map (fn [it] (merge it {:time (/ (- (/ it.n 2) it.m.o) it.m.d)}))
-                             (filter (fn [it] (<= it.n it.m.to))
+                        (map #(merge % {:time (/ (- (/ (:n %) 2) (-> % :m :o)) (-> % :m :d))})
+                             (filter #(<= (:n %) (-> % :m :to))
                                      (map (fn [it]
                                             {:m (get computed.eclipseOrbits (floor (/ it computed.eclipseSpan)))
                                              :n (+ (get-in computed.eclipseOrbits
@@ -83,7 +83,7 @@
                                           (range (* (count computed.eclipseOrbits) computed.eclipseSpan)))))))))
 
 (defcomputed events "Every event, eclipses, conjunctions and oppositions, in order."
-  (sort-by (fn [it] it.time)
+  (sort-by :time
            (concat state.events
                    (map (fn [it]
                           {:id it.id
@@ -93,12 +93,12 @@
                         computed.eclipses))))
 
 (defcomputed next "The next event the timeline shows, not muted."
-  (find (fn [it] (and (> it.time (+ state.time 0.5)) (< (indexOf state.muted it.kind) 0))) computed.events))
+  (find #(and (> (:time %) (+ state.time 0.5)) (< (indexOf state.muted (:kind %)) 0)) computed.events))
 
 (defcomputed previous "The event before now, not muted."
-  (get (sort-by (fn [it] it.time)
+  (get (sort-by :time
                 >
-                (filter (fn [it] (and (< it.time (- state.time 0.5)) (< (indexOf state.muted it.kind) 0)))
+                (filter #(and (< (:time %) (- state.time 0.5)) (< (indexOf state.muted (:kind %)) 0))
                         computed.events))
        0))
 
@@ -154,7 +154,7 @@
      :pixelsPerSecond 2.6
      :headerWidth 130
      :markers ~(map (fn [it] {:time it.time :label ""})
-                    (filter (fn [it] (and (= it.kind "eclipse") (< (indexOf state.muted "eclipse") 0)))
+                    (filter #(and (= (:kind %) "eclipse") (< (indexOf state.muted "eclipse") 0))
                             computed.events))
      :headerColor @panel
      :textColor @text
