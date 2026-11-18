@@ -7,31 +7,36 @@
   (if state.queueOpen (clamp state.sizes.0 480 (- window.width 492)) (- window.width 248)))
 
 (defcomputed browseItems "The albums or the artists, as tiles: a name, a kind, a count of songs and a colour."
-  (if (= state.page "artists")
-    (map-indexed (fn [index it] {:name it :kind "artist" :count 250 :hue index}) state.words.artists)
-    (map-indexed (fn [index it] {:name it :kind "album" :count (* (+ 33 (if (< index 6) 1 0)) 5) :hue index}) state.words.albums)))
+  (if (= state.page :artists)
+      (map-indexed (fn [index it] {:name it :kind "artist" :count 250 :hue index}) state.words.artists)
+      (map-indexed (fn [index it] {:name it :kind "album" :count (if (< index 6) 170 165) :hue index}) state.words.albums)))
 
-(defcomputed browseColumns "How many tiles fit across the page, from 2 to 8." (clamp (floor (/ (- computed.contentWidth 48) 176)) 2 8))
+(defcomputed browseColumns "How many tiles fit across the page, from 2 to 8."
+  (-> computed.contentWidth (- 48) (/ 176) floor (clamp 2 8)))
 
 (defcomputed collectionRows "The songs of the album or the artist shown."
-  (if (not= state.page "collection")
-    []
-    (filter (fn [it] (if (= state.collection.kind "album") (= it.cells.3 state.collection.name) (= it.cells.2 state.collection.name)))
-            computed.library)))
+  (if (not= state.page :collection)
+      []
+      (let [at (if (= state.collection.kind :album) 3 2)]
+        (filter #(= (get (:cells %) at) state.collection.name) computed.library))))
 
 (defcomputed collectionHue "The colour of the album or the artist shown, as its place among them."
-  (if (= state.collection.kind "album")
-    (indexOf state.words.albums state.collection.name)
-    (indexOf state.words.artists state.collection.name)))
+  (indexOf (if (= state.collection.kind :album) state.words.albums state.words.artists) state.collection.name))
 
 (defcomputed likedSongs "The songs liked that are still there, as {id, list, track}."
-  (filter (fn [it] (if (< it.list 0) (< it.track (count computed.library)) (< it.track (or-else (get computed.listSizes it.list) 0))))
-          (map (fn [it] {:id it :list (number (get (split it ":") 0)) :track (number (get (split it ":") 1))}) state.liked)))
+  (filter (fn [it]
+            (if (neg? it.list)
+                (< it.track (count computed.library))
+                (< it.track (or-else (get computed.listSizes it.list) 0))))
+          ; style: keep, #(...) can't give a map
+          (map (fn [it] (let [parts (str/split it ":")]
+                          {:id it :list (number (get parts 0)) :track (number (get parts 1))}))
+               state.liked)))
 
 (defcomputed likedRows "The liked songs as rows of the table: title, artist, album and time."
   (map (fn [it]
          (merge it
-                {:cells (if (< it.list 0)
+                {:cells (if (neg? it.list)
                           (slice (get-in computed.library [it.track :cells]) 1)
                           [(get-in data.playlists [it.list :tracks it.track :title])
                            (get-in data.playlists [it.list :tracks it.track :artist])
@@ -40,9 +45,12 @@
        computed.likedSongs))
 
 (defcomputed searchRows "The library's songs whose title and artist the search matches, loosely."
-  (if (or (not= state.page "search") (= (trim state.search) ""))
-    []
-    (filter (fn [it] (some? (fuzzy (trim state.search) (str it.cells.1 " " it.cells.2)))) computed.library)))
+  (if (or (not= state.page :search) (= (str/trim state.search) ""))
+      []
+      (filter (fn [it]
+                (some? (fuzzy (str/trim state.search) (str it.cells.1 " " it.cells.2))))
+              computed.library)))
+
 
 ;;; Tables of songs
 
@@ -60,7 +68,7 @@
      (node#browseTitle :style pageTitle :text ~(t (str "menu." state.page)))
      (node#browseSummary :style caption
        :anchors {:left 32 :top 70}
-       :text ~(t (if (= state.page "artists") "browse.artists" "browse.albums") {:n (count computed.browseItems)}))
+       :text ~(t (if (= state.page :artists) "browse.artists" "browse.albums") {:n (count computed.browseItems)}))
      (grid#browseGrid :anchors {:left 24 :right 24 :top 100 :bottom 0}
        :columns ~computed.browseColumns
        :gap 8
@@ -86,7 +94,7 @@
        :textColor "#141826"
        :anchors {:left 8 :right 8 :top 8}
        :height 140
-       :radius ~(if (= item.kind "artist") 40 14)
+       :radius ~(if (= item.kind :artist) 40 14)
        :color ~(get state.tileColors (mod item.hue 8)))
      (label#tileName :text ~item.name :textColor @text :align center :anchors {:left 8 :right 8 :top 156} :height 20)
      (node#tileCount :style caption
@@ -123,10 +131,10 @@
        :anchors {:left 56 :top 24}
        :width 84
        :height 84
-       :radius ~(if (= state.collection.kind "artist") 24 12)
+       :radius ~(if (= state.collection.kind :artist) 24 12)
        :color ~(get state.tileColors (mod (max computed.collectionHue 0) 8)))
      (node#collectionKind :style caption
-       :text ~(t (if (= state.collection.kind "artist") "collection.artist" "collection.album"))
+       :text ~(t (if (= state.collection.kind :artist) "collection.artist" "collection.album"))
        :anchors {:left 164 :top 28})
      (label#collectionName
        :text ~state.collection.name
@@ -166,7 +174,7 @@
   `(node :dir auto :color transparent
      ~(liked-header)
      (node#likedEmpty :style caption
-       :when ~(= (count computed.likedRows) 0)
+       :when ~(empty? computed.likedRows)
        :text ~(t "liked.empty")
        :anchors {:left 32 :right 32 :top 164}
        :wrap true)
@@ -190,12 +198,12 @@
      (node#playLikedButton :style playButton
        :text ~(t "play")
        :anchors {:right 32 :top 50}
-       :when ~(> (count computed.likedRows) 0)
+       :when ~(pos? (count computed.likedRows))
        :label ~(t "play.label" {:name (t "liked.title")})
        :onClick ~(handler playLiked computed.likedRows.0.id))))
 
 (defview liked-table "The liked songs, title, artist, album and time; a row opened plays, a right click opens its menu." []
-  `(table#likedTable :when ~(> (count computed.likedRows) 0)
+  `(table#likedTable :when ~(pos? (count computed.likedRows))
      :anchors {:left 24 :right 24 :top 148 :bottom 8}
      :color transparent
      :rowHeight 30
@@ -236,7 +244,7 @@
      (node#searchCount :style caption
        :live polite
        :anchors {:left 32 :top 118}
-       :text ~(if (= (trim state.search) "") (t "search.hint") (t "search.found" {:n (count computed.searchRows)})))
+       :text ~(if (= (str/trim state.search) "") (t "search.hint") (t "search.found" {:n (count computed.searchRows)})))
      ~(search-table)))
 
 (defview search-table "The songs found; a row opened plays it, and the songs found after it come next." []
