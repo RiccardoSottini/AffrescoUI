@@ -587,6 +587,18 @@ std::set<std::string> keysOfBoth(const json& before, const json& after) {
 	return keys;
 }
 
+/// @brief The members of two objects that differ, as JSON pointers.
+/// @param before The earlier object.
+/// @param after The later.
+/// @param pointer Where the two are in their trees.
+/// @param places Gets them.
+void addMemberDifferences(const json& before, const json& after, const json::json_pointer& pointer,
+                          std::vector<std::string>& places) {
+	for(const std::string& member : keysOfBoth(before, after))
+		if(!before.contains(member) || !after.contains(member) || before[member] != after[member])
+			places.push_back((pointer / member).to_string());
+}
+
 /// @brief The members of two trees' objects that differ, as JSON pointers: each top-level key, or each member of
 /// one that is an object in both.
 /// @param before The earlier tree.
@@ -601,10 +613,7 @@ void addDifferences(const json& before, const json& after, std::vector<std::stri
 			places.push_back(pointer.to_string());
 			continue;
 		}
-		for(const std::string& member : keysOfBoth(before[key], after[key])) {
-			const json::json_pointer at = pointer / member;
-			if(!before.contains(at) || !after.contains(at) || before[at] != after[at]) places.push_back(at.to_string());
-		}
+		addMemberDifferences(before[key], after[key], pointer, places);
 	}
 }
 

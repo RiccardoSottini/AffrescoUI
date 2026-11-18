@@ -63,6 +63,18 @@ std::optional<double> secondsToNextTimer(const Windows& windows) {
 	return wait;
 }
 
+/// @brief How long the loop may sleep: until the first timer of an open window is due (secondsToNextTimer()), and no
+/// longer than what is left before a screenshot.
+/// @param windows The windows.
+/// @param capped Whether a screenshot is due.
+/// @param secondsLeft The seconds before it (none if below zero).
+/// @return Seconds, or nothing: until there is input.
+std::optional<double> loopTimeout(const Windows& windows, bool capped, double secondsLeft) {
+	const std::optional<double> timer = secondsToNextTimer(windows);
+	if(!capped) return timer;
+	return std::min(timer.value_or(1e9), std::max(0.0, secondsLeft));
+}
+
 /// @brief Saves a frame of each window: the first to @p path, the others to "<path>.1", "<path>.2" and so on.
 /// @param windows The windows.
 /// @param path The first file.
@@ -160,9 +172,7 @@ int Application::run() {
 		if(!renderOpenWindows(windows_) || !running_) break; // a timer may have quit
 
 		// Sleeps until there is input or a timer is due: no CPU or GPU used while idle
-		std::optional<double> timeout = secondsToNextTimer(windows_);
-		if(screenshot) timeout = std::min(timeout.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
-		wait(timeout);
+		wait(loopTimeout(windows_, screenshot.has_value(), deadline - clock_->seconds()));
 		followSystem();
 		runPostedTasks();
 	}

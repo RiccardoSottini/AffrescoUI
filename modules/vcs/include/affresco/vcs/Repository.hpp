@@ -596,6 +596,16 @@ private:
 	/// @return The stored commit.
 	/// @throws DocumentError If the observer refuses it; then nothing changed, and the observer heard everything.
 	const Commit& landRevision(Commit commit, Prepared& next, bool described = true);
+	/// @brief Tells the observer of a revision landRevision() made live: what it changed, and the document or tree of
+	/// before, which live until it returns.
+	/// @param change What changed; a program's places of the document are filled in from what it builds.
+	/// @param next The revision (its tree is moved from).
+	/// @param described Whether @p next says what changed; otherwise the tree is built again here.
+	/// @param oldDocument The document of before, or nullptr if the revision changed only the live state.
+	/// @param oldBuilt The tree of before, or null.
+	/// @throws DocumentError If the observer refuses it.
+	void announceLanded(DocumentChange& change, Prepared& next, bool described, const json* oldDocument,
+	                    const json& oldBuilt);
 	/// @brief What a revision changes, from its patch: the places of the live state it names, and the places of the
 	/// document (for a program, filled in by landRevision()). An undo (revertRevision()) and a restore
 	/// (restoreRevision(), by the message it writes) change everything: they may take back the live state too.

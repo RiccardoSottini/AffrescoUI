@@ -158,6 +158,32 @@ void markAffected(const BuildRecord& previous, const std::vector<Entry>& entries
 	}
 }
 
+/// @brief Whether an entry is as it was: the same text, from the same file and author.
+/// @tparam Earlier What has the earlier version's entry: an Entry, or a DefinitionBuilt of the record.
+/// @param old It, or nullptr if the earlier version had none.
+/// @param entry The entry.
+/// @return Whether it is.
+template <typename Earlier> bool unchangedEntry(const Earlier* old, const Entry& entry) {
+	return old && old->text == entry.text && old->file == entry.file && old->author == entry.author;
+}
+
+/// @brief Calls a function with each name an entry may use: a changed entry's every word, another's uses and words as
+/// the record has them.
+/// @param previous The record.
+/// @param entries The entries.
+/// @param plan Which changed, and what the record had of each.
+/// @param at The entry's place.
+/// @param use The function.
+void forEachUse(const BuildRecord& previous, const std::vector<Entry>& entries, const PartPlan& plan, std::size_t at,
+                const std::function<void(std::string_view)>& use) {
+	if(plan.changed[at]) {
+		forEachWord(entries[at].text, use);
+	} else if(const std::optional<std::size_t> was = plan.before[at]) {
+		for(const std::string& name : previous.definitions[*was]->uses) use(name);
+		for(const std::string& name : previous.definitions[*was]->words) use(name);
+	}
+}
+
 /// @brief Marks the entries to load: those that run, the macros, those named as the language's own, and what they
 /// use, over and over: a changed entry's every word, another's uses as the record has them.
 /// @param previous The record.
@@ -185,12 +211,7 @@ void markLoaded(const BuildRecord& previous, const std::vector<Entry>& entries,
 	while(!waiting.empty()) {
 		const std::size_t at = waiting.back();
 		waiting.pop_back();
-		if(plan.changed[at]) {
-			forEachWord(entries[at].text, use);
-		} else if(const std::optional<std::size_t> was = plan.before[at]) {
-			for(const std::string& name : previous.definitions[*was]->uses) use(name);
-			for(const std::string& name : previous.definitions[*was]->words) use(name);
-		}
+		forEachUse(previous, entries, plan, at, use);
 	}
 }
 
@@ -206,7 +227,7 @@ bool markChange(const BuildRecord& previous, const Entry& entry, std::size_t at,
 	const auto found = previous.index.find(entry.name);
 	const DefinitionBuilt* was = found == previous.index.end() ? nullptr : previous.definitions[found->second].get();
 	if(was) plan.before[at] = found->second;
-	if(was && was->text == entry.text && was->file == entry.file && was->author == entry.author) return true;
+	if(unchangedEntry(was, entry)) return true;
 	plan.changed[at] = true;
 	if(shadows(entry.name)) return false; // a library macro anywhere may call it now, or no more
 	const std::string kind = headOf(entry.text);
@@ -519,6 +540,23 @@ std::vector<std::string> placesTouched(const BuildRecord& previous, const PartPl
 
 } // namespace
 
+void Program::keepWhatWasDefined(const BuildRecord& record) {
+	extensions_.clear();
+	undefined_.clear();
+	truth_.clear();
+	used_.clear();
+	named_.clear();
+	places_.clear();
+	for(const auto& definition : record.definitions) {
+		if(definition->extension) extensions_.push_back(*definition->extension);
+		undefined_.insert(undefined_.end(), definition->undefined.begin(), definition->undefined.end());
+		truth_.insert(truth_.end(), definition->truth.begin(), definition->truth.end());
+		used_[definition->name] = definition->uses;
+		if(definition->named) named_[definition->name] = *definition->named;
+		if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
+	}
+}
+
 std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limits& limits) {
 	if(!previous.inPart || recording_ || !namespaces_.empty() || !leavesBudget(previous, limits)) return std::nullopt;
 	const auto shadows = [this](std::string_view name) { return shadowsName(primitives_, name); };
@@ -537,20 +575,7 @@ std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limi
 		for(const auto& definition : record->definitions)
 			for(const Gift& gift : definition->gifts) giveAgain(gift, parts);
 		json tree = treeOf(parts, defaulted_);
-		extensions_.clear();
-		undefined_.clear();
-		truth_.clear();
-		used_.clear();
-		named_.clear();
-		places_.clear();
-		for(const auto& definition : record->definitions) {
-			if(definition->extension) extensions_.push_back(*definition->extension);
-			undefined_.insert(undefined_.end(), definition->undefined.begin(), definition->undefined.end());
-			truth_.insert(truth_.end(), definition->truth.begin(), definition->truth.end());
-			used_[definition->name] = definition->uses;
-			if(definition->named) named_[definition->name] = *definition->named;
-			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
-		}
+		keepWhatWasDefined(*record);
 		record->touched = placesTouched(previous, *plan, record->definitions, names_);
 		record->inPart = true;
 		record->whole = false;
@@ -635,6 +660,15 @@ bool changesInPlace(const Machine& machine, const Entry& entry, bool had) {
 	       (!had || machine.definition(entry.name)->kind == kind);
 }
 
+/// @brief Whether a definition that went can be taken away in place.
+/// @param machine The interpreter's machine.
+/// @param entry Its entry in the earlier version.
+/// @return false for a macro gone (what it expanded into keeps its code, and its calls hold nothing of it) or a name
+/// the language's.
+bool removesInPlace(const Machine& machine, const Entry& entry) {
+	return !isLanguageName(machine, entry.name) && !reachesAnywhere(headOf(entry.text));
+}
+
 /// @brief What a later version changes of the program an interpreter loaded, if it can be changed in place.
 /// @param machine The interpreter's machine, which loaded the earlier version.
 /// @param entries The later version's entries. @param names Their places, by name.
@@ -649,14 +683,13 @@ std::optional<InPlace> changeInPlace(const Machine& machine, const std::vector<E
 	for(const Entry& entry : entries) {
 		const auto was = beforeNames.find(entry.name);
 		const Entry* old = was == beforeNames.end() ? nullptr : &before[was->second];
-		if(old && old->text == entry.text && old->file == entry.file && old->author == entry.author) continue;
+		if(unchangedEntry(old, entry)) continue;
 		if(!changesInPlace(machine, entry, old != nullptr)) return std::nullopt;
 		change.changed.push_back(entry.name);
 	}
 	for(const Entry& entry : before)
 		if(!names.contains(entry.name)) {
-			// A macro gone: what it expanded into keeps its code, and its calls hold nothing of it
-			if(isLanguageName(machine, entry.name) || reachesAnywhere(headOf(entry.text))) return std::nullopt;
+			if(!removesInPlace(machine, entry)) return std::nullopt;
 			change.removed.push_back(entry.name);
 		}
 	return change;

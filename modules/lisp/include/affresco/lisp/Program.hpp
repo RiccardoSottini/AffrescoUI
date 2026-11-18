@@ -274,11 +274,19 @@ private:
 	/// interpreter still owns the files' names.
 	/// @param notes The notes.
 	void keepNodePlaces(const std::vector<NodeNote>& notes);
+	/// @brief Keeps a build in full's truth tests and the names used that nothing defined, each in its definitions'
+	/// order.
+	/// @param machine The build's machine.
+	void keepTestsAndUndefined(const Machine& machine);
 	/// @brief Builds the tree from a record, running only what changed (rebuild()).
 	/// @param previous The record.
 	/// @param limits The limits.
 	/// @return The tree, or std::nullopt where it can't be sure, or the build failed: build() then says why.
 	[[nodiscard]] std::optional<json> buildInPart(const BuildRecord& previous, const Limits& limits);
+	/// @brief Takes what a build in part's definitions found, as a build in full finds it: hooks and advice, names used
+	/// and undefined, the state's defaults; the node places, which only a recording build notes, are forgotten.
+	/// @param record The build's record.
+	void keepWhatWasDefined(const BuildRecord& record);
 	/// @brief Keeps what a build in full found (record()), and whether a later build may start from it.
 	/// @param machine The build's machine.
 	/// @param record What it kept of each definition, in its order.

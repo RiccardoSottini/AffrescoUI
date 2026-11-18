@@ -475,15 +475,7 @@ json Program::build(const Limits& limits) {
 			used_[definition->name] = kept.back().uses;
 			if(kept.back().named) named_[definition->name] = *kept.back().named;
 		}
-		truth_.clear();
-		for(const auto& [path, place, definition] : machine.truthTests())
-			truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
-		for(const GlobalUse& use : machine.uses())
-			if(use.global->state == Global::State::Undefined)
-				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
-				                      use.place.column, use.definition});
-		sortByDefinitionOrder(machine, truth_);
-		sortByDefinitionOrder(machine, undefined_);
+		keepTestsAndUndefined(machine);
 		json tree = treeOf(parts, defaulted_);
 		for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
 			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
@@ -491,6 +483,18 @@ json Program::build(const Limits& limits) {
 		keepRecord(machine, std::move(kept), limits);
 		return tree;
 	});
+}
+
+void Program::keepTestsAndUndefined(const Machine& machine) {
+	truth_.clear();
+	for(const auto& [path, place, definition] : machine.truthTests())
+		truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
+	for(const GlobalUse& use : machine.uses())
+		if(use.global->state == Global::State::Undefined)
+			undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
+			                      use.place.column, use.definition});
+	sortByDefinitionOrder(machine, truth_);
+	sortByDefinitionOrder(machine, undefined_);
 }
 
 void Program::keepNodePlaces(const std::vector<NodeNote>& notes) {

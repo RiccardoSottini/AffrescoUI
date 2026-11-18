@@ -476,6 +476,20 @@ void Repository::documentChangedWith(const DocumentChange& change) {
 	if(observer_) observer_->documentChangedWith(change);
 }
 
+void Repository::announceLanded(DocumentChange& change, Prepared& next, bool described, const json* oldDocument,
+                                const json& oldBuilt) {
+	if(!oldDocument) {
+		change.before = &document();
+	} else {
+		if(described) built_ = std::move(next.built);
+		else refreshBuilt();
+		const json& shownBefore = oldBuilt.is_null() ? *oldDocument : oldBuilt;
+		if(described && !(oldBuilt.is_null() && built_.is_null())) describeDocument(change, shownBefore, document());
+		change.before = &shownBefore;
+	}
+	documentChangedWith(change);
+}
+
 // The trees of before live until the observer returns: it may compare what it kept with them
 const Repository::Commit& Repository::landRevision(Commit commit, Prepared& next, bool described) {
 	// an import's revisions say everything: the observer hears each of them, then the import as a whole
@@ -496,15 +510,7 @@ const Repository::Commit& Repository::landRevision(Commit commit, Prepared& next
 		oldBuilt = std::exchange(built_, json());
 	}
 	try {
-		if(!sameDocument) {
-			if(described) built_ = std::move(next.built);
-			else refreshBuilt();
-			const json& shownBefore = oldBuilt.is_null() ? oldDocument : oldBuilt;
-			if(described && !(oldBuilt.is_null() && built_.is_null()))
-				describeDocument(change, shownBefore, document());
-			change.before = &shownBefore;
-		} else change.before = &document();
-		documentChangedWith(change);
+		announceLanded(change, next, described, sameDocument ? nullptr : &oldDocument, oldBuilt);
 	} catch(const DocumentError&) {
 		main_.pop_back();
 		state_ = std::move(oldState);
