@@ -5,6 +5,8 @@
 ;;; parts every store page uses (prices, buttons, headings) are here too. A game's store page is in store-game.lisp;
 ;;; the cart and the wishlist are in cart.lisp.
 
+(ns arcadia.parts.store)
+
 ;;; What the store keeps
 
 (defstate storeQuery "")
@@ -25,32 +27,33 @@
   (if (not= state.storeQuery "") "results" computed.here.page))
 
 (defcomputed price "Every game's price after its discount, in the order of the games."
-  (map (fn [it] (/ (round (* it.price (- 100 it.discount))) 100)) data.games))
+  (map #(/ (round (* (:price %) (- 100 (:discount %)))) 100) data.games))
 
 (defcomputed storeGames "The games the store sells: every game but those added from this computer."
-  (filter (fn [it] (not it.local)) data.games))
+  (remove :local data.games))
 
 (defcomputed featured "The games of the featured carousel."
-  (filter (fn [it] (contains ["aurora" "glasswing" "clockwork" "rivermill" "volt"] it.id)) data.games))
+  (filter #(contains? #{"aurora" "glasswing" "clockwork" "rivermill" "volt"} (:id %)) data.games))
 
 (defcomputed feature "The featured game the carousel shows." (get computed.featured state.storeFeature))
 
 (defcomputed offers "The special offers: the six games with the biggest discounts."
-  (slice (sort-by (fn [it] it.discount) > (filter (fn [it] (> it.discount 0)) computed.storeGames)) 0 6))
+  (slice (->> computed.storeGames (filter #(pos? (:discount %))) (sort-by :discount >)) 0 6))
 
 (defcomputed storeRows "The eight games of the list's tab: the newest, the most reviewed, or the biggest discounts."
-  (cond (= state.storeList "top") (slice (sort-by (fn [it] it.reviewCount) > computed.storeGames) 0 8)
-        (= state.storeList "specials") (slice (sort-by (fn [it] it.discount) > (filter (fn [it] (> it.discount 0)) computed.storeGames)) 0 8)
-        :else (slice (reverse computed.storeGames) 0 8)))
+  (case state.storeList
+    :top (slice (sort-by :reviewCount > computed.storeGames) 0 8)
+    :specials (slice (->> computed.storeGames (filter #(pos? (:discount %))) (sort-by :discount >)) 0 8)
+    (slice (reverse computed.storeGames) 0 8)))
 
 (defcomputed storePreview "The game previewed beside the list: the one under the pointer, else the first."
-  (or-else (find (fn [it] (= it.id state.storeHover)) computed.storeRows) computed.storeRows.0))
+  (or-else (find #(= (:id %) state.storeHover) computed.storeRows) computed.storeRows.0))
 
 (defcomputed results "The games whose title holds the search, or whose genre or one of whose tags is the search."
   (filter (fn [it]
-            (or (contains (lower-case it.title) (lower-case state.storeQuery))
-                (= (lower-case it.genre) (lower-case state.storeQuery))
-                (some (fn [it] (= (lower-case it) (lower-case state.storeQuery))) it.tags)))
+            (or (str/includes? (str/lower-case it.title) (str/lower-case state.storeQuery))
+                (= (str/lower-case it.genre) (str/lower-case state.storeQuery))
+                (some #(= (str/lower-case %) (str/lower-case state.storeQuery)) it.tags)))
           computed.storeGames))
 
 ;;; The store's measures
@@ -78,11 +81,12 @@
 
 (defcomputed storeHeight "The height of the store's content: the bar, and the page shown."
   (+ 86
-     (cond (= computed.storeView "results") (results-height)
-           (= computed.storeView "app") 1670
-           (= computed.storeView "cart") (+ 140 (cart-height))
-           (= computed.storeView "wishlist") (wishlist-height)
-           :else 1960)))
+     (case computed.storeView
+       :results (results-height)
+       :app 1670
+       :cart (+ 140 (cart-height))
+       :wishlist (wishlist-height)
+       1960)))
 
 ;;; The store's looks
 
@@ -225,7 +229,7 @@
        :with {:open state.cartDialog
               :title ~(t "store.addedTitle")
               :message ~(t "store.addedText"
-                           {:title (or-else (:title (find (fn [it] (= it.id state.cartAdded)) data.games)) "")})
+                           {:title (or-else (:title (find #(= (:id %) state.cartAdded) data.games)) "")})
               :buttons [{:title ~(t "store.viewCart") :run showCart} {:title ~(t "store.keepShopping")}]})))
 
 ;;; The store bar
@@ -302,6 +306,7 @@
        :use menu
        :with {:open state.storeCatsOpen
               :width 200
+              ; style: keep, #(...) can't give a map
               :items ~(map (fn [it] {:title (t (str "genre." it)) :run "storeSearch" :with {:query it}})
                            ["Action"
                             "Adventure"
@@ -485,7 +490,7 @@
            :cursor hand
            :color ~(if (= d state.storeFeature) "@store.dotOn" "@store.dot")
            :role button
-           :label ~(t "store.slide" {:n (+ d 1)})
+           :label ~(t "store.slide" {:n (inc d)})
            :onClick ~(handler showFeature d)))))
 
 ;;; Offers and categories
@@ -651,7 +656,7 @@
        (node :use quietButton
          :with {:title ~(t "store.clear") :icon circle-x}
          :onClick {:set state.storeQuery :to ""}))
-     (label :when ~(= (count computed.results) 0)
+     (label :when ~(empty? computed.results)
        :text ~(t "store.noResults")
        :textColor @color.muted
        :height 40
