@@ -24,6 +24,7 @@
      :mnemonic ~(or-else item.title "")
      :color transparent
      :tooltip ~(if (= item.run "unavailable") (t "command.unavailable") "")
+     ; style: keep, three states: no check, on and off
      :selected ~(if (nil? item.checked) nil (= item.checked true))
      :hover {:color ~(if (or item.separator (= item.enabled false)) "transparent" "@menuHover")}
      :focused {:color @menuHover}
@@ -52,7 +53,7 @@
       :fitText true)])
 
 (defmacro key-label "A key's label as a menu shows it: Down and Up as arrows." [label]
-  `(join "↑" (split (join "↓" (split (or-else ~label "") "Down")) "Up")))
+  `(-> (or-else ~label "") (str/split "Down") (->> (join "↓")) (str/split "Up") (->> (join "↑"))))
 
 ;;; Menus
 
@@ -63,6 +64,7 @@
      :role menu
      :arrows vertical
      :width ~width
+     ; style: keep, sum's function names its item it
      :height ~(+ (sum rows (fn [it] (if it.separator 7 22))) 10)
      :color @panel
      :radius @kit.cardRadius
