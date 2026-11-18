@@ -543,3 +543,13 @@ TEST_CASE("lisp rebuild: a function a view names, gone or defined now, changes i
 		if(!patched.is_null()) CHECK(patched == full);
 	}
 }
+
+TEST_CASE("lisp rebuild: a macro removed isn't changed in place: what used it is compiled again") {
+	const json before = sectionOf("(defmacro twice \"\" [x] `(* 2 ~x))\n(defn f \"\" [] (twice 3))\n"
+	                              "(defn other \"\" [] 1)\n(defscreen main (column#c (label#l :text \"x\")))\n");
+	json after = before;
+	after["app.lisp"].erase("twice");
+	const auto [patched, full] = evaluatedBoth(before, after, "(f)");
+	if(!patched.is_null()) CHECK(patched == full);
+	CHECK(patched.is_null()); // Program.hpp: a macro gone refuses the change in place
+}

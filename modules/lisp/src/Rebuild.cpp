@@ -655,7 +655,8 @@ std::optional<InPlace> changeInPlace(const Machine& machine, const std::vector<E
 	}
 	for(const Entry& entry : before)
 		if(!names.contains(entry.name)) {
-			if(isLanguageName(machine, entry.name)) return std::nullopt;
+			// A macro gone: what it expanded into keeps its code, and its calls hold nothing of it
+			if(isLanguageName(machine, entry.name) || reachesAnywhere(headOf(entry.text))) return std::nullopt;
 			change.removed.push_back(entry.name);
 		}
 	return change;
