@@ -56,9 +56,8 @@
   (if (neg? list) computed.library.length (count (get-in data.playlists [list :tracks]))))
 
 (defn play "Plays a song; the queue is the songs after it, up to 50." [list track]
-  (startList list track ""
-             (->> (range (-> (songCount list) (- track 1) (min 50) (max 0)))
-                  (map #(keyOf list (+ track 1 %))))))
+  (let [after (-> (songCount list) (- track) dec (min 50) (max 0))]
+    (startList list track "" (map #(keyOf list (+ track 1 %)) (range after)))))
 
 (defn advance "The queue's first song plays, from `at` seconds; with an empty queue, the songs start again when repeating all, else playback stops. Songs no longer there (a playlist changed) leave the queue first." [at]
   (when (and (empty? state.queue) (= state.repeat :all) (seq state.order))
@@ -97,7 +96,8 @@
         (if (= state.repeat :one) (replay) (advance fade))))))
 
 (defn seekLyric "The song goes to where a line of the lyrics starts: offset, the lines from the current one (-2 to 2)." [offset]
-  (set "state.elapsed" (-> (/ state.elapsed 12) floor (+ offset) (* 12) (clamp 0 (max (dec computed.duration) 0)))))
+  (let [limit (max (dec computed.duration) 0)]
+    (set "state.elapsed" (-> (/ state.elapsed 12) floor (+ offset) (* 12) (clamp 0 limit)))))
 
 ;;; Sound: a host that gives none fails these quietly
 
@@ -148,11 +148,14 @@
   (set "state.queuePick" nil))
 
 (defn addToQueue "Any song, as list:track, goes to the end of the queue." [key]
-  (set "state.queue" (take 1000 (conj (without state.queue key) key)))
+  (let [others (without state.queue key)]
+    (set "state.queue" (take 1000 (conj others key))))
   (set "state.queuePick" nil))
 
 (defn toggleLike "A song, as list:track, is liked, or no longer." [key]
-  (set "state.liked" (if (has state.liked key) (without state.liked key) (take 5000 (conj state.liked key)))))
+  (set "state.liked" (if (has state.liked key)
+                         (without state.liked key)
+                         (->> key (conj state.liked) (take 5000)))))
 
 (defn jumpTo "A song of the queue opened: it plays, and the songs before it leave the queue." []
   (let [key (opened)
@@ -205,7 +208,8 @@
   (when (>= at 0)
     (let [liked computed.likedSongs
           {:keys [list track]} (get liked at)]
-      (startList list track (t "liked.title") (->> liked (drop (inc at)) (take 50) (map :id))))))
+      (startList list track (t "liked.title")
+                 (->> liked (drop (inc at)) (take 50) (map :id))))))
 
 (defn playLiked "A liked song plays, by its key, and the liked songs after it come next." [key]
   (playLikedAt (indexOf (map :id computed.likedSongs) key)))
@@ -274,7 +278,9 @@
 
 (defn shiftTrack "A key after a song left a list: the songs after it in that list move up one." [key list track]
   (let [at (trackOf key)]
-    (if (and (= (listOf key) list) (> at track)) (keyOf list (dec at)) key)))
+    (if (and (= (listOf key) list) (> at track))
+        (keyOf list (dec at))
+        key)))
 
 (defn removeFromPlaylist "A song leaves a playlist; the liked songs, the queue and the song playing follow the places that moved." [list track]
   (let [gone (keyOf list track)
@@ -346,7 +352,10 @@
     {:id (str index)
      :number (inc index)
      :title (str (get words.adjectives (mod index 16)) " " (get words.nouns (mod (whole index 16) 20))
-                 (if (< index 320) "" (str " (" (get words.versions (dec (whole index 320))) ")")))
+                 (if (< index 320)
+                     ""
+                     (str " (" (->> (whole index 320) dec (get words.versions)) ")")))
+
      :artist (get words.artists (mod (* index 7) 12))
      :album (get words.albums (mod (whole index 5) 18))
      :time (str (whole seconds 60) ":" (twoDigits (mod seconds 60)))}))
@@ -369,8 +378,9 @@
   (let [wanted (-> title str/trim str/lower-case)
         by (some-> artist str/trim str/lower-case)
         song (find (fn [song]
-                     (and (= (str/lower-case (:title song)) wanted)
-                          (or (nil? by) (= (str/lower-case (:artist song)) by))))
+                     (and (-> song :title str/lower-case (= wanted))
+                          (or (nil? by) (-> song :artist str/lower-case (= by)))))
+
                    data.songs)]
     (some->> song :id number (keyOf -1))))
 

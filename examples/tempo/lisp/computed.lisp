@@ -135,9 +135,12 @@
        (filter #(and (:enabled %) (not= (slice (:name %) 0 4) "song")) commands)))
 
 (defcomputed wave "The song's waveform: 64 heights, from its title and place."
-  (map-indexed (fn [index it]
-                 (-> (* index index (+ (count computed.track.title) state.playingTrack)) (+ (* index 7)) (mod 21) (+ 3)))
-               (range 64)))
+  (let [seed (+ (count computed.track.title) state.playingTrack)]
+    (map-indexed (fn [index it]
+                   (-> (* index index seed) (+ (* index 7)) (mod 21) (+ 3)))
+
+                 (range 64))))
+
 
 (defcomputed played "How many of the waveform's 64 lines are played."
   (-> (* 64 state.elapsed) (/ (max computed.duration 1)) floor (clamp 0 64)))
