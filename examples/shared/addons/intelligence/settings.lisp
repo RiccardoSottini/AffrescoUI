@@ -8,10 +8,10 @@
 ;;; on save, and the field is emptied. Everything here is named intelligence..., state under state.intelligence. See
 ;;; README.md.
 
-(ns shared.intelligence
-  (:require "locales/en.lisp"
-            "locales/es.lisp"
-            "locales/fr.lisp"))
+; style: keep, an ns label here would stop every app that includes this file from rebuilding in part
+(include "locales/en.lisp"
+         "locales/es.lisp"
+         "locales/fr.lisp")
 
 ;;; Definitions
 

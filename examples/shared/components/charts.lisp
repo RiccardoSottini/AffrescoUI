@@ -4,8 +4,6 @@
 ;;; Each takes a list of numbers (values) and draws it from 0 at the bottom to top (default: the largest value) at the
 ;;; top, stretched to the node. Give the use a width and a height, and an id.
 
-(ns shared.charts)
-
 ;;; Definitions
 
 (defcomponent lineChart "A line through the values, from 0 at the bottom to the top value at the top."
