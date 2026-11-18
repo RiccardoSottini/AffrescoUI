@@ -1,5 +1,7 @@
 ;;; window.lisp --- Quaderno's window: the title bar and its menus, the status bar, and the pickers over them
 
+(ns code-editor.window)
+
 ;;; Views
 
 (defview title-bar "The title bar: the menus, the project's name and the file's path." []
