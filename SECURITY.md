@@ -550,10 +550,16 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   function running at that moment ends on its own version, with its authors.
 
 **Features that hold programs** (`tests/unit/features_authority.cpp`, each case with the static checks on and off). A feature's
-definitions run as `features/<name>/<file>`, by the author `feature:<name>`, never the person's nor the file's:
+definitions run as `features/<name>/<file>`, by the author `feature:<name>`, never the person's nor the file's, except what the
+app's own file shipped of a feature it never installed, which is the app's own code:
 
+- **Installed is for good.** A feature is installed when its record says where it came from (`release`, `source`, `digest`,
+  `publisher` or `installed`, which every install writes, and every record has its `release`), in the screen file, on `main`'s
+  head or in any commit on `main` (VERSION_CONTROL.md, "Authors"). Taking those keys away doesn't make it the app's, a restart
+  doesn't either (the history on disk keeps the commits), and an installed feature written back into a file keeps its record.
+  Only an app's own `features/<name>/` files with no such record are the app's.
 - **Two lines.** Composition refuses a feature whose code steps outside its own names or reaches past what it is handed; at run
-  time, `Programs::checkStep` holds whatever got past it, a feature shipped in the app's own file included: what a
+  time, `Programs::checkStep` holds whatever got past it, an installed feature kept in the app's own file included: what a
   `features/<name>/` definition led to writes only `state.<name>`, runs only `<name>.<command>` or `app.<need>`, and never a
   record step, `invoke`, `request`, `subscribe`, `image`, a control or a review step.
 - **Reached from is who wrote it.** "A feature's code led here" follows the same authors as authority: the person's command

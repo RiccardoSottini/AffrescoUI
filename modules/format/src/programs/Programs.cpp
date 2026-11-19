@@ -138,7 +138,7 @@ void Programs::load() {
 void Programs::loadSection(const json& section) {
 	json authors = engine_.versions.programAuthors();
 	creditTheRest(section, authors);
-	creditFeatures(section, authors);
+	creditFeatures(engine_.versions.sourceDocument(), section, authors);
 	if(redefine(section, authors)) return;
 	lisp::Program program = lisp::programOf(section, authors);
 	live_ = loadedInterpreter(program);

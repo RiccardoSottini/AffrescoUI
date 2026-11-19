@@ -599,8 +599,12 @@ it, and `"file"` for what the file on disk had. Three things can't move a text t
 
 A feature's definitions are named as they run, `features/<name>/<file>` (`lisp::effectiveProgram`), and their author is whoever made
 the commit on `main` that last changed `/features/<name>/provides/program/<file>/<definition>`, or that installed the record, by the
-same three rules. A feature's entry is never `"file"` nor the person's: what the app's own file shipped, and what the person installed,
-restored or accepted, counts as `feature:<name>`.
+same three rules. What the app's own file shipped of a feature it never installed is the app's own code: its entries stay `"file"`,
+as an app that keeps its parts in `features/<name>/` files has them. A feature is installed when its record says where it came from
+(`release`, `source`, `digest`, `publisher` or `installed`, which an install from a catalogue or a package writes, and every record has
+its `release`), on `main`'s head, in the screen file or in any commit on `main`: taking those keys away later changes nothing, nor does a
+restart, since the history on disk keeps the commits. Every other entry of an installed feature that would be `"file"`, and what the
+person installed, restored or accepted, counts as `feature:<name>`.
 
 **Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
 but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a

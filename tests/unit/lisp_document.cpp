@@ -600,6 +600,32 @@ TEST_CASE("lisp document, attack: a history written by hand is judged by what it
 	                     affresco::DocumentError);
 }
 
+TEST_CASE("lisp document, attack: a feature whose record ever said where it came from is never the app's own") {
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "h";
+	constexpr const char* file = "features/count/count.lisp";
+	// The app's own file ships the feature's code; a record of it holds nothing that says it was installed (no record
+	// checked here has to say its release)
+	const json source = {{"program", {{file, {{"count-flip", R"lisp((defn count-flip "Flips it." [] 1))lisp"}}}}},
+	                     {"features", {{"count", {{"enabled", false}, {"provides", json::object()}}}}}};
+	const json release = {{"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/count/release", "1.0.0"}}}};
+	const json taken = {{"author", "agent/x"}, {"message", "m"}, {"remove", {"/features/count/release"}}};
+	const AnythingGoes anything;
+	{
+		Repository repository(anything, source);
+		REQUIRE(repository.openHistory(history).memoryOnly.empty());
+		CHECK(repository.programAuthors()[file]["count-flip"] == "file"); // never installed: the app's own
+		REQUIRE(repository.submit(release).status == RevisionStatus::Applied);
+		CHECK(repository.programAuthors()[file]["count-flip"] == "feature:count");
+		REQUIRE(repository.submit(taken).status == RevisionStatus::Applied);
+		CHECK(repository.programAuthors()[file]["count-flip"] == "feature:count"); // once said, for good
+	}
+	Repository restarted(anything, source);
+	REQUIRE(restarted.openHistory(history).loaded);
+	CHECK(restarted.sourceDocument()["features"]["count"] == source["features"]["count"]);
+	CHECK(restarted.programAuthors()[file]["count-flip"] == "feature:count");
+}
+
 TEST_CASE("lisp document: an entry's author is the commit's that last changed it, and a file is the app's own") {
 	Fixture f;
 	CHECK(f.repository.programAuthors()["app.lisp"]["card"] == "file");

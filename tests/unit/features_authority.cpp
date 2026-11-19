@@ -5,13 +5,16 @@
 
 #include "FeatureApp.hpp"
 
+#include <affresco/core/FeatureOrigin.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/notation/Notation.hpp>
 #include <affresco/lisp/Document.hpp>
 #include <affresco/lisp/Program.hpp>
 #include "Composition.hpp"
 
 #include <doctest/doctest.h>
 
+#include <filesystem>
 #include <format>
 
 using affresco::RevisionStatus;
@@ -30,17 +33,67 @@ constexpr const char* featureFile = "features/wordCount/feature.lisp";
 constexpr const char* ledHere = R"(the feature "wordCount" led here)";
 
 /// @brief An app whose own program holds the feature's file, as the program that runs names it: no composition
-/// judges it, so only the run-time check stands between its code and a step.
+/// judges it. With a record of the feature too, switched off so that its own file runs, the feature was installed:
+/// only the run-time check stands between its code and a step. Without one, the app's own file shipped it.
 /// @param flip The body of the feature's function.
+/// @param installed Whether the document has the feature's record.
 /// @return The document.
-json shipping(const std::string& flip) {
+json shipping(const std::string& flip, bool installed = true) {
 	json document = app();
 	json definitions = wordCount(flip);
 	definitions.erase("wordCount-label");
 	definitions.erase("part.wordCount-views");
 	document["program"][featureFile] = definitions;
+	if(installed) {
+		document["features"]["wordCount"] = record();
+		document["features"]["wordCount"]["enabled"] = false;
+	}
 	return document;
 }
+
+/// @brief The app with a `save` action that runs the application's function.
+/// @return The document, with no feature.
+json saving() {
+	json document = app();
+	document["actions"]["save"] = json::parse(R"([{"call": "hit"}])");
+	return document;
+}
+
+/// @brief The word count's record wrapping the app's `save` in advice, as an install leaves it.
+/// @return The record.
+json wrapping() {
+	json definitions = wordCount();
+	definitions["wordCount-wrap"] = R"((defn wordCount-wrap "Wraps it." [proceed] (proceed)))";
+	definitions["advice save around wordCount-wrap"] = "(advice save :around wordCount-wrap)";
+	return record(definitions);
+}
+
+/// @brief The app with a `save` action and the word count installed, wrapping it.
+/// @return The document.
+json advising() {
+	json document = saving();
+	document["features"]["wordCount"] = wrapping();
+	return document;
+}
+
+/// @brief A folder of its own, removed with everything in it.
+struct TemporaryFolder {
+	std::filesystem::path path = std::filesystem::temp_directory_path() / "affrescoui-features-authority-test"; ///< It.
+	/// @brief Makes it empty.
+	TemporaryFolder() {
+		std::filesystem::remove_all(path);
+		std::filesystem::create_directories(path);
+	}
+	/// @brief Removes it.
+	~TemporaryFolder() {
+		std::error_code ignored;
+		std::filesystem::remove_all(path, ignored);
+	}
+	TemporaryFolder(const TemporaryFolder&) = delete;
+	TemporaryFolder& operator=(const TemporaryFolder&) = delete;
+	TemporaryFolder(TemporaryFolder&&) = delete;
+	TemporaryFolder& operator=(TemporaryFolder&&) = delete;
+};
 
 /// @brief Installs a feature whose function does something, by an agent, scanned or not.
 /// @param flip The function's body.
@@ -53,8 +106,8 @@ bool installRefused(const std::string& flip, bool scan) {
 	return host.repository.commit(revision).has_value();
 }
 
-/// @brief Runs a feature's function that does something, its file in the app's own program, and tells what was
-/// reported.
+/// @brief Runs a feature's function that does something, its file in the app's own program beside the record of its
+/// install (shipping()), and tells what was reported.
 /// @param flip The function's body.
 /// @param scan Whether revisions are scanned (nothing is revised: the same either way).
 /// @return The errors.
@@ -149,22 +202,102 @@ TEST_CASE("features authority attack: the person's command calling a feature's f
 	}
 }
 
-TEST_CASE("features authority attack: a feature shipped in the app's own file has a revision's authority") {
+TEST_CASE("features authority attack: an installed feature kept in the app's own file has a revision's authority") {
 	for(const bool scan : {true, false}) {
 		CAPTURE(scan);
-		json document = app();
-		document["actions"]["save"] = json::parse(R"([{"call": "hit"}])");
-		json definitions = wordCount();
-		definitions["wordCount-wrap"] = R"((defn wordCount-wrap "Wraps it." [proceed] (proceed)))";
-		definitions["advice save around wordCount-wrap"] = "(advice save :around wordCount-wrap)";
-		document["features"]["wordCount"] = record(definitions);
-		App host(document, scan);
-		REQUIRE(host.runtime->find("wordCount-label") != nullptr);
-		CHECK(host.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
-		host.run("save");
-		CHECK(host.hits == 0);
-		CHECK(host.reported(R"(the feature "wordCount" led here)"));
+		// As a save leaves it: the document written to its file and read back, in either notation
+		for(const auto notation : {affresco::notation::Notation::Json, affresco::notation::Notation::Lisp}) {
+			const json saved = affresco::notation::read(affresco::notation::write(advising(), notation), notation);
+			REQUIRE(saved["features"]["wordCount"].contains("release"));
+			App host(saved, scan);
+			REQUIRE(host.runtime->find("wordCount-label") != nullptr);
+			CHECK(host.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
+			host.run("save");
+			CHECK(host.hits == 0);
+			CHECK(host.reported(R"(the feature "wordCount" led here)"));
+		}
 	}
+}
+
+TEST_CASE("features authority: what the app's own file ships of a feature it never installed is the app's own code") {
+	for(const bool scan : {true, false}) {
+		CAPTURE(scan);
+		App host(shipping(R"((set "state.secret" "gone") (call "hit"))", false), scan);
+		CHECK(host.repository.programAuthors()[featureFile]["wordCount-flip"] == "file");
+		host.run("wordCount.toggle");
+		INFO(host.errors);
+		CHECK(host.state("secret") == "gone");
+		CHECK(host.hits == 1);
+		CHECK_FALSE(host.reported("led here"));
+	}
+}
+
+TEST_CASE("features authority attack: the person's text in a feature's own file is the feature's") {
+	App host(shipping(R"((toggle "state.wordCount.characters"))", false));
+	host.set("/program/features~1wordCount~1feature.lisp/wordCount-flip",
+	         R"((defn wordCount-flip "Flips it." [] (set "state.secret" "gone")))", "user");
+	CHECK(host.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
+	CHECK(host.repository.programAuthors()[featureFile]["wordCount.toggle"] == "file"); // the rest stays the file's
+	host.run("wordCount.toggle");
+	CHECK(host.state("secret") == "kept");
+	CHECK(host.reported(R"(the feature "wordCount" led here)"));
+}
+
+TEST_CASE("features authority attack: an installed feature stays the feature's after a restart") {
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path / "app.history";
+	{
+		App first(saving(), false, history);
+		first.set("/features/wordCount", wrapping(), "features"); // as the features service installs it
+		CHECK(first.repository.programAuthors()[featureFile]["wordCount-wrap"] != "file");
+	} // the host quits
+	App second(saving(), false, history);
+	REQUIRE(second.repository.head().number == 1); // the install came back from the folder
+	REQUIRE(second.runtime->find("wordCount-label") != nullptr);
+	CHECK(second.repository.programAuthors()[featureFile]["wordCount-wrap"] != "file");
+	second.run("save");
+	CHECK(second.hits == 0);
+	CHECK(second.reported(R"(the feature "wordCount" led here)"));
+}
+
+TEST_CASE("features authority attack: taking a record's origin away doesn't make its feature the app's own") {
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path / "app.history";
+	// Installed, and kept in the app's own file: then a commit takes away what it can of where it came from
+	json document = shipping(R"((set "state.secret" "gone"))");
+	document["features"]["wordCount"]["digest"] = "sha256:0";
+	{
+		App first(document, false, history);
+		const json strip = {{"author", "agent/x"},
+		                    {"message", "m"},
+		                    {"remove", {"/features/wordCount/release", "/features/wordCount/source"}}};
+		const std::optional<std::string> refused = first.repository.commit(strip);
+		CHECK(refused.value_or("").contains("release")); // a record always says its release
+		first.commit({{"author", "agent/x"}, {"message", "m"}, {"remove", {"/features/wordCount/digest"}}});
+		CHECK(first.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
+	}
+	App second(document, false, history);
+	REQUIRE(second.repository.head().number == 1);
+	CHECK(second.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
+	second.run("wordCount.toggle");
+	CHECK(second.state("secret") == "kept");
+	CHECK(second.reported(R"(the feature "wordCount" led here)"));
+}
+
+TEST_CASE("features authority: a record says it was installed by any of the keys an install writes") {
+	json bare = {{"enabled", true}, {"provides", json::object()}};
+	CHECK_FALSE(affresco::holdsFeatureOrigin(bare));
+	for(const std::string_view key : affresco::featureOriginKeys) {
+		CAPTURE(key);
+		json installed = bare;
+		installed[std::string(key)] = nullptr; // an install writes a key with no value too ("digest", "publisher")
+		CHECK(affresco::holdsFeatureOrigin(installed));
+		CHECK(affresco::installedFeature({{"features", {{"wordCount", installed}}}}, "wordCount"));
+	}
+	CHECK(affresco::holdsFeatureOrigin(json::array())); // a record of the wrong shape: never the app's own
+	CHECK_FALSE(affresco::installedFeature(json::object(), "wordCount"));
+	CHECK_FALSE(affresco::installedFeature({{"features", json::object()}}, "wordCount"));
+	CHECK(affresco::installedFeature({{"features", json::array()}}, "wordCount"));
 }
 
 TEST_CASE("features authority: a feature's entries' authors, after an accepted install, a restore and in a preview") {

@@ -90,10 +90,13 @@ inline constexpr std::string_view unknownAuthor = "unknown";
 /// @return The feature's name; empty for any other author.
 [[nodiscard]] std::string_view featureOfAuthor(std::string_view author) noexcept;
 
-/// @brief Credits each entry of a feature's files (`features/<name>/...`, lisp::effectiveProgram()) to the feature.
+/// @brief Credits each entry of a feature's files (`features/<name>/...`, lisp::effectiveProgram()) to the feature,
+/// except one version control credits to the app's file (`"file"`) of a feature the document has no installed record
+/// of (installedFeature()): what the app's own file shipped is the app's own code.
+/// @param source The document, as versioned.
 /// @param section The program.
 /// @param authors `{file: {name: author}}`, changed.
-void creditFeatures(const json& section, json& authors);
+void creditFeatures(const json& source, const json& section, json& authors);
 
 /// @brief Tells why a text can't be shown to the person as it is, if it can't: a character that draws nothing, or moves
 /// what is drawn around it, would let a question show other than what runs (ProgramEvaluate.cpp).

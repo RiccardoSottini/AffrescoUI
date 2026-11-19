@@ -8,6 +8,7 @@
 
 #include <affresco/format/Runtime.hpp>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -84,9 +85,11 @@ struct App {
 	/// @brief Builds the app.
 	/// @param document The document.
 	/// @param scan Whether revisions are scanned for new ways to reach control steps.
-	explicit App(const json& document, bool scan = true)
+	/// @param history A folder its history is kept in, and comes back from (Repository::openHistory()); empty: none.
+	explicit App(const json& document, bool scan = true, const std::filesystem::path& history = {})
 	    : window(lispapp::createHeadlessWindow(400, 300, clock)), rules(scan), repository(rules, document),
 	      runtime(std::make_unique<Runtime>(repository, "")) {
+		if(!history.empty()) static_cast<void>(repository.openHistory(history));
 		runtime->onCall("hit", [this](const json&) {
 			++hits;
 			return json();
