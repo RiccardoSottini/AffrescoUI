@@ -98,6 +98,26 @@
       }
     },
     {
+      "id": "commands-list",
+      "budget": "A peer's command list: 2 ms at most on Forge, every command judged (getCommands with all)",
+      "source": "bench",
+      "workloads": [
+        "commands/list"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 2.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 0.8,
+        "from": "commands/list",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "068a1812",
+        "date": "2026-11-19"
+      }
+    },
+    {
       "id": "revision",
       "budget": "A revision applied and reconciled: 2 ms at most",
       "source": "bench",
