@@ -116,34 +116,36 @@
 
 ;;; Editing text on the slide
 
-(defn editText "Edits a text box's or a shape's text in an editor over it, until Escape or a click elsewhere."
+(defn edit-text "Edits a text box's or a shape's text in an editor over it, until Escape or a click elsewhere."
   [id]
   (when (#{:text :shape} (:kind (find #(= (:id %) id) computed.objects)))
     (commit)
     (set "state.board.selection" [id])
     (set "state.editing" id)))
 
-(defn stopEditing "Leaves the text editor, and gives the canvas the keys again." []
+(defn stop-editing "Leaves the text editor, and gives the canvas the keys again." []
   (set "state.editing" nil)
   (focus "#board"))
 
-(defn setNotes "Keeps the speaker notes the notes box holds, when they changed." [text]
+(defn set-notes "Keeps the speaker notes the notes box holds, when they changed." [text]
   (when (not= text (or-else computed.slide.notes ""))
     (set "state.deck.slides[state.current].notes" text)))
 
 ;;; The slide shown
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn hideSlide "Leaves the slide out of the show, or puts it back." []
   (commit)
   (set "state.deck.slides[state.current].hidden" (not (or-else computed.slide.hidden false))))
 
-(defn layoutHolders "A layout's placeholders." [layout]
+(defn layout-holders "A layout's placeholders." [layout]
   (:ph (find #(= (:id %) layout) computed.layouts)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setLayout "Gives the slide another layout: the placeholders it lacks are dropped, its new ones added, empty."
   [layout]
   (commit)
-  (let [holders (layoutHolders layout)
+  (let [holders (layout-holders layout)
         wanted (into #{} (map :ph holders))
         had (into #{} (map :ph computed.objects))]
     (set "state.deck.slides[state.current]"
@@ -155,12 +157,14 @@
                                               (remove #(had (:ph %)) holders))))))
   (increment "state.deck.next" :by 10))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn resetSlide "Puts the slide's placeholders back where their layout has them, keeping their text." []
   (commit)
   (set-objects (map (fn [{:keys [id kind ph text] :as object}]
                       (if (some? ph) {:id id :kind kind :ph ph :text text} object))
                     computed.objects)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn addSection "Starts an untitled section at the slide shown, in place of one that started there." []
   (commit)
   (set "state.deck.sections"
@@ -170,28 +174,29 @@
 
 ;;; The selected objects
 
+; style: keep, set-objects is already a definition
 (defn setObjects "Merges properties into every selected object." [props]
   (when (seq computed.selected)
     (commit)
     (set-objects (map #(if (selected? %) (merge % props) %) computed.objects))))
 
-(defn toggleText "Turns a text style (bold, italic, underline...) on for the selection, or off if all have it." [key]
+(defn toggle-text "Turns a text style (bold, italic, underline...) on for the selection, or off if all have it." [key]
   (setObjects (assoc {} key (not (get computed.allOn key)))))
 
-(defn growText "Steps the selection's text size to the next size up (by 1) or down (by -1) in the list." [by]
+(defn grow-text "Steps the selection's text size to the next size up (by 1) or down (by -1) in the list." [by]
   (let [size computed.textSize]
     (setObjects {:size (if (pos? by)
                          (or-else (find #(> % size) computed.sizes) (+ size 8))
                          (or-else (find #(< % size) (reverse computed.sizes)) (max (dec size) 1)))})))
 
-(defn clearFormatting "Takes every text style off the selection: its theme's look comes back." []
+(defn clear-formatting "Takes every text style off the selection: its theme's look comes back." []
   (setObjects {:bold nil :italic nil :underline nil :strike nil :shadow nil :size nil :color nil :highlight nil
                :font nil}))
 
-(defn toggleLock "Locks the selected objects, or unlocks them if all are." []
+(defn toggle-lock "Locks the selected objects, or unlocks them if all are." []
   (setObjects {:locked (not (every? #(or-else (:locked %) false) computed.selected))}))
 
-(defn placeObject "Puts an object, by its place k on the slide, where the canvas moved it to, unless it is locked."
+(defn place-object "Puts an object, by its place k on the slide, where the canvas moved it to, unless it is locked."
   [k m]
   (when (and (>= k 0) (not (or-else (get-in computed.objects [k :locked]) false)))
     (let [{:keys [x y width height rotate]} m]
@@ -199,12 +204,13 @@
            (assoc (get computed.objects k)
                   :x (tenth x) :y (tenth y) :w (tenth width) :h (tenth height) :rotate (tenth (or-else rotate 0)))))))
 
-(defn placeObjects "Keeps where the canvas moved, sized or turned the objects, as one change." [moved]
+(defn place-objects "Keeps where the canvas moved, sized or turned the objects, as one change." [moved]
   (commit)
   (let [ids (map :id computed.objects)]
     (doseq [m moved]
-      (placeObject (indexOf ids (:id m)) m))))
+      (place-object (indexOf ids (:id m)) m))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn deleteObjects "Deletes the selected objects but the locked ones, and their builds." []
   (when (seq computed.selected)
     (commit)
@@ -214,14 +220,17 @@
            (filter #(left (:target %)) (or-else computed.slide.animations []))))
     (set "state.board.selection" (->> computed.selected (filter :locked) (map :id)))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn copyObjects "Copies the selected objects." []
   (when (seq computed.selected)
     (set "state.clip" computed.selected)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn cutObjects "Copies the selected objects, then deletes them." []
   (copyObjects)
   (deleteObjects))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn pasteObjects "Pastes the copied objects onto the slide, a little down and right, with new ids, and selects them."
   []
   (when (seq state.clip)
@@ -238,15 +247,18 @@
       (set "state.board.selection" (map #(str "o" (+ next %)) (range (count state.clip)))))
     (increment "state.deck.next" :by (count state.clip))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn duplicateObjects "Pastes a copy of the selected objects." []
   (copyObjects)
   (pasteObjects))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn selectAll "Selects every object of the slide." []
   (set "state.board.selection" (map :id computed.objects)))
 
 ;;; New objects
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn insertObject "Adds an object to the slide, with a new id, and selects it." [object]
   (commit)
   (let [id (str "o" state.deck.next)]
@@ -254,32 +266,37 @@
     (set "state.board.selection" [id]))
   (increment "state.deck.next" :by 1))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn insertShape "Adds a shape of the gallery in the middle of the slide: a line, or a filled shape." [shape]
   (insertObject (if (get-in computed.shapes [shape :line])
                   {:kind "line" :shape shape :x 380 :y 270 :w 200 :h 0 :line "accent1" :lineWidth 1}
                   {:kind "shape" :shape shape :x 405 :y 195 :w 150 :h 150 :fill "accent1" :line "accent1.4"
                    :lineWidth 1 :text ""})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn insertTextBox "Adds a text box in the middle of the slide." []
   (insertObject {:kind "text" :x 330 :y 240 :w 300 :h 40 :text (t "object.newText") :size 18}))
 
 ;;; The deck's design
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setTheme "Gives the deck a theme, with its own colours and its first variant." [theme]
   (commit)
   (set "state.deck.theme" theme)
   (set "state.deck.variant" 0)
   (set "state.deck.colors" nil))
 
-(defn setVariant "Gives the deck one of its theme's variants, with its own colours." [variant]
+(defn set-variant "Gives the deck one of its theme's variants, with its own colours." [variant]
   (commit)
   (set "state.deck.variant" variant)
   (set "state.deck.colors" nil))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setColorSet "Gives the deck another theme's colours (nil: its own), until a theme or a variant is chosen." [id]
   (commit)
   (set "state.deck.colors" id))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setFonts "Sets the fonts of titles and of the other text (a text's own font wins)." [heading body]
   (commit)
   (set "state.deck.fonts" {:heading heading :body body}))
@@ -288,19 +305,20 @@
 
 (def no-transition "A slide's transition when it has none." {:kind "none" :ms 500})
 
-(defn setTransition "Merges properties into the slide's transition." [props]
+(defn set-transition "Merges properties into the slide's transition." [props]
   (commit)
   (set "state.deck.slides[state.current].transition" (merge (or-else computed.slide.transition no-transition) props)))
 
-(defn durationBy "Makes the slide's transition longer or shorter, by milliseconds, between 0 and 59 seconds." [by]
-  (setTransition {:ms (clamp (+ (or-else computed.slide.transition.ms 500) by) 0 59000)}))
+(defn duration-by "Makes the slide's transition longer or shorter, by milliseconds, between 0 and 59 seconds." [by]
+  (set-transition {:ms (clamp (+ (or-else computed.slide.transition.ms 500) by) 0 59000)}))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn transitionToAll "Gives every slide this slide's transition." []
   (commit)
   (let [transition (or-else computed.slide.transition no-transition)]
     (set "state.deck.slides" (map #(assoc % :transition transition) state.deck.slides))))
 
-(defn setAnimation "Gives the selected objects a build (none: no build); the first starts as asked, the others with it."
+(defn set-animation "Gives the selected objects a build (none: no build); the first starts as asked, the others with it."
   [effect kind start ms]
   (when (seq computed.selected)
     (commit)
@@ -315,7 +333,7 @@
                                   computed.selected)))))
     (increment "state.deck.next" :by (count computed.selected))))
 
-(defn changeAnimation "Merges properties into the builds of the selected objects." [props]
+(defn change-animation "Merges properties into the builds of the selected objects." [props]
   (when-some [_ computed.animation]
     (commit)
     (set "state.deck.slides[state.current].animations"

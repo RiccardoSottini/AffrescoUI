@@ -44,7 +44,7 @@
 
 ;;; Slides
 
-(defn pickSlide "Shows a slide, by its index." [index]
+(defn pick-slide "Shows a slide, by its index." [index]
   (set "state.current" (clamp index 0 (dec (count state.deck.slides))))
   (set "state.board.selection" [])
   (set "state.editing" nil))
@@ -58,6 +58,7 @@
   (set "state.current" (inc state.current))
   (set "state.board.selection" []))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn newSlide "Adds a slide after this one, with its layout's placeholders, empty." [layout]
   (commit)
   (let [next state.deck.next
@@ -73,6 +74,7 @@
   (increment "state.deck.next" :by 20)
   (show-next))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn duplicateSlide "Adds a copy of this slide after it, its objects with new ids, without its animations." []
   (commit)
   (let [next state.deck.next]
@@ -84,6 +86,7 @@
   (increment "state.deck.next" :by (+ (count computed.objects) 2))
   (show-next))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn deleteSlide "Takes this slide away, unless it is the only one." []
   (when (> (count state.deck.slides) 1)
     (commit)
@@ -91,7 +94,7 @@
     (set "state.current" (min state.current (dec (count state.deck.slides))))
     (set "state.board.selection" [])))
 
-(defn moveSlide "Moves the slide at one index to another, and shows it there." [from to]
+(defn move-slide "Moves the slide at one index to another, and shows it there." [from to]
   (let [slides state.deck.slides]
     (when (and (number? from) (number? to) (>= from 0) (>= to 0) (not= from to)
                (< from (count slides)) (< to (count slides)))
@@ -126,6 +129,7 @@
       :words (->> (split text "\n") (map (fn [line] (join " " (map #(capital % 1) (split line " "))))) (join "\n"))
       (:text object))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn changeCase "Changes the case of the selected objects' text." [how]
   (when (seq computed.selected)
     (commit)

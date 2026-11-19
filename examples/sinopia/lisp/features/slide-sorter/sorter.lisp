@@ -10,7 +10,7 @@
 
 ;;; What it does
 
-(defn slideSorter-selected
+(defn slide-sorter-selected
   "The selected page: the app's current page, else the one picked last."
   [current]
   (or-else current state.slideSorter.picked))
@@ -39,16 +39,16 @@
 
 ;;; What it shows
 
-(defview slideSorter-header
+(defview slide-sorter-header
   "The strip's header: how many pages there are, and the button that duplicates the selected one."
   []
   `(row#slideSorter-header :width "100%" :height 24 :gap 6 :alignItems center
      (label#slideSorter-title :grow 1 :height 24 :padding 6 :textColor @text
        :text ~(str "Pages (" (count app.pages) ")"))
      (label#slideSorter-duplicate :width 24 :height 24 :icon copy :cursor hand :tooltip "Duplicate page"
-       :textColor @text :onClick ~(handler slideSorter.duplicate (slideSorter-selected app.current)))))
+       :textColor @text :onClick ~(handler slideSorter.duplicate (slide-sorter-selected app.current)))))
 
-(defview slideSorter-page
+(defview slide-sorter-page
   "One page: its thumbnail, framed in the accent when it is the selected one, and its name. Dragged onto another page,
   it takes that page's place; clicked, it is selected."
   [page]
@@ -57,22 +57,22 @@
      :onDrop ~(handler slideSorter.move event.data.id page.id)
      :onClick ~(handler slideSorter.pick page.id)
      (image :id ~(str "slideSorter-image-" page.id) :width 84 :height 70 :source ~page.image :fit contain
-       :borderWidth ~(if (= page.id (slideSorter-selected app.current)) 2 1)
-       :borderColor ~(if (= page.id (slideSorter-selected app.current)) "@accent" "@border")
+       :borderWidth ~(if (= page.id (slide-sorter-selected app.current)) 2 1)
+       :borderColor ~(if (= page.id (slide-sorter-selected app.current)) "@accent" "@border")
        :dragOver {:borderColor @accent :borderWidth 3})
      (label :id ~(str "slideSorter-name-" page.id) :width 84 :height 18 :align center :fitText true
        :textColor @muted :text ~page.name)))
 
-(defview slideSorter-strip
+(defview slide-sorter-strip
   "The sorter: its header over the pages, in a row that scrolls across."
   []
   `(column :width "100%" :height 132 :gap 4 :color transparent :borderWidth 1 :borderColor @border
-     ~(slideSorter-header)
+     ~(slide-sorter-header)
      (row#slideSorter-pages :width "100%" :grow 1 :gap 8 :scroll horizontal :color transparent
-       ~(repeat [page app.pages :key page.id] (slideSorter-page page)))))
+       ~(repeat [page app.pages :key page.id] (slide-sorter-page page)))))
 
 ;;; Where it goes
 
 (defpart slideSorter-views
   "The strip, in the slot the app binds to the dock need."
-  :views {:dock {:slideSorter-view ~(slideSorter-strip)}})
+  :views {:dock {:slideSorter-view ~(slide-sorter-strip)}})

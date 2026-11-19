@@ -96,7 +96,7 @@
 (defn fit "Fits the slide to the canvas again." []
   (set "state.fit" true))
 
-(defn zoomBy "Zooms the canvas by a factor, about its middle, between 10% and 400%." [by]
+(defn zoom-by "Zooms the canvas by a factor, about its middle, between 10% and 400%." [by]
   (let [view computed.view
         zoom (clamp (* computed.zoom by) 0.1 4)
         halfWidth (/ computed.canvasWidth 2)
@@ -107,7 +107,7 @@
                                :zoom zoom}})))
   (set "state.fit" false))
 
-(defn viewChanged "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
+(defn view-changed "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
   (set "state.board" view)
   (when (and (some? state.editing) (not (contains (or-else view.selection []) state.editing)))
     (set "state.editing" nil))
@@ -143,7 +143,7 @@
 (defcomputed folded "For each slide, whether its section is folded."
   (map #(and (some? %) (contains state.foldedSections %)) computed.sectionOf))
 
-(defn toggleSection "Folds a section in the thumbnails, or unfolds it." [id]
+(defn toggle-section "Folds a section in the thumbnails, or unfolds it." [id]
   (set "state.foldedSections"
        (if (contains state.foldedSections id)
          (remove #(= % id) state.foldedSections)
@@ -151,28 +151,28 @@
 
 ;;; What a click does
 
-(defn showTab "Shows a tab of the ribbon, and the ribbon if it was hidden." [tab]
+(defn show-tab "Shows a tab of the ribbon, and the ribbon if it was hidden." [tab]
   (set "state.tab" tab)
   (set "state.ribbon" true))
 
-(defn chooseSlide "Shows a slide chosen in a list of slides, which keeps the keys." [index list]
-  (pickSlide index)
+(defn choose-slide "Shows a slide chosen in a list of slides, which keeps the keys." [index list]
+  (pick-slide index)
   (focus list))
 
-(defn slideMenu "Shows a slide and opens its menu, at the pointer." [index x y]
-  (pickSlide index)
-  (openContext x y "slide"))
+(defn slide-menu "Shows a slide and opens its menu, at the pointer." [index x y]
+  (pick-slide index)
+  (open-context x y "slide"))
 
-(defn canvasMenu "Opens the canvas's menu at the pointer; a click there, not a key, selects nothing first."
+(defn canvas-menu "Opens the canvas's menu at the pointer; a click there, not a key, selects nothing first."
   [keyboard x y]
   (when-not (or-else keyboard false)
     (set "state.board.selection" []))
-  (openContext x y "canvas"))
+  (open-context x y "canvas"))
 
-(defn objectMenu "Opens an object's menu at the pointer, selecting it unless it already is." [id x y]
+(defn object-menu "Opens an object's menu at the pointer, selecting it unless it already is." [id x y]
   (when-not (contains state.board.selection id)
     (set "state.board.selection" [id]))
-  (openContext x y "object"))
+  (open-context x y "object"))
 
 ;;; The command bar
 
@@ -209,14 +209,14 @@
      :hover {:color @rbHover}
      :runs [{:text ~state.deck.title :size 13 :bold true}]
      :tooltip ~(t "bar.openSaveOrExportThe")
-     :onClick ~(handler showTab "file")))
+     :onClick ~(handler show-tab "file")))
 
 (defview tab-title "A tab's title in the command bar: `tab` is the repeat's tab." [tab]
   `(label :id ~(str "tab-" tab.id "-label")
      :style ~(if (and (= state.tab tab.id) state.ribbon) "tabOn" "tab")
      :selected ~(= state.tab tab.id)
      :runs [{:text ~tab.title :size 12}]
-     :onClick ~(handler showTab tab.id)))
+     :onClick ~(handler show-tab tab.id)))
 
 (defview search "The search box: commands whose names hold its text, and a search of the slides." []
   `(textarea#search :width 200
@@ -232,7 +232,7 @@
      :placeholderColor @rbMuted
      :label ~(t "bar.searchCommands")
      :tooltip ~(t "bar.typeWhatYouWantTo")
-     :onSubmit ~(handler openDrop "search")))
+     :onSubmit ~(handler open-drop "search")))
 
 (defview quick-commands "Undo, Redo, Save and Present from the start, as icons in the command bar." []
   [`(label#qat-undo :style barIcon
@@ -306,13 +306,13 @@
      :focusable true
      :role list
      :label ~(t "bar.slides")
-     :onContextMenu ~(handler openContext event.x event.y "slide")
-     :keys {:up ~(handler pickSlide (dec state.current))
-            :down ~(handler pickSlide (inc state.current))
-            :pageup ~(handler pickSlide (dec state.current))
-            :pagedown ~(handler pickSlide (inc state.current))
-            :home ~(handler pickSlide 0)
-            :end ~(handler pickSlide (dec (count state.deck.slides)))
+     :onContextMenu ~(handler open-context event.x event.y "slide")
+     :keys {:up ~(handler pick-slide (dec state.current))
+            :down ~(handler pick-slide (inc state.current))
+            :pageup ~(handler pick-slide (dec state.current))
+            :pagedown ~(handler pick-slide (inc state.current))
+            :home ~(handler pick-slide 0)
+            :end ~(handler pick-slide (dec (count state.deck.slides)))
             :enter ~(handler newSlide "content")
             :delete deleteSlide
             :backspace deleteSlide}
@@ -359,7 +359,7 @@
                                            "slide"))
                       "")
              :size 9}]
-     :onClick ~(handler toggleSection (get-in computed.sectionAt [i :id]))))
+     :onClick ~(handler toggle-section (get-in computed.sectionAt [i :id]))))
 
 (defview thumbnail "Slide `s`, at index `i`: its picture and its number; drag it to move it." [s i]
   `(column :id ~(str "thumb-" s.id "-row")
@@ -373,9 +373,9 @@
      :selected ~(= i state.current)
      :label ~(t "slide.n" {:n (inc i)})
      :drag {:data {:slide ~i}}
-     :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
-     :onClick ~(handler chooseSlide i "#thumbnails")
-     :onContextMenu ~(handler slideMenu i event.x event.y)
+     :onDrop ~(handler move-slide (or-else event.data.slide (- 1)) i)
+     :onClick ~(handler choose-slide i "#thumbnails")
+     :onContextMenu ~(handler slide-menu i event.x event.y)
      ~(thumbnail-picture s i)
      ~(thumbnail-gutter s i)))
 
@@ -427,7 +427,7 @@
   `(canvas#board :fill 0
      :dir ltr
      :focusable true
-     :onContextMenu ~(handler canvasMenu event.keyboard event.x event.y)
+     :onContextMenu ~(handler canvas-menu event.keyboard event.x event.y)
      :color @work
      :accentColor @handles
      :view ~computed.view
@@ -438,15 +438,15 @@
      :label ~(if (= computed.slideTitle "")
                (t "slide.n" {:n (inc state.current)})
                (t "slide.titled" {:n (inc state.current) :title computed.slideTitle}))
-     :onChange ~(handler viewChanged event.value)
-     :onTransform ~(handler placeObjects event.items)
+     :onChange ~(handler view-changed event.value)
+     :onTransform ~(handler place-objects event.items)
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
        (node :use slideBackground :with {:slide ~computed.slide :prefix e-}))
      ~(repeat [o computed.objects :key o.id]
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}
-          :onContextMenu ~(handler objectMenu o.id event.x event.y)
-          :onDoubleClick ~(handler editText o.id)))))
+          :onContextMenu ~(handler object-menu o.id event.x event.y)
+          :onDoubleClick ~(handler edit-text o.id)))))
 
 (defview notes-pane "The speaker notes of the slide shown, edited in place." []
   `(node#notes-pane :height 76 :color @notes :when ~state.notes
@@ -518,7 +518,7 @@
       :tooltip ~(t "bar.fitSlideToCurrentWindow")
       :onClick fit)
    `(label#zoom-out :style barButton :runs [{:icon zoom-out :size 13}] :tooltip ~(t "bar.zoomOut")
-      :onClick ~(handler zoomBy 0.9))
+      :onClick ~(handler zoom-by 0.9))
    `(slider#zoom-slider :width 110
       :height 16
       :trackColor @rbFieldLine
@@ -528,9 +528,9 @@
       :max 400
       :value ~(round (* computed.zoom 100))
       :label ~(t "bar.zoom")
-      :onChange ~(handler zoomBy (/ (/ event.value 100) computed.zoom)))
+      :onChange ~(handler zoom-by (/ (/ event.value 100) computed.zoom)))
    `(label#zoom-in :style barButton :runs [{:icon zoom-in :size 13}] :tooltip ~(t "bar.zoomIn")
-      :onClick ~(handler zoomBy 1.1))
+      :onClick ~(handler zoom-by 1.1))
    `(label#zoom-percent :style barButton
       :width 42
       :align center
