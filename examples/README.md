@@ -29,13 +29,16 @@ examples/
 The stock host is in `apps/host` and the document server in `apps/server`; a screen inside a program's own OpenGL
 scene is `modules/capi/example`.
 
-**JSON or Lisp.** Every example ships in both notations, but Calamaio, which is Lisp only. For most, `<app>/json/` is the
-source and `<app>/lisp/` is written from it, so make a change in `json/` and run `python3 tools/notation/lisp_examples.py`
-(the test `cli_lisp_examples` fails if you forget). An app with real behaviour is also written as a Lisp program (RFC 0005):
-then both folders are written by hand, `json/` as the JSON app and `lisp/` as a program that does the same with its logic
-in functions, the generator leaves both alone, and the same scenarios check each (`streak`, `flow`, `haven`, `tempo`,
-`arcadia`, `code-editor`, `orrery`, `tempera`, `sinopia`, `modello`; `calamaio` has only its `lisp/`, and the Launcher opens
-it whichever notation is chosen). Each app's README says which it is. In `lisp/`, every document
+**JSON or Lisp.** Every example ships in both notations, but Calamaio, which is Lisp only. Both folders are written by
+hand for every app: `json/` as the JSON app, and `lisp/` as a program (RFC 0005) that does the same with its logic in
+functions, written in the dialect's style ([modules/lisp/reference/style.md](../modules/lisp/reference/style.md)); the
+same scenarios check each, and the Launcher opens Calamaio whichever notation is chosen. A change to an app is made in
+both. The generator, `python3 tools/notation/lisp_examples.py`, writes only the language tables the apps share,
+`shared/languages/`, from their JSON (the test `cli_lisp_examples` fails if you forget it). To check a change to an
+app's `lisp/`: `python3 tools/notation/lisp_tree.py --save DIR` before it and `--compare DIR` after (the tree it builds
+is the same, but for bindings' and definitions' text), `python3 tools/notation/lisp_idioms.py --check` (no old
+spelling; a place kept is marked `; style: keep, <reason>` and counted in `tools/notation/idioms/<app>.json`),
+`ctest -R "lisp_parity|scenarios"`, and `python3 tests/render/check.py`. In `lisp/`, every document
 an app loads is a `.lisp` file: its screens, what they include, its themes, models and seed data. The files with a reader
 of their own stay JSON (`app.json`, scenarios, policies, adapters, a package's manifest and catalogue). There is one copy
 of the assets, in `<app>/assets/`, named `../assets/...` in both notations. `shared/` keeps a `.lisp` file beside each JSON one it serves. Both versions load as

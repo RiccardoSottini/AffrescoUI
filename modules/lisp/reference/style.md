@@ -1,9 +1,9 @@
 # Style: writing an app's program in the dialect
 
-The examples' programs (`examples/<app>/lisp/`) were written before the language took Clojure's forms (RFC 0006). This
-page says how to write them in the dialect, so that they read as Clojure and stay what they are: the same pixels, the
-same tree, the same behaviour. The examples' rows are from `examples/flow/lisp/` as it is written today. The other
-pages of this folder say what each form does; this one says which to choose.
+Every example's program (`examples/<app>/lisp/`, and `examples/shared/`) is written in the dialect (RFC 0006): it
+reads as Clojure and draws, builds and behaves as it did before the language took Clojure's forms. This page says how
+to write a program that way, and how to change one without changing what it does. The examples' rows are from
+`examples/flow/lisp/`. The other pages of this folder say what each form does; this one says which to choose.
 
 ## What a rewrite may not change
 
@@ -16,12 +16,12 @@ pages of this folder say what each form does; this one says which to choose.
 - **The order of definitions.** It is the order of the sections they fill (commands, menus, keys, the palette).
 - **The JSON version.** Each example keeps its `json/` folder beside its program, untouched.
 
-## Today, and written as
+## The old spelling, and the dialect's
 
 "In a function" is a `defn`, `defcommand` or a view's code outside its template; "in a binding" is a `~form` in a
 template and a `defcomputed`, which run as the app's expressions (`bindings.md`).
 
-| Today | Written as | In a function | In a binding |
+| Old spelling | Written as | In a function | In a binding |
 |---|---|---|---|
 | `(fn [it] (= it.tag tag))` | `#(= (:tag %) tag)` | One line, no `#(` inside | Yes, but not given to `sum` |
 | `(map (fn [it] it.ref) xs)` | `(map :ref xs)` | Yes | Yes, but not given to `sum` |
@@ -46,7 +46,7 @@ template and a `defcomputed`, which run as the app's expressions (`bindings.md`)
 | A parameter that is `nil` when left out | Several parameter lists | `defn` only | |
 | Definitions that differ in one word | A vector and `for` or `doseq` | Where the tree stays identical | |
 
-Each row, on code of Flow's (where Flow has no such place today, a short one in its manner):
+Each row, on code of Flow's (where Flow has no such place, a short one in its manner), the old spelling first:
 
 ```clojure
 ;; A one-parameter fn (computed.lisp, visible)
@@ -172,11 +172,17 @@ Each row, on code of Flow's (where Flow has no such place today, a short one in 
 - **The order of definitions fills the sections:** folding or moving definitions moves the commands, menus and keys.
 - **`or-else` is not `or`:** `or-else` keeps `0`, `""` and `false` and replaces only `nil`; `or` replaces every false
   value. Keep `or-else` where it is.
+- **`str/split` drops the empty parts at the end**, as Clojure's does, where the host's `split` keeps them. Give it `-1`
+  where `last`, `butlast` or `count` reads the parts (`(str/split path "/" -1)`), in a function; in a binding, `-1`
+  makes it a call, so the host's `split` stays there.
+- **`cons` gives a list, and a list set into state reads back as a node form:** `(set "state.recent" (cons x xs))`
+  fails on the next read. Write `(concat [x] xs)`, or give the list to `take` or `vec` first.
 
 ## `ns`
 
 Every code file gets a label, `(ns <app>.<file>)`, as its first form, after its `;;;` header and a blank line:
-`(ns flow.computed)` for `computed.lisp`, `(ns forge.features.editor.editor)` for `features/editor/editor.lisp`
+`(ns flow.computed)` for `computed.lisp`, `(ns forge.features.editor.editor)` for `features/editor/editor.lisp`,
+`(ns shared.components.charts)` for `examples/shared/components/charts.lisp`
 (`namespaces.md`, "Which file a name requires"). The entry's `(ns <app>.index (:require ...))` replaces its
 `(include ...)` and lists the same files in the same order: code files by their dotted name, data files and shared
 files by their path as a string. Flow's (`index.screen.lisp`):
@@ -218,7 +224,9 @@ built screen is the same.
 
 No `:refer` lists: every program is one flat space of names (`differences.md`), so a definition is reached by its own
 name. Write an alias (`:as`) only where the file uses it. `examples/shared/` files get labels too, and are still
-required by path.
+required by path. A file that others require names its own data files in its `ns` (`(ns shared.addons.assistant.assistant
+(:require "locales/en.lisp" ...))`), as an entry does. A program whose `ns` forms are the same before and after a
+change still builds in part and redefines in place (`namespaces.md`); changing an `ns` form builds it whole.
 
 ## Keywords and text
 
@@ -233,12 +241,40 @@ A keyword and the string of its text are one value, `(= :board "board")` is true
 ## Marking a place that must stay
 
 A place the counter below would count, but that must stay as it is (a binding where the other spelling is slower, a
-value that may be `nil`), is marked by a comment on the line before:
+value that may be `nil`), is marked by a comment on the line before, with its reason:
 
 ```clojure
 ; style: keep, the count may be nil before the first load, where dec raises
 (- (or-else state.count 0) 1)
 ```
+
+A mark with no reason fails the check, and so does a new mark that the app's idioms file doesn't count (below). A mark
+covers every rule on its line.
+
+## When not to
+
+The places the examples keep, by reason (`lisp_idioms.py --kept` lists each with its file and line):
+
+- **`#(...)` can't give a map**, since `#({...})` is a call: `(map (fn [it] {:id it.id ...}) xs)` stays `fn`. It is the
+  most common reason by far.
+- **`#(...)` can't hold another `#(...)`:** the inner one stays `#(...)` and the outer one `fn`.
+- **`sum` is the expression's own function:** the function it takes names its item `it`.
+- **A binding takes no `constantly`, and a function that leaves out its item has no `#(...)` form:** `(fn [it] 0)`
+  stays.
+- **A macro or a template hands its form a fixed name** (`it`, or an unquoted `~kind`): its `fn` stays.
+- **The host's `split` keeps what `str/split` drops:** the empty part after a last `/`, `.`, space or line break, where
+  the code counts or joins the parts.
+- **The host's `trim` gives `""` for `nil`,** where `str/trim` raises: an optional field keeps `trim`.
+- **A word that lowers to another binding text:** `inc` puts the 1 after (`(+ 1 x)` stays), and threading can move an
+  operand (`(-> x (max 0.5))` is `(max x 0.5)`).
+- **A `cond` that isn't one value:** its tests read two fields, or a part of a value and the whole value, or its values
+  are different texts.
+- **Three states:** `(if (nil? checked) nil (= checked true))`, where `nil` (no check mark) stays apart from `false`.
+- **A name of the program's own:** a definition named like a string function (`starts-with?`) is not the host's.
+
+A nest of four calls on one line is a shape, not a spelling: write it with `->` or `->>` where each step
+reads better so, and leave the rest (arithmetic on a frame, a long view formula). The check holds each app to its
+count of them, so none is added unseen.
 
 ## How to check an app
 
@@ -248,7 +284,7 @@ For an app, `flow` here, with the build in `build/`:
 export AFFRESCOUI_HIDDEN=1
 python3 tools/notation/lisp_tree.py --save build/tree-before flow       # before the rewrite
 python3 tools/notation/lisp_tree.py --compare build/tree-before flow    # after: identical, or only bindings' text
-python3 tools/notation/lisp_idioms.py --check                           # no rule counts more than idioms/flow.json allows
+python3 tools/notation/lisp_idioms.py --check                           # every app at its lock (idioms/flow.json)
 python3 tools/notation/lisp_idioms.py --count flow                      # what is left
 python3 tools/notation/lisp_idioms.py --measure                         # files, lines, bytes, tokens per app
 ./build/affrescoui check examples/flow/lisp/index.screen.lisp           # and every file changed
@@ -256,5 +292,8 @@ ctest --test-dir build -R "scenarios/flow/|lisp_parity|cli_lisp_idioms|cli_lisp_
 python3 tests/render/check.py                                           # every frame identical
 ```
 
-Once a rule's count drops, write the new count into the app's `tools/notation/idioms/<app>.json` by hand (`--write`
-writes every app's file, other apps' too), and drop the rules that reach 0, so that it never grows back.
+The check is a lock. Every old spelling counts 0 in every app; each rule's kept places are exactly the number the app's
+`tools/notation/idioms/<app>.json` gives under `kept`, and its nests of four calls exactly the number under `allowed`.
+So a change that adds or removes a kept place or a nest changes that file too, by hand, in the same commit, where the
+review sees it (`--write` rewrites every app's file, other apps' too). A new example's code fails until it has an
+idioms file of its own.
