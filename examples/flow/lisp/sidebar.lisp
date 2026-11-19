@@ -182,19 +182,19 @@
        :onClick goToInbox)
      (node#navMine :use navItem
        :with {:icon circle-user :text ~(t "nav.mine") :active ~(and (= state.page :issues) (= state.owner state.me))}
-       :onClick showMyIssues)
+       :onClick show-my-issues)
      (node#navHeadingBoards :use navHeading :with {:text ~(t "nav.boards")})
      ~(repeat [b state.boards :key b.id]
        `(node#navBoard :use navItem
           :with {:icon layers-2
                  :text ~b.label
                  :active ~(and (= b.id state.boardId) (not= b.id state.boards.0.id) (= state.page :issues))}
-          :onClick [~(handler showPage :issues) ~(handler switchBoard b.id)]))
+          :onClick [~(handler show-page :issues) ~(handler switch-board b.id)]))
      (node#navHeadingTeams :use navHeading :with {:text ~(t "nav.teams")})
      (node#navTeam :use navItem
        :with {:icon square :text "Flow"}
-       :onClick [~(handler showPage :issues)
-                 ~(handler switchBoard state.boards.0.id)
+       :onClick [~(handler show-page :issues)
+                 ~(handler switch-board state.boards.0.id)
                  {:set state.owner :to ""}
                  ~(handler showBoard)])
      ~(nav-issues)
@@ -213,6 +213,6 @@
             :text ~(t "nav.issues")
             :active ~(and (= state.page :issues) (not= state.owner state.me) (= state.boardId state.boards.0.id))}
      :padding 26
-     :onClick [~(handler showPage :issues)
-               ~(handler switchBoard state.boards.0.id)
+     :onClick [~(handler show-page :issues)
+               ~(handler switch-board state.boards.0.id)
                {:set state.owner :to ""}]))

@@ -138,7 +138,7 @@
      :role button
      :tooltip ~(t "column.more")
      :label ~(t "column.more")
-     :onClick ~(handler openColumnMenu c)))
+     :onClick ~(handler open-column-menu c)))
 
 (defview column-add "A column's + button, which opens the composer on that column." [column c]
   `(label#columnAdd :icon plus
@@ -156,7 +156,7 @@
      :role button
      :tooltip ~(t "composer.in" {:column column.name})
      :label ~(t "composer.in" {:column column.name})
-     :onClick ~(handler openComposer c)))
+     :onClick ~(handler open-composer c)))
 
 (defview card-view
   "A card on the board: its id, title and chips; it is dragged to another column, and right-clicked for its menu."
@@ -184,13 +184,13 @@
                  :tag (t (str "tag." card.tag))
                  :who (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)
                  :column column.name})
-     :onFocus ~(handler selectCard c i)
+     :onFocus ~(handler select-card c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
      :dragging {:color @color.column :borderColor @color.border :shadow {:y 0 :blur 0 :color "#00000000"}}
-     :onClick ~(handler selectCard c i)
-     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
-     :onContextMenu ~(handler openCardMenu c i)
+     :onClick ~(handler select-card c i)
+     :onDoubleClick [~(handler select-card c i) ~(handler openIssue)]
+     :onContextMenu ~(handler open-card-menu c i)
      ~(card-ref)
      ~(card-owner)
      ~(card-title)
@@ -286,8 +286,8 @@
      :selectedTextColor @color.text
      :selectedBackground @color.accentSoft
      :accentColor @color.accent
-     :onChange openRow
+     :onChange open-row
      :keys {:space togglePeek}
-     :onOpen [~(handler openRow) ~(handler editCard)]
-     :onSort sortTable
-     :onColumnResize resizeTableColumn))
+     :onOpen [~(handler open-row) ~(handler editCard)]
+     :onSort sort-table
+     :onColumnResize resize-table-column))

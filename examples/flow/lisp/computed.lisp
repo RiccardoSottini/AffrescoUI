@@ -20,7 +20,7 @@
 
 (defcomputed allCards
   "Every card shown, with its column `c` and its place `at`: the table's rows, the pickers and the timeline."
-  (cardsWithPlaces computed.columns))
+  (cards-with-places computed.columns))
 
 (defcomputed over
   (map #(and (some? (:limit %)) (> (count (:cards %)) (:limit %)) (empty? computed.activeFilters))

@@ -147,7 +147,7 @@
        :height 18
        :activeColor @color.accent
        :trackColor @color.border
-       :onChange ~(handler checkItem k event.value))
+       :onChange ~(handler check-item k event.value))
      (label#issueSubText :text ~item.text
        :textColor ~(if item.done "@color.muted" "@color.text")
        :anchors {:left 36 :right 30 :top 0 :bottom 0}
@@ -155,7 +155,7 @@
      (node#issueSubRemove :style removeButton
        :anchors {:right 4 :top 5}
        :label ~(t "drawer.remove" {:name item.text})
-       :onClick ~(handler removeFromCard "checklist" k))))
+       :onClick ~(handler remove-from-card "checklist" k))))
 
 (defview issue-comment "A comment on the issue page: who wrote it and what it says." [note]
   `(node#issueComment :anchors {:left 40 :right 40}
@@ -257,7 +257,7 @@
      :bind state.draft.notes
      :autofocus true
      :label ~(t "detail.editNotes")
-     :keys {"mod+enter" saveNotes :escape cancelNotes}))
+     :keys {"mod+enter" save-notes :escape cancel-notes}))
 
 (defview issue-created "When the issue was created, and by whom." []
   `(label#issueCreated :font small
@@ -276,12 +276,12 @@
        :text ~(t "detail.save")
        :focusable true
        :role button
-       :onClick saveNotes)
+       :onClick save-notes)
      (node#issueNotesCancel :style detailButton
        :text ~(t "detail.cancel")
        :focusable true
        :role button
-       :onClick cancelNotes)))
+       :onClick cancel-notes)))
 
 (defview issue-new-comment "The issue page's field that adds a comment." []
   `(node#issueNewComment :style drawerInput
@@ -290,7 +290,7 @@
      :placeholder ~(t "issue.comment")
      :label ~(t "issue.comment")
      :bind state.newComment
-     :onSubmit [{:run addToCard
+     :onSubmit [{:run add-to-card
                  :with {:field comments
                         :input ~state.newComment
                         :value {:who ~state.me :text ~(trim state.newComment)}}}
@@ -304,7 +304,7 @@
      :placeholder ~(t "issue.addSub")
      :label ~(t "issue.addSub")
      :bind state.newItem
-     :onSubmit [{:run addToCard
+     :onSubmit [{:run add-to-card
                  :with {:field checklist :input ~state.newItem :value {:text ~(trim state.newItem) :done false}}}
                 {:set state.newItem :to ""}]))
 
@@ -320,8 +320,8 @@
                         (map-indexed (fn [index it] {:text it :bold (= (mod index 2) 1)})
                                      (split computed.card.notes "*")))
                     [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
-     :onClick editNotes
-     :onLink copyLink))
+     :onClick edit-notes
+     :onLink copy-link))
 
 (defview status-picker "The issue page's status menu." []
   `(node#statusPicker :style pickMenu
@@ -402,7 +402,7 @@
        :textColor @color.text
        :accentColor @color.accent
        :pickedTextColor @color.chipOnText
-       :onChange [~(handler setDue event.value) {:set state.issueDueOpen :to false}])))
+       :onChange [~(handler set-due event.value) {:set state.issueDueOpen :to false}])))
 
 (defview prop-estimate "The issue page's estimate: its points, with a menu of the sizes." []
   `(row#propEstimate :anchors {:left 8 :right 16} :height 32 :alignItems center
@@ -421,7 +421,7 @@
             :icon triangle
             :text ~(t "card.points" {:n n})
             :selected ~(= n (or-else computed.card.points 0))
-            :onClick ~(handler setEstimate n))))))
+            :onClick ~(handler set-estimate n))))))
 
 (defview prop-tag "The issue page's label, with a menu of the labels." []
   `(node#propTag :style cardChip
@@ -445,7 +445,7 @@
             :icon ~(get state.tagIcons tag)
             :text ~(t (str "tag." tag))
             :selected ~(= tag computed.card.tag)
-            :onClick ~(handler setTag tag))))))
+            :onClick ~(handler set-tag tag))))))
 
 (defview prop-label-add "The issue page's + button for labels, with a menu of them." []
   `(node#propLabelAdd :style cardChip
@@ -472,7 +472,7 @@
             :icon ~(if (contains (or-else computed.card.labels []) name) "square-check" "square")
             :text ~(t (str "label." name))
             :selected ~(contains (or-else computed.card.labels []) name)
-            :onClick ~(handler toggleListItem "labels" name))))))
+            :onClick ~(handler toggle-list-item "labels" name))))))
 
 (defview prop-labels "The issue page's labels: a chip each, and the + button." []
   `(column#propLabels :anchors {:left 8 :right 16}
@@ -491,7 +491,7 @@
             :focusable true
             :role button
             :label ~(t (str "label." name))
-            :onClick ~(handler toggleListItem "labels" name)))
+            :onClick ~(handler toggle-list-item "labels" name)))
        ~(prop-label-add))))
 
 (defview issue-side "The issue page's properties panel: status, priority, assignee, due date, estimate and labels." []

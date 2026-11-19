@@ -93,7 +93,7 @@
      :placeholder ~(t "drawer.addAttachment")
      :label ~(t "drawer.addAttachment")
      :bind state.newAttachment
-     :onSubmit [~(handler addToCard "attachments" (trim state.newAttachment) state.newAttachment)
+     :onSubmit [~(handler add-to-card "attachments" (trim state.newAttachment) state.newAttachment)
                 {:set state.newAttachment :to ""}]))
 
 (defview new-item "The field that adds an item to the checklist." []
@@ -102,18 +102,18 @@
      :placeholder ~(t "drawer.addItem")
      :label ~(t "drawer.addItem")
      :bind state.newItem
-     :onSubmit [{:run addToCard
+     :onSubmit [{:run add-to-card
                  :with {:field checklist :input ~state.newItem :value {:text ~(trim state.newItem) :done false}}}
                 {:set state.newItem :to ""}]))
 
 (defview notes-buttons "Save and Cancel, under the description being edited." []
   `(row#notesButtons :when ~state.draft.editing :gap 8 :anchors {:left 12 :right 12} :height 30
-     (node#notesSave :style detailButton :text ~(t "detail.save") :focusable true :role button :onClick saveNotes)
+     (node#notesSave :style detailButton :text ~(t "detail.save") :focusable true :role button :onClick save-notes)
      (node#notesCancel :style detailButton
        :text ~(t "detail.cancel")
        :focusable true
        :role button
-       :onClick cancelNotes)))
+       :onClick cancel-notes)))
 
 (defview checklist-bar "The checklist's progress, as a bar." []
   `(row#checklistBar :anchors {:left 12 :right 12} :height 4 :radius 2 :color @color.field
@@ -134,7 +134,7 @@
      :bind state.draft.notes
      :autofocus true
      :label ~(t "detail.editNotes")
-     :keys {"mod+enter" saveNotes :escape cancelNotes}))
+     :keys {"mod+enter" save-notes :escape cancel-notes}))
 
 (defview new-comment "The field that adds a comment." []
   `(node#newComment :style drawerInput
@@ -142,7 +142,7 @@
      :placeholder ~(t "drawer.addComment")
      :label ~(t "drawer.addComment")
      :bind state.newComment
-     :onSubmit [{:run addToCard
+     :onSubmit [{:run add-to-card
                  :with {:field comments :input ~state.newComment :value {:who "RS" :text ~(trim state.newComment)}}}
                 {:set state.newComment :to ""}]))
 
@@ -171,7 +171,7 @@
                         (map-indexed (fn [index it] {:text it :bold (= (mod index 2) 1)})
                                      (split computed.card.notes "*")))
                     [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
-     :onLink copyLink))
+     :onLink copy-link))
 
 (defview labels "The card's labels, as pills to turn on and off." []
   `(row#labels :gap 6 :anchors {:left 12 :right 12} :height 26 :arrows horizontal
@@ -185,7 +185,7 @@
           :borderWidth 1
           :borderColor ~(if on "@color.accent" "@color.border")
           :textColor ~(if on "@color.text" "@color.muted")
-          :onClick ~(handler toggleListItem "labels" name)))))
+          :onClick ~(handler toggle-list-item "labels" name)))))
 
 (defview detail-head "The drawer's top: the card's label, its column and points." []
   `(node#detailHead :anchors {:left 12 :right 12} :height 24 :color transparent
@@ -217,7 +217,7 @@
           (node#attachmentRemove :style removeButton
             :anchors {:right 0 :top 2}
             :label ~(t "drawer.remove" {:name file})
-            :onClick ~(handler removeFromCard "attachments" k))))))
+            :onClick ~(handler remove-from-card "attachments" k))))))
 
 ;;; Views
 
@@ -238,7 +238,7 @@
        :role button
        :tooltip ~(t "detail.editNotes")
        :label ~(t "detail.editNotes")
-       :onClick editNotes)
+       :onClick edit-notes)
      ~(detail-left)
      ~(detail-right)
      ~(detail-delete)
@@ -249,7 +249,7 @@
        :role button
        :tooltip ~(t "detail.more")
        :label ~(t "detail.more")
-       :onClick ~(handler openCardMenu state.selected.c state.selected.i))))
+       :onClick ~(handler open-card-menu state.selected.c state.selected.i))))
 
 (defview detail-left "The drawer's button that moves the card a column back." []
   `(node#detailLeft :style detailButton
@@ -307,7 +307,7 @@
        :accentColor @color.accent
        :pickedTextColor @color.chipOnText
        :keys {:escape {:set state.dueOpen :to false}}
-       :onChange ~(handler setDue event.value))))
+       :onChange ~(handler set-due event.value))))
 
 (defview due-row "The drawer's due date, which opens the date picker." []
   `(row#dueRow :gap 8 :anchors {:left 12 :right 12} :height 30
@@ -334,7 +334,7 @@
        :anchors {:top 3}
        :tooltip ~(t "drawer.clearDue")
        :label ~(t "drawer.clearDue")
-       :onClick ~(handler setDue nil))
+       :onClick ~(handler set-due nil))
      ~(due-picker)))
 
 (defview assignee "A member as a pill in the drawer, on while they are an assignee of the card." [member]
@@ -352,7 +352,7 @@
      :cursor hand
      :color ~(if on member.color "@color.field")
      :textColor ~(if on "#ffffff" "@color.muted")
-     :onClick ~(handler toggleListItem "assignees" member.who)))
+     :onClick ~(handler toggle-list-item "assignees" member.who)))
 
 (defview check-row "One item of the card's checklist: a check box, its text and an x." [item k]
   `(node#checkRow :anchors {:left 0 :right 0} :height 28 :color transparent
@@ -363,7 +363,7 @@
        :height 18
        :activeColor @color.accent
        :trackColor @color.border
-       :onChange ~(handler checkItem k event.value))
+       :onChange ~(handler check-item k event.value))
      (label#checkText :text ~item.text
        :textColor ~(if item.done "@color.muted" "@color.text")
        :anchors {:left 28 :right 30 :top 0 :bottom 0}
@@ -371,4 +371,4 @@
      (node#checkRemove :style removeButton
        :anchors {:right 0 :top 2}
        :label ~(t "drawer.remove" {:name item.text})
-       :onClick ~(handler removeFromCard "checklist" k))))
+       :onClick ~(handler remove-from-card "checklist" k))))

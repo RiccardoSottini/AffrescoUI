@@ -74,7 +74,7 @@
        :textColor @color.muted
        :hover {:color @color.chipHover}
        :cursor hand
-       :onClick closeSettings)
+       :onClick close-settings)
      (node#settingsList :use settingsPage
        :anchors {:left 12 :right 12 :top 52 :bottom 12}
        :with {:color @color.menu
@@ -124,8 +124,8 @@
      :cursor hand
      :drag {:data {:from ~c :at ~i}}
      :dragging {:color @color.accentSoft}
-     :onClick ~(handler selectCard c i)
-     :onFocus ~(handler selectCard c i)))
+     :onClick ~(handler select-card c i)
+     :onFocus ~(handler select-card c i)))
 
 (defview lane "A member's swimlane: their name, then the board's columns across it." [member]
   `(node#lane :anchors {:left 0 :right 0}
@@ -164,7 +164,7 @@
           :anchors {:top 0 :bottom 0}
           :radius @radius.chip
           :color @color.field
-          :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
+          :onDrop ~(handler move-to-lane event.data.from event.data.at c member.who)
           (node#laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4})
           (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
             ~(repeat [row (cards-in-order c) :index k]
@@ -187,7 +187,7 @@
      :headerColor @color.field
      :textColor @color.text
      :accentColor @color.accent
-     :onClipChange changeClip
+     :onClipChange change-clip
      ~(repeat [track state.timelineTracks]
        `(label#timelineHeader :font small
           :text ~track.label

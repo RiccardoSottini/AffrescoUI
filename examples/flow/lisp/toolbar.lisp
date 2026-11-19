@@ -148,7 +148,7 @@
      :label ~(t "filter.placeholder")
      :autofocus true
      :bind state.filterQuery
-     :onSubmit submitFilter
+     :onSubmit submit-filter
      :keys {:escape {:set state.filterOpen :to false}}))
 
 (defview filter-list "The Filter menu's list: the properties, or the values of the one chosen, each with its icon." []
@@ -159,7 +159,7 @@
           :runs [{:icon ~p.1 :color @color.muted} ~(str "  " (t (str "filter." p.0)))]
           :role menuitem
           :label ~(t (str "filter." p.0))
-          :onClick ~(handler pickFilterProp p.0)
+          :onClick ~(handler pick-filter-prop p.0)
           (label#label-filter-prop :font small
             :icon chevron-right
             :mirror true
@@ -176,7 +176,7 @@
           :role menuitemcheckbox
           :selected ~opt.on
           :label ~opt.title
-          :onClick ~(handler setFilter state.filterProp opt.v opt.on)))))
+          :onClick ~(handler set-filter state.filterProp opt.v opt.on)))))
 
 (defview filter-chip "A filter that is on, as a chip: its property and value, and an x that removes it." [f]
   `(node#filterChip :style toolButtonOn
@@ -198,7 +198,7 @@
        :focusable true
        :role button
        :label ~(t "filter.clear")
-       :onClick ~(handler clearFilter f.prop))))
+       :onClick ~(handler clear-filter f.prop))))
 
 (defview search-field "The search field, shown while it is open or holds a search." []
   `(textarea#search :when ~(or state.searchOpen (not= state.query ""))
@@ -241,7 +241,7 @@
             :selected ~(= state.order o)
             :borderColor ~(if (= state.order o) "@color.accent" "@color.border")
             :textColor ~(if (= state.order o) "@color.text" "@color.muted")
-            :onClick ~(handler orderBy o))))
+            :onClick ~(handler order-by o))))
      (node#displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 192})
      (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 212} :height 76
        ~(repeat [prop ["id" "priority" "label" "due" "estimate" "assignee"]]
@@ -253,7 +253,7 @@
             :color ~(if on "@color.chipHover" "transparent")
             :borderColor ~(if on "@color.chipHover" "@color.border")
             :textColor ~(if on "@color.text" "@color.muted")
-            :onClick ~(handler toggleProperty prop))))))
+            :onClick ~(handler toggle-property prop))))))
 
 (defview groupings "The Display menu's grouping choices." []
   `(row#groupings :gap 4 :anchors {:left 120 :right 12 :top 96} :height 24 :role radiogroup :arrows horizontal
