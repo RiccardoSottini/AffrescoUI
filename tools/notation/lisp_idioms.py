@@ -145,6 +145,10 @@ class Reader:
             return self.items_of(Form(character, line))
         if character == '"' or two == '#"':
             return self.string(line)
+        return self.word(character, line)
+
+    def word(self, character, line):
+        """The next form that is no collection nor string: a prefixed form, a character or an atom."""
         prefix = next((word for word in ("~@", "#'", "#_", "~", "'", "`", "@", "^") if self.text.startswith(word,
                                                                                                             self.at)),
                       None)
@@ -389,6 +393,18 @@ def kept_counts(kept):
     return dict(sorted(counts.items()))
 
 
+def count_failures(name, totals, allowed):
+    """A group's rules whose count is off what its idioms file allows (a spelling is allowed none): the failures."""
+    failures = []
+    for rule, count in totals.items():
+        expected = allowed.get(rule, 0) if rule in SHAPE_RULES else 0
+        if count != expected:
+            failures.append(f"{name}: {rule} counts {count}, {expected} expected "
+                            f"({'a mark needs its reason' if rule == NO_REASON else 'style.md writes it another way'}"
+                            f"{', or lower the count in its idioms file' if count < expected else ''})")
+    return failures
+
+
 def group_failures(name, group):
     """What breaks a group's lock: a spelling found unmarked, a shape off its count, kept places off theirs."""
     failures = [f"{name}: {folder} is no folder of examples/" for folder in group["folders"]
@@ -397,12 +413,7 @@ def group_failures(name, group):
     allowed, marked = group.get("allowed", {}), kept_counts(kept)
     for rule in (rule for rule in allowed if rule not in SHAPE_RULES):
         failures.append(f"{name}: {rule} is a spelling: it may not be allowed, only kept with a reason")
-    for rule, count in totals.items():
-        expected = allowed.get(rule, 0) if rule in SHAPE_RULES else 0
-        if count != expected:
-            failures.append(f"{name}: {rule} counts {count}, {expected} expected "
-                            f"({'a mark needs its reason' if rule == NO_REASON else 'style.md writes it another way'}"
-                            f"{', or lower the count in its idioms file' if count < expected else ''})")
+    failures += count_failures(name, totals, allowed)
     for rule in sorted(set(marked) | set(group.get("kept", {}))):
         if marked.get(rule, 0) != group.get("kept", {}).get(rule, 0):
             failures.append(f"{name}: {rule} has {marked.get(rule, 0)} kept, the idioms file says "
@@ -532,9 +543,9 @@ def counts_of(text, rule):
     return sum(1 for found, _ in count_text(text, "snippet")[0] if found == rule)
 
 
-def self_test():
-    """The counter's own tests: each rule found where it is written, not where it isn't, nor in a string or a comment,
-    nor (for a rule of functions) in a binding, nor where it is marked to stay; the exit code."""
+def snippet_failures():
+    """Each rule's snippets counted where the rule is written, and not where it isn't, nor in a string or a comment,
+    nor (for a rule of functions) in a binding, nor where it is marked to stay: the failures."""
     failures = []
     for rule, (has, has_not) in SNIPPETS.items():
         cases = [(has, 1), (has_not, 0), ('(def s "' + has.replace('"', '\\"') + '")', 0),
@@ -545,6 +556,13 @@ def self_test():
         for text, expected in cases:
             if counts_of(text, rule) != expected:
                 failures.append(f"{rule}: {counts_of(text, rule)} found, {expected} expected, in: {text!r}")
+    return failures
+
+
+def self_test():
+    """The counter's own tests: each rule found where it is written, not where it isn't, nor in a string or a comment,
+    nor (for a rule of functions) in a binding, nor where it is marked to stay; the exit code."""
+    failures = snippet_failures()
     if counts_of("(defn f [x] (a (b (c (d (e x))))))", "four-nested-calls") != 1:
         failures.append("four-nested-calls: a deeper nest is counted more than once")
     if counts_of("(defn f [c] (= c \\( ))", "count-zero") != 0 or counts_of('#"(not (= a b))"', "not-equal"):
@@ -610,8 +628,11 @@ def counted_kept(text):
     return count_text(text, "snippet")[1]
 
 
-def main():
-    """Runs what the arguments ask; returns the exit code."""
+ACTIONS = ("check", "count", "kept", "measure", "write")
+
+
+def parse_arguments():
+    """The arguments, checked: one action, or --self-test alone or with --check."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     action = parser.add_mutually_exclusive_group()
     for flag, words in (("--check", "fail if a rule counts more than allowed"), ("--count", "print each rule's count"),
@@ -622,25 +643,30 @@ def main():
     parser.add_argument("names", nargs="*", help="--count: the idioms files (none: every one)")
     parser.add_argument("--json", action="store_true", help="--measure: print one JSON object")
     arguments = parser.parse_args()
-    if not (arguments.self_test or arguments.check or arguments.count or arguments.kept or arguments.write
-            or arguments.measure):
+    chosen = {name for name in ACTIONS if getattr(arguments, name)}
+    if not arguments.self_test and not chosen:
         parser.error("one of --check, --count, --kept, --measure, --write or --self-test is needed")
-    if arguments.self_test and (arguments.count or arguments.kept or arguments.write or arguments.measure):
+    if arguments.self_test and chosen - {"check"}:
         parser.error("--self-test goes alone or with --check")
+    return arguments
+
+
+def run(arguments):
+    """Runs the action the arguments ask; returns the exit code."""
+    if arguments.self_test:
+        failed = self_test()
+        if failed or not arguments.check:
+            return failed
+    actions = {"check": check, "count": lambda: print_counts(arguments.names), "kept": print_kept, "write": write}
+    name = next((name for name in actions if getattr(arguments, name)), None)
+    return actions[name]() if name else measure(arguments.json)
+
+
+def main():
+    """Runs what the arguments ask; returns the exit code."""
+    arguments = parse_arguments()
     try:
-        if arguments.self_test:
-            failed = self_test()
-            if failed or not arguments.check:
-                return failed
-        if arguments.check:
-            return check()
-        if arguments.count:
-            return print_counts(arguments.names)
-        if arguments.kept:
-            return print_kept()
-        if arguments.write:
-            return write()
-        return measure(arguments.json)
+        return run(arguments)
     except ValueError as error:
         print(f"lisp_idioms: {error}")
         return 2

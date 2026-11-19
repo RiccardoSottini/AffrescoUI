@@ -134,19 +134,33 @@ def differences(before, after, path=""):
     if path.endswith("/program") and is_program(before) and is_program(after):
         return program_differences(before, after, path)
     if isinstance(before, dict) and isinstance(after, dict):
-        found = []
-        for key in sorted(set(before) | set(after)):
-            found += differences(before.get(key, MISSING), after.get(key, MISSING), f"{path}/{escaped(key)}")
-        return found
+        return member_differences(dict_members(before, after), path)
     if isinstance(before, list) and isinstance(after, list):
-        found = []
-        for at in range(max(len(before), len(after))):
-            found += differences(before[at] if at < len(before) else MISSING,
-                                 after[at] if at < len(after) else MISSING, f"{path}/{at}")
-        return found
+        return member_differences(list_members(before, after), path)
     if type(before) is type(after) and before == after:  # 1 and True are equal in Python, not in the tree
         return []
     return [(path or "/", before, after, kind(before, after))]
+
+
+def dict_members(before, after):
+    """Two objects' members, as (key, before, after), by key; a member one lacks is MISSING there."""
+    keys = sorted(set(before) | set(after))
+    return [(escaped(key), before.get(key, MISSING), after.get(key, MISSING)) for key in keys]
+
+
+def list_members(before, after):
+    """Two arrays' items, as (index, before, after), in order; an item one lacks is MISSING there."""
+    def item(items, at):
+        return items[at] if at < len(items) else MISSING
+    return [(at, item(before, at), item(after, at)) for at in range(max(len(before), len(after)))]
+
+
+def member_differences(members, path):
+    """The places where the members of two collections differ (differences() of each), in order."""
+    found = []
+    for key, before, after in members:
+        found += differences(before, after, f"{path}/{key}")
+    return found
 
 
 def escaped(key):
