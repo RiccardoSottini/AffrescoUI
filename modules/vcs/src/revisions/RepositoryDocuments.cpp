@@ -429,6 +429,13 @@ json Repository::documentOf(const Commit& commit) const {
 	return rebuild(objects_, commit);
 }
 
+const json& Repository::documentAt(const Commit& commit, json& storage) const {
+	if(commit.id == main_.back()) return mainDocument();
+	if(commit.snapshot) return *commit.snapshot;
+	storage = rebuild(objects_, commit);
+	return storage;
+}
+
 json Repository::rebuild(const std::unordered_map<std::string, Commit>& objects, const Commit& commit) {
 	std::vector<const Commit*> chain;
 	const Commit* base = &commit;
@@ -443,9 +450,13 @@ json Repository::rebuild(const std::unordered_map<std::string, Commit>& objects,
 			     "its delta doesn't apply (" + detail::reasonOf(error) + "): the history is damaged");
 		}
 	}
-	// Deltas read from disk aren't covered by the ids: the document they give must be the one the commit names
-	if(!chain.empty() && detail::sha256(document.dump()) != commit.tree)
-		fail("commit " + commit.id, "its deltas don't give the document its id names: the history is damaged");
+	// Deltas read from disk aren't covered by the ids: the document they give must be the one the commit names. Once
+	// they have given it, they give it again: neither they nor the snapshot change
+	if(!chain.empty() && !commit.rebuiltOnce) {
+		if(detail::sha256(document.dump()) != commit.tree)
+			fail("commit " + commit.id, "its deltas don't give the document its id names: the history is damaged");
+		commit.rebuiltOnce = true;
+	}
 	return document;
 }
 
