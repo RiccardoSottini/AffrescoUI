@@ -11,7 +11,7 @@
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
 [![MCP](https://img.shields.io/badge/MCP-two--way-8B5CF6)](mcp/README.md)
-[![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
+[![Frame time](https://img.shields.io/badge/full%20frame-0.41%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 **[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
