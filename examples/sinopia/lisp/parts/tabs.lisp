@@ -2,6 +2,8 @@
 ;;;
 ;;; Commands act on the current slide and its selected objects (parts/edit.lisp).
 
+(ns sinopia.parts.tabs)
+
 ;;; Definitions
 
 (defcomponent tabHome "The Home tab: the clipboard, the slides, the font, the paragraph, drawing, editing, voice."
@@ -121,7 +123,7 @@
               :title ~(t "ribbon.link")
               :menu true
               :width 44
-              :enabled ~(some (fn [it] (contains ["text" "shape"] (or-else it.kind "text"))) computed.selected)}
+              :enabled ~(some #(contains? #{:text :shape} (or-else (:kind %) "text")) computed.selected)}
        :tooltip ~(t "ribbon.linkTheSelectedTextTo")
        :onClick ~(handler openDrop "b-ins-link"))))
 
@@ -251,7 +253,7 @@
      :height 92
      :gap 4
      :color transparent
-     :let {:a ~computed.animation :on ~(> (count computed.selected) 0)}
+     :let {:a ~computed.animation :on ~(pos? (count computed.selected))}
      (node#g-motion-preview :use rbGroup :with {:title ~(t "ribbon.preview")}
        (node#b-motion-preview :use rbBig
          :with {:icon play :title ~(t "ribbon.preview") :width 50}
@@ -642,7 +644,7 @@
      (label#motion-count :height 22
        :textColor @rbMuted
        :runs [{:text ~(t "ribbon.buildCount" {:n (count (or-else computed.slide.animations []))
-                                               :clicks (count (filter (fn [it] (= it.start "click"))
+                                               :clicks (count (filter #(= (:start %) :click)
                                                                       (or-else computed.slide.animations [])))})
                :size 12}])))
 
@@ -685,7 +687,7 @@
   (setObjects {:align align}))
 
 (defn toggleNumbering "Numbers the selected text's lines, or stops numbering them." []
-  (setObjects (if (nil? computed.first.numbering) {:bullets true :numbering "1."} {:numbering nil})))
+  (setObjects (if (some? computed.first.numbering) {:numbering nil} {:bullets true :numbering "1."})))
 
 (defn shapeChosen "Adds a shape of the gallery to the slide, or a text box." [k]
   (if (= k "textBox") (insertTextBox) (insertShape k)))

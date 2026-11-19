@@ -8,6 +8,8 @@
 ;;; far a part (a callout's tail) passes the box, `open` an outline only. The path node is grown by half the outline
 ;;; and the pad on each side, past the object, which lets it overflow.
 
+(ns sinopia.parts.geometry)
+
 ;;; Definitions
 
 (def lines-shapes "Lines and arrows of a line."
@@ -506,36 +508,35 @@
               g.poly)))
 
 (defmacro line-tail "A line's tail end: an arrowhead or an oval, cap wide." []
-  `(cond (= g.tail "arrow")
-         (str "M" w " " h "L" (- x1 (* (/ cap 2) (sin a))) " " (+ y1 (* (/ cap 2) (cos a))) "L"
-              (+ x1 (* (/ cap 2) (sin a))) " " (- y1 (* (/ cap 2) (cos a))) "Z")
-         (= g.tail "oval")
-         (str "M" (- w (/ cap 2)) " " h "A" (/ cap 2) " " (/ cap 2) " 0 1 1 " (+ w (/ cap 2)) " " h "A" (/ cap 2) " "
-              (/ cap 2) " 0 1 1 " (- w (/ cap 2)) " " h "Z")
-         :else ""))
+  `(let [half (/ cap 2)]
+     (case g.tail
+       :arrow (str "M" w " " h "L" (- x1 (* half (sin a))) " " (+ y1 (* half (cos a))) "L"
+                   (+ x1 (* half (sin a))) " " (- y1 (* half (cos a))) "Z")
+       :oval (str "M" (- w half) " " h "A" half " " half " 0 1 1 " (+ w half) " " h "A" half " " half " 0 1 1 "
+                  (- w half) " " h "Z")
+       "")))
 
 (defmacro line-head "A line's head end: an arrowhead or an oval, cap wide." []
-  `(cond (= g.head "arrow")
-         (str "M0 0L" (- x0 (* (/ cap 2) (sin a))) " " (+ y0 (* (/ cap 2) (cos a))) "L" (+ x0 (* (/ cap 2) (sin a)))
-              " " (- y0 (* (/ cap 2) (cos a))) "Z")
-         (= g.head "oval")
-         (str "M" (/ (- cap) 2) " 0A" (/ cap 2) " " (/ cap 2) " 0 1 1 " (/ cap 2) " 0A" (/ cap 2) " " (/ cap 2)
-              " 0 1 1 " (/ (- cap) 2) " 0Z")
-         :else ""))
+  `(let [half (/ cap 2)]
+     (case g.head
+       :arrow (str "M0 0L" (- x0 (* half (sin a))) " " (+ y0 (* half (cos a))) "L" (+ x0 (* half (sin a))) " "
+                   (- y0 (* half (cos a))) "Z")
+       :oval (str "M" (- half) " 0A" half " " half " 0 1 1 " half " 0A" half " " half " 0 1 1 " (- half) " 0Z")
+       "")))
 
 (defmacro regular-polygon-path "A regular polygon or a star with `corners` points, in the box." []
   `(str "M"
         (join "L"
               (map (fn [it]
                        (str (fixed (* rx
-                                      (+ 1
-                                         (* (if (and g.inner (= (mod it 2) 1)) g.inner 1)
+                                      (inc
+                                         (* (if (and g.inner (odd? it)) g.inner 1)
                                             (cos (- (/ (* 360 it) corners) 90)))))
                                    2)
                             " "
                             (fixed (* ry
-                                      (+ 1
-                                         (* (if (and g.inner (= (mod it 2) 1)) g.inner 1)
+                                      (inc
+                                         (* (if (and g.inner (odd? it)) g.inner 1)
                                             (sin (- (/ (* 360 it) corners) 90)))))
                                    2)))
                    (range corners)))
@@ -550,10 +551,10 @@
    :w ~(max (or-else o.w 100) 1)
    :h ~(max (or-else o.h 100) 1)
    :m ~(min w h)
-   :lw ~(if (or (= o.line "none") (not (or-else o.line g.line))) 0 (or-else o.lineWidth 1))
+   :lw ~(if (or (= o.line :none) (not (or-else o.line g.line))) 0 (or-else o.lineWidth 1))
    :ink ~(or-else (get computed.palette (or-else o.line "accent1.5")) o.line "#000000")
    :cap ~(if g.line (+ (* 3 lw) 4) 0)
-   :e ~(+ (/ lw 2) cap (* (or-else g.pad 0) (max w h)) (if (= o.effect "glow") 8 0))
+   :e ~(+ (/ lw 2) cap (* (or-else g.pad 0) (max w h)) (if (= o.effect :glow) 8 0))
    :r ~(* (or-else g.round 0) m)
    :c ~(* r (- 1 0.5522848))
    :rx ~(/ w 2)
@@ -573,26 +574,26 @@
                      g.poly (str (polygon-path) (if g.ellipse ellipse ""))
                      g.ellipse ellipse
                      g.line (str "M" x0 " " y0 "L" x1 " " y1 (line-tail) (line-head))
-                     (> corners 0) (regular-polygon-path)
-                     (= r 0) (str "M0 0H" w "V" h "H0Z")
+                     (pos? corners) (regular-polygon-path)
+                     (zero? r) (str "M0 0H" w "V" h "H0Z")
                      :else (rounded-rect-path))
     :fill ~(or-else (get computed.palette (or-else o.fill "accent1")) o.fill)
     :halo ~(cond g.line ink
                  o.gradient (or-else (get computed.palette o.gradient.from) o.gradient.from)
-                 (= o.fill "none") ink
+                 (= o.fill :none) ink
                  :else fill)})
 
 ;;; Views
 
 (defview shape-effect "The shadow or the glow under shape `o`." [o name]
   `(path :id ~(str name "-effect")
-     :when ~(or (= o.effect "shadow") (= o.effect "glow"))
-     :x ~(+ (- e) (if (= o.effect "shadow") 4 0))
-     :y ~(+ (- e) (if (= o.effect "shadow") 4 0))
+     :when ~(contains? #{:shadow :glow} o.effect)
+     :x ~(+ (- e) (if (= o.effect :shadow) 4 0))
+     :y ~(+ (- e) (if (= o.effect :shadow) 4 0))
      :width ~(+ w (* 2 e))
      :height ~(+ h (* 2 e))
      :fit fill
-     :scale ~[(if o.flipH (- 1) 1) (if o.flipV (- 1) 1)]
+     :scale ~[(if o.flipH -1 1) (if o.flipV -1 1)]
      :viewBox ~(if g.d
                    (str (fixed (/ (* (- e) 100) w) 3)
                         " "
@@ -604,9 +605,9 @@
                    (str (- e) " " (- e) " " (+ w (* 2 e)) " " (+ h (* 2 e))))
      :d ~pathData
      :fillRule ~(if g.evenodd "evenodd" "nonzero")
-     :fillColor ~(if (or (= o.effect "glow") g.open) "transparent" "#00000040")
-     :stroke ~(cond (= o.effect "glow") (str (slice halo 0 7) "66") (or g.line g.open) "#00000040" :else "transparent")
-     :strokeWidth ~(if (= o.effect "glow") (+ lw 12) lw)
+     :fillColor ~(if (or (= o.effect :glow) g.open) "transparent" "#00000040")
+     :stroke ~(cond (= o.effect :glow) (str (slice halo 0 7) "66") (or g.line g.open) "#00000040" :else "transparent")
+     :strokeWidth ~(if (= o.effect :glow) (+ lw 12) lw)
      :strokeJoin round))
 
 (defview shape-outline "Shape `o`'s path: its fill, its line, its dash." [o name]
@@ -616,7 +617,7 @@
      :width ~(+ w (* 2 e))
      :height ~(+ h (* 2 e))
      :fit fill
-     :scale ~[(if o.flipH (- 1) 1) (if o.flipV (- 1) 1)]
+     :scale ~[(if o.flipH -1 1) (if o.flipV -1 1)]
      :viewBox ~(if g.d
                    (str (fixed (/ (* (- e) 100) w) 3)
                         " "
@@ -629,7 +630,7 @@
      :d ~pathData
      :fillRule ~(if g.evenodd "evenodd" "nonzero")
      :fillColor ~(cond g.line ink
-                       (or g.open (= o.fill "none") o.gradient) "transparent"
+                       (or g.open (= o.fill :none) o.gradient) "transparent"
                        :else (or-else (get computed.palette (or-else o.fill "accent1")) o.fill))
      :fillGradient ~(if (and (not g.line) o.gradient)
                         {:kind "linear"
@@ -637,14 +638,15 @@
                          :stops [{:at 0 :color (or-else (get computed.palette o.gradient.from) o.gradient.from)}
                                  {:at 1 :color (or-else (get computed.palette o.gradient.to) o.gradient.to)}]}
                         nil)
-     :stroke ~(if (> lw 0) ink "transparent")
+     :stroke ~(if (pos? lw) ink "transparent")
      :strokeWidth ~lw
      :strokeJoin ~(if g.line "round" "miter")
-     :strokeDash ~(cond (= o.dash "dot") [lw lw]
-                        (= o.dash "dash") [(* 4 lw) (* 3 lw)]
-                        (= o.dash "dashDot") [(* 4 lw) (* 3 lw) lw (* 3 lw)]
-                        (= o.dash "longDash") [(* 8 lw) (* 3 lw)]
-                        :else [])))
+     :strokeDash ~(case o.dash
+                    :dot [lw lw]
+                    :dash [(* 4 lw) (* 3 lw)]
+                    :dashDot [(* 4 lw) (* 3 lw) lw (* 3 lw)]
+                    :longDash [(* 8 lw) (* 3 lw)]
+                    [])))
 
 (defview shape-feature "One of the extra paths a shape draws, `f`, such as an arrow's head." [o name f]
   `(path :id ~(str name "-" f.id)
@@ -653,7 +655,7 @@
      :width ~(+ w (* 2 e))
      :height ~(+ h (* 2 e))
      :fit fill
-     :scale ~[(if o.flipH (- 1) 1) (if o.flipV (- 1) 1)]
+     :scale ~[(if o.flipH -1 1) (if o.flipV -1 1)]
      :viewBox ~(str (- e) " " (- e) " " (+ w (* 2 e)) " " (+ h (* 2 e)))
      :d ~(join ""
                (map (fn [it]

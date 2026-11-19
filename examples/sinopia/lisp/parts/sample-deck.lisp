@@ -4,6 +4,8 @@
 ;;; and takes the layout's frame until it is moved. Text is paragraphs separated by newlines, each indented four
 ;;; spaces a level.
 
+(ns sinopia.parts.sample-deck)
+
 ;;; The deck
 
 (defstate deck

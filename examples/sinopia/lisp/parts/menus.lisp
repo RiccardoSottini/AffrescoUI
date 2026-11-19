@@ -5,6 +5,8 @@
 ;;; their body applies the last colour picked. Find and Replace open a small box below their button; Copy Style keeps
 ;;; the selection's style and gives it to the next objects selected.
 
+(ns sinopia.parts.menus)
+
 ;;; Definitions
 
 (defstate drop {:open false :id ""} "The drop-down open, and the button it belongs to.")
@@ -25,7 +27,7 @@
 (defstate ctx {:open false :x 0 :y 0
                :kind ""} "The context menu open, where, and for what: a slide, an object or the canvas.")
 
-(defcomputed anyText "Whether something is selected, so a text command can act." (> (count computed.selected) 0))
+(defcomputed anyText "Whether something is selected, so a text command can act." (pos? (count computed.selected)))
 
 (defcomputed menuSizes "The Font Size menu's sizes." [8 9 10 11 12 14 16 18 20 24 28 32 36 40 48 54 60 72 80 96])
 
@@ -33,7 +35,7 @@
 
 (defcomputed fontTitle "The font box's text: the selection's font."
   (cond (= (or-else computed.first.font "default") "mono") "JetBrains Mono"
-        (or computed.titleLike (= computed.first.ph "title") (= computed.first.ph "ctrTitle")) (t "menu.robotoHeadings")
+        (or computed.titleLike (#{:title :ctrTitle} computed.first.ph)) (t "menu.robotoHeadings")
         :else (t "menu.robotoBody")))
 
 (defcomputed dropItems "The items of the drop-down open: computed['menu-' + its button]."
@@ -44,8 +46,8 @@
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
     :run "pasteObjects"
-    :enabled (> (count state.clip) 0)}
-   {:title (t "menu.keepTextOnly") :icon "type" :run "pasteText" :enabled (> (count state.clip) 0)}
+    :enabled (pos? (count state.clip))}
+   {:title (t "menu.keepTextOnly") :icon "type" :run "pasteText" :enabled (pos? (count state.clip))}
    {:title (t "menu.duplicate")
     :icon "copy-plus"
     :keyLabel "Ctrl+D"
@@ -69,8 +71,8 @@
 (defcomputed menu-b-ins-new-slide "The Insert tab's New Slide menu: the Home tab's." (get computed "menu-b-new-slide"))
 
 (defcomputed ctxItems "The context menu's items, by what it is for."
-  (cond (= state.ctx.kind "slide") computed.slideCtxItems
-        (> (count computed.selected) 0) computed.objectCtxItems
+  (cond (= state.ctx.kind :slide) computed.slideCtxItems
+        (pos? (count computed.selected)) computed.objectCtxItems
         :else computed.canvasCtxItems))
 
 (defcomputed slideCtxItems "A slide's context menu."
@@ -98,7 +100,7 @@
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
     :run "pasteObjects"
-    :enabled (> (count state.clip) 0)}
+    :enabled (pos? (count state.clip))}
    {:separator true}
    {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
    {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
@@ -111,7 +113,7 @@
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
     :run "pasteObjects"
-    :enabled (> (count state.clip) 0)}
+    :enabled (pos? (count state.clip))}
    {:separator true}
    {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "resetSlide"}
    {:title (t "menu.formatBackground") :icon "paint-bucket" :run "formatBackground"}])
@@ -160,6 +162,7 @@
         [(t "menu.accent2OnLight") "accent2" "light2" false]]))
 
 (defcomputed menu-b-ins-symbol "The Symbol menu: each adds a symbol to the text."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:title it :run "insertSymbol" :with {:symbol it}})
        ["©" "®" "™" "€" "£" "¥" "°" "±" "×" "÷" "≈" "≠"
         "≤" "≥" "→" "←" "↑" "↓" "•" "…" "§" "¶" "π" "Ω"]))
@@ -169,9 +172,9 @@
     :icon "hash"
     :checked (or-else state.deck.slideNumbers false)
     :run "toggleSlideNumbers"}
-   {:title (if (nil? (or-else state.deck.footer nil))
-               (t "menu.footerText")
-               (t "menu.footerIs" {:text state.deck.footer}))
+   {:title (if (some? state.deck.footer)
+               (t "menu.footerIs" {:text state.deck.footer})
+               (t "menu.footerText"))
     :icon "panel-bottom"
     :run "askFooter"}])
 
@@ -191,7 +194,7 @@
    {:title (t "menu.removeAllSections")
     :icon "list-x"
     :run "removeSections"
-    :enabled (> (count (or-else state.deck.sections [])) 0)}])
+    :enabled (pos? (count (or-else state.deck.sections [])))}])
 
 (defcomputed menu-f-font "The Font menu: the selection's font checked."
   (map (fn [it]
@@ -212,6 +215,7 @@
        computed.menuSizes))
 
 (defcomputed menu-b-case "The Change Case menu."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:title it.0 :enabled computed.anyText :run "changeCase" :with {:how it.1}})
        [[(t "menu.sentenceCase") "sentence"]
         ["lowercase" "lower"]
@@ -428,14 +432,14 @@
     :enabled computed.canRedo}])
 
 (defcomputed menu-search "The search box's menu: the commands whose titles hold its text, and a search of the slides."
-  (if (= (trim state.search) "")
+  (if (= (str/trim state.search) "")
       []
-      (concat (slice (filter (fn [it] (contains (lower-case it.title) (lower-case (trim state.search))))
+      (concat (slice (filter #(str/includes? (str/lower-case (:title %)) (str/lower-case (str/trim state.search)))
                              computed.commands)
                      0
                      10)
               [{:separator true}
-               {:title (t "menu.findInSlides" {:text (trim state.search)}) :icon "search" :run "searchSlides"}])))
+               {:title (t "menu.findInSlides" {:text (str/trim state.search)}) :icon "search" :run "searchSlides"}])))
 
 (defcomputed menu-b-colors "The theme Colors menu: the theme's own, or another's."
   (concat [{:title (t "menu.fromTheTheme") :checked (nil? state.deck.colors) :run "setColorSet" :with {:id nil}}
@@ -461,17 +465,17 @@
 
 (defmacro slide-title "A slide's title, as a link to it shows it: the first line of its title placeholder's text."
   [slide]
-  `(or-else (get (split (or-else (:text (or-else (find (fn [it] (contains ["title" "ctrTitle"] (or-else it.ph "")))
-                                                       (or-else (:objects ~slide) []))
-                                                 {}))
-                                 "")
-                        "\n")
-                 0)
+  `(or-else (-> (find #(contains? #{:title :ctrTitle} (:ph %)) (or-else (:objects ~slide) []))
+                (or-else {})
+                :text
+                (or-else "")
+                (str/split "\n")
+                (get 0))
             ""))
 
 (defcomputed menu-b-ins-link "The Link menu: every slide, by its number and title, and Remove Link."
   (concat (map-indexed (fn [index it]
-                         {:title (t "menu.slideTitled" {:n (+ index 1) :title (slide-title it)})
+                         {:title (t "menu.slideTitled" {:n (inc index) :title (slide-title it)})
                           :checked (= computed.linkOf it.id)
                           :run "setLink"
                           :with {:slide it.id}})
@@ -481,11 +485,11 @@
             :icon "unlink"
             :run "setLink"
             :with {:slide nil}
-            :enabled (some (fn [it] (some? it.link)) computed.selected)}]))
+            :enabled (some #(some? (:link %)) computed.selected)}]))
 
 (defcomputed linkOf "The slide the selection's text links to, if all of it links to one."
-  (if (and (> (count computed.selected) 0)
-           (every? (fn [it] (= it.link computed.selected.0.link)) computed.selected))
+  (if (and (pos? (count computed.selected))
+           (every? #(= (:link %) computed.selected.0.link) computed.selected))
       computed.selected.0.link
       nil))
 
@@ -496,7 +500,7 @@
     :icon "message-square-x"
     :run "deleteComments"
     :with {:all false}
-    :enabled (> (count computed.comments) 0)}
+    :enabled (pos? (count computed.comments))}
    {:title (t "menu.deleteAllCommentsInThis") :icon "trash-2" :run "deleteComments" :with {:all true}}])
 
 (defcomputed menu-gal-themes "The theme gallery's whole list."
@@ -507,6 +511,7 @@
 (defcomputed menu-b-effects "The Shape Effects menu." computed.effectItems)
 
 (defcomputed menu-b-ins-shapes "The Shapes menu: the gallery's shapes."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:title (t (str "shape." it)) :run "insertShape" :with {:shape it}})
        ["rect"
         "roundRect"
@@ -527,7 +532,7 @@
         "wedgeRoundRectCallout"]))
 
 (defcomputed themeGrid "The theme colours' grid: each slot, then its tints, ten a row."
-  (map (fn [it] (+ (get computed.slotNames (mod it 10)) (if (< it 10) "" (str "." (floor (/ it 10)))))) (range 60)))
+  (map #(+ (get computed.slotNames (mod % 10)) (if (< % 10) "" (str "." (floor (/ % 10))))) (range 60)))
 
 (defcomputed highlightColors "The text highlight's colours."
   ["#ffff00"
@@ -572,29 +577,32 @@
 (defcomputed colors-b-quick-styles "The Shape Styles grid: filled, light and outlined."
   {:key "style"
    :none (t "menu.noStyle")
-   :sections [{:title (t "menu.filled") :columns 6 :cells (map (fn [it] (str "accent" (+ it 1))) (range 6))}
-              {:title (t "menu.light") :columns 6 :cells (map (fn [it] (str "accent" (+ it 1) ".1")) (range 6))}
-              {:title (t "menu.outlined") :columns 6 :cells (map (fn [it] (str "line:accent" (+ it 1))) (range 6))}]})
+   :sections [{:title (t "menu.filled") :columns 6 :cells (map #(str "accent" (inc %)) (range 6))}
+              {:title (t "menu.light") :columns 6 :cells (map #(str "accent" (inc %) ".1") (range 6))}
+              {:title (t "menu.outlined") :columns 6 :cells (map #(str "line:accent" (inc %)) (range 6))}]})
 
 (defcomputed colorDrop "The colour grid open: computed['colors-' + its button], or nil."
   (if state.colors.open (get computed (str "colors-" state.colors.id)) nil))
 
 (defcomputed sectionHere "The section the slide shown is in, or nil."
-  (find (fn [it] true)
-        (sort-by (fn [it] it.first)
-                 >
-                 (filter (fn [it] (<= it.first state.current)) (or-else state.deck.sections [])))))
+  (->> (or-else state.deck.sections [])
+       (filter #(<= (:first %) state.current))
+       (sort-by :first >)
+       first))
 
 (defcomputed findQuery "The text the find box looks for." state.find.text)
 
 (defcomputed hitsBySlide "For each slide, the ids of its objects whose text holds the find box's text."
   (if (= computed.findQuery "")
+      ; style: keep, a binding's function names its item it, and nothing else gives [] for each slide
       (map (fn [it] []) state.deck.slides)
       (map (fn [it]
-             (map (fn [it] it.id)
-                  (filter (fn [it] (contains (or-else it.text "") computed.findQuery)) (or-else it.objects []))))
+             (->> (or-else it.objects [])
+                  (filter #(str/includes? (or-else (:text %) "") computed.findQuery))
+                  (map :id)))
            state.deck.slides)))
 
+; style: keep, sum is the expression's own function: the function it takes names its item it
 (defcomputed hitCount "How many objects hold the find box's text." (sum computed.hitsBySlide (fn [it] (count it))))
 
 (defcomponent colorGrid
@@ -603,6 +611,7 @@
   `(column#colors :width 232
      :height ~(+ 40
                  (sum (or-else computed.colorDrop.sections [])
+                      ; style: keep, sum is the expression's own function: the function it takes names its item it
                       (fn [it] (- (+ 24 (* (ceil (/ (count it.cells) it.columns)) 22)) 4))))
      :gap 4
      :radius 10
@@ -649,12 +658,12 @@
      :borderColor @rbLine
      :shadow {:y 4 :blur 14 :color "#00000033"}
      :role dialog
-     :label ~(cond (= state.find.ask "section") (t "menu.renameSection")
-                   (= state.find.ask "footer") (t "menu.footer")
+     :label ~(cond (= state.find.ask :section) (t "menu.renameSection")
+                   (= state.find.ask :footer) (t "menu.footer")
                    state.find.replace (t "ribbon.replace")
                    :else (t "ribbon.find"))
-     :overlay {:anchor ~(cond (= state.find.ask "section") "#b-section"
-                              (= state.find.ask "footer") "#b-ins-header"
+     :overlay {:anchor ~(cond (= state.find.ask :section) "#b-section"
+                              (= state.find.ask :footer) "#b-ins-header"
                               state.find.replace "#b-replace"
                               :else "#b-find")
                :placement below
@@ -678,8 +687,8 @@
   `(label#find-title :anchors {:left 10 :right 10}
      :height 18
      :textColor @rbInk
-     :runs [{:text ~(cond (= state.find.ask "section") (t "menu.sectionName")
-                          (= state.find.ask "footer") (t "menu.footerTextEmptyNone")
+     :runs [{:text ~(cond (= state.find.ask :section) (t "menu.sectionName")
+                          (= state.find.ask :footer) (t "menu.footerTextEmptyNone")
                           state.find.replace (t "ribbon.replace")
                           :else (t "menu.findWhat"))
              :size 12
@@ -711,9 +720,10 @@
      :textColor @rbInk
      :bind state.find.text
      :autofocus true
-     :placeholder ~(cond (= state.find.ask "section") (or-else computed.sectionHere.name (t "section.untitled"))
-                         (= state.find.ask "footer") (or-else state.deck.footer (t "menu.footer"))
-                         :else (t "menu.textInTheSlides"))
+     :placeholder ~(case state.find.ask
+                     :section (or-else computed.sectionHere.name (t "section.untitled"))
+                     :footer (or-else state.deck.footer (t "menu.footer"))
+                     (t "menu.textInTheSlides"))
      :placeholderColor @rbMuted
      :onSubmit submitFind))
 
@@ -728,9 +738,7 @@
                         :anchor ~(str "#" state.drop.id)
                         :placement below
                         :width 220
-                        :icons ~(> (count (filter (fn [it] (or (some? it.icon) (some? it.checked)))
-                                                  computed.dropItems))
-                                   0)
+                        :icons ~(some #(or (some? (:icon %)) (some? (:checked %))) computed.dropItems)
                         :color @card
                         :textColor @rbInk
                         :dimColor @rbMuted
@@ -770,7 +778,7 @@
           :borderWidth ~(if line 2 1)
           :borderColor ~(if line (get computed.palette slot) "@rbFieldLine")
           :hover {:borderColor @brand}
-          :tooltip ~(or-else (get computed.slotTitles (get (split slot ".") 0)) slot)
+          :tooltip ~(or-else (get computed.slotTitles (get (str/split slot ".") 0)) slot)
           :label ~slot
           :onClick ~(handler pickColor state.colors.id c)))))
 
@@ -836,9 +844,9 @@
   (run action :with args))
 
 (defn searchSlides "Finds the search box's text in the slides, and empties the box." []
-  (set "state.find.text" (trim state.search))
+  (set "state.find.text" (str/trim state.search))
   (openFind false)
-  (set "state.find.text" (trim state.search))
+  (set "state.find.text" (str/trim state.search))
   (set "state.search" ""))
 
 ;;; Colours
@@ -849,14 +857,14 @@
 (defn pickColor "A colour picked in a button's grid (nil for none): the button keeps it, and the selection takes it."
   [id value]
   (set "state.colors.open" false)
-  (when (some? value)
-    (set "state.lastColor" (assoc state.lastColor id value)))
+  (when-some [color value]
+    (set "state.lastColor" (assoc state.lastColor id color)))
   (applyColor id value))
 
 (defn quickStyle "The fill, line and text colour of a quick style: a slot, a tint, line:slot, or nil for none." [value]
   (cond (nil? value) {:fill nil :line nil :color nil}
         (= (slice value 0 5) "line:") {:fill "light1" :line (slice value 5) :lineWidth 2 :color (slice value 5)}
-        (contains value ".") {:fill value :line (get (split value ".") 0) :color "dark1"}
+        (str/includes? value ".") {:fill value :line (first (str/split value ".")) :color "dark1"}
         :else {:fill value :line value :color "light1"}))
 
 (defn applyColor "Gives the selected objects a colour button's colour, or a quick style." [id value]
@@ -867,7 +875,7 @@
 ;;; Text
 
 (defn pasteText "Pastes the copied objects' text only, as text boxes a little down and right." []
-  (when (> (count state.clip) 0)
+  (when (seq state.clip)
     (commit)
     (let [next state.deck.next]
       (set-objects (concat computed.objects
@@ -877,7 +885,7 @@
                                            :w (or-else it.w 300) :h (or-else it.h 40)
                                            :text (or-else it.text "") :size 18})
                                         state.clip)))
-      (set "state.board.selection" (map-indexed (fn [index it] (str "o" (+ next index))) state.clip)))
+      (set "state.board.selection" (map #(str "o" (+ next %)) (range (count state.clip)))))
     (increment "state.deck.next" :by (count state.clip))))
 
 (defn setLink
@@ -887,11 +895,11 @@
 
 (defn selectKind "Selects the slide's objects of some kinds: text, shape, line..." [kinds]
   (set "state.board.selection"
-       (map (fn [it] it.id) (filter (fn [it] (contains kinds (or-else it.kind "text"))) computed.objects))))
+       (->> computed.objects (filter #(contains kinds (or-else (:kind %) "text"))) (map :id))))
 
 (defn indentLine "A line moved a list level in (by 1, four spaces, up to 8 levels) or out (by -1)." [by line]
-  (let [at (indexOf line (trim line))]
-    (if (> by 0)
+  (let [at (indexOf line (str/trim line))]
+    (if (pos? by)
       (if (< at 32) (str "    " line) line)
       (slice line (min at 4)))))
 
@@ -899,18 +907,18 @@
   (when computed.anyText
     (commit)
     (set-objects (map (fn [o]
-                        (if (not (selected? o))
-                          o
-                          (merge o {:text (join "\n" (map (fn [line] (indentLine by line))
-                                                         (split (or-else o.text "") "\n")))})))
+                        (if (selected? o)
+                          ; style: keep, the host's split keeps the empty lines at the end, which the join gives back
+                          (assoc o :text (join "\n" (map #(indentLine by %) (split (or-else (:text o) "") "\n"))))
+                          o))
                       computed.objects))))
 
 (defn insertSymbol "Adds a symbol to the selected text, or a text box of it in the middle of the slide." [symbol]
   (if computed.anyText
     (do (commit)
         (set-objects (map (fn [o]
-                            (if (and (selected? o) (not= o.kind "line"))
-                              (merge o {:text (str (or-else o.text "") symbol)})
+                            (if (and (selected? o) (not= (:kind o) :line))
+                              (assoc o :text (str (or-else (:text o) "") symbol))
                               o))
                           computed.objects)))
     (insertObject {:kind "text" :x 430 :y 230 :w 100 :h 80 :text symbol :size 48 :align "center"})))
@@ -922,16 +930,16 @@
 (defn copyStyle "Keeps the selection's look, which the next objects selected take; or forgets it." []
   (if (or (some? state.painter) (not computed.anyText))
     (set "state.painter" nil)
-    (set "state.painter" (zipmap text-style-keys (map (fn [key] (get computed.first key)) text-style-keys)))))
+    (set "state.painter" (zipmap text-style-keys (map #(get computed.first %) text-style-keys)))))
 
 ;;; Sections and the footer
 
 (def closed-box "The find box closed and empty." {:open false :replace false :text "" :with "" :status "" :ask ""})
 
 (defn removeSection "Removes the section the slide shown is in; its slides join the one before." []
-  (when (some? computed.sectionHere)
+  (when-some [section computed.sectionHere]
     (commit)
-    (set "state.deck.sections" (filter (fn [it] (not= it.id computed.sectionHere.id)) state.deck.sections))))
+    (set "state.deck.sections" (remove #(= (:id %) (:id section)) state.deck.sections))))
 
 (defn removeSections "Removes every section." []
   (commit)
@@ -944,19 +952,20 @@
   (set "state.find" (merge closed-box {:open true :ask "footer"})))
 
 (defn answer "Takes what the find box was asked for: the section's name or the footer." []
-  (if (= state.find.ask "section") (renameSection) (setFooter)))
+  (if (= state.find.ask :section) (renameSection) (setFooter)))
 
 (defn renameSection "Renames the section the slide shown is in." []
-  (let [name (trim state.find.text)]
+  (let [name (str/trim state.find.text)]
     (when (and (some? computed.sectionHere) (not= name ""))
       (commit)
       (set "state.deck.sections"
-           (map (fn [it] (if (= it.id computed.sectionHere.id) (merge it {:name name}) it)) state.deck.sections))))
+           (map #(if (= (:id %) computed.sectionHere.id) (assoc % :name name) %) state.deck.sections))))
   (set "state.find" closed-box))
 
 (defn setFooter "Sets the footer's text on every slide (empty: none)." []
   (commit)
-  (set "state.deck.footer" (if (= (trim state.find.text) "") nil (trim state.find.text)))
+  (let [footer (str/trim state.find.text)]
+    (set "state.deck.footer" (if (= footer "") nil footer)))
   (set "state.find" closed-box))
 
 (defn toggleSlideNumbers "Shows the slides' numbers, or hides them." []
@@ -969,7 +978,7 @@
   (if (not= (or-else state.find.ask "") "") (answer) (findNext)))
 
 (defn paintSelection "Gives the objects selected next the look Copy Style kept." [selection]
-  (when (and (some? state.painter) (> (count selection) 0))
+  (when (and (some? state.painter) (seq selection))
     (setObjects state.painter)
     (set "state.painter" nil)))
 
@@ -979,7 +988,7 @@
                      :with state.find.with :status "" :ask ""}))
 
 (defn findNext "Selects the next object that holds the text, on this slide or the next that has one." []
-  (if (= computed.hitCount 0)
+  (if (zero? computed.hitCount)
     (set "state.find.status" (if (= computed.findQuery "") "" (t "menu.notFound")))
     (let [here (get computed.hitsBySlide state.current)]
       (findAfter (indexOf here (or-else (get state.board.selection 0) "")) here))))
@@ -987,11 +996,11 @@
 (defn findAfter "Selects the hit after the one at `at` of this slide's hits, `here`, else the next slide's first."
   [at here]
   (if (or (and (>= at 0) (< (inc at) (count here)))
-          (and (< at 0) (> (count here) 0) (= (count state.board.selection) 0)))
+          (and (neg? at) (seq here) (empty? state.board.selection)))
     (set "state.board.selection" [(get here (inc at))])
     (let [slides (count state.deck.slides)]
-      (findOn (find (fn [it] (> (count (get computed.hitsBySlide it)) 0))
-                    (map (fn [it] (mod (+ state.current 1 it) slides)) (range slides))))))
+      (findOn (find #(seq (get computed.hitsBySlide %))
+                    (map #(mod (+ state.current 1 %) slides) (range slides))))))
   (set "state.find.status" (t "menu.matches" {:n computed.hitCount})))
 
 (defn findOn "Shows a slide and selects its first hit." [slide]
@@ -999,24 +1008,24 @@
   (set "state.board.selection" [(get-in computed.hitsBySlide [slide 0])]))
 
 (defn replaced "A text with every hit replaced." [text]
-  (join state.find.with (split text computed.findQuery)))
+  (str/replace text computed.findQuery state.find.with))
 
 (defn replaceOne "Replaces the text in the selected object, then finds the next." []
   (when (and (not= computed.findQuery "")
-             (> (count computed.selected) 0)
-             (contains (or-else computed.first.text "") computed.findQuery))
+             (pos? (count computed.selected))
+             (str/includes? (or-else computed.first.text "") computed.findQuery))
     (setObjects {:text (replaced computed.first.text)}))
   (findNext))
 
 (defn replaceAll "Replaces the text everywhere in the deck, as one change." []
-  (if (> computed.hitCount 0)
+  (if (pos? computed.hitCount)
     (do (set "state.find.status" (t "menu.replaced" {:n computed.hitCount}))
         (commit)
         (set "state.deck.slides"
              (map (fn [slide]
-                    (merge slide {:objects (map (fn [o] (if (contains (or-else o.text "") computed.findQuery)
-                                                          (merge o {:text (replaced o.text)})
-                                                          o))
-                                                (or-else slide.objects []))}))
+                    (assoc slide :objects (map #(if (str/includes? (or-else (:text %) "") computed.findQuery)
+                                                  (assoc % :text (replaced (:text %)))
+                                                  %)
+                                               (or-else (:objects slide) []))))
                   state.deck.slides)))
     (set "state.find.status" (t "menu.notFound"))))

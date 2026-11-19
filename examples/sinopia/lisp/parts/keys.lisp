@@ -3,6 +3,8 @@
 ;;; Most keys act on the selected objects while no text field has the focus; the slide show's own keys are in
 ;;; parts/show.lisp, and the panes' in parts/views.lisp.
 
+(ns sinopia.parts.keys)
+
 ;;; Keys
 
 (defkey "alt+q" {:when ~(not state.show.on) :do [{:focus "#search"}]})
@@ -17,7 +19,7 @@
 
 (defkey "mod+m" {:when ~(not context.textInputFocus) :do newSlide :with {:layout content}})
 
-(defkey "mod+d" {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do duplicateObjects})
+(defkey "mod+d" {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do duplicateObjects})
 
 (defkey "mod+c" {:when ~(not context.textInputFocus) :do copyObjects})
 
@@ -45,7 +47,7 @@
 
 (defkey "mod+shift+," {:when ~(not context.textInputFocus) :do growText :with {:by -1}})
 
-(defkey "delete" {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do deleteObjects})
+(defkey "delete" {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects})
 
 (defkey "f2"
   {:when ~(and (not context.textInputFocus) (not state.show.on) (= (count computed.selected) 1))
@@ -54,7 +56,7 @@
 
 (defkey "backspace"
   [{:when ~state.show.on :do showPrevious}
-   {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do deleteObjects}])
+   {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects}])
 
 (defkey "mod+f" {:when ~(not state.show.on) :do ~(handler openFind false)})
 
@@ -68,5 +70,5 @@
                 (not state.drop.open)
                 (not state.colors.open)
                 (not state.find.open)
-                (> (count state.board.selection) 0))
+                (pos? (count state.board.selection)))
     :do [{:set state.board.selection :to []}]}])
