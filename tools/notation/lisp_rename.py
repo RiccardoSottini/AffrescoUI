@@ -152,8 +152,9 @@ def locals_of(form, found):
                 break
             if isinstance(item, Form) and item.opener == "(" and item.items and isinstance(item.items[0], Form):
                 words_bound(item.items[0], found)  # one arity of several: ([a] ...) ([a b] ...)
-    if head in BINDING_HEADS and len(form.items) > 1 and isinstance(form.items[1], Form) and form.items[1].opener == "[":
-        for at, item in enumerate(form.items[1].items):
+    first = form.items[1] if len(form.items) > 1 else None
+    if head in BINDING_HEADS and isinstance(first, Form) and first.opener == "[":
+        for at, item in enumerate(first.items):
             if at % 2 == 0:
                 words_bound(item, found)
     if head == "catch" and len(form.items) > 2:
@@ -182,6 +183,15 @@ class Uses:
             for item in form.items[2:]:
                 self.template(item, False)
             self.strict = False
+            return
+        if head_of(form) == "do":
+            for item in form.items[1:]:
+                self.top(item)
+            return
+        named = definition_name(form)
+        if named and named[0] not in RENAMED:  # a command's, a computed value's... name is its own, never renamed
+            for item in [form.items[0], *form.items[2:]]:
+                self.code(item, in_macro=named[0] == "defmacro")
             return
         self.code(form, in_macro=head_of(form) == "defmacro")
 
