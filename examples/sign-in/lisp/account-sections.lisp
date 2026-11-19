@@ -16,7 +16,7 @@
        :style smallButton
        :icon plus
        :text ~(t "addEmail")
-       :onClick openAddEmail)
+       :onClick open-add-email)
     (new-email-form)))
 
 (defview email-row "An email: whether it is primary or verified, and what can be done with it." [address]
@@ -48,7 +48,7 @@
        :height 20
        :text ~(t "remove")
        :label ~(str (t "remove") " " address.address)
-       :onClick ~(handler removeEmail address.address))))
+       :onClick ~(handler remove-email address.address))))
 
 (defview new-email-form "The email being added, with Add and Cancel." []
   `(column#newEmailForm :when ~state.newEmail.open :fitContent height :gap 8 :anchors {:left 0 :right 0}
@@ -77,7 +77,7 @@
          :text ~(if (= state.busy "verifyEmail") computed.busyText (t "add"))
          :disabled ~(not= state.busy "")
          :onClick addEmail)
-       (node#cancelEmail :style smallButton :text ~(t "cancel") :onClick closeAddEmail))))
+       (node#cancelEmail :style smallButton :text ~(t "cancel") :onClick close-add-email))))
 
 ;;; Security
 
@@ -93,7 +93,7 @@
          :icon key-round
          :text ~(t "changePassword")
          :isOpen ~state.change.open
-         :onClick openChange))
+         :onClick open-change))
     (two-step-box)
     `(node#label-passkeys :style fieldLabel :text ~(t "passkeys") :role heading)
     `(node#passkeysCaption :style hint :text ~(t "passkeysCaption"))
@@ -147,9 +147,9 @@
        :checked ~state.user.twoStep
        :activeColor @color.accent
        :trackColor @color.border
-       :onChange ~(handler setTwoStep event.value)
-       :keys {:space ~(handler setTwoStep (not state.user.twoStep))
-              :enter ~(handler setTwoStep (not state.user.twoStep))})
+       :onChange ~(handler set-two-step event.value)
+       :keys {:space ~(handler set-two-step (not state.user.twoStep))
+              :enter ~(handler set-two-step (not state.user.twoStep))})
      (column#column-two-step :grow 1 :height 36
        (node#label-two-step-name :style fieldLabel :text ~(t "twoStep"))
        (node#label-two-step-state :style hint :text ~(t "twoStepState" {:on state.user.twoStep})))))
@@ -164,7 +164,7 @@
      (node#trusted-remove :style smallLink
        :text ~(t "removeDevice")
        :label ~(str (t "removeDevice") " " (t (str "device_" device.device)))
-       :onClick ~(handler removeTrusted device.device))))
+       :onClick ~(handler remove-trusted device.device))))
 
 (defview passkey-row "A passkey: its device, when it was added and last used, and Remove." [passkey]
   `(node#passkeyRow :use itemRow
@@ -178,7 +178,7 @@
        :height 20
        :text ~(t "remove")
        :label ~(str (t "remove") " " (t (str "device_" passkey.device)))
-       :onClick ~(handler removePasskey passkey.id))))
+       :onClick ~(handler remove-passkey passkey.id))))
 
 ;;; Devices
 
@@ -212,7 +212,7 @@
        :height 20
        :text ~(t "signOutDevice")
        :label ~(str (t "signOutDevice") ": " (t (str "device_" session.device)))
-       :onClick ~(handler signOutSession session.id))))
+       :onClick ~(handler sign-out-session session.id))))
 
 ;;; Connected accounts
 
@@ -238,13 +238,13 @@
        :text ~(t "connect")
        :label ~(str (t "connect") " " (t (str "provider_" provider.name)))
        :disabled ~(not= state.busy "")
-       :onClick ~(handler connectProvider provider.name))
+       :onClick ~(handler connect-provider provider.name))
      (node#disconnectProvider :when ~(connected-to? provider.name)
        :style smallButton
        :icon link-2-off
        :text ~(t "disconnect")
        :label ~(str (t "disconnect") " " (t (str "provider_" provider.name)))
-       :onClick ~(handler disconnectProvider provider.name))))
+       :onClick ~(handler disconnect-provider provider.name))))
 
 ;;; Activity
 
@@ -267,7 +267,7 @@
        :style smallLink
        :height 20
        :text ~(t "notYouLink")
-       :onClick openChange)))
+       :onClick open-change)))
 
 ;;; Data
 
@@ -291,4 +291,4 @@
          :icon trash-2
          :text ~(t "deleteButton")
          :isOpen ~state.deleting.open
-         :onClick openDelete))))
+         :onClick open-delete))))

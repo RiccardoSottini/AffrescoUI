@@ -73,7 +73,7 @@
        :style smallLink
        :height 20
        :text ~(t "stay")
-       :onClick staySignedIn)))
+       :onClick stay-signed-in)))
 
 ;;; The sections' tabs
 
@@ -123,7 +123,7 @@
     (photo-row)
     `(node#label-account-name :style fieldLabel :text ~(t "name"))
     `(node#account-name :use checkedField
-       :with {:submit saveProfile
+       :with {:submit save-profile
               :bind state.profile.name
               :content ~state.profile.name
               :key accountName
@@ -144,7 +144,7 @@
          :icon ~(if (= state.busy "save") "loader" "save")
          :text ~(if (= state.busy "save") computed.busyText (t "saveChanges"))
          :disabled ~(not= state.busy "")
-         :onClick saveProfile
+         :onClick save-profile
          :width 200
          :height 42))))
 
@@ -205,5 +205,5 @@
      :textColor ~(if (= colour 0) "@color.accent" "@color.avatarText")
      :borderWidth ~(if (= (or-else state.user.avatar 0) colour) 2 0)
      :borderColor @color.text
-     :onClick ~(handler setAvatar colour)
-     :keys {:enter ~(handler setAvatar colour) :space ~(handler setAvatar colour)}))
+     :onClick ~(handler set-avatar colour)
+     :keys {:enter ~(handler set-avatar colour) :space ~(handler set-avatar colour)}))
