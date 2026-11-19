@@ -70,6 +70,6 @@
      :selectedBackground @rowHover
      :accentColor @accent
      :drag {}
-     :onDrop dropQueued
-     :onOpen jumpTo
-     :keys {"alt+up" ~(handler moveQueued -1) "alt+down" ~(handler moveQueued 1)}))
+     :onDrop drop-queued
+     :onOpen jump-to
+     :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1)}))

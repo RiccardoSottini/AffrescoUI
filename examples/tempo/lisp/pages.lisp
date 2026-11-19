@@ -80,7 +80,7 @@
      :focusable true
      :role button
      :label ~(t "browse.label" {:name item.name :songs (t "songs" {:n item.count})})
-     :onClick ~(handler openCollection item.kind item.name)
+     :onClick ~(handler open-collection item.kind item.name)
      (label#tileArt :text ~(slice item.name 0 1)
        :font large
        :align center
@@ -116,7 +116,7 @@
        :role button
        :label ~(t "collection.back")
        :tooltip ~(t "collection.back")
-       :onClick browseBack)
+       :onClick browse-back)
      (label#collectionArt :text ~(slice state.collection.name 0 1)
        :font large
        :align center
@@ -143,7 +143,7 @@
        :text ~(t "play")
        :anchors {:right 32 :top 50}
        :label ~(t "play.label" {:name state.collection.name})
-       :onClick playCollection)))
+       :onClick play-collection)))
 
 (defview collection-table "The album's or artist's songs; Escape goes back to the tiles." []
   `(table#collectionTable :anchors {:left 24 :right 24 :top 148 :bottom 8}
@@ -157,9 +157,9 @@
      :selectedTextColor @text
      :selectedBackground @accentSoft
      :accentColor @accent
-     :onOpen playFromCollection
-     :onContextMenu ~(handler openPickMenu state.collectionPick)
-     :keys {:escape browseBack}))
+     :onOpen play-from-collection
+     :onContextMenu ~(handler open-pick-menu state.collectionPick)
+     :keys {:escape browse-back}))
 
 ;;; The liked songs
 
@@ -193,7 +193,7 @@
        :anchors {:right 32 :top 50}
        :when ~(pos? (count computed.likedRows))
        :label ~(t "play.label" {:name (t "liked.title")})
-       :onClick ~(handler playLiked computed.likedRows.0.id))))
+       :onClick ~(handler play-liked computed.likedRows.0.id))))
 
 (defview liked-table "The liked songs, title, artist, album and time; a row opened plays, a right click opens its menu." []
   `(table#likedTable :when ~(pos? (count computed.likedRows))
@@ -211,8 +211,8 @@
      :selectedTextColor @text
      :selectedBackground @accentSoft
      :accentColor @accent
-     :onOpen ~(handler playLiked (or-else event.id event.value))
-     :onContextMenu likedMenu))
+     :onOpen ~(handler play-liked (or-else event.id event.value))
+     :onContextMenu liked-menu))
 
 ;;; The search
 
@@ -252,5 +252,5 @@
      :selectedTextColor @text
      :selectedBackground @accentSoft
      :accentColor @accent
-     :onOpen playFromSearch
-     :onContextMenu ~(handler openPickMenu state.searchPick)))
+     :onOpen play-from-search
+     :onContextMenu ~(handler open-pick-menu state.searchPick)))

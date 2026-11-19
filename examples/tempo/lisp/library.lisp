@@ -100,7 +100,7 @@
      :anchors {:left 164 :top 196}
      :label ~(t "playlist.more" {:name computed.list.name})
      :tooltip ~(t "playlist.more" {:name computed.list.name})
-     :onClick openListMenu))
+     :onClick open-list-menu))
 
 (defview name-field "The field that renames the playlist, while it is being renamed: Enter keeps the name, Escape leaves it." []
   `(textarea#nameField :when ~state.renaming
@@ -117,7 +117,7 @@
      :anchors {:left 32 :right 232 :top 78}
      :height 52
      :label ~(t "playlist.nameLabel")
-     :onSubmit renameList
+     :onSubmit rename-list
      :keys {:escape cancelRename}))
 
 (defview song-columns "The names of the songs' columns, over a line." []
@@ -142,7 +142,7 @@
      :role button
      :label ~(str track.title ", " track.artist ", " track.time)
      :onClick ~(handler play state.current place)
-     :onContextMenu ~(handler openSongMenu state.current place)
+     :onContextMenu ~(handler open-song-menu state.current place)
      (label#label-t-1 :icon ~(if (and playing state.isPlaying) "audio-lines" "")
        :text ~(if (and playing state.isPlaying) "" (inc place))
        :textColor ~(if playing "@accent" "@muted")
@@ -204,6 +204,6 @@
      :selectedTextColor @text
      :selectedBackground @accentSoft
      :accentColor @accent
-     :onOpen playFromLibrary
-     :onContextMenu ~(handler openPickMenu state.libraryPick)
-     :onSort sortLibrary))
+     :onOpen play-from-library
+     :onContextMenu ~(handler open-pick-menu state.libraryPick)
+     :onSort sort-library))

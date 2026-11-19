@@ -97,7 +97,7 @@
      :focusable true
      :hover {:textColor @text}
      :tooltip ~(t "now.seekLyric")
-     :onClick ~(handler seekLyric (- index 2))))
+     :onClick ~(handler seek-lyric (- index 2))))
 
 ;; low and flat when nothing plays, or the host gives no sound
 (defview visualiser "32 bars from the spectrum of the sound playing (its bands), and their faint reflection." []
@@ -136,7 +136,7 @@
        :role toolbar
        :label ~(t "sound.presets")
        ~(repeat [preset (keys state.presets)]
-          `(node#preset :style chip :text ~(t (str "preset." preset)) :onClick ~(handler setPreset preset))))
+          `(node#preset :style chip :text ~(t (str "preset." preset)) :onClick ~(handler set-preset preset))))
      ~@(crossfade)
      (node#appearanceCaption :style caption :text ~(t "sound.appearance") :anchors {:left 32 :top 428})
      (stack#themes
@@ -179,7 +179,7 @@
       :checked ~state.eqOn
       :trackColor @faint
       :activeColor @accent
-      :onChange switchEqualiser)
+      :onChange switch-equaliser)
    `(curves#equaliser :anchors {:left 32 :right 32 :top 108}
       :height 168
       :focusable true
@@ -227,7 +227,7 @@
      :role radio
      :checked ~(= state.theme theme)
      :color ~(if (= state.theme theme) "@accentSoft" "@button")
-     :onClick ~(handler setTheme theme)))
+     :onClick ~(handler set-theme theme)))
 
 (defview language-choice "A language to choose: English, Spanish or French." [language]
   `(node#languageChoice :style chip
@@ -235,4 +235,4 @@
      :role radio
      :checked ~(= settings.ui.language language)
      :color ~(if (= settings.ui.language language) "@accentSoft" "@button")
-     :onClick ~(handler setLanguage language)))
+     :onClick ~(handler set-language language)))

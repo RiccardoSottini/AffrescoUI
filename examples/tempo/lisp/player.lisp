@@ -89,7 +89,7 @@
        :role button
        :label ~(t "now.show" {:name computed.playingName})
        :tooltip ~(t "now.show" {:name computed.playingName})
-       :onClick showPlayingList)
+       :onClick show-playing-list)
      (label#nowPlaying :anchors {:left 56 :right 36 :top 9}
        :height 20
        :runs [{:text ~computed.track.title :color @text} {:text ~(str "  ·  " computed.track.artist) :color @muted :size 12}]

@@ -127,7 +127,7 @@
      :role button
      :selected ~open
      :label ~(str list.name ", " (t "songs" {:n (count list.tracks)}))
-     :onClick ~(handler openList index)
+     :onClick ~(handler open-list index)
      :onDoubleClick ~(handler play index 0)
      :tooltip ~(t "playlist.play")
      (image#image-list-cover :file ~list.cover :fit cover :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
