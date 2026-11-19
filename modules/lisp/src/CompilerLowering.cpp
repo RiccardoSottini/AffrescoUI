@@ -637,6 +637,8 @@ void Compiler::writeSetMember(const std::string& members, const Value& value, bo
 		parts.push_back({")", {}, false, {}, {}});
 		return;
 	}
+	// x is written twice, so nested tests would double the text at each level: bounded as a let's names are
+	if(2 * textSize(written) > maxBindingText) failTooLarge(value);
 	parts.push_back({"(contains(" + members + ", ", {}, false, {}, {}}); // (contains(L, x) ? x : null)
 	parts.insert(parts.end(), written.begin(), written.end());
 	parts.push_back({") ? ", {}, false, {}, {}});

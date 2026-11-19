@@ -143,6 +143,16 @@ TEST_CASE("Lisp: style bindings: a set that isn't all constants, or whose value 
 	CHECK(lisprows::bindingError("(#{[1]} state.n)").contains("define a function for this"));
 }
 
+TEST_CASE("Lisp: style bindings: a set called for its value, nested, is refused once its text is too large") {
+	// (#{:a} x) writes x twice, so each level of nesting doubled the text: 40 levels were 2^40 copies of state.v
+	std::string form = "state.v";
+	for(int level = 0; level < 40; ++level) form = "(#{:a} " + form + ")";
+	CHECK(lisprows::bindingError(form).contains("too large as an expression"));
+	// A few levels stay an expression
+	const std::string inner = "(contains(['b'], state.v) ? state.v : null)";
+	CHECK(binding("(#{:a} (#{:b} state.v))") == "{{(contains(['a'], " + inner + ") ? " + inner + " : null)}}");
+}
+
 TEST_CASE("Lisp: style bindings: a node's :when on a set shows and hides it") {
 	const std::string program = R"lisp(
 (defscreen main :state {:kind "text"}
