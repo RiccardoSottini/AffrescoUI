@@ -122,7 +122,7 @@
             :textColor @text
             :cursor hand
             :hover {:color @menuHover}
-            :onClick ~(handler chooseBrush b.preset))))))
+            :onClick ~(handler choose-brush b.preset))))))
 
 (defview brush-option "One of the brush's numbers, from 1 to high: its title, its slider, its value in unit (a key)."
   [key high unit]
@@ -197,7 +197,7 @@
        :focusable true
        :value ~state.gradientEdit
        :accentColor @accent
-       :onChange ~(handler setGradient event.value))
+       :onChange ~(handler set-gradient event.value))
      (node#gradient-preset :use tPicker
        :with {:title ""
               :width 20

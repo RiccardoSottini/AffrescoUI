@@ -67,7 +67,7 @@
        :color @ruler
        :cursor hand
        :tooltip ~(t "canvas.rulerAcross.tip")
-       :onClick guideAcross
+       :onClick guide-across
        ~(repeat [tick computed.rulerMinorX]
          `(node :x ~(+ (/ computed.canvasWidth 2) (* (- tick state.doc.view.x) computed.px)) :y 12 :width 1 :height 4
             :color @muted))
@@ -90,7 +90,7 @@
      :color @ruler
      :cursor hand
      :tooltip ~(t "canvas.rulerDown.tip")
-     :onClick guideDown
+     :onClick guide-down
      ~(repeat [tick computed.rulerMinorY]
        `(node :y ~(+ (/ computed.canvasHeight 2) (* (- tick state.doc.view.y) computed.px)) :x 12 :width 4 :height 1
           :color @muted))
@@ -128,7 +128,7 @@
        :textColor @text
        :color @panel
        :hover {:color @input}
-       :onSubmit zoomTyped)
+       :onSubmit zoom-typed)
      ~@(document-facts)
      ~(status-menu)
      (node :width 4 :height 1 :style clear)))

@@ -25,7 +25,7 @@
      :textColor ~(if off "@muted" "@text")
      :color ~(if on "@selected" "transparent")
      :hover {:color ~(if off "transparent" "@hover")}
-     :onClick ~(handler runWith run args)))
+     :onClick ~(handler run-with run args)))
 
 (defcomponent tButton "A pill with a title; a click runs run with args."
   {:title "" :tip "" :run "" :args {} :off false}
@@ -44,7 +44,7 @@
      :borderWidth 1
      :borderColor @border
      :hover {:color ~(if off "@selected" "@hover")}
-     :onClick ~(handler runWith run args)))
+     :onClick ~(handler run-with run args)))
 
 ;;; Numbers
 
@@ -59,10 +59,10 @@
      :height 14
      :color transparent
      :cursor hand
-     :onPress ~(handler pressSlider run args key low high scale)
-     :onDrag ~(handler dragSlider run args key low high scale)
-     :keys {:left ~(handler stepSlider run args key shown -1 low high scale)
-            :right ~(handler stepSlider run args key shown 1 low high scale)}
+     :onPress ~(handler press-slider run args key low high scale)
+     :onDrag ~(handler drag-slider run args key low high scale)
+     :keys {:left ~(handler step-slider run args key shown -1 low high scale)
+            :right ~(handler step-slider run args key shown 1 low high scale)}
      :focused {:borderWidth 1 :borderColor @accent}
      (node :anchors {:left 4 :right 4 :top 4} :height 2 :color @border)
      (node :x 4
@@ -103,7 +103,7 @@
        :borderColor @border
        :radius @kit.radius
        :disabled ~off
-       :onSubmit ~(handler submitField run args key shown low high scale))
+       :onSubmit ~(handler submit-field run args key shown low high scale))
      ~(field-slider)))
 
 (defview field-slider "A field's chevron, and the slider it opens under the field." []
@@ -119,7 +119,7 @@
      :cursor hand
      :disabled ~off
      :hover {:textColor @text}
-     :onClick ~(handler toggleOpen where)
+     :onClick ~(handler toggle-open where)
      (node :overlay {:placement below-end :open ~where :dismiss outside}
        :width 150
        :height 26
@@ -147,7 +147,7 @@
        :activeColor ~(if off "@muted" "@accent")
        :trackColor @border
        :knobColor @input
-       :onChange ~(handler setOption key event.value))
+       :onChange ~(handler set-option key event.value))
      (label :text ~title :textColor ~(if off "@muted" "@text") :fitText true)))
 
 (defcomponent tChoice "Icon buttons for one of a few values of the tool's option key: tabs are {id icon title}."
@@ -177,6 +177,6 @@
      :borderColor @border
      :cursor hand
      :hover {:borderColor @muted}
-     :onClick ~(handler toggleOpen open)
+     :onClick ~(handler toggle-open open)
      (label :icon chevron-down :font small :textColor @muted :anchors {:right 3 :top 5} :fitText true)
      (node :use tMenu :with {:open ~open :width 200 :items ~items :close ~(if inDialog open "")})))

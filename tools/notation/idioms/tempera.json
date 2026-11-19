@@ -4,6 +4,7 @@
 	],
 	"allowed": {},
 	"kept": {
+		"camel-case-name": 29,
 		"fn-one-parameter": 3,
 		"four-nested-calls": 3,
 		"if-nil": 1
