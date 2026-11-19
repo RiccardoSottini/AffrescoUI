@@ -28,7 +28,7 @@
        (node :use area :with {:slot d}))))
 
 (defcomponent area "An area: the editor state.areas gives its slot (a, b, c or d)." {:slot a}
-  `(node :id ~(str "area-" slot) :color transparent :onHover ~(handler hoverArea slot)
+  `(node :id ~(str "area-" slot) :color transparent :onHover ~(handler hover-area slot)
      (node :when ~(= (get state.areas slot) :viewport) :use viewportArea :fill true)
      (node :when ~(= (get state.areas slot) :timeline) :use timelineArea :fill true)
      (node :when ~(= (get state.areas slot) :outliner) :use outlinerArea :fill true)
@@ -101,7 +101,7 @@
      :selected ~(= state.workspace w.name)
      :color ~(if (= state.workspace w.name) "@widget" "transparent")
      :hover {:color ~(cond (= state.workspace w.name) "@widget" (some? w.needs) "transparent" :else "@view")}
-     :onClick ~(handler setWorkspace w.id w.name)
+     :onClick ~(handler set-workspace w.id w.name)
      (label :text ~w.title
        :textColor ~(cond (= state.workspace w.name) "@active" (some? w.needs) "@faint" :else "@dim")
        :align center
@@ -117,7 +117,7 @@
         :text ~state.sceneName
         :textColor @text
         :label ~(t "topbar.sceneName")
-        :onSubmit ~(handler renameScene event.text)))])
+        :onSubmit ~(handler rename-scene event.text)))])
 
 (defview layer-picker "The view layer's picker (one layer for now), then its name, typed in place: two nodes." []
   [`(node#layer-picker
@@ -129,7 +129,7 @@
         :text ~state.layerName
         :textColor @text
         :label ~(t "topbar.layerName")
-        :onSubmit ~(handler renameLayer event.text)))])
+        :onSubmit ~(handler rename-layer event.text)))])
 
 ;;; The status bar
 

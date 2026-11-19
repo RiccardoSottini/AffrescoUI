@@ -65,33 +65,33 @@
 (defmenu add "The Add menu (Shift A): meshes, lights, a camera, an empty."
   {:mesh {:submenu addMesh :title ~(t "menu.mesh") :icon triangle :group "1_add" :order 1}
    :light {:submenu addLight :title ~(t "menu.light") :icon lightbulb :group "2_add" :order 1}
-   :camera {:run addObject :with {:kind camera :name "Camera"} :title ~(t "menu.camera") :icon video :group "2_add" :order 2}
-   :empty {:run addObject :with {:kind empty :name "Empty"} :title ~(t "menu.empty") :icon axis-3-d :group "2_add" :order 3}})
+   :camera {:run add-object :with {:kind camera :name "Camera"} :title ~(t "menu.camera") :icon video :group "2_add" :order 2}
+   :empty {:run add-object :with {:kind empty :name "Empty"} :title ~(t "menu.empty") :icon axis-3-d :group "2_add" :order 3}})
 
 (defmenu addMesh "The Add menu's meshes."
-  {:plane {:run addObject :with {:kind mesh :mesh plane :name "Plane"} :title ~(t "mesh.plane") :icon square :order 1}
-   :cube {:run addObject :with {:kind mesh :mesh cube :name "Cube"} :title ~(t "mesh.cube") :icon box :order 2}
-   :sphere {:run addObject :with {:kind mesh :mesh sphere :name "Sphere"} :title ~(t "mesh.sphere") :icon globe :order 3}
-   :cylinder {:run addObject
+  {:plane {:run add-object :with {:kind mesh :mesh plane :name "Plane"} :title ~(t "mesh.plane") :icon square :order 1}
+   :cube {:run add-object :with {:kind mesh :mesh cube :name "Cube"} :title ~(t "mesh.cube") :icon box :order 2}
+   :sphere {:run add-object :with {:kind mesh :mesh sphere :name "Sphere"} :title ~(t "mesh.sphere") :icon globe :order 3}
+   :cylinder {:run add-object
               :with {:kind mesh :mesh cylinder :name "Cylinder"}
               :title ~(t "mesh.cylinder")
               :icon cylinder
               :order 4}
-   :cone {:run addObject :with {:kind mesh :mesh cone :name "Cone"} :title ~(t "mesh.cone") :icon cone :order 5}
-   :torus {:run addObject :with {:kind mesh :mesh torus :name "Torus"} :title ~(t "mesh.torus") :icon torus :order 6}})
+   :cone {:run add-object :with {:kind mesh :mesh cone :name "Cone"} :title ~(t "mesh.cone") :icon cone :order 5}
+   :torus {:run add-object :with {:kind mesh :mesh torus :name "Torus"} :title ~(t "mesh.torus") :icon torus :order 6}})
 
 (defmenu addLight "The Add menu's lights."
-  {:point {:run addObject
+  {:point {:run add-object
            :with {:kind light :name "Point" :light (point :intensity 60)}
            :title ~(t "light.point")
            :icon lightbulb
            :order 1}
-   :sun {:run addObject
+   :sun {:run add-object
          :with {:kind light :name "Sun" :light (directional :intensity 3)}
          :title ~(t "light.sun")
          :icon sun
          :order 2}
-   :spot {:run addObject
+   :spot {:run add-object
           :with {:kind light :name "Spot" :light (spot :intensity 60)}
           :title ~(t "light.spot")
           :icon cone

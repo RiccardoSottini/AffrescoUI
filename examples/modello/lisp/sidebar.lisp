@@ -47,7 +47,7 @@
      :color ~(if (= state.sidebarTab tab) "@widget" "transparent")
      :hover {:color @widgetHover}
      :radius 6
-     :onClick ~(handler chooseSidebarTab tab)
+     :onClick ~(handler choose-sidebar-tab tab)
      (label
        :text ~(t (str "sidebar.tab." tab))
        :textColor ~(if (= state.sidebarTab tab) "@text" "@dim")
