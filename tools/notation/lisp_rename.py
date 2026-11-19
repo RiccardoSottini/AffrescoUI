@@ -54,6 +54,9 @@ BINDING_HEADS = ("let", "loop", "for", "doseq", "when-let", "if-let", "when-some
                  "letfn", "when-first", "with-open", "repeat")
 # In a view's template, the keywords whose value names a function: a handler option, a run target
 HANDLER_KEYWORD = re.compile(r":(on[A-Z][A-Za-z]*|then|else|done|run|action|command)$")
+# A feature's definitions start with its id and a hyphen (`slideSorter-page`), which composition checks: kept whole
+FEATURE_PREFIX = re.compile(r"[A-Za-z0-9]*[A-Z][A-Za-z0-9]*-")
+FEATURE_NAME = "a feature's names start with its id, as its composition requires"
 # Why a name a template or data holds as a word, where it may be text (an id, a node's kind), stays
 HELD_AS_TEXT = "a view or data holds it where it may be text"
 # The definitions of data, whose words are text: a word in them names a function only as a handler option or a key's
@@ -403,6 +406,8 @@ class Plan:
         for name in sorted(wanted):
             new = kebab(name)
             reason = self.refusal(name, new, every_name, locals_found, taken, made)
+            if any(f"{os.sep}features{os.sep}" in path for path in wanted[name]) and FEATURE_PREFIX.match(name):
+                reason = FEATURE_NAME
             if reason:
                 self.left[name] = reason
             else:
