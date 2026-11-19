@@ -111,7 +111,7 @@
 (defcomponent downloadsPage
   "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
   {}
-  `(node#downloads :fill true :color @color.page :every {:ms 1000 :do downloadTick}
+  `(node#downloads :fill true :color @color.page :every {:ms 1000 :do download-tick}
      (column#dl-scroll :fill true :scroll vertical
        (column :height ~(+ 420
                            (* 92 (+ (count computed.dlQueue) (count computed.dlParked) (count computed.dlDone))))
@@ -325,7 +325,7 @@
        :textColor ~(if (> k 0) "@color.text" "@color.dim")
        :label ~(t "dl.moveUp")
        :tooltip ~(t "dl.moveUp")
-       :onClick ~(handler dlUp k))
+       :onClick ~(handler dl-up k))
      (label :id ~(str "dl-down-" q.d.id)
        :style roundButton
        :icon arrow-down
@@ -333,7 +333,7 @@
        :textColor ~(if (< k (dec (count computed.dlQueue))) "@color.text" "@color.dim")
        :label ~(t "dl.moveDown")
        :tooltip ~(t "dl.moveDown")
-       :onClick ~(handler dlDown k))
+       :onClick ~(handler dl-down k))
      ~(start-button 'q.d)
      (label :id ~(str "dl-unschedule-" q.d.id)
        :style roundButton

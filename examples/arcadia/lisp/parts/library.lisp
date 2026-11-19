@@ -261,7 +261,7 @@
        :role button
        :isOpen ~open
        :hover {:textColor @color.bright}
-       :onClick ~(handler foldSection section.id open))
+       :onClick ~(handler fold-section section.id open))
      ~(repeat [g games :key (+ section.id g.id)]
         `(node :id ~(str "row-" section.id "-" g.id) :when ~open :use gameRow :with {:game ~g}))))
 

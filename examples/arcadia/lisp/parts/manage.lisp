@@ -96,7 +96,7 @@
            :color ~(if (= state.properties.tab tab) "@color.select" "transparent")
            :textColor ~(if (= state.properties.tab tab) "@color.bright" "@color.muted")
            :hover {:textColor @color.bright}
-           :onClick ~(handler showPropertiesTab tab)))))
+           :onClick ~(handler show-properties-tab tab)))))
 
 (defview caps-title "A section's title in caps, at a height of the page." [key top]
   `(label :font caps
@@ -122,7 +122,7 @@
          :label ~(t "properties.overlay")
          :checked ~(not= computed.manageGame.overlay false)
          :activeColor @color.accent
-         :onChange ~(handler setOverlay event.value)))
+         :onChange ~(handler set-overlay event.value)))
      (row#properties-cloud :anchors {:left 0 :right 0 :top 156} :height 30 :alignItems center
        (label :grow 1 :height 22 :text ~(t "properties.cloud") :textColor @color.text)
        (toggle#properties-cloud-toggle :width 40
@@ -130,7 +130,7 @@
          :label ~(t "properties.cloud")
          :checked ~(not= computed.manageGame.cloud false)
          :activeColor @color.accent
-         :onChange ~(handler setCloud event.value)))))
+         :onChange ~(handler set-cloud event.value)))))
 
 (defview launch-options "The game's launch options, a field that keeps what is typed." []
   `(textarea#properties-launch :anchors {:left 0 :right 0 :top 24}
@@ -148,7 +148,7 @@
      :placeholder ~(t "properties.launchHint")
      :label ~(t "properties.launch")
      :text ~(or-else computed.manageGame.launchOptions "")
-     :onChange ~(handler setLaunchOptions event.value)))
+     :onChange ~(handler set-launch-options event.value)))
 
 (defview updates-page "The updates page: when the game updates, one of three." []
   `(node :when ~(= state.properties.tab "updates") :fill true :color transparent
@@ -176,7 +176,7 @@
      :label ~(t (str "properties.updates." way))
      :radius 3
      :hover {:color @color.hover}
-     :onClick ~(handler setUpdates way)
+     :onClick ~(handler set-updates way)
      (panel :color transparent :width 2 :height 1)
      (panel :width 14
        :height 14
@@ -212,7 +212,7 @@
        :height 32
        :with {:title ~(t "properties.verify") :icon shield-check}
        :disabled ~(= state.properties.verify "running")
-       :onClick verifyFiles)
+       :onClick verify-files)
      (label#properties-verify-result :live polite
        :font small
        :anchors {:left 0 :right 0 :top 168}

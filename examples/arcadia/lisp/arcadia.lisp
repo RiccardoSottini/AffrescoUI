@@ -25,12 +25,12 @@
 (defn swapped "A list with the items at two places swapped." [items i j]
   (map-indexed (fn [at item] (condp = at i (get items j) j (get items i) item)) items))
 
-(defn gameOf "A game of the library, by its id." [id]
+(defn game-of "A game of the library, by its id." [id]
   (find #(= (:id %) id) data.games))
 
-(defn hideToast "Hides the notice at the bottom right." [] (set "state.toast.open" false))
+(defn hide-toast "Hides the notice at the bottom right." [] (set "state.toast.open" false))
 
-(defn scrollChat "Scrolls the chat to its last message." [] (scrollTo "#chat-end"))
+(defn scroll-chat "Scrolls the chat to its last message." [] (scrollTo "#chat-end"))
 
 ;;; Going about
 
@@ -81,7 +81,7 @@
   (set "settings.appearance.language"
        (case settings.appearance.language :en :es :es :fr :en)))
 
-(defn openStartPage "Opens Arcadia on the page Settings choose, when it isn't the library." []
+(defn open-start-page "Opens Arcadia on the page Settings choose, when it isn't the library." []
   (when (not= settings.appearance.startPage :library)
     (set "state.nav" [{:tab settings.appearance.startPage :page :home :id nil}])))
 
@@ -103,15 +103,15 @@
   :title ~(t "command.notify") :description ~(t "command.notify.about") :category ~(t "category.arcadia")
   [text]
   (set "state.toast" {:open true :text text})
-  (debounce 4000 hideToast))
+  (debounce 4000 hide-toast))
 
-(defn upToDate "Says the client is up to date." [] (notify (t "notice.upToDate")))
+(defn up-to-date "Says the client is up to date." [] (notify (t "notice.upToDate")))
 
 (defcommand checkUpdates "Checks whether a newer Arcadia is out."
   :title ~(t "command.checkUpdates") :description ~(t "command.checkUpdates.about") :category ~(t "category.arcadia")
   []
   (notify (t "notice.checking"))
-  (after 1200 upToDate))
+  (after 1200 up-to-date))
 
 (defcommand clearCache "Clears the download cache; installed games stay."
   :title ~(t "command.clearCache") :description ~(t "command.clearCache.about") :category ~(t "category.settings")
@@ -158,10 +158,10 @@
   :title ~(t "command.activateKey") :description ~(t "command.activateKey.about") :category ~(t "category.games")
   [id]
   (cond (nil? id) (set "state.code.error" (t "code.badKey"))
-        (:owned (gameOf id)) (set "state.code.error" (t "code.owned"))
+        (:owned (game-of id)) (set "state.code.error" (t "code.owned"))
         :else (do (update-record "games" :id id :fields {:owned true})
                   (set "state.code.open" false)
-                  (notify (t "code.added" {:game (:title (gameOf id))}))
+                  (notify (t "code.added" {:game (:title (game-of id))}))
                   (openGame id))))
 
 (defcommand redeemGift "Checks a gift code, and adds its amount to the wallet."
@@ -181,7 +181,7 @@
   (dismiss)
   (set "state.addGame" {:open true :name ""}))
 
-(defn openAdded "The game just added, its page." [result] (openGame result.id))
+(defn open-added "The game just added, its page." [result] (openGame result.id))
 
 (defcommand addLocalGame "Adds a game Arcadia doesn't sell to the library, ready to play from it."
   :title ~(t "command.addLocalGame") :description ~(t "command.addLocalGame.about") :category ~(t "category.games")
@@ -191,7 +191,7 @@
       (insert "games"
               :value {:title title :genre "Other" :owned true :installed true :status "ready"
                       :sizeGb 0 :local true :art "local" :logo "#f5a524" :achievements [0 0]}
-              :then openAdded)
+              :then open-added)
       (set "state.addGame.open" false))))
 
 (defcommand openBackup "Opens the window to back up the installed games or restore a backup."
@@ -200,7 +200,7 @@
   (dismiss)
   (set "state.backup" {:open true :restored nil}))
 
-(defn backedUp "Says the backup is saved." [] (notify (t "backup.saved")))
+(defn backed-up "Says the backup is saved." [] (notify (t "backup.saved")))
 
 (defcommand backUp "Saves which games are installed, with their launch options and update choices, as a JSON file."
   :title ~(t "command.backUp") :description ~(t "command.backUp.about") :category ~(t "category.arcadia")
@@ -213,9 +213,9 @@
                                 {:id id :launchOptions (otherwise launchOptions "") :overlay overlay :cloud cloud
                                  :updates updates})))}
             :name "arcadia-backup.json"
-            :onDone backedUp))
+            :onDone backed-up))
 
-(defn restoreGames "Puts back the settings of the games a backup names that are in the library." []
+(defn restore-games "Puts back the settings of the games a backup names that are in the library." []
   (let [owned (into #{} (map :id computed.owned))]
     (doseq [{:keys [id launchOptions updates]} (otherwise state.backup.restored.games [])]
       (when (owned id)
@@ -226,7 +226,7 @@
 (defcommand restore "Reads a backup and puts back the settings of the games it names that are in the library."
   :title ~(t "command.restore") :description ~(t "command.restore.about") :category ~(t "category.arcadia")
   []
-  (openFile "state.backup.restored" :extensions ["json"] :onDone restoreGames))
+  (openFile "state.backup.restored" :extensions ["json"] :onDone restore-games))
 
 (defcommand showInfo "Shows About Arcadia, support, privacy or the system's details."
   :title ~(t "command.showInfo") :description ~(t "command.showInfo.about") :category ~(t "category.help")
@@ -264,10 +264,10 @@
   (let [lastAt (dec (count computed.couchGames))]
     (set "state.couch.at" (clamp (+ state.couch.at by) 0 lastAt))))
 
-(defn showSettingsPage "Shows a page of Settings: interface, downloads, storage or account." [page]
+(defn show-settings-page "Shows a page of Settings: interface, downloads, storage or account." [page]
   (set "state.settingsDialog.page" page))
 
-(defn couchChoose "Chooses a game on the couch shelf, by its id." [id]
+(defn couch-choose "Chooses a game on the couch shelf, by its id." [id]
   (set "state.couch.at" (indexOf (map :id computed.couchGames) id)))
 
 ;;; Friends
@@ -283,7 +283,7 @@
   (scrollTo "#chat-end")
   (focus "#chat-input"))
 
-(defn startTyping "Shows the friend replied to as typing." []
+(defn start-typing "Shows the friend replied to as typing." []
   (set "state.typing" state.replyTo)
   (scrollTo "#chat-end"))
 
@@ -299,7 +299,7 @@
   []
   (when (and (not= computed.chatFriend.presence :offline) (nil? state.replyTo))
     (set "state.replyTo" state.chatWith)
-    (after 900 startTyping)
+    (after 900 start-typing)
     (after 3200 reply)))
 
 (defcommand sendMessage "Sends the message written to the friend in the chat."
@@ -310,7 +310,7 @@
     (when (and (some? computed.chatFriend) (not (str/blank? draft)))
       (insert "messages" :value {:friend state.chatWith :mine true :at (now) :text draft})
       (set "state.chatDraft" "")
-      (after 50 scrollChat)
+      (after 50 scroll-chat)
       (awaitReply))))
 
 (defcommand inviteToPlay "Invites the friend in the chat to the game running, or the one played last."
@@ -319,7 +319,7 @@
   []
   (when (and (some? computed.chatFriend) (some? computed.inviteGame))
     (insert "messages" :value {:friend state.chatWith :mine true :at (now) :game computed.inviteGame.id})
-    (after 50 scrollChat)))
+    (after 50 scroll-chat)))
 
 (defcommand setStatus "Sets how you show to friends: online, away, invisible or offline."
   :title ~(t "command.setStatus") :description ~(t "command.setStatus.about") :category ~(t "category.friends")
@@ -348,7 +348,7 @@
 
 ;;; Downloads
 
-(defn downloadPath "A field of a download of the state, as a path." [i key]
+(defn download-path "A field of a download of the state, as a path." [i key]
   (str "state.downloads[" i "]." key))
 
 (defcommand showDownloads "Opens the downloads page."
@@ -366,8 +366,8 @@
   :icon "download"
   [id]
   (doseq [[i d] (map-indexed vector state.downloads)]
-    (when (= (:status d) :downloading) (set (downloadPath i "status") :queued))
-    (when (= (:id d) id) (set (downloadPath i "status") :downloading)))
+    (when (= (:status d) :downloading) (set (download-path i "status") :queued))
+    (when (= (:id d) id) (set (download-path i "status") :downloading)))
   (set "state.dlPaused" false))
 
 (defcommand dlMove "Swaps two downloads, by their places in the list."
@@ -380,13 +380,13 @@
   :category ~(t "category.downloads")
   [id]
   (doseq [[i d] (map-indexed vector state.downloads)]
-    (when (= (:id d) id) (set (downloadPath i "status") :paused))))
+    (when (= (:id d) id) (set (download-path i "status") :paused))))
 
 (defcommand dlRemove "Removes a download from the list."
   :title ~(t "command.dlRemove") :description ~(t "command.dlRemove.about") :category ~(t "category.downloads")
   :icon "x"
   [id]
-  (let [game (gameOf id)]
+  (let [game (game-of id)]
     (when (= (:status game) :downloading)
       (update-record "games" :id id :fields {:status (if (:installed game) "update" "none")})))
   (set "state.downloads" (remove #(= (:id %) id) state.downloads)))
@@ -401,35 +401,35 @@
   [id]
   (doseq [[i d] (map-indexed vector state.downloads)]
     (when (= (:id d) id)
-      (set (downloadPath i "status") :done)
-      (set (downloadPath i "doneGb") (otherwise (:sizeGb d) (:sizeGb (gameOf id))))))
+      (set (download-path i "status") :done)
+      (set (download-path i "doneGb") (otherwise (:sizeGb d) (:sizeGb (game-of id))))))
   (update-record "games" :id id :fields {:status "ready" :installed true})
   (when-some [queued (find #(= (:status %) :queued) state.downloads)]
     (dlStart (:id queued))))
 
-(defn dlUp "Moves the queued download at place k of the queue up one, unless it is first." [k]
+(defn dl-up "Moves the queued download at place k of the queue up one, unless it is first." [k]
   (when (pos? k)
     (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(dec k) :at]))))
 
-(defn dlDown "Moves the queued download at place k of the queue down one, unless it is last." [k]
+(defn dl-down "Moves the queued download at place k of the queue down one, unless it is last." [k]
   (when (< k (dec (count computed.dlQueue)))
     (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(inc k) :at]))))
 
-(defn nextRate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
+(defn next-rate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
   (let [rate (+ 34 (mod (* state.dlTick 7) 19))]
     (if (> settings.downloads.limit 0) (min settings.downloads.limit rate) rate)))
 
-(defn downloadTick
+(defn download-tick
   ;; Not while a game runs, unless Settings allow it.
   "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there."
   []
   (when (and (some? computed.download) (not state.dlPaused) (or settings.downloads.whilePlaying (nil? state.running)))
     (set "state.dlTick" (inc state.dlTick))
-    (set "state.dlRate" (concat (rest state.dlRate) [(nextRate)]))
+    (set "state.dlRate" (concat (rest state.dlRate) [(next-rate)]))
     (let [step (/ (get state.dlRate 47) 1024)]
       (doseq [[i d] (map-indexed vector state.downloads)]
         (when (= (:status d) :downloading)
-          (set (downloadPath i "doneGb") (min computed.dlSize (+ (:doneGb d) step))))))
+          (set (download-path i "doneGb") (min computed.dlSize (+ (:doneGb d) step))))))
     (when (>= computed.download.doneGb computed.dlSize)
       (dlFinish computed.download.id))))
 
@@ -467,7 +467,7 @@
 (defcommand editNote "Opens the note about a game, to write in it."
   :title ~(t "command.editNote") :description ~(t "command.editNote.about") :category ~(t "category.game")
   [id]
-  (set "state.note" {:open true :id id :text (otherwise (:note (gameOf id)) "")}))
+  (set "state.note" {:open true :id id :text (otherwise (:note (game-of id)) "")}))
 
 (defcommand saveNote "Saves the note with its game."
   :title ~(t "command.saveNote") :description ~(t "command.saveNote.about") :category ~(t "category.game")
@@ -495,14 +495,14 @@
 (defcommand stop "Stops the game running."
   :title ~(t "command.stop") :description ~(t "command.stop.about") :category ~(t "category.game") :icon "square"
   [id]
-  (update-record "games" :id id :fields {:status "ready" :hours (+ (:hours (gameOf id)) 0.5)})
+  (update-record "games" :id id :fields {:status "ready" :hours (+ (:hours (game-of id)) 0.5)})
   (set "state.running" nil))
 
 (defcommand install "Queues the game, or its update: it downloads at once if nothing else is."
   :title ~(t "command.install") :description ~(t "command.install.about") :category ~(t "category.game")
   :icon "download"
   [id]
-  (let [game (gameOf id)
+  (let [game (game-of id)
         updating (= (:status game) :update)]
     (when (and (some? game) (not-any? #(and (= (:id %) id) (not= (:status %) :done)) state.downloads))
       (push "state.downloads" {:id id
@@ -516,7 +516,7 @@
   :title ~(t "command.toggleFavourite") :description ~(t "command.toggleFavourite.about")
   :category ~(t "category.game") :icon "star"
   [id]
-  (update-record "games" :id id :fields {:favourite (not (:favourite (gameOf id)))}))
+  (update-record "games" :id id :fields {:favourite (not (:favourite (game-of id)))}))
 
 (defcommand setSort "Sorts All Games by name, hours played or last played."
   :title ~(t "command.setSort") :description ~(t "command.setSort.about") :category ~(t "category.library")
@@ -533,17 +533,17 @@
       (:none :update) (install id)
       nil)))
 
-(defn foldSection "Folds a section of the game list if it is open, or unfolds it." [id open]
+(defn fold-section "Folds a section of the game list if it is open, or unfolds it." [id open]
   (set (str "state.collapsed." id) open))
 
-(defn openSection "Opens a section of a game: its store page, its extra content, support, or a part of its hub." [id section]
+(defn open-section "Opens a section of a game: its store page, its extra content, support, or a part of its hub." [id section]
   (case section
     :store (openStore id)
     :dlc (openProperties id "dlc")
     :support (showInfo "support")
     (openHub id section)))
 
-(defn showHubTab "Shows a section of a game's hub: everything, the discussions or the guides." [tab]
+(defn show-hub-tab "Shows a section of a game's hub: everything, the discussions or the guides." [tab]
   (set "state.hubTab" tab))
 
 ;;; Managing a game
@@ -571,34 +571,34 @@
 (defcommand uninstall "Removes the game's files; it stays in the library, ready to install again."
   :title ~(t "command.uninstall") :description ~(t "command.uninstall.about") :category ~(t "category.game")
   [id]
-  (when (not= (:status (gameOf id)) :running)
+  (when (not= (:status (game-of id)) :running)
     (update-record "games" :id id :fields {:installed false :status "none"})
     (set "state.uninstall.open" false)))
 
-(defn showPropertiesTab "Shows a page of a game's properties: general, updates, files or dlc." [tab]
+(defn show-properties-tab "Shows a page of a game's properties: general, updates, files or dlc." [tab]
   (set "state.properties.tab" tab))
 
-(defn setLaunchOptions "Keeps the launch options typed for the game being managed." [text]
+(defn set-launch-options "Keeps the launch options typed for the game being managed." [text]
   (update-record "games" :id computed.manageGame.id :fields {:launchOptions text}))
 
-(defn setOverlay "Turns the in-game overlay on or off for the game being managed." [on]
+(defn set-overlay "Turns the in-game overlay on or off for the game being managed." [on]
   (update-record "games" :id computed.manageGame.id :fields {:overlay on}))
 
-(defn setCloud "Turns cloud saves on or off for the game being managed." [on]
+(defn set-cloud "Turns cloud saves on or off for the game being managed." [on]
   (update-record "games" :id computed.manageGame.id :fields {:cloud on}))
 
-(defn setUpdates "How the game being managed updates: auto, launch or high." [way]
+(defn set-updates "How the game being managed updates: auto, launch or high." [way]
   (update-record "games" :id computed.manageGame.id :fields {:updates way}))
 
-(defn filesVerified "Says the game's files were checked." [] (set "state.properties.verify" "done"))
+(defn files-verified "Says the game's files were checked." [] (set "state.properties.verify" "done"))
 
-(defn verifyFiles "Checks the game's files: a moment, then they are fine." []
+(defn verify-files "Checks the game's files: a moment, then they are fine." []
   (set "state.properties.verify" "running")
-  (after 1500 filesVerified))
+  (after 1500 files-verified))
 
 ;;; The store
 
-(defn leaveDialogs "The store's dialog closes and its search clears, before going to another of its pages." []
+(defn leave-dialogs "The store's dialog closes and its search clears, before going to another of its pages." []
   (set "state.cartDialog" false)
   (set "state.storeQuery" ""))
 
@@ -606,13 +606,13 @@
   :title ~(t "command.storeHome") :description ~(t "command.storeHome.about") :category ~(t "category.store")
   :icon "store"
   []
-  (leaveDialogs)
+  (leave-dialogs)
   (go :store :home nil))
 
 (defcommand openStore "Opens a game's page in the store."
   :title ~(t "command.openStore") :description ~(t "command.openStore.about") :category ~(t "category.store")
   [id]
-  (leaveDialogs)
+  (leave-dialogs)
   (set "state.shotIndex" 0)
   (go :store :app id))
 
@@ -620,7 +620,7 @@
   :title ~(t "command.showCart") :description ~(t "command.showCart.about") :category ~(t "category.store")
   :icon "shopping-cart"
   []
-  (leaveDialogs)
+  (leave-dialogs)
   (set "state.receipt" [])
   (go :store :cart nil))
 
@@ -628,7 +628,7 @@
   :title ~(t "command.showWishlist") :description ~(t "command.showWishlist.about") :category ~(t "category.store")
   :icon "heart"
   []
-  (leaveDialogs)
+  (leave-dialogs)
   (go :store :wishlist nil))
 
 (defcommand storeSearch "Searches the store for a word."
@@ -689,50 +689,50 @@
 
 ;;; The store's choices
 
-(defn revealNode "Scrolls a node into view, by its selector." [selector] (scrollTo selector))
+(defn reveal-node "Scrolls a node into view, by its selector." [selector] (scrollTo selector))
 
-(defn openStoreBar
+(defn open-store-bar
   "Follows a store bar link: Categories opens its menu, News goes to the library's news, the rest to the store."
   [item]
   (case item
     :categories (toggle "state.storeCatsOpen")
-    :news (do (libraryHome) (after 50 revealNode "#news-header"))
+    :news (do (libraryHome) (after 50 reveal-node "#news-header"))
     (do (storeHome)
         (when (= item :noteworthy)
           (set "state.storeList" :new)
-          (after 50 revealNode "#store-tabs")))))
+          (after 50 reveal-node "#store-tabs")))))
 
-(defn showFeature "Shows a game of the featured carousel, by its place." [n] (set "state.storeFeature" n))
+(defn show-feature "Shows a game of the featured carousel, by its place." [n] (set "state.storeFeature" n))
 
-(defn previousFeature "Shows the featured game before the one shown, the last after the first." []
+(defn previous-feature "Shows the featured game before the one shown, the last after the first." []
   (set "state.storeFeature" (mod (+ state.storeFeature 4) 5)))
 
-(defn nextFeature "Shows the featured game after the one shown, the first after the last." []
+(defn next-feature "Shows the featured game after the one shown, the first after the last." []
   (set "state.storeFeature" (mod (inc state.storeFeature) 5)))
 
-(defn showFeatureShot "Shows a screenshot in the carousel's big picture, while the pointer is over it." [n]
+(defn show-feature-shot "Shows a screenshot in the carousel's big picture, while the pointer is over it." [n]
   (set "state.storeShot" n))
 
-(defn showStoreList "Shows a tab of the store's lists (new, top or specials), its first game previewed." [tab]
+(defn show-store-list "Shows a tab of the store's lists (new, top or specials), its first game previewed." [tab]
   (set "state.storeList" tab)
   (set "state.storeHover" nil))
 
-(defn previewGame "Previews a game of the store's list beside it." [id] (set "state.storeHover" id))
+(defn preview-game "Previews a game of the store's list beside it." [id] (set "state.storeHover" id))
 
-(defn showShot "Shows a picture of a game's gallery, by its place in the strip." [s] (set "state.shotIndex" s))
+(defn show-shot "Shows a picture of a game's gallery, by its place in the strip." [s] (set "state.shotIndex" s))
 
-(defn showRequirements "Shows the system requirements for a platform: windows, macos or linux." [platform]
+(defn show-requirements "Shows the system requirements for a platform: windows, macos or linux." [platform]
   (set "state.reqTab" platform))
 
-(defn voteReview "Votes a review yes, no or funny; the same vote again takes it back." [author choice]
+(defn vote-review "Votes a review yes, no or funny; the same vote again takes it back." [author choice]
   (let [key (slug author)]
     (set (str "state.votes." key) (if (= (get state.votes key) choice) nil choice))))
 
-(defn cartOrAdd "Opens the cart if the game is in it, else adds the game to it." [id]
+(defn cart-or-add "Opens the cart if the game is in it, else adds the game to it." [id]
   (if (has state.cart id) (showCart) (addToCart id)))
 
-(defn wishUp "Moves the wishlist's game at rank i up one, unless it is first." [i]
+(defn wish-up "Moves the wishlist's game at rank i up one, unless it is first." [i]
   (when (pos? i) (wishMove i (dec i))))
 
-(defn wishDown "Moves the wishlist's game at rank i down one, unless it is last." [i]
+(defn wish-down "Moves the wishlist's game at rank i down one, unless it is last." [i]
   (when (< i (dec (count state.wishlist))) (wishMove i (inc i))))

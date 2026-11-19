@@ -286,7 +286,7 @@
        :cursor hand
        :label ~(t "store.moveUp")
        :hover {:textColor "#ffffff"}
-       :onClick ~(handler wishUp i))
+       :onClick ~(handler wish-up i))
      (label :when ~(and (= state.wishSort "rank") (= state.wishQuery ""))
        :icon chevron-down
        :text ""
@@ -299,7 +299,7 @@
        :cursor hand
        :label ~(t "store.moveDown")
        :hover {:textColor "#ffffff"}
-       :onClick ~(handler wishDown i))))
+       :onClick ~(handler wish-down i))))
 
 (defview wish-details "A wished game's name (which opens its page), reviews, release, tags, and when it was added."
   [g]
@@ -340,7 +340,7 @@
        (node :use priceTag :with {:g ~g})
        (node :use ctaButton
          :with {:title ~(if (contains state.cart g.id) (t "store.inCart") (t "store.addToCart"))}
-         :onClick ~(handler cartOrAdd g.id)))
+         :onClick ~(handler cart-or-add g.id)))
      (row :height 18 :anchors {:left 0 :right 0}
        (panel :color transparent :grow 1 :height 1)
        (label :text ~(t "store.remove")
