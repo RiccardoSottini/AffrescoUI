@@ -49,6 +49,17 @@ json CommandCatalog::list() const {
 	return catalog;
 }
 
+bool CommandCatalog::lists(std::string_view name) const {
+	const json* commands = engine_.document.variable("commands");
+	if(!commands || !commands->is_array()) return false;
+	std::size_t seen = 0;
+	for(const json& command : *commands) {
+		if(seen++ == maxCommands) break; // as list() does: a command past the limit isn't listed
+		if(command.value("name", std::string()) == name) return true;
+	}
+	return false;
+}
+
 std::optional<json> CommandCatalog::find(std::string_view name) const {
 	for(json& entry : list())
 		if(entry.value("name", std::string()) == name) return std::move(entry);
@@ -56,7 +67,7 @@ std::optional<json> CommandCatalog::find(std::string_view name) const {
 }
 
 CommandReach CommandCatalog::reach(std::string_view name) const {
-	if(!find(name)) return CommandReach{true, "no command '" + cutToCharacter(std::string(name), 80) + "'", {}, false};
+	if(!lists(name)) return CommandReach{true, "no command '" + cutToCharacter(std::string(name), 80) + "'", {}, false};
 	const services::Services* services = engine_.serviceCalls.services();
 	const std::optional<int> preview = engine_.versions.previewing();
 	const std::string key = std::format("{} {} {}", engine_.versions.head().id, preview ? *preview : -1,
