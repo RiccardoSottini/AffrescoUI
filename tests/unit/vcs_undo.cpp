@@ -7,12 +7,14 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/channel/Session.hpp>
+#include <affresco/core/Log.hpp>
 #include <affresco/core/VersionControl.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/lisp/Document.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include "HistoryFiles.hpp"
+#include "history/UndoCheck.hpp" // modules/vcs/src: the test-only hook
 
 #include <doctest/doctest.h>
 
@@ -670,4 +672,100 @@ TEST_CASE("vcs undo: the plan judges the undo as a change: the rules, the warnin
 	CHECK(plan.changes == std::vector<std::string>{"set /root/children/0/text to One"});
 	CHECK(plan.impact.is_object());
 	CHECK(plan.proposals == std::vector<int>{opened.proposal});
+}
+
+namespace {
+
+/// @brief What the library logs while it lives, and verify mode for the repositories made meanwhile.
+class VerifiedLog {
+public:
+	/// @brief Collects the log, and turns verify mode on or off for the repositories made next.
+	/// @param verify Whether it is on.
+	explicit VerifiedLog(bool verify) {
+		affresco::test::verifyNextRuntimes(verify);
+		affresco::setLogSink([this](affresco::LogLevel, std::string_view message) { logged_ += message; });
+	}
+	VerifiedLog(const VerifiedLog&) = delete;
+	VerifiedLog& operator=(const VerifiedLog&) = delete;
+	/// @brief Puts the log, verify mode and the test hook back.
+	~VerifiedLog() {
+		affresco::setLogSink(nullptr);
+		affresco::test::verifyNextRuntimes(false);
+		affresco::vcs::testing::acceptAnyRememberedPatch(false);
+	}
+	/// @brief What was logged.
+	/// @return The messages, one after another.
+	[[nodiscard]] const std::string& logged() const { return logged_; }
+
+private:
+	std::string logged_; ///< The messages.
+};
+
+} // namespace
+
+TEST_CASE("vcs undo: an undo lands as the full check judges it, whether or not its check takes the one just worked "
+          "out") {
+	const affresco::format::Rules rules;
+	SUBCASE("in verify mode every check is the full one too, and agrees") {
+		const VerifiedLog log(true);
+		Repository repository(rules, threeChildren());
+		appendThenChangeSibling(repository);
+		land(repository, setting({{"/state/count", 1}}, "Count"));
+
+		json tampered = repository.undoRevision(1, "studio");
+		tampered["patch"].push_back({{"op", "replace"}, {"path", "/root/children/1/text"}, {"value", "Due"}});
+		CHECK(repository.commit(tampered).value_or("").contains("revision.undo: this is not the undo of"));
+
+		// One more operation as its "then": the remembered undo had none, so the full work judges it, and takes it
+		json withThen = repository.undoRevision(1, "studio");
+		withThen["patch"].push_back({{"op", "replace"}, {"path", "/root/children/1/text"}, {"value", "Due"}});
+		withThen["undo"]["then"] = 1U;
+		land(repository, withThen);
+		CHECK(textOf(repository, "fourth").is_null());
+		CHECK(textOf(repository, "second") == "Due");
+
+		// The live state changed after the undo was worked out: it is no longer the undo of revision 3
+		const json stale = repository.undoRevision(3, "studio");
+		repository.state()["count"] = 5;
+		CHECK(repository.commit(stale).value_or("").contains("revision.undo: this is not the undo of"));
+		repository.state()["count"] = 1;
+		land(repository, repository.undoRevision(3, "studio"));
+		CHECK_FALSE(repository.state().contains("count"));
+
+		// main moved after the undo was worked out
+		const json moved = repository.undoRevision(2, "studio");
+		land(repository, setting({{"#third/text", "Tre"}}));
+		CHECK(repository.commit(moved).has_value());
+		land(repository, repository.undoRevision(2, "studio"));
+		CHECK(textOf(repository, "first") == "One");
+		CHECK(log.logged().empty());
+	}
+	SUBCASE("a check that took a wrong undo is caught by verify mode, and judged in full") {
+		const VerifiedLog log(true);
+		Repository repository(rules, threeChildren());
+		appendThenChangeSibling(repository);
+		affresco::vcs::testing::acceptAnyRememberedPatch(true);
+		json tampered = repository.undoRevision(1, "studio");
+		tampered["patch"].push_back({{"op", "replace"}, {"path", "/root/children/1/text"}, {"value", "Due"}});
+		CHECK(repository.commit(tampered).value_or("").contains("revision.undo: this is not the undo of"));
+		CHECK(log.logged().contains("undo check: the remembered undo of"));
+		CHECK(repository.head().number == 2);
+	}
+	SUBCASE("outside verify mode the check takes the undo just worked out") {
+		const VerifiedLog log(false);
+		Repository repository(rules, threeChildren());
+		appendThenChangeSibling(repository);
+		affresco::vcs::testing::acceptAnyRememberedPatch(true); // only that check can let this patch through
+		json tampered = repository.undoRevision(1, "studio");
+		tampered["patch"].push_back({{"op", "replace"}, {"path", "/root/children/1/text"}, {"value", "Due"}});
+		CHECK_FALSE(repository.commit(tampered).has_value());
+		CHECK(textOf(repository, "second") == "Due");
+		affresco::vcs::testing::acceptAnyRememberedPatch(false);
+
+		const json revision = repository.undoRevision(3, "studio");
+		REQUIRE_FALSE(repository.commit(revision).has_value());
+		CHECK(textOf(repository, "second") == "Two");
+		CHECK(repository.commit(revision).has_value()); // taken once: again, it is judged in full on the new head
+		CHECK(log.logged().empty());
+	}
 }

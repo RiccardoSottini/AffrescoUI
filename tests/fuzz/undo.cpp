@@ -10,7 +10,9 @@
 ///   submitted), and the refusal changes nothing;
 /// - an undo that landed adds one commit to main, whose undo mark names the commit undone; its document is valid;
 /// - undoing it again, as it is now, lands nothing new on what the first took back;
-/// - written to a history folder and opened again, the head and its undo mark are the same.
+/// - written to a history folder and opened again, the head and its undo mark are the same;
+/// - in verify mode (AFFRESCOUI_VERIFY_UPDATES=1), the check of an undo that takes the one just worked out agrees with
+///   the full work: no "undo check" error.
 
 #include "Fuzz.hpp"
 
@@ -20,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <string>
@@ -252,10 +255,13 @@ constexpr const char* kProgram = R"lisp(
 
 } // namespace
 
-/// @brief Silences the log before the first input.
+/// @brief Silences the log before the first input, but for an "undo check" error, and turns verify mode on.
 /// @return 0.
 extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
-	affresco::fuzz::silenceLog();
+	affresco::setLogSink([](affresco::LogLevel, std::string_view message) {
+		if(message.contains("undo check")) affresco::fuzz::broken("an undo's check agrees with the full work");
+	});
+	::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1); // every repository made checks its undos in full too
 	return 0;
 }
 
