@@ -59,7 +59,7 @@
          :label ~(t "archive")
          :tooltip ~(t "archive")
          :textColor "#ffffff"
-         :onClick archivePicked)
+         :onClick archive-picked)
        (node#deletePicked
          :style iconButton
          :icon trash-2
@@ -192,11 +192,11 @@
      :focused {:borderWidth 2 :borderColor @c.primary}
      :drag {:data {:from ~h}}
      :dragOver {:borderWidth 2 :borderColor ~col}
-     :onDrop ~(handler moveHabit event.data.from h)
-     :onClick ~(handler clickRow h hb.id)
-     :onContextMenu ~(handler togglePick hb.id)
+     :onDrop ~(handler move-habit event.data.from h)
+     :onClick ~(handler click-row h hb.id)
+     :onContextMenu ~(handler toggle-pick hb.id)
      :keys {:space ~(handler cellClick h state.today (/ window.width 2) (/ window.height 3))
-            "shift+space" {:run openPopup
+            "shift+space" {:run open-popup
                            :with {:h ~h :d ~state.today :x ~(/ window.width 2) :y ~(/ window.height 3)}}}
      (node#tint
        :visible ~(or on pk)
@@ -232,7 +232,7 @@
                    (>= r 1) (t "cell.auto" {:date date})
                    :else (t "cell.no" {:date date}))
      :onClick ~(handler cellClick h d event.x event.y)
-     :onContextMenu ~(handler openPopup h d event.x event.y)
+     :onContextMenu ~(handler open-popup h d event.x event.y)
      ~(cell-tick)
      ~(cell-number)
      ~(cell-unit)

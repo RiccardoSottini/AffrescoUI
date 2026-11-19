@@ -29,7 +29,7 @@
        :when ~meas
        :text ~(upper-case (t "popup.save"))
        :anchors {:right 12 :bottom 10}
-       :onClick popupSave)))
+       :onClick popup-save)))
 
 (defview popup-fields "The value and its unit, or the note, and a measurable habit's note: four fields." []
   [`(node#popupValue
@@ -40,7 +40,7 @@
       :label ~(t "popup.value")
       :placeholder ~(t "popup.value")
       :anchors {:left 16 :right 80 :top 44}
-      :onSubmit popupSave)
+      :onSubmit popup-save)
    `(label#label-ph-unit :text ~ph.unit
       :when ~meas
       :textColor @c.muted
@@ -55,7 +55,7 @@
       :label ~(t "popup.note")
       :placeholder ~(t "popup.note")
       :anchors {:left 16 :right 16 :top 44}
-      :onSubmit popupNoteOnly)
+      :onSubmit popup-note-only)
    `(node#popupMeasNote
       :when ~meas
       :style field
@@ -63,7 +63,7 @@
       :label ~(t "popup.note")
       :placeholder ~(t "popup.note")
       :anchors {:left 16 :right 16 :top 92}
-      :onSubmit popupSave)])
+      :onSubmit popup-save)])
 
 (defview popup-buttons "The popup's yes, skip and no." []
   `(row#popupButtons :when ~(not meas)
@@ -77,21 +77,21 @@
        :text ~(t "popup.yes")
        :textColor ~pcol
        :mnemonic y
-       :onClick ~(handler popupSet "y"))
+       :onClick ~(handler popup-set "y"))
      (node#popupSkip
        :style textButton
        :icon chevrons-right
        :text ~(t "popup.skip")
        :textColor ~pcol
        :mnemonic s
-       :onClick ~(handler popupSet "s"))
+       :onClick ~(handler popup-set "s"))
      (node#popupNo
        :style textButton
        :icon x
        :text ~(t "popup.no")
        :textColor @c.muted
        :mnemonic n
-       :onClick ~(handler popupSet "-"))))
+       :onClick ~(handler popup-set "-"))))
 
 (defview edit-fields "The dialog's fields: name, colour, question, unit, target, frequency and reminder." []
   `(column#editFields :anchors {:left 20 :right 20 :top 48 :bottom 56} :gap 6
@@ -164,7 +164,7 @@
      :borderWidth ~(if (= state.edit.color sw) 3 0)
      :borderColor @c.card
      :focused {:borderWidth 3 :borderColor @c.text}
-     :onClick ~(handler pickColor sw)
+     :onClick ~(handler pick-color sw)
      (label#label-swatch :text ""
        :font iconsSmall
        :icon ~(if (= state.edit.color sw) "check" "")
@@ -262,7 +262,7 @@
        :width 32
        :height 32
        :label "−"
-       :onClick ~(handler stepTimes -1))
+       :onClick ~(handler step-times -1))
      (label#label-text-edit-n :text
                               ~(text state.edit.n)
                               :textColor
@@ -282,7 +282,7 @@
        :width 32
        :height 32
        :label "+"
-       :onClick ~(handler stepTimes 1))))
+       :onClick ~(handler step-times 1))))
 
 (defview row-edit-reminder "The reminder's time, if any." []
   `(row#row-edit-reminder :anchors {:left 0 :right 0 :top 20} :height 32 :gap 6 :alignItems center
