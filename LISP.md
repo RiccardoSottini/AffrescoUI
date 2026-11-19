@@ -176,8 +176,8 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 7. Ids stay stable: scenarios, permissions and agents address nodes by them.
 8. Every code file starts with its `ns` label, and is written in the dialect's style
    ([reference/style.md](modules/lisp/reference/style.md)): `#(...)` and keywords as functions, `when-some`, `case`,
-   sets for membership, `str/` for text, keywords for fixed choices. `tools/notation/lisp_idioms.py --check` holds every
-   example to it.
+   sets for membership, `str/` for text, keywords for fixed choices, kebab-case names for functions, values and views
+   (`cards-of`; commands, state and ids keep theirs). `tools/notation/lisp_idioms.py --check` holds every example to it.
 
 ## Version control
 
@@ -237,6 +237,7 @@ A limit ends the run with an error naming the file, line, column and definition,
 | `affrescoui strings report <entry>` | Text outside the locales |
 | `tools/notation/lisp_program.py` | Drafts a data file as a program |
 | `tools/notation/lisp_metrics.py <app>` | Measures an app's Lisp: longest definition, deepest line, timing |
+| `tools/notation/lisp_rename.py <app>` | Renames an app's camelCase functions, values and views to kebab-case, every use with them; `--dry-run` lists them |
 | `tools/notation/lisp_idioms.py --check` | The idiom check: no example writes an old spelling ([style.md](modules/lisp/reference/style.md)), each kept place has its reason and is counted in `tools/notation/idioms/<app>.json`; `--kept` lists them, `--measure` gives each app's size |
 | `tools/notation/lisp_tree.py --save DIR`, `--compare DIR` | The tree each example builds, saved and compared after a change: identical, or only bindings' and definitions' text, and no more `lisp(` calls |
 | `ctest -R lisp_parity` | Each example's Lisp version draws its first frame as its JSON version does |

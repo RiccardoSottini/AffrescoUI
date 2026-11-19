@@ -12,7 +12,8 @@ to write a program that way, and how to change one without changing what it does
   a binding's text where a form now lowers to another, equal expression (`lisp_tree.py --compare`, below). No binding
   may become a call of a function (`{{lisp(...)}}`) where it was an expression.
 - **The names:** of definitions, files, ids, state keys and parameters. A handler that names a function passes its
-  arguments by parameter name, and agents, scenarios and the agent benchmark name definitions.
+  arguments by parameter name, and agents, scenarios and the agent benchmark name definitions. A function, a value or
+  a view in camelCase is renamed only by `tools/notation/lisp_rename.py` ("Names", below), never by hand.
 - **The order of definitions.** It is the order of the sections they fill (commands, menus, keys, the palette).
 - **The JSON version.** Each example keeps its `json/` folder beside its program, untouched.
 
@@ -57,11 +58,11 @@ Each row, on code of Flow's (where Flow has no such place, a short one in its ma
 (defcomputed matchRefs (map (fn [it] it.ref) computed.matches))
 (defcomputed matchRefs (map :ref computed.matches))
 
-;; Nested calls (flow.lisp, nextOrder)
-(inc (reduce max -1 (map :order (cardsOf c))))
-(->> (cardsOf c) (map :order) (reduce max -1) inc)
+;; Nested calls (flow.lisp, next-order)
+(inc (reduce max -1 (map :order (cards-of c))))
+(->> (cards-of c) (map :order) (reduce max -1) inc)
 
-;; nil, or a member of the value (flow.lisp, announcePresence): a keyword gives nil on nil
+;; nil, or a member of the value (flow.lisp, announce-presence): a keyword gives nil on nil
 (if (nil? computed.card) nil computed.card.title)
 (:title computed.card)
 
@@ -73,24 +74,24 @@ Each row, on code of Flow's (where Flow has no such place, a short one in its ma
 (if (nil? state.selected) computed.visible.0 (find #(... state.selected.c ...) computed.visible))
 (if-some [at state.selected] (find #(... at.c ...) computed.visible) computed.visible.0)
 
-;; A test of nil where the value isn't used (flow.lisp, setTag): check --truth lists (when computed.card ...)
-(when computed.card (updateCard {:tag tag}))
-(when-some [_ computed.card] (updateCard {:tag tag}))
+;; A test of nil where the value isn't used (flow.lisp, set-tag): check --truth lists (when computed.card ...)
+(when computed.card (update-card {:tag tag}))
+(when-some [_ computed.card] (update-card {:tag tag}))
 
 ;; A test that was a value's truth (not in Flow today)
 (let [col (column c)] (when col (notify (:name col))))
 (when-let [col (column c)] (notify (:name col)))
 
-;; A cond on one value (flow.lisp, setFilter; computed.lisp, filterOptions, in a binding)
+;; A cond on one value (flow.lisp, set-filter; computed.lisp, filterOptions, in a binding)
 (cond (= prop "status") (set "state.fStatus" (if on -1 v)) (= prop "assignee") ...)
 (case prop :status (set "state.fStatus" (if on -1 v)) :assignee ... nil)
 
-;; Membership (flow.lisp, memberNamed; computed.lisp, paletteFirst, in a binding)
+;; Membership (flow.lisp, member-named; computed.lisp, paletteFirst, in a binding)
 (or (= (lower (:who it)) wanted) (= (lower (:name it)) wanted) (= (first (split (lower (:name it)) " ")) wanted))
 (some #{wanted} [(str/lower-case (:who member)) full (first (str/split full " "))])
 (contains ["changeStatus" "changePriority" ...] (:name %))  ->  (#{:changeStatus :changePriority ...} (:name %))
 
-;; not (flow.lisp, selectCard and toggleSwimlanes)
+;; not (flow.lisp, select-card and toggleSwimlanes)
 (when (not (and (some? state.selected) (= state.selected.c c) (= state.selected.i i))) ...)
 (when-not (and (some? state.selected) (= state.selected.c c) (= state.selected.i i)) ...)
 
@@ -110,35 +111,58 @@ Each row, on code of Flow's (where Flow has no such place, a short one in its ma
 :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels [])))
 :tooltip ~(join ", " (map #(t (str "label." %)) (or-else card.labels [])))
 
-;; A tally, and a grouping (flow.lisp, buildTimeline)
+;; A tally, and a grouping (flow.lisp, build-timeline)
 (map (fn [m] {... :clips (map ... (filter #(= (:who %) (:who m)) cards))}) state.members)
 (let [owned (group-by :who (filter :due computed.allCards))]
   (map (fn [{:keys [who name]}] {... :clips (map ... (get owned who []))}) state.members))
 (reduce (fn [counts it] (assoc counts it.tag (inc (or-else (get counts it.tag) 0)))) {} cards)  ; not in Flow
 (frequencies (map :tag cards))
 
-;; The values that are there (flow.lisp, columnOf)
+;; The values that are there (flow.lisp, column-of)
 (first (filter some? (map-indexed (fn [c col] (when ... c)) computed.columns)))
 (first (keep-indexed (fn [c col] (when ... c)) computed.columns))
 
-;; Members read one by one (flow.lisp, checkLimit; openRow's "c-i")
+;; Members read one by one (flow.lisp, check-limit; open-row's "c-i")
 (let [col (column c)] ... (:limit col) ... (:cards col) ... (:name col))
 (let [{:keys [limit cards name]} (column c)] ...)
-(let [parts (split event.id "-")] (selectCard (number (first parts)) (number (second parts))))
-(let [[c i] (map number (str/split event.id "-"))] (selectCard c i))
+(let [parts (split event.id "-")] (select-card (number (first parts)) (number (second parts))))
+(let [[c i] (map number (str/split event.id "-"))] (select-card c i))
 
-;; Steps for each item (flow.lisp, moveSelected)
-(map #(moveMarked % (columnOf %) to) state.marked)
-(doseq [ref state.marked] (moveMarked ref (columnOf ref) to))
+;; Steps for each item (flow.lisp, move-selected)
+(map #(move-marked % (column-of %) to) state.marked)
+(doseq [ref state.marked] (move-marked ref (column-of ref) to))
 
 ;; A parameter left out (not in Flow today)
-(defn notifyCard [ref message] (notify (or-else message (t "toast.noCard" {:ref ref}))))
-(defn notifyCard ([ref] (notifyCard ref nil)) ([ref message] ...))
+(defn notify-card [ref message] (notify (or-else message (t "toast.noCard" {:ref ref}))))
+(defn notify-card ([ref] (notify-card ref nil)) ([ref message] ...))
 
 ;; Definitions that differ in one word (not in Flow today)
-(defn showBoard [] (set "state.page" "board"))  (defn showList [] (set "state.page" "list"))
+(defn show-board [] (set "state.page" "board"))  (defn show-list [] (set "state.page" "list"))
 [["board" ...] ["list" ...]] and a for over it, in one file              ; only if the tree is identical
 ```
+
+## Names
+
+Functions, values (`def`) and views are kebab-case, as Clojure writes them: `(defn cards-of ...)` and
+`(defview card-view ...)`, never `cardsOf`. Everything else keeps the name the JSON version and the agents know:
+a command (`defcommand toggleSwimlanes`), a state key, a computed value, a component, a style, a menu, tokens, a part,
+a setting, an id and a parameter. A kebab-case name is often one token longer than its camelCase one; it is chosen to
+read as the language reads, not to be shorter.
+
+`python3 tools/notation/lisp_rename.py <app> --dry-run` lists an app's camelCase functions, values and views with the
+name each would get, and without `--dry-run` renames each with every use of it: a call, a function passed as a value,
+`(handler name ...)`, and what a view runs (`:onClick name`, `:run name`, `:keys {:escape name}`, `:with {:submit
+name}`). It reads the code as forms, so a string, a comment, a path (`state.cardsOf`), a keyword and an id never
+change. A name it can't rename safely stays, marked with its reason on the line before its definition:
+
+```clojure
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn setStatus "The column the selected card moves to; every marked card while some are." [to] ...)
+```
+
+The reasons: a string names the function (`:run "setStatus"` in a quick pick's rows, a callback's name given to a
+service), a scenario, a test or an agent task names it, the new name is a word of the language or of the host
+(`groupBy` would be `group-by`), another definition already has it, or a parameter or a local has either name.
 
 ## The traps
 
@@ -286,6 +310,7 @@ python3 tools/notation/lisp_tree.py --save build/tree-before flow       # before
 python3 tools/notation/lisp_tree.py --compare build/tree-before flow    # after: identical, or only bindings' text
 python3 tools/notation/lisp_idioms.py --check                           # every app at its lock (idioms/flow.json)
 python3 tools/notation/lisp_idioms.py --count flow                      # what is left
+python3 tools/notation/lisp_rename.py flow --dry-run                    # camelCase functions, values and views
 python3 tools/notation/lisp_idioms.py --measure                         # files, lines, bytes, tokens per app
 ./build/affrescoui check examples/flow/lisp/index.screen.lisp           # and every file changed
 ctest --test-dir build -R "scenarios/flow/|lisp_parity|cli_lisp_idioms|cli_lisp_examples"
