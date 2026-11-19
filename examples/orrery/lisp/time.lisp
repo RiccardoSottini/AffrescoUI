@@ -67,7 +67,7 @@
                    :hours (-> (if (odd? it.n) 0.0186 0.0405)
                               (* 24)
                               (/ (* 2 (pi) (abs it.m.d))))
-                   :label (if (not= (mod it.n 2) 0)
+                   :label (if (odd? it.n)
                             (str it.m.name " eclipses the Sun")
                             (str it.m.name " in the shadow of " it.m.host.name))})
                 (filter (fn [it]
