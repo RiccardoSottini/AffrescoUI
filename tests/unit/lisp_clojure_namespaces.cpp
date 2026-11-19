@@ -402,3 +402,12 @@ TEST_CASE("lisp namespaces: an error on line 7 of a file the fixture app require
 		CHECK(errorPlace("fixture", files) == std::format("parts/cell.lisp:7:{}", column));
 	}
 }
+
+TEST_CASE("lisp namespaces: an error says its file's line after more definitions were read than the places kept") {
+	// The places of the definitions read are kept up to a bound, then forgotten at once: a file read after says where
+	std::string many;
+	for(int at = 0; at < 70'000; ++at) many += std::format("(def d{} {})\n", at, at);
+	static_cast<void>(lisp::sourceDocument(many, "many.lisp"));
+	const Files files = {{"index.screen.lisp", withError(";;; index", "run") + screenShowing("", "(f)")}};
+	CHECK(errorPlace("after-many", files) == "index.screen.lisp:4:15");
+}

@@ -364,8 +364,9 @@ void checkProgramShape(const json& section) {
 
 namespace {
 
-/// How many definitions' places are kept: a process that read more reads its files again.
-constexpr std::size_t keptPlaces = 1U << 18U;
+/// How many definitions' places are kept, about 4 MB at most: ten times every example's definitions together. Past
+/// that, the places are forgotten at once, and an error in a definition read before says its line within it.
+constexpr std::size_t keptPlaces = 1U << 16U;
 
 /// @brief Where the definitions read from files lately start in them, so that programOf() gives a definition its
 /// file's line and column back and an error in it says where it is in the file. The section holds no places: a
