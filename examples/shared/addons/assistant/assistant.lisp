@@ -5,10 +5,10 @@
 ;;; other proposal waiting for review: this is where the person reviews. Everything here is named assistant..., so it
 ;;; merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md.
 
-; style: keep, an ns label here would stop every app that includes this file from rebuilding in part
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp")
+(ns shared.addons.assistant.assistant
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"))
 
 ;;; Definitions
 
@@ -343,7 +343,7 @@ message an app gives."
   (focus "#assistantComposer"))
 
 (defn assistant-picked "When files are picked: attached." []
-  (when (some? state.assistant.picked) (assistant-attach-picked)))
+  (when-some [_ state.assistant.picked] (assistant-attach-picked)))
 
 (defn assistant-unattach "Takes a file from the next message's." [id]
   (set "state.assistant.attachments" (remove #(= (:id %) id) state.assistant.attachments))
@@ -455,7 +455,7 @@ nothing."
                    :note true
                    :asked (assistant-asked state.assistant.pending)})
   (cancelAsk (->> requests (filter #(#{:sent :working} (:state %))) (map :id)))
-  (when (some? state.assistant.simulate) (set "state.assistant.simulate.working" false))
+  (when-some [_ state.assistant.simulate] (set "state.assistant.simulate.working" false))
   (focus "#assistantComposer"))
 
 (defn assistant-ask-again "Asks again what a reply answered (or a stopped request), as it was written." [text]

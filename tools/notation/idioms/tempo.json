@@ -4,5 +4,8 @@
 	],
 	"allowed": {
 		"four-nested-calls": 24
+	},
+	"kept": {
+		"fn-one-parameter": 4
 	}
 }

@@ -4,5 +4,6 @@
 	],
 	"allowed": {
 		"four-nested-calls": 16
-	}
+	},
+	"kept": {}
 }

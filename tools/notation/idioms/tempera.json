@@ -2,5 +2,10 @@
 	"folders": [
 		"tempera/lisp"
 	],
-	"allowed": {}
+	"allowed": {},
+	"kept": {
+		"fn-one-parameter": 3,
+		"four-nested-calls": 3,
+		"if-nil": 1
+	}
 }

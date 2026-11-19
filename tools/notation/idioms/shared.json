@@ -3,7 +3,7 @@
 		"shared"
 	],
 	"allowed": {
-		"when-some": 3,
 		"four-nested-calls": 11
-	}
+	},
+	"kept": {}
 }

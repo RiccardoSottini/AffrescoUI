@@ -2,7 +2,7 @@
 """Counts the old spellings in the examples' Lisp code, the ones `modules/lisp/reference/style.md` writes another way,
 and holds each group of files to its count; measures their size.
 
-    python3 tools/notation/lisp_idioms.py --check [--self-test]  # fails if a rule counts more than its file allows
+    python3 tools/notation/lisp_idioms.py --check [--self-test]  # fails unless every app is at its lock (below)
     python3 tools/notation/lisp_idioms.py --count [name...]  # each rule's count, per file of tools/notation/idioms/
     python3 tools/notation/lisp_idioms.py --kept             # the places marked `; style: keep, <reason>`
     python3 tools/notation/lisp_idioms.py --measure [--json] # code files, lines, bytes and tokens per app, and totals
@@ -14,8 +14,12 @@ reads each one as forms, so comments and strings never count. A place that must 
 line before, `; style: keep, <reason>`, and isn't counted. Rules that hold only in a function don't count inside a
 `~form` or a `defcomputed`, which are bindings.
 
-Each `idioms/<name>.json` is `{"folders": [...], "allowed": {"<rule>": n}}`: a folder of examples/ counts with its
-subfolders, one ending in `/*` its own files only, and every code file belongs to exactly one name. Only the standard
+Each `idioms/<name>.json` is `{"folders": [...], "allowed": {"four-nested-calls": n}, "kept": {"<rule>": n}}`: a folder
+of examples/ counts with its subfolders, one ending in `/*` its own files only, and every code file belongs to exactly
+one name, so a new example's code fails until it has its file. The lock: every spelling rule counts 0 (a place that
+must stay is marked, with its reason: a mark with none fails), each rule's kept places are exactly the number `kept`
+gives, and a nest of four calls on a line, a shape rather than a spelling, is exactly what `allowed` gives. So an old
+spelling, a new kept place and a new nest each fail until the idioms file is changed beside it, under review. Only the standard
 library; the tokens are counted with tiktoken's o200k_base, as `tests/perf/tokens.py` does, when it is installed.
 """
 
@@ -25,6 +29,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lisp_examples  # noqa: E402  pylint: disable=wrong-import-position  # beside this file
@@ -34,6 +39,12 @@ EXAMPLES = lisp_examples.EXAMPLES
 IDIOMS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "idioms")
 DATA_FOLDERS = ("locales", "seed")
 KEEP = re.compile(r";+\s*style:\s*keep,\s*(.*\S)")
+# A keep mark of any kind, with a reason or without one (which the check refuses)
+MARK = re.compile(r";+\s*style:\s*keep\b")
+# A shape, not a spelling: style.md leaves a nest where unnesting reads no better, so it is held to its count
+SHAPE_RULES = ("four-nested-calls",)
+# The rule a keep mark with no reason counts under: always a failure
+NO_REASON = "keep-without-reason"
 # The host's string functions that the dialect writes as str/... (strings.md)
 STRING_FUNCTIONS = ("trim", "upper-case", "lower-case", "split", "starts-with?", "ends-with?", "includes?", "replace")
 # Words before a form that make it a binding: a template's ~form and what it splices
@@ -83,7 +94,7 @@ class Reader:
     DELIMITERS = set("()[]{}\"; \t\r\n,")
 
     def __init__(self, text):
-        self.text, self.at, self.line, self.kept = text, 0, 1, {}
+        self.text, self.at, self.line, self.kept, self.unreasoned = text, 0, 1, {}, []
 
     def forms(self):
         """The text's top-level forms."""
@@ -106,6 +117,8 @@ class Reader:
                 marked = KEEP.match(self.text[self.at:end])
                 if marked:
                     self.kept[self.line + 1] = marked.group(1)
+                elif MARK.match(self.text[self.at:end]):
+                    self.unreasoned.append(self.line)
                 self.at = end
                 continue
             elif character not in " \t\r,":
@@ -318,6 +331,7 @@ def count_text(text, place):
         if is_call(form, "include"):
             noted("entry-include", form.line)
         walk(form, False, True, visit)
+    found += [(NO_REASON, line) for line in reader.unreasoned]
     return found, kept
 
 
@@ -357,7 +371,7 @@ def files_of(group):
 
 def counted(paths):
     """Each rule's count over files, and the kept places, as ({rule: n}, [(path, line, rule, reason)])."""
-    totals, kept = dict.fromkeys(RULES, 0), []
+    totals, kept = dict.fromkeys([*RULES, NO_REASON], 0), []
     for path in paths:
         with open(os.path.join(EXAMPLES, path), encoding="utf-8") as file:
             found, marked = count_text(file.read(), path)
@@ -367,18 +381,43 @@ def counted(paths):
     return totals, kept
 
 
+def kept_counts(kept):
+    """Each rule's count of kept places, from counted()'s list: {rule: n}, the rules with none left out."""
+    counts = {}
+    for _, _, rule, _ in kept:
+        counts[rule] = counts.get(rule, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def group_failures(name, group):
+    """What breaks a group's lock: a spelling found unmarked, a shape off its count, kept places off theirs."""
+    failures = [f"{name}: {folder} is no folder of examples/" for folder in group["folders"]
+                if not os.path.isdir(os.path.join(EXAMPLES, folder.removesuffix("/*")))]
+    totals, kept = counted(files_of(group))
+    allowed, marked = group.get("allowed", {}), kept_counts(kept)
+    for rule in (rule for rule in allowed if rule not in SHAPE_RULES):
+        failures.append(f"{name}: {rule} is a spelling: it may not be allowed, only kept with a reason")
+    for rule, count in totals.items():
+        expected = allowed.get(rule, 0) if rule in SHAPE_RULES else 0
+        if count != expected:
+            failures.append(f"{name}: {rule} counts {count}, {expected} expected "
+                            f"({'a mark needs its reason' if rule == NO_REASON else 'style.md writes it another way'}"
+                            f"{', or lower the count in its idioms file' if count < expected else ''})")
+    for rule in sorted(set(marked) | set(group.get("kept", {}))):
+        if marked.get(rule, 0) != group.get("kept", {}).get(rule, 0):
+            failures.append(f"{name}: {rule} has {marked.get(rule, 0)} kept, the idioms file says "
+                            f"{group.get('kept', {}).get(rule, 0)} (a kept place is reviewed with its file)")
+    return failures
+
+
 def check():
-    """Fails if a rule counts more than its file allows, or a code file belongs to no group or two; the exit code."""
+    """Fails unless every group is at its lock (group_failures), and every code file belongs to exactly one group,
+    so a new example's files fail until it has an idioms file; the exit code."""
     failures, owners = [], {}
     for name, group in groups().items():
-        paths = files_of(group)
-        for path in paths:
+        for path in files_of(group):
             owners.setdefault(path, []).append(name)
-        totals, _ = counted(paths)
-        for rule, count in totals.items():
-            allowed = group["allowed"].get(rule, 0)
-            if count > allowed:
-                failures.append(f"{name}: {rule} counts {count}, {allowed} allowed (style.md writes it another way)")
+        failures += group_failures(name, group)
     for path in every_code_file():
         if len(owners.get(path, [])) != 1:
             failures.append(f"{path}: counted by {owners.get(path) or 'no idioms file'}, exactly one expected")
@@ -391,8 +430,9 @@ def check():
 def write():
     """Writes today's counts into the idioms files; the exit code."""
     for name, group in groups().items():
-        totals, _ = counted(files_of(group))
-        group["allowed"] = {rule: count for rule, count in totals.items() if count}
+        totals, kept = counted(files_of(group))
+        group["allowed"] = {rule: count for rule, count in totals.items() if count and rule in SHAPE_RULES}
+        group["kept"] = kept_counts(kept)
         with open(os.path.join(IDIOMS, name + ".json"), "w", encoding="utf-8") as file:
             file.write(json.dumps(group, indent="\t") + "\n")
         print(f"{name}: {sum(totals.values())} places")
@@ -405,8 +445,9 @@ def print_counts(names):
         if names and name not in names:
             continue
         totals, _ = counted(files_of(group))
-        print(f"{name}: " + ", ".join(f"{rule} {count}/{group['allowed'].get(rule, 0)}"
-                                      for rule, count in totals.items() if count or group["allowed"].get(rule)))
+        allowed = group.get("allowed", {})
+        print(f"{name}: " + ", ".join(f"{rule} {count}/{allowed.get(rule, 0)}"
+                                      for rule, count in totals.items() if count or allowed.get(rule)))
     return 0
 
 
@@ -511,10 +552,50 @@ def self_test():
     if counted_kept("; style: keep, the parameter is read as text\n(defn f [n] (- n 1))") != [
             ("minus-one", 2, "the parameter is read as text")]:
         failures.append("a kept place is not listed with its reason")
+    for mark in ("; style: keep", ";; style: keep,", "; style: keep ,  "):
+        text = mark + "\n(defn f [n] (- n 1))"
+        if counts_of(text, NO_REASON) != 1 or counts_of(text, "minus-one") != 1:
+            failures.append(f"a mark with no reason is not refused, or keeps its place: {mark!r}")
+    failures += lock_failures()
     for failure in failures:
         print(failure)
     print(f"lisp_idioms --self-test: {len(SNIPPETS)} rules, {len(failures)} failures")
     return 1 if failures else 0
+
+
+# What the lock says of one app's file, against its idioms file: the code, the group, and how many failures
+LOCK_CASES = [
+    ("(defn f [n] (dec n))", {"allowed": {}, "kept": {}}, 0),
+    ("(defn f [n] (- n 1))", {"allowed": {}, "kept": {}}, 1),  # an old spelling
+    ("(defn f [n] (- n 1))", {"allowed": {"minus-one": 1}, "kept": {}}, 2),  # a spelling is never allowed
+    ("; style: keep, a reason\n(defn f [n] (- n 1))", {"allowed": {}, "kept": {"minus-one": 1}}, 0),
+    ("; style: keep, a reason\n(defn f [n] (- n 1))", {"allowed": {}, "kept": {}}, 1),  # a kept place unseen
+    ("(defn f [n] (dec n))", {"allowed": {}, "kept": {"minus-one": 1}}, 1),  # a kept place gone
+    ("(defn f [x] (a (b (c (d x)))))", {"allowed": {"four-nested-calls": 1}, "kept": {}}, 0),
+    ("(defn f [x] (a (b (c (d x)))))", {"allowed": {}, "kept": {}}, 1),  # a new nest
+    ("(defn f [x] x)", {"allowed": {"four-nested-calls": 1}, "kept": {}}, 1),  # a nest gone: lower the count
+]
+
+
+def lock_failures():
+    """The lock's own tests, on an examples/ folder of one file made for each (group_failures above)."""
+    global EXAMPLES  # pylint: disable=global-statement  # pointed at the made folder, then restored
+    failures, saved = [], (EXAMPLES, lisp_examples.EXAMPLES)
+    try:
+        for text, group, expected in LOCK_CASES:
+            with tempfile.TemporaryDirectory() as folder:
+                os.makedirs(os.path.join(folder, "app", "lisp"))
+                with open(os.path.join(folder, "app", "lisp", "a.lisp"), "w", encoding="utf-8") as file:
+                    file.write(";;; a.lisp --- a test\n\n" + text + "\n")
+                EXAMPLES = lisp_examples.EXAMPLES = folder
+                found = group_failures("app", {"folders": ["app/lisp"], **group})
+                if len(found) != expected:
+                    failures.append(f"the lock: {len(found)} failures, {expected} expected, for {text!r} and {group}")
+    finally:
+        EXAMPLES, lisp_examples.EXAMPLES = saved
+    if not group_failures("app", {"folders": ["no-such-folder/lisp"], "allowed": {}}):
+        failures.append("the lock: a folder that isn't there passes")
+    return failures
 
 
 def marked_to_stay(text, rule):

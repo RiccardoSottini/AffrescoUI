@@ -24,11 +24,13 @@ and review cover the scene and the workspace alike.
 | File | What it holds |
 |---|---|
 | `lisp/index.screen.lisp` | The window, fonts, colours (dark and light), the state and the areas |
-| `lisp/modello.lisp` | The program: Undo and Redo, and the edits of the selected objects |
-| `lisp/parts/commands.lisp` | The other actions, the keys and the menus |
-| `lisp/parts/viewport.lisp` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
-| `lisp/parts/editors.lisp` | The top bar, outliner, properties editor, timeline and status bar |
-| `lisp/parts/shader.lisp` | The shader editor's nodes and materials |
+| `lisp/state.lisp`, `lisp/scene.lisp` | What it keeps while it runs, and what it works out from its scene |
+| `lisp/modello.lisp`, `lisp/transform.lisp`, `lisp/animation.lisp`, `lisp/collections.lisp`, `lisp/materials.lisp`, `lisp/files.lisp`, `lisp/navigation.lisp` | The program: undo and redo, the edits of the selected objects, transforms, keyframes, collections, materials, files and the view |
+| `lisp/keys.lisp`, `lisp/menus.lisp` | The keys and the menus |
+| `lisp/viewport.lisp`, `lisp/sidebar.lisp` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
+| `lisp/bars.lisp`, `lisp/outliner.lisp`, `lisp/properties.lisp`, `lisp/timeline.lisp`, `lisp/dialogs.lisp`, `lisp/widgets.lisp` | The top bar, outliner, properties editor, timeline, status bar, dialogs and the widgets they share |
+| `lisp/shader.lisp` | The shader editor's nodes and materials |
+| `lisp/look.lisp` | The colours, dark and light |
 | `lisp/index.scenarios.json` | The scenarios, run headless (they stay JSON) |
 
 ## Keys

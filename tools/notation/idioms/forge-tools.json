@@ -11,5 +11,11 @@
 	],
 	"allowed": {
 		"four-nested-calls": 42
+	},
+	"kept": {
+		"cond-one-value": 2,
+		"fn-one-parameter": 9,
+		"four-nested-calls": 2,
+		"string-function": 7
 	}
 }
