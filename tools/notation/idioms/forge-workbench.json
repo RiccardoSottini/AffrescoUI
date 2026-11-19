@@ -13,17 +13,11 @@
 		"forge/lisp/features/word-count"
 	],
 	"allowed": {
-		"fn-one-parameter": 0,
-		"when-not": 0,
-		"when-some": 0,
-		"cond-one-value": 0,
-		"or-equals": 0,
-		"contains-vector": 0,
-		"minus-one": 0,
-		"plus-one": 0,
-		"count-zero": 0,
-		"string-function": 0,
-		"four-nested-calls": 37,
-		"entry-include": 0
+		"four-nested-calls": 37
+	},
+	"kept": {
+		"fn-one-parameter": 11,
+		"four-nested-calls": 4,
+		"string-function": 1
 	}
 }
