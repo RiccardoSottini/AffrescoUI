@@ -155,7 +155,7 @@
 (defn selectCommit "Shows a commit." [id] (selectChange {:to id}))
 
 (defn loadChange "Asks the host for the change shown, in the notation chosen; then shows a file of it." []
-  (when (some? state.selected)
+  (when-some [_ state.selected]
     (call "changes.load"
           :with (if-some [notation state.notation] (assoc state.selected :notation notation) state.selected)
           :into "state.view"
