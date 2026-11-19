@@ -5,6 +5,8 @@
 ;;; with `args`, the value it changes set at `key` (tempera.lisp, "What the controls run"). A slider's range is
 ;;; `low` to `high`, since min and max are the language's.
 
+(ns tempera.controls)
+
 ;;; Buttons
 
 (defcomponent tIcon "An icon button with its tooltip: on shows it chosen, off disabled; a click runs run with args."
@@ -63,20 +65,28 @@
             :right ~(handler stepSlider run args key shown 1 low high scale)}
      :focused {:borderWidth 1 :borderColor @accent}
      (node :anchors {:left 4 :right 4 :top 4} :height 2 :color @border)
-     (node :x 4 :y 4 :height 2 :width ~(* (- width 8) (clamp (/ (- shown low) (max 1 span)) 0 1)) :color @muted)
+     (node :x 4
+       :y 4
+       :height 2
+       :width ~(* (- width 8)
+                  (-> shown (- low) (/ (max 1 span)) (clamp 0 1)))
+       :color @muted)
      (path :d "M 0 6 L 4 0 L 8 6 Z"
        :fillColor @text
        :width 8
        :height 6
        :y 7
-       :x ~(* (- width 8) (clamp (/ (- shown low) (max 1 span)) 0 1)))))
+       :x ~(* (- width 8)
+              (-> shown (- low) (/ (max 1 span)) (clamp 0 1))))))
 
 (defcomponent tField
   "A number's field, its title before it and its unit after; with pop, a chevron opens a slider under it."
   {:title "" :key "" :value 0 :low 0 :high 100 :scale 1 :unit "%" :run setOptions :args {} :width 46 :pop true
    :off false :tip ""}
   `(row :let {:shown ~(round (* value scale)) :where ~(str "state.pop." key run)}
-     :width ~(+ (if (empty? title) 0 (+ (* (count title) 6) 10)) width (if pop 14 0))
+     :width ~(+ (if (empty? title) 0 (-> title count (* 6) (+ 10)))
+                width
+                (if pop 14 0))
      :height 22
      :alignItems center
      :gap 4

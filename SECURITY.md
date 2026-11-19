@@ -635,8 +635,9 @@ the running interpreter instead of a new one. Neither is a way around a rule:
   (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and the property test and
   the `updates` fuzz target compare the two after random sequences of changes.
 - **A change made in place is bounded as a load is.** At most 64 changes, and together at most what one load may allocate
-  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, or touches
-  a name the language or the host defines, is never made in place.
+  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, touches
+  a name the language or the host defines, or adds, removes, moves or changes a file's `ns` form, is never made in place,
+  and the last is built in full: the aliases code is compiled with come only from those forms.
 - **What is counted holds no value.** The update counters (`UpdateStatistics`) are numbers of panels and places; a
   difference verify mode logs in a secret text field names its place, never what the field holds.
 - **What follows a panel follows its change.** The keybindings list is built again when any panel's keys change, even to
@@ -1012,6 +1013,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
+| A program's binding written as an expression (`maxBindingText`, `lisp/src/CompilerLowering.cpp`): a `let`'s names and the value a set called on it gives (`(#{:a} x)` writes `x` twice), written in | 4,000 characters; past it the binding is refused, naming its place |
+| Where definitions read from files start, kept so an error names its file's line (`keptPlaces`, `lisp/src/Document.cpp`) | 65,536 definitions for the process, about 4 MB; past it all are forgotten at once, and an error in one read before says its line within the definition |
 | A feature's program | within its manifest's 1 MiB; built with the Lisp build's budget, a build past it refused |
 | Feature builds kept (`Composition.cpp`) | 16 per thread |
 | `while` loop iterations | 10,000 |

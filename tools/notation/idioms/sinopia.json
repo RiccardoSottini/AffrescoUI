@@ -1,0 +1,13 @@
+{
+	"folders": [
+		"sinopia/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 87
+	},
+	"kept": {
+		"fn-one-parameter": 7,
+		"four-nested-calls": 4,
+		"string-function": 4
+	}
+}

@@ -3,6 +3,8 @@
 ;;;
 ;;; What they run is in flow.lisp.
 
+(ns flow.board)
+
 ;;; State
 
 (defstate query "")
@@ -44,17 +46,18 @@
 
 ;;; What it works out
 
-(defcomputed remaining (sum (filter (fn [it] (not= it.c computed.lastColumn)) computed.allCards) (fn [it] it.points)))
+; style: keep, sum is the expression's own function: the function it takes names its item it
+(defcomputed remaining (sum (filter #(not= (:c %) computed.lastColumn) computed.allCards) (fn [it] it.points)))
 
 (defcomputed burndownValues (concat state.burndown [computed.remaining]))
 
 (defcomputed checklistDone
-  (if (nil? computed.card) 0 (count (filter (fn [it] it.done) (or-else computed.card.checklist [])))))
+  (if-some [card computed.card] (count (filter :done (or-else card.checklist []))) 0))
 
 (defcomputed dueDays
   (if (or (nil? computed.card) (nil? computed.card.due)) nil (daysBetween state.today computed.card.due)))
 
-(defcomputed present (filter (fn [it] (some? (get state.presence it))) (keys state.presence)))
+(defcomputed present (filter #(some? (get state.presence %)) (keys state.presence)))
 
 ;;; Keys
 

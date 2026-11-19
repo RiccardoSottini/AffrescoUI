@@ -1,11 +1,13 @@
 ;;; dialogs.lisp --- what opens over the app: the day's popup, and the dialog that adds or edits a habit
 
+(ns streak.dialogs)
+
 ;;; The day's popup
 (defview entry-popup "The day's popup: the value or yes, skip, no, and a note." []
   `(node#entryPopup :overlay {:placement window :open state.popup.open :dismiss outside :modal true}
      :let {:ph ~(get data.ordered state.popup.h)
            :pcol ~(get computed.pal ph.color)
-           :meas ~(= ph.kind "measurable")
+           :meas ~(= ph.kind :measurable)
            :pd ~(if (= state.popup.date "") state.today state.popup.date)}
      :x ~(clamp (- state.popup.x 140) 8 (- window.width 288))
      :y ~(clamp (+ state.popup.y 14) 8 (- window.height 208))
@@ -100,7 +102,7 @@
        :color transparent
        :children [(node#label-t-edit-target :style caption :text ~(t "edit.target") :anchors {:left 2 :top 0})
                   ~(row-edit-target)]
-       :when ~(= state.edit.kind "measurable"))
+       :when ~(= state.edit.kind :measurable))
      (node#editFrequency :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-frequency :style caption :text ~(t "edit.frequency") :anchors {:left 2 :top 0})
        ~(row-edit-frequency))
@@ -157,7 +159,7 @@
      :focusable true
      :role radio
      :selected ~(= state.edit.color sw)
-     :label ~(str (t "edit.color") " " (+ sw 1))
+     :label ~(str (t "edit.color") " " (inc sw))
      :cursor hand
      :borderWidth ~(if (= state.edit.color sw) 3 0)
      :borderColor @c.card
@@ -198,14 +200,14 @@
 (defview row-edit-target "A measurable habit's target: at least or at most, and how much." []
   `(row#row-edit-target :anchors {:left 0 :right 0 :top 18} :height 40 :gap 8 :alignItems center
      (node#atLeast
-       :style ~(if (= state.edit.targetType "atLeast") "chipOn" "chip")
+       :style ~(if (= state.edit.targetType :atLeast) "chipOn" "chip")
        :text ~(t "chip.atLeast")
-       :selected ~(= state.edit.targetType "atLeast")
+       :selected ~(= state.edit.targetType :atLeast)
        :onClick {:set state.edit.targetType :to atLeast})
      (node#atMost
-       :style ~(if (= state.edit.targetType "atMost") "chipOn" "chip")
+       :style ~(if (= state.edit.targetType :atMost) "chipOn" "chip")
        :text ~(t "chip.atMost")
-       :selected ~(= state.edit.targetType "atMost")
+       :selected ~(= state.edit.targetType :atMost)
        :onClick {:set state.edit.targetType :to atMost})
      (node#targetField :style field :bind state.edit.target :label ~(t "edit.target") :width 96 :placeholder "10")
      (node#unitField
@@ -238,7 +240,7 @@
      :text ~(t key)
      :selected ~(= state.edit.freqMode mode)
      :onClick {:set state.edit.freqMode :to ~mode}
-     :when ~(not= state.edit.kind "measurable")))
+     :when ~(not= state.edit.kind :measurable)))
 
 (defview per-chip "A measurable habit's period `mode` to choose (a target per day, week or month), its text `key`." [mode key]
   `(node :id ~(str "per_" mode)
@@ -246,10 +248,10 @@
      :text ~(t key)
      :selected ~(= state.edit.freqMode mode)
      :onClick {:set state.edit.freqMode :to ~mode}
-     :when ~(= state.edit.kind "measurable")))
+     :when ~(= state.edit.kind :measurable)))
 
 (defview freq-stepper "The frequency's times, with minus and plus." []
-  `(row#freqStepper :when ~(and (not= state.edit.kind "measurable") (not= state.edit.freqMode "daily"))
+  `(row#freqStepper :when ~(and (not= state.edit.kind :measurable) (not= state.edit.freqMode :daily))
      :width 112
      :height 32
      :alignItems center

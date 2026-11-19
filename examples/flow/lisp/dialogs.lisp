@@ -1,5 +1,7 @@
 ;;; dialogs.lisp --- what opens over the work area: the composer, the edit dialog and the selection bar
 
+(ns flow.dialogs)
+
 ;;; The composer
 
 (defview composer-box "The composer: a new card's title, notes and properties, and Create more to keep it open." []
@@ -115,19 +117,19 @@
        :label ~(t "issue.labels")
        :onClick {:set state.composer.tag
                  :to ~(get state.filters
-                           (+ (mod (indexOf state.filters state.composer.tag) (- (count state.filters) 1)) 1))})))
+                           (inc (mod (indexOf state.filters state.composer.tag) (dec (count state.filters)))))})))
 
 (defview composer-who "The composer's owner chip, which goes round the members." []
   `(node#composerWho :style cardChip
      :icon circle-user
-     :text ~(str " " (:name (find (fn [it] (= it.who state.composer.who)) state.members)))
+     :text ~(str " " (:name (find #(= (:who %) state.composer.who) state.members)))
      :cursor hand
      :focusable true
      :role button
      :label ~(t "quick.assignee")
      :onClick {:set state.composer.who
                :to ~(get-in state.members
-                            [(mod (+ (indexOf (map (fn [it] it.who) state.members) state.composer.who) 1)
+                            [(mod (inc (indexOf (map :who state.members) state.composer.who))
                                   (count state.members))
                              :who])}))
 

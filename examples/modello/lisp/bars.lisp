@@ -1,6 +1,8 @@
 ;;; bars.lisp --- the window's frame: the top bar (menus, workspaces, scene and layer), the four areas, the status bar,
 ;;; and the render window's image
 
+(ns modello.bars)
+
 ;;; The workspace
 
 (defview workspace-column "The window's column: the top bar, the areas (or the one maximized), the status bar." []
@@ -27,11 +29,11 @@
 
 (defcomponent area "An area: the editor state.areas gives its slot (a, b, c or d)." {:slot a}
   `(node :id ~(str "area-" slot) :color transparent :onHover ~(handler hoverArea slot)
-     (node :when ~(= (get state.areas slot) "viewport") :use viewportArea :fill true)
-     (node :when ~(= (get state.areas slot) "timeline") :use timelineArea :fill true)
-     (node :when ~(= (get state.areas slot) "outliner") :use outlinerArea :fill true)
-     (node :when ~(= (get state.areas slot) "properties") :use propertiesArea :fill true)
-     (node :when ~(= (get state.areas slot) "shader") :use shaderArea :fill true)))
+     (node :when ~(= (get state.areas slot) :viewport) :use viewportArea :fill true)
+     (node :when ~(= (get state.areas slot) :timeline) :use timelineArea :fill true)
+     (node :when ~(= (get state.areas slot) :outliner) :use outlinerArea :fill true)
+     (node :when ~(= (get state.areas slot) :properties) :use propertiesArea :fill true)
+     (node :when ~(= (get state.areas slot) :shader) :use shaderArea :fill true)))
 
 ;;; The top bar
 
@@ -158,7 +160,7 @@
   `(scene#render-image :anchors {:left 20 :right 20 :top 44 :bottom 56}
      :scene ~(merge state.scene
                     {:nodes (map (fn [it]
-                                   (if (or (= it.render false) (contains computed.collectionsOff.render (or-else it.collection "collection")))
+                                   (if (or (false? it.render) (contains computed.collectionsOff.render (or-else it.collection "collection")))
                                      (merge it {:visible false})
                                      it))
                                  state.scene.nodes)})

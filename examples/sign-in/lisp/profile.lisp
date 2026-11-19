@@ -6,10 +6,12 @@
 ;;; function that makes it in state.reauth.then. Every change is logged (logEvent), and the account's lists are
 ;;; written back on it when the session ends (saveAccount).
 
+(ns sign-in.profile)
+
 ;;; The account's record
 
 (defn updateAccount "Changes some fields of the account of an email." [email fields]
-  (set "state.accounts" (map (fn [it] (if (same-email? (:email it) email) (merge it fields) it)) state.accounts)))
+  (set "state.accounts" (map #(if (same-email? (:email %) email) (merge % fields) %) state.accounts)))
 
 (defn ofUser? "Whether a record (an account, a trusted device) is the signed-in account's, by its email." [record]
   (same-email? (:email record) state.user.email))
@@ -58,10 +60,10 @@
   (updateAccount state.user.email
                  {:emails state.emails
                   :passkeys state.myPasskeys
-                  :passkey (> (count state.myPasskeys) 0)
+                  :passkey (boolean (seq state.myPasskeys))
                   :sessions state.sessions
                   :connected state.connected
-                  :log (map (fn [it] (merge it {:at (- (:at it) state.clock)})) state.log)}))
+                  :log (map #(merge % {:at (- (:at %) state.clock)}) state.log)}))
 
 (defn logEvent "An event of the account's activity, the newest first, at most 50." [kind]
   (set "state.log" (take 50 (cons {:kind kind :at state.clock :days 0 :device "this" :place "Lakeside"} state.log))))
@@ -74,7 +76,7 @@
 ;;; Asking the password again
 
 (defn stepUp "Runs a sensitive change, by its function's name, once the password was given again." [then]
-  (if (or (> state.confirmedLeft 0) state.user.provider)
+  (if (or (pos? state.confirmedLeft) state.user.provider)
       (run then)
       (do (set "state.reauth" {:open true :password "" :error "" :then then})
           (focus "#reauthPassword"))))
@@ -82,7 +84,7 @@
 (defn confirmReauth "Confirm: with the right password, the change goes on, and none is asked for 2 minutes." []
   (let [password (:password (accountOf state.user.email))]
     (set "state.reauth.open" true)
-    (cond (= state.reauth.password "")
+    (cond (empty? state.reauth.password)
           (refuse "state.reauth.error" "empty" "#reauthPassword")
           (and (not= password "") (not= password state.reauth.password))
           (do (set "state.reauth.password" "")
@@ -101,11 +103,11 @@
 
 (defn saveProfile "Save changes: once the name is right, the fake server saves it." []
   (set "state.profile.submitted" true)
-  (when (= computed.profileErrors 0) (serverCall "finishSave" "save")))
+  (when (zero? computed.profileErrors) (serverCall "finishSave" "save")))
 
 (defn finishSave "The name, saved on the account." []
-  (updateAccount state.user.email {:name (trim state.profile.name)})
-  (set "state.user.name" (trim state.profile.name))
+  (updateAccount state.user.email {:name (str/trim state.profile.name)})
+  (set "state.user.name" (str/trim state.profile.name))
   (set "state.profile.submitted" false)
   (logEvent "profile")
   (notify (t "saved")))
@@ -185,14 +187,14 @@
             (after 0 focusOn "#savedCodes"))))
 
 (defn finishSetup "Done: once the backup codes are saved, two-step is on (or its codes are new)." []
-  (if (not state.setup.saved)
+  (if-not state.setup.saved
       (setupFails "notSaved")
       (do (set "state.setup.open" false)
           (if state.user.twoStep (notify (t "newCodesSaved")) (applyTwoStep true)))))
 
 (defn freshCodes "New backup codes." []
   ;; one demo list for everyone: a real service makes random ones and keeps only their hashes
-  (set "state.backupCodes" (map (fn [n] (str "DEMO-" (+ 1001 n))) (range 8))))
+  (set "state.backupCodes" (map #(str "DEMO-" (+ 1001 %)) (range 8))))
 
 (defn setupCancel "Back to the scan from the codes of a first setup, else closes the setup." []
   (set "state.setup.error" "")
@@ -217,11 +219,11 @@
   (notify (t "keyCopied")))
 
 (defn copyBackupCodes "Copies the backup codes, one a line." []
-  (copy (join "\n" state.backupCodes))
+  (copy (str/join "\n" state.backupCodes))
   (notify (t "codesCopied")))
 
 (defn removeTrusted "Forgets a device two-step remembers for the account." [device]
-  (set "state.trusted" (remove (fn [it] (and (ofUser? it) (= (:device it) device))) state.trusted))
+  (set "state.trusted" (remove #(and (ofUser? %) (= (:device %) device)) state.trusted))
   (notify (t "deviceRemoved")))
 
 ;;; Emails
@@ -241,7 +243,7 @@
       (serverCall "finishAddEmail" "verifyEmail")))
 
 (defn finishAddEmail "The new email, unverified, its link sent." []
-  (let [address (trim state.newEmail.address)]
+  (let [address (str/trim state.newEmail.address)]
     (push "state.emails" {:address address :primary false :verified false :sent true :sentAt state.clock})
     (notify (t "emailAdded" {:email address}))
     (set "state.newEmail" {:open false :address "" :submitted false})
@@ -253,7 +255,7 @@
   (serverCall "sendVerification" "verifyEmail"))
 
 (defn sendVerification "The link sent: it opens itself 5 seconds later (tick)." []
-  (set "state.emails" (map (fn [it] (if (= (:address it) state.target) (merge it {:sent true :sentAt state.clock}) it))
+  (set "state.emails" (map #(if (= (:address %) state.target) (merge % {:sent true :sentAt state.clock}) %)
                            state.emails))
   (notify (t "emailAdded" {:email state.target})))
 
@@ -262,7 +264,7 @@
   (stepUp "finishRemoveEmail"))
 
 (defn finishRemoveEmail "The email, removed." []
-  (set "state.emails" (filter (fn [it] (or (not= (:address it) state.target) (:primary it))) state.emails))
+  (set "state.emails" (filter #(or (not= (:address %) state.target) (:primary %)) state.emails))
   (notify (t "emailRemoved" {:email state.target}))
   (focus "#addEmail")
   (logEvent "emailRemoved"))
@@ -273,9 +275,9 @@
 
 (defn finishPrimary "The account, its trusted devices and the sign-in form follow the new address." []
   (let [address state.target]
-    (set "state.emails" (map (fn [it] (merge it {:primary (= (:address it) address)})) state.emails))
+    (set "state.emails" (map #(merge % {:primary (= (:address %) address)}) state.emails))
     (updateAccount state.user.email {:email address})
-    (set "state.trusted" (map (fn [it] (if (ofUser? it) (merge it {:email address}) it)) state.trusted))
+    (set "state.trusted" (map #(if (ofUser? %) (merge % {:email address}) %) state.trusted))
     (set "state.user.email" address)
     (set "state.email" address)
     (set "state.profile.email" address)
@@ -290,8 +292,8 @@
   (serverCall "finishPasskey" "passkey"))
 
 (defn finishPasskey "The new passkey: this device's, or a security key's once this device has one." []
-  (push "state.myPasskeys" {:id (str "pk" (+ (count state.myPasskeys) 1) "-" state.clock)
-                            :device (if (some (fn [it] (= (:device it) "this")) state.myPasskeys) "key" "this")
+  (push "state.myPasskeys" {:id (str "pk" (inc (count state.myPasskeys)) "-" state.clock)
+                            :device (if (some #(= (:device %) "this") state.myPasskeys) "key" "this")
                             :added 0
                             :used -1})
   (notify (t "passkeyAdded"))
@@ -303,15 +305,15 @@
   (stepUp "finishRemovePasskey"))
 
 (defn finishRemovePasskey "The passkey, removed." []
-  (set "state.myPasskeys" (remove (fn [it] (= (:id it) state.target)) state.myPasskeys))
+  (set "state.myPasskeys" (remove #(= (:id %) state.target) state.myPasskeys))
   (notify (t "passkeyRemoved"))
   (logEvent "passkeyRemoved"))
 
 ;;; Devices
 
 (defn signOutSession "Signs another device's session out." [id]
-  (notify (t "signedOutDevice" {:device (t (str "device_" (:device (find (fn [it] (= (:id it) id)) state.sessions))))}))
-  (set "state.sessions" (filter (fn [it] (or (not= (:id it) id) (= (:id it) "here"))) state.sessions))
+  (notify (t "signedOutDevice" {:device (t (str "device_" (:device (find #(= (:id %) id) state.sessions))))}))
+  (set "state.sessions" (filter #(or (not= (:id %) id) (= (:id %) "here")) state.sessions))
   (logEvent "signedOutDevice"))
 
 (defn signOutOthers "Sign out everywhere else, once the password was given again." [] (stepUp "endOtherSessions"))
@@ -320,7 +322,7 @@
   (serverCall "finishSignOutOthers" "devices"))
 
 (defn finishSignOutOthers "Only this device's session is left." []
-  (set "state.sessions" (filter (fn [it] (= (:id it) "here")) state.sessions))
+  (set "state.sessions" (filter #(= (:id %) "here") state.sessions))
   (notify (t "signedOutOthers"))
   (logEvent "signedOutOthers"))
 
@@ -331,8 +333,7 @@
   (serverCall "finishConnect" "connect"))
 
 (defn finishConnect "The provider connected, as the username, or the email's name, at the provider." []
-  (let [username (or-else state.user.username "")
-        local (if (not= username "") username (first (split state.user.email "@")))]
+  (let [local (or (not-empty state.user.username) (first (str/split state.user.email "@")))]
     (push "state.connected" {:provider state.target :account (str local "@" state.target ".example")})
     (notify (t "connectedNow" {:provider (t (str "provider_" state.target))}))
     (logEvent "connected")))
@@ -342,7 +343,7 @@
   (stepUp "finishDisconnect"))
 
 (defn finishDisconnect "The provider, disconnected." []
-  (set "state.connected" (remove (fn [it] (= (:provider it) state.target)) state.connected))
+  (set "state.connected" (remove #(= (:provider %) state.target) state.connected))
   (notify (t "disconnectedNow" {:provider (t (str "provider_" state.target))}))
   (logEvent "disconnected"))
 
@@ -358,10 +359,10 @@
 
 (defn confirmDelete "Delete forever: the word typed, then the password asked again." []
   (set "state.deleting.open" true)
-  (let [typed (trim state.deleting.typed)]
-    (cond (= typed "")
+  (let [typed (str/trim state.deleting.typed)]
+    (cond (empty? typed)
           (refuse "state.deleting.error" "empty" "#deleteConfirm")
-          (not= (upper-case typed) (upper-case computed.deleteWord))
+          (not= (str/upper-case typed) (str/upper-case computed.deleteWord))
           (refuse "state.deleting.error" "wrong" "#deleteConfirm")
           :else
           (do (set "state.deleting.open" false)

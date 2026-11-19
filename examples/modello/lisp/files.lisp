@@ -3,6 +3,8 @@
 ;;; A saved scene is `{format: "modello-scene", version: 1, scene, added}`; one opened is checked whole
 ;;; (computed.openedIsScene) before it replaces the scene. What happened shows in the status bar (state.fileStatus).
 
+(ns modello.files)
+
 ;;; What happened
 
 (defn saved "A file saved: its name in the status bar." [result]
@@ -38,7 +40,7 @@
 
 (defn sceneOpened "A file opened: it replaces the scene if it is a Modello scene, and says so either way." []
   (if computed.openedIsScene
-    (do (when (not= state.mode "object") (set "state.mode" "object"))
+    (do (when (not= state.mode :object) (set "state.mode" :object))
         (snapshot)
         (set "state.scene" state.opened.scene)
         (set "state.added" (max state.added state.opened.added))

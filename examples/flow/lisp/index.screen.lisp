@@ -7,28 +7,29 @@
 ;;; to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light
 ;;; and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "toolbar.lisp"
-         "columns.lisp"
-         "dialogs.lisp"
-         "overlays.lisp"
-         "../../shared/components/charts.lisp"
-         "board.lisp"
-         "drawer.lisp"
-         "views.lisp"
-         "sidebar.lisp"
-         "list.lisp"
-         "issue.lisp"
-         "pages.lisp"
-         "select.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "flow.lisp")
+(ns flow.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            flow.state
+            flow.computed
+            flow.look
+            flow.keys
+            flow.toolbar
+            flow.columns
+            flow.dialogs
+            flow.overlays
+            "../../shared/components/charts.lisp"
+            flow.board
+            flow.drawer
+            flow.views
+            flow.sidebar
+            flow.list
+            flow.issue
+            flow.pages
+            flow.select
+            "../../shared/addons/assistant/assistant.lisp"
+            flow.flow))
 
 ;;; The window, and what is in it, in the order it is drawn
 

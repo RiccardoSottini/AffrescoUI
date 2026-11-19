@@ -2,6 +2,8 @@
 ;;;
 ;;; Each defstate is one key of the state, with the value it starts from and, for some, its type.
 
+(ns tempo.state)
+
 ;;; Playing
 
 (defstate isPlaying true "Whether the song plays, or is paused." :type (boolean))

@@ -15,11 +15,14 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <mutex>
 #include <optional>
 #include <string_view>
+#include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -359,9 +362,61 @@ void checkProgramShape(const json& section) {
 	}
 }
 
+namespace {
+
+/// How many definitions' places are kept, about 4 MB at most: ten times every example's definitions together. Past
+/// that, the places are forgotten at once, and an error in a definition read before says its line within it.
+constexpr std::size_t keptPlaces = 1U << 16U;
+
+/// @brief Where the definitions read from files lately start in them, so that programOf() gives a definition its
+/// file's line and column back and an error in it says where it is in the file. The section holds no places: a
+/// definition's place is found by a hash of its file, name and exact text, so one a revision changed starts on its
+/// own line 1. Two texts that hash alike only misplace an error's line.
+class EntryPlaces {
+public:
+	/// @brief Notes where a file's definitions start.
+	/// @param entries The definitions.
+	void keep(const std::vector<Entry>& entries) {
+		const std::scoped_lock lock(mutex_);
+		for(const Entry& entry : entries) {
+			if(places_.size() >= keptPlaces) places_.clear();
+			places_.insert_or_assign(keyOf(entry), std::pair(entry.line, entry.column));
+		}
+	}
+	/// @brief Gives a definition its place, if one was noted for it.
+	/// @param entry The definition, its file, name and text set.
+	void place(Entry& entry) {
+		const std::scoped_lock lock(mutex_);
+		const auto found = places_.find(keyOf(entry));
+		if(found != places_.end()) std::tie(entry.line, entry.column) = found->second;
+	}
+
+private:
+	/// @brief A definition's key. @param entry It. @return The hash of its file, name and text.
+	static std::size_t keyOf(const Entry& entry) {
+		const std::hash<std::string_view> hash;
+		std::size_t key = hash(entry.file);
+		for(const std::string_view part : {std::string_view(entry.name), std::string_view(entry.text)})
+			key ^= hash(part) + 0x9e3779b97f4a7c15U + (key << 6U) + (key >> 2U);
+		return key;
+	}
+	std::mutex mutex_;                                                            ///< Files are read on any thread.
+	std::unordered_map<std::size_t, std::pair<std::size_t, std::size_t>> places_; ///< Line and column, by key.
+};
+
+/// @brief The places of the process.
+/// @return Them.
+EntryPlaces& entryPlaces() {
+	static EntryPlaces places;
+	return places;
+}
+
+} // namespace
+
 json sourceDocument(std::string_view text, const std::string& file, std::string_view declaration) {
 	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
 	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
+	entryPlaces().keep(program.entries());
 	json entries = json::object();
 	if(!declaration.empty()) entries[std::string(namespaceEntry)] = declaration; // first, as in the file
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
@@ -480,6 +535,7 @@ Program programOf(const json& section, const json& authors) {
 			entry.file = file;
 			entry.name = name;
 			entry.text = text.get<std::string>();
+			entryPlaces().place(entry); // where it is in its file, if it was read from one
 			if(const json* of = authors.is_object() && authors.contains(file) ? &authors[file] : nullptr;
 			   of && of->is_object() && of->contains(name) && (*of)[name].is_string())
 				entry.author = (*of)[name].get<std::string>();

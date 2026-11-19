@@ -1,5 +1,7 @@
 ;;; browser.lisp --- the browser over the view: the bodies, the bookmarked places and the eclipses
 
+(ns orrery.browser)
+
 ;;; The browser
 
 (defview browser "The browser over the view: its tabs, then the bodies, the bookmarked places or the eclipses." []

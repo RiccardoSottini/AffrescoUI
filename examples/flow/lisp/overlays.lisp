@@ -3,6 +3,8 @@
 ;;; index.screen.lisp lists these in the order they are drawn. A view takes what differs between its uses as
 ;;; arguments: a quoted name of the running app ('menus.card) is read while the app runs, as a binding.
 
+(ns flow.overlays)
+
 ;;; The toolbar and the status bar
 
 (defview toolbar "The toolbar under the top bar: the filters and the search, and the Display button with its menu." []
@@ -101,7 +103,7 @@
      ~(composer-box)))
 
 (defview selection-bar "The bar at the bottom while cards are marked: their count and what to do with them." []
-  `(node#bulkBar :when ~(and (= state.page "issues") (> (count state.marked) 0))
+  `(node#bulkBar :when ~(and (= state.page :issues) (pos? (count state.marked)))
      :x ~(+ 228 (round (/ (- (- window.width 236) 340) 2)))
      :anchors {:bottom 56}
      :width 340

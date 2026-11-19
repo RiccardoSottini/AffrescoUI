@@ -1,5 +1,7 @@
 ;;; keys.lisp --- Orrery's keyboard shortcuts: each runs a command or a function of orrery.lisp
 
+(ns orrery.keys)
+
 ;;; Keys
 
 (defkey "mod+p" togglePlay)

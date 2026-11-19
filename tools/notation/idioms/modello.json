@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"modello/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 33
+	},
+	"kept": {
+		"fn-one-parameter": 7,
+		"four-nested-calls": 1
+	}
+}

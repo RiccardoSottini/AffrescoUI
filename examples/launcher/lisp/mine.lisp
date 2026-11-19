@@ -4,10 +4,12 @@
 ;;; the folder, or delete it after a question. Install from a file reviews a file someone gave, and installs it. With
 ;;; no app yet, the page says how to make one.
 
+(ns launcher.mine)
+
 ;;; The page
 
 (defview mine-page "My apps: its title, its buttons, a note if the folder can't be read, and the rows." []
-  `(node#minePage :when ~(= state.page "mine") :fill true :color transparent :role tabpanel :label ~(t "nav.mine")
+  `(node#minePage :when ~(= state.page :mine) :fill true :color transparent :role tabpanel :label ~(t "nav.mine")
      (node#mineTitle :style pageTitle :text ~(t "mine.title") :role heading)
      (node#mineSub :style pageSub :text ~(t "mine.sub") :anchors {:left 36 :right 560 :top 72})
      (row#mineButtons :gap 8 :anchors {:right 36 :top 38} :height 38 :width 530 :justify end
@@ -35,7 +37,7 @@
        :anchors {:left 36 :right 36 :top 108}
        :height 40
        :role status)
-     (column#mineList :when ~(> (count state.mine) 0)
+     (column#mineList :when ~(pos? (count state.mine))
        :anchors {:left 36 :right 36 :top ~(if (not= state.mineError "") 160 116) :bottom 0}
        :gap 10
        :scroll vertical
@@ -48,9 +50,9 @@
      ~(mine-empty)))
 
 (defview mine-empty "With no app yet: a picture, what the page is for, and a button that makes one." []
-  `(node#mineEmpty :when ~(= (count state.mine) 0)
+  `(node#mineEmpty :when ~(empty? state.mine)
      :anchors {:top ~(if (not= state.mineError "") 168 124)}
-     :x ~(max 36 (/ (- (- window.width computed.sideWidth) 460) 2))
+     :x ~(max 36 (/ (- window.width computed.sideWidth 460) 2))
      :width 460
      :height 300
      :color transparent

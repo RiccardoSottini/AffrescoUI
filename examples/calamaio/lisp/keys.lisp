@@ -4,6 +4,8 @@
 ;;; editor's own letters (window.keyLabels: ctrl+x ctrl+f reads C-x C-f). A window's own keys (RET, g and q in a
 ;;; listing, the digits of an argument, F10) are in window.lisp; the minibuffer's in echo.lisp.
 
+(ns calamaio.keys)
+
 ;;; Motion
 
 (defkey "ctrl+f" forward-char)

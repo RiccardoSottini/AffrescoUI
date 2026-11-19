@@ -3,6 +3,8 @@
 ;;; From above, the chart is a canvas of the orbits, the planets' names and your notes; from the ground it is
 ;;; sky.lisp's view. Under it, the orbit graph: drag a link to make a body orbit another.
 
+(ns orrery.chart)
+
 ;;; The chart
 
 (defcomputed chartItems "The chart's items: the stars, each planet's orbit and name, and the notes."
@@ -17,11 +19,13 @@
                   :color "transparent"
                   :borderColor "#2f3a55"
                   :borderWidth 1})
-               (filter (fn [it] (not= it.parent "")) computed.placed))
+               (filter #(not= (:parent %) "") computed.placed))
           (map (fn [it]
                  {:id (str "body-" it.id)
-                  :x (- (* it.x 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
-                  :y (- (* it.z 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :x (- (* it.x 22)
+                        (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :y (- (* it.z 22)
+                        (if (= it.parent "") 9 (+ 4 (* it.size 10))))
                   :width (if (= it.parent "") 18 (+ 8 (* it.size 20)))
                   :height (if (= it.parent "") 18 (+ 8 (* it.size 20)))
                   :radius (if (= it.parent "") 9 (+ 4 (* it.size 10)))
@@ -40,7 +44,7 @@
                   :text it.name
                   :textSize 16
                   :textColor "#aab2c5"})
-               (filter (fn [it] (= it.parent "sun")) computed.placed))
+               (filter #(= (:parent %) "sun") computed.placed))
           state.notes))
 
 (defview chart-bar "The chart's bar: from the ground or from above, and, from above, the note's text and its tools."
@@ -137,13 +141,14 @@
        :fitText true
        :font small
        :textColor ~(if (= state.skyMode "ground") "#dfe7f2" "@onSkyMuted")
+       ; style: keep, its values are different texts, so not case
        :text ~(cond (= state.skyMode "ground") (or-else computed.skyInfo.0 (t "chart.whereYouStand"))
                     (= computed.selectedBody.parent "") (t "chart.centre")
                     :else (t "chart.orbit"
                        {:au (fixed (/ (hypot computed.selectedPosition.x computed.selectedPosition.z) 4.3) 2)
                         :parent (if (= computed.selectedBody.parent "sun")
                                   (t "chart.theSun")
-                                  (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies)))
+                                  (:name (find #(= (:id %) computed.selectedBody.parent) state.bodies)))
                         :days (text computed.selectedBody.period)})))
      (label#chart-info-sky :visible ~(= state.skyMode "ground")
        :height 18

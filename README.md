@@ -11,7 +11,7 @@
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
 [![MCP](https://img.shields.io/badge/MCP-two--way-8B5CF6)](mcp/README.md)
-[![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
+[![Frame time](https://img.shields.io/badge/full%20frame-0.41%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 **[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
@@ -38,12 +38,12 @@ app made from a name and a description, a small change to a home app, and the La
 > cmake -S . -B build && cmake --build build && ./build/affrescoui_launcher
 > ```
 
-AffrescoUI is a native UI engine whose applications are **defined in Lisp**. [AffrescoUI Lisp](LISP.md) is the
-standard: an application's window, views, state, behaviour, commands, keys, settings and text are all named Lisp
-definitions, which the engine builds into one document, draws in C++ and OpenGL, and keeps running. **JSON is supported
-too:** the same document can be written directly in JSON, and every example ships both. People and AI agents change an
-application while it runs: each change is checked against the app's permissions, previewed if it needs approval, and
-applied in place in milliseconds, with no rebuild, no restart and nothing lost.
+AffrescoUI is a native UI engine whose applications are **defined in Lisp**. [AffrescoUI Lisp](LISP.md), a sandboxed
+dialect of Clojure, is the standard: an application's window, views, state, behaviour, commands, keys, settings and text
+are all named Lisp definitions, which the engine builds into one document, draws in C++ and OpenGL, and keeps running.
+**JSON is supported too:** the same document can be written directly in JSON, and every example ships both. People and
+AI agents change an application while it runs: each change is checked against the app's permissions, previewed if it
+needs approval, and applied in place in milliseconds, with no rebuild, no restart and nothing lost.
 
 ## The vision
 
@@ -55,8 +55,8 @@ AffrescoUI applications keep evolving while they are used, shaped by the people 
 - **Complex applications, built by anyone.** No programming needed: describe what you want, and an AI agent builds it
   with you, step by step, from a simple board to a full workbench.
 - **The people who use an app can change it.** Ask the app itself, in plain words: *"add a Blocked column"*, *"dim
-  the lights at sunset"*, *"warn me when a streak breaks"*. You see the change live, then keep it or undo it. Nothing
-  changes without your approval.
+  the lights at sunset"*, *"warn me when a streak breaks"*, or point at the part to change and ask. You see the change
+  live, then keep it or undo it, even after later changes. Nothing changes without your approval.
 - **Prototyping without stopping.** Every idea is tried in the running application: no rebuilding, no restarting, no
   reloading, and your work stays where it was. When the prototype is right, it is already the app.
 
@@ -65,7 +65,8 @@ AffrescoUI applications keep evolving while they are used, shaped by the people 
 An application starts from a document, then **grows by being talked to**: *"add a filter to this list"*, *"make the
 sidebar collapsible"*, *"show the total in red when it's negative"*. Each request becomes a reviewed revision. A run
 of revisions becomes a **change set**, a portable file that works like a **plugin**, and whole features move between
-applications: the planetarium below reuses the presentation editor's slide sorter.
+applications: the planetarium below reuses the presentation editor's slide sorter. A person's own version of an app
+is shared as one file too, and every install is a proposal they review before it lands.
 
 ```mermaid
 flowchart LR
@@ -89,19 +90,21 @@ natively, and shaped by the people who use them while they run.
 
 ## Applications
 
-Twelve applications, from everyday apps to professional tools, all in the same format. They are examples
+Thirteen applications, from everyday apps to professional tools, all in the same format. They are examples
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
-corner: ask for a change in plain words, then review the proposal it becomes. Each is a Lisp program
-(`examples/<app>/lisp/`), small named views and functions with their text in English, Spanish and French, and keeps
-the same app as a JSON document beside it (`examples/<app>/json/`): choose which opens in the Launcher's Settings.
-Calamaio is Lisp only.
+corner: ask for a change in plain words, or **Point** at the part to change first, then review the proposal it
+becomes. Each is a Lisp program (`examples/<app>/lisp/`) in the dialect's idiomatic style, small named views and
+functions with their text in English, Spanish and French, and keeps the same app as a JSON document beside it
+(`examples/<app>/json/`): choose which opens in the Launcher's Settings. Calamaio, the text editor reprogrammed
+[from inside](#changed-from-inside-while-it-runs), is Lisp only.
 
 <div align="center">
 
 <img src=".github/media/launcher.png" width="860" alt="The AffrescoUI Launcher: a sidebar with Apps, My apps, Create and Settings, and a grid of application cards with their pictures, rendered natively by AffrescoUI from one live document">
 
 <sub>The AffrescoUI Launcher, itself one live document: every application one click away, your own apps, a new app
-made blank, from an example or from a description, and the AI provider every app's assistant uses.</sub>
+made blank, from an example or from a description, a catalogue of apps and features to install after review, and the
+AI provider every app's assistant uses.</sub>
 
 </div>
 
@@ -134,7 +137,7 @@ made blank, from an example or from a description, and the AI provider every app
 <td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/lisp/index.screen.lisp</code></sub></td>
+<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. <code>examples/flow/lisp/index.screen.lisp</code></sub></td>
 <td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/lisp/index.screen.lisp</code></sub></td>
 </tr>
 </table>
@@ -208,13 +211,17 @@ flowchart TB
   needs code (wiring a button to a list, validating a form, filtering, drag and drop, shortcuts, navigation, calls to
   services) is declared, so an agent changes it as safely as a colour.
 - **Compact for agents.** Edits address nodes by id (`{"set": {"#title/text": "Q4"}}`, stored as JSON Patch) and
-  re-reads return only what changed: a typical edit is 24 tokens, a re-read after one commit 29
-  ([BENCHMARKS.md](BENCHMARKS.md)).
+  re-reads return only what changed: a typical edit is 28 tokens, a re-read after one commit 27
+  ([BENCHMARKS.md](BENCHMARKS.md)). When the person points at a part, the agent reads only the definition that built
+  it.
+- **Apps that agents can use.** An app's commands are tools: an agent lists them, runs one under its own name and the
+  app's `run` rules, never the person's, and can undo its runs ([VERSION_CONTROL.md](VERSION_CONTROL.md#running-commands)).
 - **Swappable layers.** Modules talk only through the interfaces in `modules/core`, and `affresco::Screen` plugs them
   together. No public header exposes OpenGL or GLFW, and each module links on its own (`affrescoui::render`,
   `affrescoui::vcs`, ...) or all together (`affrescoui::affrescoui`).
 - **Features travel.** A part declares the contribution points and contracts it needs, so one application installs
-  another's feature, checked before it lands.
+  another's feature, checked before it lands. A feature can hold Lisp code, which runs with its author's authority,
+  and a person's version of an app is shared as one file ([VERSION_CONTROL.md](VERSION_CONTROL.md#sharing-a-version-packages)).
 
 ```
 modules/core/        the interfaces between modules: Executor, Channel, VersionControl, Services, Network
@@ -222,7 +229,9 @@ modules/render/      windows, panels, layout, shaped text, input, accessibility;
 modules/format/      the screen format: rules, checker, {{expressions}}, the runtime that reconciles in place
 modules/themes/      the kits' components and the themes' design tokens, as JSON built into the library
 modules/notation/    documents read and written in JSON or in the Lisp notation
-modules/lisp/        the Lisp language: reader, interpreter, programs built purely into a document
+modules/lisp/        the Lisp language, a Clojure dialect: reader, interpreter, programs built purely into a document
+modules/data/        an app's records in SQLite, kept apart from its document: models and migrations
+modules/audio/       sound: voices of files, streams and generators, mixed to the system's output
 modules/vcs/         version control: commits, proposals, permissions, history
 modules/channel/     peers and the live protocol over local sockets and processes
 modules/net/         HTTP(S), server-sent events, WebSocket, remote peers
@@ -238,6 +247,8 @@ mcp/                 the MCP server for AI agents
 apps/server/         the document server: shared, persistent documents over WebSocket
 apps/host/           the stock host, affrescoui_launcher: it opens an app's folder and asks for what the app uses
 examples/            the apps (each with a lisp/ and a json/ folder), the Launcher among them, the assistant add-on
+catalogue/           the apps' versions and features the Launcher's Catalogue lists and installs
+editors/             a VS Code extension, and a clj-kondo configuration for the Lisp programs
 web/                 the WebAssembly build
 ```
 
@@ -245,10 +256,15 @@ The layers, the path of a revision and of an event, and the security boundary: [
 
 ## Written in Lisp
 
-An AffrescoUI app is a program in **AffrescoUI Lisp**, a programming language with its own runtime, built into the
-library ([LISP.md](LISP.md) has every definition and rule in tables; [`modules/lisp`](modules/lisp/README.md),
-[RFC 0005](rfcs/0005-lisp-language.md)). The program is a folder of small, named definitions. Building it gives the
-document the engine draws, and its functions run whenever a button is pressed, a key is typed or a bound value changes.
+An AffrescoUI app is a program in **AffrescoUI Lisp**, a sandboxed dialect of Clojure with its own runtime, built into
+the library ([LISP.md](LISP.md) has every definition and rule in tables; [`modules/lisp`](modules/lisp/README.md), [RFC
+0005](rfcs/0005-lisp-language.md), [RFC 0006](rfcs/0006-clojure-dialect.md)). Its forms, functions and reader forms are
+Clojure's; it is measured against Clojure's cross-dialect test suite ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)),
+and every difference is written down with what to write instead
+([differences.md](modules/lisp/reference/differences.md)). Every example is written in its idiomatic style
+([style.md](modules/lisp/reference/style.md)). The program is a folder of small, named definitions. Building it gives
+the document the engine draws, and its functions run whenever a button is pressed, a key is typed or a bound value
+changes.
 
 | You define | In AffrescoUI Lisp |
 |---|---|
@@ -260,7 +276,7 @@ document the engine draws, and its functions run whenever a button is pressed, a
 | Shortcuts and settings | `defkey`, `defcustom` |
 | Extension points | `defhook`, `add-hook`, `advice` |
 | Its text, in every language | `(t "key")` and `locales/<language>.lisp` |
-| Its files | `(include "toolbar.lisp" ...)` |
+| Its files | `(ns board.index (:require "toolbar.lisp" ...))` |
 
 ### Lisp or JSON: the same app
 
@@ -308,6 +324,16 @@ buffer (`C-x b *scratch* RET`), type a new definition of a command and evaluate 
 The next `C-k` runs the new definition, and `C-x C-z` takes it back. `describe-key`, `apropos` and the `describe-*`
 functions inspect the running program.
 
+Your own editor can do the same in any Lisp app: start it with `--nrepl` and connect any nREPL client. The window asks
+once whether to let that editor evaluate as you; then every definition you evaluate lands as your own revision, in the
+file your buffer is ([LISP.md](LISP.md#connecting-an-editor)).
+
+```sh
+./build/affrescoui_launcher examples/flow/lisp/index.screen.lisp --nrepl
+```
+
+Only the definition that changed is rebuilt, and the running app is updated where that definition is read.
+
 ### Free, and still under version control
 
 - **Every change is a revision.** Each evaluation revises one definition: it is kept in history, shown in diffs and
@@ -327,7 +353,8 @@ functions inspect the running program.
 
 ### 🎨 Truly native
 A from-scratch **C++23** engine on **OpenGL 4.1 core or ES 3.0** (WebGL2 in the browser). No browser engine, no web
-view. Frames are batched, only what changed is redrawn, and an idle window sleeps.
+view. A change updates only what reads it, only what changed is redrawn, text is sharp at every display scale, and an
+idle window sleeps.
 
 </td>
 <td width="33%" valign="top">
@@ -340,8 +367,9 @@ A whole app in one readable document: layout, components, state, `{{expressions}
 <td width="33%" valign="top">
 
 ### 🛡️ Version control built in
-Content-addressed commits, proposals as branches with **live preview**, revert and diff; `allow` / `ask` / `deny`
-rules and change budgets. An AI can change your app but **can never approve its own changes**.
+Content-addressed commits, proposals as branches with **live preview**, diff, and an **undo of any earlier change that
+keeps the later ones**; `allow` / `ask` / `deny` rules and change budgets. An AI can change your app but **can never
+approve its own changes**.
 
 </td>
 </tr>
@@ -349,8 +377,9 @@ rules and change budgets. An AI can change your app but **can never approve its 
 <td valign="top">
 
 ### 🤖 Agent-ready
-A **two-way MCP server**: requests from the app reach the agent, and its revisions and replies come
-back. Works with Claude Code out of the box.
+A **two-way MCP server**: requests from the app reach the agent, with what you pointed at, and its revisions and
+replies come back. Agents also run the app's commands as tools, under rules of their own. Works with Claude Code out of
+the box.
 
 </td>
 <td valign="top">
@@ -364,7 +393,7 @@ comes from the connection, never from what a peer claims.
 
 ### 🧩 Changes become plugins
 Any run of revisions exports as a **change set**, a small portable file that anyone with the same application can
-review and install.
+review and install. A whole version of an app shares as one file, installed only after review.
 
 </td>
 </tr>
@@ -429,8 +458,9 @@ flowchart LR
 ```
 
 1. **Anyone can propose a change.** The host (`affrescoui_launcher`) renders a screen and listens for peers on local
-   sockets. You ask through the app's assistant; the AI answers through the provider chosen in the
-   Launcher, or an agent connects through the MCP server, which works both ways; any script can connect too. Every change is a **revision** of compact edits.
+   sockets. You ask through the app's assistant, pointing at what to change if you like; the AI answers through the
+   provider chosen in the Launcher, or an agent connects through the MCP server, which works both ways; any script can
+   connect too. Every change is a **revision** of compact edits.
 2. **The permission rules decide:** `deny` refuses, `ask` sends the change to review, `allow` applies it. Rules judge
    what a change *does*, not how it is written. Flow's rules, for example, let the person's own client change anything, ask before
    an agent changes behaviour, and protect the status bar from everyone.
@@ -438,8 +468,8 @@ flowchart LR
    live. Then **Accept**, **Always allow** (don't ask again for that part of the screen) or **Reject** with a reason.
    The modes *accept edits* and *plan* change how much is asked.
 4. **Accepted changes become commits on `main`**, with SHA-256 ids, the author and the approver. The runtime updates
-   the running app in place, keeping focus and typing, and any commit can be reverted or restored
-   ([VERSION_CONTROL.md](VERSION_CONTROL.md)).
+   the running app in place, keeping focus and typing. Any commit can be undone, keeping the changes made after it
+   (where one was built on it, you choose), or restored ([VERSION_CONTROL.md](VERSION_CONTROL.md)).
 
 
 ## Quick start
@@ -470,8 +500,8 @@ changes the running board and the change comes back as a proposal: **Accept** it
 ```
 
 Requires CMake 3.25 or later and a C++23 compiler; CMake fetches the pinned dependencies
-([cmake/dependencies.json](cmake/dependencies.json)). CI builds and tests it on Linux and Windows and builds it on
-macOS, where it is developed; [web/](web/README.md) builds it for the browser. `ctest --test-dir build` runs the unit
+([cmake/dependencies.json](cmake/dependencies.json)). CI builds and tests it on Linux, Windows and macOS, where it is
+developed; [web/](web/README.md) builds it for the browser. `ctest --test-dir build` runs the unit
 tests, every application's scenarios and the rendering check, which compares each frame with a golden image, pixel
 for pixel ([tests/render/README.md](tests/render/README.md)).
 
@@ -513,18 +543,24 @@ wraps it.
   desktop and chat components.
 - **Live documents:** in-place reconciliation; revisions as compact edits or JSON Patch, atomic, by `#id`; any number
   of peers over local sockets, processes or the network; request and reply relaying; asking the agents from inside
-  the app.
+  the app, pointing at what to change; updates that run only what read the change (dependency tracking).
 - **Version control:** SHA-256 commits, an append-only `main`, proposals as branches with merge commits, log, diff,
-  blame, revert, restore, `HEAD~1` names; `allow` / `ask` / `deny` rules judged by effect, modes, grants, budgets,
-  reviewers, protected controls, approvals pinned to the version reviewed; change sets; history on disk.
+  blame, revert, restore, an undo that keeps later changes, three-way merges, `HEAD~1` names; `allow` / `ask` / `deny`
+  rules judged by effect, modes, grants, budgets, reviewers, protected controls, approvals pinned to the version
+  reviewed; change sets, packages of a whole app and a catalogue, each installed after review; history on disk.
 - **Services and network:** language servers and local programs the host allows, folders it grants, HTTP(S),
   server-sent events, WebSocket, sign-in, and a document server that shares documents live.
 - **Agents:** a two-way MCP server with minified reads, outlines, single-node reads and changes-only re-reads,
-  pictures of the screen, scenarios, leases on parts, and authors set by the connection, never self-declared.
-- **Engine:** HarfBuzz shaping and FreeType glyphs with fallbacks, right-to-left text, colour emoji, HiDPI, damage
-  redraws, the platform's accessibility API (VoiceOver, Narrator, Orca), headless windows for tests, vector PDF export.
-- **Tooling:** the `affrescoui` CLI (run, check, test, render, fmt, migrate, import from A2UI and Adaptive Cards,
-  export), scenarios with golden images, a VS Code extension, a C API with a Python binding, a WebAssembly build.
+  the source of what the person pointed at, pictures of the screen, scenarios, leases on parts, an app's commands as
+  tools with run rules and undo, and authors set by the connection, never self-declared.
+- **Lisp:** a sandboxed Clojure dialect, measured against Clojure's test suite; definitions versioned one by one, a
+  changed one rebuilt alone; an nREPL server for editors, paired by the person.
+- **Engine:** HarfBuzz shaping and FreeType glyphs with fallbacks, right-to-left text, colour emoji, display scales
+  from 100% to 400% with text hinted sharp below 2×, damage redraws, the platform's accessibility API (VoiceOver,
+  Narrator, Orca), headless windows for tests, vector PDF export.
+- **Tooling:** the `affrescoui` CLI (run, check, test, render, fmt, convert between JSON and Lisp, migrate, import from
+  A2UI and Adaptive Cards, export, pack and install, a REPL), scenarios with golden images, a VS Code extension, a
+  clj-kondo configuration, a C API with a Python binding, a WebAssembly build.
 
 </details>
 

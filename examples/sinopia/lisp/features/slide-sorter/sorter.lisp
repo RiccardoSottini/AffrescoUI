@@ -13,7 +13,7 @@
 (defn slideSorter-selected
   "The selected page: the app's current page, else the one picked last."
   [current]
-  (if (nil? current) state.slideSorter.picked current))
+  (or-else current state.slideSorter.picked))
 
 (defcommand slideSorter.pick
   "Selects a page: the sorter remembers it, and the app selects it."

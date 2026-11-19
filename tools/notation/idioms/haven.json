@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"haven/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 24
+	},
+	"kept": {
+		"fn-one-parameter": 5,
+		"four-nested-calls": 1
+	}
+}

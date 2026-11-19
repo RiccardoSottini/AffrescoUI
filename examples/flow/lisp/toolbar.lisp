@@ -1,12 +1,14 @@
 ;;; toolbar.lisp --- the top bar and the toolbar: scopes, members, filters, search and the Display menu
 
+(ns flow.toolbar)
+
 ;;; The top bar
 
 (defview top-bar "The top bar: the logo and the board's name, the scope tabs and who is on the board." []
   `(node#topBar :dir auto :anchors {:left 220 :right 0 :top 0} :height 48 :color @color.topBar
      (label#logo :runs [{:icon box}
                         "  Flow  "
-                        {:text ~(str "›  " (:label (find (fn [it] (= it.id state.boardId)) state.boards)))
+                        {:text ~(str "›  " (:label (find #(= (:id %) state.boardId) state.boards)))
                          :color @color.topMuted}]
        :textColor @color.topText
        :anchors {:left 16 :top 0 :bottom 0}
@@ -261,23 +263,23 @@
           :role radio
           :text ~(t (str "prop." g))
           :selected ~on
-          :disabled ~(not= state.view "board")
+          :disabled ~(not= state.view :board)
           :borderColor ~(if on "@color.accent" "@color.border")
-          :textColor ~(if (and on (= state.view "board")) "@color.text" "@color.muted")
+          :textColor ~(if (and on (= state.view :board)) "@color.text" "@color.muted")
           :tooltip ~(if (= g "assignee") (t "view.lanes") "")
           :onClick ~(handler groupBy on)))))
 
 (defview views "The Display menu's layouts: board, list, table and timeline." []
   `(row#views :gap 4 :anchors {:left 12 :right 12 :top 34} :height 52 :role radiogroup :arrows horizontal
      (node#viewBoard :use layoutChoice
-       :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view "board")}
+       :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view :board)}
        :onClick showBoard)
      (node#viewList :use layoutChoice
-       :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view "list")}
+       :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view :list)}
        :onClick showList)
      (node#viewTable :use layoutChoice
-       :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view "table")}
+       :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view :table)}
        :onClick showTable)
      (node#viewTimeline :use layoutChoice
-       :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view "timeline")}
+       :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view :timeline)}
        :onClick showTimeline)))

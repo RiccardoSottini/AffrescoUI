@@ -1,6 +1,8 @@
 ;;; sidebar.lisp --- Flow's sidebar, included by index.screen.lisp: the workspace, the personal pages, the team's
 ;;; pages and its boards.
 
+(ns flow.sidebar)
+
 ;;; Components
 
 (defcomponent navItem "One row of the sidebar: an icon, a name and a count; the use gives its onClick"
@@ -96,7 +98,7 @@
        :tooltip ~(t "key.settings")
        :onClick [{:set state.workspaceOpen :to false} ~(handler openSettings)])
      (node#themeToggle :style menuRow
-       :icon ~(if (= state.theme "light") "moon" "sun")
+       :icon ~(if (= state.theme :light) "moon" "sun")
        :text ~(t "theme.menu")
        :role menuitem
        :label ~(t "theme.tooltip")
@@ -175,33 +177,33 @@
      (node#navInbox :use navItem
        :with {:icon inbox
               :text ~(t "nav.inbox")
-              :active ~(= state.page "inbox")
+              :active ~(= state.page :inbox)
               :count ~(if (> computed.unread 0) computed.unread "")}
        :onClick goToInbox)
      (node#navMine :use navItem
-       :with {:icon circle-user :text ~(t "nav.mine") :active ~(and (= state.page "issues") (= state.owner state.me))}
+       :with {:icon circle-user :text ~(t "nav.mine") :active ~(and (= state.page :issues) (= state.owner state.me))}
        :onClick showMyIssues)
      (node#navHeadingBoards :use navHeading :with {:text ~(t "nav.boards")})
      ~(repeat [b state.boards :key b.id]
        `(node#navBoard :use navItem
           :with {:icon layers-2
                  :text ~b.label
-                 :active ~(and (= b.id state.boardId) (not= b.id state.boards.0.id) (= state.page "issues"))}
-          :onClick [~(handler showPage "issues") ~(handler switchBoard b.id)]))
+                 :active ~(and (= b.id state.boardId) (not= b.id state.boards.0.id) (= state.page :issues))}
+          :onClick [~(handler showPage :issues) ~(handler switchBoard b.id)]))
      (node#navHeadingTeams :use navHeading :with {:text ~(t "nav.teams")})
      (node#navTeam :use navItem
        :with {:icon square :text "Flow"}
-       :onClick [~(handler showPage "issues")
+       :onClick [~(handler showPage :issues)
                  ~(handler switchBoard state.boards.0.id)
                  {:set state.owner :to ""}
                  ~(handler showBoard)])
      ~(nav-issues)
      (node#navCycles :use navItem
-       :with {:icon timer :text ~(t "nav.cycles") :active ~(= state.page "cycles")}
+       :with {:icon timer :text ~(t "nav.cycles") :active ~(= state.page :cycles)}
        :padding 26
        :onClick goToCycles)
      (node#navProjects :use navItem
-       :with {:icon box :text ~(t "nav.projects") :active ~(= state.page "projects")}
+       :with {:icon box :text ~(t "nav.projects") :active ~(= state.page :projects)}
        :padding 26
        :onClick goToProjects)))
 
@@ -209,8 +211,8 @@
   `(node#navIssues :use navItem
      :with {:icon copy
             :text ~(t "nav.issues")
-            :active ~(and (= state.page "issues") (not= state.owner state.me) (= state.boardId state.boards.0.id))}
+            :active ~(and (= state.page :issues) (not= state.owner state.me) (= state.boardId state.boards.0.id))}
      :padding 26
-     :onClick [~(handler showPage "issues")
+     :onClick [~(handler showPage :issues)
                ~(handler switchBoard state.boards.0.id)
                {:set state.owner :to ""}]))

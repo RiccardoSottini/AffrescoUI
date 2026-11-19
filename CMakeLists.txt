@@ -242,9 +242,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 		# tests/perf/tokens.py reads a screen's includes as the host merges them
-		# examples/<app>/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps, but for programs
+		# examples/shared/languages/ is what tools/notation/lisp_examples.py writes from its JSON; every app's lisp/ is
+		# written by hand
 		add_test(NAME cli_lisp_examples COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_examples.py --check --cli $<TARGET_FILE:affrescoui_cli>)
+		# The examples' Lisp code writes no old spelling: each place kept has its reason and is counted in its app's
+		# tools/notation/idioms/ file, and every example's code has one (the counter's own tests and the lock's first)
+		add_test(NAME cli_lisp_idioms COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_idioms.py --check --self-test)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The end-to-end tests of the apps written both as JSON and as a Lisp program: each version has its own
 		# (<name> for the JSON, <name>_lisp for the program)

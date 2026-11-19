@@ -1,0 +1,7 @@
+(ns app.parts.board
+  (:require [clojure.string :as s]))
+
+(defn title "The title." [] (s/upper-case "x"))
+
+(defscreen main (label :text ~(title)))
+(defn last-one "Its error is on the last line." [] (let [a] (+ 1 "a"

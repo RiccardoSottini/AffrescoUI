@@ -1,0 +1,19 @@
+# The Lisp scenario tests that failed every time they were first played (tests/render/CMakeLists.txt marks each
+# WILL_FAIL with the label lisp-baseline). One line each: the test's name, the failing scenario, the reason in a few
+# words. Take a line off when its app is fixed.
+scenarios/forge/lisp/accounts accounts-signed-out: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/agent forge-agent-show-the-view: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/commands forge-commands-find-steps: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/controls forge-controls-indentation: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/debug debug-view-and-configurations: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/editing forge-merge-conflicts: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/editor forge-editor-buffer-not-state: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/explorer explorer-list-the-folder: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/features features-the-catalogue: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/index forge-index-the-folder: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/layout forge-layout-secondary-side-bar: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/lsp forge-lsp-diagnostics-squiggles: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/scm forge-scm-commit-graph: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/search forge-search-opens-a-page: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/terminal terminal-run-task-reads-no-tasks: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master
+scenarios/forge/lisp/workbench forge-workbench-about: Forge's own features are confined as installed ones; fixed by PR #144, not yet in master

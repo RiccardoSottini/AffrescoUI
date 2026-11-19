@@ -3,6 +3,8 @@
 ;;; An item runs a command, and shows the command's title unless it has its own. A major mode's menu is shown after
 ;;; Tools while a buffer in that mode is selected; Buffers is made from the buffer list (bars.lisp).
 
+(ns calamaio.menus)
+
 ;;; The menu bar
 
 (defmenu file "The File menu: visiting, saving and closing, then the windows."

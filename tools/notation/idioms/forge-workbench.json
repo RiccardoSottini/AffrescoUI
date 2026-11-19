@@ -1,0 +1,23 @@
+{
+	"folders": [
+		"forge/lisp/*",
+		"forge/lisp/features/workbench",
+		"forge/lisp/features/explorer",
+		"forge/lisp/features/editor",
+		"forge/lisp/features/editing",
+		"forge/lisp/features/palette",
+		"forge/lisp/features/panels",
+		"forge/lisp/features/search",
+		"forge/lisp/features/themes",
+		"forge/lisp/features/todo-tree",
+		"forge/lisp/features/word-count"
+	],
+	"allowed": {
+		"four-nested-calls": 37
+	},
+	"kept": {
+		"fn-one-parameter": 11,
+		"four-nested-calls": 4,
+		"string-function": 1
+	}
+}

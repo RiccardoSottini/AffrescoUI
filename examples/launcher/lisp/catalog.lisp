@@ -3,10 +3,12 @@
 ;;; Each card is tagged Example or Yours; a click or Enter opens its app, and an example a new app can start from has
 ;;; a button that starts one. The search keeps the apps whose name or tagline holds it.
 
+(ns launcher.catalog)
+
 ;;; The page
 
 (defview apps-page "The Apps page: its title, the search, the count, and the cards." []
-  `(node#appsPage :when ~(= state.page "apps") :fill true :color transparent :role tabpanel :label ~(t "nav.apps")
+  `(node#appsPage :when ~(= state.page :apps) :fill true :color transparent :role tabpanel :label ~(t "nav.apps")
      (node#appsTitle :style pageTitle :text ~(t "apps.title") :role heading)
      (node#appsSub :style pageSub :text ~(t "apps.sub") :anchors {:left 36 :right 320 :top 72})
      (node#appSearch :use searchField
@@ -14,7 +16,7 @@
               :placeholder ~(t "apps.search")
               :label ~(t "apps.search")
               :clearLabel ~(t "apps.clear")
-              :width ~(min 280 (- (- window.width computed.sideWidth) 420))
+              :width ~(min 280 (- window.width computed.sideWidth 420))
               :height 38
               :color @c.surface}
        :anchors {:right 36 :top 36})
@@ -34,7 +36,7 @@
        :label ~(t "nav.apps")
        ~(repeat [app computed.shown :key app.id]
          `(node#appCard :use appCard :with {:app ~app})))
-     (label#appsNone :when ~(= (count computed.shown) 0)
+     (label#appsNone :when ~(empty? computed.shown)
        :textColor @c.muted
        :align center
        :wrap true
@@ -70,7 +72,7 @@
        :anchors {:left 18 :top 18}
        :fitText true
        :height 22)
-     (node#cardStart :when ~(and (not app.mine) (= app.program "host") (not= app.starter false))
+     (node#cardStart :when ~(and (not app.mine) (= app.program :host) (not= app.starter false))
        :style iconButton
        :icon copy-plus
        :anchors {:right 10 :top 172}

@@ -4,6 +4,8 @@
 ;;; saturation, colour balance, brightness and contrast, a threshold); a pixel layer, its transform, the align icons
 ;;; and quick actions, in sections that fold. Adjust adds an adjustment layer of each kind.
 
+(ns tempera.properties)
+
 ;;; Sliders and sections
 
 (defcomponent tAdjustSlider "One of the active adjustment's values, from low to high: its title, a slider, its value."
@@ -101,7 +103,7 @@
    (adjust-slider "adjust-output-white" "levels" "outputWhite" 0 255 255)])
 
 (defmacro tones "The image's tones for a chart: each bin at most four times the average, so a peak flattens nothing." []
-  '(map (fn [it] (min it (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram))))
+  '(map #(min % (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram)))
         (or-else state.doc.histogram [])))
 
 (defview adjust-slider "An adjustment's slider, id its node's, shown for one kind of adjustment: key names its value."

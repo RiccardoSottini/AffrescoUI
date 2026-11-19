@@ -4,6 +4,8 @@
 ;;; corner, offline, signing out and couch mode (big tiles for a television). Settings is in settings.lisp. Product keys
 ;;; and gift codes are invented, for trying it out.
 
+(ns arcadia.parts.client)
+
 ;;; What the windows keep
 
 (defstate code {:open false :kind activate :text "" :error ""})
@@ -27,7 +29,7 @@
 (defstate redeemed [])
 
 (defcomputed couchGames "The owned games for couch mode, the one played last first."
-  (sort-by (fn [it] (or-else it.lastPlayed 0)) > computed.owned))
+  (sort-by #(or-else (:lastPlayed %) 0) > computed.owned))
 
 (defcomputed couchGame "The game chosen on the couch shelf." (get computed.couchGames state.couch.at))
 
@@ -206,7 +208,7 @@
             :enter ~(handler primary computed.couchGame)
             :escape leaveCouch}
      ~(repeat [g
-               (slice computed.couchGames (max 0 (- state.couch.at 1)) (+ (max 0 (- state.couch.at 1)) 6))
+               (slice computed.couchGames (max 0 (dec state.couch.at)) (+ (max 0 (dec state.couch.at)) 6))
                :index
                i]
         (couch-cover g))))
@@ -234,10 +236,11 @@
      :radius 22
      :padding 22
      :font button
-     :color ~(if (= computed.couchGame.status "ready") "@color.play" "@color.accent")
+     :color ~(if (= computed.couchGame.status :ready) "@color.play" "@color.accent")
      :textColor @color.top
-     :text ~(t (cond (= computed.couchGame.status "ready") "menu.game.play"
-                     (= computed.couchGame.status "running") "menu.game.stop"
-                     (= computed.couchGame.status "update") "menu.game.update"
-                     :else "menu.game.install"))
+     :text ~(t (case computed.couchGame.status
+                 :ready "menu.game.play"
+                 :running "menu.game.stop"
+                 :update "menu.game.update"
+                 "menu.game.install"))
      :onClick ~(handler primary computed.couchGame)))

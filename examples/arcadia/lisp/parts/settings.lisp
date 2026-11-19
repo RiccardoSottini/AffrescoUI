@@ -3,6 +3,8 @@
 ;;; A page per category on the left (interface, downloads, storage, account), like a game's properties. Each setting
 ;;; is a defcustom; the dialog shows each as a row of pills, the current value lit.
 
+(ns arcadia.parts.settings)
+
 ;;; The settings
 
 (defcustom appearance.theme "dark"
@@ -53,10 +55,11 @@
 (defstate settingsDialog {:open false :page interface})
 
 (defcomputed installedGames "The installed games, the largest first."
-  (sort-by (fn [it] (or-else it.sizeGb 0)) > (filter (fn [it] it.installed) data.games)))
+  (sort-by #(or-else (:sizeGb %) 0) > (filter :installed data.games)))
 
 (defcomputed usedGb "How much the installed games take, in GB."
-  (sum (filter (fn [it] it.installed) data.games) (fn [it] (or-else it.sizeGb 0))))
+  ; style: keep, sum is the expression's own function: the function it takes names its item it
+  (sum (filter :installed data.games) (fn [it] (or-else it.sizeGb 0))))
 
 ;;; Its looks: a caps title, a pill, a setting's choices
 
@@ -160,12 +163,14 @@
               :title ~(t "settings.startPage")
               :key appearance.startPage
               :current ~settings.appearance.startPage
+              ; style: keep, #(...) can't give a map
               :options ~(map (fn [it] {:value it :title (t (str "nav." it))}) ["library" "store" "community"])})
      (node :use choiceRow
        :with {:top 192
               :title ~(t "settings.sortBy")
               :key library.sortBy
               :current ~settings.library.sortBy
+              ; style: keep, #(...) can't give a map
               :options ~(map (fn [it] {:value it :title (t (str "sort." it))}) ["name" "playtime" "recent"])})))
 
 ;;; Downloads

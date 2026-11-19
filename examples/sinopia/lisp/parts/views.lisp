@@ -4,6 +4,8 @@
 ;;; format pane at the right changes the selected objects, else the slide. The deck is saved and opened as JSON through
 ;;; the system's dialogs, and exported as a PDF of the slides shown or a PNG of one.
 
+(ns sinopia.parts.views)
+
 ;;; What the views keep
 
 (defstate formatPane false "Whether the format pane is shown.")
@@ -24,8 +26,10 @@
 
 (defcomputed outlineText "Each slide's text for the outline: its objects' text, a line each."
   (map (fn [it]
-         (join "\n"
-               (filter (fn [it] (not= it "")) (map (fn [it] (trim (or-else it.text ""))) (or-else it.objects [])))))
+         (->> (or-else it.objects [])
+              (map #(str/trim (or-else (:text %) "")))
+              (remove #(= % ""))
+              (join "\n")))
        state.deck.slides))
 
 ;;; Keys
@@ -89,13 +93,13 @@
      :scroll vertical
      :role region
      :label ~(t "view.format")
-     :let {:o ~computed.first :box ~(if (nil? computed.first) {} (merge computed.firstPlaceholder computed.first))}
+     :let {:o ~computed.first :box ~(if (some? computed.first) (merge computed.firstPlaceholder computed.first) {})}
      (node#format-top :width 1 :height 4 :color transparent)
      (row#format-head :width 236 :height 24 :alignItems center :color transparent
        (label#format-title :grow 1
          :height 22
          :textColor @rbInk
-         :runs [{:text ~(if (nil? 'o) (t "menu.formatBackground2") (t "view.formatShape")) :size 14 :bold true}])
+         :runs [{:text ~(if (some? 'o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
        (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close")
          :onClick [{:set state.formatPane :to false}]))
      ~(format-background)
@@ -169,7 +173,7 @@
      :lineColor transparent
      :textColor @rbInk
      :label ~(t "view.altTextWhatAScreen")
-     :bind ~(str "state.deck.slides[" state.current "].objects[" (indexOf (map (fn [it] it.id) computed.objects) o.id)
+     :bind ~(str "state.deck.slides[" state.current "].objects[" (indexOf (map :id computed.objects) o.id)
                  "].alt")))
 
 ;;; The sorter
@@ -187,8 +191,8 @@
        :focusable true
        :role list
        :label ~(t "bar.slides")
-       :keys {:left ~(handler pickSlide (- state.current 1))
-              :right ~(handler pickSlide (+ state.current 1))
+       :keys {:left ~(handler pickSlide (dec state.current))
+              :right ~(handler pickSlide (inc state.current))
               :enter [{:set state.view :to normal}]
               :delete deleteSlide}
        ~(repeat [s state.deck.slides :index i :key s.id]
@@ -204,7 +208,7 @@
      :cursor hand
      :role listitem
      :selected ~(= i state.current)
-     :label ~(t "slide.n" {:n (+ i 1)})
+     :label ~(t "slide.n" {:n (inc i)})
      :drag {:data {:slide ~i}}
      :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
      :onClick ~(handler chooseSlide i "#sorter-grid")
@@ -228,7 +232,7 @@
        :fitText true
        :height 16
        :textColor @rbInk
-       :runs [{:text ~(text (+ i 1)) :size 12 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 12 :bold ~(= i state.current)}])
      (label :id ~(str "sorter-" s.id "-hidden")
        :when ~(or-else s.hidden false)
        :fitText true
@@ -237,7 +241,7 @@
        :runs [{:icon eye-off :size 11}]
        :tooltip ~(t "bar.hiddenInTheShow"))
      (label :id ~(str "sorter-" s.id "-star")
-       :when ~(or (not= (or-else s.transition.kind "none") "none") (> (count (or-else s.animations [])) 0))
+       :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :fitText true
        :height 16
        :textColor @rbMuted
@@ -256,8 +260,8 @@
      :focusable true
      :role list
      :label ~(t "bar.outline")
-     :keys {:up ~(handler pickSlide (- state.current 1))
-            :down ~(handler pickSlide (+ state.current 1))}
+     :keys {:up ~(handler pickSlide (dec state.current))
+            :down ~(handler pickSlide (inc state.current))}
      (node#outline-top :width 1 :height 4 :color transparent)
      ~(repeat [s state.deck.slides :index i :key s.id]
        (outline-slide s i))))
@@ -271,7 +275,7 @@
      :radius 4
      :role listitem
      :selected ~(= i state.current)
-     :label ~(t "slide.n" {:n (+ i 1)})
+     :label ~(t "slide.n" {:n (inc i)})
      :color ~(if (= i state.current) "@rbChecked" "transparent")
      :hover {:color ~(if (= i state.current) "@rbChecked" "@rbHover")}
      :onClick ~(handler chooseSlide i "#outline")
@@ -280,7 +284,7 @@
        :height 18
        :padding 2
        :textColor @rbMuted
-       :runs [{:text ~(text (+ i 1)) :size 12} {:icon presentation :size 11}])
+       :runs [{:text ~(text (inc i)) :size 12} {:icon presentation :size 11}])
      (label :id ~(str "outline-" s.id "-text")
        :width 230
        :wrap true
@@ -330,7 +334,7 @@
   (openFile "state.opened" :extensions ["json"] :title (t "view.openADeck") :onDone opened :onError notOpened))
 
 (defn deckOpened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
-  (if (and (vector? state.opened.slides) (> (count state.opened.slides) 0) (number? state.opened.next))
+  (if (and (vector? state.opened.slides) (seq state.opened.slides) (number? state.opened.next))
     (do (commit)
         (set "state.deck" state.opened)
         (set "state.current" 0)
@@ -350,7 +354,7 @@
 
 (defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
   (export "pdf"
-          :pages (map (fn [it] (str "page-" (get-in state.deck.slides [it :id]))) computed.showOrder)
+          :pages (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder)
           :size [720 405]
           :title computed.deckName
           :onDone pdfExported
@@ -360,7 +364,7 @@
   (export "png"
           :pages [(str "page-" computed.slide.id)]
           :scale 2
-          :name (str computed.deckName " " (+ state.current 1))
+          :name (str computed.deckName " " (inc state.current))
           :onDone pngExported
           :onError notExported))
 

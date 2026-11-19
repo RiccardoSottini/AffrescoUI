@@ -1,5 +1,7 @@
 ;;; editor.lisp --- the editor: its tabs, the code, and the find panel under it
 
+(ns code-editor.editor)
+
 ;;; Views
 
 (defview editor-column "The editor's column: the tabs and the file shown, over the bottom panel." []

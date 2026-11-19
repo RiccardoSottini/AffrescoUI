@@ -4,6 +4,8 @@
 ;;; A component is used by name (`(node#email :use checkedField :with {...})`); its parameters are names of the running
 ;;; app inside it, so `~(= state.focus key)` reads the key it was given.
 
+(ns sign-in.components)
+
 ;;; The checked field
 
 (defcomponent checkedField
@@ -82,10 +84,10 @@
               :colors [@color.weak @color.weak @color.fair @color.good @color.strong]})
      (node#strength-name :style hint
        :anchors {:left 0 :right 0 :top 32}
-       :text ~(cond (= (count password) 0) (t "strengthHint")
-                    (= (count s.missing) 0) (t "strengthDone")
+       :text ~(cond (empty? password) (t "strengthHint")
+                    (empty? s.missing) (t "strengthDone")
                     :else (t "strengthAdd"
-                             {:list (formatList (map (fn [it] (t "missingItem" {:what it})) s.missing) "and")})))))
+                             {:list (formatList (map #(t "missingItem" {:what %}) s.missing) "and")})))))
 
 (defview meter-words "The words a password meter shows for each strength." []
   `{:empty ~(t "strengthEmpty") :weak ~(t "weak") :fair ~(t "fair") :good ~(t "good") :strong ~(t "strong")})
@@ -106,7 +108,7 @@
 
 (defmacro rule-met "A rule is met: the password `n` long has at least `least` characters and misses none of `kinds`."
   [least kinds]
-  `(and (>= n ~least) (not (some (fn [kind] (contains m kind)) ~kinds))))
+  `(and (>= n ~least) (not (some #(contains m %) ~kinds))))
 
 (defview password-rule "One rule of passwordRules: its tick, its text and, for screen readers, whether it is met."
   [id text least kinds]

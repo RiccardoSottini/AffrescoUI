@@ -3,6 +3,8 @@
 ;;;
 ;;; The sidebar and the G chords switch between them and the issues.
 
+(ns flow.pages)
+
 ;;; State
 
 (defstate page issues)
@@ -25,19 +27,21 @@
 
 ;;; What it works out
 
-(defcomputed inboxShown (filter (fn [it] (not it.snoozed)) data.inbox))
+(defcomputed inboxShown (filter #(not (:snoozed %)) data.inbox))
 
-(defcomputed unread (count (filter (fn [it] (and (not it.read) (not it.snoozed))) data.inbox)))
+(defcomputed unread (count (filter #(and (not (:read %)) (not (:snoozed %))) data.inbox)))
 
 (defcomputed notification (get computed.inboxShown state.inboxAt))
 
 (defcomputed notificationCard
-  (if (nil? computed.notification) nil (find (fn [it] (= it.ref computed.notification.ref)) computed.allCards)))
+  (when-some [n computed.notification] (find #(= (:ref %) n.ref) computed.allCards)))
 
+; style: keep, sum is the expression's own function: the function it takes names its item it
 (defcomputed cycleScope (sum computed.allCards (fn [it] (or-else it.points 0))))
 
 (defcomputed cycleDone
-  (sum (filter (fn [it] (= it.c computed.lastColumn)) computed.allCards) (fn [it] (or-else it.points 0))))
+  ; style: keep, sum is the expression's own function: the function it takes names its item it
+  (sum (filter #(= (:c %) computed.lastColumn) computed.allCards) (fn [it] (or-else it.points 0))))
 
 (defcomputed cycleTop (+ (max (concat state.cycle.scopeHistory [computed.cycleScope])) 4))
 
@@ -129,7 +133,7 @@
          :text ~(t "cycle.issues" {:n (count computed.allCards)})
          :height 32
          :align {:horizontal start :vertical center})
-       ~(repeat [card (sort-by (fn [it] (+ (* it.c 100) it.at)) computed.allCards)]
+       ~(repeat [card (sort-by #(+ (* (:c %) 100) (:at %)) computed.allCards)]
          (cycle-issue card))
        (node#cyclesOthers :style caption
          :text ~(t "cycle.others")
@@ -162,8 +166,8 @@
      (column#projectRows :anchors {:left 0 :right 0 :top 80 :bottom 0} :scroll vertical :role list
        ~(repeat [project
                  (filter (fn [it]
-                           (or (= state.projectScope "all")
-                               (= (= state.projectScope "completed") (= it.health "completed"))))
+                           (or (= state.projectScope :all)
+                               (= (= state.projectScope :completed) (= it.health "completed"))))
                          data.projects)
                  :key
                  project.name]
@@ -179,11 +183,11 @@
 
 (defkey "g p" {:when ~(not context.textInputFocus) :do goToProjects})
 
-(defkey "u" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do toggleRead})
+(defkey "u" {:when ~(and (not context.textInputFocus) (= state.page :inbox)) :do toggleRead})
 
-(defkey "h" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do snoozeNotification})
+(defkey "h" {:when ~(and (not context.textInputFocus) (= state.page :inbox)) :do snoozeNotification})
 
-(defkey "enter" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do openNotification})
+(defkey "enter" {:when ~(and (not context.textInputFocus) (= state.page :inbox)) :do openNotification})
 
 ;;; Views
 
@@ -197,10 +201,10 @@
      :role listitem
      :label ~(str n.ref
                   " "
-                  (or-else (:title (find (fn [it] (= it.ref n.ref)) computed.allCards)) "")
+                  (or-else (:title (find #(= (:ref %) n.ref) computed.allCards)) "")
                   ": "
                   (t (str "inbox." n.kind)
-                     {:who (or-else (:name (find (fn [it] (= it.who n.who)) state.members)) n.who)
+                     {:who (or-else (:name (find #(= (:who %) n.who) state.members)) n.who)
                       :to (or-else n.to "")}))
      :onClick ~(handler pickNotification k)
      :onDoubleClick openNotification
@@ -239,7 +243,7 @@
      :height 24
      :radius 999
      :anchors {:left 20 :top 10}
-     :color ~(or-else (:color (find (fn [it] (= it.who n.who)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) n.who) state.members)) "@color.muted")
      :textColor "#ffffff"))
 
 (defview inbox-what "What a notification says happened." [n]
@@ -248,7 +252,7 @@
      :height 20
      :align {:horizontal start :vertical center}
      :text ~(t (str "inbox." n.kind)
-               {:who (or-else (:name (find (fn [it] (= it.who n.who)) state.members)) n.who) :to (or-else n.to "")})))
+               {:who (or-else (:name (find #(= (:who %) n.who) state.members)) n.who) :to (or-else n.to "")})))
 
 (defview inbox-title "The title of a notification's issue." [n]
   `(label#inboxTitle :font small
@@ -257,7 +261,7 @@
      :padding 0
      :textColor ~(if n.read "@color.muted" "@color.text")
      :align {:horizontal start :vertical center}
-     :text ~(or-else (:title (find (fn [it] (= it.ref n.ref)) computed.allCards)) "")))
+     :text ~(or-else (:title (find #(= (:ref %) n.ref) computed.allCards)) "")))
 
 (defview inbox-detail-event "What happened, in the inbox's detail: who did what." []
   `(node#inboxDetailEvent :anchors {:left 40 :right 40 :top 144} :height 64 :radius @radius.card :color @color.column
@@ -267,7 +271,7 @@
        :height 24
        :radius 999
        :anchors {:left 14 :top 10}
-       :color ~(or-else (:color (find (fn [it] (= it.who computed.notification.who)) state.members)) "@color.muted")
+       :color ~(or-else (:color (find #(= (:who %) computed.notification.who) state.members)) "@color.muted")
        :textColor "#ffffff")
      (label#inboxDetailWhat :font small
        :textColor @color.text
@@ -275,7 +279,7 @@
        :height 24
        :align {:horizontal start :vertical center}
        :text ~(t (str "inbox." computed.notification.kind)
-                 {:who (or-else (:name (find (fn [it] (= it.who computed.notification.who)) state.members))
+                 {:who (or-else (:name (find #(= (:who %) computed.notification.who) state.members))
                                 computed.notification.who)
                   :to (or-else computed.notification.to "")}))
      (node#inboxDetailText :style caption
@@ -302,7 +306,7 @@
      (node#inboxAssignee :style cardChip
        :textColor @color.text
        :icon circle-user
-       :text ~(str " " (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
+       :text ~(str " " (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)))
      (node#inboxTag :style cardChip
        :textColor @color.text
        :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))])))
@@ -346,7 +350,8 @@
        :anchors {:left 20 :top 70})
      (node#cycleStarted :use cycleStat
        :with {:text ~(t "cycle.started")
-              :value ~(sum (filter (fn [it] (and (> it.c 0) (< it.c computed.lastColumn))) computed.allCards)
+              :value ~(sum (filter #(and (pos? (:c %)) (< (:c %) computed.lastColumn)) computed.allCards)
+                           ; style: keep, sum is the expression's own function: the function it takes names its item it
                            (fn [it] (or-else it.points 0)))
               :color "#d97706"}
        :anchors {:left 160 :top 70})
@@ -463,7 +468,7 @@
      :height 20
      :radius 999
      :anchors {:right 12 :top 8}
-     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) card.who) state.members)) "@color.muted")
      :textColor "#ffffff"))
 
 (defview cycle-row "An upcoming or past sprint, as a row." [cycle]
@@ -557,8 +562,8 @@
      :role listitem
      :label ~(str project.name ", " (t (str "health." project.health)) ", " (formatPercent project.progress))
      :tooltip ~(t "projects.open")
-     :onClick ~(handler openProject (indexOf (map (fn [it] it.name) data.projects) project.name))
-     :keys {:enter ~(handler openProject (indexOf (map (fn [it] it.name) data.projects) project.name))}
+     :onClick ~(handler openProject (indexOf (map :name data.projects) project.name))
+     :keys {:enter ~(handler openProject (indexOf (map :name data.projects) project.name))}
      (node#projectRowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
      (label#projectIcon :icon ~project.icon
        :text ""
@@ -603,9 +608,9 @@
      :height 22
      :radius 999
      :anchors {:right 398 :top 11}
-     :color ~(or-else (:color (find (fn [it] (= it.who project.lead)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) project.lead) state.members)) "@color.muted")
      :textColor "#ffffff"
-     :tooltip ~(or-else (:name (find (fn [it] (= it.who project.lead)) state.members)) project.lead)))
+     :tooltip ~(or-else (:name (find #(= (:who %) project.lead) state.members)) project.lead)))
 
 (defview project-target "A project's target date." [project]
   `(node#projectTarget :style caption

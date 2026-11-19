@@ -1,0 +1,6 @@
+(defscreen main :state {:kind "text" :xs []}
+  (column :when ~(#{:text :shape "line" true nil} state.kind)
+          :seen ~(contains? #{:a "b" 1.5 false} state.kind)
+          :kept ~(filter #{1 2} state.xs) :gone ~(remove #{:a} state.xs)
+          :all ~(every? #{1} state.xs) :any ~(if (some #{:x} state.xs) 1 0)
+          :value ~(#{:a :b} state.kind) :not ~(not (#{:a} state.kind))))

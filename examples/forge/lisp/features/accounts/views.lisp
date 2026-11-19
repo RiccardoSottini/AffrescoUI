@@ -1,5 +1,7 @@
 ;;; views.lisp --- the account's button on the view rail, and who else is on the shared document
 
+(ns forge.features.accounts.views)
+
 ;;; The account
 
 (defcomponent forgeAccountsStatus "The account's button, and the list of who is here that it opens once signed in."

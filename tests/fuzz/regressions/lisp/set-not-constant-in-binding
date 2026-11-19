@@ -1,0 +1,3 @@
+(defscreen main :state {:kind "text" :w 1}
+  (column :when ~(contains? #{:a state.w} state.kind) :x ~(some #{:a [1]} state.xs)
+          :y ~(if (#{1 2} state.w) 1 0) :z ~(map #{:a} state.xs)))

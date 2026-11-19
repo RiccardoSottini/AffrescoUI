@@ -12,22 +12,25 @@ tools. This page is the standard in one place; the full reference is
 ```lisp
 ;;; tasks.lisp --- a to-do list
 
+(ns tasks)
+
 (defstate tasks [{:id 1 :title "Write the docs" :done false}] "The tasks, in the order they were added.")
 (defstate draft "" "What is typed in the field.")
 
 (defcomputed left "How many tasks are still to do."
-  (count (remove (fn [task] task.done) state.tasks)))
+  (count (remove :done state.tasks)))
 
-(defn add-task "Adds the typed task, unless the field is empty." []
-  (when (not= (trim state.draft) "")
-    (push "state.tasks" {:id (inc (count state.tasks)) :title (trim state.draft) :done false})
-    (set "state.draft" "")))
+(defn add-task "Adds the typed task, unless the field is blank." []
+  (let [title (str/trim state.draft)]
+    (when-not (str/blank? title)
+      (push "state.tasks" {:id (inc (count state.tasks)) :title title :done false})
+      (set "state.draft" ""))))
 
 (defn toggle "Ticks a task, or unticks it." [i]
-  (set (str "state.tasks." i ".done") (not (:done (get state.tasks i)))))
+  (set (str "state.tasks." i ".done") (not (get-in state.tasks [i :done]))))
 
 (defcommand clear-done "Removes the finished tasks." :title ~(t "command.clear") []
-  (set "state.tasks" (remove (fn [task] task.done) state.tasks)))
+  (set "state.tasks" (remove :done state.tasks)))
 
 (defkey "mod+shift+k" clear-done)
 (defcustom show-count true "Shows how many tasks are left." :type boolean)
@@ -44,6 +47,8 @@ tools. This page is the standard in one place; the full reference is
 
 `affrescoui run tasks.lisp` prints what it builds: `~task.done` becomes the binding `"{{task.done}}"`, `left` becomes
 `"{{length(filter(state.tasks, !(it.done)))}}"`, and the repeat becomes `"repeat": {"for": "task", "in": "state.tasks", "index": "i"}`.
+It is written in the dialect's own style ([reference/style.md](modules/lisp/reference/style.md)): `:done` as the
+function that reads a task's member, `when-not` and `str/blank?`, a label `(ns tasks)` as the first form.
 
 ## Definitions
 
@@ -69,7 +74,9 @@ an error. Each definition is versioned on its own.
 | `(def name "doc" value)` | A constant, worked out at the build | Nothing |
 | `(defmacro name "doc" [params] body)` | A macro, expanded at load | Nothing |
 | `(defhook name "doc")`, `(add-hook h f)`, `(remove-hook h f)`, `(advice f :before/:after/:around g)` | Extension points | Nothing: they run in the app |
-| `(include "file.lisp" ...)` | The app's other files, in the entry file | `include`. Read from disk with the entry, never by a revision |
+| `(ns app.index (:require app.state "locales/en.lisp" ...))` | The app's other files, in the entry file: code files by their dotted name, data and shared files by their path ([reference/namespaces.md](modules/lisp/reference/namespaces.md)) | `include`, the files in that order. Read from disk with the entry, never by a revision |
+| `(ns app.file)` | A label, the first form of every other code file: `(ns flow.board)` for `board.lisp` | Nothing: its own entry of the program |
+| `(include "file.lisp" ...)` | The files an `ns` would require, by path only: the form before `ns` | `include` |
 
 ## Views and bindings
 
@@ -100,7 +107,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | `(count x)` | `length(x)` | `(:k x)` `(get x :k)` `(get-in x [a :b])` | `x.k` `x.k` `x[a].b` |
 | `(str "a" x)` | the text `a{{x}}` | `(or-else a b)` | `a ?? b` |
 | `(nil? x)` `(some? x)` | `x == null` `x != null` | `(first x)` `(inc x)` `(dec x)` | `x[0]` `x + 1` `x - 1` |
-| `(filter (fn [c] ...) xs)` | `filter(xs, ...it...)` | `(remove ...)` `(map ...)` `(find ...)` `(some ...)` `(every? ...)` `(sort-by ...)` `(reduce ...)` | their expression forms, with `it`, `index`, `acc` |
+| `(filter #(... %) xs)`, `(map :k xs)` | `filter(xs, ...it...)`, `map(xs, it.k)` | `(remove ...)` `(map ...)` `(find ...)` `(some ...)` `(every? ...)` `(sort-by ...)` `(reduce ...)` | their expression forms, with `it`, `index`, `acc` |
 | `(truthy? x)` | `!(!(x))` | `(join ...)` `(vals ...)` `(upper-case ...)` `(range ...)` `(sort ...)` | their expression forms |
 | `(-> x f)` `(->> x f)` | the steps nested | `(if-not c a b)` `(when-not c a)` | `!c ? a : b` |
 | `(case x 1 a 2 b c)` `(condp = x ...)` | `x == 1 ? a : ...` | `(for [x xs :when p] body)` | `filter`, then `map`, with `it` |
@@ -113,7 +120,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Changing | Only through steps, each a function: `(set "state.x" 1)`, `(toggle "state.open")`, `(push "state.list" v)`, `(insert "songs" :value v)`, `(remove-state ...)`, `(update-record ...)`, `(run "action")`, `(invoke "files.read" ...)`, `(undo)` |
 | Callbacks | `:then f`, `:onDone [f arg ...]`; the parameters past the given ones come by name (`result`, `error`) |
 | Later | `(after 500 f arg)`, `(debounce 300 f arg)`: a function named by a definition, never a closure |
-| Truth | In functions only `nil` and `false` are false; in bindings `""`, `0` and `[]` are too. Write `(truthy? x)`, `(some? x)` or `(not (empty? x))`. `affrescoui check --truth` lists the places to look at |
+| Truth | In functions only `nil` and `false` are false; in bindings `""`, `0` and `[]` are too. Write `(truthy? x)`, `(some? x)`, or `(seq x)` in a function and `(pos? (count x))` in a binding. `affrescoui check --truth` lists the places to look at |
 | Text | `(str a b)` joins text; `+` adds numbers only |
 | Reserved names | The expressions' functions (`now`, `trim`, `log`, `t`...): no definition may take their names |
 | Reading only | A value read for the screen can't run steps, whoever wrote it |
@@ -132,6 +139,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Reader forms | `#(+ % 1)`, `#?(:affresco a :default b)`, `#_` to drop a form, `^metadata` read and dropped, `\a` as `"a"`, `12N` `1.5M` `1/2` `0x1F` as the nearest JSON number ([reference/reader.md](modules/lisp/reference/reader.md)) |
 | Macros | `defmacro`, unhygienic; `gensym` for a macro's own names |
 | Outside world | None of its own: no files, network, clock or randomness. A host grants steps, each judged by who wrote the code that runs |
+| Style | Which form to choose, the traps, `ns` and keywords, and the places an old spelling stays ([reference/style.md](modules/lisp/reference/style.md)) |
 | Differences from Clojure | On purpose, each with what to write instead: nothing changes a value, nothing is lazy, no host interop, a map's keys are text (`(= :a "a")`), numbers are JSON's, no characters, regular expressions, metadata or vars ([reference/differences.md](modules/lisp/reference/differences.md)) |
 | Conformance | Measured against Clojure's cross-dialect test suite: at commit `a9f32fd7`, 2,377 assertions pass, 62 fail, 395 raise an error and 1,161 are out of scope; 217 of its 269 files read whole, and 177 of the 267 functions it tests are defined ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)) |
 | The build | Pure: the same source always builds the same tree |
@@ -150,7 +158,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | File | Holds |
 |---|---|
 | `app.lisp` | The manifest (data): id, name, `:entry index.screen.lisp`, capabilities, models, seed |
-| `index.screen.lisp` | `(include ...)` and `defscreen main`: an outline of the window's parts, in drawing order |
+| `index.screen.lisp` | `(ns <app>.index (:require ...))` and `defscreen main`: an outline of the window's parts, in drawing order |
 | `state.lisp`, `computed.lisp`, `look.lisp`, `keys.lisp` | `defstate`, `defcomputed`, `deftokens`/`defstyle`, `defkey` |
 | `<area>.lisp` (`toolbar.lisp`, `sidebar.lisp`...) | The views of one area of the window |
 | `<app>.lisp` | The logic: `defn` and `defcommand` |
@@ -166,6 +174,10 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 5. Handlers name functions; a step map holding an expression becomes a function.
 6. All visible text goes through `(t ...)`.
 7. Ids stay stable: scenarios, permissions and agents address nodes by them.
+8. Every code file starts with its `ns` label, and is written in the dialect's style
+   ([reference/style.md](modules/lisp/reference/style.md)): `#(...)` and keywords as functions, `when-some`, `case`,
+   sets for membership, `str/` for text, keywords for fixed choices. `tools/notation/lisp_idioms.py --check` holds every
+   example to it.
 
 ## Version control
 
@@ -181,7 +193,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 
 ## Connecting an editor
 
-An nREPL client (CIDER, Calva, Conjure) can evaluate in a running app, as you:
+An nREPL client can evaluate in a running app, as you:
 
 ```sh
 affrescoui run examples/flow/lisp --nrepl        # or: affrescoui_launcher examples/flow/lisp/index.screen.lisp --nrepl 7888
@@ -225,4 +237,6 @@ A limit ends the run with an error naming the file, line, column and definition,
 | `affrescoui strings report <entry>` | Text outside the locales |
 | `tools/notation/lisp_program.py` | Drafts a data file as a program |
 | `tools/notation/lisp_metrics.py <app>` | Measures an app's Lisp: longest definition, deepest line, timing |
+| `tools/notation/lisp_idioms.py --check` | The idiom check: no example writes an old spelling ([style.md](modules/lisp/reference/style.md)), each kept place has its reason and is counted in `tools/notation/idioms/<app>.json`; `--kept` lists them, `--measure` gives each app's size |
+| `tools/notation/lisp_tree.py --save DIR`, `--compare DIR` | The tree each example builds, saved and compared after a change: identical, or only bindings' and definitions' text, and no more `lisp(` calls |
 | `ctest -R lisp_parity` | Each example's Lisp version draws its first frame as its JSON version does |

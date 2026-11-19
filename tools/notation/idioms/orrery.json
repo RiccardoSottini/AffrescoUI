@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"orrery/lisp"
+	],
+	"allowed": {},
+	"kept": {
+		"cond-one-value": 1,
+		"fn-one-parameter": 7,
+		"four-nested-calls": 2,
+		"plus-one": 2
+	}
+}

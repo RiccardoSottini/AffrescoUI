@@ -1,0 +1,9 @@
+{
+	"folders": [
+		"sign-in/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 16
+	},
+	"kept": {}
+}

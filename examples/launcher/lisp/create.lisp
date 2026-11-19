@@ -3,16 +3,18 @@
 ;;; The name gives the app's folder; it starts blank or as a copy of an example; the person describes what they want
 ;;; and picks features of other apps, which the assistant is asked for once the app opens. Cmd+Enter creates it.
 
+(ns launcher.create)
+
 ;;; The page
 
 (defview create-page "The Create page: the form, scrolled." []
-  `(node#createPage :when ~(= state.page "create") :fill true :color transparent :role tabpanel :label ~(t "nav.create")
+  `(node#createPage :when ~(= state.page :create) :fill true :color transparent :role tabpanel :label ~(t "nav.create")
      (column#createScroll :anchors {:left 0 :right 0 :top 0 :bottom 0} :scroll vertical :gap 0
        ~(create-form))))
 
 (defview create-form "The form: the name, what to start from, the description, the features, and Create." []
   `(node#createForm :anchors {:left 36}
-     :width ~(min 820 (- (- window.width computed.sideWidth) 72))
+     :width ~(min 820 (- window.width computed.sideWidth 72))
      :height 980
      :color transparent
      :keys {"mod+enter" createApp}
@@ -74,7 +76,7 @@
 (defview start-tiles "What the new app starts from: a blank app, or an example." []
   `(grid#createFrom :anchors {:left 0 :right 0 :top 290}
      :height 252
-     :columns ~(max 2 (min 5 (floor (/ (+ (min 820 (- (- window.width computed.sideWidth) 72)) 12) 150))))
+     :columns ~(-> (- window.width computed.sideWidth 72) (min 820) (+ 12) (/ 150) floor (min 5) (max 2))
      :gap 12
      :scroll vertical
      :role radiogroup

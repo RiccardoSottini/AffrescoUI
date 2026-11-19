@@ -5,36 +5,34 @@
 ;;; status bar's bell keeps the toasts' history; a long task shows a toast with a bar. The panel's tabs and the
 ;;; status bar's counts come from this state.
 
+(ns forge.features.panels.panels)
+
 ;;; Problems
 
 (defstate problems [])
 
-(defcomputed errors (count (filter (fn [it] (= it.severity "error")) state.problems)))
+(defcomputed errors (count (filter #(= (:severity %) "error") state.problems)))
 
-(defcomputed warnings (count (filter (fn [it] (= it.severity "warning")) state.problems)))
+(defcomputed warnings (count (filter #(= (:severity %) "warning") state.problems)))
 
 (defcomputed problemRows
   (map-indexed (fn [index it]
                    {:id index
-                    :icon (cond (= it.severity "error") "circle-x"
-                                (= it.severity "warning") "alert-triangle"
-                                :else "info")
-                    :iconColor (cond (= it.severity "error") "#f85149"
-                                     (= it.severity "warning") "#cca700"
-                                     :else "#3794ff")
+                    :icon (case it.severity :error "circle-x" :warning "alert-triangle" "info")
+                    :iconColor (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
                     :cells [it.message it.label it.line]})
                  state.problems))
 
 (defn goToProblem "A row of Problems, opened: its file shown at its line." []
-  (let [p (get state.problems (number event.id))]
-    (showTab p.file p.label)
-    (goToLine p.line)))
+  (let [{:keys [file label line]} (get state.problems (number event.id))]
+    (showTab file label)
+    (goToLine line)))
 
 (defcommand showProblems "Focus Problems"
   :title ~(t "command.showProblems")
   :description ~(t "command.showProblems") :category ~(t "category.view") :icon "alert-triangle" []
   (set "state.layout.panel" true)
-  (set "state.panelTab" "problems"))
+  (set "state.panelTab" :problems))
 
 (defkey "mod+shift+m" showProblems)
 
@@ -64,7 +62,7 @@
   :title ~(t "command.showOutput")
   :description ~(t "command.showOutput") :category ~(t "category.view") :icon "terminal" []
   (set "state.layout.panel" true)
-  (set "state.panelTab" "output"))
+  (set "state.panelTab" :output))
 
 (defcommand clearOutput "Clear Output"
   :title ~(t "command.clearOutput") :description ~(t "command.clearOutput") :category ~(t "category.output") []
@@ -97,7 +95,7 @@
 (defstate panelTab problems)
 
 (defn openTerminalWithPanel "Opens a terminal when the Terminal tab is shown with none." []
-  (when (and (= state.panelTab "terminal") (= (count state.terminals.list) 0) state.layout.panel) (terminalNew)))
+  (when (and (= state.panelTab :terminal) (empty? state.terminals.list) (true? state.layout.panel)) (terminalNew)))
 
 (defpart terminal-on-show "The Terminal tab, shown with none open, opens one."
   :watch {:state.panelTab openTerminalWithPanel})

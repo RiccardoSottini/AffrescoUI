@@ -3,10 +3,12 @@
 ;;; The AI provider's card is the shared intelligence add-on's (../../shared/addons/intelligence/settings.lisp): every
 ;;; app's assistant uses what is set there.
 
+(ns launcher.settings)
+
 ;;; The page
 
 (defview settings-page "The Settings page: its title, and the cards." []
-  `(node#settingsPage :when ~(= state.page "settings")
+  `(node#settingsPage :when ~(= state.page :settings)
      :fill true
      :color transparent
      :role tabpanel
@@ -17,7 +19,7 @@
 
 (defview settings-cards "The settings' cards, one under the other." []
   `(column#settingsList :anchors {:left 36 :top 112 :bottom 0}
-     :width ~(min 760 (- (- window.width computed.sideWidth) 72))
+     :width ~(min 760 (- window.width computed.sideWidth 72))
      :gap 16
      :scroll vertical
      ~(appearance-card)
@@ -131,7 +133,7 @@
                     ["Delete" "settings.keyDelete"]]]
          `(row#keyRow :height 22 :anchors {:left 0 :right 0} :gap 12
             (label#keyCombo :font small
-              :text ~(if (= context.platform "mac") k.0 (join "Ctrl+" (split k.0 "⌘")))
+              :text ~(if (= context.platform :mac) k.0 (join "Ctrl+" (split k.0 "⌘")))
               :textColor @c.text
               :color @c.raised
               :radius 6

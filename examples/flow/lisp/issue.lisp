@@ -1,6 +1,8 @@
 ;;; issue.lisp --- Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its
 ;;; description and activity on the left, its properties on the right.
 
+(ns flow.issue)
+
 ;;; State
 
 (defstate issueOpen false)
@@ -26,7 +28,7 @@
 ;;; What it works out
 
 (defcomputed issueEvents
-  (if (nil? computed.card) [] (filter (fn [it] (= it.title computed.card.title)) state.activity)))
+  (if-some [card computed.card] (filter #(= (:title %) card.title) state.activity) []))
 
 ;;; Styles
 
@@ -87,7 +89,7 @@
        :fitText true
        :padding 8
        :textColor @color.muted
-       :text ~(str (+ (indexOf computed.visibleRefs computed.card.ref) 1) " / " (count computed.visibleRefs)))
+       :text ~(str (inc (indexOf computed.visibleRefs computed.card.ref)) " / " (count computed.visibleRefs)))
      (node#issueUp :style propValue
        :icon chevron-up
        :text ""
@@ -168,10 +170,10 @@
        :height 20
        :radius 999
        :anchors {:left 12 :top 10}
-       :color ~(or-else (:color (find (fn [it] (= it.who note.who)) state.members)) "@color.muted")
+       :color ~(or-else (:color (find #(= (:who %) note.who) state.members)) "@color.muted")
        :textColor "#ffffff")
      (label#issueCommentName :font small
-       :text ~(or-else (:name (find (fn [it] (= it.who note.who)) state.members)) note.who)
+       :text ~(or-else (:name (find #(= (:who %) note.who) state.members)) note.who)
        :textColor @color.text
        :anchors {:left 40 :top 10}
        :height 20
@@ -211,7 +213,7 @@
           :height 22
           :align {:horizontal start :vertical center}
           :text ~(t (str "activity." entry.key)
-                         {:who (or-else (:name (find (fn [it] (= it.who entry.who)) state.members)) entry.who)
+                         {:who (or-else (:name (find #(= (:who %) entry.who) state.members)) entry.who)
                           :title entry.title
                           :column entry.column})))
      ~(repeat [note computed.card.comments]
@@ -234,7 +236,7 @@
      :text ~(t "issue.subIssues" {:done computed.checklistDone :total (count (or-else computed.card.checklist []))})))
 
 (defview issue-add-sub "The issue page's button that adds a sub-issue." []
-  `(row#issueAddSub :when ~(and (= (count (or-else computed.card.checklist [])) 0) (not state.subOpen))
+  `(row#issueAddSub :when ~(and (empty? (or-else computed.card.checklist [])) (not state.subOpen))
      :anchors {:left 40 :right 40}
      :height 28
      (node#issueAddSubButton :style propValue
@@ -265,7 +267,7 @@
      :height 22
      :align {:horizontal start :vertical center}
      :text ~(t "issue.created"
-                    {:who (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+                    {:who (or-else (:name (find #(= (:who %) computed.card.who) state.members))
                                    computed.card.who)})))
 
 (defview issue-notes-buttons "Save and Cancel, under the issue page's description being edited." []
@@ -556,7 +558,7 @@
      (node#propWhoValue :style propValue
        :icon circle-user
        :isOpen ~state.issueWhoOpen
-       :text ~(or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+       :text ~(or-else (:name (find #(= (:who %) computed.card.who) state.members))
                             (t "issue.noAssignee"))
        :onClick {:toggle state.issueWhoOpen})
      (node#whoPicker :style pickMenu
@@ -576,8 +578,8 @@
                             (not= state.selected.c computed.lastColumn))
                        "@bug"
                        "@color.text")
-       :text ~(if (nil? computed.card.due)
-                       (t "drawer.noDue")
-                       (formatDate (dateMs computed.card.due) "MMM d" "utc"))
+       :text ~(if-some [due computed.card.due]
+                (formatDate (dateMs due) "MMM d" "utc")
+                (t "drawer.noDue"))
        :onClick {:toggle state.issueDueOpen})
      ~(issue-due-picker)))

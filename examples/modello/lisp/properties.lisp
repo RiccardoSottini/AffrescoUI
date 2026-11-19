@@ -3,6 +3,8 @@
 ;;;
 ;;; A panel that needs something Modello doesn't have yet shows greyed, its tooltip saying what.
 
+(ns modello.properties)
+
 ;;; Tabs and panels
 
 (defcomputed propTabs "The tabs, in groups; some are to come, and say so."
@@ -47,21 +49,24 @@
    {:tab "material" :key "materialSettings" :title (t "panel.materialSettings") :words "blend shadow" :needs (t "panel.materialSettings.needs")}
    {:tab "data"
     :key "dataPanel"
-    :title (cond (= computed.activeNode.kind "light") (t "panel.light")
-                 (= computed.activeNode.kind "camera") (t "panel.lens")
-                 (= computed.activeNode.kind "mesh") (t "panel.geometry")
-                 :else (t "panel.empty"))
+    :title (case computed.activeNode.kind
+             :light (t "panel.light")
+             :camera (t "panel.lens")
+             :mesh (t "panel.geometry")
+             (t "panel.empty"))
     :words "type color colour power focal length primitive"
-    :needs (if (= computed.activeNode.kind "empty") (t "panel.empty.needs") "")}
+    :needs (if (= computed.activeNode.kind :empty) (t "panel.empty.needs") "")}
    {:tab "data"
     :key "dataMore"
-    :title (cond (= computed.activeNode.kind "light") (t "panel.shadow")
-                 (= computed.activeNode.kind "camera") (t "panel.depthOfField")
-                 :else (t "panel.normals"))
+    :title (case computed.activeNode.kind
+             :light (t "panel.shadow")
+             :camera (t "panel.depthOfField")
+             (t "panel.normals"))
     :words ""
-    :needs (cond (= computed.activeNode.kind "light") (t "panel.shadow.needs")
-                 (= computed.activeNode.kind "camera") (t "panel.depthOfField.needs")
-                 :else (t "panel.normals.needs"))}
+    :needs (case computed.activeNode.kind
+             :light (t "panel.shadow.needs")
+             :camera (t "panel.depthOfField.needs")
+             (t "panel.normals.needs"))}
    {:tab "material"
     :key "surfaceMaterial"
     :title (t "panel.surface")
@@ -69,10 +74,10 @@
     :needs (if (< computed.activeMaterialIndex 0) (t "panel.surfaceMaterial.needs") "")}])
 
 (defcomputed propShown "The keys of the panels shown: the tab's, if there is an object for them, that the search finds."
-  (map (fn [it] it.key)
+  (map :key
        (filter (fn [it]
                  (and (= it.tab state.propTab)
-                      (or (contains ["tool" "render" "output" "scene" "world" "collection"] it.tab) (some? computed.activeNode))
+                      (or (contains? #{:tool :render :output :scene :world :collection} it.tab) (some? computed.activeNode))
                       (or (= (or-else state.propertiesFilter "") "")
                           (contains (lower-case (str it.title " " it.words)) (lower-case (trim state.propertiesFilter))))))
                computed.propPanels)))
@@ -80,7 +85,7 @@
 (defcomputed activeMaterialIndex "Where the active object's material is in the scene's materials, or -1."
   (if (or (nil? computed.activeNode) (nil? computed.activeNode.material))
     -1
-    (indexOf (map (fn [it] it.id) state.scene.materials) computed.activeNode.material)))
+    (indexOf (map :id state.scene.materials) computed.activeNode.material)))
 
 ;;; The area
 
@@ -168,10 +173,12 @@
      ~(data-panel)
      ~(material-slot)
      ~(surface-panel)
-     ~(repeat [p (filter (fn [it] (and (not= it.needs "") (contains computed.propShown it.key) (not (contains ["dataPanel" "surfaceMaterial"] it.key))))
+     ~(repeat [p (filter #(and (not= (:needs %) "")
+                               (contains computed.propShown (:key %))
+                               (not (#{:dataPanel :surfaceMaterial} (:key %))))
                          computed.propPanels)]
         `(node :use panelHeader :with {:title ~p.title :key ~p.key :needs ~p.needs}))
-     (label#properties-empty :when ~(= (count computed.propShown) 0)
+     (label#properties-empty :when ~(empty? computed.propShown)
        :height 24
        :fitText true
        :textColor @dim
@@ -180,13 +187,13 @@
 (defview properties-context "What the panels are about: the active collection, or the active object." []
   `(row#properties-context :width "100%" :height 22 :alignItems center :gap 4 :color transparent
      (label :font iconsSmall
-       :icon ~(if (= state.propTab "collection") "package-open" "square")
+       :icon ~(if (= state.propTab :collection) "package-open" "square")
        :text ""
-       :textColor ~(if (= state.propTab "collection") "@text" "@object")
+       :textColor ~(if (= state.propTab :collection) "@text" "@object")
        :width 16
        :height 20
        :align center)
-     (label#properties-context-name :text ~(cond (= state.propTab "collection") computed.activeCollectionData.name
+     (label#properties-context-name :text ~(cond (= state.propTab :collection) computed.activeCollectionData.name
                                                  computed.activeNode computed.activeNode.name
                                                  :else "")
        :textColor @text
@@ -195,7 +202,7 @@
 
 (defview object-name "The Object tab's name field." []
   `(node#object-name
-     :when ~(and (= state.propTab "object") (some? computed.activeNode))
+     :when ~(and (= state.propTab :object) (some? computed.activeNode))
      :width "100%"
      :height 24
      :color @field
@@ -289,7 +296,7 @@
      (node :use infoRow
        :with {:id scene-camera
               :label ~(t "menu.camera")
-              :text ~(or-else (:name (find (fn [it] (= it.kind "camera")) state.scene.nodes)) (t "properties.none"))})))
+              :text ~(or-else computed.cameraNode.name (t "properties.none"))})))
 
 (defview restrictions-panel "The Collection tab: whether the active collection's objects can be picked, and show." []
   `(node :when ~(contains computed.propShown "restrictions") :use propPanel :with {:key restrictions :body 80}
@@ -317,21 +324,21 @@
 (defview data-panel "The Data tab: a mesh's primitive, a camera's lens, or a light's type, colour and power." []
   `(node :when ~(contains computed.propShown "dataPanel")
      :use propPanel
-     :with {:key dataPanel :body ~(if (= computed.activeNode.kind "light") (if state.panels.pickLight 264 80) 32)}
-     (node :when ~(= computed.activeNode.kind "mesh")
+     :with {:key dataPanel :body ~(if (= computed.activeNode.kind :light) (if state.panels.pickLight 264 80) 32)}
+     (node :when ~(= computed.activeNode.kind :mesh)
        :use infoRow
        :with {:id primitive
               :label ~(t "properties.primitive")
-              :text ~(str (upper-case (slice (or-else computed.activeNode.mesh "") 0 1)) (slice (or-else computed.activeNode.mesh "") 1))})
+              :text ~(let [mesh (or-else computed.activeNode.mesh "")] (str (str/upper-case (slice mesh 0 1)) (slice mesh 1)))})
      ~(camera-lens)
      ~(light-type)
-     (node :when ~(= computed.activeNode.kind "light")
+     (node :when ~(= computed.activeNode.kind :light)
        :use colorRow
        :with {:label ~(t "properties.color")
               :value ~(or-else (hexColor (or-else computed.activeNode.light.color [1 1 1])) "#ffffff")
               :target light
               :key pickLight})
-     (node :when ~(= computed.activeNode.kind "light")
+     (node :when ~(= computed.activeNode.kind :light)
        :use numberField
        :with {:label ~(t "properties.power")
               :path ~(str "scene.nodes[" computed.activeIndex "].light.intensity")
@@ -349,7 +356,7 @@
   `(/ (round (* (/ 18 (tan (/ (or-else computed.activeNode.camera.fieldOfView 0.69) 2))) 10)) 10))
 
 (defview camera-lens "A camera's focal length." []
-  `(node :when ~(= computed.activeNode.kind "camera")
+  `(node :when ~(= computed.activeNode.kind :camera)
      :use numberField
      :with {:label ~(t "sidebar.focalLength")
             :key cameraLens
@@ -362,7 +369,7 @@
             :text ~(t "unit.mm" {:value (formatNumber (camera-mm) 0 1)})}))
 
 (defview light-type "A light's type: point, sun or spot, as three buttons in a row." []
-  `(node :when ~(= computed.activeNode.kind "light") :height 20 :width "100%" :color transparent
+  `(node :when ~(= computed.activeNode.kind :light) :height 20 :width "100%" :color transparent
      ~(caption "properties.type")
      (row
        :anchors {:left "41%" :right 22 :top 0 :bottom 0}
@@ -382,7 +389,7 @@
      :selected ~(= computed.activeNode.light.type kind)
      :color ~(if (= computed.activeNode.light.type kind) "@sel" "@widget")
      :hover {:color @widgetHover}
-     :radius ~(cond (= kind "point") {:topLeft 4 :bottomLeft 4} (= kind "spot") {:topRight 4 :bottomRight 4} :else 0)
+     :radius ~(case kind :point {:topLeft 4 :bottomLeft 4} :spot {:topRight 4 :bottomRight 4} 0)
      :onClick ~(handler setLight "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
 
@@ -390,7 +397,7 @@
 
 (defview material-slot "The active mesh's material: browse the materials, its name, a new one, unlink it." []
   `(row#material-slot
-     :when ~(and (= state.propTab "material") (= computed.activeNode.kind "mesh") (= (or-else state.propertiesFilter "") ""))
+     :when ~(and (= state.propTab :material) (= computed.activeNode.kind :mesh) (= (or-else state.propertiesFilter "") ""))
      :width "100%"
      :height 24
      :gap 2
@@ -403,7 +410,8 @@
               :back @widget
               :tooltip ~(t "properties.browseMaterial")
               :open state.open.materialBrowse
-              :disabled ~(= (count state.scene.materials) 0)
+              :disabled ~(empty? state.scene.materials)
+              ; style: keep, #(...) can't give a map, and a binding's function names its item it
               :items ~(map (fn [it] {:title it.name :checked (= it.id computed.activeNode.material) :run "assignMaterial" :with {:id it.id}})
                            state.scene.materials)})
      (node :grow 1 :height 20 :radius 4 :color @field

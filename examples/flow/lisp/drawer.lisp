@@ -1,6 +1,8 @@
 ;;; drawer.lisp --- Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text,
 ;;; edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.
 
+(ns flow.drawer)
+
 ;;; Styles
 
 (defstyle section (label :font small :textColor @color.muted :height 18 :align {:horizontal start :vertical center}))
@@ -81,7 +83,7 @@
 (defview detail-owner "The card's owner, in the drawer." []
   `(node#detailOwner :style caption
      :icon user
-     :text ~(or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members)) computed.card.who)
+     :text ~(or-else (:name (find #(= (:who %) computed.card.who) state.members)) computed.card.who)
      :anchors {:left 12}
      :height 18))
 
@@ -155,7 +157,7 @@
           :color @color.field
           :textColor @color.text
           :font small
-          :runs [{:text ~(or-else (:name (find (fn [it] (= it.who note.who)) state.members)) note.who) :bold true}
+          :runs [{:text ~(or-else (:name (find #(= (:who %) note.who) state.members)) note.who) :bold true}
                  ~note.text]))))
 
 (defview detail-notes "The description, its bold words and link drawn." []
@@ -297,7 +299,7 @@
        :label ~(t "drawer.due")
        :value ~(or-else computed.card.due state.today)
        :today ~state.today
-       :marked ~(filter (fn [it] (some? it)) (map (fn [it] it.due) computed.allCards))
+       :marked ~(filter #(some? %) (map :due computed.allCards))
        :firstDayOfWeek ~settings.board.weekStart
        :monthNames ~(split (t "calendar.months") ",")
        :dayNames ~(split (t "calendar.days") ",")
@@ -314,9 +316,9 @@
        :focusable true
        :role button
        :isOpen ~state.dueOpen
-       :text ~(if (nil? computed.card.due)
-                       (t "drawer.noDue")
-                       (formatDate (dateMs computed.card.due) "MMM d" "utc"))
+       :text ~(if-some [due computed.card.due]
+                (formatDate (dateMs due) "MMM d" "utc")
+                (t "drawer.noDue"))
        :onClick {:toggle state.dueOpen})
      (label#dueState :font small
        :when ~(some? computed.dueDays)

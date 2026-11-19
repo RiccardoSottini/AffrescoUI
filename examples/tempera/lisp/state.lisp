@@ -5,6 +5,8 @@
 ;;; dialogs' fields, which menus are open, and the language setting. Lists people see keep a name for each item, and
 ;;; the views give its text through (t ...): a preset's own name (`:preset`) is what the image step is told.
 
+(ns tempera.state)
+
 ;;; The image's snapshot
 
 (defstate doc

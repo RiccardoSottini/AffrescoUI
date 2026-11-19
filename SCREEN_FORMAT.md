@@ -2520,6 +2520,7 @@ builds
 | `(deftokens name "doc"? {:token value ...})` | Its tokens, in `tokens` |
 | `(defpart name "doc"? :section value ...)` | Each section's members, as definitions of each would; a list (`persist`) joins the others |
 | `(defdefaults name "doc"? :section {...} ...)` | Members that yield to any other definition, or to the document's own value: an add-on's colours an app replaces |
+| `(ns name (:require ...))` | Nothing it builds: a file's label; the entry's `:require` names the app's other files, as `include` does ("Writing an app as a program") |
 | `(include "file.lisp" ...)` | Nothing: the file an app loads from its folder names its other files ("Writing an app as a program") |
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
 | `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
@@ -2687,17 +2688,21 @@ builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == '
 
 ### Writing an app as a program
 
-An app's `lisp/` folder can be a program to read, not the JSON tree in parentheses: Flow's is the example
-([examples/flow/lisp/](examples/flow/lisp/)), its first frame the same as its `json/` folder's, pixel for pixel (`ctest -R
-lisp_parity`). These are the rules its files follow, for anyone writing an app this way:
+An app's `lisp/` folder can be a program to read, not the JSON tree in parentheses: every example's is, and Flow's is the
+model ([examples/flow/lisp/](examples/flow/lisp/)), its first frame the same as its `json/` folder's, pixel for pixel
+(`ctest -R lisp_parity`). These are the rules its files follow, for anyone writing an app this way; how to write each
+form in the dialect, and when not to, is
+[modules/lisp/reference/style.md](modules/lisp/reference/style.md):
 
 - **Every `.lisp` file is a program, but data.** A file starts with a `;;;` header that says what it is, then named definitions,
   each with a docstring, grouped under `;;;` sections. Data stays data, as well-formatted Lisp literals: the manifest
   (`app.lisp`), `models.lisp`, `seed/`, `locales/`, `*.policy.lisp`, syntax tables.
-- **The entry names the other files.** `(include "state.lisp" "toolbar.lisp" ...)` at the top of the file the app loads (its
-  manifest's `entry`) lists them, as a data file's `include` does, with the same checks: read with the file from the app's folder or
+- **The entry names the other files.** `(ns flow.index (:require flow.state flow.toolbar "locales/en.lisp" ...))` at the top
+  of the file the app loads (its manifest's `entry`) lists them, code files by their dotted name and data and shared files
+  by their path, and builds the `include` an `(include "state.lisp" "toolbar.lisp" ...)` would, with the same checks: read with the file from the app's folder or
   the shared folder, never by a revision (SECURITY.md, "The Lisp language"). A file it includes may include others. The shared
   folder counts only where it is a folder, not a link, for a program's include and a data file's alike: a link leads anywhere.
+  Every other code file starts with its label, `(ns flow.board)` for `board.lisp`: a label builds nothing.
 - **`defscreen main` is an outline.** Its options are the window, fonts, strings, permissions and persist; its root lists the
   window's parts in the order they are drawn, each a view: `~(top-bar)`, `~(toolbar)`, `~(work-area)`...
 - **Views are small.** About 40 lines at most and shallow: a long one calls others. A view's docstring says what it shows.
@@ -2726,7 +2731,11 @@ shows that it does for every text there (each translated, built back and parsed 
 `tools/notation/lisp_program.py` drafts a data file as a program (sections as definitions, views cut out of long trees, repeats,
 every `{{...}}` a form), `--bindings` and `--handlers` rewrite a program's texts and step maps in place, and
 `tools/notation/lisp_metrics.py` measures a folder: the longest definition, the deepest line, the texts left, the first frame and the
-scenarios beside the JSON version's. Opening a program costs about what opening its JSON version does once the process has read
+scenarios beside the JSON version's. `tools/notation/lisp_idioms.py --check` holds every example's code to the dialect's
+style: no old spelling, each place kept with its reason and counted in the app's `tools/notation/idioms/<app>.json`
+(`--kept` lists them, `--measure` gives each app's size); `tools/notation/lisp_tree.py --save DIR` and `--compare DIR`
+show that a change to an app's code leaves the tree it builds the same, but for a binding's or a definition's text, and
+calls no more Lisp functions from its bindings. Opening a program costs about what opening its JSON version does once the process has read
 it before: each file's document and each entry's form are kept for the process by their exact text (and file, name and place),
 since reading them is pure, and an interpreter that runs a program compiles its functions, not its views (`tests/perf`,
 `lisp/open-<app>`).

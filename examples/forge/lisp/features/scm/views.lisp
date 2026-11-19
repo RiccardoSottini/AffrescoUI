@@ -4,6 +4,8 @@
 ;;; and its buttons), the branches and the history when shown. The diff tab compares a file's two texts, side by side
 ;;; or inline.
 
+(ns forge.features.scm.views)
+
 ;;; The view
 
 (defcomponent forgeScmView
@@ -58,7 +60,7 @@
        :cursor hand
        :focusable true
        :textColor "#ffffff"
-       :color ~(if (and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0))
+       :color ~(if (and (not (empty? (str/trim state.scm.message))) (> (count state.scm.status.staged) 0))
                    "@color.accent"
                    "@color.border")
        :onClick scmCommit)))
@@ -342,7 +344,7 @@
 
 (defview scm-history-head "The history's title and count, and the button that hides it." []
   `(row#scm-history-head :width "100%" :height 22 :alignItems center
-     (label#scm-history-title :text ~(t "scm-history-title" {:n (count (filter (fn [it] (not (empty? it.hash))) state.scm.log))})
+     (label#scm-history-title :text ~(t "scm-history-title" {:n (count (remove #(empty? (:hash %)) state.scm.log))})
        :textColor @color.muted
        :grow 1
        :padding 8

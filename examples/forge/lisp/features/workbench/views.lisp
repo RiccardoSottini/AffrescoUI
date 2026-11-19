@@ -1,5 +1,7 @@
 ;;; views.lisp --- the secondary side bar with the Outline, the breadcrumbs, and the JSON pages of settings and keys
 
+(ns forge.features.workbench.views)
+
 ;;; The Outline
 
 (defcomponent forgeSecondarySideBar "The side bar at the right: the Outline of the active file, a row a symbol."
@@ -70,7 +72,7 @@
        `(label#breadcrumb :role button
           :label ~segment
           :text ~segment
-          :icon ~(if (> si 0) "chevron-right" "")
+          :icon ~(if (pos? si) "chevron-right" "")
           :fitText true
           :padding 2
           :cursor hand
@@ -79,8 +81,8 @@
           :onClick ~(handler breadcrumbClicked path si)))
      ~(repeat [symbol computed.symbolTrail]
        `(label#breadcrumb-symbol :role button
-          :label ~(trim symbol.label)
-          :text ~(trim symbol.label)
+          :label ~(str/trim symbol.label)
+          :text ~(str/trim symbol.label)
           :icon chevron-right
           :fitText true
           :padding 2
