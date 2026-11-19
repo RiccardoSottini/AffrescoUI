@@ -54,6 +54,10 @@ BINDING_HEADS = ("let", "loop", "for", "doseq", "when-let", "if-let", "when-some
                  "letfn", "when-first", "with-open", "repeat")
 # In a view's template, the keywords whose value names a function: a handler option, a run target
 HANDLER_KEYWORD = re.compile(r":(on[A-Z][A-Za-z]*|then|else|done|run|action|command)$")
+# Why a name a template or data holds as a word, where it may be text (an id, a node's kind), stays
+HELD_AS_TEXT = "a view or data holds it where it may be text"
+# The definitions of data, whose words are text: a word in them names a function only as a handler option or a key's
+DATA_HEADS = ("defstate", "defcustom", "deftokens", "defstyle", "defdefaults")
 # In a view's template, the keywords whose value is never a function's name: an id, a component, a style, a type...
 DATA_KEYWORDS = (":id", ":use", ":style", ":type", ":icon", ":text", ":bind", ":role", ":grammar", ":font", ":cursor",
                  ":kind", ":align", ":dir", ":side", ":placeholder", ":label", ":title", ":tooltip", ":image")
@@ -163,7 +167,7 @@ class Uses:
     template that are names to rename but stay, as data (`seen`)."""
 
     def __init__(self, names):
-        self.names, self.found, self.seen = names, [], []
+        self.names, self.found, self.seen, self.strict = names, [], [], False
 
     def note(self, atom):
         """Notes a word if it is a name to rename."""
@@ -171,7 +175,14 @@ class Uses:
             self.found.append(atom)
 
     def top(self, form):
-        """Walks a top-level form."""
+        """Walks a top-level form. A definition of data (state, a setting, tokens, a style) is data throughout: only a
+        handler option or a key's target in it names a function (`strict`)."""
+        if head_of(form) in DATA_HEADS:
+            self.strict = True
+            for item in form.items[2:]:
+                self.template(item, False)
+            self.strict = False
+            return
         self.code(form, in_macro=head_of(form) == "defmacro")
 
     def code(self, form, in_macro):
@@ -230,7 +241,8 @@ class Uses:
                     for rest in item.items[1:]:
                         self.template(rest, in_macro)
                     continue
-            if (isinstance(before, Atom) and before.text.startswith(":") and before.text not in DATA_KEYWORDS
+            if (not self.strict and isinstance(before, Atom) and before.text.startswith(":")
+                    and before.text not in DATA_KEYWORDS
                     and isinstance(item, Atom) and item.text in self.names):
                 self.note(item)  # what a component or a timer runs: `:with {:submit save}`, `:every {:do tick}`
                 continue
@@ -389,7 +401,7 @@ class Plan:
         self.uses = self.find_uses()
         if self.seen:  # a name a template holds where the tool can't tell it runs: left whole, never half renamed
             for path, atom in self.seen:
-                self.left.setdefault(atom.text, f"a view's template holds it as data: examples/{path}:{atom.line}")
+                self.left.setdefault(atom.text, f"{HELD_AS_TEXT}: examples/{path}:{atom.line}")
                 self.renames.pop(atom.text, None)
             self.uses = self.find_uses()
 
@@ -512,8 +524,8 @@ def short_reason(reason):
     """A left name's reason as a keep mark gives it: without the place a string is at, which moves."""
     if reason.startswith("a string names it"):
         return "a string of the code names it, and a rename never changes a string"
-    if reason.startswith("a view's template"):
-        return "a view's template holds it as data"
+    if reason.startswith(HELD_AS_TEXT):
+        return HELD_AS_TEXT
     return reason.replace(" ...", " and more")
 
 
