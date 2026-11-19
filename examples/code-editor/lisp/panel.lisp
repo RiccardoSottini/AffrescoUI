@@ -69,7 +69,7 @@
      :selectedTextColor @text
      :selectedBackground @rowSelected
      :accentColor @accent
-     :onChange openProblem))
+     :onChange open-problem))
 
 (defview terminal-view "The console: its lines, and the command line." []
   `(node#terminal :when ~(= state.panelTab :terminal) :anchors {:left 0 :right 0 :top 30 :bottom 0} :color transparent

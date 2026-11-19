@@ -16,24 +16,24 @@
              :launch {:provider process :process affresco}
              :packages {:provider packages}}
   :onLoad {:run launcher.refresh}
-  :actions {:launcher.refresh [{:lisp refreshMine}]
-            :launcher.show [{:lisp showMineList}]
-            :launcher.export [{:lisp showExport}]
-            :launcher.review [{:lisp showReview}]
-            :launcher.catalogue [{:lisp showListing}]
-            :launcher.reviewListed [{:lisp showListedReview}]})
+  :actions {:launcher.refresh [{:lisp refresh-mine}]
+            :launcher.show [{:lisp show-mine-list}]
+            :launcher.export [{:lisp show-export}]
+            :launcher.review [{:lisp show-review}]
+            :launcher.catalogue [{:lisp show-listing}]
+            :launcher.reviewListed [{:lisp show-listed-review}]})
 
 ;;; Pages and notes
 
 (defn go "Shows a page." [page] (set "state.page" page))
 
-(defn clearToasts "Takes the notes away." [] (set "state.toasts" []))
+(defn clear-toasts "Takes the notes away." [] (set "state.toasts" []))
 
 (defn toast "A note at the bottom for a few seconds, in red when it is an error." [message error]
   (push "state.toasts" :value {:message message :color (if error "@c.danger" "@c.accent")})
-  (debounce 4000 clearToasts))
+  (debounce 4000 clear-toasts))
 
-(defn showError "A service's error, as a note." [error] (toast (:message error) true))
+(defn show-error "A service's error, as a note." [error] (toast (:message error) true))
 
 (defcommand showApps "Shows the Apps page."
   :title ~(t "nav.apps") :description ~(t "command.showApps.about") :category ~(t "category.view")
@@ -68,16 +68,16 @@
 ;; modified time and name, the last changed first. A folder holds its screen, or a json folder (a copy of an example),
 ;; or a lisp folder (a copy of an example written as a program); a folder with none of the three is left out.
 
-(defn refreshMine "Reads the apps folder again." []
+(defn refresh-mine "Reads the apps folder again." []
   (let [pass (inc state.mineRun)]
     (set "state.mineRun" pass)
-    (listMine pass)
-    (listCatalogue)))
+    (list-mine pass)
+    (list-catalogue)))
 
 (defn current? "Whether a read is the last one started." [pass] (= pass state.mineRun))
 
-(defn listMine "Lists the apps folder, for the read numbered pass." [pass]
-  (invoke "apps.list" :with {:path "."} :onDone [listed pass] :onError [notListed pass]))
+(defn list-mine "Lists the apps folder, for the read numbered pass." [pass]
+  (invoke "apps.list" :with {:path "."} :onDone [listed pass] :onError [not-listed pass]))
 
 (defn listed "The apps folder's folders, but shared and hidden ones; then the first is read." [pass result]
   (when (current? pass)
@@ -87,142 +87,142 @@
                  (:entries result)))
     (set "state.mineNext" [])
     (set "state.mineError" "")
-    (loadMine 0 pass)))
+    (load-mine 0 pass)))
 
-(defn notListed "The apps folder couldn't be read: My apps says so." [pass error]
+(defn not-listed "The apps folder couldn't be read: My apps says so." [pass error]
   (when (current? pass)
     (set "state.mineError" (:message error))
     (set "state.mineLoaded" true)))
 
-(defn folderOf "The folder of the i-th app of the read." [i] (:name (get state.mineScan i)))
+(defn folder-of "The folder of the i-th app of the read." [i] (:name (get state.mineScan i)))
 
 (defn file? "Whether a service's stat found a file." [result] (and (true? (:exists result)) (= (:kind result) :file)))
 
-(defn loadMine "Reads the i-th app of the read, or ends the read: the last changed first." [i pass]
+(defn load-mine "Reads the i-th app of the read, or ends the read: the last changed first." [i pass]
   (when (current? pass)
     (if (>= i (count state.mineScan))
       (do (set "state.mine" (sort-by #(- (:modified %)) state.mineNext))
           (set "state.mineLoaded" true))
-      (invoke "apps.stat" :with {:path (str (folderOf i) "/index.screen.json")} :onDone [screenFound i pass]
-        :onError [loadMineCopy i pass]))))
+      (invoke "apps.stat" :with {:path (str (folder-of i) "/index.screen.json")} :onDone [screen-found i pass]
+        :onError [load-mine-copy i pass]))))
 
-(defn screenFound "The folder holds its screen: it is read; else it may be a copy." [i pass result]
+(defn screen-found "The folder holds its screen: it is read; else it may be a copy." [i pass result]
   (if (file? result)
-    (readMine i "" (or (:modified result) 0) pass)
-    (loadMineCopy i pass)))
+    (read-mine i "" (or (:modified result) 0) pass)
+    (load-mine-copy i pass)))
 
-(defn loadMineCopy "Looks for a copy of an example written in JSON: a json folder." [i pass]
-  (invoke "apps.stat" :with {:path (str (folderOf i) "/json/index.screen.json")} :onDone [copyFound i pass]
-    :onError [loadMineProgram i pass]))
+(defn load-mine-copy "Looks for a copy of an example written in JSON: a json folder." [i pass]
+  (invoke "apps.stat" :with {:path (str (folder-of i) "/json/index.screen.json")} :onDone [copy-found i pass]
+    :onError [load-mine-program i pass]))
 
-(defn copyFound "A json folder is read; else it may be a copy of a program." [i pass result]
+(defn copy-found "A json folder is read; else it may be a copy of a program." [i pass result]
   (if (file? result)
-    (readMine i "/json" (or (:modified result) 0) pass)
-    (loadMineProgram i pass)))
+    (read-mine i "/json" (or (:modified result) 0) pass)
+    (load-mine-program i pass)))
 
-(defn loadMineProgram "Looks for a copy of an example written as a program: a lisp folder, with its app.lisp." [i pass]
-  (invoke "apps.stat" :with {:path (str (folderOf i) "/lisp/app.lisp")} :onDone [programFound i pass]
-    :onError [skipMine i pass]))
+(defn load-mine-program "Looks for a copy of an example written as a program: a lisp folder, with its app.lisp." [i pass]
+  (invoke "apps.stat" :with {:path (str (folder-of i) "/lisp/app.lisp")} :onDone [program-found i pass]
+    :onError [skip-mine i pass]))
 
-(defn programFound "A lisp folder is read; else the folder is left out." [i pass result]
+(defn program-found "A lisp folder is read; else the folder is left out." [i pass result]
   (if (file? result)
-    (readMine i "/lisp" (or (:modified result) 0) pass)
-    (skipMine i pass)))
+    (read-mine i "/lisp" (or (:modified result) 0) pass)
+    (skip-mine i pass)))
 
-(defn skipMine "Goes on to the next app of the read." [i pass] (loadMine (inc i) pass))
+(defn skip-mine "Goes on to the next app of the read." [i pass] (load-mine (inc i) pass))
 
-(defn readMine "Reads an app's name: a JSON screen's window title, or a program's name in its app.lisp."
+(defn read-mine "Reads an app's name: a JSON screen's window title, or a program's name in its app.lisp."
   [i sub modified pass]
-  (invoke "apps.read" :with {:path (str (folderOf i) sub (if (= sub "/lisp") "/app.lisp" "/index.screen.json"))}
-          :onDone [mineRead i sub modified pass] :onError [skipMine i pass]))
+  (invoke "apps.read" :with {:path (str (folder-of i) sub (if (= sub "/lisp") "/app.lisp" "/index.screen.json"))}
+          :onDone [mine-read i sub modified pass] :onError [skip-mine i pass]))
 
-(defn mineRead "An app read joins the list; then the next is read." [i sub modified pass result]
+(defn mine-read "An app read joins the list; then the next is read." [i sub modified pass result]
   (when (current? pass)
     (let [text (:text result)
           named (if (= sub "/lisp") (formKeyword text "name") (some-> text parseJson (get-in [:window :title])))]
-      (push "state.mineNext" :value {:id (folderOf i) :sub sub :name (or named (folderOf i)) :modified modified}))
-    (skipMine i pass)))
+      (push "state.mineNext" :value {:id (folder-of i) :sub sub :name (or named (folder-of i)) :modified modified}))
+    (skip-mine i pass)))
 
-(defn showMineList "Shows the person's apps as the folder gave them (event.mine): scenarios play its answer with it." []
+(defn show-mine-list "Shows the person's apps as the folder gave them (event.mine): scenarios play its answer with it." []
   (set "state.mine" (or event.mine []))
   (set "state.mineError" "")
   (set "state.mineLoaded" true))
 
-(defn listNew "Shows an app just made at the top of the list at once, before the folder is read again." [id sub title]
+(defn list-new "Shows an app just made at the top of the list at once, before the folder is read again." [id sub title]
   (set "state.mine" (concat [{:id id :sub sub :name title :modified (now)}] (remove #(= (:id %) id) state.mine))))
 
-(defn subOf "Where an app's files are in its folder: '', '/json' or '/lisp'." [id]
+(defn sub-of "Where an app's files are in its folder: '', '/json' or '/lisp'." [id]
   (or (:sub (find #(= (:id %) id) state.mine)) ""))
 
 ;;; Opening an app, showing it, deleting it
 
-(defn openApp "Opens an app of the cards or the rows: the person's own, or an example." [app]
+(defn open-app "Opens an app of the cards or the rows: the person's own, or an example." [app]
   (if (:mine app)
-    (openMine (:id app) (:name app) "")
-    (openExample app)))
+    (open-mine (:id app) (:name app) "")
+    (open-example app)))
 
-(defn openExample "Opens an example in a window of its own, in its notation, through the host's program." [app]
+(defn open-example "Opens an example in a window of its own, in its notation, through the host's program." [app]
   (invoke "launch.run"
           :with {:arguments (if (= (:program app) :host)
                               ["affrescoui_launcher"
                                (str "examples:" (:folder app) "/" (or (:notation app) state.notation))]
                               [(:program app)])}
-          :onDone [exampleOpened app]
-          :onError [exampleNotOpened app]))
+          :onDone [example-opened app]
+          :onError [example-not-opened app]))
 
-(defn exampleOpened "Says the example is opening." [app] (toast (t "toast.opening" {:name (:name app)}) false))
+(defn example-opened "Says the example is opening." [app] (toast (t "toast.opening" {:name (:name app)}) false))
 
-(defn exampleNotOpened "Says the example couldn't be opened, and why." [app error]
+(defn example-not-opened "Says the example couldn't be opened, and why." [app error]
   (toast (t "toast.openFailed" {:name (:name app) :why (:message error)}) true))
 
 ;; Its screen, or its lisp folder; ask, when it isn't empty, is what the assistant is asked once it opens.
-(defn openMine "Opens one of the person's apps in a window of its own." [id name ask]
-  (let [sub (subOf id)
+(defn open-mine "Opens one of the person's apps in a window of its own." [id name ask]
+  (let [sub (sub-of id)
         entry (if (= sub "/lisp") sub (str sub "/index.screen.json"))]
     (invoke "launch.run"
             :with {:arguments (concat ["affrescoui_launcher" (str "apps:" id entry)]
                                       (if (not= ask "") ["--ask" ask] []))}
-            :onDone [mineOpened name]
-            :onError [mineNotOpened name])))
+            :onDone [mine-opened name]
+            :onError [mine-not-opened name])))
 
-(defn mineOpened "Says the app is opening." [name] (toast (t "toast.opening" {:name name}) false))
+(defn mine-opened "Says the app is opening." [name] (toast (t "toast.opening" {:name name}) false))
 
-(defn mineNotOpened "Says the app couldn't be opened, and why." [name error]
+(defn mine-not-opened "Says the app couldn't be opened, and why." [name error]
   (toast (t "toast.openFailed" {:name name :why (:message error)}) true))
 
-(defn revealMine "Shows an app's folder, or the apps folder itself for an empty id." [id]
-  (invoke "launch.run" :with {:arguments ["reveal" (str "apps:" id)]} :onError showError))
+(defn reveal-mine "Shows an app's folder, or the apps folder itself for an empty id." [id]
+  (invoke "launch.run" :with {:arguments ["reveal" (str "apps:" id)]} :onError show-error))
 
-(defn askDelete "Asks before an app is deleted." [id name]
+(defn ask-delete "Asks before an app is deleted." [id name]
   (set "state.confirm" {:id id :name name})
   (set "state.confirmOpen" true))
 
-(defn deleteMine "Deletes the app the question was about, once confirmed." []
-  (invoke "apps.delete" :with {:path state.confirm.id} :onDone deleted :onError showError))
+(defn delete-mine "Deletes the app the question was about, once confirmed." []
+  (invoke "apps.delete" :with {:path state.confirm.id} :onDone deleted :onError show-error))
 
 (defn deleted "Says the app is deleted, and reads the folder again." []
   (toast (t "toast.deleted" {:name state.confirm.name}) false)
-  (after 1 refreshMine))
+  (after 1 refresh-mine))
 
 ;;; Duplicating an app
 
-(defn duplicateMine "A copy of an app, in the first free folder of <id>-copy, <id>-copy-2..." [id name]
+(defn duplicate-mine "A copy of an app, in the first free folder of <id>-copy, <id>-copy-2..." [id name]
   (let [taken (into #{} computed.myIds)]
-    (copyMine id name (->> (range 50)
+    (copy-mine id name (->> (range 50)
                            (map #(if (zero? %) (str id "-copy") (str id "-copy-" (inc %))))
                            (remove taken)
                            first))))
 
-(defn copyMine "Copies an app's folder." [id name to]
-  (invoke "apps.copy" :with {:path id :to to} :onDone [folderCopied id name to] :onError showError))
+(defn copy-mine "Copies an app's folder." [id name to]
+  (invoke "apps.copy" :with {:path id :to to} :onDone [folder-copied id name to] :onError show-error))
 
-(defn folderCopied "The copy is renamed." [id name to]
-  (retitle to (subOf id) (t "mine.copyName" {:name name}) "" :copied))
+(defn folder-copied "The copy is renamed." [id name to]
+  (retitle to (sub-of id) (t "mine.copyName" {:name name}) "" :copied))
 
 (defn copied "The copy is at the top of the list, and a note says so." [id sub title]
-  (listNew id sub title)
+  (list-new id sub title)
   (toast (t "toast.duplicated" {:name title}) false)
-  (after 1 refreshMine))
+  (after 1 refresh-mine))
 
 ;;; Naming a copy
 
@@ -232,26 +232,26 @@
 
 (defn retitle "Sets the copy's window title, then its id and name." [id sub title ask then]
   (if (= sub "/lisp")
-    (retitleProgram id title ask then)
+    (retitle-program id title ask then)
     (invoke "apps.read" :with {:path (str id sub "/index.screen.json")}
-            :onDone [screenRead id sub title ask then] :onError [failedToCreate id])))
+            :onDone [screen-read id sub title ask then] :onError [failed-to-create id])))
 
 (defn retitled "The screen's text with its window title replaced, as text: nothing else moves." [text title]
   (if-some [old (some-> text parseJson (get-in [:window :title]))]
     (str/replace text (json old) (json title))
     text))
 
-(defn screenRead "Writes the screen back with its new title." [id sub title ask then result]
+(defn screen-read "Writes the screen back with its new title." [id sub title ask then result]
   (invoke "apps.write" :with {:path (str id sub "/index.screen.json") :text (retitled (:text result) title)}
-          :onDone [screenWritten id sub title ask then] :onError [failedToCreate id]))
+          :onDone [screen-written id sub title ask then] :onError [failed-to-create id]))
 
-(defn screenWritten "Goes on to the app's id and name." [id sub title ask then]
+(defn screen-written "Goes on to the app's id and name." [id sub title ask then]
   (reidentify id sub title ask then))
 
 (defn reidentify "Gives a copy's app.json (a starter has none) the new app's id and name, so it keeps its data apart."
   [id sub title ask then]
   (invoke "apps.read" :with {:path (str id sub "/app.json")} 
-          :onDone [manifestRead id sub title ask then] :onError [named id sub title ask then]))
+          :onDone [manifest-read id sub title ask then] :onError [named id sub title ask then]))
 
 (defn reidentified "An app.json's text with its id and name replaced, as text." [text id title]
   (let [manifest (or (parseJson text) {})]
@@ -259,79 +259,79 @@
         (str/replace (str "\"id\": " (json (:id manifest))) (str "\"id\": " (json id)))
         (str/replace (str "\"name\": " (json (:name manifest))) (str "\"name\": " (json title))))))
 
-(defn manifestRead "Writes the app.json back with its new id and name." [id sub title ask then result]
+(defn manifest-read "Writes the app.json back with its new id and name." [id sub title ask then result]
   (invoke "apps.write" :with {:path (str id sub "/app.json") :text (reidentified (:text result) id title)}
-          :onDone [named id sub title ask then] :onError [failedToCreate id]))
+          :onDone [named id sub title ask then] :onError [failed-to-create id]))
 
 (defn named "The copy is named: what was to happen next does, a copy listed or a new app's shared files brought."
   [id sub title ask then]
   (if (= then :copied)
     (copied id sub title)
-    (createShared id sub title ask)))
+    (create-shared id sub title ask)))
 
-(defn retitleProgram "A program copied into a lisp folder: the title of the entry its app.lisp names."
+(defn retitle-program "A program copied into a lisp folder: the title of the entry its app.lisp names."
   [id title ask then]
   (invoke "apps.read" :with {:path (str id "/lisp/app.lisp")} 
-          :onDone [programManifestRead id title ask then] :onError [failedToCreate id]))
+          :onDone [program-manifest-read id title ask then] :onError [failed-to-create id]))
 
-(defn programManifestRead "Finds the entry the app.lisp names." [id title ask then result]
-  (retitleEntry id (-> (:text result) (formKeyword "entry") (or "index.screen.lisp")) title ask then))
+(defn program-manifest-read "Finds the entry the app.lisp names." [id title ask then result]
+  (retitle-entry id (-> (:text result) (formKeyword "entry") (or "index.screen.lisp")) title ask then))
 
 ;; The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as
 ;; index.screen.lisp, so a copy never writes outside itself.
-(defn retitleEntry "Sets the entry's :window :title, by a keyword edit." [id entry title ask then]
+(defn retitle-entry "Sets the entry's :window :title, by a keyword edit." [id entry title ask then]
   (let [entry (if (or (not (string? entry)) (empty? entry) (str/starts-with? entry ".")
                       (some #(str/includes? entry %) ["/" "\\" ":"]))
                 "index.screen.lisp"
                 entry)]
-    (retitleEntryFile id entry title ask then)))
+    (retitle-entry-file id entry title ask then)))
 
-(defn retitleEntryFile "Reads the entry, to set its title." [id entry title ask then]
+(defn retitle-entry-file "Reads the entry, to set its title." [id entry title ask then]
   (invoke "apps.read" :with {:path (str id "/lisp/" entry)} 
-          :onDone [entryRead id entry title ask then] :onError [failedToCreate id]))
+          :onDone [entry-read id entry title ask then] :onError [failed-to-create id]))
 
-(defn entryRead "Writes the entry back with its new title." [id entry title ask then result]
+(defn entry-read "Writes the entry back with its new title." [id entry title ask then result]
   (invoke "apps.write"
           :with {:path (str id "/lisp/" entry)
                  :text (or (setFormKeyword (:text result) ["window" "title"] title) (:text result))}
-          :onDone [entryWritten id title ask then] :onError [failedToCreate id]))
+          :onDone [entry-written id title ask then] :onError [failed-to-create id]))
 
-(defn entryWritten "Goes on to the app.lisp's id and name." [id title ask then]
-  (reidentifyProgram id title ask then))
+(defn entry-written "Goes on to the app.lisp's id and name." [id title ask then]
+  (reidentify-program id title ask then))
 
-(defn reidentifyProgram "Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json."
+(defn reidentify-program "Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json."
   [id title ask then]
   (invoke "apps.read" :with {:path (str id "/lisp/app.lisp")} 
-          :onDone [programManifestNamed id title ask then] :onError [failedToCreate id]))
+          :onDone [program-manifest-named id title ask then] :onError [failed-to-create id]))
 
-(defn programManifestNamed "Writes the app.lisp back with its new :id and :name." [id title ask then result]
+(defn program-manifest-named "Writes the app.lisp back with its new :id and :name." [id title ask then result]
   (let [text (:text result)
         withId (or (setFormKeyword text "id" id) text)]
     (invoke "apps.write" :with {:path (str id "/lisp/app.lisp") :text (or (setFormKeyword withId "name" title) text)}
-            :onDone [programNamed id title ask then] :onError [failedToCreate id])))
+            :onDone [program-named id title ask then] :onError [failed-to-create id])))
 
-(defn programNamed "The program is named: what was to happen next does." [id title ask then]
+(defn program-named "The program is named: what was to happen next does." [id title ask then]
   (named id "/lisp" title ask then))
 
 ;;; Creating an app
 
-(defn chooseStart "What the new app starts from: blank, or an example's id." [id] (set "state.create.from" id))
+(defn choose-start "What the new app starts from: blank, or an example's id." [id] (set "state.create.from" id))
 
-(defn startFrom "Starts a new app from an example: the Create page, its name field focused." [id]
-  (chooseStart id)
+(defn start-from "Starts a new app from an example: the Create page, its name field focused." [id]
+  (choose-start id)
   (go :create)
   (focus "#createName"))
 
-(defn toggleFeature "Asks for a feature of another app, or not." [id]
+(defn toggle-feature "Asks for a feature of another app, or not." [id]
   (set "state.create.features"
        (if (contains state.create.features id)
          (remove #{id} state.create.features)
          (concat state.create.features [id]))))
 
-(defn resetCreate "Empties the form." []
+(defn reset-create "Empties the form." []
   (set "state.create" {:name "" :from "blank" :describe "" :features [] :tried false :busy false :error ""}))
 
-(defn createApp "Makes the new app, if its name is right and none is being made." []
+(defn create-app "Makes the new app, if its name is right and none is being made." []
   (set "state.create.tried" true)
   (set "state.create.error" "")
   (if (or (not= computed.createError "") state.create.busy)
@@ -340,59 +340,59 @@
           title (str/trim state.create.name)]
       (set "state.create.busy" true)
       (if (= state.create.from :blank)
-        (createBlank computed.slug title computed.askText)
-        (createCopy computed.slug title computed.askText (or folder "")
+        (create-blank computed.slug title computed.askText)
+        (create-copy computed.slug title computed.askText (or folder "")
                     (if (= (or notation state.notation) :lisp) "/lisp" "/json"))))))
 
-(defn createBlank "A folder, and the blank starter in it." [id title ask]
-  (invoke "apps.mkdir" :with {:path id} :onDone [blankFolderMade id title ask] :onError [folderNotMade id]))
+(defn create-blank "A folder, and the blank starter in it." [id title ask]
+  (invoke "apps.mkdir" :with {:path id} :onDone [blank-folder-made id title ask] :onError [folder-not-made id]))
 
-(defn blankFolderMade "Copies the blank starter into the new folder." [id title ask]
+(defn blank-folder-made "Copies the blank starter into the new folder." [id title ask]
   (invoke "apps.copy"
           :with {:from "examples" :path "launcher/json/starters/blank.screen.json" :to (str id "/index.screen.json")}
-          :onDone [blankCopied id title ask] :onError [failedToCreate id]))
+          :onDone [blank-copied id title ask] :onError [failed-to-create id]))
 
-(defn blankCopied "The blank app is named, then the shared files brought." [id title ask]
+(defn blank-copied "The blank app is named, then the shared files brought." [id title ask]
   (retitle id "" title ask :createShared))
 
 ;; A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or
 ;; '/lisp'), and its assets, without its C++: its paths lead to the shared folder from there.
-(defn createCopy "A folder, and a copy of an example in it." [id title ask folder sub]
-  (invoke "apps.mkdir" :with {:path id} :onDone [copyFolderMade id title ask folder sub] :onError [folderNotMade id]))
+(defn create-copy "A folder, and a copy of an example in it." [id title ask folder sub]
+  (invoke "apps.mkdir" :with {:path id} :onDone [copy-folder-made id title ask folder sub] :onError [folder-not-made id]))
 
-(defn copyFolderMade "Copies the example's files into the new folder." [id title ask folder sub]
+(defn copy-folder-made "Copies the example's files into the new folder." [id title ask folder sub]
   (invoke "apps.copy" :with {:from "examples" :path (str folder sub) :to (str id sub) :exclude computed.excluded}
-          :onDone [exampleCopied id title ask folder sub] :onError [failedToCreate id]))
+          :onDone [example-copied id title ask folder sub] :onError [failed-to-create id]))
 
-(defn exampleCopied "Copies the example's assets beside them; with none, the copy goes on."
+(defn example-copied "Copies the example's assets beside them; with none, the copy goes on."
   [id title ask folder sub]
   (invoke "apps.copy" :with {:from "examples" :path (str folder "/assets") :to (str id "/assets")
                              :exclude computed.excluded}
-          :onDone [copyMade id title ask sub] :onError [copyMade id title ask sub]))
+          :onDone [copy-made id title ask sub] :onError [copy-made id title ask sub]))
 
-(defn copyMade "The copy is named, then the shared files brought." [id title ask sub]
+(defn copy-made "The copy is named, then the shared files brought." [id title ask sub]
   (retitle id sub title ask :createShared))
 
-(defn createShared "The fonts, add-ons and components the apps name as ../shared, brought up to date beside them."
+(defn create-shared "The fonts, add-ons and components the apps name as ../shared, brought up to date beside them."
   [id sub title ask]
   (invoke "apps.copy" :with {:from "examples" :path "shared" :to "shared" :merge true :exclude computed.excluded}
-          :onDone [created id sub title ask] :onError [failedToCreate id]))
+          :onDone [created id sub title ask] :onError [failed-to-create id]))
 
 (defn created "The new app is listed and opened, the form emptied." [id sub title ask]
-  (listNew id sub title)
-  (resetCreate)
+  (list-new id sub title)
+  (reset-create)
   (go :mine)
-  (openMine id title ask)
-  (after 1 refreshMine))
+  (open-mine id title ask)
+  (after 1 refresh-mine))
 
-(defn folderNotMade "The new app's folder couldn't be made: it was there already, or something else." [id error]
-  (createFailed id (if (= (:code error) :exists) (t "create.error.taken" {:folder id}) (:message error)) true))
+(defn folder-not-made "The new app's folder couldn't be made: it was there already, or something else." [id error]
+  (create-failed id (if (= (:code error) :exists) (t "create.error.taken" {:folder id}) (:message error)) true))
 
-(defn failedToCreate "A step of making the app failed: its folder goes."
-  [id error] (createFailed id (:message error) false))
+(defn failed-to-create "A step of making the app failed: its folder goes."
+  [id error] (create-failed id (:message error) false))
 
 ;; keep: the folder isn't the new app's, as it was there already, or was never made.
-(defn createFailed "Says why the app couldn't be made, and takes its folder away unless keep." [id why keep]
+(defn create-failed "Says why the app couldn't be made, and takes its folder away unless keep." [id why keep]
   (set "state.create.busy" false)
   (set "state.create.error" (t "create.failed" {:why why}))
   (when-not (or (true? keep) (empty? id))

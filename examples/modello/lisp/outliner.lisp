@@ -155,9 +155,9 @@
      :selected ~(if node (contains state.view.selection node.id) nil)
      :let {:open ~(true? (get state.outlinerOpen expand))
            :editing ~(or (and (some? node) (not= data "") (= state.renaming node.id)) (and (some? coll) (= state.renaming (str "coll:" coll.id))))}
-     :onClick ~(handler pickRow node.id coll.id onSelect event.shift)
-     :onDoubleClick ~(handler startRowRename node.id coll.id data)
-     :onContextMenu ~(handler rowMenu node.id coll.id)
+     :onClick ~(handler pick-row node.id coll.id onSelect event.shift)
+     :onDoubleClick ~(handler start-row-rename node.id coll.id data)
+     :onContextMenu ~(handler row-menu node.id coll.id)
      ~(outliner-chevron depth name node key expand)
      ~(row-icon depth icon iconColor)
      (label :when ~(not editing)
@@ -212,7 +212,7 @@
      :role button
      :label ~(if open (t "outliner.collapse" {:name name}) (t "outliner.expand" {:name name}))
      :isOpen ~open
-     :onClick ~(handler toggleOpen expand)
+     :onClick ~(handler toggle-open expand)
      (label
        :font iconsSmall
        :icon ~(if open "chevron-down" "chevron-right")
@@ -233,7 +233,7 @@
      :label ~(t "outliner.rename" {:name name})
      :keys {:escape {:set state.renaming :to nil}}
      :onBlur {:set state.renaming :to nil}
-     :onSubmit ~(handler submitRowRename node.id coll.id event.text)))
+     :onSubmit ~(handler submit-row-rename node.id coll.id event.text)))
 
 (defview row-flag "One of a row's switches: whether its object or collection is selectable, visible or rendered." [node coll flag]
   `(node :id ~(str "outliner-" (if node node.id coll.id) "-" flag.key)
@@ -248,7 +248,7 @@
      :label ~flag.title
      :tooltip ~flag.title
      :selected ~on
-     :onClick ~(handler toggleRowFlag node.id coll.id flag.key)
+     :onClick ~(handler toggle-row-flag node.id coll.id flag.key)
      (label
        :font iconsSmall
        :icon ~(if on flag.on flag.off)

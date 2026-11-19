@@ -83,7 +83,7 @@
      :label ~(t "catalogue.reviewLabel" {:name entry.title})
      :hover {:borderColor @c.accent :shadow {:y 8 :blur 22 :color @c.shadow}}
      :focused {:borderColor @c.accent :borderWidth 2}
-     :onClick ~(handler reviewListed entry.id entry.release entry.description)
+     :onClick ~(handler review-listed entry.id entry.release entry.description)
      (label#catalogueCardIcon :icon ~(if (= entry.kind :feature) "puzzle" "package")
        :font bigIcons
        :align center
@@ -111,43 +111,43 @@
 
 ;;; What it does
 
-(defn listCatalogue "Asks the packages service for the catalogue the host grants: the page shows only when there is
+(defn list-catalogue "Asks the packages service for the catalogue the host grants: the page shows only when there is
   one." []
-  (invoke "packages.catalogue" :with {} :onDone catalogueRead :onError catalogueMissing))
+  (invoke "packages.catalogue" :with {} :onDone catalogue-read :onError catalogue-missing))
 
-(defn catalogueRead "The catalogue as the service gives it." [result]
+(defn catalogue-read "The catalogue as the service gives it." [result]
   (set "state.catalogue" {:available true :name (:name result) :updated (:updated result) :signed (:signed result)
                           :entries (:entries result)}))
 
-(defn catalogueMissing "No catalogue, or its index refused: the page stays hidden, as it starts." [error] nil)
+(defn catalogue-missing "No catalogue, or its index refused: the page stays hidden, as it starts." [error] nil)
 
-(defn showListing "Shows a catalogue as event gives it ({name, updated, signed, entries}): scenarios play the
+(defn show-listing "Shows a catalogue as event gives it ({name, updated, signed, entries}): scenarios play the
   service's answer with it." []
   (set "state.catalogue" {:available true :name (or event.name "") :updated (or event.updated "")
                           :signed (or event.signed false) :entries (or event.entries [])}))
 
-(defn reviewListed "Asks the packages service what installing an entry would do: the same review as for a file."
+(defn review-listed "Asks the packages service what installing an entry would do: the same review as for a file."
   [id release description]
   (invoke "packages.inspect" :with {:catalogue id :release release}
-          :onDone [listedInspected id release description] :onError [listedNotInspected id release description]))
+          :onDone [listed-inspected id release description] :onError [listed-not-inspected id release description]))
 
-(defn listedInspected "The review shows what the service said, and where the entry was listed."
+(defn listed-inspected "The review shows what the service said, and where the entry was listed."
   [id release description result]
-  (reviewEntry (:summary result) "" (or (:listed result) {}) id release description))
+  (review-entry (:summary result) "" (or (:listed result) {}) id release description))
 
-(defn listedNotInspected "The review says why the entry can't be installed." [id release description error]
-  (reviewEntry {} (:message error) {} id release description))
+(defn listed-not-inspected "The review says why the entry can't be installed." [id release description error]
+  (review-entry {} (:message error) {} id release description))
 
-(defn reviewEntry "The review of a file, with the entry it came from and where it was listed."
+(defn review-entry "The review of a file, with the entry it came from and where it was listed."
   [summary why listed id release description]
   (review summary why)
   (set "state.install.package" {:description description})
   (set "state.install.entry" {:catalogue id :release release})
   (set "state.install.listed" listed))
 
-(defn showListedReview "Shows the review of an entry as event gives it ({summary, listed, id, release, description,
+(defn show-listed-review "Shows the review of an entry as event gives it ({summary, listed, id, release, description,
   error?}): scenarios play the service's answer with it." []
-  (reviewEntry (or event.summary {}) (or event.error "") (or event.listed {}) (or event.id "") (or event.release "")
+  (review-entry (or event.summary {}) (or event.error "") (or event.listed {}) (or event.id "") (or event.release "")
                (or event.description "")))
 
 (defcommand showCatalogue "Shows the Catalogue page."

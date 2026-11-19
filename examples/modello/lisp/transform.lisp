@@ -22,15 +22,15 @@
         (= event.type :boxSelect) (box-select)
         (not= event.type :pick) nil
         (and (= event.button :right) event.shift) (set "state.cursor" (map rounded event.point))
-        (= event.button :right) (openPopup "objectContext" (+ nodes.viewport.x event.x) (+ nodes.viewport.y event.y))
+        (= event.button :right) (open-popup "objectContext" (+ nodes.viewport.x event.x) (+ nodes.viewport.y event.y))
         (= state.tool :cursor) (set "state.cursor" (map rounded event.point))
-        (= state.tool :measure) (measurePoint event.point event.x event.y)
-        (= state.tool :add) (addObject "mesh" "cube" "Cube" nil (map rounded event.point))
+        (= state.tool :measure) (measure-point event.point event.x event.y)
+        (= state.tool :add) (add-object "mesh" "cube" "Cube" nil (map rounded event.point))
         (or (nil? event.id) (not (contains computed.pickable event.id)))
           (when-not event.shift (set "state.view.selection" []))
-        :else (selectNode event.id event.shift)))
+        :else (select-node event.id event.shift)))
 
-(defn measurePoint "A point the Measure tool picked: two make a line, and a third, or a turned view, starts again."
+(defn measure-point "A point the Measure tool picked: two make a line, and a third, or a turned view, starts again."
   [point x y]
   (when (or (>= (count state.measure.points) 2) (not= state.measure.camera state.view.camera))
     (set "state.measure" {:points [] :screen [] :camera state.view.camera}))
@@ -39,7 +39,7 @@
 
 ;;; Moving, turning and scaling after the pointer
 
-(defn startTransform "Starts moving, turning or scaling the selection after the pointer." [mode]
+(defn start-transform "Starts moving, turning or scaling the selection after the pointer." [mode]
   (when (seq state.view.selection)
     (set "state.modal" {:mode mode :axis "view" :typed ""})
     (set "state.modalText" computed.modalName)
@@ -48,23 +48,23 @@
 (defcommand grab "Moves the selection after the pointer."
   :title ~(t "command.grab") :description ~(t "command.grab.about")
   :category ~(t "category.object") :icon "move" []
-  (startTransform "translate"))
+  (start-transform "translate"))
 
 (defcommand rotate "Turns the selection after the pointer."
   :title ~(t "command.rotate") :description ~(t "command.rotate.about")
   :category ~(t "category.object") :icon "rotate-cw" []
-  (startTransform "rotate"))
+  (start-transform "rotate"))
 
 (defcommand resize "Scales the selection after the pointer."
   :title ~(t "command.resize") :description ~(t "command.resize.about")
   :category ~(t "category.object") :icon "scale-3-d" []
-  (startTransform "scale"))
+  (start-transform "scale"))
 
-(defn lockAxis "X, Y or Z while transforming: moves along that axis only; the same key again frees it." [axis]
+(defn lock-axis "X, Y or Z while transforming: moves along that axis only; the same key again frees it." [axis]
   (set "state.modal.axis" (if (= state.modal.axis axis) "view" axis))
   (transform "#viewport" :axis state.modal.axis))
 
-(defn typeDigit "A digit, a point, a minus or Backspace while transforming: the amount typed." [key]
+(defn type-digit "A digit, a point, a minus or Backspace while transforming: the amount typed." [key]
   (let [typed state.modal.typed]
     (set "state.modal.typed"
          (case key
@@ -73,10 +73,10 @@
            (str typed key))))
   (transform "#viewport" :value (number state.modal.typed)))
 
-(defn confirmTransform "Enter while transforming: keeps it." []
+(defn confirm-transform "Enter while transforming: keeps it." []
   (transform "#viewport" :end "confirm"))
 
-(defn cancelTransform "Escape while transforming: puts everything back." []
+(defn cancel-transform "Escape while transforming: puts everything back." []
   (transform "#viewport" :end "cancel")
   (set "state.modal" nil))
 
@@ -145,7 +145,7 @@
       {:translation (map-indexed (fn [i v] (if (locked? b "translation" i) v (round-to (+ v (get values i)) 10000)))
                                  (:translation b))})))
 
-(defn adjustLast "A field of the Adjust Last Operation panel: one amount of the last operation, done again from before it."
+(defn adjust-last "A field of the Adjust Last Operation panel: one amount of the last operation, done again from before it."
   [axis value]
   (when-some [_ state.lastOp.values]
     (set (str "state.lastOp.values[" axis "]") (rounded value))
@@ -159,7 +159,7 @@
 
 ;; key: the list (translation, rotationDegrees or scale); value: what each item goes back to; title: what Adjust Last
 ;; Operation shows.
-(defn clearTransform "Puts a list of the selected objects back to a value, item by item, but where an object locks the item."
+(defn clear-transform "Puts a list of the selected objects back to a value, item by item, but where an object locks the item."
   [key value title]
   (dismiss)
   (when (and (nil? state.modal) (seq state.view.selection))
@@ -171,24 +171,24 @@
 (defcommand clearLocation "Puts the selected objects back at the origin."
   :title ~(t "command.clearLocation") :description ~(t "command.clearLocation.about")
   :category ~(t "category.object") :enablement ~(pos? (count state.view.selection)) []
-  (clearTransform "translation" 0 (t "command.clearLocation")))
+  (clear-transform "translation" 0 (t "command.clearLocation")))
 
 (defcommand clearRotation "Turns the selected objects back straight."
   :title ~(t "command.clearRotation") :description ~(t "command.clearRotation.about")
   :category ~(t "category.object") :enablement ~(pos? (count state.view.selection)) []
-  (clearTransform "rotationDegrees" 0 (t "command.clearRotation")))
+  (clear-transform "rotationDegrees" 0 (t "command.clearRotation")))
 
 (defcommand clearScale "Gives the selected objects their own size back."
   :title ~(t "command.clearScale") :description ~(t "command.clearScale.about")
   :category ~(t "category.object") :enablement ~(pos? (count state.view.selection)) []
-  (clearTransform "scale" 1 (t "command.clearScale")))
+  (clear-transform "scale" 1 (t "command.clearScale")))
 
 ;;; Snapping and the 3D cursor
 
 (defcommand snapMenu "Opens the Snap menu."
   :title ~(t "command.snapMenu") :description ~(t "command.snapMenu.about")
   :category ~(t "category.object") []
-  (when (nil? state.modal) (openPopup "snap" nil nil)))
+  (when (nil? state.modal) (open-popup "snap" nil nil)))
 
 (defcommand selectionToCursor "Moves the selected objects to the 3D cursor, but the items they lock."
   :title ~(t "command.selectionToCursor") :description ~(t "command.selectionToCursor.about")

@@ -153,5 +153,5 @@
      :accentColor @sel
      :clipColor @active
      :label ~(t "editor.timeline")
-     :onScrub ~(handler scrubTo event.time)
-     :onKeyframeMove moveKeyframe))
+     :onScrub ~(handler scrub-to event.time)
+     :onKeyframeMove move-keyframe))

@@ -27,8 +27,8 @@
                  :regex state.search.regex
                  :wholeWord state.search.wholeWord
                  :caseSensitive state.search.caseSensitive})
-     :keys {:enter openSearchEditorLine}
-     :onDoubleClick openSearchEditorLine))
+     :keys {:enter open-search-editor-line}
+     :onDoubleClick open-search-editor-line))
 
 (defcomponent forgeSearchPage
   "The Search view: the query and its options, the replacement, the file filters, the results."
@@ -124,7 +124,7 @@
      :borderColor ~(if (get state.search bind) "@color.accent" "@color.input")
      :color ~(if (get state.search bind) "@color.selection" "@color.input")
      :hover {:color @color.hover}
-     :onClick ~(handler toggleSearchOption bind)))
+     :onClick ~(handler toggle-search-option bind)))
 
 (defview search-summary "What the search found, and the button that opens the results in an editor." []
   `(node :use forgeInset :height 22
@@ -162,7 +162,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onExpand searchExpand
+     :onExpand search-expand
      :onOpen openSearchHit
      :keys {:delete searchDismiss :backspace searchDismiss}
-     :onContextMenu searchMenu))
+     :onContextMenu search-menu))

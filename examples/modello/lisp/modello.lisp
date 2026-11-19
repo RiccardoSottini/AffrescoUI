@@ -74,7 +74,7 @@
 
 ;;; Selecting
 
-(defn selectNode "A click on an object: it alone is selected, or with Shift it joins the selection, or leaves it if active."
+(defn select-node "A click on an object: it alone is selected, or with Shift it joins the selection, or leaves it if active."
   [id shift]
   (cond (not shift) (do (set "state.view.selection" [id])
                         (set "state.active" id))
@@ -100,7 +100,7 @@
 
 ;;; Adding and copying
 
-(defn addObject "Adds an object at a place or at the 3D cursor, selects it, and lets Adjust Last move it."
+(defn add-object "Adds an object at a place or at the 3D cursor, selects it, and lets Adjust Last move it."
   [kind mesh name light at]
   (dismiss)
   (when (not= state.mode :object) (set "state.mode" :object))
@@ -151,7 +151,7 @@
   :category ~(t "category.object") :icon "copy" :enablement ~(pos? (count state.view.selection)) []
   (snapshot)
   (add-copies computed.selectedNodes)
-  (after 0 startTransform "translate"))
+  (after 0 start-transform "translate"))
 
 (defcommand copyObjects "Keeps the selected objects for Paste."
   :title ~(t "command.copyObjects") :description ~(t "command.copyObjects.about")
@@ -198,7 +198,7 @@
   (set "state.view.selection" (ids (filter #(false? (:visible %)) state.scene.nodes)))
   (change-nodes (constantly true) #(assoc % :visible true)))
 
-(defn toggleFlag "An object's eye, arrow or camera in the outliner: shows or hides it, lets it be picked, or rendered."
+(defn toggle-flag "An object's eye, arrow or camera in the outliner: shows or hides it, lets it be picked, or rendered."
   [id key]
   (let [i (node-index id)
         now (false? (get-in state.scene.nodes [i key]))]
@@ -215,7 +215,7 @@
       (snapshot)
       (set (str "state.scene.nodes[" (node-index target) "].name") (slice trimmed 0 63)))))
 
-(defn focusRename "Puts the keyboard in the outliner's name field." []
+(defn focus-rename "Puts the keyboard in the outliner's name field." []
   (focus "#outliner-rename"))
 
 (defcommand startRename "Names the active object in the outliner, which takes the properties' place if it isn't shown."
@@ -229,13 +229,13 @@
     (set "state.outlinerOpen.root" true)
     (set "state.outlinerOpen.collection" true)
     (set "state.renaming" state.active)
-    (after 0 focusRename)))
+    (after 0 focus-rename)))
 
 ;; key names what the field changes: a list of the active object (translation...) at axis, the lens, the 3D cursor,
 ;; the last operation (redo); or path, a place in the state, a whole number with whole.
-(defn setField "A number field dragged or stepped: the value, kept between low and high, goes where the field says."
+(defn set-field "A number field dragged or stepped: the value, kept between low and high, goes where the field says."
   [key axis path low high value]
-  (cond (= key :redo) (adjustLast axis value)
+  (cond (= key :redo) (adjust-last axis value)
         (= key :whole) (set (str "state." path) (round (clamp value low high)))
         (not= path "") (set (str "state." path) (rounded (clamp value low high)))
         (= key :cameraLens)
@@ -248,13 +248,13 @@
         :else (do (set (str "state.scene.nodes[" computed.activeIndex "]." key "[" axis "]") (rounded value))
                   (autoKey))))
 
-(defn toggleLock "The padlock beside a field: locks or frees one item of the active object's list." [key axis]
+(defn toggle-lock "The padlock beside a field: locks or frees one item of the active object's list." [key axis]
   (when (>= computed.activeIndex 0)
     (let [locks (get computed.activeNode (str "lock_" key))
           locked (map #(true? (get locks %)) (range 3))]
       (set (str "state.scene.nodes[" computed.activeIndex "].lock_" key) (update locked axis not)))))
 
-(defn setColor "A colour picked: the world's, the active material's base colour, or the active light's." [target value]
+(defn set-color "A colour picked: the world's, the active material's base colour, or the active light's." [target value]
   (when-some [colour (colorList value)]
     (case target
       :world (set "state.world.color" (slice (hexColor value) 0 7))
@@ -264,7 +264,7 @@
                (set (str "state.scene.nodes[" computed.activeIndex "].light.color") (slice colour 0 3)))
       nil)))
 
-(defn setLight "One of the active light's settings, such as its type." [key value]
+(defn set-light "One of the active light's settings, such as its type." [key value]
   (when (and (>= computed.activeIndex 0)
              (= computed.activeNode.kind :light)
              (not= (get computed.activeNode.light key) value))
@@ -273,78 +273,78 @@
 
 ;;; The widgets (widgets.lisp)
 
-(defn pressButton "A header button pressed: it opens its dropdown (the state open names), or runs its function." [open action with]
+(defn press-button "A header button pressed: it opens its dropdown (the state open names), or runs its function." [open action with]
   (if (not= open "")
     (toggle open)
     (when-some [f action] (run f :with with))))
 
-(defn pressCheck "A check row pressed: it runs its function, or switches the state at its path." [path action with]
+(defn press-check "A check row pressed: it runs its function, or switches the state at its path." [path action with]
   (if-some [f action] (run f :with with) (toggle path)))
 
-(defn runItem "A pie menu's item chosen: the menu closes and its function runs." [action with]
+(defn run-item "A pie menu's item chosen: the menu closes and its function runs." [action with]
   (dismiss)
   (run action :with with))
 
-(defn togglePanel "A panel's header pressed: the panel opens or closes." [key]
+(defn toggle-panel "A panel's header pressed: the panel opens or closes." [key]
   (toggle (str "state.panels." key)))
 
-(defn startDrag "A field pressed: where a drag starts from." [value]
+(defn start-drag "A field pressed: where a drag starts from." [value]
   (set "state.dragStart" value))
 
-(defn pressField "A number field pressed: where a drag starts from, and an undo step when it changes the scene." [key path value]
-  (startDrag value)
+(defn press-field "A number field pressed: where a drag starts from, and an undo step when it changes the scene." [key path value]
+  (start-drag value)
   (when (if (= key "") (str/starts-with? path "scene.") (not (#{:redo :lens :cursor :whole} key)))
     (snapshot)))
 
-(defn openColor "A colour swatch pressed: its picker opens or closes, and an undo step comes first for the scene's colours."
+(defn open-color "A colour swatch pressed: its picker opens or closes, and an undo step comes first for the scene's colours."
   [target key]
   (let [open (true? (get state.panels key))]
     (when-not (or open (= target :world)) (snapshot)))
-  (togglePanel key))
+  (toggle-panel key))
 
 ;;; The top bar and the areas (bars.lisp)
 
-(defn hoverArea "The pointer over an area: Shift A, Delete and the pie menus act on its editor." [slot]
+(defn hover-area "The pointer over an area: Shift A, Delete and the pie menus act on its editor." [slot]
   (set "state.hoverSlot" slot))
 
-(defn renameScene "The scene's name typed in the top bar, if it isn't empty." [text]
+(defn rename-scene "The scene's name typed in the top bar, if it isn't empty." [text]
   (let [name (str/trim text)]
     (when-not (str/blank? name) (set "state.sceneName" (slice name 0 63)))))
 
-(defn renameLayer "The view layer's name typed in the top bar, if it isn't empty." [text]
+(defn rename-layer "The view layer's name typed in the top bar, if it isn't empty." [text]
   (let [name (str/trim text)]
     (when-not (str/blank? name) (set "state.layerName" (slice name 0 63)))))
 
 ;;; The outliner (outliner.lisp): a row is an object's (id) or a collection's (collection)
 
-(defn pickRow "A row clicked: its object is selected (with Shift, added), its collection made active, its tab shown."
+(defn pick-row "A row clicked: its object is selected (with Shift, added), its collection made active, its tab shown."
   [id collection tab shift]
-  (when-some [_ id] (selectNode id shift))
+  (when-some [_ id] (select-node id shift))
   (when-some [_ collection] (set "state.activeCollection" collection))
   (when-some [_ tab] (set "state.propTab" tab)))
 
-(defn startRowRename "A row double-clicked: its object or collection is renamed in place." [id collection data]
+(defn start-row-rename "A row double-clicked: its object or collection is renamed in place." [id collection data]
   (when (and (some? id) (not= data ""))
     (set "state.renaming" id)
-    (focusRename))
+    (focus-rename))
   (when-some [_ collection]
     (set "state.renaming" (str "coll:" collection))
-    (focusRename)))
+    (focus-rename)))
 
-(defn rowMenu "A row right-clicked: its collection's menu, or its object's, the object selected first." [id collection]
+(defn row-menu "A row right-clicked: its collection's menu, or its object's, the object selected first." [id collection]
   (when-some [_ collection]
     (set "state.activeCollection" collection)
-    (openPopup "collectionContext" event.x event.y))
+    (open-popup "collectionContext" event.x event.y))
   (when-some [_ id]
-    (when-not (contains state.view.selection id) (selectNode id false))
-    (openPopup "outlinerContext" event.x event.y)))
+    (when-not (contains state.view.selection id) (select-node id false))
+    (open-popup "outlinerContext" event.x event.y)))
 
-(defn submitRowRename "A name typed in a row: its collection or its object takes it." [id collection text]
-  (if-some [_ collection] (renameCollection collection text) (rename id text))
+(defn submit-row-rename "A name typed in a row: its collection or its object takes it." [id collection text]
+  (if-some [_ collection] (rename-collection collection text) (rename id text))
   (set "state.renaming" nil))
 
-(defn toggleOpen "A row's chevron: what is under the row is shown or hidden." [key]
+(defn toggle-open "A row's chevron: what is under the row is shown or hidden." [key]
   (set "state.outlinerOpen" (update state.outlinerOpen key not)))
 
-(defn toggleRowFlag "A row's switch: its object's, or else its collection's." [id collection key]
-  (if-some [_ id] (toggleFlag id key) (toggleCollection collection key)))
+(defn toggle-row-flag "A row's switch: its object's, or else its collection's." [id collection key]
+  (if-some [_ id] (toggle-flag id key) (toggle-collection collection key)))

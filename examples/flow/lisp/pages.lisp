@@ -153,7 +153,7 @@
             :text ~(t (str "projects." scope))
             :role tab
             :selected ~(= state.projectScope scope)
-            :onClick ~(handler chooseProjectScope scope))))
+            :onClick ~(handler choose-project-scope scope))))
      (node#newProject :style topButton
        :icon plus
        :text ~(t "projects.new")
@@ -206,7 +206,7 @@
                   (t (str "inbox." n.kind)
                      {:who (or-else (:name (find #(= (:who %) n.who) state.members)) n.who)
                       :to (or-else n.to "")}))
-     :onClick ~(handler pickNotification k)
+     :onClick ~(handler pick-notification k)
      :onDoubleClick openNotification
      (node#inboxUnread :when ~(not n.read)
        :width 6
@@ -416,10 +416,10 @@
      :focusable true
      :role listitem
      :label ~(str card.ref " " card.title)
-     :onClick [~(handler selectCard card.c card.at)
+     :onClick [~(handler select-card card.c card.at)
                {:set state.page :to issues}
                {:set state.issueOpen :to true}]
-     :keys {:enter [~(handler selectCard card.c card.at)
+     :keys {:enter [~(handler select-card card.c card.at)
                     {:set state.page :to issues}
                     {:set state.issueOpen :to true}]}
      (node#cycleIssueLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
@@ -562,8 +562,8 @@
      :role listitem
      :label ~(str project.name ", " (t (str "health." project.health)) ", " (formatPercent project.progress))
      :tooltip ~(t "projects.open")
-     :onClick ~(handler openProject (indexOf (map :name data.projects) project.name))
-     :keys {:enter ~(handler openProject (indexOf (map :name data.projects) project.name))}
+     :onClick ~(handler open-project (indexOf (map :name data.projects) project.name))
+     :keys {:enter ~(handler open-project (indexOf (map :name data.projects) project.name))}
      (node#projectRowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
      (label#projectIcon :icon ~project.icon
        :text ""

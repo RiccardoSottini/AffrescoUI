@@ -29,11 +29,11 @@
 
 (defkey "mod+a" {:when ~(not context.textInputFocus) :do selectAll})
 
-(defkey "mod+b" {:when ~(not context.textInputFocus) :do toggleText :with {:key bold}})
+(defkey "mod+b" {:when ~(not context.textInputFocus) :do toggle-text :with {:key bold}})
 
-(defkey "mod+i" {:when ~(not context.textInputFocus) :do toggleText :with {:key italic}})
+(defkey "mod+i" {:when ~(not context.textInputFocus) :do toggle-text :with {:key italic}})
 
-(defkey "mod+u" {:when ~(not context.textInputFocus) :do toggleText :with {:key underline}})
+(defkey "mod+u" {:when ~(not context.textInputFocus) :do toggle-text :with {:key underline}})
 
 (defkey "mod+l" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align left}}})
 
@@ -43,19 +43,19 @@
 
 (defkey "mod+j" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align justify}}})
 
-(defkey "mod+shift+." {:when ~(not context.textInputFocus) :do growText :with {:by 1}})
+(defkey "mod+shift+." {:when ~(not context.textInputFocus) :do grow-text :with {:by 1}})
 
-(defkey "mod+shift+," {:when ~(not context.textInputFocus) :do growText :with {:by -1}})
+(defkey "mod+shift+," {:when ~(not context.textInputFocus) :do grow-text :with {:by -1}})
 
 (defkey "delete" {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects})
 
 (defkey "f2"
   {:when ~(and (not context.textInputFocus) (not state.show.on) (= (count computed.selected) 1))
-   :do editText
+   :do edit-text
    :with {:id ~state.board.selection.0}})
 
 (defkey "backspace"
-  [{:when ~state.show.on :do showPrevious}
+  [{:when ~state.show.on :do show-previous}
    {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects}])
 
 (defkey "mod+f" {:when ~(not state.show.on) :do ~(handler openFind false)})
@@ -63,9 +63,9 @@
 (defkey "mod+h" {:when ~(not state.show.on) :do ~(handler openFind true)})
 
 (defkey "escape"
-  [{:when ~state.show.on :do showEnd}
+  [{:when ~state.show.on :do show-end}
    {:when ~(some? state.inkTool) :do inkTool :with {:tool nil}}
-   {:when ~(some? state.editing) :do stopEditing}
+   {:when ~(some? state.editing) :do stop-editing}
    {:when ~(and (not context.textInputFocus)
                 (not state.drop.open)
                 (not state.colors.open)

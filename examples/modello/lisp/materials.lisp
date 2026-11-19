@@ -29,6 +29,7 @@
       (set (active-node-path "material") id)
       (set "state.last" (t "command.newMaterial")))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn assignMaterial "A material chosen in the properties: the active mesh takes it." [id]
   (dismiss)
   (when (and (= computed.activeNode.kind :mesh) (not= computed.activeNode.material id))
@@ -76,7 +77,7 @@
       (set "state.shaderSelected" [id])
       (set "state.last" (t "op.add" {:name (get-in computed.shaderOps [op :title])})))))
 
-(defn shaderConnect "A link drawn from an output to an input, which keeps one link." []
+(defn shader-connect "A link drawn from an output to an input, which keeps one link." []
   (snapshot)
   (own-graph)
   (set (graph-path ".links")
@@ -84,13 +85,13 @@
                [{:from event.from :output event.output :to event.to :input event.input}]))
   (set "state.last" (t "op.linkNodes")))
 
-(defn shaderDisconnect "A link taken away." []
+(defn shader-disconnect "A link taken away." []
   (snapshot)
   (set (graph-path ".links")
        (let [links computed.shaderGraph.links] (concat (take event.index links) (drop (inc event.index) links))))
   (set "state.last" (t "op.unlinkNodes")))
 
-(defn shaderMove "Nodes dragged in the graph keep their new places, in whole pixels." []
+(defn shader-move "Nodes dragged in the graph keep their new places, in whole pixels." []
   (own-graph)
   (set (graph-path ".nodes")
        (map (fn [{:keys [id x y] :as n}]
@@ -110,10 +111,10 @@
       (set "state.shaderSelected" [])
       (set "state.last" (t "command.deleteShaderNodes")))))
 
-(defn setShaderColor "A colour node's colour, picked in the Shader Editor's sidebar." [value]
+(defn set-shader-color "A colour node's colour, picked in the Shader Editor's sidebar." [value]
   (when-some [colour (colorList value)]
     (when (>= computed.shaderNodeIndex 0)
       (set (graph-path (str ".nodes[" computed.shaderNodeIndex "].value")) (slice colour 0 3)))))
 
-(defn selectShaderNodes "Nodes selected in the graph." []
+(defn select-shader-nodes "Nodes selected in the graph." []
   (set "state.shaderSelected" event.ids))

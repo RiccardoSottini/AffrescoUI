@@ -30,7 +30,7 @@
      :selected ~(if (nil? item.checked) nil (= item.checked true))
      :hover {:color ~(if (or item.separator (= item.enabled false)) "transparent" "@menuHover")}
      :focused {:color @menuHover}
-     :onClick ~(handler chooseMenuItem item path close)
+     :onClick ~(handler choose-menu-item item path close)
      (node :when ~item.separator :anchors {:left 0 :right 0 :top 3} :height 1 :color @border)
      (node :when ~(and (= item.checked true) (= mark "square")) :x 8 :y 8 :width 5 :height 5 :color @text)
      ~@(menu-row-labels)))

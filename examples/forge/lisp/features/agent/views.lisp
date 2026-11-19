@@ -247,7 +247,7 @@
      :cursor hand
      :color ~(if (= state.features.selected f.name) "@color.selection" "@color.sideBar")
      :hover {:color @color.hover}
-     :onClick ~(handler featuresChoose f.name)
+     :onClick ~(handler features-choose f.name)
      (label :id ~(str "feature-icon-" f.name)
        :icon ~(cond (not f.installed) "download" f.enabled "circle-check" :else "circle-pause")
        :width 32

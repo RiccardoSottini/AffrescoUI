@@ -21,32 +21,32 @@
 
 ;;; Small things every screen uses
 
-(defn hideToast "Hides the notice in the corner." [] (set "state.toast.open" false))
+(defn hide-toast "Hides the notice in the corner." [] (set "state.toast.open" false))
 
 (defn notify "A notice in the corner for a few seconds." [message]
   (set "state.toast" {:open true :message message :action ""})
-  (debounce 4000 hideToast))
+  (debounce 4000 hide-toast))
 
 (defn refuse "Says why something was refused, at a path of the state, and moves the focus where to fix it."
   [path why target]
   (set path why)
   (focus target))
 
-(defn focusOn "Moves the focus to a node, by its selector: run with after, once the node is drawn." [target]
+(defn focus-on "Moves the focus to a node, by its selector: run with after, once the node is drawn." [target]
   (focus target))
 
-(defn runIfAny "Runs a function named by a component's parameter, if it names one." [action]
+(defn run-if-any "Runs a function named by a component's parameter, if it names one." [action]
   (when (not= action "") (run action)))
 
-(defn focusField "Marks a checked field focused, by its key." [key] (set "state.focus" key))
+(defn focus-field "Marks a checked field focused, by its key." [key] (set "state.focus" key))
 
-(defn blurField "Unmarks a checked field when it loses the focus, unless another took it already." [key]
+(defn blur-field "Unmarks a checked field when it loses the focus, unless another took it already." [key]
   (when (= state.focus key) (set "state.focus" "")))
 
-(defn accountOf "The account of an email, whatever its case." [email]
+(defn account-of "The account of an email, whatever its case." [email]
   (find #(same-email? (:email %) email) state.accounts))
 
-(defn serverCall "Asks the fake server: what marks the busy button, answer the function that answers." [answer what]
+(defn server-call "Asks the fake server: what marks the busy button, answer the function that answers." [answer what]
   (when (empty? state.busy)
     (set "state.busy" what)
     (if state.slow (after 800 answered answer) (answered answer))))
@@ -57,11 +57,11 @@
 
 ;;; Email, then password
 
-(defn submitSignIn "The form's button and Enter: on the email step, looks the account up; on the next, signs in." []
+(defn submit-sign-in "The form's button and Enter: on the email step, looks the account up; on the next, signs in." []
   (set "state.submitted" true)
   (set "state.formError" "")
-  (cond (= state.step "email") (when computed.emailValid (serverCall "lookup" "lookup"))
-        computed.passwordValid (serverCall "checkPassword" "signIn")))
+  (cond (= state.step "email") (when computed.emailValid (server-call "lookup" "lookup"))
+        computed.passwordValid (server-call "checkPassword" "signIn")))
 
 (defn lookup "The identifier step's answer: with an account for the email, the password step follows." []
   (if-some [_ computed.account]
@@ -72,26 +72,27 @@
     (set "state.formError" "noAccount")))
 
 
-(defn changeEmail "Not you?: back to the email step." []
+(defn change-email "Not you?: back to the email step." []
   (set "state.step" "email")
   (set "state.password" "")
   (set "state.submitted" false)
   (set "state.formError" "")
   (focus "#textarea-placeholder"))
 
-(defn wrongPassword? "The password typed is not the account's (a demo account takes any)." []
+(defn wrong-password? "The password typed is not the account's (a demo account takes any)." []
   (and (not= computed.account.password "") (not= computed.account.password state.password)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn checkPassword
   "The password step's answer: a locked account stays shut, a wrong password counts toward the lock, else two-step."
   []
   (cond (nil? computed.account)
         (set "state.formError" "noAccount")
         computed.locked
-        (do (hideToast)
+        (do (hide-toast)
             (refuse "state.formError" "locked" "#unlock"))
-        (wrongPassword?)
-        (do (hideToast)
+        (wrong-password?)
+        (do (hide-toast)
             (push "state.failures" (str/lower-case (str/trim state.email)))
             (set "state.formError" (if computed.locked "locked" "wrongPassword")))
         :else
@@ -111,9 +112,10 @@
   (set "state.session" {:left 300 :warned false})
   (set "state.profile" {:name state.pending.name :email state.pending.email :submitted false})
   (set "state.confirmedLeft" 120)
-  (seedAccount)
+  (seed-account)
   (navigate "signedIn"))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn toCreate "No account yet?: the create-account screen, its password empty, not the one typed to sign in." []
   (set "state.submitted" false)
   (set "state.formError" "")
@@ -121,7 +123,7 @@
   (set "state.confirm" "")
   (navigate "createAccount"))
 
-(defn goBack "Back to the sign-in form's email step, from any inner screen (and Escape)." []
+(defn go-back "Back to the sign-in form's email step, from any inner screen (and Escape)." []
   (set "state.step" "email")
   (set "state.submitted" false)
   (set "state.codeError" "")
@@ -129,6 +131,7 @@
 
 ;;; Codes
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn startTwoStep "The code screen, a code sent: by the app for two-step, by email for the other modes." []
   (set "state.trust" false)
   (set "state.backupCode" "")
@@ -139,17 +142,18 @@
   (focus "#twoStepCode")
   (notify (t "codeSent" {:email state.pending.email})))
 
-(defn codeChanged "A code typed: checked as soon as it has its six digits." []
+(defn code-changed "A code typed: checked as soon as it has its six digits." []
   (set "state.codeError" "")
   (when (= (count state.code) 6) (verify)))
 
 (defn verify "Verify: a backup code, or the six digits." []
   (cond (= state.codeMode "backup") (if (empty? (str/trim state.backupCode))
                                         (set "state.codeError" "shortBackup")
-                                        (serverCall "checkBackup" "verify"))
+                                        (server-call "checkBackup" "verify"))
         (< (count state.code) 6) (set "state.codeError" "short")
-        :else (serverCall "checkCode" "verify")))
+        :else (server-call "checkCode" "verify")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn checkCode
   "The code's answer: a new account is verified, an emailed code still asks for two-step, else the session opens."
   []
@@ -157,15 +161,16 @@
         (do (set "state.code" "")
             (refuse "state.codeError" "wrong" "#twoStepCode"))
         (= state.codeMode "verify")
-        (finishVerify)
+        (finish-verify)
         (and (= state.codeMode "email") state.pending.twoStep (not computed.trustedHere))
         (do (set "state.codeMode" "twoStep")
             (startTwoStep))
         (= state.codeMode "email")
         (enter)
         :else
-        (passTwoStep)))
+        (pass-two-step)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn checkBackup "A backup code's answer: a code of the list works once." []
   (let [typed (str/upper-case (str/trim state.backupCode))]
     (if-not (contains state.backupCodes typed)
@@ -173,16 +178,16 @@
         (do (set "state.backupCodes" (remove #{typed} state.backupCodes))
             (set "state.backupCode" "")
             (notify (t "backupUsed" {:n (count state.backupCodes)}))
-            (passTwoStep)))))
+            (pass-two-step)))))
 
-(defn passTwoStep "The second step passed: remembers this device when asked, then opens the session." []
+(defn pass-two-step "The second step passed: remembers this device when asked, then opens the session." []
   (when (and state.trust (not computed.trustedHere))
     (set "state.trusted" (concat state.trusted [{:email state.pending.email :device "this" :days 30}])))
   (set "state.trust" false)
   (enter))
 
-(defn useMode "Another way of two-step: the app, a text or a backup code." [mode]
-  (hideToast)
+(defn use-mode "Another way of two-step: the app, a text or a backup code." [mode]
+  (hide-toast)
   (set "state.codeMode" mode)
   (set "state.code" "")
   (set "state.codeError" "")
@@ -190,11 +195,12 @@
   (when (= mode "sms")
     (set "state.resendLeft" 30)
     (notify (t "smsSent" {:phone state.phone})))
-  (after 0 focusOn (if (= mode "backup") "#backupField" "#twoStepCode")))
+  (after 0 focus-on (if (= mode "backup") "#backupField" "#twoStepCode")))
 
 (defn resend "Resend, once its countdown is over." []
-  (when (<= state.resendLeft 0) (serverCall "codeResent" "resend")))
+  (when (<= state.resendLeft 0) (server-call "codeResent" "resend")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn codeResent "A new code sent: the countdown starts again." []
   (set "state.resendLeft" 30)
   (set "state.code" "")
@@ -202,31 +208,32 @@
   (focus "#twoStepCode")
   (notify (t "codeResent" {:email state.pending.email})))
 
-(defn countDown "Each second on the code screen: the wait before a new code can be sent." []
+(defn count-down "Each second on the code screen: the wait before a new code can be sent." []
   (when (pos? state.resendLeft) (increment "state.resendLeft" :by -1)))
 
-(defn codeBack "Back: to the create-account screen while verifying a new account, else to the sign-in form." []
+(defn code-back "Back: to the create-account screen while verifying a new account, else to the sign-in form." []
   (if (= state.codeMode "verify")
       (do (set "state.codeMode" "twoStep")
           (set "state.codeError" "")
           (navigate "createAccount"))
-      (goBack)))
+      (go-back)))
 
-(defn emailCodeSignIn "A code sent to the account's email instead of the password." []
+(defn email-code-sign-in "A code sent to the account's email instead of the password." []
   (if-some [account computed.account]
     (do (set "state.formError" "")
         (set "state.submitted" false)
         (set "state.pending" account)
         (set "state.codeMode" "email")
-        (serverCall "startTwoStep" "emailCode"))
+        (server-call "startTwoStep" "emailCode"))
     (set "state.formError" "noAccount")))
 
 ;;; Creating an account
 
-(defn submitNewAccount "Create account: once every field is right, the fake server makes it." []
+(defn submit-new-account "Create account: once every field is right, the fake server makes it." []
   (set "state.submitted" true)
-  (when (zero? computed.createErrors) (serverCall "finishCreate" "create")))
+  (when (zero? computed.createErrors) (server-call "finishCreate" "create")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn finishCreate "The account waits for its email to be verified, by a code." []
   (set "state.submitted" false)
   (set "state.pending" {:email (str/trim state.email)
@@ -238,7 +245,7 @@
   (set "state.codeMode" "verify")
   (startTwoStep))
 
-(defn finishVerify "The email is verified: the account exists, and its session opens." []
+(defn finish-verify "The email is verified: the account exists, and its session opens." []
   (set "state.accounts" (concat (remove #(same-email? (:email %) state.pending.email) state.accounts)
                                 [(merge state.pending {:password state.password})]))
   (set "state.codeMode" "twoStep")
@@ -251,109 +258,113 @@
   (set "state.terms" false)
   (set "state.invite" {:open false :code ""}))
 
-(defn usernameChanged "The username typed: its spinner turns, and the demo server checks it once typing stops." []
+(defn username-changed "The username typed: its spinner turns, and the demo server checks it once typing stops." []
   (set "state.spin" 0)
   (animate "state.spin" :to 360 :ms 600 :easing "linear")
-  (debounce 600 checkUsername))
+  (debounce 600 check-username))
 
-(defn checkUsername "The demo server's check of the username typed." []
+(defn check-username "The demo server's check of the username typed." []
   (set "state.usernameChecked" (str/lower-case (str/trim state.username))))
 
-(defn toggleTerms "Ticks the terms, or not." [] (set "state.terms" (not state.terms)))
+(defn toggle-terms "Ticks the terms, or not." [] (set "state.terms" (not state.terms)))
 
-(defn openInvite "Have an invite?: its field, focused." []
+(defn open-invite "Have an invite?: its field, focused." []
   (set "state.invite.open" true)
-  (after 0 focusOn "#invite #textarea-placeholder"))
+  (after 0 focus-on "#invite #textarea-placeholder"))
 
 ;;; Other ways in
 
-(defn passkeySignIn "The device's passkey picker, faked: the accounts on this device that saved one." []
+(defn passkey-sign-in "The device's passkey picker, faked: the accounts on this device that saved one." []
   (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.passkeyOpen" true)))
 
-(defn choosePasskey "An account chosen in the passkey picker, by its email." [email]
+(defn choose-passkey "An account chosen in the passkey picker, by its email." [email]
   (set "state.passkeyOpen" false)
   (set "state.pending" (merge (find #(= (:email %) email) state.accounts) {:twoStep false}))
-  (serverCall "passkeyDone" "passkey"))
+  (server-call "passkeyDone" "passkey"))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn passkeyDone "A passkey is two factors already, so it skips two-step." []
   (set "state.submitted" false)
   (enter))
 
-(defn focusPasskey "The focus back on the passkey button." [] (focus "#passkey"))
+(defn focus-passkey "The focus back on the passkey button." [] (focus "#passkey"))
 
-(defn cancelPasskey "The passkey picker closed without a choice." []
+(defn cancel-passkey "The passkey picker closed without a choice." []
   (set "state.passkeyOpen" false)
   (set "state.formError" "passkeyCancelled")
-  (after 0 focusPasskey))
+  (after 0 focus-passkey))
 
-(defn providerSignIn "Example ID's button: its sign-in page, through the connection; scenarios play its answers." []
+(defn provider-sign-in "Example ID's button: its sign-in page, through the connection; scenarios play its answers." []
   (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.providerName" "exampleId")
     (set "state.busy" "provider")
-    (signIn "exampleId" :onDone providerAnswered :onError providerRefused)))
+    (signIn "exampleId" :onDone provider-answered :onError provider-refused)))
 
-(defn providerAnswered "Example ID signed in: its account goes on." []
-  (finishProvider (or-else auth.exampleId.account "") ""))
+(defn provider-answered "Example ID signed in: its account goes on." []
+  (finish-provider (or-else auth.exampleId.account "") ""))
 
-(defn providerRefused "Example ID could not sign in." [error]
-  (failProvider error.message))
+(defn provider-refused "Example ID could not sign in." [error]
+  (fail-provider error.message))
 
+; style: keep, named in examples/sign-in/lisp/index.scenarios.json
 (defn providerSignedIn "What Example ID answers after a sign-in, as an event: { account, name }. Scenarios play it."
   [event]
-  (finishProvider (or-else event.account "") (or-else event.name "")))
+  (finish-provider (or-else event.account "") (or-else event.name "")))
 
+; style: keep, named in examples/sign-in/lisp/index.scenarios.json
 (defn providerFailed "What Example ID answers when the sign-in fails, as an event: { message }. Scenarios play it."
   [event]
-  (failProvider (or-else event.message "")))
+  (fail-provider (or-else event.message "")))
 
-(defn otherProvider "A made-up provider that always says yes, after a moment." [provider]
+(defn other-provider "A made-up provider that always says yes, after a moment." [provider]
   (when (empty? state.busy)
     (set "state.formError" "")
     (set "state.providerName" provider)
     (set "state.busy" "provider")
-    (after 1200 finishProvider (str "you@" provider ".example") "")))
+    (after 1200 finish-provider (str "you@" provider ".example") "")))
 
-(defn finishProvider
+(defn finish-provider
   "A provider's answer: its account, made if it is new, signs in. Ignored once cancelled."
   ;; failProvider then finds nothing waited for, so an answer with no email only stops the wait
   [email given-name]
   (when (= state.busy "provider")
     (set "state.busy" "")
     (if-not (isEmail email)
-        (failProvider "")
-        (do (when-not (accountOf email)
+        (fail-provider "")
+        (do (when-not (account-of email)
               (push "state.accounts" {:email email
                                       :name (or (not-empty given-name) (first (str/split email "@")))
                                       :password ""
                                       :twoStep false
                                       :provider true}))
             (set "state.submitted" false)
-            (set "state.pending" (merge (accountOf email) {:provider true :twoStep false}))
+            (set "state.pending" (merge (account-of email) {:provider true :twoStep false}))
             (enter)))))
 
-(defn failProvider "A provider could not sign in: why, over the form. Ignored once cancelled." [message]
+(defn fail-provider "A provider could not sign in: why, over the form. Ignored once cancelled." [message]
   (when (= state.busy "provider")
     (set "state.busy" "")
     (set "state.providerMessage" message)
     (set "state.formError" "provider")
     (focus "#provider")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn cancelProvider "Stops waiting for a provider, back to the email." []
   (set "state.busy" "")
   (focus "#textarea-placeholder"))
 
 ;;; A forgotten password
 
-(defn openForgot "Forgot password?: its dialog, with the email typed so far." []
+(defn open-forgot "Forgot password?: its dialog, with the email typed so far." []
   (set "state.forgot" {:open true :email state.email :error ""})
   (focus "#forgotEmail"))
 
-(defn closeForgot "Closes the forgot-password dialog." [] (set "state.forgot.open" false))
+(defn close-forgot "Closes the forgot-password dialog." [] (set "state.forgot.open" false))
 
-(defn sendReset "Sends a reset code to the email, and opens the new-password screen." []
+(defn send-reset "Sends a reset code to the email, and opens the new-password screen." []
   (let [email (str/trim state.forgot.email)]
     (if-not (isEmail email)
         (set "state.forgot.error" (t "emailOfAccount"))
@@ -363,26 +374,28 @@
             (focus "#resetCode")
             (notify (t "linkSent" {:email email}))))))
 
-(defn resetCodeChanged "The emailed code typed: no error, unless it expired." []
+(defn reset-code-changed "The emailed code typed: no error, unless it expired." []
   (set "state.reset.error" (if (<= state.reset.left 0) "expired" "")))
 
-(defn resetTick "Each second on the reset screen: the emailed code lasts 10 minutes." []
+(defn reset-tick "Each second on the reset screen: the emailed code lasts 10 minutes." []
   (when (pos? state.reset.left)
     (increment "state.reset.left" :by -1)
     (when (<= state.reset.left 0) (set "state.reset.error" "expired"))))
 
-(defn resendReset "A new code, for another 10 minutes." []
+(defn resend-reset "A new code, for another 10 minutes." []
   (set "state.reset.left" 600)
   (set "state.reset.code" "")
   (set "state.reset.error" "")
   (focus "#resetCode")
   (notify (t "linkSent" {:email state.reset.email})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setPassword "Set password: once the code and the new password are right, the fake server saves it." []
   (set "state.reset.submitted" true)
   (set "state.reset.error" (if (< (count state.reset.code) 6) "short" ""))
-  (when (and (empty? state.reset.error) (zero? computed.resetErrors)) (serverCall "finishReset" "setPassword")))
+  (when (and (empty? state.reset.error) (zero? computed.resetErrors)) (server-call "finishReset" "setPassword")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn finishReset "The reset's answer: an expired or wrong code is refused, else the new password is saved." []
   (cond (<= state.reset.left 0)
         (refuse "state.reset.error" "expired" "#resendReset")
@@ -390,10 +403,10 @@
         (do (set "state.reset.code" "")
             (refuse "state.reset.error" "wrong" "#resetCode"))
         :else
-        (passwordReset)))
+        (password-reset)))
 
-(defn passwordReset "The new password, saved: the lock lifts, and the password step waits with the email." []
-  (updateAccount state.reset.email {:password state.reset.password :passwordDays 0})
+(defn password-reset "The new password, saved: the lock lifts, and the password step waits with the email." []
+  (update-account state.reset.email {:password state.reset.password :passwordDays 0})
   (set "state.failures" (remove #{(str/lower-case state.reset.email)} state.failures))
   (set "state.email" state.reset.email)
   (set "state.password" "")
@@ -406,9 +419,9 @@
 
 ;;; The session
 
-(defn signOutHere "Sign out: ends the session on this device, and the provider's too." []
+(defn sign-out-here "Sign out: ends the session on this device, and the provider's too." []
   (when state.user.provider (signOut "exampleId"))
-  (endSession)
+  (end-session)
   (notify (t "signedOut")))
 
 (defpart sign-out "Sign out, a command: its function is signOutHere, since signOut is the connection's own step."
@@ -417,10 +430,10 @@
                       :icon log-out
                       :enablement ~(= screen "signedIn")
                       :description ~(t "commandAbout" {:name "signOut"})
-                      :do [{:lisp signOutHere}]}})
+                      :do [{:lisp sign-out-here}]}})
 
-(defn endSession "Ends the session: the account's lists are written back, and the sign-in form opens." []
-  (when (not= state.user.email "") (saveAccount))
+(defn end-session "Ends the session: the account's lists are written back, and the sign-in form opens." []
+  (when (not= state.user.email "") (save-account))
   (set "state.confirmedLeft" 0)
   (set "state.reauth.open" false)
   (set "state.step" "email")
@@ -440,29 +453,30 @@
   (when (some arrived? state.emails)
     (notify (t "emailVerified" {:email (:address (find arrived? state.emails))}))
     (set "state.emails" (map #(if (arrived? %) (merge % {:verified true :sent false}) %) state.emails))
-    (logEvent "emailVerified"))
+    (log-event "emailVerified"))
   (when (pos? state.confirmedLeft) (increment "state.confirmedLeft" :by -1))
   (increment "state.session.left" :by -1)
   (when (and (<= state.session.left 60) (not state.session.warned))
     (set "state.session.warned" true)
-    (warnSession))
-  (when (<= state.session.left 0) (expireSession)))
+    (warn-session))
+  (when (<= state.session.left 0) (expire-session)))
 
-(defn warnSession "A notice that offers to stay signed in." []
+(defn warn-session "A notice that offers to stay signed in." []
   (set "state.toast" {:open true :message (t "sessionSoon") :action "stay"})
-  (debounce 4000 hideToast))
+  (debounce 4000 hide-toast))
 
-(defn staySignedIn "Stay signed in: five more minutes." []
+(defn stay-signed-in "Stay signed in: five more minutes." []
   (set "state.session" {:left 300 :warned false})
   (notify (t "sessionExtended")))
 
-(defn expireSession "The session is over: signed out, with a notice on the sign-in form." []
+(defn expire-session "The session is over: signed out, with a notice on the sign-in form." []
   (when state.user.provider (signOut "exampleId"))
-  (endSession)
-  (hideToast)
+  (end-session)
+  (hide-toast)
   (set "state.notice" "expired")
   (focus "#signInAgain"))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn signInAgain "Sign in again, after the session expired: the email field." []
   (set "state.step" "email")
   (set "state.notice" "")
@@ -470,7 +484,7 @@
 
 ;;; The demo's switches, as commands
 
-(defn setLocale "Shows a language, by its code." [language] (set "state.locale" language))
+(defn set-locale "Shows a language, by its code." [language] (set "state.locale" language))
 
 (defcommand toggleTheme "Switches light and dark."
   :title ~(t "command" {:name "toggleTheme"}) :category ~(t "category" {:name "view"}) :icon moon
@@ -496,7 +510,7 @@
   []
   (set "state.shortcutsOpen" true))
 
-(defn closeShortcuts "Closes the shortcuts' list." [] (set "state.shortcutsOpen" false))
+(defn close-shortcuts "Closes the shortcuts' list." [] (set "state.shortcutsOpen" false))
 
 (defcommand toggleSlow "The fake server answers after 800 ms, to see the busy states."
   :title ~(t "command" {:name "toggleSlow"}) :category ~(t "category" {:name "help"}) :icon wifi
@@ -506,7 +520,7 @@
 
 ;;; Keys
 
-(defkey "escape" {:when ~(or (= screen "createAccount") (= screen "twoStep") (= screen "reset")) :do goBack})
+(defkey "escape" {:when ~(or (= screen "createAccount") (= screen "twoStep") (= screen "reset")) :do go-back})
 
 (defkey "mod+j" toggleTheme)
 

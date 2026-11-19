@@ -17,7 +17,7 @@
      :width ~(min 820 (- window.width computed.sideWidth 72))
      :height 980
      :color transparent
-     :keys {"mod+enter" createApp}
+     :keys {"mod+enter" create-app}
      (label#createTitle :font title
        :text ~(t "create.title")
        :textColor @c.text
@@ -59,7 +59,7 @@
      :borderColor ~(if (and state.create.tried (not= computed.createError "")) "@c.danger" "@c.border")
      :anchors {:left 0 :right 0 :top 148}
      :height 42
-     :onSubmit createApp))
+     :onSubmit create-app))
 
 (defview name-hint "Under the name: what is wrong with it once Create was pressed, else the folder it makes." []
   `(label#createNameHint :font small
@@ -99,7 +99,7 @@
      :borderWidth ~(if (= state.create.from id) 2 1)
      :borderColor ~(if (= state.create.from id) "@c.accent" "@c.border")
      :hover {:borderColor @c.accent}
-     :onClick ~(handler chooseStart id)
+     :onClick ~(handler choose-start id)
      (node#startPicture :anchors {:left 8 :right 8 :top 8} :height 72 :radius 8 :color @c.raised
        (image#startCover :when ~(not= cover "") :file ~cover :fit cover :fill true)
        (label#startBlank :when ~(= cover "") :icon file-plus :font heroIcons :align center :textColor @c.accent
@@ -157,7 +157,7 @@
      :borderWidth 1
      :borderColor ~(if (contains state.create.features f.id) "@c.accent" "@c.border")
      :hover {:borderColor @c.accent}
-     :onClick ~(handler toggleFeature f.id)))
+     :onClick ~(handler toggle-feature f.id)))
 
 ;;; Create
 
@@ -178,7 +178,7 @@
      :anchors {:right 0 :top 894}
      :width 200
      :height 44
-     :onClick createApp))
+     :onClick create-app))
 
 (defview create-problem "Why the app couldn't be made, if it couldn't." []
   `(label#createProblem :when ~(not= state.create.error "")

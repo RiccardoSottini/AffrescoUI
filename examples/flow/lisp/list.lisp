@@ -83,7 +83,7 @@
        :role button
        :label ~(t "composer.in" {:column column.name})
        :tooltip ~(t "composer.in" {:column column.name})
-       :onClick ~(handler openComposer c))))
+       :onClick ~(handler open-composer c))))
 
 (defview list-row "A card as a row of the list." [column c row]
   `(node#listRow :let {:i ~row.at :card ~(get column.cards row.at)}
@@ -106,12 +106,12 @@
                  :tag (t (str "tag." card.tag))
                  :who (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)
                  :column column.name})
-     :onFocus ~(handler selectCard c i)
+     :onFocus ~(handler select-card c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
-     :onClick ~(handler selectCard c i)
-     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
-     :onContextMenu ~(handler openCardMenu c i)
+     :onClick ~(handler select-card c i)
+     :onDoubleClick [~(handler select-card c i) ~(handler openIssue)]
+     :onContextMenu ~(handler open-card-menu c i)
      (node#rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
      ~(row-priority)
      ~(row-ref)

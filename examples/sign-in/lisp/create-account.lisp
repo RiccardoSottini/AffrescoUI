@@ -30,15 +30,15 @@
        :icon ~(if (= state.busy "create") "loader" "user-plus")
        :text ~(if (= state.busy "create") computed.busyText (t "createAccount"))
        :disabled ~(not= state.busy "")
-       :onClick submitNewAccount)
-     (node#label-back-to-sign :style link :text ~(t "backToSignIn") :onClick goBack)))
+       :onClick submit-new-account)
+     (node#label-back-to-sign :style link :text ~(t "backToSignIn") :onClick go-back)))
 
 ;;; The fields
 
 (defview name-and-email "The new account's name and email, each with its label." []
   [`(node#label-name :style fieldLabel :text ~(t "name"))
    `(node#checked-field-form :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.name
              :content ~state.name
              :key name
@@ -51,7 +51,7 @@
              :maxLength 60})
    `(node#label-email-2 :style fieldLabel :text ~(t "email"))
    `(node#checked-field-form-2 :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.email
              :content ~state.email
              :key email
@@ -65,8 +65,8 @@
 
 (defview username-field "The username: each change asks the demo server, once typing stops." []
   `(node#username :use checkedField
-     :with {:submit submitNewAccount
-            :change usernameChanged
+     :with {:submit submit-new-account
+            :change username-changed
             :bind state.username
             :content ~state.username
             :key username
@@ -117,7 +117,7 @@
 (defview new-password "The password, its strength and rules, and its confirmation unless it is shown." []
   [`(node#label-password-2 :style fieldLabel :text ~(t "password"))
    `(node#checked-field-form-3 :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.password
              :content ~state.password
              :key password
@@ -135,7 +135,7 @@
    `(node#label-confirm :when ~(not state.showPassword) :style fieldLabel :text ~(t "confirm"))
    `(node#confirm-password :when ~(not state.showPassword)
       :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.confirm
              :content ~state.confirm
              :key confirm
@@ -153,16 +153,16 @@
      (node#terms :style ~(if state.terms "checkOn" "checkOff")
        :label ~(t "terms")
        :description ~(if (and state.submitted (not state.terms)) (t "termsError") "")
-       :onClick toggleTerms)
+       :onClick toggle-terms)
      (label#label-terms :font small :text ~(t "terms") :fitText true :textColor @color.text :cursor hand
-       :onClick toggleTerms)))
+       :onClick toggle-terms)))
 
 (defview invite "Have an invite?, then its code, and a notice once the code is a team's." []
-  [`(node#haveInvite :when ~(not state.invite.open) :style smallLink :text ~(t "haveInvite") :onClick openInvite)
+  [`(node#haveInvite :when ~(not state.invite.open) :style smallLink :text ~(t "haveInvite") :onClick open-invite)
    `(node#label-invite :when ~state.invite.open :style fieldLabel :text ~(t "inviteCode"))
    `(node#invite :when ~state.invite.open
       :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.invite.code
              :content ~state.invite.code
              :key invite

@@ -36,7 +36,7 @@
               :value ~(get state.filter key)
               :low ~low
               :high ~high
-              :run setFilterValue
+              :run set-filter-value
               :width 196})
      (textarea :label ~(t "filter.value" {:title title})
        :text ~(round (get state.filter key))
@@ -48,7 +48,7 @@
        :borderWidth 1
        :borderColor @border
        :radius @kit.radius
-       :onSubmit ~(handler typeFilterValue key low high))))
+       :onSubmit ~(handler type-filter-value key low high))))
 
 (defview dialog-host "A dialog, at no size of its own in the tree: what the kit's dialog needs around it." [dialog]
   `(node :style clear :width 0 :height 0 ~dialog))

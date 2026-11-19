@@ -36,7 +36,7 @@
          :anchors {:right 20 :top 62}
          :width 160
          :height 38
-         :onClick ~(handler revealMine "")))
+         :onClick ~(handler reveal-mine "")))
      (node#settingsIntelligence :anchors {:left 0 :right 0} :height 960 :color transparent
        (node#intelligenceSettingsPage :use intelligenceSettings))
      ~(keys-card)

@@ -49,7 +49,7 @@
        :width 88
        :height 36
        :radius 18
-       :onClick doneEditing)
+       :onClick done-editing)
      ~(page-menu)
      ~(page-menu-button)))
 
@@ -70,7 +70,7 @@
      :role button
      :label ~(t "edit.done")
      :tooltip ~(t "edit.done")
-     :onClick doneEditing))
+     :onClick done-editing))
 
 (defview assistant-button "The assistant, which opens and closes its panel." []
   `(label#assistButton :when ~(not state.editing)
@@ -101,7 +101,7 @@
        `(node#viewTab :use viewTab
           :with {:title ~r.name :selected ~(= i state.room)}
           :label ~r.name
-          :onClick ~(handler showRoom i)))))
+          :onClick ~(handler show-room i)))))
 
 (defview search-button "Search, which also names its key." []
   `(label#searchButton :when ~(not state.editing)
@@ -277,7 +277,7 @@
      :role listitem
      :label ~light.name
      :description ~(t "info.open")
-     :onClick ~(handler openInfo "light" i)
+     :onClick ~(handler open-info "light" i)
      (label#lightIcon :icon ~(if light.on "lightbulb" "lightbulb-off")
        :text ""
        :textColor ~(if light.on tint "@muted")
@@ -366,7 +366,7 @@
        :focusable true
        :role button
        :selected ~on
-       :onClick ~(handler runScene scene.action))))
+       :onClick ~(handler run-scene scene.action))))
 
 ;;; The end side: the climate, the blinds and the devices
 
@@ -385,7 +385,7 @@
        :focusable true
        :role button
        :tooltip ~(t "info.open")
-       :onClick ~(handler openInfo "climate" 0))
+       :onClick ~(handler open-info "climate" 0))
      (node#label-now-room-temp :when ~(not state.editing)
        :style caption
        :text ~(t "climate.now" {:temp computed.room.temp :humidity computed.room.humidity})
@@ -416,13 +416,13 @@
        :width 40
        :height 40
        :radius 20
-       :onClick ~(handler setTarget -0.5))
+       :onClick ~(handler set-target -0.5))
      (node#label-up-arrow :use iconBtn
        :with {:icon plus :tip climate.up}
        :width 40
        :height 40
        :radius 20
-       :onClick ~(handler setTarget 0.5))))
+       :onClick ~(handler set-target 0.5))))
 
 (defview mode-button "A heating mode, in its colour while it is the one chosen." [mode]
   `(label#panel-mode :icon ~(case mode "Heat" "flame" "Cool" "snowflake" "sun-snow")
@@ -440,7 +440,7 @@
      :label ~(t (str "mode." mode))
      :tooltip ~(t (str "mode." mode))
      :selected ~(= mode state.mode)
-     :onClick ~(handler pickMode mode)))
+     :onClick ~(handler pick-mode mode)))
 
 (defview blinds-card "The blinds: how open they are, open and close, and a bar that sets them." []
   `(node#blindsCard :anchors {:right 24 :top "#climateCard.bottom + 12"}
@@ -456,7 +456,7 @@
        :anchors {:left 60 :top 12}
        :fitText true
        :cursor hand
-       :onClick ~(handler openInfo "cover" 0))
+       :onClick ~(handler open-info "cover" 0))
      (node#label-round-room-blinds :style caption
        :text ~(t "blinds.open" {:n (round computed.room.blinds)})
        :anchors {:left 60 :top 32})
@@ -491,7 +491,7 @@
      :role button
      :label ~(t "info.cover")
      :tooltip ~(t "info.open")
-     :onClick ~(handler openInfo "cover" 0)))
+     :onClick ~(handler open-info "cover" 0)))
 
 (defview blinds-button "A round button that moves the blinds all the way open (100) or closed (0)."
   [id icon key to editing-right right]
@@ -511,7 +511,7 @@
      :role button
      :label ~(t key)
      :tooltip ~(t key)
-     :onClick ~(handler moveBlinds to)))
+     :onClick ~(handler move-blinds to)))
 
 (defview devices-card "The devices, a tile each." []
   `(node#devicesCard :anchors {:right 24 :top "#blindsCard.bottom + 12" :bottom 16}
@@ -548,7 +548,7 @@
      :cursor hand
      :role group
      :label ~d.name
-     :onClick ~(handler openInfo "device" i)
+     :onClick ~(handler open-info "device" i)
      (label#deviceIcon :icon ~(if d.on d.icon d.iconOff)
        :text ""
        :textColor ~(if d.on "@accent" "@muted")
@@ -575,4 +575,4 @@
      :anchors {:left 12 :right 12 :bottom 12}
      :height 28
      :label ~(str d.name ": " (if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".doOff" ".doOn")))))
-     :onClick ~(handler deviceCall i)))
+     :onClick ~(handler device-call i)))

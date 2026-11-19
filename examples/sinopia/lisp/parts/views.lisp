@@ -56,7 +56,7 @@
           :tooltip ~(if (= slot "none") (t "ribbon.none") (get computed.slotTitles slot))
           :role button
           :label ~slot
-          :onClick ~(handler pickSwatch run key slot)
+          :onClick ~(handler pick-swatch run key slot)
           (label :when ~(= slot "none") :fill 0 :align center :textColor @rbMuted :runs [{:icon ban :size 12}])))))
 
 (defcomponent paneStepper "A number of the selected objects, `key`, with buttons that step it between `low` and `high`."
@@ -74,12 +74,12 @@
        :use rbSmall
        :with {:icon minus}
        :tooltip ~(t "view.less")
-       :onClick ~(handler setProperty key (clamp (- value step) low high)))
+       :onClick ~(handler set-property key (clamp (- value step) low high)))
      (node :id ~(str prefix "-more")
        :use rbSmall
        :with {:icon plus}
        :tooltip ~(t "view.more")
-       :onClick ~(handler setProperty key (clamp (+ value step) low high)))))
+       :onClick ~(handler set-property key (clamp (+ value step) low high)))))
 
 (defcomponent formatPane
   "The format pane: the selected objects' fill, line, place, lock and alt text, or the slide's background."
@@ -154,7 +154,7 @@
           :fitText true
           :padding 6
           :runs [{:text ~fx.1 :size 12}]
-          :onClick ~(handler setEffect fx.0)))))
+          :onClick ~(handler set-effect fx.0)))))
 
 (defview format-lock "Lock: a locked object stays where it is and isn't deleted." []
   `(label#format-lock :style ~(if computed.locked "rbButtonOn" "rbButton")
@@ -164,7 +164,7 @@
      :runs [{:icon ~(if computed.locked "lock" "lock-open") :size 14}
             {:text ~(if computed.locked (t "view.locked") (t "view.lock")) :size 12}]
      :tooltip ~(t "view.aLockedObjectStaysWhere")
-     :onClick toggleLock))
+     :onClick toggle-lock))
 
 (defview format-alt "The first selected object's alt text, edited in place." []
   `(editor#format-alt :height 54
@@ -191,8 +191,8 @@
        :focusable true
        :role list
        :label ~(t "bar.slides")
-       :keys {:left ~(handler pickSlide (dec state.current))
-              :right ~(handler pickSlide (inc state.current))
+       :keys {:left ~(handler pick-slide (dec state.current))
+              :right ~(handler pick-slide (inc state.current))
               :enter [{:set state.view :to normal}]
               :delete deleteSlide}
        ~(repeat [s state.deck.slides :index i :key s.id]
@@ -210,9 +210,9 @@
      :selected ~(= i state.current)
      :label ~(t "slide.n" {:n (inc i)})
      :drag {:data {:slide ~i}}
-     :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
-     :onClick ~(handler chooseSlide i "#sorter-grid")
-     :onDoubleClick ~(handler openSlide i)
+     :onDrop ~(handler move-slide (or-else event.data.slide (- 1)) i)
+     :onClick ~(handler choose-slide i "#sorter-grid")
+     :onDoubleClick ~(handler open-slide i)
      (node :id ~(str "sorter-" s.id "-frame")
        :width 220
        :height 128
@@ -260,8 +260,8 @@
      :focusable true
      :role list
      :label ~(t "bar.outline")
-     :keys {:up ~(handler pickSlide (dec state.current))
-            :down ~(handler pickSlide (inc state.current))}
+     :keys {:up ~(handler pick-slide (dec state.current))
+            :down ~(handler pick-slide (inc state.current))}
      (node#outline-top :width 1 :height 4 :color transparent)
      ~(repeat [s state.deck.slides :index i :key s.id]
        (outline-slide s i))))
@@ -278,7 +278,7 @@
      :label ~(t "slide.n" {:n (inc i)})
      :color ~(if (= i state.current) "@rbChecked" "transparent")
      :hover {:color ~(if (= i state.current) "@rbChecked" "@rbHover")}
-     :onClick ~(handler chooseSlide i "#outline")
+     :onClick ~(handler choose-slide i "#outline")
      (label :id ~(str "outline-" s.id "-number")
        :width 34
        :height 18
@@ -296,44 +296,47 @@
 
 ;;; What the format pane and the views do
 
-(defn setProperty "Sets one property of the selected objects." [key value]
+(defn set-property "Sets one property of the selected objects." [key value]
   (setObjects (assoc {} key value)))
 
-(defn pickSwatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
-  (if (= run "setBackground") (setBackground slot) (setProperty key slot)))
+(defn pick-swatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
+  (if (= run "setBackground") (setBackground slot) (set-property key slot)))
 
-(defn setEffect "Gives the selected objects an effect: none, shadow or glow." [effect]
+(defn set-effect "Gives the selected objects an effect: none, shadow or glow." [effect]
   (setObjects {:effect (if (= effect "none") nil effect)}))
 
-(defn openSlide "Opens a slide of the sorter in the Normal view." [index]
-  (pickSlide index)
+(defn open-slide "Opens a slide of the sorter in the Normal view." [index]
+  (pick-slide index)
   (set "state.view" "normal"))
 
 ;;; Files
 
+; style: keep, named in examples/sinopia/lisp/index.scenarios.json
 (defn fileStatus "Says what the last save, open or export did, on the File tab." [text]
   (set "state.fileStatus" text))
 
 (defn saved "Says the deck was saved." [result]
   (fileStatus (t "file.saved" {:name result.name})))
 
-(defn notSaved "Says why the deck wasn't saved." [error]
+(defn not-saved "Says why the deck wasn't saved." [error]
   (fileStatus (t "file.notSaved" {:why error.message})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn saveDeck "Saves the deck as JSON, where the person chooses." []
   (saveFile state.deck :name (str computed.deckName ".json") :title (t "view.saveTheDeck") :onDone saved
-    :onError notSaved))
+    :onError not-saved))
 
 (defn opened "Takes the deck just opened, by its file's name." [result]
-  (deckOpened result.name))
+  (deck-opened result.name))
 
-(defn notOpened "Says why no deck was opened." [error]
+(defn not-opened "Says why no deck was opened." [error]
   (fileStatus (t "file.notOpened" {:why error.message})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn openDeck "Opens a deck the person chooses." []
-  (openFile "state.opened" :extensions ["json"] :title (t "view.openADeck") :onDone opened :onError notOpened))
+  (openFile "state.opened" :extensions ["json"] :title (t "view.openADeck") :onDone opened :onError not-opened))
 
-(defn deckOpened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
+(defn deck-opened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
   (if (and (vector? state.opened.slides) (seq state.opened.slides) (number? state.opened.next))
     (do (commit)
         (set "state.deck" state.opened)
@@ -343,36 +346,40 @@
     (fileStatus (t "file.notADeck" {:name name})))
   (set "state.opened" nil))
 
-(defn pdfExported "Says the PDF was exported, and how many pages it has." [result]
+(defn pdf-exported "Says the PDF was exported, and how many pages it has." [result]
   (fileStatus (t "file.exportedPages" {:name result.name :pages result.pages})))
 
-(defn pngExported "Says the picture was exported." [result]
+(defn png-exported "Says the picture was exported." [result]
   (fileStatus (t "file.exported" {:name result.name})))
 
-(defn notExported "Says why nothing was exported." [error]
+(defn not-exported "Says why nothing was exported." [error]
   (fileStatus (t "file.notExported" {:why error.message})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
   (export "pdf"
           :pages (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder)
           :size [720 405]
           :title computed.deckName
-          :onDone pdfExported
-          :onError notExported))
+          :onDone pdf-exported
+          :onError not-exported))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPng "Exports the slide shown as a PNG picture, at twice its size." []
   (export "png"
           :pages [(str "page-" computed.slide.id)]
           :scale 2
           :name (str computed.deckName " " (inc state.current))
-          :onDone pngExported
-          :onError notExported))
+          :onDone png-exported
+          :onError not-exported))
 
 ;;; The look
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn toggleTheme "Switches the window between light and dark." []
   (set "state.theme" (if (= state.theme "dark") "light" "dark")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setBackground "Gives the slide a background colour, a theme slot." [slot]
   (commit)
   (set "state.deck.slides[state.current].background" slot))

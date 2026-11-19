@@ -147,10 +147,10 @@
      :textColor @text
      :accentColor @selected
      :kindColors {:color @socketColor :float @socketFloat}
-     :onConnect shaderConnect
-     :onDisconnect shaderDisconnect
-     :onMove shaderMove
-     :onSelect selectShaderNodes
+     :onConnect shader-connect
+     :onDisconnect shader-disconnect
+     :onMove shader-move
+     :onSelect select-shader-nodes
      ~(repeat [n computed.shaderGraph.nodes] (shader-node-body n))))
 
 (defview shader-node-body "A node's body: a colour node's swatch, or a value node's number." [n]
@@ -187,7 +187,7 @@
        :focusable true
        :textColor @text
        :accentColor @kit.accent
-       :onChange ~(handler setShaderColor event.value))
+       :onChange ~(handler set-shader-color event.value))
      (node :when ~(= computed.shaderOp :number)
        :use numberField
        :with {:label ~(t "shader.number")

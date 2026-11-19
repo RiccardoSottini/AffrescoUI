@@ -9,7 +9,7 @@
 ;;; Two-step
 
 (defview two-step-card "The code screen: its card, centred, the resend countdown ticking." []
-  `(node#panel-two-step :style screen :every {:ms 1000 :do countDown}
+  `(node#panel-two-step :style screen :every {:ms 1000 :do count-down}
      (node#card-two-step :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
        (node#card-two-step-top :height 36 :color transparent)
        ~(two-step-form)
@@ -46,7 +46,7 @@
      ~(other-ways)
      (node#twoStepBack :style link
        :text ~(if (= state.codeMode "verify") (t "backToCreate") (t "backToSignIn"))
-       :onClick codeBack)))
+       :onClick code-back)))
 
 (defview code-fields "Six digits for a code, or a text field for a backup code." []
   [`(node#twoStepCode :when ~(not= state.codeMode "backup")
@@ -56,7 +56,7 @@
       :label ~(t "code")
       :description ~(if (= state.codeError "") "" (t "codeError" {:kind state.codeError}))
       :cellBorderColor ~(if (= state.codeError "") "@color.border" "@color.error")
-      :onChange codeChanged
+      :onChange code-changed
       :onSubmit verify)
    `(node#backupField :when ~(= state.codeMode "backup")
       :style field
@@ -113,12 +113,12 @@
      ~(other-way "useBackup" "backup")))
 
 (defview other-way "A link to another way of two-step, by its id (also its text's key) and its code mode." [id mode]
-  `(node :id ~id :when ~(not= state.codeMode mode) :style smallLink :text ~(t id) :onClick ~(handler useMode mode)))
+  `(node :id ~id :when ~(not= state.codeMode mode) :style smallLink :text ~(t id) :onClick ~(handler use-mode mode)))
 
 ;;; A new password
 
 (defview reset-card "The new-password screen: its card, centred, the code's expiry ticking." []
-  `(node#panel-reset :style screen :every {:ms 1000 :do resetTick}
+  `(node#panel-reset :style screen :every {:ms 1000 :do reset-tick}
      (node#card-reset :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
        (node#card-reset-top :height 36 :color transparent)
        ~(reset-form)
@@ -140,7 +140,7 @@
        :text ~(if (= state.busy "setPassword") computed.busyText (t "setPassword"))
        :disabled ~(not= state.busy "")
        :onClick setPassword)
-     (node#resetBack :style link :text ~(t "backToSignIn") :onClick goBack)))
+     (node#resetBack :style link :text ~(t "backToSignIn") :onClick go-back)))
 
 (defview reset-code "The emailed code: six digits; Enter goes on to the new password." []
   `(node#resetCode :style code
@@ -149,7 +149,7 @@
      :label ~(t "code")
      :description ~(if (= state.reset.error "") "" (t "codeError" {:kind state.reset.error}))
      :cellBorderColor ~(if (= state.reset.error "") "@color.border" "@color.error")
-     :onChange resetCodeChanged
+     :onChange reset-code-changed
      :onSubmit {:focus "#textarea-placeholder"}))
 
 (defview reset-code-state "The code's error, Resend once it expired, else how long it lasts, and the demo's code." []
@@ -160,7 +160,7 @@
       :style smallLink
       :icon refresh-cw
       :text ~(t "resend")
-      :onClick resendReset
+      :onClick resend-reset
       :height 18)
    `(node#resetExpiry :when ~(> state.reset.left 0)
       :style hint

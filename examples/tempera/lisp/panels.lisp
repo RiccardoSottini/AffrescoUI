@@ -41,7 +41,7 @@
      :textColor ~(if (= (get state.panels slot) tab.id) "@text" "@muted")
      :hover {:textColor @text}
      :focused {:borderWidth 1 :borderColor @accent}
-     :onClick ~(handler showPanel {:slot slot :id tab.id})))
+     :onClick ~(handler show-panel {:slot slot :id tab.id})))
 
 (defcomponent tPopout "An icon of the strip, and the panel (the children) it pops out to its left."
   {:name "" :icon "" :title "" :height 300}
@@ -50,7 +50,7 @@
        :use tIcon
        :width 30
        :height 28
-       :with {:icon ~icon :tip ~title :on ~(get state.popout name) :run showPopout :args {:id ~name}})
+       :with {:icon ~icon :tip ~title :on ~(get state.popout name) :run show-popout :args {:id ~name}})
      (column :id ~(str name "-popout")
        :role region
        :label ~title
@@ -151,7 +151,7 @@
        :alpha false
        :textColor @text
        :accentColor @accent
-       :onChange ~(handler setOption state.colourTarget event.value))))
+       :onChange ~(handler set-option state.colourTarget event.value))))
 
 (defview edit-chip "A colour's chip, at an offset: a click makes it the colour the picker edits, outlined."
   [id target value at]
@@ -209,7 +209,7 @@
           :textColor @text
           :cursor hand
           :hover {:color @hover}
-          :onClick ~(handler chooseGradient g.preset)))))
+          :onClick ~(handler choose-gradient g.preset)))))
 
 ;;; The panels that pop out
 

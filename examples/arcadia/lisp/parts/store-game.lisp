@@ -122,7 +122,7 @@
      :cursor hand
      :label ~(t "store.screenshot" {:n (inc s)})
      :selected ~(= state.shotIndex s)
-     :onClick ~(handler showShot s)
+     :onClick ~(handler show-shot s)
      :color transparent
      (image :fill true
        :fit cover
@@ -240,7 +240,7 @@
      (node#add-to-cart :when ~(not g.owned)
        :use ctaButton
        :with {:title ~(if (contains state.cart g.id) (t "store.inCart") (t "store.addToCart"))}
-       :onClick ~(handler cartOrAdd g.id))
+       :onClick ~(handler cart-or-add g.id))
      (node :when ~g.owned :use ctaButton :with {:title ~(t "store.playNow")} :onClick ~(handler openGame g.id))
      (panel :color transparent :width 2 :height 1)))
 
@@ -342,7 +342,7 @@
            :selected ~(= state.reqTab p)
            :color ~(if (= state.reqTab p) "@store.chip" "transparent")
            :textColor ~(if (= state.reqTab p) "@color.bright" "@store.chipText")
-           :onClick ~(handler showRequirements p)))))
+           :onClick ~(handler show-requirements p)))))
 
 (defcomponent requirements
   "The minimum or recommended system for the platform chosen: system, processor, memory, graphics and storage."
@@ -466,4 +466,4 @@
            :selected ~on
            :cursor hand
            :hover {:textColor @color.bright}
-           :onClick ~(handler voteReview r.author b)))))
+           :onClick ~(handler vote-review r.author b)))))

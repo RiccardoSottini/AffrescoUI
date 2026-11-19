@@ -98,7 +98,7 @@
        :focusable true
        :role button
        :label ~(t "composer.in" {:column (get-in computed.columns [state.composer.c :name])})
-       :onClick nextComposerColumn)
+       :onClick next-composer-column)
      (node#composerPriority :style cardChip
        :icon ~(get state.priorities state.composer.p)
        :text ~(str " " (t (str "priority." state.composer.p)))
@@ -106,7 +106,7 @@
        :focusable true
        :role button
        :label ~(t "quick.priority")
-       :onClick nextComposerPriority)
+       :onClick next-composer-priority)
      ~(composer-who)
      (node#composerTag :style cardChip
        :runs [{:text "●" :font symbols :size 10 :color ~(str "@" state.composer.tag)}
@@ -147,7 +147,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "detail.save") :run saveCard} {:title ~(t "detail.cancel") :run closeEdit}]}
+            :buttons [{:title ~(t "detail.save") :run save-card} {:title ~(t "detail.cancel") :run close-edit}]}
      (textarea#editTitle :anchors {:left 20 :right 20 :top 76}
        :height 34
        :padding 10
@@ -160,7 +160,7 @@
        :autofocus true
        :label ~(t "edit.title")
        :bind state.edit.title
-       :onSubmit saveCard)))
+       :onSubmit save-card)))
 
 ;;; The selection bar
 

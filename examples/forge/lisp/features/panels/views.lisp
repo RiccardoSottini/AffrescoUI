@@ -26,7 +26,7 @@
        :columns [{:id message :title ~(t "problems.message") :width 420}
                  {:id file :title ~(t "problems.file") :width 160}
                  {:id line :title ~(t "problems.line") :width 60}]
-       :onOpen goToProblem)
+       :onOpen go-to-problem)
      (list#output :when ~(= state.panelTab :output)
        :role log
        :label ~(t "output.label")

@@ -30,7 +30,7 @@
               :low -100
               :high 100
               :scale 100
-              :run setBalance
+              :run set-balance
               :args {:channel ~channel}
               :width 112})
      (label :text ~(round (* (get computed.adjustment.balance channel) 100))
@@ -48,7 +48,7 @@
      :alignItems center
      :gap 4
      :cursor hand
-     :onClick ~(handler toggleOpen (str "state.props." key))
+     :onClick ~(handler toggle-open (str "state.props." key))
      (label :icon ~(if (get state.props key) "chevron-down" "chevron-right")
        :textColor @muted
        :width 14
@@ -126,7 +126,7 @@
       :value ~(merge {:points []} {:points computed.adjustment.curve})
       :accentColor @accent
       :histogram ~(tones)
-      :onChange ~(handler setCurve event.value.points))])
+      :onChange ~(handler set-curve event.value.points))])
 
 (defview hue-values "A Hue/Saturation layer's hue, saturation and lightness." []
   [(adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)
@@ -187,7 +187,7 @@
   [`(row :when ~state.props.transform :width "100%" :height 24 :gap 10 :alignItems center
       (node#transform-w :use tField
         :with {:title ~(t "transform.width") :key w :value ~(get computed.box 2) :unit " px" :pop false :width 66 :low 1
-               :high 100000 :run transformBox :off ~(not= computed.activeLayer.kind "pixel")
+               :high 100000 :run transform-box :off ~(not= computed.activeLayer.kind "pixel")
                :tip ~(if state.doc.selection (t "transform.width.selection") (t "transform.width.image"))})
       ~(box-field "transform-h" "h" 3 1))
    `(row :when ~state.props.transform :width "100%" :height 24 :gap 10 :alignItems center
@@ -196,7 +196,7 @@
    `(row :when ~state.props.transform :width "100%" :height 24 :gap 6 :alignItems center
       (label :icon rotate-cw :textColor @muted :width 14 :height 20 :align center :tooltip ~(t "transform.angle"))
       (node#transform-angle :use tField
-        :with {:title "" :key angle :value 0 :unit "°" :pop false :width 50 :low -360 :high 360 :run transformActive
+        :with {:title "" :key angle :value 0 :unit "°" :pop false :width 50 :low -360 :high 360 :run transform-active
                :off ~(not= computed.activeLayer.kind "pixel") :tip ~(t "transform.angle.tip")})
       (node :grow 1 :height 1 :style clear)
       (node#flip-horizontal :use tIcon
@@ -218,7 +218,7 @@
             :width 66
             :low ~low
             :high 100000
-            :run transformBox
+            :run transform-box
             :off ~(not= computed.activeLayer.kind "pixel")
             :tip ~(t (str "transform." key ".tip"))}))
 

@@ -72,8 +72,8 @@
          :accentColor @accent
          :label ~(t "plan.label")
          :items ~computed.planItems
-         :onTransform ~(handler moveRooms event.items)
-         :onChange ~(handler planPick event.value)))
+         :onTransform ~(handler move-rooms event.items)
+         :onChange ~(handler plan-pick event.value)))
      ~(picked-room)
      (node#mediaCard :use mediaCard :anchors {:right 32 :bottom 24} :width 288 :height 196)))
 
@@ -113,7 +113,7 @@
      :role switch
      :checked ~light.on
      :label ~light.name
-     :onClick ~(handler switchLight i)))
+     :onClick ~(handler switch-light i)))
 
 ;;; The speaker
 
@@ -204,7 +204,7 @@
        :anchors {:left 20 :bottom 20}
        :width 116
        :height 32
-       :onClick ~(handler warmLight state.light))
+       :onClick ~(handler warm-light state.light))
      (node#colourDone :style choiceOn
        :text ~(t "colour.done")
        :anchors {:right 20 :bottom 20}

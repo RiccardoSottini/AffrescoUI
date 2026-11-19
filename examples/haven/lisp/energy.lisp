@@ -356,7 +356,7 @@
        :selectedTextColor @text
        :selectedBackground @selected
        :accentColor @accent
-       :onChange ~(handler pickRoomNamed event.value)
+       :onChange ~(handler pick-room-named event.value)
        :onOpen {:set state.page :to home})))
 
 (defview week-choices "What the week is by: day, device or room." []
@@ -374,7 +374,7 @@
      :basis 0
      :anchors {:top 0 :bottom 0}
      :selected ~(= state.energyView view)
-     :onClick ~(handler showEnergyView view)))
+     :onClick ~(handler show-energy-view view)))
 
 (defview week-labels "The bars' labels: the days, the peak in its colour, or the devices." []
   `(row#weekDays :when ~(not= state.energyView "room") :anchors {:left 24 :right 24 :bottom 10} :height 18

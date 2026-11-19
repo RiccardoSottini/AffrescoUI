@@ -57,34 +57,34 @@
   :description ~(t "command.closeFind") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (set "state.findBar.open" false)
   (set "state.findBar.inSelection" false)
-  (after 0 closeFindLater))
+  (after 0 close-find-later))
 
-(defn closeFindLater "The editor gets the focus back once the bar is closed." []
+(defn close-find-later "The editor gets the focus back once the bar is closed." []
   (focus "#editor"))
 
-(defn findStep "Asks the editor to find the next or previous match, or to replace one or all." [step]
+(defn find-step "Asks the editor to find the next or previous match, or to replace one or all." [step]
   (set "state.findBar.step" step)
   (increment "state.findBar.request" :by 1))
 
 (defcommand findNext "Find Next"
   :title ~(t "command.findNext")
   :description ~(t "command.findNext") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep :next))
+  (find-step :next))
 
 (defcommand findPrevious "Find Previous"
   :title ~(t "command.findPrevious")
   :description ~(t "command.findPrevious") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep :previous))
+  (find-step :previous))
 
 (defcommand replaceOne "Replace"
   :title ~(t "command.replaceOne")
   :description ~(t "command.replaceOne") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep :replace))
+  (find-step :replace))
 
 (defcommand replaceAllInFile "Replace All"
   :title ~(t "command.replaceAllInFile")
   :description ~(t "command.replaceAllInFile") :category ~(t "category.edit") :enablement ~state.findBar.open []
-  (findStep :replaceAll))
+  (find-step :replaceAll))
 
 (defcommand toggleFindInSelection "Toggle Find in Selection"
   :title ~(t "command.toggleFindInSelection")

@@ -27,7 +27,7 @@
        :placeholderColor @color.muted
        :placeholder ~(t "find-text.placeholder")
        :autofocus true
-       :onChange ~(handler findStep :first)
+       :onChange ~(handler find-step :first)
        :onSubmit findNext)
      (node :use forgeFindOption :with {:option case :bind state.findBar.caseSensitive :text ~(t "findBar.aa")})
      (node :use forgeFindOption :with {:option word :bind state.findBar.wholeWord :text ~(t "findBar.word")})
@@ -62,7 +62,7 @@
        :bind ~bind
        :width 16
        :height 16
-       :onChange ~(handler findStep :first))
+       :onChange ~(handler find-step :first))
      (label :text ~text :textColor @color.text :fitText true)))
 
 (defcomponent forgeFindButton "A button of the bar, an icon that runs `run`."

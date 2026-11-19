@@ -44,7 +44,7 @@
 
 (defstate sideView explorer)
 
-(defn forgeShowView "Shows a view of the side bar, or hides the side bar if it shows that view already." [view]
+(defn forge-show-view "Shows a view of the side bar, or hides the side bar if it shows that view already." [view]
   (if (and (= state.sideView view) (true? state.layout.sidebar))
     (set "state.layout.sidebar" false)
     (do (set "state.sideView" view) (set "state.layout.sidebar" true))))
@@ -52,12 +52,12 @@
 (defcommand showExplorer "Show Explorer"
   :title ~(t "command.showExplorer")
   :description ~(t "command.showExplorer") :category ~(t "category.view") :icon "files" []
-  (forgeShowView "explorer"))
+  (forge-show-view "explorer"))
 
 (defcommand showSearch "Show Search"
   :title ~(t "command.showSearch")
   :description ~(t "command.showSearch") :category ~(t "category.view") :icon "search" []
-  (forgeShowView "search"))
+  (forge-show-view "search"))
 
 ;;; The open folder
 
@@ -75,37 +75,38 @@
 (defcommand openFolder "Open Folder..."
   :title ~(t "command.openFolder")
   :description ~(t "command.openFolder") :category ~(t "category.file") :icon "folder-open" []
-  (chooseFolder "workspace" :title (t "dialog.openFolder") :onError openFolderFailed :onDone openFolderDone))
+  (chooseFolder "workspace" :title (t "dialog.openFolder") :onError open-folder-failed :onDone open-folder-done))
 
-(defn openFolderDone "The folder chosen: its tree listed and its files indexed, from nothing." [result]
+(defn open-folder-done "The folder chosen: its tree listed and its files indexed, from nothing." [result]
   (set "state.explorer" {:expanded [] :selected nil})
   (set "state.explorerTree" {:entries [] :listed []})
   (set "state.folder.root" result.name)
   (explorerRefresh)
-  (indexFolder)
+  (index-folder)
   (log-line (t "log.opened" {:folder result.name})))
 
-(defn openFolderFailed "Says why no folder was opened." [error]
+(defn open-folder-failed "Says why no folder was opened." [error]
   (notify "error" (t "notify.noFolder" {:error error.message})))
 
-(defn indexFolder "Lists the folder's files for Go to File." []
-  (invoke "search.files" :with {:exclude state.folder.skip} :onDone indexFolderDone :onError indexFolderFailed))
+(defn index-folder "Lists the folder's files for Go to File." []
+  (invoke "search.files" :with {:exclude state.folder.skip} :onDone index-folder-done :onError index-folder-failed))
 
-(defn indexFolderDone "The folder's files, listed." [result]
+(defn index-folder-done "The folder's files, listed." [result]
   (indexed result.files)
   (set "state.folder.truncated" result.truncated))
 
-(defn indexFolderFailed "Nothing listed: Go to File has no files." []
+(defn index-folder-failed "Nothing listed: Go to File has no files." []
   (set "state.folder.files" []))
 
 (defn indexed "The folder's files as Go to File lists them: each its name, and the folder it is in." [files]
   (set "state.folder.files"
        ; style: keep, #(...) can't give a map, and the host's split keeps the empty name after a last slash
-       (map (fn [it] {:id it :title (baseName it) :detail (str/join "/" (slice (split it "/") 0 (- 1)))}) files)))
+       (map (fn [it] {:id it :title (base-name it) :detail (str/join "/" (slice (split it "/") 0 (- 1)))}) files)))
 
+; style: keep, named in examples/forge/lisp/layout.scenarios.json, examples/forge/lisp/workbench.scenarios.json, examples/forge/lisp/controls.scenarios.json and more
 (defn openExplorerItem "An entry of the explorer, opened: a file opens in a tab." []
   (when (and (seq event.id) (not= (:kind (find #(= (:path %) event.id) state.explorerTree.entries)) "folder"))
-    (openPath event.id (baseName event.id))))
+    (open-path event.id (base-name event.id))))
 
 (defkey "mod+o" openFolder)
 
@@ -151,13 +152,14 @@
                0
                5)))
 
+; style: keep, named in examples/forge/lisp/features.scenarios.json, examples/forge/lisp/catalog/todoTree/1.2.0.json
 (defn showTab "Shows a tab in the active group, adding it if it isn't there." [id label]
-  (forgeRecordNav id)
-  (when-not (some #(= (:id %) id) (activeTabs))
+  (forge-record-nav id)
+  (when-not (some #(= (:id %) id) (active-tabs))
     (push (str "state.groups[" state.activeGroup "].tabs") {:id id :label label}))
   (set (str "state.groups[" state.activeGroup "].active") id))
 
-(defn openPage "Opens a page (the settings, the keyboard shortcuts...) as a document of its own, in a tab."
+(defn open-page "Opens a page (the settings, the keyboard shortcuts...) as a document of its own, in a tab."
   [id label kind]
   (when-not (contains computed.docIds id)
     (push "state.docs" {:id id :label label :kind kind :text "" :dirty false :language ""}))
@@ -166,13 +168,13 @@
 (defcommand closeEditor "Close Editor"
   :title ~(t "command.closeEditor") :description ~(t "command.closeEditor") :category ~(t "category.view") :icon "x"
   :enablement ~(not (empty? (get-in state.groups [state.activeGroup :active]))) []
-  (closeTab state.activeGroup (activeTabId)))
+  (close-tab state.activeGroup (active-tab-id)))
 
 (defcommand splitEditor "Open the active editor beside the current one (two groups at most)."
   :title ~(t "command.splitEditor") :category ~(t "category.view") :icon "columns-2"
   :description ~(t "command.splitEditor.about")
   :enablement ~(and (< (count state.groups) 2) (not (empty? (get-in state.groups [state.activeGroup :active])))) []
-  (push "state.groups" {:tabs (filter #(= (:id %) (activeTabId)) (activeTabs)) :active (activeTabId)})
+  (push "state.groups" {:tabs (filter #(= (:id %) (active-tab-id)) (active-tabs)) :active (active-tab-id)})
   (set "state.activeGroup" (dec (count state.groups))))
 
 (defkey "mod+w" closeEditor)
@@ -187,29 +189,29 @@
   :title ~(t "command.navigateBack")
   :description ~(t "command.navigateBack") :category ~(t "category.go") :icon "arrow-left"
   :enablement ~(> (count state.nav.back) 0) []
-  (set "state.nav.forward" (concat (filter #(= (:id %) (activeTabId)) (activeTabs)) state.nav.forward))
-  (forgeNavigateTo (last state.nav.back))
+  (set "state.nav.forward" (concat (filter #(= (:id %) (active-tab-id)) (active-tabs)) state.nav.forward))
+  (forge-navigate-to (last state.nav.back))
   (set "state.nav.back" (slice state.nav.back 0 (- 1))))
 
 (defcommand navigateForward "Go Forward"
   :title ~(t "command.navigateForward")
   :description ~(t "command.navigateForward") :category ~(t "category.go") :icon "arrow-right"
   :enablement ~(> (count state.nav.forward) 0) []
-  (set "state.nav.back" (concat state.nav.back (filter #(= (:id %) (activeTabId)) (activeTabs))))
-  (forgeNavigateTo state.nav.forward.0)
+  (set "state.nav.back" (concat state.nav.back (filter #(= (:id %) (active-tab-id)) (active-tabs))))
+  (forge-navigate-to state.nav.forward.0)
   (set "state.nav.forward" (slice state.nav.forward 1)))
 
-(defn forgeNavigateTo "Shows a tab (`tab`: id, label) without recording it in the history." [tab]
+(defn forge-navigate-to "Shows a tab (`tab`: id, label) without recording it in the history." [tab]
   (set "state.nav.moving" true)
   (showTab tab.id tab.label)
   (set "state.nav.moving" false))
 
-(defn forgeRecordNav
+(defn forge-record-nav
   "Before a tab (`id`) is shown: the one shown goes into the history (the last 50), unless Back or Forward moves."
   [id]
-  (when (and (not (true? state.nav.moving)) (seq (activeTabId)) (not= (activeTabId) id))
+  (when (and (not (true? state.nav.moving)) (seq (active-tab-id)) (not= (active-tab-id) id))
     (set "state.nav"
-         {:back (slice (concat state.nav.back (filter #(= (:id %) (activeTabId)) (activeTabs)))
+         {:back (slice (concat state.nav.back (filter #(= (:id %) (active-tab-id)) (active-tabs)))
                        (max 0 (- (count state.nav.back) 49)))
           :forward []
           :moving false})))
@@ -220,7 +222,7 @@
 
 ;;; The rest
 
-(defn hideNotifications "Hides the notification centre." []
+(defn hide-notifications "Hides the notification centre." []
   (set "state.notificationCentre" false))
 
 (defstate menuBar {})

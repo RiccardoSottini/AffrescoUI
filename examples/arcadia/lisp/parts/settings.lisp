@@ -138,7 +138,7 @@
            :color ~(if (= state.settingsDialog.page page) "@color.select" "transparent")
            :textColor ~(if (= state.settingsDialog.page page) "@color.bright" "@color.muted")
            :hover {:textColor @color.bright}
-           :onClick ~(handler showSettingsPage page)))))
+           :onClick ~(handler show-settings-page page)))))
 
 ;;; Interface
 

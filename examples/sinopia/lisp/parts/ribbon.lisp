@@ -32,7 +32,7 @@
        :tooltip ~(t "ribbon.moreOptions")
        :style ~(if enabled "rbButton" "rbButtonOff")
        :runs [{:icon chevron-down :size 10}]
-       :onClick ~(handler openDrop drop))))
+       :onClick ~(handler open-drop drop))))
 
 (defcomponent rbSmall
   "A small button; with drop (its id), a split one: its arrow opens that menu, or with colors the colour grid."
@@ -47,7 +47,7 @@
      :height 22
      :role button
      :label ~text
-     :onClick ~(handler openDrop drop)
+     :onClick ~(handler open-drop drop)
      :color @rbFieldBg
      :borderWidth 1
      :borderColor @rbFieldLine
@@ -110,7 +110,7 @@
        :tooltip ~(t "ribbon.moreOptions")
        :style ~(if enabled "rbButton" "rbButtonOff")
        :runs [{:icon chevron-down :size 10}]
-       :onClick ~(handler openMenu colors drop))))
+       :onClick ~(handler open-menu colors drop))))
 
 (defview rb-group-row "A group's caption and, if it has one, its launcher." [title launcher]
   `(row :fitContent width :height 18 :color transparent :alignItems center :gap 4
@@ -152,9 +152,9 @@
        :disabled ~(= more "")
        :tooltip ~(if (= more "") (t "ribbon.everyItemIsShown") (t "ribbon.theWholeList"))
        :runs [{:icon chevrons-down :size 10}]
-       :onClick ~(handler openDrop more))))
+       :onClick ~(handler open-drop more))))
 
 ;;; What the ribbon's parts do
 
-(defn openMenu "Opens a button's drop-down, or its colour grid." [colors id]
-  (if colors (openColors id) (openDrop id)))
+(defn open-menu "Opens a button's drop-down, or its colour grid." [colors id]
+  (if colors (open-colors id) (open-drop id)))

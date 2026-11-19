@@ -216,7 +216,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen scmOpenDiff))
+     :onOpen scm-open-diff))
 
 (defview scm-changes-head "The changes' title and count, and Stash, Pop and Stage All." []
   `(row#scm-changes-head :visible ~computed.scmHasRepo :width "100%" :height 22 :alignItems center
@@ -263,7 +263,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen scmOpenDiff))
+     :onOpen scm-open-diff))
 
 ;;; Branches and history
 
@@ -286,7 +286,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-branch-list-close.tip")
        :hover {:textColor @color.text}
-       :onClick scmHideBranches)))
+       :onClick scm-hide-branches)))
 
 (defview scm-branch-list "The branches, the current one checked, and a field for a new one." []
   `(column#scm-branch-list :when ~state.scm.showBranches :width "100%" :grow 1
@@ -340,7 +340,7 @@
        :selectedTextColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onOpen scmOpenCommitFile)))
+       :onOpen scm-open-commit-file)))
 
 (defview scm-history-head "The history's title and count, and the button that hides it." []
   `(row#scm-history-head :width "100%" :height 22 :alignItems center
@@ -356,7 +356,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-history-close.tip")
        :hover {:textColor @color.text}
-       :onClick scmHideHistory)))
+       :onClick scm-hide-history)))
 
 ;;; The diff tab
 

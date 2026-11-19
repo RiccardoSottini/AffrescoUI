@@ -71,7 +71,7 @@
      :label ~(t "langName" {:code language})
      :tooltip ~(t "langName" {:code language})
      :selected ~(= state.locale language)
-     :onClick ~(handler setLocale language)))
+     :onClick ~(handler set-locale language)))
 
 (defview slow-toggle "The Slow network switch: a snail while the fake server takes its time." []
   `(node#slowToggle :style iconButton
@@ -117,7 +117,7 @@
        :cursor hand
        :focusable true
        :role button
-       :onClick staySignedIn)
+       :onClick stay-signed-in)
      (label#toastClose :font iconsSmall
        :icon x
        :text ""
@@ -127,5 +127,5 @@
        :focusable true
        :role button
        :label ~(t "close")
-       :onClick hideToast)
+       :onClick hide-toast)
      (node#toast-end :width 6 :color transparent)))

@@ -58,7 +58,7 @@
         `(node :id ~(str "section-link-" s)
            :style sectionLink
            :text ~(t (str "game.section." s))
-           :onClick ~(handler openSection g.id s)))))
+           :onClick ~(handler open-section g.id s)))))
 
 ;;; The play bar
 

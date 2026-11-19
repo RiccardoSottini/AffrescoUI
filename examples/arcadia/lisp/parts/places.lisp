@@ -20,7 +20,7 @@
 
 (defcomputed rtl "Whether the language is written right to left." (= (slice locale 0 2) "ar"))
 
-(defpart start "Arcadia opens on the page Settings choose." :onLoad openStartPage)
+(defpart start "Arcadia opens on the page Settings choose." :onLoad open-start-page)
 
 ;;; The pages
 

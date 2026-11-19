@@ -23,7 +23,7 @@
      :tooltip ~tooltip
      :label ~(or text tooltip)
      :selected ~(if on true nil)
-     :onClick ~(handler pressButton open run with)
+     :onClick ~(handler press-button open run with)
      (label :when ~(not= icon "")
        :font icons
        :icon ~icon
@@ -80,9 +80,9 @@
      :focusable true
      :label ~label
      :tooltip ~(t "field.frameTip" {:label label})
-     :onPress ~(handler startDrag value)
-     :onDrag ~(handler setFrameField key (+ state.dragStart (* event.dx 0.2)))
-     :keys {:right ~(handler setFrameField key (inc value)) :left ~(handler setFrameField key (dec value))}
+     :onPress ~(handler start-drag value)
+     :onDrag ~(handler set-frame-field key (+ state.dragStart (* event.dx 0.2)))
+     :keys {:right ~(handler set-frame-field key (inc value)) :left ~(handler set-frame-field key (dec value))}
      (label :when ~(not= key "frame") :text ~label :textColor @dim :x 7 :anchors {:top 0 :bottom 0} :fitText true)
      (label :text ~value
        :textColor @text
@@ -137,10 +137,10 @@
      :focusable true
      :label ~label
      :tooltip ~(t "field.dragTip")
-     :onPress ~(handler pressField key path value)
-     :onDrag ~(handler setField key axis path min max (+ state.dragStart (* event.dx step)))
-     :keys {:right ~(handler setField key axis path min max (+ value (* step 10)))
-            :left ~(handler setField key axis path min max (- value (* step 10)))}
+     :onPress ~(handler press-field key path value)
+     :onDrag ~(handler set-field key axis path min max (+ state.dragStart (* event.dx step)))
+     :keys {:right ~(handler set-field key axis path min max (+ value (* step 10)))
+            :left ~(handler set-field key axis path min max (- value (* step 10)))}
      (label :text ~text :textColor @text :align center :fill true)))
 
 (defmacro lock-on [key axis]
@@ -159,7 +159,7 @@
      :label ~(t "field.lock" {:label label})
      :selected ~(lock-on key axis)
      :tooltip ~(if (lock-on key axis) (t "field.locked") (t "field.lockIt"))
-     :onClick ~(handler toggleLock key axis)
+     :onClick ~(handler toggle-lock key axis)
      (label :font iconsSmall
        :text ""
        :align center
@@ -196,7 +196,7 @@
      :focusable true
      :label ~label
      :selected ~(true? checked)
-     :onClick ~(handler pressCheck path run with)
+     :onClick ~(handler press-check path run with)
      (node :anchors {:left "41%" :top 0 :bottom 0 :right 4} :color transparent
        (node :x 0 :y 3 :width 14 :height 14 :radius 3 :color ~(if checked "@kit.accent" "@widget")
          (label
@@ -237,7 +237,7 @@
        :focusable true
        :textColor @text
        :accentColor @kit.accent
-       :onChange ~(handler setColor target event.value))))
+       :onChange ~(handler set-color target event.value))))
 
 (defview color-swatch "The colour row's label and swatch; a click opens or closes the picker." [label value target key]
   `(node :height 20 :width "100%" :color transparent
@@ -253,7 +253,7 @@
        :label ~label
        :tooltip ~(t "field.colorTip" {:value value})
        :isOpen ~(true? (get state.panels key))
-       :onClick ~(handler openColor target key))))
+       :onClick ~(handler open-color target key))))
 
 ;;; Panels
 
@@ -271,7 +271,7 @@
      :disabled ~(not= needs "")
      :tooltip ~needs
      :isOpen ~(and (= needs "") (true? (get state.panels key)))
-     :onClick ~(handler togglePanel key)
+     :onClick ~(handler toggle-panel key)
      (label :font iconsSmall
        :icon ~(if (and (= needs "") (get state.panels key)) "chevron-down" "chevron-right")
        :text ""
@@ -322,7 +322,7 @@
      :color ~(if (true? item.checked) "@sel" "@toolGroup")
      :hover {:color ~(if (false? item.enabled) "@toolGroup" "@widgetHover")}
      :focused {:color @widgetHover}
-     :onClick ~(handler runItem item.run item.with)
+     :onClick ~(handler run-item item.run item.with)
      (label :when ~(some? item.icon)
        :text ""
        :icon ~item.icon

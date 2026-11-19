@@ -119,7 +119,7 @@
 
 (defn failed "Says what went wrong." [error] (set "state.message" error))
 
-(defn refreshChanges "Every half second: what the host wants shown, and whether what is shown has moved on." []
+(defn refresh-changes "Every half second: what the host wants shown, and whether what is shown has moved on." []
   (call "changes.list" :into "state.list" :then listed :onError ignored))
 
 (defn listed "Shows what the host asks for; or notes that the proposal shown was decided or updated." []
@@ -128,15 +128,15 @@
             (showSource state.list.source))
         (not= state.list.selectionCount state.selectionCount)
         (do (set "state.selectionCount" state.list.selectionCount)
-            (selectChange state.list.selection))
+            (select-change state.list.selection))
         computed.open
         (if-some [waiting (find #(= (:id %) state.view.proposal) state.list.proposals)]
           (when (not= (:head waiting) state.view.head)
             (set "state.stale" true)
-            (loadChange))
+            (load-change))
           (set "state.closed" true))))
 
-(defn selectChange "Shows a change: {:proposal id} or {:to commit}." [what]
+(defn select-change "Shows a change: {:proposal id} or {:to commit}." [what]
   (set "state.selected" what)
   (set "state.stale" false)
   (set "state.closed" false)
@@ -148,13 +148,13 @@
   (set "state.plan" nil)
   (set "state.keepPlan" nil)
   (set "state.asked" false)
-  (loadChange))
+  (load-change))
 
-(defn selectProposal "Shows a proposal." [id] (selectChange {:proposal id}))
+(defn select-proposal "Shows a proposal." [id] (select-change {:proposal id}))
 
-(defn selectCommit "Shows a commit." [id] (selectChange {:to id}))
+(defn select-commit "Shows a commit." [id] (select-change {:to id}))
 
-(defn loadChange "Asks the host for the change shown, in the notation chosen; then shows a file of it." []
+(defn load-change "Asks the host for the change shown, in the notation chosen; then shows a file of it." []
   (when-some [_ state.selected]
     (call "changes.load"
           :with (if-some [notation state.notation] (assoc state.selected :notation notation) state.selected)
@@ -166,9 +166,9 @@
   (openFile (if (some #(= (:file %) state.file) state.view.files)
               state.file
               (or (:file (first state.view.files)) "")))
-  (planUndo))
+  (plan-undo))
 
-(defn planUndo "Asks the host what undoing the commit shown would do: nothing changes until the person chooses." []
+(defn plan-undo "Asks the host what undoing the commit shown would do: nothing changes until the person chooses." []
   (when (and (some? state.view) (= state.view.kind :commit) (> state.view.revision 0))
     (call "changes.undoPlan" :with {:commit state.view.commit} :into "state.plan" :then planned :onError ignored)))
 
@@ -180,6 +180,7 @@
           :onError ignored)
     (set "state.keepPlan" nil)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn openFile "Asks the host for one file's texts, before and after." [file]
   (set "state.file" file)
   (if (= file "")
@@ -187,31 +188,33 @@
     (call "changes.load"
           :with (assoc state.selected :file file :notation state.view.notation)
           :into "state.opened"
-          :then [fileLoaded file]
+          :then [file-loaded file]
           :onError failed)))
 
-(defn fileLoaded "Shows the file's texts." [file]
+(defn file-loaded "Shows the file's texts." [file]
   (set "state.text" (find #(= (:file %) file) state.opened.files)))
 
-(defn setNotation "Shows the change's files in JSON or in Lisp." [notation]
+(defn set-notation "Shows the change's files in JSON or in Lisp." [notation]
   (set "state.notation" notation)
-  (loadChange))
+  (load-change))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setMode "Lays the diff out split or inline." [mode] (set "state.mode" mode))
 
+; style: keep, a parameter or a local has the same name
 (defn showSource "Shows the Source page for what the app asked: {:source at :line n}, the line optional." [asked]
   (set "state.message" "")
   (set "state.source" {:at asked.source})
   (call "changes.source"
         :with {:at asked.source :line asked.line}
         :into "state.source"
-        :then sourceLoaded
+        :then source-loaded
         :onError failed))
 
-(defn sourceLoaded "Says what the host answered went wrong, if anything: the page stays, with the error." []
+(defn source-loaded "Says what the host answered went wrong, if anything: the page stays, with the error." []
   (set "state.message" (or (:error state.source) "")))
 
-(defn showForScenario
+(defn show-for-scenario
   "For scenarios, in the host's place: event.list (with canAsk), event.selected, event.view, event.text, event.source,
   what changes.source answers, for the Source page, and event.plan and event.keepPlan, what changes.undoPlan answers."
   []
@@ -229,11 +232,12 @@
 
 (defn answered "Says what the host answered went wrong, if anything; then looks again." [result]
   (set "state.message" (or (:error result) ""))
-  (refreshChanges))
+  (refresh-changes))
 
-(defn previewChange "Shows the proposal in the app, or stops showing it." []
+(defn preview-change "Shows the proposal in the app, or stops showing it." []
   (call "changes.preview" :with {:proposal state.view.proposal} :then answered :onError ignored))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn acceptChange "Accepts the proposal, as the person read it (its head)." []
   (call "changes.accept"
         :with {:proposal state.view.proposal :head state.view.head}
@@ -244,7 +248,7 @@
   (when (nil? (:error result)) (set "state.closed" true))
   (answered result))
 
-(defn resolvePart "Settles a part a merge left out of the proposal: \"mine\" keeps main's value, \"theirs\" takes the
+(defn resolve-part "Settles a part a merge left out of the proposal: \"mine\" keeps main's value, \"theirs\" takes the
   proposal's (its head moves, so the change is shown again before it is accepted)." [path take]
   (call "changes.resolve"
         :with {:proposal state.view.proposal :path path :take take}
@@ -252,58 +256,63 @@
         :onError ignored))
 
 (defn resolved "Shows the proposal again as it is now, unless the host refused." [result]
-  (if (some? (:error result)) (answered result) (selectChange state.selected)))
+  (if (some? (:error result)) (answered result) (select-change state.selected)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn rejectChange "Rejects the proposal, telling its author why." []
   (call "changes.reject" :with {:proposal state.view.proposal :reason state.reason} :then rejected :onError ignored))
 
 (defn rejected "The proposal is decided." []
   (set "state.closed" true)
-  (refreshChanges))
+  (refresh-changes))
 
 (defn undone "Says what the host answered went wrong, if anything; then looks again, and plans the undo again." [result]
   (set "state.plan" nil)
   (set "state.keepPlan" nil)
   (answered result)
-  (planUndo))
+  (plan-undo))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn undoChange "Undoes the commit shown, keeping everything after it, as a new commit by the person." []
   (call "changes.undo" :with {:commit state.view.commit} :then undone :onError ignored))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn undoDropping "Undoes the commit shown and takes out the later changes built on it, as the plan showed them." []
   (call "changes.undo"
         :with {:commit state.view.commit :drop "all" :head state.plan.head}
         :then undone
         :onError ignored))
 
-(defn undoLeaving "Undoes the rest of the commit shown, and leaves the later changes built on it as the plan showed." []
+(defn undo-leaving "Undoes the rest of the commit shown, and leaves the later changes built on it as the plan showed." []
   (call "changes.undo"
         :with {:commit state.view.commit :keep "all" :head state.plan.head}
         :then undone
         :onError ignored))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn askAssistant "Asks the app's assistant to undo the commit shown and keep what was built on it: it proposes." []
   (call "changes.askUndo" :with {:commit state.view.commit :text computed.askText}
     :then assistantAsked :onError ignored))
 
+; style: keep, assistant-asked is already a definition
 (defn assistantAsked "Says the assistant was asked, or what the host answered went wrong." [result]
   (set "state.message" (or (:error result) ""))
   (set "state.asked" (nil? (:error result))))
 
 (defpart host "The actions the host and scenarios run by name."
-  :actions {:changes.refresh [{:lisp refreshChanges}]
-            :changes.show [{:lisp showForScenario}]
-            :changes.select [{:lisp selectChange}]
-            :changes.load [{:lisp loadChange}]
+  :actions {:changes.refresh [{:lisp refresh-changes}]
+            :changes.show [{:lisp show-for-scenario}]
+            :changes.select [{:lisp select-change}]
+            :changes.load [{:lisp load-change}]
             :changes.open [{:lisp openFile}]
-            :changes.setNotation [{:lisp setNotation}]
-            :changes.preview [{:lisp previewChange}]
+            :changes.setNotation [{:lisp set-notation}]
+            :changes.preview [{:lisp preview-change}]
             :changes.accept [{:lisp acceptChange}]
             :changes.reject [{:lisp rejectChange}]
             :changes.undo [{:lisp undoChange}]
-            :changes.planUndo [{:lisp planUndo}]
+            :changes.planUndo [{:lisp plan-undo}]
             :changes.undoDropping [{:lisp undoDropping}]
-            :changes.undoLeaving [{:lisp undoLeaving}]
+            :changes.undoLeaving [{:lisp undo-leaving}]
             :changes.askUndo [{:lisp askAssistant}]})
 
 ;;; The look
@@ -341,7 +350,7 @@
      :color ~(if (and computed.isProposal (= state.view.proposal p.id)) "@c.selected" "transparent")
      :selected ~(and computed.isProposal (= state.view.proposal p.id))
      :label ~p.message
-     :onClick ~(handler selectProposal p.id)
+     :onClick ~(handler select-proposal p.id)
      (label :text ~p.message :textColor @c.text :anchors {:left 10 :right 10 :top 8} :height 18)
      (label :text ~(t "changes.by" {:author p.author})
        :textColor @c.muted
@@ -360,7 +369,7 @@
      :color ~(if (and (some? state.view) (= state.view.commit c.id)) "@c.selected" "transparent")
      :selected ~(and (some? state.view) (= state.view.commit c.id))
      :label ~(if (zero? c.number) (t "changes.original") c.message)
-     :onClick ~(handler selectCommit c.id)
+     :onClick ~(handler select-commit c.id)
      (label :text ~(if (zero? c.number) (t "changes.original") c.message)
        :textColor @c.text
        :anchors {:left 10 :right 10 :top 8}
@@ -416,7 +425,7 @@
      :borderColor @c.border
      :label ~text
      :focused {:borderColor @c.accent :borderWidth 1}
-     :onClick ~(handler setNotation notation)
+     :onClick ~(handler set-notation notation)
      :width ~width
      :selected ~(= state.view.notation notation)
      ~(face text "@c.text")))
@@ -566,7 +575,7 @@
        :borderColor @c.border
        :label ~(t "changes.showChange")
        :focused {:borderColor @c.accent :borderWidth 1}
-       :onClick ~(handler selectCommit state.source.blame.id)
+       :onClick ~(handler select-commit state.source.blame.id)
        :width 170
        (label :text ~(t "changes.showChange")
          :textColor @c.text
@@ -690,7 +699,7 @@
      :label ~(t "changes.undoLeaving")
      :disabled ~computed.leaveBlocked
      :focused {:borderColor @c.accent :borderWidth 1}
-     :onClick undoLeaving
+     :onClick undo-leaving
      :width 230
      (label :text ~(t "changes.undoLeaving")
        :textColor ~(if computed.leaveBlocked "@c.muted" "@c.text")
@@ -736,7 +745,7 @@
          :borderColor @c.border
          :label ~(t "changes.keepMine")
          :focused {:borderColor @c.accent :borderWidth 1}
-         :onClick ~(handler resolvePart part.path "mine")
+         :onClick ~(handler resolve-part part.path "mine")
          :width 120
          (label :text ~(t "changes.keepMine") :textColor @c.text :anchors {:left 10 :right 10 :top 7} :height 18 :align center))
        (node :id ~(str "changesUseTheirs" index)
@@ -750,7 +759,7 @@
          :borderColor @c.border
          :label ~(t "changes.useTheirs")
          :focused {:borderColor @c.accent :borderWidth 1}
-         :onClick ~(handler resolvePart part.path "theirs")
+         :onClick ~(handler resolve-part part.path "theirs")
          :width 120
          (label :text ~(t "changes.useTheirs") :textColor @c.text :anchors {:left 10 :right 10 :top 7} :height 18 :align center)))))
 
@@ -824,7 +833,7 @@
        :borderColor @c.border
        :label ~(t (if computed.previewing "changes.endPreview" "changes.preview"))
        :focused {:borderColor @c.accent :borderWidth 1}
-       :onClick previewChange
+       :onClick preview-change
        :width 130
        (label :text ~(t (if computed.previewing "changes.endPreview" "changes.preview"))
          :textColor @c.text
@@ -844,14 +853,14 @@
   "The list on the left; on the right the change shown, its files and their diff, and the decision, or the Source page."
   :window {:title "Changes" :width 1120 :height 740 :minWidth 760 :minHeight 480}
   :theme ~window.colorScheme
-  :onLoad refreshChanges
+  :onLoad refresh-changes
   :fonts {:default {:file "../fonts/Roboto-Regular.ttf" :size 14 :fallback [icons]}
           :small {:file "../fonts/Roboto-Regular.ttf" :size 12}
           :heading {:file "../fonts/Roboto-Regular.ttf" :size 18 :bold true}
           :code {:file "../fonts/JetBrainsMono-Regular.ttf" :size 13}
           :icons {:file "../fonts/Lucide.ttf" :size 15}}
   :strings {:default en}
-  (node#changesRoot :color @c.background :every {:ms 500 :do refreshChanges}
+  (node#changesRoot :color @c.background :every {:ms 500 :do refresh-changes}
     (row#changesLayout :fill 16 :gap 16
       ~(side)
       ~(source-page)

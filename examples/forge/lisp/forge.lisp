@@ -16,17 +16,17 @@
                            :debounce 100
                            :ignore [".git/**" "**/node_modules/**" "**/build/**" "**/out/**" "**/dist/**" "**/target/**"]}
              :search {:provider search :root workspace}}
-  :onLoad openWorkspace
+  :onLoad open-workspace
   :exports {:editor.text (string :value ~(or-else computed.activeDoc.text "") :description "The text of the editor in focus.")
             ; style: keep, #(...) can't give a map
             :workspace.files (array :value ~(map (fn [it] {:id it.id :name it.label :text it.text})
                                                  (filter #(= (:kind %) :file) state.docs))
                                :description "The open files: id, name and text.")})
 
-(defn openWorkspace "On load: the folder the host opened, its tree listed and its files indexed for Go to File." []
+(defn open-workspace "On load: the folder the host opened, its tree listed and its files indexed for Go to File." []
   (set "state.folder.root" (or-else services.files.folder ""))
   (explorerRefresh)
-  (when (seq state.folder.root) (indexFolder)))
+  (when (seq state.folder.root) (index-folder)))
 
 ;;; The catalogue's features
 
@@ -34,19 +34,20 @@
 
 (defstate featureStatus "")
 
+; style: keep, named in examples/forge/lisp/features.scenarios.json
 (defn refreshFeatures "Lists the features of the example catalogue." []
   (invoke "features.catalog" :into "state.featureRows"))
 
-(defn installFeature "Installs the feature `event.name` from the catalogue, by a revision the permissions review." []
-  (invoke "features.install" :with {:name event.name} :onDone featureDone :onError featureFailed))
+(defn install-feature "Installs the feature `event.name` from the catalogue, by a revision the permissions review." []
+  (invoke "features.install" :with {:name event.name} :onDone feature-done :onError feature-failed))
 
-(defn upgradeFeature "Upgrades the feature `event.name` to the catalogue's release." []
-  (invoke "features.upgrade" :with {:name event.name} :onDone featureDone :onError featureFailed))
+(defn upgrade-feature "Upgrades the feature `event.name` to the catalogue's release." []
+  (invoke "features.upgrade" :with {:name event.name} :onDone feature-done :onError feature-failed))
 
-(defn featureDone "What the service says of an install or an upgrade." [result]
+(defn feature-done "What the service says of an install or an upgrade." [result]
   (set "state.featureStatus" result.status))
 
-(defn featureFailed "Why an install or an upgrade failed." [error]
+(defn feature-failed "Why an install or an upgrade failed." [error]
   (set "state.featureStatus" error.message))
 
 ;;; The language, and the assistant's colours
@@ -72,13 +73,13 @@
 
 ;;; What the others use
 
-(defn activeTabs "The active editor group's tabs." []
+(defn active-tabs "The active editor group's tabs." []
   (get-in state.groups [state.activeGroup :tabs]))
 
-(defn activeTabId "The id of the active group's tab shown: a file's path, or a page's id." []
+(defn active-tab-id "The id of the active group's tab shown: a file's path, or a page's id." []
   (get-in state.groups [state.activeGroup :active]))
 
-(defn baseName "A path's last part: a file's or a folder's name." [path]
+(defn base-name "A path's last part: a file's or a folder's name." [path]
   (last (str/split path "/" -1)))
 
 ; style: keep, the features of both packages run on this doseq, and the tree keeps its definition

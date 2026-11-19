@@ -36,7 +36,7 @@
   (when-not (contains state.tabs file) (push "state.tabs" file))
   (set "state.active" file))
 
-(defn closeNow "Closes a file's tab: the next tab takes its place, and Reopen Closed File brings it back." [file]
+(defn close-now "Closes a file's tab: the next tab takes its place, and Reopen Closed File brings it back." [file]
   (set "state.closing.open" false)
   (push "state.closed" file)
   (remove-state "state.tabs" :at (indexOf state.tabs file))
@@ -46,13 +46,13 @@
 (defn close "Closes a file's tab; an unsaved file asks first." [file]
   (if (:dirty (file-at file))
     (set "state.closing" {:open true :file file})
-    (closeNow file)))
+    (close-now file)))
 
-(defn closeSaved "Closes the tabs of those files that are saved." [files]
+(defn close-saved "Closes the tabs of those files that are saved." [files]
   (doseq [f files]
-    (when-not (:dirty (file-at f)) (closeNow f))))
+    (when-not (:dirty (file-at f)) (close-now f))))
 
-(defn applySettings
+(defn apply-settings
   "Saves the Settings file and applies its values; a broken one stays unsaved, with an error in the console."
   [file]
   (let [values (parseJsonc (:text (file-at file)))]
@@ -69,32 +69,33 @@
         (set (place file "saved") (:text (file-at file)))
         (set (place file "dirty") false)))))
 
+; style: keep, named in tests/unit/checker.cpp, tools/affrescoui/check.py
 (defn saveFile "Saves a file; the Settings file applies its values instead." [file]
   (if (:settings (file-at file))
-    (applySettings file)
+    (apply-settings file)
     (do (set (place file "saved") (:text (file-at file)))
         (set (place file "dirty") false))))
 
-(defn saveAndClose "Saves the file being closed, then closes it." []
+(defn save-and-close "Saves the file being closed, then closes it." []
   (saveFile state.closing.file)
-  (findProblems)
-  (closeNow state.closing.file))
+  (find-problems)
+  (close-now state.closing.file))
 
-(defn discardAndClose "Throws away the changes to the file being closed, then closes it." []
+(defn discard-and-close "Throws away the changes to the file being closed, then closes it." []
   (let [f state.closing.file]
     (set (place f "text") (:saved (file-at f)))
     (set (place f "dirty") false)
-    (closeNow f)))
+    (close-now f)))
 
-(defn closeOthersOf "Shows a tab and closes the other saved ones." [file]
+(defn close-others-of "Shows a tab and closes the other saved ones." [file]
   (set "state.active" file)
-  (closeSaved (filter #(not= % state.active) state.tabs)))
+  (close-saved (filter #(not= % state.active) state.tabs)))
 
-(defn closeToTheRight "Closes the saved tabs after a file's." [file]
+(defn close-to-the-right "Closes the saved tabs after a file's." [file]
   (let [at (indexOf state.tabs file)]
-    (closeSaved (drop (inc at) state.tabs))))
+    (close-saved (drop (inc at) state.tabs))))
 
-(defn openVirtual "Opens the file of that name outside the project, made with the text the first time."
+(defn open-virtual "Opens the file of that name outside the project, made with the text the first time."
   [name text readOnly]
   (let [found (fn [] (find #(and (= (:name (file-at %)) name) (nil? (:folder (file-at %))))
                            (range (count state.files))))]
@@ -103,7 +104,7 @@
                            :readOnly readOnly :settings (not readOnly)}))
     (open (found))))
 
-(defn pickTreeRow "A file row opens the file, a folder row opens or closes the folder." []
+(defn pick-tree-row "A file row opens the file, a folder row opens or closes the folder." []
   (let [row event.value]
     (if (str/starts-with? row "d:")
       (set "state.expanded" (if (contains state.expanded row)
@@ -113,7 +114,7 @@
 
 ;;; Places in a file
 
-(defn goToPlace "Goes to a row with a file (opened) and a line, and selects its column and length if it has them."
+(defn go-to-place "Goes to a row with a file (opened) and a line, and selects its column and length if it has them."
   [item]
   (let [{:keys [file line]} item]
     (cond (and (some? file) (>= file 0) (not= file state.active))
@@ -128,13 +129,13 @@
             (edit "select" :in "#editor" :line line :column column
                   :toLine line :toColumn (+ column (or-else (:length item) 0)))))))
 
-(defn openProblem "A problem row chosen: its id is 'file:line'." []
+(defn open-problem "A problem row chosen: its id is 'file:line'." []
   (let [id (or-else event.id event.value)
         [f line] (map number (str/split id ":"))]
     (set "state.problemPick" id)
-    (goToPlace {:file f :line line :column 1 :length 0})))
+    (go-to-place {:file f :line line :column 1 :length 0})))
 
-(defn openResult
+(defn open-result
   "A line of the Search Results buffer: a match line ('   12: text') opens its file, the path line above it, there."
   [line]
   (let [lines (str/split (:text (file-at computed.resultsFile)) "\n")]
@@ -145,13 +146,14 @@
                          (find #(and (not (str/starts-with? % " ")) (str/ends-with? % ":"))))
             path (slice heading 0 -1)
             found (slice match (+ (indexOf match ": ") 2))]
-        (goToPlace {:file (indexOf (map path-of state.files) path)
+        (go-to-place {:file (indexOf (map path-of state.files) path)
                     :line (-> match (str/split ":") first str/trim number)
                     :column (inc (indexOf (lower found) (lower state.results.query)))
                     :length (length state.results.query)})))))
 
 ;;; The console
 
+; style: keep, named in tests/fuzz/CMakeLists.txt, tests/fuzz/corpus.py, mcp/test_affrescoui_mcp.py and more
 (defn runCommand "Runs what the console's prompt holds." []
   (when-not (str/blank? state.command)
     (push "state.terminal" {:t (str "$ " state.command) :c :prompt})
@@ -162,7 +164,7 @@
         (push "state.terminal" out)))
     (set "state.command" "")))
 
-(defn typeCommand "Runs a console command as if typed." [name]
+(defn type-command "Runs a console command as if typed." [name]
   (set "state.panelOpen" true)
   (set "state.panelTab" :terminal)
   (set "state.command" name)
@@ -170,11 +172,11 @@
 
 (defcommand build "Runs the build in the console."
   :description ~(t "command.build.about") :title ~(t "command.build") :category ~(t "category.tools") :icon hammer []
-  (typeCommand "build"))
+  (type-command "build"))
 
 (defcommand runApp "Runs the program in the console."
   :description ~(t "command.runApp.about") :title ~(t "command.runApp") :category ~(t "category.tools") :icon play []
-  (typeCommand "run"))
+  (type-command "run"))
 
 ;;; At the start
 
@@ -189,9 +191,9 @@
           (= (rem i 1000) 507) (str "    // TODO: recalibrate sensor " sensor " after the winter readings")
           :else (str "    raw += " (rem (* i 37) 1000) " / 1000.0;"))))
 
-(defn indexAll "Finds the symbols of every file, then the problems." []
-  (doseq [f (range (count state.files))] (indexFile f))
-  (findProblems))
+(defn index-all "Finds the symbols of every file, then the problems." []
+  (doseq [f (range (count state.files))] (index-file f))
+  (find-problems))
 
 (defn prepare
   "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems."
@@ -199,7 +201,7 @@
   (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
   (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
   (set "state.symbolIndex" (map (constantly []) state.files))
-  (indexAll))
+  (index-all))
 
 ;;; File commands
 
@@ -209,12 +211,12 @@
   :description ~(t "command.save.about") :title ~(t "command.save") :category ~(t "category.file") :icon save
   :enablement ~(file-open) []
   (saveFile state.active)
-  (findProblems))
+  (find-problems))
 
 (defcommand saveAll "Saves every file."
   :description ~(t "command.saveAll.about") :title ~(t "command.saveAll") :category ~(t "category.file") :icon save []
   (doseq [f (range (count state.files))] (saveFile f))
-  (findProblems))
+  (find-problems))
 
 (defcommand closeTab "Closes this file."
   :description ~(t "command.closeTab.about") :title ~(t "command.closeTab") :category ~(t "category.file") :icon x
@@ -225,14 +227,14 @@
   :description ~(t "command.closeAll.about") :title ~(t "command.closeAll")
   :category ~(t "category.file") :enablement ~(pos? (count state.tabs))
   []
-  (closeSaved state.tabs)
+  (close-saved state.tabs)
   (when-first [f state.tabs] (close f)))
 
 (defcommand closeOthers "Closes the other saved files."
   :description ~(t "command.closeOthers.about") :title ~(t "command.closeOthers") :category ~(t "category.file")
   :enablement ~(> (count state.tabs) 1)
   []
-  (closeSaved (filter #(not= % state.active) state.tabs)))
+  (close-saved (filter #(not= % state.active) state.tabs)))
 
 (defcommand reopenClosed "Opens the file closed last."
   :description ~(t "command.reopenClosed.about") :title ~(t "command.reopenClosed") :category ~(t "category.file")
@@ -245,50 +247,50 @@
   :description ~(t "command.refreshFolders.about") :title ~(t "command.refreshFolders")
   :category ~(t "category.project")
   []
-  (indexAll))
+  (index-all))
 
 (defcommand openSettings "Opens the settings, as a JSON file."
   :description ~(t "command.openSettings.about") :title ~(t "command.openSettings")
   :category ~(t "category.preferences") :icon settings []
-  (openVirtual "Settings.json" computed.settingsText false))
+  (open-virtual "Settings.json" computed.settingsText false))
 
 (defcommand openKeyBindings "Opens the key bindings, as a JSON file to read."
   :description ~(t "command.openKeyBindings.about") :title ~(t "command.openKeyBindings")
   :category ~(t "category.preferences")
   :icon keyboard
   []
-  (openVirtual "Key Bindings.json" computed.keysText true))
+  (open-virtual "Key Bindings.json" computed.keysText true))
 
 ;;; Find
 
-(defn findStep "Asks the editor's find for a step: next, previous, replace, replaceAll or first." [step]
+(defn find-step "Asks the editor's find for a step: next, previous, replace, replaceAll or first." [step]
   (set "state.findBar.step" step)
   (increment "state.findBar.request" :by 1))
 
-(defn toggleFind "Turns one of the find panel's options over, and finds again from the start." [option]
+(defn toggle-find "Turns one of the find panel's options over, and finds again from the start." [option]
   (let [where (str "state.findBar." option)]
     (set where (not (get state.findBar option)))
-    (findStep :first)))
+    (find-step :first)))
 
 (defmacro find-open "When the find panel is open: a binding's form." [] 'state.findBar.open)
 
 (defcommand findNext ""
-  :title ~(t "command.findNext") :category ~(t "category.find") :enablement ~(find-open) [] (findStep :next))
+  :title ~(t "command.findNext") :category ~(t "category.find") :enablement ~(find-open) [] (find-step :next))
 (defcommand findPrevious ""
-  :title ~(t "command.findPrevious") :category ~(t "category.find") :enablement ~(find-open) [] (findStep :previous))
+  :title ~(t "command.findPrevious") :category ~(t "category.find") :enablement ~(find-open) [] (find-step :previous))
 (defcommand replaceOne ""
-  :title ~(t "command.replaceOne") :category ~(t "category.find") :enablement ~(find-open) [] (findStep :replace))
+  :title ~(t "command.replaceOne") :category ~(t "category.find") :enablement ~(find-open) [] (find-step :replace))
 (defcommand replaceAllInFile ""
   :title ~(t "command.replaceAllInFile") :category ~(t "category.find")
-  :enablement ~(find-open) [] (findStep :replaceAll))
+  :enablement ~(find-open) [] (find-step :replaceAll))
 (defcommand toggleFindRegex ""
-  :title ~(t "command.toggleFindRegex") :category ~(t "category.find") [] (toggleFind "regex"))
+  :title ~(t "command.toggleFindRegex") :category ~(t "category.find") [] (toggle-find "regex"))
 (defcommand toggleFindCase ""
-  :title ~(t "command.toggleFindCase") :category ~(t "category.find") [] (toggleFind "caseSensitive"))
+  :title ~(t "command.toggleFindCase") :category ~(t "category.find") [] (toggle-find "caseSensitive"))
 (defcommand toggleFindWord ""
-  :title ~(t "command.toggleFindWord") :category ~(t "category.find") [] (toggleFind "wholeWord"))
+  :title ~(t "command.toggleFindWord") :category ~(t "category.find") [] (toggle-find "wholeWord"))
 (defcommand toggleFindInSelection ""
-  :title ~(t "command.toggleFindInSelection") :category ~(t "category.find") [] (toggleFind "inSelection"))
+  :title ~(t "command.toggleFindInSelection") :category ~(t "category.find") [] (toggle-find "inSelection"))
 
 ;;; The editor's own commands
 
@@ -337,48 +339,48 @@
 
 ;;; What the views do, the scans, and the commands
 
-(defn findAsTyped "Finds the text in the file as it is typed, unless the panel searches the files." []
+(defn find-as-typed "Finds the text in the file as it is typed, unless the panel searches the files." []
   (when-not (true? state.findBar.inFiles)
-    (findStep :first)))
+    (find-step :first)))
 
-(defn submitFind "Enter in the find field: searches the files, or finds the next match in the file." []
-  (if (true? state.findBar.inFiles) (searchFiles) (findNext)))
+(defn submit-find "Enter in the find field: searches the files, or finds the next match in the file." []
+  (if (true? state.findBar.inFiles) (search-files) (findNext)))
 
-(defn submitReplace "Enter in the replace field: replaces in the files, or once in the file." []
+(defn submit-replace "Enter in the replace field: replaces in the files, or once in the file." []
   (if (true? state.findBar.inFiles) (replaceInFiles) (replaceOne)))
 
-(defn showFile "Shows a file's tab." [file]
+(defn show-file "Shows a file's tab." [file]
   (set "state.active" file))
 
-(defn expandFolder "Opens a folder of the tree, or closes it." [id expanded]
+(defn expand-folder "Opens a folder of the tree, or closes it." [id expanded]
   (set "state.expanded" (if expanded (conj state.expanded id) (remove #(= % id) state.expanded))))
 
-(defn openTabMenu "Opens a tab's menu at the pointer; from the keyboard, the active tab's." [x y id]
+(defn open-tab-menu "Opens a tab's menu at the pointer; from the keyboard, the active tab's." [x y id]
   (set "state.tabMenu" {:open true :x x :y y :file (if (some? id) (number id) state.active)}))
 
-(defn moveTab "Moves a dragged tab from one place in the tab bar to another." [from to file]
+(defn move-tab "Moves a dragged tab from one place in the tab bar to another." [from to file]
   (remove-state "state.tabs" :at from)
   (set "state.tabs" (concat (slice state.tabs 0 to) [file] (slice state.tabs to))))
 
-(defn editorShown "A file shown in the editor: the caret at its start, or at the place a search asked for." []
+(defn editor-shown "A file shown in the editor: the caret at its start, or at the place a search asked for." []
   (set "state.caret" {:line 1 :column 1 :selected 0})
   (when-some [place state.place]
     (set "state.place" nil)
-    (goToPlace place)))
+    (go-to-place place)))
 
-(defn markDirty "Marks a file as changed since it was saved, unless it is a scratch buffer." [file]
+(defn mark-dirty "Marks a file as changed since it was saved, unless it is a scratch buffer." [file]
   (set (place file "dirty") (not (:scratch (file-at file)))))
 
-(defn openEditorMenu "Opens the editor's menu at the pointer, kept inside the editor." [x y left top width height]
+(defn open-editor-menu "Opens the editor's menu at the pointer, kept inside the editor." [x y left top width height]
   (set "state.editorMenu" {:open true
                            :x (min x (-> x (- left) (+ width) (- 240)))
                            :y (min y (-> y (- top) (+ height) (- 204)))}))
 
-(defn resultClicked "A double click on a line of the search results opens the file at that line." [file line]
+(defn result-clicked "A double click on a line of the search results opens the file at that line." [file line]
   (when (:scratch (file-at file))
-    (openResult line)))
+    (open-result line)))
 
-(defn liftAssistant "Keeps the assistant's button above the find panel." []
+(defn lift-assistant "Keeps the assistant's button above the find panel." []
   (set "state.assistant.lift" computed.findHeight))
 
 (defn line-problems "A file's problems: each line with TODO, a warning, or FIXME, an error." [f]
@@ -392,7 +394,7 @@
                                  (slice line (indexOf line (if fixme "FIXME" "TODO")))]})))
                   (str/split (or-else saved text) "\n"))))
 
-(defn findProblems "Every line with TODO or FIXME in the saved files, as rows of the problems table." []
+(defn find-problems "Every line with TODO or FIXME in the saved files, as rows of the problems table." []
   (set "state.problems" (->> state.files count range (mapcat line-problems) vec)))
 
 (defn symbol-kind "What a line declares: a heading (#), a class or a struct (c), else a function (f)." [text]
@@ -419,7 +421,7 @@
 (def badge-colors "The colour of each kind of symbol's badge."
   {"#" "@badgeHeading" "c" "@badgeClass" "f" "@badgeFunction"})
 
-(defn indexFile "Finds a file's symbols, for Find Symbol (@) and Find Symbol in Project; a scratch file has none."
+(defn index-file "Finds a file's symbols, for Find Symbol (@) and Find Symbol in Project; a scratch file has none."
   [file]
   (let [it (file-at file)]
     (when-not (:scratch it)
@@ -446,7 +448,7 @@
 (defcommand quickOpen "Opens the Quick Switcher: a file, file@symbol or file:line."
   :description ~(t "command.quickOpen.about") :title ~(t "command.quickOpen") :category ~(t "category.go")
   :icon "search" []
-  (when (>= state.active 0) (indexFile state.active))
+  (when (>= state.active 0) (index-file state.active))
   (set "state.quickPick.query" "")
   (set "state.quickPick.open" true))
 
@@ -539,7 +541,7 @@
 (defcommand goToSymbol "Finds a symbol of the file (@)."
   :description ~(t "command.goToSymbol.about") :title ~(t "command.goToSymbol") :category ~(t "category.go")
   :icon "at-sign" :enablement ~(>= state.active 0) []
-  (indexFile state.active)
+  (index-file state.active)
   (set "state.quickPick.query" "@")
   (set "state.quickPick.open" true))
 
@@ -558,7 +560,7 @@
 (defcommand goToSymbolInProject "Finds a symbol in every file of the project."
   :description ~(t "command.goToSymbolInProject.about") :title ~(t "command.goToSymbolInProject")
   :category ~(t "category.go") :icon "at-sign" []
-  (indexFile state.active)
+  (index-file state.active)
   (set "state.symbolPick.query" "")
   (set "state.symbolPick.open" true))
 
@@ -590,11 +592,11 @@
                   (str/join "\n" (map #(str (pad (inc %) 6 " ") ": " (get original %)) hits))
                   "\n\n")})))
 
-(defn searchFiles
+(defn search-files
   "Writes every matching line of the files 'Where' names into the Search Results buffer, as Find in Files does."
   []
   (when (seq state.findBar.text)
-    (scopeFiles)
+    (scope-files)
     (let [query state.findBar.text
           case state.findBar.caseSensitive
           needle (if (true? case) query (str/lower-case query))
@@ -625,14 +627,14 @@
                (str/blank? where)
                (some #(str/includes? (path-of file) (str/trim %)) (str/split where "," -1)))))))
 
-(defn scopeFiles "Sets the files Find in Files searches, by 'Where'." []
+(defn scope-files "Sets the files Find in Files searches, by 'Where'." []
   (set "state.findBar.scope" (->> state.files count range (filterv in-scope?))))
 
 (defcommand replaceInFiles
   "Lists the matches in Search Results, then replaces them (plain text, case sensitive) in the files 'Where' names"
   :description ~(t "command.replaceInFiles.about") :title ~(t "command.replaceInFiles")
   :category ~(t "category.find") :enablement ~(and state.findBar.inFiles (not (empty? state.findBar.text))) []
-  (searchFiles)
+  (search-files)
   (doseq [f state.findBar.scope
           :let [text (:text (file-at f))]
           :when (str/includes? text state.findBar.text)]
@@ -642,13 +644,13 @@
 (defcommand nextResult "Goes to the next line of the search results."
   :description ~(t "command.nextResult.about") :title ~(t "command.nextResult") :category ~(t "category.find")
   :enablement ~(pos? (count computed.resultLines)) []
-  (openResult (or-else (find #(> % state.results.at) computed.resultLines) (first computed.resultLines))))
+  (open-result (or-else (find #(> % state.results.at) computed.resultLines) (first computed.resultLines))))
 
 (defcommand previousResult "Goes to the line of the search results before."
   :description ~(t "command.previousResult.about") :title ~(t "command.previousResult")
   :category ~(t "category.find") :enablement ~(pos? (count computed.resultLines)) []
   (let [before (filter #(< % state.results.at) computed.resultLines)]
-    (openResult (or-else (last before) (last computed.resultLines)))))
+    (open-result (or-else (last before) (last computed.resultLines)))))
 
 (defcommand toggleMinimap "Shows the minimap, or hides it."
   :description ~(t "command.toggleMinimap.about") :title ~(t "command.toggleMinimap") :category ~(t "category.view")
@@ -667,7 +669,7 @@
   (set "state.themePick"
        {:open true :query "" :index (indexOf (map :pick computed.themes) state.theme)}))
 
-(defn setTheme "Takes the theme of a row of the theme picker." [item]
+(defn set-theme "Takes the theme of a row of the theme picker." [item]
   (set "state.theme" item.pick))
 
 (defcommand toggleTheme "Switches between light and dark."
@@ -680,7 +682,7 @@
   :icon "code" :enablement ~(>= state.active 0) []
   (set "state.syntaxPick" {:open true :query ""}))
 
-(defn setSyntax "Gives the open file a row of the syntax picker: its language (commands) and its grammar (colours)."
+(defn set-syntax "Gives the open file a row of the syntax picker: its language (commands) and its grammar (colours)."
   [item]
   (set "state.files[state.active].language" item.language)
   (set "state.files[state.active].grammar" item.grammar))

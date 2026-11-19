@@ -18,7 +18,7 @@
 
 (defkey "space" togglePlay)
 
-(defkey "shift+1" dayZero)
+(defkey "shift+1" day-zero)
 
 (defkey "shift+k" realTime)
 
