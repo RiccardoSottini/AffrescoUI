@@ -260,6 +260,12 @@ def is_count_zero(form):
             or (is_call(second, "count") and isinstance(first, Atom) and first.text == "0"))
 
 
+def is_camel_case_definition(form):
+    """A function, a value or a view whose name has an upper-case letter: Clojure writes `cards-of`, not `cardsOf`."""
+    return (is_call(form, "defn", "defn-", "def", "defview") and len(form.items) > 1 and isinstance(form.items[1], Atom)
+            and any(character.isupper() for character in form.items[1].text))
+
+
 def call_depth(form):
     """How deep calls nest in a form written on one line (a call is 1); 0 for anything else."""
     if not (isinstance(form, Form) and form.opener == "(" and form.line == form.last):
@@ -286,6 +292,7 @@ RULES = {
     "filter-some-map": (lambda form: is_call(form, "filter") and len(form.items) > 2 and isinstance(form.items[1], Atom)
                         and form.items[1].text == "some?" and is_call(form.items[2], "map"), True),
     "four-nested-calls": (lambda form: call_depth(form) >= 4, False),
+    "camel-case-name": (is_camel_case_definition, False),
     "entry-include": (lambda form: False, False),  # top level only: counted by count_file
 }
 
@@ -534,6 +541,7 @@ SNIPPETS = {
     "string-function": ("(defn f [s] (trim s))", "(defn f [s] (str/trim s))"),
     "filter-some-map": ("(defn f [xs] (filter some? (map g xs)))", "(defn f [xs] (keep g xs))"),
     "four-nested-calls": ("(defn f [x] (a (b (c (d x)))))", "(defn f [x]\n  (a (b (c\n           (d x)))))"),
+    "camel-case-name": ("(defn cardsOf [c] c)", "(defn cards-of [c] c)"),
     "entry-include": ('(include "a.lisp")', '(ns app.index (:require [app.a]))'),
 }
 
