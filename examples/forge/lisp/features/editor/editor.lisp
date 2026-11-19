@@ -10,72 +10,72 @@
 
 ;;; Opening files
 
-(defn openPath "Opens a file in a pinned tab of the active group: its path in the folder, and its label." [path label]
-  (openBuffer path label false))
+(defn open-path "Opens a file in a pinned tab of the active group: its path in the folder, and its label." [path label]
+  (open-buffer path label false))
 
-(defn openPreview "Opens a file in the preview tab, which the next preview replaces." [path label]
-  (openBuffer path label true))
+(defn open-preview "Opens a file in the preview tab, which the next preview replaces." [path label]
+  (open-buffer path label true))
 
-(defn openBuffer "Shows a file already open, or reads it first." [path label preview]
+(defn open-buffer "Shows a file already open, or reads it first." [path label preview]
   (if (contains computed.docIds path)
-    (showFileTab path label preview)
+    (show-file-tab path label preview)
     (invoke "files.read"
             :with {:path path}
-            :onError [openBufferFailed label]
-            :onDone [openBufferDone path label preview])))
+            :onError [open-buffer-failed label]
+            :onDone [open-buffer-done path label preview])))
 
-(defn openBufferDone "A file just read: kept as the editor shows it, its language told by its name, then shown."
+(defn open-buffer-done "A file just read: kept as the editor shows it, its language told by its name, then shown."
   [path label preview result]
   (push "state.docs"
         {:id path
          :label label
          :kind "file"
-         :text (asShown result.text)
-         :saved (asShown result.text)
-         :eol (lineEndings result.text)
-         :savedEol (lineEndings result.text)
+         :text (as-shown result.text)
+         :saved (as-shown result.text)
+         :eol (line-endings result.text)
+         :savedEol (line-endings result.text)
          :dirty false
          :language (if (= label "CMakeLists.txt")
                      "CMake"
                      (or-else (get state.languages (str/lower-case (last (str/split label "." -1)))) ""))})
-  (showFileTab path label preview))
+  (show-file-tab path label preview))
 
-(defn openBufferFailed "Says why a file couldn't be opened." [label error]
+(defn open-buffer-failed "Says why a file couldn't be opened." [label error]
   (notify "error" (t "notify.cannotOpen" {:file label :error error.message})))
 
-(defn asShown "A file's text as the editor shows it: no carriage returns, and a tab as the tab size's spaces." [text]
+(defn as-shown "A file's text as the editor shows it: no carriage returns, and a tab as the tab size's spaces." [text]
   (-> text (str/replace "\r" "") (str/replace "\t" (pad "" (or-else settings.editor.tabSize 4) " "))))
 
-(defn lineEndings "Which line endings a file's text has: CRLF or LF." [text]
+(defn line-endings "Which line endings a file's text has: CRLF or LF." [text]
   (if (str/includes? text "\r\n") "CRLF" "LF"))
 
-(defn previewSelectedFile "The explorer's selection, a file, opens in the preview tab." []
+(defn preview-selected-file "The explorer's selection, a file, opens in the preview tab." []
   (when (= (:kind (find #(= (:path %) event.value) state.explorerTree.entries)) :file)
-    (openPreview event.value (baseName event.value))))
+    (open-preview event.value (base-name event.value))))
 
 (defpart follow-explorer "A file chosen in the explorer opens in the preview tab."
-  :watch {:state.explorer.selected previewSelectedFile})
+  :watch {:state.explorer.selected preview-selected-file})
 
 ;;; Tabs
 
-(defn showFileTab
+(defn show-file-tab
   "Shows an open file's tab in the active group: pinned, or as the preview, which replaces the last one."
   [id label preview]
-  (forgeRecordNav id)
+  (forge-record-nav id)
   (cond
-    (some #(= (:id %) id) (activeTabs)) (when-not preview (pinTab id))
-    (and preview (some :preview (activeTabs))) (replacePreview id label (:id (find :preview (activeTabs))))
+    (some #(= (:id %) id) (active-tabs)) (when-not preview (pin-tab id))
+    (and preview (some :preview (active-tabs))) (replace-preview id label (:id (find :preview (active-tabs))))
     :else (push (str "state.groups[" state.activeGroup "].tabs") {:id id :label label :preview preview}))
   (set (str "state.groups[" state.activeGroup "].active") id)
-  (rememberRecent id label))
+  (remember-recent id label))
 
-(defn replacePreview "The preview tab becomes another file's; the file it showed is let go." [id label old]
+(defn replace-preview "The preview tab becomes another file's; the file it showed is let go." [id label old]
   (set (str "state.groups[" state.activeGroup "].tabs")
        (map #(if (:preview %) {:id id :label label :preview true} %)
             (get-in state.groups [state.activeGroup :tabs])))
-  (releaseBuffer old))
+  (release-buffer old))
 
-(defn pinTab "A preview tab stays: the next preview opens beside it." [id]
+(defn pin-tab "A preview tab stays: the next preview opens beside it." [id]
   (set "state.groups"
        ; style: keep, #(...) can't hold another #(...)
        (map (fn [group] (update group :tabs (partial map #(if (= (:id %) id) (assoc % :preview false) %))))
@@ -85,19 +85,19 @@
   :title ~(t "command.keepEditor") :category ~(t "category.view") :icon "pin"
   :description ~(t "command.keepEditor.about")
   :enablement ~(some :preview (get-in state.groups [state.activeGroup :tabs])) []
-  (pinTab (activeTabId)))
+  (pin-tab (active-tab-id)))
 
-(defn releaseBuffer "Lets go of a file no tab shows any more, unless it has unsaved edits." [id]
+(defn release-buffer "Lets go of a file no tab shows any more, unless it has unsaved edits." [id]
   ; style: keep, #(...) can't hold another #(...)
   (when (and (not-any? (fn [group] (some #(= (:id %) id) (:tabs group))) state.groups)
              (some #(and (= (:id %) id) (= (:kind %) :file) (not (:dirty %))) state.docs))
     (set "state.docs" (remove #(= (:id %) id) state.docs))
-    (lspClosed id)))
+    (lsp-closed id)))
 
-(defn focusGroup "A click in an editor group makes it the active one." [gi]
+(defn focus-group "A click in an editor group makes it the active one." [gi]
   (set "state.activeGroup" gi))
 
-(defn closeTab "Closes a tab of a group; a group left empty closes too, unless it is the last." [gi id]
+(defn close-tab "Closes a tab of a group; a group left empty closes too, unless it is the last." [gi id]
   (set (str "state.groups[" gi "].tabs") (remove #(= (:id %) id) (get-in state.groups [gi :tabs])))
   (when (= (get-in state.groups [gi :active]) id)
     (set (str "state.groups[" gi "].active") (get-in state.groups [gi :tabs 0 :id])))
@@ -105,20 +105,20 @@
     (remove-state "state.groups" :at gi)
     (set "state.activeGroup" 0)
     (set "state.layout.groupSizes" []))
-  (releaseBuffer id))
+  (release-buffer id))
 
 ;;; Editing and saving
 
-(defn textChanged "A file's editor changed its text (`event.value`): it is dirty while the text isn't the one saved."
+(defn text-changed "A file's editor changed its text (`event.value`): it is dirty while the text isn't the one saved."
   [id]
   (doseq [doc (filter #(= (:id %) id) state.docs)]
     (let [dirty (or (not= event.value doc.saved) (not= doc.eol doc.savedEol))]
-      (when (not= dirty doc.dirty) (markDirty id dirty))))
-  (lspChanged id))
+      (when (not= dirty doc.dirty) (mark-dirty id dirty))))
+  (lsp-changed id))
 
-(defn markDirty "Marks a file as edited or saved; an edit pins its tab." [id dirty]
+(defn mark-dirty "Marks a file as edited or saved; an edit pins its tab." [id dirty]
   (set "state.docs" (map #(if (= (:id %) id) (assoc % :dirty dirty) %) state.docs))
-  (when dirty (pinTab id)))
+  (when dirty (pin-tab id)))
 
 (defcommand save "Writes the active file."
   :title ~(t "command.save") :description ~(t "command.save") :category ~(t "category.file") :icon "save"
@@ -130,13 +130,14 @@
   :enablement ~(> (count computed.dirtyIds) 0) []
   (doseq [doc (filter #(and (= (:kind %) :file) (:dirty %)) state.docs)] (saveFile doc)))
 
+; style: keep, named in tools/affrescoui/check.py
 (defn saveFile "Writes an open file's text, with its line endings, and marks it saved." [doc]
   (invoke "files.write"
           :with {:path doc.id :text (if (= doc.eol "CRLF") (str/replace doc.text "\n" "\r\n") doc.text)}
-          :onError [saveFileFailed doc]
-          :onDone [saveFileDone doc]))
+          :onError [save-file-failed doc]
+          :onDone [save-file-done doc]))
 
-(defn saveFileDone "The text written is the file's saved text; edits made since keep it dirty." [doc]
+(defn save-file-done "The text written is the file's saved text; edits made since keep it dirty." [doc]
   (set "state.docs"
        (map (fn [it]
               (if (= it.id doc.id)
@@ -144,19 +145,19 @@
                 it))
             state.docs)))
 
-(defn saveFileFailed "Says why a file couldn't be saved." [doc error]
+(defn save-file-failed "Says why a file couldn't be saved." [doc error]
   (notify "error" (t "notify.cannotSave" {:file doc.label :error error.message})))
 
 (defcommand revertFile "Reads the file again, dropping the edits."
   :title ~(t "command.revertFile") :category ~(t "category.file") :icon "undo"
   :description ~(t "command.revertFile.about")
   :enablement ~(and (= computed.activeDoc.kind "file") computed.activeDoc.dirty) []
-  (invoke "files.read" :with {:path computed.activeDoc.id} :onError revertFileFailed :onDone revertFileDone))
+  (invoke "files.read" :with {:path computed.activeDoc.id} :onError revert-file-failed :onDone revert-file-done))
 
-(defn revertFileDone "The file as it is on disk replaces the edited text." [result]
+(defn revert-file-done "The file as it is on disk replaces the edited text." [result]
   (reloaded computed.activeDoc.id result.text))
 
-(defn revertFileFailed "Says why the file couldn't be read again." [error]
+(defn revert-file-failed "Says why the file couldn't be read again." [error]
   (notify "error" (t "notify.cannotRevert" {:error error.message})))
 
 (defn reloaded
@@ -166,7 +167,7 @@
        (map (fn [it]
               (if (= it.id id)
                 (assoc it
-                       :text (asShown text) :saved (asShown text) :eol (lineEndings text) :savedEol (lineEndings text)
+                       :text (as-shown text) :saved (as-shown text) :eol (line-endings text) :savedEol (line-endings text)
                        :dirty false)
                 it))
             state.docs)))

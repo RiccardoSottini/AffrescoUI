@@ -43,13 +43,13 @@
   (set "state.quickPick.query" ":")
   (set "state.quickPick.open" true))
 
-(defn openPicked "A file picked in the palette opens in a tab." [item]
-  (openPath item.id item.title))
+(defn open-picked "A file picked in the palette opens in a tab." [item]
+  (open-path item.id item.title))
 
-(defn goToPicked "A line picked in the palette: the caret goes there." [item]
-  (goToLine item.line))
+(defn go-to-picked "A line picked in the palette: the caret goes there." [item]
+  (go-to-line item.line))
 
-(defn goToLine "The active editor's caret goes to a line, from 1." [line]
+(defn go-to-line "The active editor's caret goes to a line, from 1." [line]
   (set "state.goTo.line" line)
   (increment "state.goTo.request" :by 1))
 
@@ -106,16 +106,19 @@
   (set "state.quickPick.query" "language ")
   (set "state.quickPick.open" true))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setTabSize "The spaces per indentation level, for every editor (a file's text keeps the spaces it has)."
   [spaces]
   (set "settings.editor.tabSize" spaces))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setEol "The line endings the active file is saved with, LF or CRLF: a change to save, like an edit."
   [eol]
   (doseq [doc (filter #(= (:id %) computed.activeDoc.id) state.docs)]
-    (markDirty doc.id (or (not= doc.text doc.saved) (not= eol doc.savedEol)))
+    (mark-dirty doc.id (or (not= doc.text doc.saved) (not= eol doc.savedEol)))
     (set "state.docs" (map #(if (= (:id %) doc.id) (assoc % :eol eol) %) state.docs))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setLanguage "The active file's language, as state.languages names them ('' is plain text)." [language]
   (set "state.docs" (map #(if (= (:id %) computed.activeDoc.id) (assoc % :language language) %) state.docs)))
 
@@ -156,12 +159,12 @@
 (defcommand openSettings "Open Settings"
   :title ~(t "command.openSettings")
   :description ~(t "command.openSettings") :category ~(t "category.preferences") :icon "settings" []
-  (openPage "forge:settings" (t "page.settings") "settings"))
+  (open-page "forge:settings" (t "page.settings") "settings"))
 
 (defcommand openKeybindings "Open Keyboard Shortcuts"
   :title ~(t "command.openKeybindings")
   :description ~(t "command.openKeybindings") :category ~(t "category.preferences") :icon "keyboard" []
-  (openPage "forge:keybindings" (t "page.keybindings") "keybindings"))
+  (open-page "forge:keybindings" (t "page.keybindings") "keybindings"))
 
 (defkey "mod+," openSettings)
 
@@ -169,16 +172,16 @@
 
 ;;; Settings
 
-(defn showSettingsGroup "The settings page shows one group's settings ('' for every one)." [query]
+(defn show-settings-group "The settings page shows one group's settings ('' for every one)." [query]
   (set "state.settingsQuery" query))
 
-(defn setSetting "A setting's new value, by its key." [key value]
+(defn set-setting "A setting's new value, by its key." [key value]
   (set (str "settings." key) value))
 
-(defn setNumberSetting "A number typed for a setting, kept once it reads as one." [key text]
-  (when-some [n (number text)] (setSetting key n)))
+(defn set-number-setting "A number typed for a setting, kept once it reads as one." [key text]
+  (when-some [n (number text)] (set-setting key n)))
 
-(defn resetSetting "A setting back to its default: the value set is taken away." [key]
+(defn reset-setting "A setting back to its default: the value set is taken away." [key]
   (remove-state (str "settings." key)))
 
 (defcustom workbench.statusBar.visible true

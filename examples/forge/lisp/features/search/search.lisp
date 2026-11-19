@@ -37,11 +37,12 @@
   :description ~(t "command.findInFiles") :category ~(t "category.search") :icon "search" []
   (set "state.sideView" :search)
   (set "state.layout.sidebar" true)
-  (after 0 findInFilesLater))
+  (after 0 find-in-files-later))
 
-(defn findInFilesLater "Focuses the query field once the view is shown." []
+(defn find-in-files-later "Focuses the query field once the view is shown." []
   (focus "#search-query"))
 
+; style: keep, named in examples/forge/lisp/controls.scenarios.json, examples/forge/lisp/search.scenarios.json, tests/render/scenarios/forge.json
 (defn runSearch
   "Searches again for the query, after cancelling the search running; nothing without a query or a folder."
   []
@@ -52,9 +53,9 @@
     (str/blank? state.search.query) (do (set "state.search.result" nil) (set "state.search.ran" nil))
     (empty? state.folder.root)
       (do (set "state.search.result" nil) (set "state.search.error" (t "search.noFolder")))
-    :else (startSearch)))
+    :else (start-search)))
 
-(defn startSearch "Starts a search with the view's options; build output and dependencies are left out." []
+(defn start-search "Starts a search with the view's options; build output and dependencies are left out." []
   (set "state.search.ran"
        {:pattern state.search.query
         :regex state.search.regex
@@ -68,14 +69,14 @@
           :id "forge-search"
           :timeout 600000
           :loading "state.search.busy"
-          :onEvent startSearchEvent
-          :onError startSearchFailed
-          :onDone startSearchDone))
+          :onEvent start-search-event
+          :onError start-search-failed
+          :onDone start-search-done))
 
-(defn startSearchEvent "A file's matches, as they come." [event]
-  (searchFound event))
+(defn start-search-event "A file's matches, as they come." [event]
+  (search-found event))
 
-(defn startSearchDone "The search is over: the files in order, and Output says how many matches." [result]
+(defn start-search-done "The search is over: the files in order, and Output says how many matches." [result]
   (set "state.search.result"
        (assoc state.search.result
               :tree (sort-by :id state.search.result.tree)
@@ -84,10 +85,10 @@
               :done true))
   (log-line (t "log.search" {:matches state.search.result.matches :files state.search.result.files})))
 
-(defn startSearchFailed "Says why the search failed, unless it was cancelled." [error]
+(defn start-search-failed "Says why the search failed, unless it was cancelled." [error]
   (when (not= error.code "cancelled") (set "state.search.result" nil) (set "state.search.error" error.message)))
 
-(defn searchFound
+(defn search-found
   "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
   [found]
   (let [{:keys [file matches]} found
@@ -97,7 +98,7 @@
          (-> state.search.result
              (assoc :tree (concat tree
                                   [{:id (str "file:" file)
-                                    :label (str (baseName file)
+                                    :label (str (base-name file)
                                                 (if (str/includes? file "/") (str "  " folder) "")
                                                 "  ("
                                                 (count matches)
@@ -109,7 +110,7 @@
                                                            matches)}])
                     :hits (concat hits
                                   ; style: keep, #(...) can't give a map
-                                  (map (fn [match] {:file file :label (baseName file) :line match.line :column match.column})
+                                  (map (fn [match] {:file file :label (base-name file) :line match.line :column match.column})
                                        matches)))
              (update :files inc)
              (update :matches + (count matches))))))
@@ -138,27 +139,28 @@
         (filter #(not (contains state.search.collapsed %)) (map :id state.search.result.tree))
         []))
 
+; style: keep, named in examples/forge/lisp/search.scenarios.json
 (defn openSearchHit "A row of the results tree, opened: a match at its line, or a file." []
   (cond
-    (str/starts-with? (or-else event.id "") "hit:") (openSearchMatch (get state.search.result.hits (number (subs event.id 4))))
-    (str/starts-with? (or-else event.id "") "file:") (openPath (subs event.id 5) (baseName event.id))))
+    (str/starts-with? (or-else event.id "") "hit:") (open-search-match (get state.search.result.hits (number (subs event.id 4))))
+    (str/starts-with? (or-else event.id "") "file:") (open-path (subs event.id 5) (base-name event.id))))
 
-(defn openSearchMatch "Opens a match's file at its line." [hit]
-  (when-some [{:keys [file label line]} hit] (openPath file label) (goToLine line)))
+(defn open-search-match "Opens a match's file at its line." [hit]
+  (when-some [{:keys [file label line]} hit] (open-path file label) (go-to-line line)))
 
 (defcommand searchDismiss "Take the selected file or match out of the results; the files stay as they are."
   :title ~(t "command.searchDismiss") :category ~(t "category.search") :icon "close"
   :description ~(t "command.searchDismiss.about")
   :enablement ~(and (some? state.search.result) state.search.result.done (not (empty? (or-else state.search.selected "")))) []
   (if (str/starts-with? state.search.selected "file:")
-    (searchDismissFile (find #(= (:id %) state.search.selected) state.search.result.tree))
-    (searchDismissHit
+    (search-dismiss-file (find #(= (:id %) state.search.selected) state.search.result.tree))
+    (search-dismiss-hit
       state.search.selected
       ; style: keep, #(...) can't hold another #(...)
       (find (fn [file] (some #(= (:id %) state.search.selected) (:children file))) state.search.result.tree)))
   (set "state.search.selected" nil))
 
-(defn searchDismissFile "Takes a file and its matches out of the results." [file]
+(defn search-dismiss-file "Takes a file and its matches out of the results." [file]
   (when-some [{:keys [id children]} file]
     (set "state.search.result"
          (-> state.search.result
@@ -166,10 +168,10 @@
              (update :files dec)
              (update :matches - (count children))))))
 
-(defn searchDismissHit "Takes a match out of the results, and its file when it was the last." [hit file]
+(defn search-dismiss-hit "Takes a match out of the results, and its file when it was the last." [hit file]
   (when-some [{:keys [id children label]} file]
     (if (<= (count children) 1)
-      (searchDismissFile file)
+      (search-dismiss-file file)
       (let [counted (str "(" (count children) ")")
             shown (assoc file
                          :children (remove #(= (:id %) hit) children)
@@ -179,18 +181,18 @@
                  (update :tree (partial map #(if (= (:id %) id) shown %)))
                  (update :matches dec)))))))
 
-(defn searchExpand "A file of the results opened or closed (`event.expanded`): it is remembered." []
+(defn search-expand "A file of the results opened or closed (`event.expanded`): it is remembered." []
   (set "state.search.collapsed"
        (if (true? event.expanded)
          (remove #(= % event.id) state.search.collapsed)
          (concat state.search.collapsed [event.id]))))
 
-(defn searchMenu "The results' menu, opened where the right-click was." []
+(defn search-menu "The results' menu, opened where the right-click was." []
   (set "state.search.x" event.x)
   (set "state.search.y" event.y)
   (set "state.search.menu" true))
 
-(defn toggleSearchOption "Turns an option of the query on or off: caseSensitive, wholeWord or regex." [option]
+(defn toggle-search-option "Turns an option of the query on or off: caseSensitive, wholeWord or regex." [option]
   (toggle (str "state.search." option)))
 
 ;;; The results in an editor
@@ -217,35 +219,37 @@
   "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
   :title ~(t "command.openSearchEditor") :category ~(t "category.search") :icon "file-text"
   :description ~(t "command.openSearchEditor.about") :enablement ~(some? state.search.result) []
-  (openPage "forge:search-results" (t "page.searchResults") "searchResults"))
+  (open-page "forge:search-results" (t "page.searchResults") "searchResults"))
 
-(defn openSearchEditorLine "The results editor's line at the caret, opened." []
-  (openSearchRow (or-else (get computed.searchEditorRows (dec (or-else state.searchEditor.caret.line 1))) {:id ""})))
+(defn open-search-editor-line "The results editor's line at the caret, opened." []
+  (open-search-row (or-else (get computed.searchEditorRows (dec (or-else state.searchEditor.caret.line 1))) {:id ""})))
 
-(defn openSearchRow "A row of the results, opened: a match at its line, or a file." [row]
+(defn open-search-row "A row of the results, opened: a match at its line, or a file." [row]
   (cond
-    (str/starts-with? row.id "hit:") (openSearchMatch (get state.search.result.hits (number (subs row.id 4))))
-    (str/starts-with? row.id "file:") (openPath (subs row.id 5) (baseName row.id))))
+    (str/starts-with? row.id "hit:") (open-search-match (get state.search.result.hits (number (subs row.id 4))))
+    (str/starts-with? row.id "file:") (open-path (subs row.id 5) (base-name row.id))))
 
 ;;; Replace All
 
+; style: keep, named in examples/forge/lisp/search.scenarios.json
 (defn askReplace "Asks before replacing, when the search found something." []
   (when (and (some? state.search.result) (true? state.search.result.done) (pos? state.search.result.files))
     (set "state.search.confirm" true)))
 
+; style: keep, named in examples/forge/lisp/search.scenarios.json, examples/forge/lisp/commands.scenarios.json
 (defn replaceAll "Replaces every match, one file at a time; open files with unsaved edits are skipped."
   []
   (let [files (map #(subs (:id %) 5) state.search.result.tree)
         dirty? #(contains computed.dirtyIds %)]
     (set "state.search.replacing" {:queue (remove dirty? files) :skipped (filter dirty? files) :replaced 0 :changed [] :failed []}))
-  (replaceNext))
+  (replace-next))
 
-(defn replaceNext "Replaces in the next file, or ends." []
+(defn replace-next "Replaces in the next file, or ends." []
   (if (empty? state.search.replacing.queue)
-    (replaceFinished state.search.replacing)
-    (replaceFile state.search.replacing.queue.0)))
+    (replace-finished state.search.replacing)
+    (replace-file state.search.replacing.queue.0)))
 
-(defn replaceFile "Replaces a file's matches, then writes it." [file]
+(defn replace-file "Replaces a file's matches, then writes it." [file]
   (set "state.search.replacing.queue" (slice state.search.replacing.queue 1))
   (invoke "search.replace"
           :with {:path file
@@ -254,44 +258,44 @@
                  :wholeWord state.search.ran.wholeWord
                  :caseSensitive state.search.ran.caseSensitive
                  :replacement state.search.replace}
-          :onError [replaceFileFailed file]
-          :onDone [replaceFileDone file]))
+          :onError [replace-file-failed file]
+          :onDone [replace-file-done file]))
 
-(defn replaceFileDone "A file's text with its matches replaced: written, unless none was." [file result]
-  (if (= result.replacements 0) (replaceNext) (replaceWrite file result.text result.replacements)))
+(defn replace-file-done "A file's text with its matches replaced: written, unless none was." [file result]
+  (if (= result.replacements 0) (replace-next) (replace-write file result.text result.replacements)))
 
-(defn replaceFileFailed "Notes a file whose matches couldn't be replaced." [file error]
-  (replaceFailed file error.message))
+(defn replace-file-failed "Notes a file whose matches couldn't be replaced." [file error]
+  (replace-failed file error.message))
 
-(defn replaceWrite "Writes a file whose matches were replaced." [file text replacements]
+(defn replace-write "Writes a file whose matches were replaced." [file text replacements]
   (invoke "files.write"
           :with {:path file :text text}
-          :onError [replaceWriteFailed file]
-          :onDone [replaceWriteDone replacements file]))
+          :onError [replace-write-failed file]
+          :onDone [replace-write-done replacements file]))
 
-(defn replaceWriteDone "Counts a file written, then goes on." [replacements file]
+(defn replace-write-done "Counts a file written, then goes on." [replacements file]
   (set "state.search.replacing.replaced" (+ state.search.replacing.replaced replacements))
   (set "state.search.replacing.changed" (concat state.search.replacing.changed [file]))
-  (replaceNext))
+  (replace-next))
 
-(defn replaceWriteFailed "Notes a file that couldn't be written." [file error]
-  (replaceFailed file error.message))
+(defn replace-write-failed "Notes a file that couldn't be written." [file error]
+  (replace-failed file error.message))
 
-(defn replaceFailed "Notes a file that failed, then goes on." [file message]
+(defn replace-failed "Notes a file that failed, then goes on." [file message]
   (set "state.search.replacing.failed" (concat state.search.replacing.failed [{:file file :error message}]))
-  (replaceNext))
+  (replace-next))
 
-(defn replaceFinished
+(defn replace-finished
   "Replacing is over: the open files that changed read again, a notice of what was done, the search run again."
   [done]
   (set "state.search.replacing" nil)
   (set "state.search.reload" (filter #(contains computed.docIds %) done.changed))
-  (doseq [file state.search.reload] (invoke "files.read" :with {:path file} :onDone [replaceFinishedDone file]))
+  (doseq [file state.search.reload] (invoke "files.read" :with {:path file} :onDone [replace-finished-done file]))
   (notify (if (or (seq done.failed) (seq done.skipped)) "warning" "info")
           (str (t "notify.replaced" {:matches done.replaced :files (count done.changed)})
                (if (seq done.skipped) (t "notify.replacedSkipped" {:n (count done.skipped)}) "")
                (if (seq done.failed) (t "notify.replacedFailed" {:n (count done.failed)}) "")))
   (runSearch))
 
-(defn replaceFinishedDone "An open file read again after a replace." [file result]
+(defn replace-finished-done "An open file read again after a replace." [file result]
   (reloaded file result.text))

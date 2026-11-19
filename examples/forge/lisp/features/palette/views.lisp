@@ -14,15 +14,15 @@
             :accent @color.accent
             :highlight @color.selection
             :field @color.input
-            :providers [{:items ~(or-else state.folder.files []) :run openPicked :placeholder ~(t "palette.searchFilesBy")}
+            :providers [{:items ~(or-else state.folder.files []) :run open-picked :placeholder ~(t "palette.searchFilesBy")}
                         {:prefix ">" :items ~computed.commandItems :placeholder ~(t "palette.runACommand")}
-                        {:prefix ":" :items ~computed.lineItems :run goToPicked :placeholder ~(t "palette.typeALine")}
+                        {:prefix ":" :items ~computed.lineItems :run go-to-picked :placeholder ~(t "palette.typeALine")}
                         {:prefix "theme "
                          :items ~state.themes
                          :key name
-                         :run setTheme
+                         :run set-theme
                          :placeholder ~(t "palette.chooseAColour")}
-                        {:prefix "task " :items ~state.tasks.items :run taskStart :placeholder ~(t "palette.chooseATask")}
+                        {:prefix "task " :items ~state.tasks.items :run task-start :placeholder ~(t "palette.chooseATask")}
                         {:prefix "indent " :items ~computed.indentItems :placeholder ~(t "palette.selectTheSpaces")}
                         {:prefix "eol " :items ~computed.eolItems :placeholder ~(t "palette.selectTheEnd")}
                         {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}]}))
@@ -94,7 +94,7 @@
      :cursor hand
      :fitText true
      :anchors {:right 16 :top 8}
-     :onClick ~(handler resetSetting s.key)))
+     :onClick ~(handler reset-setting s.key)))
 
 (defview setting-slider "A number setting with bounds: a slider." []
   `(slider#setting-slider :when ~(and (not= s.type :boolean) (some? s.minimum) (some? s.maximum))
@@ -122,7 +122,7 @@
      :anchors {:left 16 :top 52}
      :color @color.input
      :textColor @color.text
-     :onChange ~(handler setNumberSetting s.key event.value)))
+     :onChange ~(handler set-number-setting s.key event.value)))
 
 ;;; The keyboard shortcuts page
 
@@ -166,7 +166,7 @@
           :radius 4
           :color ~(if (= state.settingsQuery group.query) "@color.selection" "@color.editor")
           :tooltip ~(if (empty? group.query) (t "settings-toc.every") (t "settings-toc.group" {:group group.label}))
-          :onClick ~(handler showSettingsGroup group.query)
+          :onClick ~(handler show-settings-group group.query)
           (label :text ~group.label
             :anchors {:left 16 :top 5}
             :fitText true
@@ -215,4 +215,4 @@
           :borderColor ~(if (= s.value choice) "@color.accent" "@color.border")
           :color ~(if (= s.value choice) "@color.selection" "@color.input")
           :textColor @color.text
-          :onClick ~(handler setSetting s.key choice)))))
+          :onClick ~(handler set-setting s.key choice)))))

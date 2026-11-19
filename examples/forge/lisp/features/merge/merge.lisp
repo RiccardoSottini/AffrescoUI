@@ -82,18 +82,18 @@
 (defcommand acceptCurrentChange "Keep the lines above the conflict's =======, the file's own, and drop the markers."
   :title ~(t "command.acceptCurrentChange") :category ~(t "category.mergeConflict") :icon "arrow-up"
   :description ~(t "command.acceptCurrentChange.about") :enablement ~(some? computed.conflictAtCaret) []
-  (acceptConflict "current"))
+  (accept-conflict "current"))
 
 (defcommand acceptIncomingChange
   "Keep the lines below the conflict's =======, the ones being merged in, and drop the markers."
   :title ~(t "command.acceptIncomingChange") :category ~(t "category.mergeConflict") :icon "arrow-down"
   :description ~(t "command.acceptIncomingChange.about") :enablement ~(some? computed.conflictAtCaret) []
-  (acceptConflict "incoming"))
+  (accept-conflict "incoming"))
 
 (defcommand acceptBothChanges "Keep both sides, the current one first, and drop the markers."
   :title ~(t "command.acceptBothChanges") :category ~(t "category.mergeConflict") :icon "list-plus"
   :description ~(t "command.acceptBothChanges.about") :enablement ~(some? computed.conflictAtCaret) []
-  (acceptConflict "both"))
+  (accept-conflict "both"))
 
 (defcommand nextConflict "Next Conflict"
   :title ~(t "command.nextConflict")
@@ -103,10 +103,10 @@
   (set "state.goTo.column" 1)
   (increment "state.goTo.request" :by 1))
 
-(defn acceptConflict "Resolves the conflict at the caret, keeping the current side, the incoming one or both (`keep`)."
+(defn accept-conflict "Resolves the conflict at the caret, keeping the current side, the incoming one or both (`keep`)."
   [keep]
   (when-some [conflict computed.conflictAtCaret]
-    (setConflictText
+    (set-conflict-text
       computed.activeDoc.id
       (str/join "\n"
                 (concat (slice computed.conflictLines 0 conflict.start)
@@ -118,7 +118,7 @@
                         (if (not= keep "current") (slice computed.conflictLines (inc conflict.mid) conflict.end) [])
                         (slice computed.conflictLines (inc conflict.end)))))))
 
-(defn setConflictText "A file's new text, after a conflict is resolved: dirty while it isn't the one saved." [id text]
+(defn set-conflict-text "A file's new text, after a conflict is resolved: dirty while it isn't the one saved." [id text]
   (set "state.docs" (map #(if (= (:id %) id) (merge % {:text text}) %) state.docs))
   (doseq [doc (filter #(= (:id %) id) state.docs)]
-    (markDirty id (or (not= doc.text doc.saved) (not= doc.eol doc.savedEol)))))
+    (mark-dirty id (or (not= doc.text doc.saved) (not= doc.eol doc.savedEol)))))

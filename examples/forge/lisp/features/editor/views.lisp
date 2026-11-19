@@ -15,7 +15,7 @@
      :sashColor @color.border
      :sashActiveColor @color.accent
      ~(repeat [g state.groups :index gi]
-       `(column#group :color @color.editor :onClick ~(handler focusGroup gi)
+       `(column#group :color @color.editor :onClick ~(handler focus-group gi)
           ~(group-tabs g gi)
           (node :when ~(and settings.breadcrumbs.enabled
                             (some #(and (= (:id %) g.active) (= (:kind %) :file)) state.docs))
@@ -43,10 +43,10 @@
                           :icon (:icon (tab-icon %))
                           :iconColor (:color (tab-icon %))})
                  g.tabs)
-     :onClose {:run closeTab :with {:gi ~gi :id ~event.id}}
+     :onClose {:run close-tab :with {:gi ~gi :id ~event.id}}
      :drag {}
-     :onDrop {:run moveTabToGroup :with {:id ~event.data.id :to ~gi :at ~event.index}}
-     :onMove {:run reorderTab :with {:gi ~gi :from ~event.from :to ~event.to}}))
+     :onDrop {:run move-tab-to-group :with {:id ~event.data.id :to ~gi :at ~event.index}}
+     :onMove {:run reorder-tab :with {:gi ~gi :from ~event.from :to ~event.to}}))
 
 (defmacro tab-icon
   ;; A macro, not a function: what it writes stays an expression, worked out at its speed.
@@ -92,7 +92,7 @@
      :width "100%"
      :grow 1
      :bind "state.docs[d].text"
-     :onChange ~(handler textChanged (doc-of d :id))
+     :onChange ~(handler text-changed (doc-of d :id))
      :language ~(doc-of d :language)
      :grammar ~(doc-of d :label)
      :lineNumbers ~settings.editor.lineNumbers
@@ -113,13 +113,13 @@
                            (map :mark (filter #(= (:path %) (doc-of d :id)) computed.debugMarks))
                            (if (= gi state.activeGroup) computed.conflictDecorations []))
      :tokens ~(or-else (:tokens (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
-     :onTextHover lspHoverAt
-     :onType lspTyped
+     :onTextHover lsp-hover-at
+     :onType lsp-typed
      :popup ~(and (= gi state.activeGroup) state.lsp.completion.open)
      :onPopupKey lspPopupKey
      :insert ~(if (and (= gi state.activeGroup) (> state.lsp.insert.request 0)) state.lsp.insert nil)
-     :onGutterClick ~(handler debugGutterClick (doc-of d :id))
-     :onWordHover ~(handler debugHover (doc-of d :id))
+     :onGutterClick ~(handler debug-gutter-click (doc-of d :id))
+     :onWordHover ~(handler debug-hover (doc-of d :id))
      :keys ~debugger-keys
      :commands ~line-commands
      ~@editor-colours))
