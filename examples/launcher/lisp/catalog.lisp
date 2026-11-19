@@ -59,7 +59,7 @@
                (t "apps.openLabel" {:name app.name :tagline (t (str "tagline." app.id))}))
      :hover {:borderColor @c.accent :shadow {:y 8 :blur 22 :color @c.shadow}}
      :focused {:borderColor @c.accent :borderWidth 2}
-     :onClick ~(handler openApp app)
+     :onClick ~(handler open-app app)
      ~(card-cover app)
      (label#cardName :text ~app.name :font strong :textColor @c.text :anchors {:left 16 :right 52 :top 178} :height 22)
      ~(card-tagline app)
@@ -78,7 +78,7 @@
        :anchors {:right 10 :top 172}
        :tooltip ~(t "apps.startFrom" {:name app.name})
        :label ~(t "apps.startFrom" {:name app.name})
-       :onClick ~(handler startFrom app.id))))
+       :onClick ~(handler start-from app.id))))
 
 (defview card-cover "The card's picture: an example's cover, or the initial of the person's app." [app]
   `(node#cardCoverFrame :anchors {:left 10 :right 10 :top 10} :height 156 :radius 10 :color @c.raised
