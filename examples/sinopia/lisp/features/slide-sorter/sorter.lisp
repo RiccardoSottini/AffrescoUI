@@ -10,6 +10,7 @@
 
 ;;; What it does
 
+; style: keep, a feature's names start with its id, as its composition requires
 (defn slideSorter-selected
   "The selected page: the app's current page, else the one picked last."
   [current]
@@ -39,6 +40,7 @@
 
 ;;; What it shows
 
+; style: keep, a feature's names start with its id, as its composition requires
 (defview slideSorter-header
   "The strip's header: how many pages there are, and the button that duplicates the selected one."
   []
@@ -48,6 +50,7 @@
      (label#slideSorter-duplicate :width 24 :height 24 :icon copy :cursor hand :tooltip "Duplicate page"
        :textColor @text :onClick ~(handler slideSorter.duplicate (slideSorter-selected app.current)))))
 
+; style: keep, a feature's names start with its id, as its composition requires
 (defview slideSorter-page
   "One page: its thumbnail, framed in the accent when it is the selected one, and its name. Dragged onto another page,
   it takes that page's place; clicked, it is selected."
@@ -63,6 +66,7 @@
      (label :id ~(str "slideSorter-name-" page.id) :width 84 :height 18 :align center :fitText true
        :textColor @muted :text ~page.name)))
 
+; style: keep, a feature's names start with its id, as its composition requires
 (defview slideSorter-strip
   "The sorter: its header over the pages, in a row that scrolls across."
   []
