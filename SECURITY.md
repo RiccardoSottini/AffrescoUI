@@ -1013,6 +1013,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
+| A program's binding written as an expression (`maxBindingText`, `lisp/src/CompilerLowering.cpp`): a `let`'s names and the value a set called on it gives (`(#{:a} x)` writes `x` twice), written in | 4,000 characters; past it the binding is refused, naming its place |
+| Where definitions read from files start, kept so an error names its file's line (`keptPlaces`, `lisp/src/Document.cpp`) | 65,536 definitions for the process, about 4 MB; past it all are forgotten at once, and an error in one read before says its line within the definition |
 | A feature's program | within its manifest's 1 MiB; built with the Lisp build's budget, a build past it refused |
 | Feature builds kept (`Composition.cpp`) | 16 per thread |
 | `while` loop iterations | 10,000 |
