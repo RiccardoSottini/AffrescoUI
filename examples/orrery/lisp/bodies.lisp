@@ -3,28 +3,33 @@
 ;;; A body's place is its parent's place plus its own on its orbit, at the day shown; a chain of parents is at most
 ;;; three deep (a moon's moon). The browser's tree and the orbit graph read the same list.
 
+(ns orrery.bodies)
+
 ;;; Each body's orbit
 
-(defcomputed ids "Every body's id, in order." (map (fn [it] it.id) state.bodies))
+(defcomputed ids "Every body's id, in order." (map :id state.bodies))
 
 (defcomputed local "Each body with how far round its orbit it is now (f, 0 to 1) and the place of its parent (pi)."
   (map (fn [it]
          (merge it
-                {:f (if (= it.parent "") 0 (mod (+ it.phase (/ state.time it.period)) 1))
+                {:f (if (= it.parent "")
+                      0
+                      (mod (+ it.phase (/ state.time it.period)) 1))
                  :pi (indexOf computed.ids it.parent)}))
        state.bodies))
 
 (defcomputed rel "Each body's place relative to its parent (lx, lz)."
-  (map (fn [it] (merge it {:lx (* it.radius (cos (* 2 (pi) it.f))) :lz (* (- it.radius) (sin (* 2 (pi) it.f)))}))
+  (map #(merge % {:lx (->> (:f %) (* 2 (pi)) cos (* (:radius %)))
+                  :lz (->> (:f %) (* 2 (pi)) sin (* (-> % :radius -)))})
        computed.local))
 
-(defcomputed up1 "Each body's parent's place, or -1." (map (fn [it] it.pi) computed.local))
+(defcomputed up1 "Each body's parent's place, or -1." (map :pi computed.local))
 
 (defcomputed up2 "Each body's grandparent's place, or -1."
-  (map (fn [it] (if (>= it 0) (get computed.up1 it) (- 1))) computed.up1))
+  (map #(if (>= % 0) (get computed.up1 %) (- 1)) computed.up1))
 
 (defcomputed up3 "Each body's great-grandparent's place, or -1."
-  (map (fn [it] (if (>= it 0) (get computed.up1 it) (- 1))) computed.up2))
+  (map #(if (>= % 0) (get computed.up1 %) (- 1)) computed.up2))
 
 (defcomputed depth "How many bodies up each body's chain of parents goes (0 for the Sun)."
   (map-indexed (fn [index it]
@@ -60,22 +65,23 @@
                computed.rel))
 
 (defcomputed placed "Each body where it is now (x, z)."
-  (map (fn [it] (merge it {:x (+ it.lx it.cx) :z (+ it.lz it.cz)})) computed.positions))
+  (map #(merge % {:x (+ (:lx %) (:cx %)) :z (+ (:lz %) (:cz %))}) computed.positions))
 
 ;;; The selected and the followed
 
-(defcomputed selectedBody "The selected body." (find (fn [it] (= it.id state.selected)) state.bodies))
+(defcomputed selectedBody "The selected body." (find #(= (:id %) state.selected) state.bodies))
 
 (defcomputed selectedPosition "Where the selected body is now."
-  (find (fn [it] (= it.id state.selected)) computed.placed))
+  (find #(= (:id %) state.selected) computed.placed))
 
 (defcomputed followed "Where the body the camera follows is now."
-  (find (fn [it] (= it.id state.follow)) computed.placed))
+  (find #(= (:id %) state.follow) computed.placed))
 
 (defcomputed flyPosition "Where the body the camera is flying to is now."
-  (if (not= state.flying "") (find (fn [it] (= it.id state.flying)) computed.placed) nil))
+  (if (not= state.flying "") (find #(= (:id %) state.flying) computed.placed) nil))
 
 (defcomputed catalogue "Every body for the features: id, name, parent and its thumbnail."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.id :name it.name :parent it.parent :thumbnail (str "body:" (or-else it.look it.id))})
        state.bodies))
 
@@ -91,46 +97,47 @@
 
 (defcomputed bodyKids "Each body's satellites, as the browser's rows."
   (map-indexed (fn [index it]
-                 (filter (fn [it] (>= it 0))
+                 (filter #(>= % 0)
                          (slice computed.bodyCells
                                 (* index (count state.bodies))
-                                (* (+ index 1) (count state.bodies)))))
+                                (* (inc index) (count state.bodies)))))
                state.bodies))
 
 (defcomputed bodyRows "The browser's rows, a body and its satellites."
   (map (fn [it]
          {:id it.id
           :label it.name
-          :icon (cond (= it.parent "") "sun" (= it.parent "sun") "circle" :else "moon")
+          :icon (case it.parent "" "sun" "sun" "circle" "moon")
           :iconColor it.hex})
        state.bodies))
 
 (defcomputed bodyLevel1 "The browser's tree, its deepest level."
   (map-indexed (fn [index it]
                  (if (> (count (get computed.bodyKids index)) 0)
-                   (merge it {:children (map (fn [it] (get computed.bodyRows it)) (get computed.bodyKids index))})
+                   (merge it {:children (map #(get computed.bodyRows %) (get computed.bodyKids index))})
                    it))
                computed.bodyRows))
 
 (defcomputed bodyLevel2 "The browser's tree, its next level up."
   (map-indexed (fn [index it]
                  (if (> (count (get computed.bodyKids index)) 0)
-                   (merge it {:children (map (fn [it] (get computed.bodyLevel1 it)) (get computed.bodyKids index))})
+                   (merge it {:children (map #(get computed.bodyLevel1 %) (get computed.bodyKids index))})
                    it))
                computed.bodyLevel1))
 
 (defcomputed bodyLevel3 "The browser's tree, the planets' level."
   (map-indexed (fn [index it]
                  (if (> (count (get computed.bodyKids index)) 0)
-                   (merge it {:children (map (fn [it] (get computed.bodyLevel2 it)) (get computed.bodyKids index))})
+                   (merge it {:children (map #(get computed.bodyLevel2 %) (get computed.bodyKids index))})
                    it))
                computed.bodyLevel2))
 
 (defcomputed bodyTree "The bodies as a tree, the Sun at its root."
-  (map (fn [it] (get computed.bodyLevel3 it))
-       (filter (fn [it] (= (get-in state.bodies [it :parent]) "")) (range (count state.bodies)))))
+  (map #(get computed.bodyLevel3 %)
+       (filter #(= (get-in state.bodies [% :parent]) "") (range (count state.bodies)))))
 
 (defcomputed bookmarkRows "The bookmarks, as the browser's list."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:id it.id :label it.label :icon "bookmark"}) state.bookmarks))
 
 ;;; The orbit graph
@@ -147,5 +154,6 @@
                state.bodies))
 
 (defcomputed graphLinks "What orbits what, as the graph's links."
+  ; style: keep, #(...) can't give a map
   (map (fn [it] {:from it.parent :output "satellites" :to it.id :input "orbits"})
-       (filter (fn [it] (not= it.parent "")) state.bodies)))
+       (filter #(not= (:parent %) "") state.bodies)))

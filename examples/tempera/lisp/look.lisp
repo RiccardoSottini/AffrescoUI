@@ -3,6 +3,8 @@
 ;;; The tokens are the palette, light and dark, with what the shared kit and the assistant add-on take from it; a
 ;;; style is a node's look that many nodes name (:style card).
 
+(ns tempera.look)
+
 ;;; Colours
 
 (deftokens palette "Tempera's colours: warm ochre on sage greens, light and dark."

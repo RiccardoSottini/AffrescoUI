@@ -3,6 +3,8 @@
 ;;; One column of tool groups (state.tools): each shows its chosen tool, or its first; a right click opens the group's
 ;;; other tools to its right. Under them, the foreground and background colours, the quick mask, the screen mode.
 
+(ns tempera.tools)
+
 ;;; The bar
 
 (defview tool-bar "The tools bar: the tool groups, then the colours and the modes." []
@@ -31,7 +33,7 @@
 (defview tool-group "A group of the bar, g its tools and n its place: a dot for an empty one, else its tool." [g n]
   `(node :id ~(str "tool-group-" n)
      :style clear
-     :let {:tool ~(or-else (find (fn [it] (= it.id state.doc.tool)) g) (first g))}
+     :let {:tool ~(or-else (find #(= (:id %) state.doc.tool) g) (first g))}
      :width 32
      :height ~(if (empty? g) 7 26)
      (node :when ~(empty? g) :x 14 :y 2 :width 3 :height 3 :radius 999 :color @border)
@@ -81,7 +83,7 @@
                             :icon it.icon
                             :enabled (some? it.id)
                             :checked (= it.id state.doc.tool)
-                            :keyLabel (slice (or-else it.key "") (max 0 (- (count (or-else it.key "")) 1)))
+                            :keyLabel (slice (or-else it.key "") (->> (or-else it.key "") count dec (max 0)))
                             :run "setTool"
                             :with {:args {:tool it.id}}})
                          g)}))

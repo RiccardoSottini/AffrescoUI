@@ -5,6 +5,8 @@
 ;;; beside it. A feature docks under the groups, at the panels.dock point (offers.lisp). The Properties and Adjust
 ;;; panels are in properties.lisp, the Layers and Channels panels in layers.lisp.
 
+(ns tempera.panels)
+
 ;;; The groups
 
 (defcomponent tGroup "A group of the dock: pill tabs for its panels, and the panel chosen under them (the children)."

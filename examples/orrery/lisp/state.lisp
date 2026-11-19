@@ -4,6 +4,8 @@
 ;;; fast it runs, the camera, the chart's notes, the bookmarks and what the views show. The sky from the ground keeps
 ;;; its own, in sky.lisp.
 
+(ns orrery.state)
+
 ;;; The state
 
 (defstate time 0)

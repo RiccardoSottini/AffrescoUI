@@ -6,6 +6,8 @@
 ;;; and a feature's adapter run these functions by name, their arguments in `args`:
 ;;; {:run moveLayer :with {:args {...}}}. The commands of the menus are in commands.lisp, and call these.
 
+(ns tempera.tempera)
+
 ;;; Reading what a dialog was given
 
 (defn typed "A number typed in a dialog, kept between 1 and most; one that isn't a number is fallback."
@@ -13,7 +15,7 @@
   (clamp (or-else (number text) fallback) 1 most))
 
 (defn toggled "A list with an item taken out if it is there, else added at its end." [items item]
-  (if (contains items item) (filter (fn [x] (not= x item)) items) (conj items item)))
+  (if (some #{item} items) (remove #{item} items) (conj items item)))
 
 ;;; The image's operations, one step each
 
@@ -82,8 +84,8 @@
   (image "transformLayer" :with args))
 
 (defn setTool "Chooses a tool. The pencil is always hard: the brush's hardness comes back when it is left." [args]
-  (let [leavingPencil (and (= state.doc.tool "pencil") (not= args.tool "pencil"))]
-    (when (and (= args.tool "pencil") (not= state.doc.tool "pencil"))
+  (let [leavingPencil (and (= state.doc.tool :pencil) (not= args.tool :pencil))]
+    (when (and (= args.tool :pencil) (not= state.doc.tool :pencil))
       (set "state.brushHardness" state.doc.options.hardness))
     (image "setTool" :with args)
     (when leavingPencil (setOptions {:hardness state.brushHardness}))))
@@ -96,7 +98,9 @@
 (defn hillsLine "The hills' outline across the sample: 49 points along a wave, then the bottom corners." []
   (concat (map (fn [it]
                  {:x (/ (* 1200 it) 48)
-                  :y (* 800 (+ 0.66 (* 0.07 (sin (/ (* 9 it) 48))) (* 0.04 (sin (/ (* 23 it) 48)))))})
+                  :y (* 800 (+ 0.66
+                               (-> it (* 9) (/ 48) sin (* 0.07))
+                               (-> it (* 23) (/ 48) sin (* 0.04))))})
                (range 49))
           [{:x 1200 :y 800} {:x 0 :y 800}]))
 
@@ -156,8 +160,8 @@
 ;;; Layers
 
 (defn applyRename "Renames the active layer as the dialog says, unless the name is empty." []
-  (let [name (trim (or-else state.rename.name ""))]
-    (when (not= name "") (setLayer {:id state.doc.active :name name})))
+  (let [name (str/trim (or-else state.rename.name ""))]
+    (when-not (str/blank? name) (setLayer {:id state.doc.active :name name})))
   (set "state.rename.open" false))
 
 (defn applyTransform "Moves, scales and turns the active layer as the Free Transform dialog says." []
@@ -175,8 +179,8 @@ would."
   (let [[x y w h] computed.box]
     (transformActive {:x (- (or-else (:x args) x) x)
                       :y (- (or-else (:y args) y) y)
-                      :scaleX (/ (* (or-else (:w args) w) 100) w)
-                      :scaleY (/ (* (or-else (:h args) h) 100) h)})))
+                      :scaleX (-> (:w args) (or-else w) (* 100) (/ w))
+                      :scaleY (-> (:h args) (or-else h) (* 100) (/ h))})))
 
 ;;; Colours, adjustments and fills
 
@@ -196,22 +200,23 @@ would."
   (set "state.fill.contents" args.id))
 
 (defn applyFill "Fills the selection with what the Fill dialog chose." []
-  (let [chosen (find (fn [c] (= (:id c) state.fill.contents)) computed.fillContents)]
+  (let [chosen (find #(= (:id %) state.fill.contents) computed.fillContents)]
     (fillSelection {:color (or-else (:color chosen) state.doc.foreground)})))
 
 (defn setAdjustment "Changes some of the active adjustment layer's values." [args]
   (setLayer {:adjustment (merge computed.adjustment args)}))
 
 (defn setBalance "Changes one channel of the active Colour Balance layer." [args]
-  (let [balance (:balance computed.adjustment)
-        changed (map (fn [c] (if (= c (:channel args)) (:value args) (get balance c))) (range 3))]
-    (setLayer {:adjustment (merge computed.adjustment {:balance changed})})))
+  (let [{:keys [channel value]} args
+        balance (:balance computed.adjustment)
+        changed (map #(if (= % channel) value (get balance %)) (range 3))]
+    (setLayer {:adjustment (assoc computed.adjustment :balance changed)})))
 
 (defn setCurve "The Curves layer's curve, as its editor drew it." [points]
-  (setLayer {:adjustment (merge computed.adjustment {:curve points})}))
+  (setLayer {:adjustment (assoc computed.adjustment :curve points)}))
 
 (defn measureTones "Levels and Curves show the image's tones; other layers don't need them measured." []
-  (when (contains ["levels" "curves"] computed.adjustmentKind)
+  (when (#{:levels :curves} computed.adjustmentKind)
     (image "histogram" :with {:bins 64})))
 
 ;;; The filters: the dialog only edits state.filter, and these watches preview, apply or cancel it
@@ -226,7 +231,7 @@ would."
 
 (defn typeFilterValue "A filter's value typed in its field: a number within its range, or else the value it had."
   [key low high]
-  (setFilterValue {key (clamp (or-else (number (trim event.text)) (get state.filter key)) low high)}))
+  (setFilterValue {key (-> event.text str/trim number (or-else (get state.filter key)) (clamp low high))}))
 
 (defn previewFilterNow "Previews the filter on the canvas while its dialog is open and Preview is on." []
   (when (and (truthy? state.filter.open) (truthy? state.filter.live))
@@ -286,13 +291,13 @@ would."
   (push (str "state.guides." args.axis) (round args.at)))
 
 (defn guideAcross "A click on the top ruler adds an upright guide there." []
-  (addGuide {:axis "vertical" :at (+ state.doc.view.x (/ (- event.left (/ event.width 2)) computed.px))}))
+  (addGuide {:axis "vertical" :at (-> event.left (- (/ event.width 2)) (/ computed.px) (+ state.doc.view.x))}))
 
 (defn guideDown "A click on the side ruler adds a level guide there." []
-  (addGuide {:axis "horizontal" :at (+ state.doc.view.y (/ (- event.top (/ event.height 2)) computed.px))}))
+  (addGuide {:axis "horizontal" :at (-> event.top (- (/ event.height 2)) (/ computed.px) (+ state.doc.view.y))}))
 
 (defn zoomTyped "The zoom typed in the status bar, in per cent." []
-  (zoom {:to (/ (clamp (or-else (number (trim (first (split event.text "%")))) computed.zoomPercent) 1 3200) 100)}))
+  (zoom {:to (-> event.text (str/split "%") first str/trim number (or-else computed.zoomPercent) (clamp 1 3200) (/ 100))}))
 
 (defpart review "The scenarios accept an agent's proposal as the person's client would.
 A review step runs from a step that the person's input or a scenario plays, not from a function: this one stays a step."
@@ -302,7 +307,7 @@ A review step runs from a step that the person's input or a scenario plays, not 
 
 (defn runWith "Runs a function or an action by its name, its arguments in args: what a control was told to run."
   [action args]
-  (when (and (some? action) (not= action ""))
+  (when-not (empty? action)
     (run action :with {:args args})))
 
 (defn toggleOpen "Opens what a path of the state says is open, or closes it: a menu, a section, a slider." [path]
@@ -310,27 +315,30 @@ A review step runs from a step that the person's input or a scenario plays, not 
 
 (defn pressSlider "A slider pressed: the value under the pointer, kept for the drag, given to the slider's action."
   [action args key low high scale]
-  (let [value (clamp (round (+ low (* (/ event.left (max 1 event.width)) (- high low)))) low high)]
+  (let [value (-> event.left (/ (max 1 event.width)) (* (- high low)) (+ low) round (clamp low high))]
     (set "state.slide" value)
     (runWith action (assoc args key (/ value scale)))))
 
 (defn dragSlider "A slider dragged: the value it was pressed at, moved as far as the pointer."
   [action args key low high scale]
-  (let [value (clamp (round (+ state.slide (* (/ event.dx (max 1 event.width)) (- high low)))) low high)]
+  (let [value (-> event.dx (/ (max 1 event.width)) (* (- high low)) (+ state.slide) round (clamp low high))]
     (runWith action (assoc args key (/ value scale)))))
 
 (defn stepSlider "The arrow keys on a slider: one less, not under low, or one more, not over high."
   [action args key shown by low high scale]
-  (runWith action (assoc args key (/ (if (< by 0) (max low (+ shown by)) (min high (+ shown by))) scale))))
+  (let [moved (+ shown by)
+        value (if (neg? by) (max low moved) (min high moved))]
+    (runWith action (assoc args key (/ value scale)))))
 
 (defn submitField "A number typed in an option's field, its unit left out, kept within its range; else it stays shown."
   [action args key shown low high scale]
-  (let [typedValue (number (trim (first (split (first (split event.text "%")) " "))))]
-    (runWith action (assoc args key (/ (clamp (or-else typedValue shown) low high) scale)))))
+  (let [typedValue (-> event.text (str/split "%") first (str/split " ") first str/trim number)]
+    (runWith action
+             (assoc args key (-> typedValue (or-else shown) (clamp low high) (/ scale))))))
 
 (defn chooseMenuItem "A menu's item chosen: a submenu opens; anything else closes the menu and runs the item's action."
   [item path close]
   (if (some? item.submenu)
     (toggle path)
     (do (if (empty? close) (dismiss true) (set close false))
-        (when (some? item.run) (run item.run :with item.with)))))
+        (when-some [action item.run] (run action :with item.with)))))
