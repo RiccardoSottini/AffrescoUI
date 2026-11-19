@@ -145,6 +145,12 @@ TEST_CASE("format: a command list holds at most 1,024 commands") {
 	const json listed = app.runtime->commandList();
 	CHECK(listed.size() == 1024);
 	CHECK(listed.back()["name"] == "c1023"); // the first, by title
+	// What a command reaches: a listed one, what its steps do; one past the limit is no command, as one never written
+	CHECK_FALSE(app.runtime->commandReach("c1023").control);
+	const affresco::CommandReach past = app.runtime->commandReach("c1024");
+	CHECK(past.control);
+	CHECK(past.controlStep == "no command 'c1024'");
+	CHECK(app.runtime->commandReach("c9999").control);
 }
 
 namespace {

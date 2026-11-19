@@ -49,6 +49,11 @@ public:
 	/// @param name Its name.
 	/// @return It, as in list(), or std::nullopt.
 	[[nodiscard]] std::optional<json> find(std::string_view name) const;
+	/// @brief Tells whether list() holds a command, without building its entries: reach() asks it once per command
+	/// of a list, so building the whole list each time made a list cost the square of its size.
+	/// @param name Its name.
+	/// @return Whether one of list()'s entries has that name.
+	[[nodiscard]] bool lists(std::string_view name) const;
 	/// @brief What a command can reach, from its steps and the actions they run (CommandReach.hpp), kept until main's
 	/// head, the proposal previewed or the services change.
 	/// @param name Its name.
