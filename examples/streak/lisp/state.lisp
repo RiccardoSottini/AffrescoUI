@@ -2,6 +2,8 @@
 ;;;
 ;;; The habits, their entries and notes are records (models.lisp, seed/); the state is the app's own.
 
+(ns streak.state)
+
 ;;; State
 (defstate today "2026-10-15" "Today, as a date." :type (string))
 

@@ -1,6 +1,8 @@
 ;;; detail.lisp --- the detail of the selected habit: its bar, its facts, and its cards (overview, target, score,
 ;;; history, calendar, streaks, frequency and notes)
 
+(ns streak.detail)
+
 ;;; The detail
 (defview detail-bar "The detail's bar: back to the list on narrow windows, the habit's name, and its menu." []
   `(node#detailBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 1 :blur 3 :color "#00000020"}
@@ -57,13 +59,13 @@
                          :icons true
                          :items ~[{:title (if computed.h.archived (t "unarchive") (t "archive"))
                                    :icon (if computed.h.archived "archive-restore" "archive")
-                                   :keyLabel (:keyLabel (find (fn [it] (= it.name "archiveHabit")) commands))
+                                   :keyLabel (:keyLabel (find #(= (:name %) "archiveHabit") commands))
                                    :run "archiveHabit"}
                                   {:title (t "exportCsv") :icon "file-down" :run "exportHabit"}
                                   {:separator true}
                                   {:title (t "delete")
                                    :icon "trash-2"
-                                   :keyLabel (:keyLabel (find (fn [it] (= it.name "confirmDelete")) commands))
+                                   :keyLabel (:keyLabel (find #(= (:name %) "confirmDelete") commands))
                                    :run "confirmDelete"}]})]
      :isOpen ~state.menus.detail))
 
@@ -110,7 +112,7 @@
      :children [(node#label-t-card-target :style cardTitle :text ~(t "card.target") :textColor ~computed.col)
                 (column#goalRows :anchors {:left 16 :right 16 :top 48} :height 170 :gap 6
                   ~(repeat [g computed.goalRows] (goal-row g)))]
-     :when ~(= computed.h.kind "measurable")))
+     :when ~(= computed.h.kind :measurable)))
 
 (defview history-card "The history: its period's button, its bars, and their labels." []
   `(node#historyCard :style card :width ~computed.cardWidth :height 240 :role region :label ~(t "card.history")
@@ -130,7 +132,7 @@
      :role region
      :label ~(t "card.streaks")
      (node#label-t-card-streaks :style cardTitle :text ~(t "card.streaks") :textColor ~computed.col)
-     (node#label-t-no-streaks :style caption :text ~(t "noStreaks") :when ~(= (count computed.streaks) 0) :anchors {:left 16 :top 46})
+     (node#label-t-no-streaks :style caption :text ~(t "noStreaks") :when ~(empty? computed.streaks) :anchors {:left 16 :top 46})
      (column#streakRows :anchors {:left 16 :right 16 :top 46} :height ~(* (count computed.streaks) 26) :gap 4
        ~(repeat [st computed.streaks] (streak-row st)))))
 
@@ -141,7 +143,7 @@
      :role region
      :label ~(t "card.notes")
      (node#label-t-card-notes :style cardTitle :text ~(t "card.notes") :textColor ~computed.col)
-     (node#label-t-no-notes :style caption :text ~(t "noNotes") :when ~(= (count computed.notes) 0) :anchors {:left 16 :top 46})
+     (node#label-t-no-notes :style caption :text ~(t "noNotes") :when ~(empty? computed.notes) :anchors {:left 16 :top 46})
      (column#noteRows :anchors {:left 0 :right 0 :top 44} :height ~(* (count computed.notes) 44)
        ~(repeat [nt computed.notes] (note-row nt)))))
 
@@ -150,15 +152,14 @@
      (node#label-freq-text :style caption :text ~computed.freqText :icon repeat :height 20)
      (node#label-h-reminder-null
        :style caption
-       :text ~(if (nil? computed.h.reminder)
-                 (t "reminderOff")
+       :text ~(if-some [reminder computed.h.reminder]
                  (formatTime (+ (dateMs "2000-01-01")
-                                (* (+ (* (number (slice computed.h.reminder.time 0 2)) 60)
-                                      (number (slice computed.h.reminder.time 3 5)))
+                                (* (+ (* (number (slice reminder.time 0 2)) 60) (number (slice reminder.time 3 5)))
                                    60000))
                              "short"
-                             "utc"))
-     :icon ~(if (nil? computed.h.reminder) "bell-off" "bell")
+                             "utc")
+                 (t "reminderOff"))
+     :icon ~(if (some? computed.h.reminder) "bell" "bell-off")
      :height 20)
      (node#label-t-archived-tag
        :style caption
@@ -262,7 +263,7 @@
               :height ~(str (* (/ hv computed.historyMax) 86) "%")
               :color ~computed.col
               :radius {:topLeft 2 :topRight 2})
-            (label#label-hv-0-format :text ~(if (> hv 0) (formatNumber hv 0 0) "")
+            (label#label-hv-0-format :text ~(if (pos? hv) (formatNumber hv 0 0) "")
               :font tiny
               :textColor ~computed.col
               :anchors {:left -8 :right -8 :bottom ~(str (* (/ hv computed.historyMax) 86) "%")}
@@ -297,17 +298,17 @@
 (defview cal-cell "A day of the calendar: done, skipped, or not; a click marks it, a right click opens its popup." [w r]
   `(node#calCell :let {:d ~(addDays computed.weekStart (- r (* 7 w)))
                        :li ~(daysBetween computed.h.from d)
-                       :cv ~(if (>= li 0) (get computed.v li) nil)
+                       :cv ~(when (>= li 0) (get computed.v li))
                        :cr ~(if (and (>= li 0) (some? cv)) (get-in computed.r [li :r]) 0)}
      :width 22
      :height 22
      :radius 3
      :visible ~(<= d state.today)
      :color ~(cond (nil? cv) "@c.track"
-                   (= computed.h.kind "measurable") (if (> cv 0) (+ computed.col (cond (>= cr 1) "" (>= cr 0.5) "b0"
+                   (= computed.h.kind :measurable) (if (pos? cv) (+ computed.col (cond (>= cr 1) "" (>= cr 0.5) "b0"
                                                                                    :else "60")) "@c.track")
                    (= cv 1) computed.col
-                   (= cv (- 1)) (str computed.col "60")
+                   (= cv -1) (str computed.col "60")
                    (>= cr 1) (str computed.col "60")
                    :else "@c.track")
      :cursor hand
@@ -377,11 +378,10 @@
 (defview freq-dot "A dot of the frequency: how often a weekday of a month was done." [mo wd]
   `(node#freqDot :let {:c ~(count (filter (fn [it]
                                             (and (= (weekday (addDays (str mo "-01") it)) wd)
-                                                 (> (or-else (get computed.v
-                                                                  (daysBetween computed.h.from
-                                                                               (addDays (str mo "-01") it)))
-                                                             0)
-                                                    0)))
+                                                 (pos? (or-else (->> (addDays (str mo "-01") it)
+                                                                     (daysBetween computed.h.from)
+                                                                     (get computed.v))
+                                                                0))))
                                           (range (daysInMonth (str mo "-01")))))}
      :anchors {:left 0 :right 0}
      :height 24
@@ -389,11 +389,11 @@
      :tooltip ~(text c)
      (node#panel-freq-dot
        :anchors {:left "50%" :top 12}
-       :translate ~[(- (if (= c 0) 2 (+ 4 (* c 2)))) (- (if (= c 0) 2 (+ 4 (* c 2))))]
-       :width ~(if (= c 0) 4 (+ 8 (* c 4)))
-       :height ~(if (= c 0) 4 (+ 8 (* c 4)))
+       :translate ~[(- (if (zero? c) 2 (+ 4 (* c 2)))) (- (if (zero? c) 2 (+ 4 (* c 2))))]
+       :width ~(if (zero? c) 4 (+ 8 (* c 4)))
+       :height ~(if (zero? c) 4 (+ 8 (* c 4)))
        :radius 20
-       :color ~(if (= c 0) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (- (min c 5) 1)))))))
+       :color ~(if (zero? c) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (dec (min c 5))))))))
 
 (defview note-row "A day's note: the date and what was written; a click opens the day." [nt]
   `(node#noteRow :anchors {:left 0 :right 0}

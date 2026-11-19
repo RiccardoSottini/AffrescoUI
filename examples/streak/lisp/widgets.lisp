@@ -1,6 +1,8 @@
 ;;; widgets.lisp --- the pieces the pages share: the score ring, a period's button, settings rows, a number of the
 ;;; overview, and switches
 
+(ns streak.widgets)
+
 ;;; Widgets
 (defcomponent ring "A score ring: value from 0 to 1 drawn clockwise from the top over a full track."
   {:value 0 :color "#888888" :size 22 :stroke 3}
@@ -19,28 +21,27 @@
                  :else (str "M 12 3 A 9 9 0 "
                       (if (> value 0.5) 1 0)
                       " 1 "
-                      (fixed (+ 12 (* 9 (sin (* value 6.28319)))) 2)
+                      (fixed (->> (* value 6.28319) sin (* 9) (+ 12)) 2)
                       " "
-                      (fixed (- 12 (* 9 (cos (* value 6.28319)))) 2))))))
+                      (fixed (->> (* value 6.28319) cos (* 9) (- 12)) 2))))))
 
 (defcomponent periodButton "A chart's period: a text button that opens a menu of the five periods, kept in state[key]."
   {:key scorePeriod :color "#888888"}
   `(label#label-text-button :style textButton
      :font small
      :textColor ~color
-     :runs [~(str (upper-case (t (str "period." (get state key)))) " ") {:icon chevron-down}]
+     :runs [~(-> (str "period." (get state key)) t upper-case (str " ")) {:icon chevron-down}]
      :label ~(str (t "period") ": " (t (str "period." (get state key))))
-     :isOpen ~(get state.menus (if (= key "scorePeriod") "score" "history"))
+     :isOpen ~(get state.menus (case key :scorePeriod "score" "history"))
      :onClick ~(handler openPeriodMenu key)
      (node#menu-text-button :use menu
-       :with {:open ~(str "state.menus." (if (= key "scorePeriod") "score" "history"))
+       :with {:open ~(str "state.menus." (case key :scorePeriod "score" "history"))
               :width 160
               :placement below-end
+              ; style: keep, gives a map
               :items ~(map (fn [it]
-                             {:title (t (str "period." it))
-                              :checked (= (get state key) it)
-                              :run "setPeriod"
-                              :with {:key key :value it}})
+                             {:title (t (str "period." it)) :checked (= (get state key) it)
+                              :run "setPeriod" :with {:key key :value it}})
                            ["day" "week" "month" "quarter" "year"])})))
 
 (defcomponent prefRow "A settings row: a title, a summary under it, and its control (the children) at the end."

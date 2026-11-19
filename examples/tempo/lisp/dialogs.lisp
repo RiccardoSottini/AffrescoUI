@@ -1,6 +1,8 @@
 ;;; dialogs.lisp --- what is drawn over the pages: the status bar, the song's and the playlist's menus, the dialog that
 ;;; deletes a playlist, and the quick pick (Cmd+P finds a song, Cmd+Shift+P runs a command)
 
+(ns tempo.dialogs)
+
 ;;; The status bar
 
 (defview status-bar "The status bar: the revision shown, and the window's size." []

@@ -1,5 +1,7 @@
 ;;; state.lisp --- what Quaderno keeps while it runs, and where each value starts
 
+(ns code-editor.state)
+
 ;;; Settings
 
 (defcustom appearance.language "en" "English, Spanish or French."

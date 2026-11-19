@@ -4,12 +4,14 @@
 ;;; through paths (`state.today`, `data.ordered`, `computed.h`) and changes it only through steps (`set`, `push`,
 ;;; `update-record`...). A handler runs one by name: {:run "cellClick" :with {:h 1 :d "2026-10-15"}} gives its parameters.
 
+(ns streak.habits)
+
 ;;; The habits as records
 
 (defn habit "The habit on a row of the ordered list." [h] (get data.ordered h))
 
 (defn measurable? "Whether a habit counts a number rather than yes or no." [habit]
-  (= (:kind habit) "measurable"))
+  (= (:kind habit) :measurable))
 
 (defn separator "What stands between a habit's entries." [habit]
   (if (measurable? habit) " " ""))
@@ -18,13 +20,13 @@
   (if (measurable? habit) "0" "-"))
 
 (defn cells "A habit's entries, one per day from its first." [habit]
-  (if (= (:entries habit) "") [] (split (:entries habit) (separator habit))))
+  (if (= (:entries habit) "") [] (str/split (:entries habit) (separator habit))))
 
 (defn dayIndex "Which entry of a habit a day is." [habit date]
   (daysBetween (:from habit) date))
 
 (defn entryOn "A yes-or-no habit's entry on a day: y, s or -." [habit date]
-  (or (get (split (:entries habit) "") (dayIndex habit date)) "-"))
+  (or (get (cells habit) (dayIndex habit date)) "-"))
 
 (defn toast "Shows a message." [message]
   (push "state.toasts" {:message message}))
@@ -33,45 +35,42 @@
 
 (defn select "Shows a habit in the detail." [h]
   (set "state.selected" (:id (habit h)))
-  (when (not computed.wide) (set "state.page" "detail")))
+  (when-not (true? computed.wide) (set "state.page" :detail)))
 
 (defn extendBack "Gives a habit days from an earlier first one." [habit date]
-  (let [missing (range (daysBetween date (:from habit)))
-        days (map (fn [day] (blank habit)) missing)]
+  (let [days (map (constantly (blank habit)) (range (daysBetween date (:from habit))))]
     (update-record "habits" :id (:id habit)
       :fields {:from date
-               :entries (if (measurable? habit)
-                          (trim (str (join " " days) " " (:entries habit)))
-                          (str (join "" days) (:entries habit)))})))
+               :entries (->> [(:entries habit)] (concat days) (str/join (separator habit)) str/trim)})))
 
 (defn putEntry "Writes one day's entry: a character for yes-or-no habits, a number's text for measurable ones." [h date value]
-  (when (> (daysBetween date (:from (habit h))) 0) (extendBack (habit h) date))
+  (when (pos? (daysBetween date (:from (habit h)))) (extendBack (habit h) date))
   (let [current (habit h)
         at (dayIndex current date)
         list (cells current)
-        padded (concat list (map (fn [day] (blank current)) (range (max 0 (- (inc at) (count list))))))]
+        padded (->> (- (inc at) (count list)) (max 0) range (map (constantly (blank current))) (concat list))]
     (update-record "habits" :id (:id current)
-      :fields {:entries (join (separator current) (concat (take at padded) [value] (drop (inc at) padded)))})))
+      :fields {:entries (str/join (separator current) (assoc (vec padded) at value))})))
 
 (defn openPopup "Opens the day's popup, with what is written on it." [h d x y]
   (let [current (habit h)
         amount (get (get computed.vals h) (dayIndex current d) 0)]
     (set "state.popup" {:open true :h h :date d :x x :y y
-                        :note (or (get (:notes current) d) "")
-                        :value (if (and (measurable? current) (> amount 0)) (text amount) "")})))
+                        :note (get (:notes current) d "")
+                        :value (if (and (measurable? current) (pos? amount)) (text amount) "")})))
 
 (defn cellClick "A yes-or-no box goes yes, skipped (if allowed), no; a measurable one asks for the number." [h d x y]
   (if (measurable? (habit h))
     (openPopup h d x y)
-    (let [now-on (entryOn (habit h) d)]
-      (putEntry h d (cond (= now-on "y") (if state.skipDays "s" "-")
-                          (= now-on "s") "-"
-                          :else "y")))))
+    (putEntry h d (case (entryOn (habit h) d)
+                    "y" (if (true? state.skipDays) "s" "-")
+                    "s" "-"
+                    "y"))))
 
 (defn popupNoteOnly "Keeps the popup's note and closes it." []
   (let [current (habit state.popup.h)]
     (update-record "habits" :id (:id current)
-      :fields {:notes (assoc (:notes current) state.popup.date (trim state.popup.note))})
+      :fields {:notes (assoc (:notes current) state.popup.date (str/trim state.popup.note))})
     (set "state.popup.open" false)))
 
 (defn popupSet "From the popup's buttons: y, s or -." [value]
@@ -79,7 +78,7 @@
   (popupNoteOnly))
 
 (defn popupSave "Keeps the number the popup holds." []
-  (putEntry state.popup.h state.popup.date (text (max 0 (or (number state.popup.value) 0))))
+  (putEntry state.popup.h state.popup.date (-> state.popup.value number (or 0) (max 0) text))
   (popupNoteOnly))
 
 (defn checkToday-at "Marks today on a row." [h]
@@ -88,14 +87,14 @@
 ;;; Order, filters and settings
 
 (defn moveHabit "A row dragged onto another, in manual order: a position between its new neighbours." [from to]
-  (when (and (= state.sort "manual") (not= from to))
+  (when (and (= state.sort :manual) (not= from to))
     (let [ordered data.ordered
           others (concat (take from ordered) (drop (inc from) ordered))
-          position (fn [at] (:position (get others at)))
+          position #(get-in others [% :position])
           last-row (dec (count ordered))]
-      (update-record "habits" :id (:id (get ordered from))
-        :fields {:position (cond (<= to 0) (- (or (position 0) 0) 1)
-                                 (>= to last-row) (+ (or (position (dec last-row)) 0) 1)
+      (update-record "habits" :id (get-in ordered [from :id])
+        :fields {:position (cond (<= to 0) (dec (or (position 0) 0))
+                                 (>= to last-row) (inc (or (position (dec last-row)) 0))
                                  :else (/ (+ (position (dec to)) (position to)) 2))}))))
 
 (defn setSort "" [by] (set "state.sort" by))
@@ -105,7 +104,7 @@
 (defn setLocale "" [value] (set "state.locale" value))
 
 (defn leaveEscape "What Escape leaves: the picked rows, or the detail page." []
-  (if computed.picking (set "state.picked" []) (set "state.page" "list")))
+  (if (true? computed.picking) (set "state.picked" []) (set "state.page" :list)))
 
 ;;; The edit dialog
 
@@ -113,9 +112,9 @@
 
 (defn newHabit "Opens the dialog on a new habit." [kind]
   (set "state.edit" {:open true :id "" :kind kind :name "" :question ""
-                     :color (mod (+ (* (count data.ordered) 3) 11) 20)
-                     :freqMode "daily" :n 3 :unit ""
-                     :target (if (= kind "measurable") "10" "")
+                     :color (-> (count data.ordered) (* 3) (+ 11) (mod 20))
+                     :freqMode :daily :n 3 :unit ""
+                     :target (if (= kind :measurable) "10" "")
                      :targetType "atLeast" :reminderOn false :time "08:00" :days everyDay
                      :description "" :error ""}))
 
@@ -130,24 +129,25 @@
   (newHabit "measurable"))
 
 (defn freqModeOf "Which frequency choice a habit's frequency is." [habit]
-  (let [days (:days (:frequency habit)) times (:times (:frequency habit))]
-    (cond (and (= days 1) (= times 1)) "daily"
-          (measurable? habit) (if (= days 7) "week" "month")
-          (and (= times 1) (not= days 7) (not= days 30)) "everyN"
-          (= days 7) "week"
-          :else "month")))
+  (let [{:keys [days times]} (:frequency habit)]
+    (cond (= 1 days times) :daily
+          (measurable? habit) (if (= days 7) :week :month)
+          (and (= times 1) (not (#{7 30} days))) :everyN
+          (= days 7) :week
+          :else :month)))
 
 (defcommand editHabit "Opens the dialog on the selected habit."
   :title ~(t "action.editHabit.title") :description ~(t "action.editHabit.about")
   :category ~(t "action.editHabit.category") :icon "edit" :enablement ~(>= computed.sel 0) []
-  (let [h computed.h frequency (:frequency h) reminder (:reminder h)]
-    (set "state.edit" {:open true :id (:id h) :kind (:kind h) :name (:name h) :question (:question h)
-                       :color (:color h) :freqMode (freqModeOf h)
-                       :n (if (= (:times frequency) 1) (:days frequency) (:times frequency))
-                       :unit (:unit h) :target (text (:target h)) :targetType (:targetType h)
+  (let [{:keys [id kind name question color unit target targetType reminder description] :as h} computed.h
+        {:keys [days times]} (:frequency h)]
+    (set "state.edit" {:open true :id id :kind kind :name name :question question
+                       :color color :freqMode (freqModeOf h)
+                       :n (if (= times 1) days times)
+                       :unit unit :target (text target) :targetType targetType
                        :reminderOn (some? reminder) :time (or (:time reminder) "08:00")
                        :days (or (:days reminder) everyDay)
-                       :description (:description h) :error ""})))
+                       :description description :error ""})))
 
 (defn insertHabit "A new habit of a kind, at the end of the list, from today, and selected." [kind fields]
   (let [id (str "habit" state.nextId)]
@@ -164,51 +164,52 @@
     (update-record "habits" :id computed.h.id :fields fields)))
 
 (defn frequencyOf "What the dialog's frequency choice means." [edit]
-  (let [period (if (= (:freqMode edit) "week") 7 30)]
-    (cond (= (:freqMode edit) "daily") {:times 1 :days 1}
-          (= (:kind edit) "measurable") {:times 1 :days period}
-          (= (:freqMode edit) "everyN") {:times 1 :days (:n edit)}
-          :else {:times (:n edit) :days period})))
+  (let [{:keys [freqMode kind n]} edit
+        period (if (= freqMode :week) 7 30)]
+    (cond (= freqMode :daily) {:times 1 :days 1}
+          (= kind :measurable) {:times 1 :days period}
+          (= freqMode :everyN) {:times 1 :days n}
+          :else {:times n :days period})))
 
 (defn saveHabit "Keeps the dialog's habit, if it has a name." []
-  (let [edit state.edit]
-    (if (= (trim (:name edit)) "")
+  (let [{:keys [name question color description unit target targetType] :as edit} state.edit]
+    (if (str/blank? name)
       (do (set "state.edit.error" (t "edit.nameNeeded"))
           (focus "#nameField")
           (set "state.edit.open" true))
-      (storeHabit {:name (trim (:name edit)) :question (trim (:question edit)) :color (:color edit)
-                   :description (trim (:description edit)) :unit (trim (:unit edit))
-                   :target (or (number (:target edit)) 0) :targetType (:targetType edit)
-                   :reminder (if (:reminderOn edit) {:time (:time edit) :days (:days edit)} nil)
+      ; style: keep, question, description and unit are optional fields: the host's trim gives "" for nil
+      (storeHabit {:name (str/trim name) :question (trim question) :color color :description (trim description) :unit (trim unit)
+                   :target (or (number target) 0) :targetType targetType
+                   :reminder (when (:reminderOn edit) {:time (:time edit) :days (:days edit)})
                    :frequency (frequencyOf edit)}))))
 
 ;;; By names: what the commands an agent runs (habitAdd, habitDone, habitRename) do. A habit that isn't there, or a
 ;;; day that can't be marked, changes nothing, and a toast says so.
 
 (defn habitRow "The row of the habit with that name, in any case, or -1." [name]
-  (indexOf (map (fn [it] (lower (:name it))) data.ordered) (lower (trim name))))
+  (indexOf (map #(str/lower-case (:name %)) data.ordered) (-> name str/trim str/lower-case)))
 
 (defn addHabitNamed "A new habit with that name, every day: yes or no, or measurable with a target of 10." [name kind]
-  (if (= (trim name) "")
+  (if (str/blank? name)
     (toast (t "edit.nameNeeded"))
-    (insertHabit kind {:name (trim name) :question "" :color (mod (+ (* (count data.ordered) 3) 11) 20)
-                       :description "" :unit "" :target (if (= kind "measurable") 10 0) :targetType "atLeast"
+    (insertHabit kind {:name (str/trim name) :question "" :color (-> (count data.ordered) (* 3) (+ 11) (mod 20))
+                       :description "" :unit "" :target (if (= kind :measurable) 10 0) :targetType "atLeast"
                        :reminder nil :frequency {:times 1 :days 1}})))
 
 (defn markDone "Marks a habit done, by its name, on a day up to today (today when nil): yes, or for a measurable one
   an amount (its target when nil)." [name date amount]
   (let [h (habitRow name)
         day (or date state.today)]
-    (cond (< h 0) (toast (t "toast.noHabit" {:name name}))
-          (or (not (isDate day)) (< (daysBetween day state.today) 0))
+    (cond (neg? h) (toast (t "toast.noHabit" {:name name}))
+          (or (not (isDate day)) (neg? (daysBetween day state.today)))
           (toast (t "toast.badDay" {:date day :today state.today}))
           :else (putEntry h day (if (measurable? (habit h)) (text (or amount (:target (habit h)))) "y")))))
 
 (defn renameHabit "Gives a habit, by its name, a new name." [name to]
   (let [h (habitRow name)]
-    (cond (< h 0) (toast (t "toast.noHabit" {:name name}))
-          (= (trim to) "") (toast (t "edit.nameNeeded"))
-          :else (update-record "habits" :id (:id (habit h)) :fields {:name (trim to)}))))
+    (cond (neg? h) (toast (t "toast.noHabit" {:name name}))
+          (str/blank? to) (toast (t "edit.nameNeeded"))
+          :else (update-record "habits" :id (:id (habit h)) :fields {:name (str/trim to)}))))
 
 (defcommand habitAdd "Adds a habit by its name."
   :title ~(t "action.habitAdd.title") :description ~(t "action.habitAdd.about")
@@ -242,8 +243,8 @@
 (defcommand archiveHabit "Archives the selected habit, or brings it back."
   :title ~(t "action.archiveHabit.title") :description ~(t "action.archiveHabit.about")
   :category ~(t "action.archiveHabit.category") :icon "archive" :enablement ~(>= computed.sel 0) []
-  (update-record "habits" :id computed.h.id :fields {:archived (not computed.h.archived)})
-  (push "state.toasts" {:message (t (if computed.h.archived "toast.archived" "toast.unarchived") {:name computed.h.name})
+  (update-record "habits" :id computed.h.id :fields {:archived (not (true? computed.h.archived))})
+  (push "state.toasts" {:message (t (if (true? computed.h.archived) "toast.archived" "toast.unarchived") {:name computed.h.name})
                         :actions [{:title (t "undo") :run "archiveHabit"}]}))
 
 (defcommand confirmDelete "Asks before deleting."
@@ -253,43 +254,40 @@
 
 (defn togglePick "Picks a row, or lets it go." [id]
   (if (contains state.picked id)
-    (set "state.picked" (remove (fn [picked] (= picked id)) state.picked))
+    (set "state.picked" (remove #{id} state.picked))
     (push "state.picked" id)))
 
 (defn archivePicked "Archives the picked rows, or brings them back." []
   (set "state.unpicked" state.picked)
-  (update-record "habits" :id state.picked :fields {:archived (not computed.pickedArchived)})
-  (push "state.toasts" {:message (t (if (not computed.pickedArchived) "toast.unarchivedN" "toast.archivedN") {:n (count state.picked)})
+  (update-record "habits" :id state.picked :fields {:archived (not (true? computed.pickedArchived))})
+  (push "state.toasts" {:message (t (if-not (true? computed.pickedArchived) "toast.unarchivedN" "toast.archivedN") {:n (count state.picked)})
                         :actions [{:title (t "undo") :run "unarchivePicked"}]})
   (set "state.picked" []))
 
 (defn unarchivePicked "Undoes the last archive of picked rows." []
-  (map (fn [id]
-         (update-record "habits" :id id
-           :fields {:archived (not (:archived (find (fn [habit] (= (:id habit) id)) data.ordered)))}))
-       state.unpicked))
+  (doseq [id state.unpicked]
+    (update-record "habits" :id id :fields {:archived (not (:archived (find #(= (:id %) id) data.ordered)))})))
 
 (defn deleteOne "Deletes the selected habit." []
   (toast (t "toast.deleted" {:name computed.h.name}))
   (delete "habits" :id computed.h.id)
-  (set "state.selected" (or (:id (get data.ordered (or (get computed.order 0) 0))) ""))
-  (set "state.page" "list"))
+  (set "state.selected" (or (get-in data.ordered [(or (first computed.order) 0) :id]) ""))
+  (set "state.page" :list))
 
 (defn deleteHabit "Deletes the picked rows, or the selected habit." []
-  (if computed.picking
+  (if (true? computed.picking)
     (do (toast (t "toast.deletedN" {:n (count state.picked)}))
         (delete "habits" :id state.picked)
-        (set "state.selected" (or (:id (get data.ordered 0)) ""))
+        (set "state.selected" (or (:id (first data.ordered)) ""))
         (set "state.picked" []))
     (deleteOne)))
 
 ;;; Export and backup
 
 (defn exportedValue "A day's value in a habit's CSV." [habit value]
-  (cond (measurable? habit) (text value)
-        (= value 1) "YES"
-        (= value -1) "SKIP"
-        :else "NO"))
+  (if (measurable? habit)
+    (text value)
+    (case value 1 "YES" -1 "SKIP" "NO")))
 
 (defcommand exportHabit "Copies the selected habit as CSV."
   :title ~(t "action.exportHabit.title") :description ~(t "action.exportHabit.about")
@@ -297,15 +295,15 @@
   (let [h computed.h
         lines (map-indexed (fn [index value]
                              (let [date (addDays (:from h) index)]
-                               (str date "," (exportedValue h value) "," (or (get (:notes h) date) ""))))
+                               (str date "," (exportedValue h value) "," (get (:notes h) date ""))))
                            computed.v)]
-    (copy (str "Date,Value,Note\n" (join "\n" (reverse lines))))
+    (copy (str "Date,Value,Note\n" (->> lines reverse (str/join "\n"))))
     (toast (t "toast.copied" {:n 1}))))
 
 (defcommand exportAll "Copies every habit as CSV."
   :title ~(t "action.exportAll.title") :description ~(t "action.exportAll.about")
   :category ~(t "action.exportAll.category") :icon "download" []
-  (copy (str "Habit,Date,Value\n" (join "\n" (map (fn [rows] (join "\n" (map :line rows))) computed.csvRows))))
+  (copy (str "Habit,Date,Value\n" (->> computed.csvRows (map #(str/join "\n" (map :line %))) (str/join "\n"))))
   (toast (t "toast.copied" {:n (count data.ordered)})))
 
 (defn backedUp "A backup was written." [result]
@@ -337,18 +335,16 @@
 
 (defn restoreEntry "One item of a backup's habits, if it is a habit." [item]
   (if (and (map? item) (string? (:id item)) (not= (:id item) ""))
-    (restoreOne (:id item)
-                (reduce (fn [fields key] (if (contains? item key) (assoc fields key (get item key)) fields))
-                        {} backedUpFields))
+    (restoreOne (:id item) (select-keys item backedUpFields))
     (countSkipped)))
 
 (defn restoreHabits "What the file the person chose holds." []
-  (if (or (not= state.backupFile.format "streak-backup") (not (vector? state.backupFile.habits)))
+  (if-not (and (= state.backupFile.format "streak-backup") (vector? state.backupFile.habits))
     (toast (t "toast.badBackup"))
     (do (set "state.restoredCount" 0)
         (set "state.skippedCount" 0)
-        (map restoreEntry state.backupFile.habits)
-        (toast (if (> state.skippedCount 0)
+        (doseq [item state.backupFile.habits] (restoreEntry item))
+        (toast (if (pos? state.skippedCount)
                  (t "toast.restoredSkipped" {:n state.restoredCount :skipped state.skippedCount})
                  (t "toast.restored" {:n state.restoredCount})))))
   (set "state.backupFile" nil))
@@ -371,7 +367,7 @@
 (defcommand toggleTheme "Between light and dark."
   :title ~(t "action.toggleTheme.title") :description ~(t "action.toggleTheme.about")
   :category "Streak" :icon "moon" []
-  (set "state.theme" (if (= computed.theme "light") "dark" "light")))
+  (set "state.theme" (if (= computed.theme :light) :dark :light)))
 
 (defcommand toggleHideCompleted "Shows or hides what is done today."
   :title ~(t "action.toggleHideCompleted.title") :description ~(t "action.toggleHideCompleted.about")
@@ -388,14 +384,14 @@
   :category ~(t "action.nextHabit.category") []
   (let [order computed.order
         row (get order (min (dec (count order)) (inc (indexOf order computed.sel))))]
-    (set "state.selected" (or (:id (get data.ordered row)) state.selected))))
+    (set "state.selected" (or (get-in data.ordered [row :id]) state.selected))))
 
 (defcommand prevHabit "Selects the habit above."
   :title ~(t "action.prevHabit.title") :description ~(t "action.prevHabit.about")
   :category ~(t "action.prevHabit.category") []
   (let [order computed.order
         row (get order (max 0 (dec (indexOf order computed.sel))))]
-    (set "state.selected" (or (:id (get data.ordered row)) state.selected))))
+    (set "state.selected" (or (get-in data.ordered [row :id]) state.selected))))
 
 (defcommand checkToday "Marks today on the selected habit."
   :title ~(t "action.checkToday.title") :description ~(t "action.checkToday.about")
@@ -411,8 +407,8 @@
 ;;; The clock and reminders
 
 (defn remindNow "A habit's reminder, if this is its minute." [row item]
-  (let [reminder (:reminder item)]
-    (when (and (not (:archived item)) (some? reminder)
+  (when-some [reminder (:reminder item)]
+    (when (and (not (:archived item))
                (= (:time reminder) (formatTime (now) "HH:mm"))
                (get (:days reminder) (weekday state.today)))
       (push "state.toasts" {:message (t "toast.reminder" {:name (:name item)})
@@ -421,19 +417,20 @@
 
 (defn tick "Every minute: today's date, and the reminders due." []
   (set "state.today" (today))
-  (when state.reminders (map-indexed remindNow data.ordered)))
+  (when (true? state.reminders)
+    (doseq [[row item] (map-indexed vector data.ordered)] (remindNow row item))))
 
 ;;; Syncing with the document server
 
 (defn syncReceive "The habits the server holds." [incoming]
-  (when (some? (:habits incoming))
+  (when-some [habits (:habits incoming)]
     (delete "habits" :where {})
-    (map-indexed (fn [position item] (insert "habits" :value (merge item {:position position}))) (:habits incoming))
+    (doseq [[position item] (map-indexed vector habits)] (insert "habits" :value (assoc item :position position)))
     (set "state.sync.copy" computed.syncData)
     (toast (t "sync.received"))))
 
 (defn syncSend "Sends the habits, if they changed since the last time." []
-  (when (and computed.online (not= (json computed.syncData) (json state.sync.copy)))
+  (when (and (true? computed.online) (not= (json computed.syncData) (json state.sync.copy)))
     (increment "state.sync.revisions")
     (set "state.sync.copy" computed.syncData)
     (request "streakServer.revision" :with {:id (str "streak-" (text state.sync.revisions)) :data computed.syncData})))
@@ -441,7 +438,7 @@
 (defcommand syncNow "Syncs now, or says why it can't."
   :title ~(t "action.syncNow.title") :description ~(t "action.syncNow.about")
   :category ~(t "action.syncNow.category") :icon "refresh-cw" []
-  (if computed.online
+  (if (true? computed.online)
     (syncSend)
     (toast (t (str "sync." computed.syncState) {:message state.sync.error}))))
 
@@ -499,13 +496,13 @@
   (if (truthy? computed.picking) (togglePick id) (select h)))
 
 (defn stepTimes "The frequency's times, one less or one more: at least 1, at most 7 a week or 31 a month." [by]
-  (set "state.edit.n" (if (< by 0)
-                        (max 1 (- state.edit.n 1))
-                        (min (if (= state.edit.freqMode "week") 7 31) (+ state.edit.n 1)))))
+  (set "state.edit.n" (if (neg? by)
+                        (max 1 (dec state.edit.n))
+                        (min (if (= state.edit.freqMode :week) 7 31) (inc state.edit.n)))))
 
 (defn pickColor "A colour of the palette chosen for the habit edited; the palette closes." [colour]
   (set "state.edit.color" colour)
   (set "state.colorOpen" false))
 
 (defn openPeriodMenu "Opens a card's period menu: the score's or the history's." [key]
-  (set (str "state.menus." (if (= key "scorePeriod") "score" "history")) true))
+  (set (str "state.menus." (case key :scorePeriod "score" "history")) true))

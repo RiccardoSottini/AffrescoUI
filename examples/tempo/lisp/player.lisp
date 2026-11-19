@@ -1,6 +1,8 @@
 ;;; player.lisp --- the player at the bottom (shuffle, the transport, repeat, the song playing and its seek bar, the
 ;;; level, the mini player, the queue and the volume), and the mini player, one card in the middle of the window
 
+(ns tempo.player)
+
 ;;; The player
 
 (defview player "The floating player at the bottom, hidden in the mini player." []
@@ -65,11 +67,11 @@
 
 (defview repeat-button "Repeat: off, the whole list, or one song." []
   `(node#repeatButton :style control
-     :icon ~(if (= state.repeat "one") "repeat-1" "repeat")
+     :icon ~(if (= state.repeat :one) "repeat-1" "repeat")
      :anchors {:left 168 :top 16}
      :width 32
-     :textColor ~(if (= state.repeat "off") "@muted" "@accent")
-     :checked ~(not= state.repeat "off")
+     :textColor ~(if (= state.repeat :off) "@muted" "@accent")
+     :checked ~(not= state.repeat :off)
      :label ~(t (str "player.repeat." state.repeat))
      :tooltip ~(t (str "player.repeat." state.repeat))
      :onClick cycleRepeat))

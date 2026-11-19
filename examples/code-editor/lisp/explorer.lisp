@@ -1,5 +1,7 @@
 ;;; explorer.lisp --- the side bar: the project's files as a tree
 
+(ns code-editor.explorer)
+
 ;;; Views
 
 (defview explorer "The side bar: the open files, then the project's folders and files." []
