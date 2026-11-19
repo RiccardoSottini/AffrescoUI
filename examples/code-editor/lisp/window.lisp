@@ -130,19 +130,19 @@
             :field @input
             :providers [{:items ~(if (= computed.gotoKind "") computed.picks computed.gotoItems)
                          :filter ~(= computed.gotoKind "")
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.goToAFileThen")}
                         {:prefix @
                          :items ~computed.gotoItems
                          :filter false
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.goToASymbolIn")}
-                        {:prefix ":" :items ~computed.gotoItems :filter false :run goToPlace
+                        {:prefix ":" :items ~computed.gotoItems :filter false :run go-to-place
                          :placeholder ~(t "bar.goToALine")}
                         {:prefix "#"
                          :items ~computed.gotoItems
                          :filter false
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.searchTheFile")}]}))
 
 (defview theme-pick "The theme picker: dark, light or the system's." []
@@ -160,7 +160,7 @@
             :field @input
             :providers [{:items ~computed.themes
                          :filter false
-                         :run setTheme
+                         :run set-theme
                          :placeholder ~(t "bar.selectAThemeTheArrows")}]}))
 
 ;;; Dialogs, menus and pickers over the window
@@ -179,9 +179,9 @@
             :dimColor @muted
             :highlight @accent
             :backdrop @backdrop
-            :buttons [{:title ~(t "ui.save") :run saveAndClose}
+            :buttons [{:title ~(t "ui.save") :run save-and-close}
                       {:title ~(t "ui.cancel")}
-                      {:title ~(t "ui.donTSave") :run discardAndClose}]}))
+                      {:title ~(t "ui.donTSave") :run discard-and-close}]}))
 
 (defview about-dialog "About Quaderno." []
   `(node#aboutDialog :use dialog
@@ -222,7 +222,7 @@
             :accent @accent
             :highlight @rowSelected
             :field @input
-            :providers [{:items ~computed.projectSymbols :run goToPlace :placeholder ~(t "ui.goToASymbolIn")}]}))
+            :providers [{:items ~computed.projectSymbols :run go-to-place :placeholder ~(t "ui.goToASymbolIn")}]}))
 
 (defview tab-menu "A tab's context menu." []
   `(node#tabMenu :use contextMenu
@@ -231,11 +231,11 @@
             :y ~state.tabMenu.y
             :items [{:title ~(t "ui.close") :run close :with {:file ~state.tabMenu.file}}
                     {:title ~(t "ui.closeOthers")
-                     :run closeOthersOf
+                     :run close-others-of
                      :with {:file ~state.tabMenu.file}
                      :enabled ~(> (count state.tabs) 1)}
                     {:title ~(t "ui.closeTabsToTheRight")
-                     :run closeToTheRight
+                     :run close-to-the-right
                      :with {:file ~state.tabMenu.file}
                      :enabled ~(< (indexOf state.tabs state.tabMenu.file) (dec (count state.tabs)))}
                     {:separator true}
@@ -266,4 +266,4 @@
             :accent @accent
             :highlight @rowSelected
             :field @input
-            :providers [{:items ~computed.syntaxes :run setSyntax :placeholder ~(t "ui.selectTheSyntaxOfThe")}]}))
+            :providers [{:items ~computed.syntaxes :run set-syntax :placeholder ~(t "ui.selectTheSyntaxOfThe")}]}))
