@@ -34,7 +34,7 @@
          `(node#navItem :use sideItem
             :with {:icon ~p.icon :title ~(t (str "page." p.id)) :selected ~(= p.id state.page) :keyLabel ~p.key}
             :role tab
-            :onClick ~(handler goPage p.id))))
+            :onClick ~(handler go-page p.id))))
      ~(sidebar-foot)
      (node#sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @divider)))
 
@@ -213,7 +213,7 @@
        :focusable true
        :role menuitem
        :label ~item.title
-       :onClick ~(handler pickMenuItem open item.run item.with)
+       :onClick ~(handler pick-menu-item open item.run item.with)
        (label :icon ~item.icon :text "" :textColor @muted :anchors {:left 16 :top 12} :width 24 :height 24
          :align center)
        (label :text ~item.title
@@ -259,7 +259,7 @@
       :width 88
       :height 36
       :radius 4
-      :onClick ~(handler closeAt open)}
+      :onClick ~(handler close-at open)}
      (node :when ~(some? progress) :anchors {:left 0 :right 0 :bottom 0} :height 3 :color "#ffffff1f"
        {:anchors {:left 0 :top 0 :bottom 0}
         :width ~(str (-> (or-else progress 0) (clamp 0 1) (* 100)) "%")

@@ -56,7 +56,7 @@
      :role button
      :label ~(t "edit.card" {:name name})
      :tooltip ~(t "edit.card" {:name name})
-     :onClick ~(handler editCard card)
+     :onClick ~(handler edit-card card)
      (label :icon pencil
        :font iconsSmall
        :text ""
@@ -127,7 +127,7 @@
       :text ~(t (if state.cardEdit.code "edit.showForm" "edit.showCode"))
       :anchors {:left 16 :bottom 14}
       :height 36
-      :onClick switchCardView)
+      :onClick switch-card-view)
    `(node#cardSave :style button
       :color @accent
       :hover {:color @accent}
@@ -137,7 +137,7 @@
       :width 88
       :height 36
       :radius 18
-      :onClick saveCard)
+      :onClick save-card)
    `(node#cardCancel :style button
       :color transparent
       :hover {:color @accentSoft}
