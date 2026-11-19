@@ -10,6 +10,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <format>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -70,10 +71,10 @@ std::vector<Row> setRows() {
 	        {"(or (#{:a} x) \"none\")", ""},
 	        {"(not (#{:a} x))", ""},
 	        {"(cond (#{0 1} x) :small :else :other)", ""},
-	        {"(if (some #{1 2} x) 1 0)", " \"\" \"a\" \" a \" {}"},
-	        {"(filter #{1 2} x)", " \"\" \"a\" \" a \" {}"},
-	        {"(remove #{1} x)", " \"\" \"a\" \" a \" {}"},
-	        {"(every? #{1 2} x)", " nil \"\" \"a\" \" a \" {}"},
+	        {"(if (some #{1 2} x) 1 0)", R"( "" "a" " a " {})"},
+	        {"(filter #{1 2} x)", R"( "" "a" " a " {})"},
+	        {"(remove #{1} x)", R"( "" "a" " a " {})"},
+	        {"(every? #{1 2} x)", R"( nil "" "a" " a " {})"},
 	        {"(if (contains? #{:a} (str x)) 1 0)", ""}};
 }
 
@@ -118,6 +119,7 @@ TEST_CASE("Lisp: style bindings: a keyword is the text of its name") {
 TEST_CASE("Lisp: style bindings: a set's membership test is an expression where its truth or value agrees") {
 	const std::vector<Row> rows = setRows();
 	std::vector<std::string> forms;
+	forms.reserve(rows.size());
 	for(const Row& row : rows) forms.push_back(row.form);
 	for(const std::string& form : forms) {
 		CAPTURE(form);
@@ -146,11 +148,11 @@ TEST_CASE("Lisp: style bindings: a set that isn't all constants, or whose value 
 TEST_CASE("Lisp: style bindings: a set called for its value, nested, is refused once its text is too large") {
 	// (#{:a} x) writes x twice, so each level of nesting doubled the text: 40 levels were 2^40 copies of state.v
 	std::string form = "state.v";
-	for(int level = 0; level < 40; ++level) form = "(#{:a} " + form + ")";
+	for(int level = 0; level < 40; ++level) form.insert(0, "(#{:a} ").push_back(')');
 	CHECK(lisprows::bindingError(form).contains("too large as an expression"));
 	// A few levels stay an expression
 	const std::string inner = "(contains(['b'], state.v) ? state.v : null)";
-	CHECK(binding("(#{:a} (#{:b} state.v))") == "{{(contains(['a'], " + inner + ") ? " + inner + " : null)}}");
+	CHECK(binding("(#{:a} (#{:b} state.v))") == std::format("{{{{(contains(['a'], {0}) ? {0} : null)}}}}", inner));
 }
 
 TEST_CASE("Lisp: style bindings: a node's :when on a set shows and hides it") {
