@@ -546,7 +546,7 @@
      :radius 12
      :role button
      :label ~b.name
-     :onClick ~(handler chooseBody b.id)
+     :onClick ~(handler choose-body b.id)
      :borderWidth ~(if (= b.id state.selected) 1.5 0)
      :borderColor "#2dd4bf"
      (panel :id ~(str "sky-disc-" b.id)

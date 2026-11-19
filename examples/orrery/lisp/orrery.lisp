@@ -14,15 +14,18 @@
 
 (defn at "Where a body is in the list, or -1." [id] (indexOf computed.ids id))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn selectBody "Selects body args.id: what the bodies dock's select gives." [args]
   (set "state.selected" (:id args)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn reorderBody "Moves body args.id to the place of body args.onto." [args]
   (let [{:keys [id onto]} args known (into #{} computed.ids)]
     (when (and (not= id onto) (known id) (known onto))
       (let [others (remove #(= (:id %) id) state.bodies) place (at onto)]
         (set "state.bodies" (concat (take place others) [(body id)] (drop place others)))))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn cloneBody "Adds a twin of body args.id on the same orbit, half a turn away; not of the Sun." [args]
   (let [id (:id args) twin (body id) named (str id "-" state.nextId)]
     (when-not (empty? (:parent twin))
@@ -60,6 +63,7 @@
                       b))
                   state.bodies))))))
 
+; style: keep, named in examples/orrery/lisp/index.scenarios.json
 (defn orbitAround "A link taken away in the graph: the body orbits the Sun again, where it was." []
   (let [to event.to
         place (at to)]
@@ -70,13 +74,13 @@
            (map #(if (= (:id %) to) (merge % {:parent "sun" :radius (or (:home %) (:radius %))}) %)
                 state.bodies)))))
 
-(defn placeEach "Each item of a list that a move names (by id) gets what fields gives of that move."
+(defn place-each "Each item of a list that a move names (by id) gets what fields gives of that move."
   [items moves fields]
   (reduce (fn [all move] (map #(if (= (:id %) (:id move)) (merge % (fields move)) %) all)) items moves))
 
-(defn moveGraphNodes "Nodes dragged in the graph keep their places." []
+(defn move-graph-nodes "Nodes dragged in the graph keep their places." []
   (when (seq event.nodes)
-    (set "state.bodies" (placeEach state.bodies event.nodes (fn [{:keys [x y]}] {:gx x :gy y})))))
+    (set "state.bodies" (place-each state.bodies event.nodes (fn [{:keys [x y]}] {:gx x :gy y})))))
 
 ;;; The notes on the chart
 
@@ -92,7 +96,7 @@
    :textSize 10
    :textColor "#1d2026"})
 
-(defn addNote "A note with the draft's text, in the middle of the chart." []
+(defn add-note "A note with the draft's text, in the middle of the chart." []
   (let [{:keys [x y zoom]} state.chart.camera]
     (push "state.notes"
           (note (str "note-" state.nextId)
@@ -104,7 +108,7 @@
   (increment "state.nextId" :by 1)
   (set "state.draft" ""))
 
-(defn markSelected "A ring around the selected body on the chart, and a note naming it and the day." []
+(defn mark-selected "A ring around the selected body on the chart, and a note naming it and the day." []
   (when-some [{:keys [x z]} computed.selectedPosition]
     (push "state.notes"
             {:id (str "mark-" state.nextId)
@@ -126,23 +130,24 @@
                   (str (:name computed.selectedBody) ", day " (round state.time))))
     (increment "state.nextId" :by 1)))
 
-(defn moveNotes "Notes moved or resized on the chart keep their places." []
+(defn move-notes "Notes moved or resized on the chart keep their places." []
   (when (seq event.items)
     (set "state.notes"
-         (placeEach state.notes
+         (place-each state.notes
                     event.items
                     (fn [{:keys [x y width height]}] {:x x :y y :width width :height height})))))
 
-(defn deleteNotes "Deletes the notes chosen on the chart." []
+(defn delete-notes "Deletes the notes chosen on the chart." []
   (let [chosen (into #{} state.chart.selection)]
     (set "state.notes" (remove #(chosen (:id %)) state.notes))))
 
-(defn clearNotes "Deletes every note on the chart." [] (set "state.notes" []))
+(defn clear-notes "Deletes every note on the chart." [] (set "state.notes" []))
 
 ;;; Time
 
 (def slowest "The slowest speed, in days a frame: real time." 0.000000578704)
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn nextEvent "Plays to the next event, or the previous one when time runs backwards." []
   (when-some [goal computed.goal]
     (set "state.playing" false)
@@ -165,6 +170,7 @@
   (set "state.speed" (if (neg? state.speed) (- slowest) slowest))
   (set "state.playing" true))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn togglePlay "Plays the days, or pauses them." [] (toggle "state.playing"))
 
 (defn rewind "Pauses and goes back to day 0." [] (set "state.playing" false) (set "state.time" 0))
@@ -178,7 +184,7 @@
 
 (defn reverse "Runs time the other way." [] (set "state.speed" (- state.speed)))
 
-(defn dayZero
+(defn day-zero
   ;; Not `now`: a function of the program named so would be what (now) calls everywhere, the add-ons' too.
   "Back to day 0, at the starting rate."
   []
@@ -187,14 +193,14 @@
 
 ;;; The camera
 
-(defn viewDrag "Turns the camera as the view is dragged." []
+(defn view-drag "Turns the camera as the view is dragged." []
   (when-some [grab state.grab]
     (set "state.camera"
          (assoc state.camera
                 :yaw (- (:yaw grab) (* event.dx 0.008))
                 :pitch (clamp (+ (:pitch grab) (* event.dy 0.006)) 0.05 1.5)))))
 
-(defn viewScroll "Moves the camera nearer or farther." []
+(defn view-scroll "Moves the camera nearer or farther." []
   (set "state.camera"
        (assoc state.camera :distance (-> event.dy (* 0.06) inc (* state.camera.distance) (clamp 0.5 40))))
   (animate "state.camera.distance" :to state.camera.distance :ms 1))
@@ -206,7 +212,7 @@
   (set "state.flying" "")
   (set "state.fly" 0))
 
-(defn takeOff "Starts a flight to the selected body, of ms milliseconds." [ms]
+(defn take-off "Starts a flight to the selected body, of ms milliseconds." [ms]
   (hold)
   (set "state.flying" state.selected)
   (increment "state.flights" :by 1)
@@ -228,7 +234,7 @@
   :icon rocket
   []
   (when-some [_ computed.selectedPosition]
-    (takeOff 900)
+    (take-off 900)
     (animate "state.camera.distance" :to (max (* computed.selectedBody.size 8) 1.5) :ms 900 :easing "inOut")
     (after 950 land true)))
 
@@ -237,7 +243,7 @@
   :description ~(t "command.centre.about")
   :icon crosshair
   []
-  (when-some [_ computed.selectedPosition] (takeOff 500) (after 550 land false)))
+  (when-some [_ computed.selectedPosition] (take-off 500) (after 550 land false)))
 
 (defcommand follow "Follows the selected body, or stops following it."
   :title ~(t "command.follow")
@@ -245,7 +251,7 @@
   :icon locate-fixed
   []
   (cond (and (not= state.follow "") (= state.follow state.selected)) (hold)
-        (some? computed.selectedPosition) (do (takeOff 500) (after 550 land true))))
+        (some? computed.selectedPosition) (do (take-off 500) (after 550 land true))))
 
 (defcommand followSelected "Follows the selected body, if it isn't already."
   :title ~(t "command.followSelected")
@@ -286,6 +292,7 @@
   (set "state.browserTab" :places)
   (set "state.showBrowser" true))
 
+; style: keep, named in examples/orrery/lisp/index.scenarios.json
 (defn goToBookmark "Goes back to the place picked in the list." []
   (when-some [place (bookmark event.value)]
     (increment "state.flights" :by 1)
@@ -309,6 +316,7 @@
     (set "state.bookmarks" (remove #(= (:id %) state.bookmark) state.bookmarks))
     (set "state.bookmark" (or (some-> state.bookmarks last :id) ""))))
 
+; style: keep, named in examples/orrery/lisp/index.scenarios.json
 (defn goToEclipse "Goes to the eclipse picked in the finder: its planet followed, the sky on what is hidden." []
   (when-some [{:keys [host solar moon time]} (find #(= (:id %) event.value) computed.eclipses)]
     (set "state.eclipse" event.value)
@@ -320,22 +328,22 @@
 
 ;;; The 3D view
 
-(defn viewPress "Holds the camera where it is, as a drag starts." [] (set "state.grab" state.camera))
+(defn view-press "Holds the camera where it is, as a drag starts." [] (set "state.grab" state.camera))
 
-(defn viewRelease "Lets go of the camera, as a drag ends." [] (set "state.grab" nil))
+(defn view-release "Lets go of the camera, as a drag ends." [] (set "state.grab" nil))
 
-(defn syncScene "Gives the scene the camera worked out from the state." []
+(defn sync-scene "Gives the scene the camera worked out from the state." []
   (set "state.sceneView" computed.sceneView))
 
 (defpart scene "The scene follows the camera, the day, the selection and the bodies, from the start."
-  :watch {:state.camera syncScene
-          :state.zoom syncScene
-          :state.follow syncScene
-          :state.fly syncScene
-          :state.time syncScene
-          :state.selected syncScene
-          :state.bodies syncScene}
-  :onLoad syncScene)
+  :watch {:state.camera sync-scene
+          :state.zoom sync-scene
+          :state.follow sync-scene
+          :state.fly sync-scene
+          :state.time sync-scene
+          :state.selected sync-scene
+          :state.bodies sync-scene}
+  :onLoad sync-scene)
 
 ;;; What the views show
 
@@ -493,11 +501,13 @@
   []
   (set "state.skyTrack" (if (#{state.skyTrack "earth"} state.selected) "" state.selected)))
 
+; style: keep, named in examples/orrery/lisp/controls.scenarios.json, examples/orrery/lisp/index.scenarios.json
 (defn skyPress "Holds the sky view where it is, as a drag starts, and stops tracking." []
   (set "state.sky" computed.skyView)
   (set "state.skyTrack" "")
   (set "state.skyGrab" computed.skyView))
 
+; style: keep, named in examples/orrery/lisp/controls.scenarios.json, examples/orrery/lisp/index.scenarios.json
 (defn skyDrag "Turns the sky view as the pointer drags it." [event]
   (when-some [grab state.skyGrab]
     (let [fov state.sky.fov]
@@ -506,27 +516,28 @@
                   :azimuth (- (:azimuth grab) (/ (* event.dx fov) 460))
                   :altitude (-> event.dy (* fov) (/ 460) (+ (:altitude grab)) (clamp (- 0.3) 1.45)))))))
 
+; style: keep, named in examples/orrery/lisp/index.scenarios.json
 (defn skyScroll "Zooms the sky view as the wheel turns." [event]
   (set "state.sky.fov" (-> event.dy (* 0.06) inc (* state.sky.fov) (clamp 0.09 1.75))))
 
 ;;; What the views choose
 
-(defn chooseBody "Selects a body, by its id." [id] (set "state.selected" id))
+(defn choose-body "Selects a body, by its id." [id] (set "state.selected" id))
 
-(defn flyToBody "Selects a body and flies to it." [id] (chooseBody id) (goTo))
+(defn fly-to-body "Selects a body and flies to it." [id] (choose-body id) (goTo))
 
-(defn expandBody "Unfolds a body's satellites in the browser's tree, or folds them." [id expanded]
+(defn expand-body "Unfolds a body's satellites in the browser's tree, or folds them." [id expanded]
   (let [others (remove #{id} state.expandedBodies)]
     (set "state.expandedBodies" (if expanded (concat others [id]) others))))
 
-(defn pickInScene "Selects the body clicked in the 3D view; the Sun's halo is the Sun." [button id]
+(defn pick-in-scene "Selects the body clicked in the 3D view; the Sun's halo is the Sun." [button id]
   (let [body (if (= id "halo") "sun" (or id ""))]
-    (when (and (= button :left) (some #{body} computed.ids)) (chooseBody body))))
+    (when (and (= button :left) (some #{body} computed.ids)) (choose-body body))))
 
-(defn pickInGraph "Selects the first body chosen in the orbit graph." [ids]
-  (when-first [id ids] (chooseBody id)))
+(defn pick-in-graph "Selects the first body chosen in the orbit graph." [ids]
+  (when-first [id ids] (choose-body id)))
 
-(defn toggleRender "Turns one thing the 3D view draws on or off, by its id in the render options." [id]
+(defn toggle-render "Turns one thing the 3D view draws on or off, by its id in the render options." [id]
   (case id
     :orbits (toggleOrbits)
     :labels (toggleLabels)
@@ -535,20 +546,20 @@
     :glow (toggleGlow)
     nil))
 
-(defn kindOf "A track's kind of event: its id without the plural's s." [track]
+(defn kind-of "A track's kind of event: its id without the plural's s." [track]
   (slice track 0 (dec (count track))))
 
-(defn trackChanged "Mutes or locks a kind of event, as its track on the timeline says." [event]
+(defn track-changed "Mutes or locks a kind of event, as its track on the timeline says." [event]
   (when (= event.type :track)
-    (let [kind (kindOf event.id) muted (remove #{kind} state.muted) locked (remove #{kind} state.locked)]
+    (let [kind (kind-of event.id) muted (remove #{kind} state.muted) locked (remove #{kind} state.locked)]
       (set "state.muted" (if event.muted (concat muted [kind]) muted))
       (set "state.locked" (if event.locked (concat locked [kind]) locked)))))
 
-(defn scrubTo "Pauses at the day the timeline is scrubbed to." [time]
+(defn scrub-to "Pauses at the day the timeline is scrubbed to." [time]
   (set "state.playing" false)
   (set "state.time" time))
 
-(defn goToEvent "Pauses at the day of the event chosen on the timeline." [id]
+(defn go-to-event "Pauses at the day of the event chosen on the timeline." [id]
   (when-some [event (find #(= (:id %) id) computed.events)]
     (set "state.playing" false)
     (set "state.time" (:time event))))

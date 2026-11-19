@@ -171,6 +171,6 @@
      :accentColor @accent
      :color @background
      :label ~(t "events.label")
-     :onChange trackChanged
-     :onScrub ~(handler scrubTo event.time)
-     :onSelect ~(handler goToEvent event.ids.0)))
+     :onChange track-changed
+     :onScrub ~(handler scrub-to event.time)
+     :onSelect ~(handler go-to-event event.ids.0)))

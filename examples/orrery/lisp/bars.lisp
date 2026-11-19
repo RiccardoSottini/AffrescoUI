@@ -31,7 +31,7 @@
    :freeze {:run togglePlay :title ~(t "time.freeze") :group "1_rate" :order 3}
    :realTime {:run realTime :group "1_rate" :order 4}
    :reverse {:run reverse :title ~(t "time.reverseTime") :group "1_rate" :order 5}
-   :now {:run dayZero :title ~(t "time.dayZero") :group "2_set" :order 1}
+   :now {:run day-zero :title ~(t "time.dayZero") :group "2_set" :order 1}
    :eclipses {:run openEclipses :group "2_set" :order 2}})
 
 (defcomputed viewMenu "The View menu's items, checked as they are on."
