@@ -80,6 +80,8 @@ TEST_CASE("update check: partial updates that read what they should report nothi
 }
 
 TEST_CASE("update check: a read dropped is reported once, naming the node and the property, not the values") {
+	// The difference made on purpose stays out of the test's output, where CI's verify mode looks for real ones
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {});
 	affresco::format::testing::dropReadsOf("secret");
 	Verified verified(counter);
 	verified.screen.runAction("count", verified.window->root()); // nothing reads count but #count
@@ -89,6 +91,7 @@ TEST_CASE("update check: a read dropped is reported once, naming the node and th
 	verified.screen.runAction("secret", verified.window->root()); // #secret dropped its read: the update misses it
 	verified.window->render();
 	affresco::format::testing::dropReadsOf({});
+	affresco::setLogSink(nullptr);
 	const std::vector<std::string> checks = verified.checks();
 	REQUIRE(checks.size() == 1);
 	CHECK(checks.front() == "update check: root.children[1].values[0]: a partial update and a full update differ");
