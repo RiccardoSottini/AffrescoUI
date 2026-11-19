@@ -216,7 +216,7 @@ class Uses:
             before = items[at - 1] if at else None
             if isinstance(before, Atom) and before.text == ":keys" and isinstance(item, Form) and item.opener == "{":
                 for place, target in enumerate(item.items):  # a key's value runs: {"mod+enter" save :escape cancel}
-                    if place % 2:
+                    if place % 2 and isinstance(target, Atom):
                         self.note(target)
                     else:
                         self.template(target, in_macro)
