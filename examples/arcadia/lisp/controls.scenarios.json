@@ -282,19 +282,19 @@
 				{ "click": "#pad-layout-southpaw" },
 				{ "expect": { "state": "padLayouts.starfall", "is": "southpaw" } },
 				{ "click": "#my-shot-1" },
-				{ "expect": { "state": "shotView.open", "is": true }},
+				{ "expect": { "state": "shotView.open", "is": true } },
 				{ "capture": "screenshot-viewer" },
 				{ "click": "#shot-viewer-next" },
-				{ "expect": { "state": "shotView.at", "is": 2 }},
+				{ "expect": { "state": "shotView.at", "is": 2 } },
 				{ "action": "deleteShot" },
-				{ "expect": { "state": "shotView.at", "is": 1 }},
+				{ "expect": { "state": "shotView.at", "is": 1 } },
 				{ "key": "escape" },
-				{ "expect": { "state": "shotView.open", "is": false }},
+				{ "expect": { "state": "shotView.open", "is": false } },
 				{ "scroll": [700, 500], "dy": 30 },
 				{ "click": "#play-button" },
 				{ "expect": { "state": "running", "is": "starfall" } },
 				{ "key": "f12" },
-				{ "expect": { "state": "toast.open", "is": true }}
+				{ "expect": { "state": "toast.open", "is": true } }
 			]
 		},
 		{
