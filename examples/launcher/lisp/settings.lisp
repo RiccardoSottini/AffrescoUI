@@ -19,7 +19,7 @@
 
 (defview settings-cards "The settings' cards, one under the other." []
   `(column#settingsList :anchors {:left 36 :top 112 :bottom 0}
-     :width ~(min 760 (- window.width computed.sideWidth 72))
+     :width ~(min 776 (- window.width computed.sideWidth 56))
      :gap 16
      :scroll vertical
      ~(appearance-card)
@@ -37,7 +37,7 @@
          :width 160
          :height 38
          :onClick ~(handler reveal-mine "")))
-     (node#settingsIntelligence :anchors {:left 0 :right 0} :height 960 :color transparent
+     (node#settingsIntelligence :anchors {:left 0 :right 16} :height 960 :color transparent
        (node#intelligenceSettingsPage :use intelligenceSettings))
      ~(keys-card)
      (node#settingsAbout :use settingsCard :with {:title ~(t "settings.about") :icon info :height 112}
@@ -50,7 +50,7 @@
 
 (defcomponent settingsCard "A card of the settings: its icon and title, then what it holds."
   {:title "" :icon "" :height 120}
-  `(node#settingsCardPanel :style card :height ~height :anchors {:left 0 :right 0}
+  `(node#settingsCardPanel :style card :height ~height :anchors {:left 0 :right 16}
      (label#settingsCardIcon :icon ~icon
        :font bigIcons
        :textColor @c.accent

@@ -133,6 +133,9 @@
 		"shown": "{{filter(computed.everyApp, (state.kind == 'all' || (state.kind == 'mine' ? it.mine == true : it.category == state.kind)) && (trim(state.query) == '' || contains(lower(it.name + ' ' + (it.mine ? it.id : t('tagline.' + it.id))), lower(trim(state.query)))))}}",
 		"welcomed": "{{length(state.mine) == 0 && trim(state.query) == '' && state.kind == 'all'}}",
 		"gridHeight": "{{ceil(length(computed.shown) / computed.columns) * 252 + max(0, ceil(length(computed.shown) / computed.columns) - 1) * 20 + 32}}",
+		"tileColumns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
+		"tilesHeight": "{{ceil((length(computed.starters) + 1) / computed.tileColumns) * 130 - 8}}",
+		"belowTiles": "{{computed.tilesHeight - 252}}",
 		"starters": "{{filter(state.examples, it.program == 'host' && it.starter != false)}}",
 		"reserved": "{{concat(map(state.examples, it.folder), ['shared', 'launcher'])}}",
 		"myIds": "{{map(state.mine, it.id)}}",
@@ -619,7 +622,7 @@
 			"params": { "title": "", "icon": "", "height": 120 },
 			"node": {
 				"id": "settingsCardPanel",
-				"style": "card", "height": "{{height}}", "anchors": { "left": 0, "right": 0 },
+				"style": "card", "height": "{{height}}", "anchors": { "left": 0, "right": 16 },
 				"children": [
 					{ "type": "label", "id": "settingsCardIcon", "icon": "{{icon}}", "font": "bigIcons", "textColor": "@c.accent",
 					  "anchors": { "left": 20, "top": 18 }, "width": 24, "height": 24 },
@@ -806,7 +809,7 @@
 								{ "id": "mineNew", "style": "primary", "icon": "plus", "text": "{{t('nav.newApp')}}", "width": 130, "height": 38, "onClick": "showCreate" }
 							  ] },
 							{ "type": "label", "id": "mineUnavailable", "when": "{{state.mineError != ''}}", "font": "small", "wrap": true,
-							  "text": "{{t('mine.unavailable')}}", "textColor": "@c.muted", "color": "@c.raised", "radius": 10, "padding": 10,
+							  "text": "{{t('mine.unavailable')}}", "icon": "info", "align": "start center", "textColor": "@c.muted", "color": "@c.raised", "radius": 10, "padding": 12,
 							  "anchors": { "left": 36, "right": 36, "top": 108 }, "height": 40, "role": "status" },
 							{
 								"type": "column",
@@ -864,7 +867,7 @@
 										"id": "createForm",
 										"anchors": { "left": 36 },
 										"width": "{{min(820, window.width - computed.sideWidth - 72)}}",
-										"height": 980,
+										"height": "{{980 + computed.belowTiles}}",
 										"color": "transparent",
 										"keys": { "mod+enter": "createApp" },
 										"children": [
@@ -887,10 +890,9 @@
 												"type": "grid",
 												"id": "createFrom",
 												"anchors": { "left": 0, "right": 0, "top": 290 },
-												"height": 252,
-												"columns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
+												"height": "{{computed.tilesHeight}}",
+												"columns": "{{computed.tileColumns}}",
 												"gap": 12,
-												"scroll": "vertical",
 												"role": "radiogroup",
 												"label": "{{t('create.from')}}",
 												"arrows": "horizontal",
@@ -901,23 +903,23 @@
 												]
 											},
 
-											{ "id": "createDescribeLabel", "style": "sectionTitle", "text": "{{t('create.describe')}}", "anchors": { "left": 0, "right": 0, "top": 566 } },
-											{ "id": "createDescribeHint", "style": "hint", "text": "{{t('create.describeHint')}}", "anchors": { "left": 0, "right": 0, "top": 592 } },
+											{ "id": "createDescribeLabel", "style": "sectionTitle", "text": "{{t('create.describe')}}", "anchors": { "left": 0, "right": 0, "top": "{{566 + computed.belowTiles}}" } },
+											{ "id": "createDescribeHint", "style": "hint", "text": "{{t('create.describeHint')}}", "anchors": { "left": 0, "right": 0, "top": "{{592 + computed.belowTiles}}" } },
 											{ "type": "editor", "id": "createDescribe", "bind": "state.create.describe", "wrap": true, "label": "{{t('create.describe')}}",
 											  "color": "@c.surface", "radius": 10, "borderWidth": 1, "borderColor": "@c.border", "focused": { "borderColor": "@c.accent" },
 											  "textColor": "@c.text", "caretColor": "@c.accent", "lineColor": "transparent", "selectionColor": "@c.accentSoft",
-											  "anchors": { "left": 0, "right": 0, "top": 618 }, "height": 96 },
+											  "anchors": { "left": 0, "right": 0, "top": "{{618 + computed.belowTiles}}" }, "height": 96 },
 											{ "type": "label", "id": "createDescribePlaceholder", "when": "{{state.create.describe == ''}}", "text": "{{t('create.describePlaceholder')}}",
-											  "textColor": "@c.dim", "anchors": { "left": 12, "right": 12, "top": 626 }, "height": 20, "disabled": true },
+											  "textColor": "@c.dim", "anchors": { "left": 12, "right": 12, "top": "{{626 + computed.belowTiles}}" }, "height": 20, "disabled": true },
 
-											{ "id": "createFeaturesLabel", "style": "sectionTitle", "text": "{{t('create.features')}}", "anchors": { "left": 0, "right": 0, "top": 738 } },
-											{ "id": "createFeaturesHint", "style": "hint", "text": "{{t('create.featuresHint')}}", "anchors": { "left": 0, "right": 0, "top": 764 } },
+											{ "id": "createFeaturesLabel", "style": "sectionTitle", "text": "{{t('create.features')}}", "anchors": { "left": 0, "right": 0, "top": "{{738 + computed.belowTiles}}" } },
+											{ "id": "createFeaturesHint", "style": "hint", "text": "{{t('create.featuresHint')}}", "anchors": { "left": 0, "right": 0, "top": "{{764 + computed.belowTiles}}" } },
 											{
 												"type": "row",
 												"id": "createFeatures",
 												"wrap": true,
 												"gap": 8,
-												"anchors": { "left": 0, "right": 0, "top": 792 },
+												"anchors": { "left": 0, "right": 0, "top": "{{792 + computed.belowTiles}}" },
 												"height": 80,
 												"role": "group",
 												"label": "{{t('create.features')}}",
@@ -937,13 +939,13 @@
 
 											{ "type": "label", "id": "createSummary", "font": "small", "textColor": "@c.muted", "wrap": true,
 											  "text": "{{t('create.summary', {name: trim(state.create.name) == '' ? '…' : trim(state.create.name), from: computed.fromName})}}",
-											  "anchors": { "left": 0, "right": 240, "top": 900 }, "height": 36 },
+											  "anchors": { "left": 0, "right": 240, "top": "{{900 + computed.belowTiles}}" }, "height": 36 },
 											{ "id": "createSubmit", "style": "primary", "icon": "{{state.create.busy ? 'refresh-cw' : 'rocket'}}",
 											  "text": "{{state.create.busy ? t('create.busy') : t('create.submit')}}", "disabled": "{{state.create.busy}}",
-											  "anchors": { "right": 0, "top": 894 }, "width": 200, "height": 44, "onClick": "createApp" },
+											  "anchors": { "right": 0, "top": "{{894 + computed.belowTiles}}" }, "width": 200, "height": 44, "onClick": "createApp" },
 											{ "type": "label", "id": "createProblem", "when": "{{state.create.error != ''}}", "font": "small", "wrap": true, "role": "alert", "live": "assertive",
 											  "text": "{{state.create.error}}", "textColor": "@c.danger", "color": "@c.dangerSoft", "radius": 8, "padding": 8,
-											  "anchors": { "left": 0, "right": 0, "top": 946 }, "height": 32 }
+											  "anchors": { "left": 0, "right": 0, "top": "{{946 + computed.belowTiles}}" }, "height": 32 }
 										]
 									}
 								]
@@ -965,7 +967,7 @@
 								"type": "column",
 								"id": "settingsList",
 								"anchors": { "left": 36, "top": 112, "bottom": 0 },
-								"width": "{{min(760, window.width - computed.sideWidth - 72)}}",
+								"width": "{{min(776, window.width - computed.sideWidth - 56)}}",
 								"gap": 16,
 								"scroll": "vertical",
 								"children": [
@@ -1000,7 +1002,7 @@
 										{ "id": "folderReveal", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}",
 										  "anchors": { "right": 20, "top": 62 }, "width": 160, "height": 38, "onClick": { "run": "revealMine", "with": { "id": "" } } }
 									  ] },
-									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 0 }, "height": 960, "color": "transparent",
+									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 16 }, "height": 960, "color": "transparent",
 									  "children": [{ "id": "intelligenceSettingsPage", "use": "intelligenceSettings" }] },
 									{ "id": "settingsKeys", "use": "settingsCard", "with": { "title": "{{t('settings.keys')}}", "icon": "keyboard", "height": 208 },
 									  "children": [

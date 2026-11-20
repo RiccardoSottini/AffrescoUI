@@ -100,6 +100,16 @@
     (t "create.blank")
     (or-else (:name (find #(= (:id %) state.create.from) state.examples)) "")))
 
+(defcomputed tileColumns "How many starting points the Create page fits in a row."
+  (-> (- window.width computed.sideWidth 72) (min 820) (+ 12) (/ 150) floor (min 5) (max 2)))
+
+(defcomputed tilesHeight "The height of the starting points: every row of them, the blank app first, none scrolled away."
+  (let [rows (-> computed.starters count inc (/ computed.tileColumns) ceil)]
+    (- (* rows 130) 8)))
+
+(defcomputed belowTiles "How much lower than at two rows the Create page's parts under the starting points sit."
+  (- computed.tilesHeight 252))
+
 (defcomputed excluded "What a copy of an example leaves out: its C++, its build files, its hidden files."
   ["*.cpp" "*.hpp" "*.h" "*.c" "*.cc" "*.mm" "*.cmake" "CMakeLists.txt" "*.py" ".*"])
 
