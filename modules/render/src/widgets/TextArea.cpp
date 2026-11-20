@@ -53,6 +53,23 @@ std::u32string pastedLine(std::string_view utf8) {
 	return pasted;
 }
 
+/// @brief Whether a key moves the caret (arrows, Home, End).
+/// @param key The key.
+/// @return true for a caret key.
+bool isCaretKey(Key key) noexcept {
+	return key == Key::Left || key == Key::Right || key == Key::Up || key == Key::Down || key == Key::Home ||
+	       key == Key::End;
+}
+
+/// @brief Whether a key clears selected text: Backspace, Delete, cut (never in a secret field) or paste.
+/// @param event The key.
+/// @param secret Whether the field is secret.
+/// @return true when it clears the selection's text.
+bool clearsSelection(const KeyEvent& event, bool secret) noexcept {
+	return (event.key == Key::Backspace || event.key == Key::Delete || isShortcut(event, Key::X) || isPaste(event)) &&
+	       (!secret || event.key != Key::X);
+}
+
 } // namespace
 
 TextArea::TextArea() {
@@ -140,13 +157,9 @@ void TextArea::reportKey() {
 bool TextArea::selectionKey(const KeyEvent& event) {
 	const bool copy = isShortcut(event, Key::C) || isShortcut(event, Key::X);
 	if(copy && !secret_ && window()) window()->setClipboardText(text()); // a secret is never copied
-	const bool clears =
-	    (event.key == Key::Backspace || event.key == Key::Delete || isShortcut(event, Key::X) || isPaste(event)) &&
-	    !(secret_ && event.key == Key::X);
-	if(!clears) {
-		const bool moves = event.key == Key::Left || event.key == Key::Right || event.key == Key::Up ||
-		                   event.key == Key::Down || event.key == Key::Home || event.key == Key::End;
-		if(moves) { // a caret key leaves the selection; a letter's key comes before its character, which replaces it
+	if(!clearsSelection(event, secret_)) {
+		// A caret key leaves the selection; a letter's key comes before its character, which replaces it
+		if(isCaretKey(event.key)) {
 			allSelected_ = false;
 			invalidatePaint();
 		}

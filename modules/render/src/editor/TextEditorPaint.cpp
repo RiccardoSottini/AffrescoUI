@@ -6,6 +6,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <string>
 #include <tuple>
@@ -114,7 +115,8 @@ void paintChevron(Painter& painter, Vec2 centre, bool right, Color color) {
 	const auto point = [&](float along, float across) {
 		return right ? Vec2{centre.x + across, centre.y + along} : Vec2{centre.x + along, centre.y + across};
 	};
-	const Vec2 ends[2] = {point(-half, -depth), point(half, -depth)}, tip = point(0.0f, depth);
+	const std::array<Vec2, 2> ends = {point(-half, -depth), point(half, -depth)};
+	const Vec2 tip = point(0.0f, depth);
 	std::vector<MeshVertex> quads;
 	for(const Vec2 end : ends) {
 		const float dx = tip.x - end.x, dy = tip.y - end.y, length = std::hypot(dx, dy);
@@ -292,6 +294,24 @@ void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan sp
 	if(lineBreak) fill(breakLeft, breakLeft + space);
 }
 
+void TextEditor::paintFoldMark(Painter& painter, const Layout& layout, std::size_t line, float top) const {
+	const Rect& box = frame();
+	const bool folded = viewActive() && nextShown(line) > line + 1;
+	if(foldMarkers_) {
+		// A chevron: down beside a line that folds, right beside a folded one
+		if(folded || foldable(line))
+			paintChevron(painter, {box.left + layout.gutter - 13.0f, top + layout.lineHeight / 2.0f}, folded,
+			             folded ? activeLineNumberColor_ : lineNumberColor_);
+		return;
+	}
+	// A folded line's marker: a short bar where the gutter ends
+	if(folded) {
+		const float x = box.left + layout.gutter - 14.0f;
+		painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
+		                        activeLineNumberColor_);
+	}
+}
+
 void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& layout) const {
 	// The gutter covers text scrolled under it
 	const Rect& box = frame();
@@ -306,20 +326,7 @@ void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& l
 			painter.drawText(font, label_, {x, top + layout.baseline},
 			                 span.line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
 		}
-		const bool folded = viewActive() && nextShown(span.line) > span.line + 1;
-		if(foldMarkers_) {
-			// A chevron: down beside a line that folds, right beside a folded one
-			if(folded || foldable(span.line))
-				paintChevron(painter, {box.left + layout.gutter - 13.0f, top + layout.lineHeight / 2.0f}, folded,
-				             folded ? activeLineNumberColor_ : lineNumberColor_);
-			continue;
-		}
-		// A folded line's marker: a short bar where the gutter ends
-		if(folded) {
-			const float x = box.left + layout.gutter - 14.0f;
-			painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
-			                        activeLineNumberColor_);
-		}
+		paintFoldMark(painter, layout, span.line, top);
 	}
 	// Gutter icons, on their first line
 	const auto from = std::ranges::lower_bound(decorations_, rowSpan(std::min(layout.first, rowCount() - 1)).line, {},

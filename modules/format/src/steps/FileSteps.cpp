@@ -217,7 +217,7 @@ bool openFile(const Running& s) {
 	bool image = false;
 	if(s.step.contains("as")) {
 		const std::string as = string(s.value("as"), s.where + ".as");
-		if(as != "json" && as != "image") fail(s.where + ".as", "must be \"json\" or \"image\"");
+		if(as != "json" && as != "image") fail(s.where + ".as", R"(must be "json" or "image")");
 		image = as == "image";
 	}
 	std::vector<std::string> extensions = extensionsOf(s, image);

@@ -45,7 +45,7 @@ struct Built {
 	/// @brief Clicks a point with modifier keys held, as a person does: the keys pressed first, released after.
 	/// @param at The point.
 	/// @param mods The modifiers (GLFW bits).
-	void click(affresco::Vec2 at, int mods = 0) {
+	void click(affresco::Vec2 at, int mods = 0) const {
 		if(mods & 0x1) window->routeKey({affresco::Key::LeftShift, 0, affresco::Action::Press, {mods}});
 		window->routeMouseMove(at);
 		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {mods}, at});

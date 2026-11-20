@@ -87,7 +87,7 @@ void unite(Coverage& into, const Coverage& more) {
 		if(added) continue;
 		auto merged = std::make_shared<Tile>(*found->second);
 		const auto source = tile->bytes();
-		auto target = merged->bytes();
+		const auto target = merged->bytes();
 		for(std::size_t index = 0; index < target.size(); ++index)
 			target[index] = std::max(target[index], source[index]);
 		found->second = std::move(merged);
@@ -311,7 +311,8 @@ void paintCoverage(Image& image, const Coverage& coverage, const Pixel& colour) 
 		const auto amounts = tile->bytes();
 		for(int y = 0; y < tileSize; ++y)
 			for(int x = 0; x < tileSize; ++x) {
-				const std::uint8_t amount = amounts[static_cast<std::size_t>(y * tileSize + x)];
+				const std::uint8_t amount =
+				    amounts[(static_cast<std::size_t>(y) * tileSize) + static_cast<std::size_t>(x)];
 				if(amount == 0) continue;
 				const float alpha = colour.alpha * static_cast<float>(amount) / 255.0f;
 				const Pixel below = target.pixel(x, y);
@@ -484,10 +485,14 @@ json contentToJson(const LayerContent& content) {
 	return value;
 }
 
-void readContent(const json& value, LayerContent& content) {
-	if(!value.is_object()) throw DocumentError("a layer's content is an object");
-	if(value.contains("kind"))
-		content.kind = static_cast<ContentKind>(indexIn(contentNames, value["kind"], "content kind"));
+namespace {
+
+/// @brief Reads the type fields of a layer's content (text, font, size, leading, bold, italic, align), each kept
+/// when absent.
+/// @param value The content's JSON object.
+/// @param content The content to update.
+/// @throws DocumentError If a field is invalid.
+void readTextFields(const json& value, LayerContent& content) {
 	if(const auto text = value.find("text"); text != value.end()) {
 		if(!text->is_string() || text->get<std::string>().size() > maxTextBytes)
 			throw DocumentError("text is at most " + std::to_string(maxTextBytes) + " bytes");
@@ -505,10 +510,14 @@ void readContent(const json& value, LayerContent& content) {
 		content.italic = italic->get<bool>();
 	if(value.contains("align"))
 		content.align = static_cast<TextAlign>(indexIn(alignNames, value["align"], "alignment"));
-	content.origin = {numberIn(value, "x", -farthest, farthest, content.origin.x),
-	                  numberIn(value, "y", -farthest, farthest, content.origin.y)};
-	content.corner = {numberIn(value, "x2", -farthest, farthest, content.corner.x),
-	                  numberIn(value, "y2", -farthest, farthest, content.corner.y)};
+}
+
+/// @brief Reads the shape fields of a layer's content (shape, radius, sides, strokeWidth, closed, points), each kept
+/// when absent.
+/// @param value The content's JSON object.
+/// @param content The content to update.
+/// @throws DocumentError If a field is invalid.
+void readShapeFields(const json& value, LayerContent& content) {
 	if(value.contains("shape")) content.shape = static_cast<ShapeKind>(indexIn(shapeNames, value["shape"], "shape"));
 	content.radius = numberIn(value, "radius", 0.0f, farthest, content.radius);
 	content.sides = static_cast<int>(numberIn(value, "sides", 3.0f, 64.0f, static_cast<float>(content.sides)));
@@ -516,6 +525,20 @@ void readContent(const json& value, LayerContent& content) {
 	if(const auto closed = value.find("closed"); closed != value.end() && closed->is_boolean())
 		content.closed = closed->get<bool>();
 	if(value.contains("points")) content.points = pointsFromJson(value["points"]);
+}
+
+} // namespace
+
+void readContent(const json& value, LayerContent& content) {
+	if(!value.is_object()) throw DocumentError("a layer's content is an object");
+	if(value.contains("kind"))
+		content.kind = static_cast<ContentKind>(indexIn(contentNames, value["kind"], "content kind"));
+	readTextFields(value, content);
+	content.origin = {numberIn(value, "x", -farthest, farthest, content.origin.x),
+	                  numberIn(value, "y", -farthest, farthest, content.origin.y)};
+	content.corner = {numberIn(value, "x2", -farthest, farthest, content.corner.x),
+	                  numberIn(value, "y2", -farthest, farthest, content.corner.y)};
+	readShapeFields(value, content);
 	for(const auto& [key, colour] : {std::pair{"fill", &content.fill}, std::pair{"stroke", &content.stroke}})
 		if(const auto found = value.find(key); found != value.end()) {
 			const auto parsed = pixelOfHex(*found);
