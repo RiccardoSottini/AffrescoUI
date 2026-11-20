@@ -92,7 +92,7 @@
     (let [fade settings.playback.crossfade]
       (when (and (pos? fade) (not= state.soundOn "") (not= state.repeat :one) (seq state.queue)
                  (= state.elapsed (- computed.duration fade)))
-        (sound "volume" state.soundOn :to 0 :ms (* fade 1000)))
+        (cross-into (next-sound) (* fade 1000)))
       (when (>= state.elapsed computed.duration)
         (if (= state.repeat :one) (replay) (advance fade))))))
 
@@ -108,28 +108,68 @@
 
 (defn no-sound "No sound plays: what a sound that fails leaves." [] (set "state.soundOn" ""))
 
-(defn start-sound "Plays the sound of the song playing (computed.sound: its own, else the beat), stopping the one before; state.soundOn names the one started, empty when none could." []
+(defn start-sound "Plays the sound of the song playing (computed.sound: its own, else the beat), stopping the one before, through the equaliser; state.soundOn names the one started, empty when none could." []
   (let [own computed.sound]
     (when (and (not= state.soundOn "") (not= state.soundOn own)) (sound "stop" state.soundOn))
     (set "state.soundOn" own)
     (sound "volume" own :to computed.loudness)
+    (sound "eq" own :to computed.eqBands)
     (audio "play" :of own :onError no-sound)))
 
-(defn song-changed "A new song: its sound from the start while playing. After a crossfade (the song starts past 0) it fades in over the crossfade's seconds, as the song before faded out." []
-  (when (and (true? state.isPlaying) (not= state.soundOn ""))
-    (if (= state.soundOn computed.sound) (sound "seek" state.soundOn :to 0) (start-sound))
-    (if (and (pos? state.elapsed) (pos? settings.playback.crossfade))
-      (do (sound "volume" state.soundOn :to 0)
-          (sound "volume" state.soundOn :to computed.loudness :ms (* settings.playback.crossfade 1000)))
-      (sound "volume" state.soundOn :to computed.loudness))))
+(defn next-sound "The sound the next song plays: its own, else the beat on the deck the song playing doesn't use, so the two overlap." []
+  (let [song (first computed.queueSongs)
+        own (if (neg? song.list)
+                (get-in computed.library [song.track :sound])
+                (get-in data.playlists [song.list :tracks song.track :sound]))]
+    (or-else own (if (= state.soundOn "beat") "beat2" "beat"))))
 
-(defn follow-playing "The song's sound follows the player: play and pause." []
+(defn cross-into "The crossfade begins: the song playing fades out, and the next song's sound fades in under it from its start, through the equaliser. A sound can't overlap itself: then it fades in once the next song starts." [next ms]
+  (sound "volume" state.soundOn :to 0 :ms ms)
+  (when (not= next state.soundOn)
+    (set "state.soundNext" next)
+    (sound "volume" next :to 0)
+    (sound "eq" next :to computed.eqBands)
+    (audio "play" :of next :from 0 :onError forget-next)
+    (sound "volume" next :to computed.loudness :ms ms)))
+
+(defn forget-next "The crossfade's next sound stops (a skip, a pause), if one fades in." []
+  (when (not= state.soundNext "")
+    (sound "stop" state.soundNext)
+    (set "state.soundNext" "")))
+
+(defn take-next "The next song starts where its sound already plays, faded in under the song that ended, which stops." []
+  (sound "stop" state.soundOn)
+  (set "state.soundOn" state.soundNext)
+  (set "state.soundNext" ""))
+
+(defn song-changed "A new song: its sound from the start while playing. After a crossfade (the song starts past 0) its sound already plays, faded in under the song before; one that couldn't overlap fades in now. Once per song: a list and a track changing together start it once." []
+  (cond
+    (= state.soundFor computed.playingKey) nil
+    (and (true? state.isPlaying) (not= state.soundNext "") (pos? state.elapsed))
+    (do (set "state.soundFor" computed.playingKey)
+        (take-next))
+    :else
+    (do (set "state.soundFor" computed.playingKey)
+        (forget-next)
+        (when (and (true? state.isPlaying) (not= state.soundOn ""))
+          (if (= state.soundOn computed.sound) (sound "seek" state.soundOn :to 0) (start-sound))
+          (if (and (pos? state.elapsed) (pos? settings.playback.crossfade))
+            (do (sound "volume" state.soundOn :to 0)
+                (sound "volume" state.soundOn :to computed.loudness :ms (* settings.playback.crossfade 1000)))
+            (sound "volume" state.soundOn :to computed.loudness))))))
+
+(defn follow-playing "The song's sound follows the player: play and pause (a crossfade under way stops)." []
   (if (true? state.isPlaying)
     (start-sound)
-    (when (not= state.soundOn "") (sound "pause" state.soundOn))))
+    (do (forget-next)
+        (when (not= state.soundOn "") (sound "pause" state.soundOn)))))
 
 (defn follow-volume "The volume slider, or muting, sets the sound's." []
   (when (not= state.soundOn "") (sound "volume" state.soundOn :to computed.loudness :ms 80)))
+
+(defn follow-equaliser "The equaliser's curve, or its switch, shapes the sound playing (and the one fading in)." []
+  (when (not= state.soundOn "") (sound "eq" state.soundOn :to computed.eqBands))
+  (when (not= state.soundNext "") (sound "eq" state.soundNext :to computed.eqBands)))
 
 ;;; Menus and the queue
 
@@ -146,6 +186,11 @@
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn playNext "Any song, as list:track, comes next." [key]
   (set "state.queue" (->> (without state.queue key) (concat [key]) (take 1000)))
+  (set "state.queuePick" nil))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn removeFromQueue "A song of the queue, as list:track, leaves it." [key]
+  (set "state.queue" (without state.queue key))
   (set "state.queuePick" nil))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
@@ -173,6 +218,17 @@
     (when (>= at 0)
       (place-queued (get state.queue at) (clamp (+ at by) 0 (dec (count state.queue)))))))
 
+(defn unqueue "Takes the song picked in the queue out of it, picks the one after it, and says so." []
+  (let [at computed.queueAt]
+    (when (>= at 0)
+      (let [song (get state.queue at)
+            left (without state.queue song)
+            title (some->> computed.queueSongs (find #(= (:key %) song)) :title)
+            last-at (dec (count left))]
+        (set "state.queueNote" (t "queue.removed" {:title (or title "")}))
+        (set "state.queue" left)
+        (set "state.queuePick" (get left (min at last-at)))))))
+
 (defn drop-queued "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows." []
   (let [song event.data.id]
     (place-queued song (if-some [over event.id]
@@ -197,8 +253,9 @@
     (when-first [top rows]
       (start-list -1 (number (:id top)) state.collection.name (->> rows (map :id) (drop 1) (take 50) library-keys)))))
 
-(defn play-from-search "A search result opened: the results after it come next." []
-  (start-list -1 (number (opened)) "" (library-keys (ids-after computed.searchRows (opened)))))
+(defn play-from-search "A search result opened, a playlist's song or the library's: the results after it come next." []
+  (let [key (opened)]
+    (start-list (list-of key) (track-of key) "" (ids-after computed.searchRows key))))
 
 (defn play-liked-at "A liked song, by its place in computed.likedSongs (-1: none): the liked songs after it come next." [at]
   (when (>= at 0)
@@ -366,30 +423,30 @@
   (set "state.quickPick.query" query)
   (set "state.quickPick.open" true))
 
-;;; By names: what the commands an agent runs (songPlay, songPause, songQueue, songLike) do, on the library's songs. A
+;;; By names: what the commands an agent runs (songPlay, songPause, songQueue, songLike) do, on the playlists' and the library's songs. A
 ;;; song that isn't there changes nothing but the page: the search shows what its title finds.
 
-(defn song-named "The library song with that title, and by that artist when given, in any case: its key, or nil." [title artist]
+(defn song-named "The song with that title, and by that artist when given, in any case: a playlist's first, then the library's; its key, or nil." [title artist]
   (let [wanted (-> title str/trim str/lower-case)
         by (some-> artist str/trim str/lower-case)
-        song (find #(and (= (str/lower-case (:title %)) wanted) (or (nil? by) (= (str/lower-case (:artist %)) by)))
-                   data.songs)]
-    (some->> song :id number (key-of -1))))
+        named? #(and (= (str/lower-case %1) wanted) (or (nil? by) (= (str/lower-case %2) by)))]
+    (or (some->> computed.playlistSongs (find #(named? (get (:cells %) 1) (get (:cells %) 2))) :id)
+        (some->> data.songs (find #(named? (:title %) (:artist %))) :id number (key-of -1)))))
 
 (defn search-for "Shows the search, with what was asked for." [title]
   (set "state.search" (str/trim title))
   (show :search))
 
-(defn play-song "Plays the library song with that title (and artist); without a title, the song again where it paused." [title artist]
+(defn play-song "Plays the song with that title (and artist); without a title, the song again where it paused." [title artist]
   (let [key (some-> title (song-named artist))]
     (cond (nil? title) (set "state.isPlaying" true)
           (nil? key) (search-for title)
           :else (play (list-of key) (track-of key)))))
 
-(defn queue-song "Adds the library song with that title (and artist) to the end of the queue." [title artist]
+(defn queue-song "Adds the song with that title (and artist) to the end of the queue." [title artist]
   (if-some [key (song-named title artist)] (addToQueue key) (search-for title)))
 
-(defn like-song-named "Likes the library song with that title (and artist); a liked song stays liked." [title artist]
+(defn like-song-named "Likes the song with that title (and artist); a liked song stays liked." [title artist]
   (if-some [key (song-named title artist)]
     (when-not (has state.liked key) (toggleLike key))
     (search-for title)))
@@ -422,6 +479,20 @@
               :artist {:type [string null] :description "Its artist, when two songs share a title"}}
   [title artist]
   (like-song-named title artist))
+
+(defcommand soundPreset "Gives the equaliser a preset, and turns it on."
+  :title ~(t "command.soundPreset") :description ~(t "command.soundPreset.about")
+  :category ~(t "category.playback") :icon "sliders-horizontal"
+  :arguments {:preset {:type string :enum [flat bass vocal treble] :description "The preset: flat, bass (a bass boost), vocal or treble"}}
+  [preset]
+  (set-preset preset))
+
+(defcommand soundCrossfade "Sets how many seconds the song ending and the next overlap: 0 turns the crossfade off."
+  :title ~(t "command.soundCrossfade") :description ~(t "command.soundCrossfade.about")
+  :category ~(t "category.playback") :icon "blend"
+  :arguments {:seconds {:type number :minimum 0 :maximum 12 :description "The seconds, from 0 (off) to 12"}}
+  [seconds]
+  (set "settings.playback.crossfade" (-> seconds round (clamp 0 12))))
 
 ;;; Commands
 
@@ -491,6 +562,12 @@
   :title ~(t "command.cancelRename") :description ~(t "command.cancelRename.about")
   :category ~(t "category.view") :icon "x" :enablement ~state.renaming []
   (set "state.renaming" false))
+
+(defcommand clearQueue "Empties the queue: nothing comes after the song playing (repeating all starts the order again)."
+  :title ~(t "command.clearQueue") :description ~(t "command.clearQueue.about")
+  :category ~(t "category.playback") :icon "list-x" :enablement ~(seq state.queue) []
+  (set "state.queue" [])
+  (set "state.queuePick" nil))
 
 (defcommand toggleQueue "Shows or hides the queue beside the page."
   :title ~(t "command.toggleQueue") :description ~(t "command.toggleQueue.about")
@@ -562,6 +639,8 @@
           :state.playingList [{:run song-changed}]
           :state.volume [{:run follow-volume}]
           :state.muted [{:run follow-volume}]
+          :state.eq [{:run follow-equaliser}]
+          :state.eqOn [{:run follow-equaliser}]
           :state.page [{:run place-changed}]
           :state.mini [{:run liftAssistant}]
           :state.current [{:run place-changed}]
@@ -576,6 +655,12 @@
 
 (defn browse-back "Back from an album or an artist to the tiles it was opened from." []
   (show (if (= state.collection.kind :artist) :artists :albums)))
+
+(defn queue-menu "A right click on a song up next (or Shift+F10 on the picked one): its menu." []
+  (when-some [key (or event.data.id state.queuePick)] (open-song-menu (list-of key) (track-of key))))
+
+(defn search-menu "A right click on a song the search found: its menu." []
+  (when-some [key state.searchPick] (open-song-menu (list-of key) (track-of key))))
 
 (defn liked-menu "A right click on a liked song: its menu." []
   (when-some [key state.likedPick] (open-song-menu (list-of key) (track-of key))))

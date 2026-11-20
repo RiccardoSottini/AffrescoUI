@@ -33,9 +33,17 @@
   {:status stopped :playing false}
   "The beat's sound: its status and spectrum." :type (object :properties {:status (string) :playing (boolean) :spectrum (array :items (number))}))
 
+(defstate beat2
+  {:status stopped :playing false}
+  "The beat's second deck: its status and spectrum." :type (object :properties {:status (string) :playing (boolean) :spectrum (array :items (number))}))
+
 (defstate sounds {} "The songs' own sounds, by name." :type (object))
 
-(defstate soundOn "" "The sound playing: beat, a sound of its own, or none." :type (string))
+(defstate soundOn "" "The sound playing: beat (or its second deck, beat2), a sound of its own, or none." :type (string))
+
+(defstate soundFor "" "The song (list:track) the sound playing was started for, so a song starts its sound once." :type (string))
+
+(defstate soundNext "" "The sound fading in under the song ending, through a crossfade; empty when none." :type (string))
 
 ;;; The queue
 
@@ -197,12 +205,12 @@
 (defstate eqOn true "Whether the equaliser is on.")
 
 (defstate bands
-  [{:label "60 Hz" :at 0}
-   {:label "250 Hz" :at 0.25}
-   {:label "1 kHz" :at 0.5}
-   {:label "4 kHz" :at 0.75}
-   {:label "16 kHz" :at 1}]
-  "The equaliser's bands: where each is on the curve, and its name.")
+  [{:label "60 Hz" :at 0 :frequency 60}
+   {:label "250 Hz" :at 0.25 :frequency 250}
+   {:label "1 kHz" :at 0.5 :frequency 1000}
+   {:label "4 kHz" :at 0.75 :frequency 4000}
+   {:label "16 kHz" :at 1 :frequency 16000}]
+  "The equaliser's bands: where each is on the curve, its frequency and its name.")
 
 (defstate presets
   {:flat [[0 0.5] [0.25 0.5] [0.5 0.5] [0.75 0.5] [1 0.5]]

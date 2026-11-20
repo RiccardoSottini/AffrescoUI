@@ -572,7 +572,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"image", "", R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
-		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+		"eq", "master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"

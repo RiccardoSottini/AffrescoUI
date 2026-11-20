@@ -4547,6 +4547,7 @@
 									"pan",
 									"rate",
 									"loop",
+									"eq",
 									"master"
 								]
 							},

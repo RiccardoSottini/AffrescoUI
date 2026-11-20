@@ -6,8 +6,8 @@
 ;;; and Cmd+Shift+P runs any command; Space plays or pauses, the arrows skip and set the volume (keys.lisp has them all).
 ;;; A right click (or Shift+F10) on a song opens its menu. The songs are simulated: what plays is one beatbox loop
 ;;; (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound; a song may name a sound of its
-;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser and the crossfade are
-;;; visual only.
+;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser filters the sound, and a
+;;; crossfade overlaps the song ending and the next (the beat plays on two decks).
 
 (ns tempo.index
   (:require "locales/en.lisp"
