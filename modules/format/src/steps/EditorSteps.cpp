@@ -30,14 +30,20 @@ TextPosition placeOf(const Running& s, const char* line, const char* column, Tex
 	return {fromOne(line), s.step.contains(column) ? fromOne(column) : 0};
 }
 
-/// @brief "type": "text" at the caret of an editor or a text field, over its selection, at once.
+/// @brief "type": "text" at the caret of an editor or a text field, over its selection, at once; with "line" (and
+/// "column", "toLine", "toColumn", from 1), an editor's text over that range instead.
 /// @param s The step.
 void typeText(const Running& s) {
 	const std::string utf8 = string(s.value("text"), s.where + ".text");
 	Panel* panel = stepTarget(s);
 	if(!panel) return;
-	if(auto* editor = dynamic_cast<TextEditor*>(panel)) editor->insertText(utf8);
-	else if(auto* field = dynamic_cast<TextArea*>(panel)) field->insertText(utf8);
+	if(auto* editor = dynamic_cast<TextEditor*>(panel)) {
+		if(s.step.contains("line")) {
+			const TextPosition at = placeOf(s, "line", "column", {});
+			editor->selectRange(at, placeOf(s, "toLine", "toColumn", at));
+		}
+		editor->insertText(utf8);
+	} else if(auto* field = dynamic_cast<TextArea*>(panel)) field->insertText(utf8);
 	else fail(s.where + ".in", "is not an editor or a text field");
 }
 

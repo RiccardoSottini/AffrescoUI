@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -244,6 +245,22 @@ TEST_CASE("image cache: with an executor, files decode on the worker and arrive 
 	CHECK(broken);
 	(void)cache->load(images() / "badge.png", [](const auto&) { FAIL("delivered after the cache was destroyed"); });
 	cache.reset();
+	executor.runPosted();
+}
+
+TEST_CASE("image cache: a bounded wait delivers what was decoded, for a first frame that shows its images") {
+	LockedExecutor executor;
+	ImageCache cache;
+	cache.setExecutor(&executor);
+	cache.allowDirectory(images());
+	std::shared_ptr<const Bitmap> badge;
+	const ImageCache::Request request = cache.load(images() / "badge.png", [&](const auto& bitmap) { badge = bitmap; });
+	CHECK_FALSE(badge); // not before the main thread runs what the worker posted
+	CHECK(cache.finishPending(std::chrono::milliseconds{5000}));
+	REQUIRE(badge); // delivered on this thread, before any posted task runs
+	CHECK(badge->width() == 48);
+	CHECK(cache.pending() == 0);
+	CHECK(cache.finishPending(std::chrono::milliseconds{0})); // nothing asked for: finished at once
 	executor.runPosted();
 }
 

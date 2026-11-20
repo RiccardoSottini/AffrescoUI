@@ -36,6 +36,30 @@ Levels measure(const float* frames, std::size_t count, std::uint32_t channels) n
 	return levels;
 }
 
+Biquad::Biquad(const EqualizerBand& band, std::uint32_t sampleRate, std::uint32_t channels)
+    : z1(channels), z2(channels) {
+	constexpr double pi = 3.14159265358979323846;
+	const double rate = std::max<double>(sampleRate, 1);
+	const double frequency = std::min<double>(band.frequency, rate * 0.45);
+	const double a = std::pow(10.0, band.gain / 40.0);
+	const double w0 = 2 * pi * frequency / rate;
+	const double alpha = std::sin(w0) / (2 * band.q);
+	const double cosine = std::cos(w0);
+	const double a0 = 1 + (alpha / a);
+	b0 = static_cast<float>((1 + (alpha * a)) / a0);
+	b1 = static_cast<float>((-2 * cosine) / a0);
+	b2 = static_cast<float>((1 - (alpha * a)) / a0);
+	a1 = b1;
+	a2 = static_cast<float>((1 - (alpha / a)) / a0);
+}
+
+float Biquad::process(float sample, std::uint32_t channel) noexcept {
+	const float out = (b0 * sample) + z1[channel];
+	z1[channel] = (b1 * sample) - (a1 * out) + z2[channel];
+	z2[channel] = (b2 * sample) - (a2 * out);
+	return out;
+}
+
 VoiceCore::VoiceCore(std::shared_ptr<Source> source_, std::unique_ptr<Reader> reader_, Format format_,
                      const VoiceOptions& options, std::uint64_t maxFrames_)
     : source(std::move(source_)), reader(std::move(reader_)), format(format_), length(reader->length()),
@@ -156,6 +180,8 @@ void VoiceCore::render(float* mix, std::size_t frames) {
 			}
 		}
 		float* frame = scratch.data() + (i * channels);
+		for(Biquad& band : equalizer)
+			for(std::uint32_t c = 0; c < channels; ++c) frame[c] = finiteSample(band.process(frame[c], c));
 		for(std::uint32_t c = 0; c < channels; ++c) {
 			const float sideGain = c == 0 ? pans.left : c == 1 ? pans.right : 1.0F;
 			frame[c] *= gain * sideGain;
@@ -282,6 +308,22 @@ void Voice::setPan(float pan) {
 void Voice::setRate(float rate) {
 	const std::scoped_lock lock(shared_->mutex);
 	core_->rate = detail::clamped(rate, 0.25F, 4);
+}
+
+void Voice::setEqualizer(std::span<const EqualizerBand> bands) {
+	const std::scoped_lock lock(shared_->mutex);
+	std::vector<detail::Biquad> filters;
+	for(const EqualizerBand& given : bands.first(std::min(bands.size(), maxEqualizerBands))) {
+		const EqualizerBand band{detail::clamped(given.frequency, 20, 20000), detail::clamped(given.gain, -24, 24),
+		                         detail::clamped(given.q, 0.1F, 10)};
+		if(band.gain == 0) continue;
+		filters.emplace_back(band, core_->format.sampleRate, core_->format.channels);
+		if(filters.size() <= core_->equalizer.size()) { // the same band count: keep its memory, so it doesn't click
+			filters.back().z1 = core_->equalizer[filters.size() - 1].z1;
+			filters.back().z2 = core_->equalizer[filters.size() - 1].z2;
+		}
+	}
+	core_->equalizer = std::move(filters);
 }
 
 State Voice::state() const {

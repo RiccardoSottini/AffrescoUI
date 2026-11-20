@@ -28,6 +28,7 @@
             modello.modello
             modello.transform
             modello.collections
+            modello.relations
             modello.navigation
             modello.animation
             modello.materials

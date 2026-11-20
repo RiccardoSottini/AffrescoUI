@@ -36,18 +36,19 @@
   :strings {:default en
             :locale ~settings.workbench.language
             :keep ["Forge" "AffrescoUI" "Forge Dark" "Forge Light" "Forge High Contrast"]}
-  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons code]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 28}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 22}
           :iconsRail {:file "../../shared/fonts/Lucide.ttf" :size 19}
           :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 13 :fallback [icons]}}
-  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent]
+  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent state.walkthrough]
   :permissions {:allow [studio] :ask ["agent(/actions)"] :reviewers [studio]}
   :theme ~state.theme
   (node#root :color @color.editor
     ~(workbench)
     (node :use forgeNotificationCentre)
+    (node :use forgeEditorMenu)
     (node :use forgePalette)
     (node :use forgeDebugOverlays)
     (node :use forgeLsp)

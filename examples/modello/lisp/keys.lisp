@@ -67,6 +67,10 @@
 
 (defkey "m" moveToCollectionMenu)
 
+(defkey "ctrl+p" {:when ~(nil? state.modal) :do parentToActive})
+
+(defkey "alt+p" {:when ~(nil? state.modal) :do clearParent})
+
 (defkey "f2" startRename)
 
 (defkey "shift+h" hideUnselected)

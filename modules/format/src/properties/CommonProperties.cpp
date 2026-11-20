@@ -236,8 +236,25 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
 	else if(slot == Slot::Font) label.setFont(font(value, at));
 	else if(slot == Slot::Align) {
-		const auto [horizontal, vertical] = alignments(value, at);
+		// "justify" is a horizontal placement of labels only: lines from the start, stretched to the width
+		json written = value;
+		bool justify = false;
+		if(value.is_string()) {
+			const std::string& both = value.get_ref<const std::string&>();
+			const std::size_t first = std::min(both.find_first_not_of(' '), both.size());
+			const std::size_t after = first + std::string_view("justify").size();
+			justify =
+			    both.compare(first, after - first, "justify") == 0 && (after >= both.size() || both[after] == ' ');
+			if(justify) // "justify" alone, or "justify center": the vertical placement stays
+				written =
+				    both.find_first_not_of(' ', after) == std::string::npos ? "start" : "start" + both.substr(after);
+		} else if(value.is_object() && value.value("horizontal", json()) == "justify") {
+			justify = true;
+			written["horizontal"] = "start";
+		}
+		const auto [horizontal, vertical] = alignments(written, at);
 		label.setAlignment(horizontal, vertical);
+		label.setJustify(justify);
 	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
 	else if(slot == Slot::FitText)
 		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));

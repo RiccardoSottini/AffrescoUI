@@ -10,7 +10,7 @@
 
 (defview sign-in-card "The sign-in screen: its card, centred, scrolling when the window is short." []
   `(node#panel-sign-in :style screen
-     (node#card :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#card :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#card-top :height 36 :color transparent)
        ~(sign-in-form)
        (node#card-end :height 36 :color transparent))))
@@ -117,7 +117,12 @@
 
 (defview password-step "The second step: the password, Forgot password?, the Caps Lock warning and Remember me." []
   [`(row#row-password :when ~(= state.step "password") :height 18 :justify space-between :anchors {:left 0 :right 10}
-      (node#label-password :style fieldLabel :anchors {} :fitText true :text ~(t "password"))
+      (node#label-password :style fieldLabel
+        :height 18
+        :align "start center"
+        :anchors {}
+        :fitText true
+        :text ~(t "password"))
       (node#forgot :style smallLink :text ~(t "forgot") :onClick open-forgot))
    (password-field)
    `(label#capsLockWarning :when ~(and (= state.step "password") window.capsLock)

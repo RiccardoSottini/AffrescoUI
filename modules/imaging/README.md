@@ -22,6 +22,8 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `Selection.hpp` | Shapes (rectangle, ellipse, lasso, polygon) with soft edges, combined by replace, add, subtract or intersect; the magic wand, colour range, invert, and the selection's bounds to the pixel |
 | `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased or cloned along a path, with pressure, as one step |
 | `Filter.hpp` | Gaussian blur, motion blur, sharpen, unsharp mask and add noise, and the selection's feather, tile by tile with a halo, for a preview of the visible tiles or the whole layer |
+| `Vector.hpp` | Vector content: paths of anchors with curve handles (the document's `Structure::paths`), and the `LayerContent` a type or shape layer is drawn from (text, font, size, style, alignment; a rectangle, ellipse, polygon, line or path with fill and stroke) |
+| `Shapes.hpp` | Vector content drawn: paths flattened, strokes, type and shape layers rendered into a layer's pixels (text with a `render` font), and their JSON |
 | `Gradient.hpp` | Linear, radial, angle, reflected and diamond gradients, and a fill by colour (the paint bucket) |
 | `Color.hpp` | `ColorProfile` (sRGB, Display P3, a wide RGB, grey, or parsed from bytes), `ColorTransform`, soft proofing, and the 3D table the canvas converts to the display through |
 | `Codec.hpp` | PNG and JPEG read into tiled images (16-bit PNG to `rgba16f`) with their embedded profile, and written |
@@ -42,6 +44,9 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
   their headers, before decoding; a damaged tile of a project reads as transparent. Projects and profiles have fuzz
   targets (`tests/fuzz/tempera_project.cpp`, `tests/fuzz/icc.cpp`).
 - **Errors are `DocumentError`**, naming the bound or the fault.
+- **Type and shape layers are pixel layers with content.** `Layer::content` says what their pixels are drawn from;
+  `Document::setContent` changes the content and the pixels drawn from it as one structure step (undone together), so
+  the compositors see a pixel layer. Painting refuses them (`paintable`) until they are rasterized (no content).
 
 ## Threading and ownership
 
@@ -69,7 +74,7 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `tiles/` | Tiles, images and their mips (`Image.cpp`), and GPU residency (`Residency.cpp`) |
 | `document/` | The document's layers, masks and selection (`Document.cpp`) and the undo history (`History.cpp`) |
 | `compose/` | Blend modes, adjustments, and the CPU compositor and sampler (`Composite.cpp`) |
-| `paint/` | Brushes, gradients and the bucket, selections, and the shape rasterizer they share (`Rasterize.cpp`) |
+| `paint/` | Brushes, gradients and the bucket, selections, the shape rasterizer they share (`Rasterize.cpp`), and vector content drawn (`Shapes.cpp`) |
 | `filters/` | Filter runs over tiles with a halo (`Filter.cpp`) and their kernels (`Kernels.cpp`) |
 | `io/` | PNG and JPEG (`Codec.cpp`, over stb in `Stb.cpp`), colour profiles (`Color.cpp`) and the project file (`Project.cpp`, `ProjectJson.cpp`) |
 | `gpu/` | The canvas surface (`Canvas.cpp`) and its shaders (`CanvasShaders.cpp`) |

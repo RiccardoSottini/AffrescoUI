@@ -585,7 +585,7 @@
 				{
 					"expect": {
 						"state": "bookmarks.length",
-						"is": 2
+						"is": 5
 					}
 				},
 				{
@@ -602,7 +602,7 @@
 				},
 				{
 					"expect": {
-						"state": "bookmarks[1].camera.distance",
+						"state": "bookmarks[4].camera.distance",
 						"is": 12.3
 					}
 				},
@@ -658,7 +658,7 @@
 				},
 				{
 					"expect": {
-						"state": "bookmarks[1].time",
+						"state": "bookmarks[4].time",
 						"is": 29.5
 					}
 				},
@@ -704,13 +704,13 @@
 				{
 					"expect": {
 						"state": "bookmarks.length",
-						"is": 1
+						"is": 4
 					}
 				},
 				{
 					"expect": {
 						"state": "bookmark",
-						"is": "overview"
+						"is": "mars-close"
 					}
 				},
 				{
@@ -1284,6 +1284,18 @@
 					"action": "deleteBookmark"
 				},
 				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
 					"expect": {
 						"state": "bookmarks.length",
 						"is": 0
@@ -1731,6 +1743,177 @@
 					"expect": {
 						"state": "assistant.open",
 						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "night-mode",
+			"steps": [
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "night"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-night",
+						"exists": true
+					}
+				},
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 12.3
+					}
+				},
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"key": "n"
+				},
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				}
+			]
+		},
+		{
+			"name": "search-finds-a-body",
+			"steps": [
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"type": "mars"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "search-goes-to-a-day",
+			"steps": [
+				{
+					"action": "askDay"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": "@"
+					}
+				},
+				{
+					"type": "2030-03-02"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 60
+					}
+				},
+				{
+					"action": "findObject"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"type": "@99"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 99
+					}
+				}
+			]
+		},
+		{
+			"name": "location-moves",
+			"steps": [
+				{
+					"key": "shift+up"
+				},
+				{
+					"expect": {
+						"state": "sky.latitude",
+						"is": 50
+					}
+				},
+				{
+					"action": "goSouth"
+				},
+				{
+					"action": "goSouth"
+				},
+				{
+					"expect": {
+						"state": "sky.latitude",
+						"is": 40
 					}
 				}
 			]

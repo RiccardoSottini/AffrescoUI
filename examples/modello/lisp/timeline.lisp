@@ -9,11 +9,11 @@
   (flat (map (fn [it]
                [{:node it.id
                  :path "translation"
-                 :times (map #(/ (dec (:frame %)) 24) it.keyframes)
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
                  :values (flat (map :translation it.keyframes))}
                 {:node it.id
                  :path "rotation"
-                 :times (map #(/ (dec (:frame %)) 24) it.keyframes)
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
                  ;; A rotation in degrees as a quaternion: (get (map f [x]) 0) gives f's value for x, worked out once,
                  ;; where a binding's let would write x's text again at each of its 24 uses.
                  :values (flat (map (fn [it]
@@ -31,9 +31,11 @@
                                     it.keyframes))}
                 {:node it.id
                  :path "scale"
-                 :times (map #(/ (dec (:frame %)) 24) it.keyframes)
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
                  :values (flat (map :scale it.keyframes))}])
              (filter #(pos? (count (or-else (:keyframes %) []))) state.scene.nodes))))
+
+(defcomputed fps "The frames a second the timeline plays and the export keys at: the output's frame rate." (or-else state.render.fps 24))
 
 (defcomputed gltfClips "The clips an export holds: one, Action, if anything is keyed."
   (if (empty? computed.keyTracks) [] [{:name "Action" :tracks computed.keyTracks}]))
@@ -45,7 +47,7 @@
 
 (defcomputed keyframes "Those frames as the timeline's keyframes, at their times."
   ; style: keep, #(...) can't give a map, and a binding's function names its item it
-  (map (fn [it] {:time (/ (dec it) 24)}) computed.keyFrames))
+  (map (fn [it] {:time (/ (dec it) computed.fps)}) computed.keyFrames))
 
 ;;; The range
 
@@ -136,13 +138,13 @@
 (defview timeline-track "The timeline: the keys, the markers, the range played; scrubbing goes to a frame, a key dragged moves." []
   `(timeline#timeline :anchors {:left 0 :right 0 :top 26 :bottom 0}
      :tracks ~[{:id "summary" :label " " :keyframes computed.keyframes}]
-     :time ~(/ (dec state.frame) 24)
-     :duration ~(/ (+ (max state.end computed.range.1) 20) 24)
-     :fps 24
+     :time ~(/ (dec state.frame) computed.fps)
+     :duration ~(/ (+ (max state.end computed.range.1) 20) computed.fps)
+     :fps ~computed.fps
      :timeFormat ~(if (true? state.timeSeconds) "seconds" "frames")
      ; style: keep, #(...) can't give a map, and a binding's function names its item it
-     :markers ~(if (true? state.hideMarkers) [] (map (fn [it] {:time (/ (dec it.frame) 24) :label it.label}) state.markers))
-     :playRange ~[(/ (dec computed.range.0) 24) (/ (dec computed.range.1) 24)]
+     :markers ~(if (true? state.hideMarkers) [] (map (fn [it] {:time (/ (dec it.frame) computed.fps) :label it.label}) state.markers))
+     :playRange ~[(/ (dec computed.range.0) computed.fps) (/ (dec computed.range.1) computed.fps)]
      :headerWidth 0
      :trackHeight 20
      :pixelsPerSecond 110

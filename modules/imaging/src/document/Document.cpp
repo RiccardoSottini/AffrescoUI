@@ -30,7 +30,10 @@ constexpr std::size_t maxNameBytes = 255;
 	std::size_t bytes = sizeof(Structure) + structure.root.size() * sizeof(std::uint64_t);
 	for(const auto& [id, layer] : structure.layers)
 		bytes += sizeof(Layer) + layer.name.size() + layer.children.size() * sizeof(std::uint64_t) +
-		         layer.adjustment.curve.size() * sizeof(float) * 2 + layer.adjustment.gradient.stops.size() * 20;
+		         layer.adjustment.curve.size() * sizeof(float) * 2 + layer.adjustment.gradient.stops.size() * 20 +
+		         layer.content.text.size() + layer.content.points.size() * sizeof(PathPoint);
+	for(const VectorPath& path : structure.paths)
+		bytes += sizeof(VectorPath) + path.name.size() + path.points.size() * sizeof(PathPoint);
 	return bytes;
 }
 
@@ -114,6 +117,8 @@ std::optional<std::string> Document::paintable(std::uint64_t target) const {
 		if(layer.pixels != target && layer.mask != target) continue;
 		if(layer.locks.all) return "The layer \"" + layer.name + "\" is locked";
 		if(layer.locks.pixels && layer.pixels == target) return "The layer's pixels are locked";
+		if(layer.content.kind != ContentKind::none && layer.pixels == target)
+			return "Rasterize the layer \"" + layer.name + "\" to paint on it";
 		if(!layer.visible) return "The layer is hidden";
 		return std::nullopt;
 	}
@@ -239,6 +244,38 @@ std::uint64_t Document::addImageLayer(const std::string& name, std::shared_ptr<I
 		id = insert(structure, std::move(layer));
 	});
 	return id;
+}
+
+std::uint64_t Document::addContentLayer(const std::string& name, const LayerContent& content,
+                                       std::shared_ptr<Image> pixels) {
+	if(!pixels || pixels->width() != width_ || pixels->height() != height_ || pixels->format() != format_)
+		throw DocumentError("A layer's image is the document's size and format");
+	std::uint64_t id = 0;
+	changeStructure(content.kind == ContentKind::text ? "Type Layer" : "Shape Layer", [&](Structure& structure) {
+		Layer layer;
+		layer.name = name;
+		layer.content = content;
+		layer.pixels = structure.nextId++;
+		structure.images.emplace(layer.pixels, pixels);
+		id = insert(structure, std::move(layer));
+	});
+	return id;
+}
+
+void Document::setContent(std::uint64_t id, const std::string& name, const LayerContent& content,
+                          std::shared_ptr<Image> pixels, bool coalesce) {
+	if(pixels && (pixels->width() != width_ || pixels->height() != height_ || pixels->format() != format_))
+		throw DocumentError("A layer's image is the document's size and format");
+	changeStructure(
+	    name,
+	    [&](Structure& structure) {
+		    Layer& layer = find(structure, id);
+		    if(layer.kind != LayerKind::pixel) throw DocumentError("Only a pixel layer holds text or a shape");
+		    if(layer.locks.all) throw DocumentError("The layer \"" + layer.name + "\" is locked");
+		    layer.content = content;
+		    if(pixels) structure.images[layer.pixels] = pixels;
+	    },
+	    coalesce);
 }
 
 std::uint64_t Document::addGroup(const std::string& name) {

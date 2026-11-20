@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 49 done, 1 partial, 0 missing (50).
+**Counts:** 50 done, 0 partial, 0 missing (50).
 
 ## Shell
 
@@ -35,7 +35,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Alarm panel tile and its keypad dialog | done | a button per mode; disarming takes a code |
 | Round toggle switches | done | drawn round switches in the automations, the card editor and the general settings; tiles use bars |
 | Tile names never cut at the smallest window | done | |
-| Edit mode for the dashboard | done | a soft indigo bar with close, the title and Done; each section outlined with even padding, with a pencil in its corner that covers none of its content; Add card in the edit bar, disabled with a tooltip while every card is already on the dashboard |
+| Edit mode for the dashboard | done | a soft indigo bar with close, the title and Done; each section outlined with even padding, with a pencil in its corner that covers none of its content; an eye button beside each pencil takes the card off the dashboard, and Add card in the edit bar lists the cards taken off and puts one back (disabled with a tooltip while every card is on) |
 | Card editor: visual and code | done | a filled title field with its label inside and the options in a form, or the card as JSON, checked on save, beside a live preview of the card as the dashboard draws it (the thermostat with the current temperature, its dial, minus and plus clear below it, and modes); cards cannot yet be moved |
 | Snackbar for short messages | done | a dark bar at the bottom centre with Dismiss, or a call's progress |
 
@@ -46,7 +46,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Light dialog: big brightness bar, colour temperature | done | opens from a light tile; the bar fills with a flat top and a handle line |
 | Climate dialog: dial, modes, history | done | its own dial with minus and plus in its gap, a Mode dropdown, and a 24-hour line with a scale |
 | Cover dialog: position, tilt | done | a position bar and a narrower tilt bar, open, stop and close |
-| Device dialog: properties, related, activity | done | the speaker with previous, play or pause, next and a volume bar; battery, last change, the automation it is used in (which opens it), recent activity; previous and next are disabled with a tooltip, as the queue holds one track |
+| Device dialog: properties, related, activity | done | the speaker with previous, play or pause, next and a volume bar; battery, last change, the automation it is used in (which opens it), recent activity; the track and artist under the state, and previous and next step through a queue of four tracks, wrapping |
 | Dialogs dim the page behind them | done | the search too |
 | Dialog header: area above the name, history, settings and more | done | the more menu opens the related automation or the properties |
 
@@ -54,7 +54,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Energy page with the week and the hour | done | hourly use stacked by solar and grid on a kWh axis with gridlines; the week by day, device or room; the previous, next and pick-a-day buttons are disabled with a tooltip: the demo keeps one day |
+| Energy page with the week and the hour | done | hourly use stacked by solar and grid on a kWh axis with gridlines; the week by day, device or room; previous and next step through today and the six days before it, and the calendar opens a menu of those days; the chart, flow, sources, gauges and budget follow the day |
 | Where the energy goes (grid, solar, home) | done | three nodes joined by flows, with the day's totals |
 | Sources table and costs | done | grid in and out, solar, net cost; self-use gauges and a daily budget bar |
 
@@ -63,7 +63,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Automations list with on and off | done | a plain app bar; a searchable table with name and last ran columns, without a count that could be cut; disabled rules dimmed; a menu per row to run, duplicate, disable or delete it; a floating New automation button |
-| Editor: triggers, conditions, actions as cards | done | a plain app bar with back, the name and more; a banner with Enable while it is disabled; When, And if, Then do cards, each step an outlined row with a chevron and a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Disable, Duplicate and Delete, which asks first |
+| Editor: triggers, conditions, actions as cards | done | a plain app bar with back, the name and more; a banner with Enable while it is disabled; When, And if, Then do cards, each step an outlined row with a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Disable, Duplicate and Delete, which asks first |
 | Confirm dialogs | done | rounded, with text buttons: Cancel, then Delete in red |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
@@ -72,9 +72,9 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Areas page with a card per room | done | grouped by floor; a picture, temperature, humidity and lights on; a card opens its room; Add a room is disabled with a tooltip: rooms are fixed in this version |
-| Activity log: a dated list of events | done | today and yesterday, the entity and what it did with the time beneath, rules marked in the accent colour; a date range field and a Choose a control, room or device field that filters it; the date range is disabled with a tooltip: the log keeps two days |
+| Activity log: a dated list of events | done | today and yesterday, the entity and what it did with the time beneath, rules marked in the accent colour; a period field (today, yesterday, both, or the last seven days, each older day under its own heading) and the same menu from the bar's calendar, and a Choose a control, room or device field that filters it |
 | History: state bars and lines over time | done | a continuous day timeline per entity with labelled states and a temperature line on a scale with gridlines and hours |
-| History: period and target pickers | partial | a date range field and a Choose entity, area or device button, which opens the search; the period is disabled with a tooltip, the demo keeping one day |
+| History: period and target pickers | done | a day field and the bar's calendar pick today or one of the six days before it (each change of state a little earlier or later, the temperature that day's, the axis to 24:00), and a Choose entity, area or device button, which opens the search |
 | Full-size app bar actions and add buttons | done | 24-pixel icons in every app bar; Add an area floats at the bottom corner |
 
 ## Settings
@@ -83,7 +83,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Settings list grouped in cards | done | coloured icon circles, a subtitle and a chevron per row |
 | Profile: user, language, theme | done | the user and Log out; the language in the same filled dropdown as the general settings; the theme as Auto, Light and Dark radio buttons; Log out is disabled with a tooltip: the demo has no sign-in |
-| Devices and controls tables | done | Connections, Devices, Controls and Utilities tabs in the app bar (under it in a narrow window), Filters then a Search 3 devices field that narrows the table, a full-width table with lines between rows and the manufacturer, model, area and integration, and a floating add button; Filters and the add button are disabled with a tooltip |
+| Devices and controls tables | done | Connections, Devices, Controls and Utilities tabs in the app bar (under it in a narrow window), Filters (a menu of rooms and connections, the chosen one shown in the button) then a Search 3 devices field that narrows the table, a full-width table with lines between rows and the manufacturer, model, area and integration, and a floating add button; the add button is disabled with a tooltip |
 | About page | done | the logo, version, devices and licence, then links to the documentation, issues and source; the links are disabled with a tooltip until a screen can open a web page |
 | General: climate, scenes, budget, notifications | done | rows from the settings schema in a card capped at 1040 pixels: filled number fields, round switches, the language in a dropdown, Reset when changed |
 
@@ -96,20 +96,11 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Shared kit components | done | the kit menu and dropdowns, themed through `kit.*` colours; the search is Haven's own |
 
 ## Left for later
-The controls that stay visible but disabled, with a tooltip saying why, and the partial row; each with what it needs and a priority (P1 daily, P2 occasional, P3 rare). Rows with two ids cover two controls, 15 in all.
+The controls that stay visible but disabled, with a tooltip saying why; each with what it needs and a priority (P1 daily, P2 occasional, P3 rare). Four in all.
 
 | Item | Needs | Priority |
 | --- | --- | --- |
-| Energy: previous day, next day (`energyPrev`, `energyNext`) | JSON only: per-day energy seed rows in the models, and the page reading the chosen day | P1 |
-| Energy: pick a day (`energyPick`) | JSON only, the same per-day seed, plus the kit's date field in a popover | P2 |
-| Activity log: range (`logRange`) | JSON only: seed a week of log entries and filter them by date | P2 |
-| Activity log: period (`logPeriod`) | JSON only: a period menu (today, yesterday, 7 days) over the same entries | P2 |
-| History: range (`histRange`), partial row "History: period and target pickers" | JSON only: multi-day history seed and a date filter | P2 |
-| History: period (`histPeriod`) | JSON only: a period menu over the same seed | P2 |
-| Devices: filters (`devFilters`) | JSON only: a filter menu (area, connection) applied to the table's rows | P2 |
-| Edit mode: add card (`editAddCard`) | JSON only: a card picker listing the card kinds, and cards that can be hidden and added again | P2 |
 | Devices: add device or control (`devAdd`) | JSON plus the data layer: an add dialog that inserts a record into the devices model | P3 |
 | Rooms: add area (`areasAdd`) | JSON only: draw the floors, the plan and energy by room from the rooms model instead of four fixed rooms | P3 |
-| Media: previous, next (`skip-back`, `skip-forward` in the media dialog) | JSON only: a play queue in the media device's state | P3 |
 | Profile: log out (`profileLogout`) | General library feature: an account or sign-in service in the host that a screen can call | P3 |
 | About: links (`aboutLink`) | General library feature: an `openUrl` step behind a capability prompt (security-sensitive) | P3 |

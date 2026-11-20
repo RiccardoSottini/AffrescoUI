@@ -6,4 +6,14 @@
  {:id e6 :day yesterday :time "23:00" :icon workflow :name "" :rule goodNight :what triggered}
  {:id e7 :day yesterday :time "23:00" :icon lock :name "Front door" :rule "" :what locked}
  {:id e8 :day yesterday :time "22:58" :icon lightbulb :name "Ceiling" :rule "" :what off}
- {:id e9 :day yesterday :time "18:12" :icon speaker :name "Speaker" :rule "" :what playing}]
+ {:id e9 :day yesterday :time "18:12" :icon speaker :name "Speaker" :rule "" :what playing}
+ {:id e10 :day ago2 :time "22:30" :icon lock :name "Front door" :rule "" :what locked}
+ {:id e11 :day ago2 :time "07:30" :icon workflow :name "" :rule morning :what triggered}
+ {:id e12 :day ago3 :time "20:15" :icon speaker :name "Speaker" :rule "" :what playing}
+ {:id e13 :day ago3 :time "10:00" :icon bot :name "Vacuum" :rule "" :what docked}
+ {:id e14 :day ago4 :time "23:00" :icon workflow :name "" :rule goodNight :what triggered}
+ {:id e15 :day ago4 :time "18:40" :icon door-open :name "Front door" :rule "" :what opened}
+ {:id e16 :day ago5 :time "21:05" :icon lamp-floor :name "Floor lamp" :rule "" :what on}
+ {:id e17 :day ago5 :time "06:45" :icon blinds :name "Bedroom blinds" :rule "" :what opened}
+ {:id e18 :day ago6 :time "19:30" :icon workflow :name "" :rule welcome :what triggered}
+ {:id e19 :day ago6 :time "08:10" :icon lightbulb :name "Ceiling" :rule "" :what off}]

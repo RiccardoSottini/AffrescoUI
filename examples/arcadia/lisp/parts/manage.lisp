@@ -15,6 +15,14 @@
 
 (defstate uninstall {:open false})
 
+(defstate filesShown false)
+
+(defstate gameFiles
+  [{:name data :icon folder :share 0.71}
+   {:name movies :icon folder :share 0.16}
+   {:name bin :icon folder :share 0.09}
+   {:name saves :icon folder :share 0.03}])
+
 (defcomputed manageGame "The game being managed." (find #(= (:id %) state.manage) data.games))
 
 ;;; The game's menu
@@ -192,7 +200,7 @@
          :color @color.accent))
      (label :grow 1 :height 22 :text ~(t (str "properties.updates." way)) :textColor @color.text)))
 
-(defview files-page "The installed files page: the size, the folder, and checking the files." []
+(defview files-page "The installed files page: the size, the folder, checking the files and browsing them." []
   `(node :when ~(= state.properties.tab "files") :fill true :color transparent
      ~(caps-title "properties.size" 0)
      (label#properties-size :text ~(t "properties.sizeValue"
@@ -207,12 +215,18 @@
        :font small
        :anchors {:left 0 :right 0 :top 84}
        :height 22)
-     (node#properties-verify :use quietButton
-       :anchors {:left 0 :top 128}
-       :height 32
-       :with {:title ~(t "properties.verify") :icon shield-check}
-       :disabled ~(= state.properties.verify "running")
-       :onClick verify-files)
+     (row :anchors {:left 0 :right 0 :top 128} :height 32 :gap 8
+       (node#properties-verify :use quietButton
+         :height 32
+         :with {:title ~(t "properties.verify") :icon shield-check}
+         :disabled ~(= state.properties.verify "running")
+         :onClick verify-files)
+       (node#properties-browse :use quietButton
+         :height 32
+         :with {:title ~(t (if state.filesShown "properties.hideFiles" "properties.browse"))
+                :icon folder-open
+                :on ~state.filesShown}
+         :onClick ~(handler toggle-files)))
      (label#properties-verify-result :live polite
        :font small
        :anchors {:left 0 :right 0 :top 168}
@@ -221,7 +235,26 @@
                 :running (t "properties.verifying")
                 :done (t "properties.verified")
                 "")
-       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))))
+       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))
+     ~(files-list)))
+
+(defview files-list "The game's folder, browsed: each folder in it with its size." []
+  `(column#properties-files :when ~state.filesShown
+     :let {:gb ~(or-else computed.manageGame.sizeGb 0)}
+     :anchors {:left 0 :right 0 :top 192}
+     :height ~(* 22 (count state.gameFiles))
+     :role list
+     :label ~(t "properties.folder")
+     ~(repeat [f state.gameFiles]
+        `(row :let {:size ~(/ (round (* 10 f.share gb)) 10)}
+           :height 22
+           :anchors {:left 0 :right 0}
+           :gap 8
+           :alignItems center
+           :role listitem
+           (label :font small :icon ~f.icon :text ~f.name :fitText true :height 20 :textColor @color.text)
+           (panel :grow 1 :height 1 :color transparent)
+           (label :font small :fitText true :height 20 :text ~(t "properties.sizeValue" {:size (formatNumber size)}) :textColor @color.muted)))))
 
 (defview extras-page "The extra content page: none yet." []
   `(node :when ~(= state.properties.tab "dlc") :fill true :color transparent

@@ -274,6 +274,64 @@
   (doseq [tab (filter #(and (not= (:id %) (active-tab-id)) (not (:sticky %))) (active-tabs))]
     (close-tab state.activeGroup tab.id)))
 
+(defcommand closeAllEditors "Close every group's editors but the pinned ones."
+  :title ~(t "command.closeAllEditors") :category ~(t "category.view")
+  :description ~(t "command.closeAllEditors.about")
+  :enablement ~(some #(seq (:tabs %)) state.groups)
+  []
+  (doseq [gi (reverse (range (count state.groups)))]
+    (doseq [tab (remove :sticky (get-in state.groups [gi :tabs]))]
+      (close-tab gi tab.id))))
+
+(defcommand closeEditorsToTheRight "Close the active group's editors after the active one, but the pinned ones."
+  :title ~(t "command.closeEditorsToTheRight") :category ~(t "category.view")
+  :description ~(t "command.closeEditorsToTheRight.about")
+  :enablement ~(> (count (get-in state.groups [state.activeGroup :tabs])) 1)
+  []
+  (doseq [tab (remove :sticky (tabs-after-active))]
+    (close-tab state.activeGroup tab.id)))
+
+(defn tabs-after-active "The active group's tabs after the active one." []
+  (drop (inc (active-tab-index)) (active-tabs)))
+
+(defn active-tab-index "Where the active tab is in its group, from 0 (-1 with none)." []
+  (indexOf (map :id (active-tabs)) (active-tab-id)))
+
+(defcommand nextEditor "Show the next tab of the active group, from the last back to the first."
+  :title ~(t "command.nextEditor") :category ~(t "category.view") :icon "chevron-right"
+  :description ~(t "command.nextEditor.about")
+  :enablement ~(> (count (get-in state.groups [state.activeGroup :tabs])) 1)
+  []
+  (cycle-editor 1))
+
+(defcommand previousEditor "Show the previous tab of the active group, from the first round to the last."
+  :title ~(t "command.previousEditor") :category ~(t "category.view") :icon "chevron-left"
+  :description ~(t "command.previousEditor.about")
+  :enablement ~(> (count (get-in state.groups [state.activeGroup :tabs])) 1)
+  []
+  (cycle-editor -1))
+
+(defn cycle-editor "Shows the tab `step` places from the active one in its group, going round." [step]
+  (let [at (mod (+ (active-tab-index) step) (count (active-tabs)))
+        tab (nth (active-tabs) at)]
+    (showTab tab.id tab.label)))
+
+(defstate closedTabs [])
+
+(defcommand reopenClosedEditor "Open the file whose tab was closed last again."
+  :title ~(t "command.reopenClosedEditor") :category ~(t "category.view") :icon "rotate-ccw"
+  :description ~(t "command.reopenClosedEditor.about")
+  :enablement ~(pos? (count state.closedTabs))
+  []
+  (let [tab (last state.closedTabs)]
+    (set "state.closedTabs" (vec (butlast state.closedTabs)))
+    (open-path tab.id tab.label)))
+
+(defn remember-closed "A file's tab closed (`id`, `label`): Reopen Closed Editor brings back the last 20." [id label]
+  (let [others (vec (remove #(= (:id %) id) state.closedTabs))
+        closed (conj others {:id id :label label})]
+    (set "state.closedTabs" (vec (take-last 20 closed)))))
+
 ;;; settings.json and keybindings.json
 
 (defstate settingsJson "")
@@ -315,3 +373,8 @@
 (defkey "mod+k shift+enter" pinEditor)
 (defkey "mod+k mod+shift+enter" unpinEditor)
 (defkey "mod+k u" closeOtherEditors)
+(defkey "mod+k mod+w" closeAllEditors)
+(defkey "mod+alt+right" nextEditor)
+(defkey "mod+alt+left" previousEditor)
+(defkey "ctrl+pagedown" nextEditor)
+(defkey "ctrl+pageup" previousEditor)

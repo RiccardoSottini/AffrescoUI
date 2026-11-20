@@ -34,9 +34,11 @@
            (merge (get state.files it) {:name name :parent (slice path 0 (- (count path) (count name)))})))
        (range (count state.files))))
 
-(defn dired-line "A file's line in a folder's listing: d for a folder, its size, when it changed, and its name." [file]
-  (let [{:keys [dir text mtime name]} file]
-    (str "  "
+(defn dired-line
+  "A file's line in a folder's listing: D if it is flagged for deletion, d for a folder, its size, when it changed, and
+  its name." [flagged file]
+  (let [{:keys [dir text mtime name path]} file]
+    (str (if (some #{path} flagged) "D " "  ")
          (if dir "d" "-")
          (pad (if dir "" (str (count (or text "")))) 8 " ")
          "  "
@@ -44,16 +46,19 @@
          "  "
          name)))
 
-(defn dired-show "Lists a folder's files in its buffer." [dir]
-  (let [items (filter #(= (:parent %) dir) computed.fileInfo)]
+(defn dired-show "Lists a folder's files in its buffer, keeping the flags of the files still there." [dir]
+  (let [items (filter #(= (:parent %) dir) computed.fileInfo)
+        here (into #{} (map :path items))
+        flagged (if (= state.bufs.bd.dir dir) (filter here (or state.bufs.bd.flagged [])) [])]
     (listing-show "bd" {:name dir
                         :mode "dired"
                         :readOnly true
                         :dir dir
                         :first 3
                         :entries (map :path items)
+                        :flagged (vec flagged)
                         :text (str (t "dired.header" {:dir dir}) "\n\n"
-                                   (str/join "\n" (map dired-line items))
+                                   (str/join "\n" (map #(dired-line flagged %) items))
                                    (when (empty? items) (t "dired.empty"))
                                    "\n")})))
 

@@ -46,6 +46,11 @@ struct KeyPress {
 /// @return The key, or std::nullopt if it isn't one.
 [[nodiscard]] std::optional<KeyPress> parseKey(std::string_view text);
 
+/// @brief Reads the modifier keys a pointer step holds: "shift", "alt+shift", "mod" (cmd on macOS, ctrl elsewhere).
+/// @param text The modifiers, joined by '+'.
+/// @return Their bits, or std::nullopt if one isn't a modifier.
+[[nodiscard]] std::optional<Mods> parseModifiers(std::string_view text);
+
 /// @brief The key names parseKey() knows, for error messages.
 /// @return "enter, escape, ..., a-z, 0-9, f1-f12".
 [[nodiscard]] std::string keyNames();

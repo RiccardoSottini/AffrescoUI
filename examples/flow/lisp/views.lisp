@@ -175,6 +175,7 @@
      :tracks ~state.timelineTracks
      :duration 28
      :fps 1
+     :trackButtons false
      :pixelsPerSecond 32
      :offset 0
      :time ~(daysBetween state.sprintStart state.today)

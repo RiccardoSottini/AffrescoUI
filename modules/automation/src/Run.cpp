@@ -201,4 +201,16 @@ Screen unconnectedScreen(const std::string& document, const std::filesystem::pat
 	return screen;
 }
 
+void buildHeadless(Screen screen) {
+	const json settings = parseUntrusted(screen.documentJson()).value("window", json::object());
+	// Declared before the screen, so they outlive it: a screen disconnects from its window when it goes
+	affresco::detail::ManualClock clock;
+	const std::unique_ptr<Window> window =
+	    affresco::detail::createHeadlessWindow(sizeIn(settings, "width", 800), sizeIn(settings, "height", 600), clock);
+	Screen built = std::move(screen);
+	built.setPlaceholderTypes(true); // as affrescoui_launcher does
+	built.build(*window);
+	window->render();
+}
+
 } // namespace affresco::automation

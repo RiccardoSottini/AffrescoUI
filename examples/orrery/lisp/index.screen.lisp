@@ -49,4 +49,5 @@
       ~(timeline)
       (column#dock :point bodies.dock :width "100%" :height 136 :color @panel :children [])
       ~(status-bar))
-    ~(render-dialog)))
+    ~(render-dialog)
+    ~(search-dialog)))

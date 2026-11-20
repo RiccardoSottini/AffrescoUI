@@ -4,6 +4,7 @@
 #include "Events.hpp"
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "RasterView.hpp"
 #include "Shortcuts.hpp"
 
 #include "affresco/render/ColorPicker.hpp"
@@ -84,7 +85,7 @@ bool movesWith(Reconciler& reconciler, const Panel* panel, const KeyEvent& event
 /// @param panel The panel, or nullptr.
 /// @return true if it is.
 bool isTextInput(const Panel* panel) {
-	return dynamic_cast<const TextArea*>(panel) || dynamic_cast<const TextEditor*>(panel);
+	return dynamic_cast<const TextArea*>(panel) || dynamic_cast<const TextEditor*>(panel) || typesIntoImage(panel);
 }
 
 /// @brief Tells whether a focused text input types a key, which the document's "keys" then leave to it: a plain key,

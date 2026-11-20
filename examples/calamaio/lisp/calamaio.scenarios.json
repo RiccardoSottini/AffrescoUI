@@ -1882,7 +1882,7 @@
 				{
 					"expect": {
 						"state": "echo",
-						"is": "[\"yank-at\" \"yank-pop\"]"
+						"is": "[\"yank-at\" \"yank-pop\" \"yank-rectangle\"]"
 					}
 				}
 			]
@@ -2183,6 +2183,1153 @@
 					"expect": {
 						"state": "bufs.b1.text",
 						"is": ";; This buffer is for notes you won't keep and for Lisp you want to try out.\n;; To visit a file, type C-x C-f; its text gets a buffer of its own.\n\n(defcommand say-pasted \"Says so.\" :title \"Say Pasted\" :category \"Mine\" [] (message \"pasted, and run as you\"))"
+					}
+				}
+			]
+		},
+		{
+			"name": "keyboard-macros",
+			"note": "C-u types a character four times, C-u 3 three times; F3 records the keys typed in a window, F4 ends the macro and types it again, C-u 2 F4 twice.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "m"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.name",
+						"is": "m"
+					}
+				},
+				{
+					"key": "ctrl+u"
+				},
+				{
+					"key": "x"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "xxxx"
+					}
+				},
+				{
+					"key": "ctrl+u"
+				},
+				{
+					"key": "3"
+				},
+				{
+					"key": "y"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "xxxxyyy"
+					}
+				},
+				{
+					"expect": {
+						"state": "arg",
+						"is": null
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"key": "f3"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "kmacro.on",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Defining keyboard macro..."
+					}
+				},
+				{
+					"key": "a"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "kmacro.on",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "kmacro.last.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Keyboard macro defined: 3 keys"
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "xxxxyyy\nab\n"
+					}
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "xxxxyyy\nab\nab\n"
+					}
+				},
+				{
+					"key": "ctrl+u"
+				},
+				{
+					"key": "2"
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "xxxxyyy\nab\nab\nab\nab\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "registers",
+			"note": "C-x r s copies the region into a register and C-x r i types it back; C-x r SPC keeps point and C-x r j goes back to it.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "r"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "first line"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"type": "second"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"key": "ctrl+space"
+				},
+				{
+					"key": "ctrl+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "s"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Copy to register: "
+					}
+				},
+				{
+					"key": "a"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "registers.a.text",
+						"is": "first line"
+					}
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Copied to register a"
+					}
+				},
+				{
+					"key": "alt+shift+period"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "i"
+				},
+				{
+					"key": "a"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "first line\nsecondfirst line"
+					}
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"key": "p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "registers.p.pt.column",
+						"is": 3
+					}
+				},
+				{
+					"key": "alt+shift+period"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "j"
+				},
+				{
+					"key": "p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.line",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.column",
+						"is": 3
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "j"
+				},
+				{
+					"key": "q"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Register q is empty"
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "i"
+				},
+				{
+					"key": "p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Register p does not contain text"
+					}
+				}
+			]
+		},
+		{
+			"name": "rectangles",
+			"note": "C-x r k kills the columns between the mark and point on each line, C-x r y yanks them back, C-x r t types a text in their place.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "k"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "abcd"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"type": "efgh"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"type": "ijkl"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"key": "ctrl+space"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "ad\neh\nil"
+					}
+				},
+				{
+					"expect": {
+						"state": "rect",
+						"is": [
+							"bc",
+							"fg",
+							"jk"
+						]
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "y"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "abcd\nefgh\nijkl"
+					}
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"key": "ctrl+space"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "r"
+				},
+				{
+					"key": "t"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "> "
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "> bcd\n> fgh\nijkl"
+					}
+				}
+			]
+		},
+		{
+			"name": "dired-changes",
+			"note": "In a folder's listing d flags a file and x deletes it once answered yes; R renames a file (its buffer follows), C copies one, + makes a folder.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "d"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.mode",
+						"is": "dired"
+					}
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.file",
+						"is": "~/hello.py"
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "d"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "d"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.flagged",
+						"is": [
+							"~/init.el"
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.line",
+						"is": 6
+					}
+				},
+				{
+					"key": "ctrl+p"
+				},
+				{
+					"key": "d"
+				},
+				{
+					"key": "ctrl+p"
+				},
+				{
+					"key": "u"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.flagged",
+						"is": [
+							"~/init.el"
+						]
+					}
+				},
+				{
+					"key": "x"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "mb.open",
+						"is": true
+					}
+				},
+				{
+					"type": "yes"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Files deleted: 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "files.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.flagged",
+						"is": []
+					}
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "shift+r"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "mb.text",
+						"is": "~/hello.py"
+					}
+				},
+				{
+					"expect": {
+						"state": "mb.prompt",
+						"is": "Rename hello.py to: "
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "count.py"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "files[1].path",
+						"is": "~/count.py"
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.file",
+						"is": "~/count.py"
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.name",
+						"is": "count.py"
+					}
+				},
+				{
+					"key": "shift+c"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "copy.py"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "files[7].path",
+						"is": "~/copy.py"
+					}
+				},
+				{
+					"key": "shift+equal"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"type": "sketches"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "files[8].path",
+						"is": "~/sketches/"
+					}
+				},
+				{
+					"expect": {
+						"state": "files[8].dir",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "electric-pairs",
+			"note": "Typed brackets are plain while electric-pair-mode is off; on, ( types () with point inside, ) steps over the one after point, and a quote types two.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "p"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "("
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "("
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "electric-pair-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Electric pairs on"
+					}
+				},
+				{
+					"key": "shift+9"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "(()"
+					}
+				},
+				{
+					"type": "a"
+				},
+				{
+					"key": "shift+0"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "((a)"
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.column",
+						"is": 5
+					}
+				},
+				{
+					"key": "shift+apostrophe"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "((a)\"\""
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "electric-pair-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Electric pairs off"
+					}
+				}
+			]
+		},
+		{
+			"name": "customize-states",
+			"note": "Customize shows each variable's state: STANDARD, or SAVED and set once changed; Reset to Standard gives the default back.",
+			"steps": [
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"type": "display-line-numbers-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"type": "customize"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.buf",
+						"is": "bc"
+					}
+				},
+				{
+					"capture": "all"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Reset to Standard"
+					}
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "global-display-line-numbers-mode is back to its standard value"
+					}
+				}
+			]
+		},
+		{
+			"name": "recenter",
+			"note": "C-l scrolls point's line to the middle of the window, then to the top, then to the bottom when pressed again at once; a drag of the scroll bar scrolls.",
+			"steps": [
+				{
+					"key": "ctrl+h"
+				},
+				{
+					"key": "t"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "ctrl+u"
+				},
+				{
+					"key": "2"
+				},
+				{
+					"key": "0"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.line",
+						"is": 21
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 6
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 21
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 1
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 0
+					}
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"drag": "#sbw1",
+					"to": [
+						949,
+						500
+					],
+					"moves": 4
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 12
 					}
 				}
 			]

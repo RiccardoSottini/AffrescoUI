@@ -7,6 +7,7 @@
 #include "affresco/core/Executor.hpp"
 #include "affresco/render/Bitmap.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -92,6 +93,12 @@ public:
 
 	/// @brief Waits until the worker has decoded every file asked for, and delivers them on this thread.
 	void finishPending();
+	/// @brief Waits at most a while for the worker to decode every file asked for, and delivers on this thread what it
+	/// decoded by then; the rest is delivered as usual. For a first frame that should show its images without waiting
+	/// long on a slow or large one.
+	/// @param limit How long to wait at most.
+	/// @return Whether every file asked for was delivered.
+	bool finishPending(std::chrono::milliseconds limit);
 	/// @brief How many files are being decoded or waiting to be delivered.
 	[[nodiscard]] std::size_t pending() const;
 	/// @brief The bytes of the decoded files kept.

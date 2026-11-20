@@ -36,6 +36,7 @@
 (defstate rooms
   [{:name "Living room"
     :image "../assets/images/living-room.svg"
+    :tint "#1e3a5f"
     :temp 21.5
     :target 22
     :humidity 44
@@ -47,6 +48,7 @@
              {:name "Shelf strip" :on false :level 60 :color "#ff9ad5ff"}]}
    {:name "Kitchen"
     :image "../assets/images/kitchen.svg"
+    :tint "#134e4a"
     :temp 20.5
     :target 21
     :humidity 51
@@ -56,6 +58,7 @@
              {:name "Under cabinet" :on false :level 70 :color "#ffe082ff"}]}
    {:name "Bedroom"
     :image "../assets/images/bedroom.svg"
+    :tint "#312e81"
     :temp 19
     :target 18.5
     :humidity 47
@@ -66,6 +69,7 @@
              {:name "Wardrobe" :on false :level 100 :color "#ffe082ff"}]}
    {:name "Office"
     :image "../assets/images/office.svg"
+    :tint "#1f2937"
     :temp 22
     :target 22
     :humidity 40
@@ -73,9 +77,10 @@
     :kwh 11.6
     :lights [{:name "Desk lamp" :on true :level 100 :color "#ffe082ff"}
              {:name "Ceiling" :on false :level 70 :color "#ffe082ff"}]}]
-  "Each room: its picture, its temperature and target, its blinds, its energy this week, and its lights."
+  "Each room: its picture and the colour shown while it loads, its temperature and target, its blinds, its energy this week, and its lights."
   :type (array :items (object :properties {:name (string)
                                            :image (string)
+                                           :tint (string)
                                            :temp (number)
                                            :target (number)
                                            :humidity (number)

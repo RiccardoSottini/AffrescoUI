@@ -1,0 +1,116 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Ink Replay and Ink to Shape. Ink Replay draws the slide's ink strokes again, one after another, each from its first point to its last. Ink to Shape, while it is on, turns each closed stroke drawn into a shape: a rectangle when it reaches three corners of the box around it or more, else an ellipse; an open stroke stays ink.",
+	"state": {
+		"inkReplay": {
+			"slide": null,
+			"clock": 0,
+			"n": 0
+		},
+		"inkToShape": false
+	},
+	"computed": {
+		"inkIds": "{{map(filter(computed.objects, it.kind == 'ink'), it.id)}}",
+		"replaying": "{{state.inkReplay.slide == computed.slide.id && state.inkReplay.clock < state.inkReplay.n}}"
+	},
+	"actions": {
+		"replayInk": [
+			{
+				"note": "draws the slide's ink strokes again, one after another, 0.7 seconds each"
+			},
+			{
+				"if": "{{length(computed.inkIds) > 0}}",
+				"then": [
+					{
+						"set": "state.inkReplay",
+						"to": "{{{ slide: computed.slide.id, clock: 0, n: length(computed.inkIds) }}}"
+					},
+					{
+						"animate": "state.inkReplay.clock",
+						"to": "{{length(computed.inkIds)}}",
+						"ms": "{{length(computed.inkIds) * 700}}",
+						"easing": "linear"
+					}
+				]
+			}
+		],
+		"addStroke": [
+			{
+				"note": "with: pad, left, top, right, bottom; a shape when Ink to Shape is on and the stroke is closed, else ink"
+			},
+			{
+				"if": "{{state.inkToShape && max(right - left, bottom - top) >= 16 && hypot(state.stroke[length(state.stroke) - 1][0] - state.stroke[0][0], state.stroke[length(state.stroke) - 1][1] - state.stroke[0][1]) <= 0.3 * max(right - left, bottom - top)}}",
+				"then": [
+					{
+						"run": "insertObject",
+						"with": {
+							"object": "{{{ kind: 'shape', shape: (some(state.stroke, hypot(it[0] - left, it[1] - top) < 0.12 * min(right - left, bottom - top)) ? 1 : 0) + (some(state.stroke, hypot(it[0] - right, it[1] - top) < 0.12 * min(right - left, bottom - top)) ? 1 : 0) + (some(state.stroke, hypot(it[0] - right, it[1] - bottom) < 0.12 * min(right - left, bottom - top)) ? 1 : 0) + (some(state.stroke, hypot(it[0] - left, it[1] - bottom) < 0.12 * min(right - left, bottom - top)) ? 1 : 0) >= 3 ? 'rect' : 'ellipse', x: left, y: top, w: right - left, h: bottom - top, fill: 'none', line: computed.strokeColor, lineWidth: computed.strokeWidth, text: '' }}}"
+						}
+					},
+					{
+						"set": "state.board.selection",
+						"to": []
+					}
+				],
+				"else": [
+					{
+						"run": "addInk",
+						"with": {
+							"pad": "{{pad}}",
+							"left": "{{left}}",
+							"top": "{{top}}",
+							"right": "{{right}}",
+							"bottom": "{{bottom}}"
+						}
+					}
+				]
+			}
+		]
+	},
+	"components": {
+		"inkConvert": {
+			"params": {},
+			"note": "Ink to Shape, and Ink Replay.",
+			"node": {
+				"id": "g-ink-convert",
+				"use": "rbGroup",
+				"with": {
+					"title": "Convert"
+				},
+				"children": [
+					{
+						"id": "b-ink-shape",
+						"use": "rbBig",
+						"with": {
+							"icon": "shapes",
+							"title": "Ink to\nShape",
+							"on": "{{state.inkToShape}}",
+							"width": 46
+						},
+						"tooltip": "Turn each closed stroke you draw into a rectangle or an ellipse",
+						"onClick": [
+							{
+								"toggle": "state.inkToShape"
+							}
+						]
+					},
+					{
+						"id": "b-ink-replay",
+						"use": "rbBig",
+						"with": {
+							"icon": "history",
+							"title": "Ink\nReplay",
+							"on": "{{computed.replaying}}",
+							"enabled": "{{computed.slideInk > 0}}",
+							"width": 46
+						},
+						"tooltip": "Draw this slide's strokes again, one after another",
+						"onClick": "replayInk"
+					}
+				]
+			}
+		}
+	}
+}

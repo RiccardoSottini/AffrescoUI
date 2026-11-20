@@ -125,8 +125,7 @@
 						{ "use": "tGroup", "grow": 1, "minHeight": 200, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
-							{ "id": "paths-empty", "style": "dim", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },
-							  "text": "No paths: the pen tool isn't available yet." }
+							{ "use": "temperaPaths", "when": "{{state.panels.layers == 'paths'}}" }
 						] }
 					  ] },
 					{ "type": "column", "id": "panel-icons", "role": "toolbar", "label": "Collapsed panels", "width": 36, "height": "100%",
@@ -213,8 +212,8 @@
 				"gap": 4, "scroll": "vertical",
 				"children": [
 					{ "type": "label", "id": "properties-kind", "textColor": "@text", "fitText": true,
-					  "icon": "{{!computed.activeLayer ? 'circle-off' : computed.activeLayer.kind == 'group' ? 'folder' : computed.adjustment ? 'contrast' : 'image'}}",
-					  "text": "{{!computed.activeLayer ? 'No layer' : computed.activeLayer.kind == 'group' ? 'Group' : computed.adjustment ? (find(state.adjustments, it.id == computed.adjustmentKind).title ?? '') : 'Pixel Layer'}}" },
+					  "icon": "{{!computed.activeLayer ? 'circle-off' : computed.activeLayer.kind == 'group' ? 'folder' : computed.activeLayer.kind == 'text' ? 'type' : computed.activeLayer.kind == 'shape' ? 'shapes' : computed.adjustment ? 'contrast' : 'image'}}",
+					  "text": "{{!computed.activeLayer ? 'No layer' : computed.activeLayer.kind == 'group' ? 'Group' : computed.activeLayer.kind == 'text' ? 'Type Layer' : computed.activeLayer.kind == 'shape' ? 'Shape Layer' : computed.adjustment ? (find(state.adjustments, it.id == computed.adjustmentKind).title ?? '') : 'Pixel Layer'}}" },
 					{ "id": "properties-name", "style": "dim", "when": "{{computed.activeLayer && !computed.adjustment}}",
 					  "text": "{{computed.activeLayer.name}}: {{computed.blendTitle}}, {{computed.activeLayer.opacity}}% opacity" },
 					{ "id": "properties-line", "width": "100%", "height": 1, "color": "@border" },
@@ -256,6 +255,37 @@
 					{ "id": "adjust-plain", "style": "dim", "fitText": false, "width": "100%", "height": 34, "wrap": true,
 					  "when": "{{computed.adjustmentKind == 'invert' || computed.adjustmentKind == 'gradient-map'}}",
 					  "text": "{{computed.adjustmentKind == 'invert' ? 'Inverts the colours below.' : 'Maps the lightness below to the foreground and background colours.'}}" },
+					{ "type": "editor", "id": "type-text", "label": "Text", "when": "{{computed.activeLayer.kind == 'text'}}", "text": "{{computed.activeLayer.content.text}}",
+					  "wrap": true, "width": "100%", "height": 64, "color": "@input", "textColor": "@text", "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius",
+					  "onChange": { "run": "editContent", "with": { "args": { "text": "{{event.value}}" } } } },
+					{ "type": "row", "id": "type-character", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
+						{ "id": "type-size", "use": "tField", "with": { "title": "Size", "key": "size", "value": "{{computed.activeLayer.content.size}}", "min": 4, "max": 1000,
+						  "unit": " px", "width": 52, "pop": false, "run": "editContent" } },
+						{ "id": "type-bold", "use": "tIcon", "with": { "icon": "bold", "tip": "Bold", "on": "{{computed.activeLayer.content.bold}}", "run": "editContent", "args": { "bold": "{{!computed.activeLayer.content.bold}}" } } },
+						{ "id": "type-italic", "use": "tIcon", "with": { "icon": "italic", "tip": "Italic", "on": "{{computed.activeLayer.content.italic}}", "run": "editContent", "args": { "italic": "{{!computed.activeLayer.content.italic}}" } } },
+						{ "id": "type-colour", "role": "button", "label": "Colour", "tooltip": "A click gives the text the foreground colour", "width": 22, "height": 22,
+						  "radius": "@kit.radius", "color": "{{computed.activeLayer.content.fill}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "editContent", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } }
+					] },
+					{ "type": "row", "id": "type-paragraph", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 2, "alignItems": "center", "children": [
+						{ "style": "dim", "text": "Paragraph:", "width": 74, "height": 20, "fitText": false },
+						{ "id": "type-align-{{a.id}}", "use": "tIcon", "repeat": { "for": "a", "in": "{{[{id: 'left', icon: 'align-left', title: 'Align left'}, {id: 'center', icon: 'align-center', title: 'Centre'}, {id: 'right', icon: 'align-right', title: 'Align right'}]}}" },
+						  "with": { "icon": "{{a.icon}}", "tip": "{{a.title}}", "on": "{{computed.activeLayer.content.align == a.id}}", "run": "editContent", "args": { "align": "{{a.id}}" } } }
+					] },
+					{ "id": "type-rasterize", "use": "tButton", "when": "{{computed.activeLayer.kind == 'text'}}", "with": { "title": "Rasterize Type", "run": "rasterizeLayer" } },
+					{ "type": "row", "id": "shape-colours", "when": "{{computed.activeLayer.kind == 'shape'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
+						{ "style": "dim", "text": "Fill:" },
+						{ "id": "shape-fill", "role": "button", "label": "Fill", "tooltip": "A click gives the shape the foreground colour", "width": 22, "height": 22,
+						  "radius": "@kit.radius", "color": "{{computed.activeLayer.content.fill}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "editContent", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } },
+						{ "style": "dim", "text": "Stroke:" },
+						{ "id": "shape-stroke", "role": "button", "label": "Stroke", "tooltip": "A click strokes the shape with the background colour", "width": 22, "height": 22,
+						  "radius": "@kit.radius", "color": "{{computed.activeLayer.content.stroke}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "editContent", "with": { "args": { "stroke": "{{state.doc.background}}" } } } },
+						{ "id": "shape-stroke-width", "use": "tField", "with": { "title": "Width", "key": "strokeWidth", "value": "{{computed.activeLayer.content.strokeWidth}}",
+						  "max": 200, "unit": " px", "width": 48, "pop": false, "run": "editContent" } }
+					] },
+					{ "id": "shape-rasterize", "use": "tButton", "when": "{{computed.activeLayer.kind == 'shape'}}", "with": { "title": "Rasterize Layer", "run": "rasterizeLayer" } },
 					{ "type": "column", "id": "properties-sections", "when": "{{!computed.adjustment}}", "width": "100%", "height": 300, "gap": 4,
 					  "children": [
 						{ "id": "section-transform", "use": "tSection", "with": { "title": "Transform", "key": "transform" } },
@@ -317,6 +347,39 @@
 			}
 		},
 
+		"temperaPaths": {
+			"node": {
+				"type": "column", "id": "paths", "role": "region", "label": "Paths", "fill": true,
+				"children": [
+					{ "type": "column", "id": "path-rows", "role": "list", "label": "Paths", "width": "100%", "grow": 1, "scroll": "vertical", "children": [
+						{ "type": "row", "id": "path-{{p.id}}", "repeat": { "for": "p", "in": "{{state.doc.paths}}", "key": "{{p.id}}" },
+						  "role": "listitem", "label": "{{p.name}}", "selected": "{{p.active}}", "anchors": { "left": 4, "right": 4 }, "height": 32,
+						  "alignItems": "center", "gap": 8, "cursor": "hand", "radius": "@kit.radius", "color": "{{p.active ? '@selected' : 'transparent'}}",
+						  "hover": { "color": "@hover" }, "onClick": { "run": "selectPath", "with": { "args": { "index": "{{p.active ? -1 : p.index}}" } } },
+						  "children": [
+							{ "width": 3, "height": 20, "radius": 2, "color": "{{p.active ? '@accent' : 'transparent'}}" },
+							{ "type": "label", "icon": "spline", "textColor": "@text", "width": 24, "height": 24, "align": "center", "color": "@canvasBack", "radius": 4 },
+							{ "type": "label", "text": "{{p.name}}", "textColor": "@text", "grow": 1, "height": 20 },
+							{ "style": "dim", "text": "{{p.anchors}} anchors" },
+							{ "width": 6, "height": 1, "style": "clear" }
+						  ] },
+						{ "id": "paths-empty", "style": "dim", "when": "{{empty(state.doc.paths)}}", "anchors": { "left": 10 }, "height": 40,
+						  "text": "No paths yet: draw one with the Pen (P)." }
+					] },
+					{ "width": "100%", "height": 1, "color": "@border" },
+					{ "type": "row", "id": "path-buttons", "role": "toolbar", "label": "Path actions", "width": "100%", "height": 28, "alignItems": "center",
+					  "justify": "end", "gap": 2, "children": [
+						{ "id": "path-fill", "use": "tIcon", "with": { "icon": "paint-bucket", "tip": "Fill Path", "run": "fillActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-stroke", "use": "tIcon", "with": { "icon": "spline", "tip": "Stroke Path", "run": "strokeActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-selection", "use": "tIcon", "with": { "icon": "square-dashed", "tip": "Make Selection", "run": "selectActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-shape", "use": "tIcon", "with": { "icon": "shapes", "tip": "Make Shape Layer", "run": "shapeFromPath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-new", "use": "tIcon", "with": { "icon": "plus-square", "tip": "New Path", "run": "newWorkPath" } },
+						{ "id": "path-delete", "use": "tIcon", "with": { "icon": "trash-2", "tip": "Delete Path", "run": "deleteActivePath", "off": "{{empty(state.doc.paths)}}" } },
+						{ "width": 6, "height": 1, "style": "clear" }
+					] }
+				]
+			}
+		},
 		"temperaChannels": {
 			"node": {
 				"type": "column", "id": "channels", "role": "list", "label": "Channels", "fill": true,
@@ -346,10 +409,8 @@
 						  "open": "state.layerKindMenu", "items": [{ "title": "Kind", "checked": true }] } },
 						{ "width": 6, "height": 1, "style": "clear" },
 						{ "id": "filter-kind-{{k.id}}", "use": "tIcon",
-						  "repeat": { "for": "k", "in": "{{[{id: 'pixel', icon: 'image', title: 'pixel layers'}, {id: 'adjustment', icon: 'contrast', title: 'adjustment layers'}, {id: 'group', icon: 'folder', title: 'groups'}]}}" }, "with": { "icon": "{{k.icon}}", "tip": "Show only the {{k.title}}", "on": "{{state.layerFilter.on && contains(state.layerFilter.kinds, k.id)}}",
+						  "repeat": { "for": "k", "in": "{{[{id: 'pixel', icon: 'image', title: 'pixel layers'}, {id: 'adjustment', icon: 'contrast', title: 'adjustment layers'}, {id: 'group', icon: 'folder', title: 'groups'}, {id: 'text', icon: 'type', title: 'type layers'}, {id: 'shape', icon: 'shapes', title: 'shape layers'}]}}" }, "with": { "icon": "{{k.icon}}", "tip": "Show only the {{k.title}}", "on": "{{state.layerFilter.on && contains(state.layerFilter.kinds, k.id)}}",
 						  "run": "toggleLayerKind", "args": { "kind": "{{k.id}}" } } },
-						{ "id": "filter-kind-type", "use": "tIcon", "with": { "icon": "type", "tip": "Type layers aren't available yet", "off": true } },
-						{ "id": "filter-kind-shape", "use": "tIcon", "with": { "icon": "shapes", "tip": "Shape layers aren't available yet", "off": true } },
 						{ "grow": 1, "height": 1, "style": "clear" },
 						{ "id": "layer-filter-toggle", "use": "tIcon", "with": { "icon": "{{state.layerFilter.on ? 'toggle-right' : 'toggle-left'}}",
 						  "tip": "Turn layer filtering {{state.layerFilter.on ? 'off' : 'on'}}", "run": "toggleLayerFilter" } },
@@ -401,10 +462,10 @@
 							  "cursor": "hand", "onClick": { "run": "foldGroup", "with": { "args": { "id": "{{layer.id}}" } } } },
 							{ "type": "label", "id": "layer-clip-{{layer.id}}", "when": "{{layer.clipped}}", "icon": "corner-left-down", "textColor": "@muted",
 							  "width": 14, "tooltip": "Clipped to the layer below" },
-							{ "type": "image", "id": "layer-thumb-{{layer.id}}", "when": "{{!empty(layer.thumbnail)}}", "source": "{{layer.thumbnail}}",
+							{ "type": "image", "id": "layer-thumb-{{layer.id}}", "when": "{{!empty(layer.thumbnail) && layer.kind != 'text'}}", "source": "{{layer.thumbnail}}",
 							  "fit": "contain", "width": 30, "height": 28, "color": "@canvasBack", "borderWidth": 1, "borderColor": "@border" },
-							{ "type": "label", "id": "layer-icon-{{layer.id}}", "when": "{{empty(layer.thumbnail)}}",
-							  "icon": "{{layer.kind == 'group' ? 'folder' : 'contrast'}}", "font": "iconsLarge", "width": 30, "height": 28,
+							{ "type": "label", "id": "layer-icon-{{layer.id}}", "when": "{{empty(layer.thumbnail) || layer.kind == 'text'}}",
+							  "icon": "{{layer.kind == 'group' ? 'folder' : layer.kind == 'text' ? 'type' : 'contrast'}}", "font": "iconsLarge", "width": 30, "height": 28,
 							  "align": "center", "textColor": "@text" },
 							{ "type": "label", "id": "layer-mask-{{layer.id}}", "when": "{{layer.mask}}", "icon": "link", "font": "small", "textColor": "@muted",
 							  "width": 10, "tooltip": "Layer mask, linked" },

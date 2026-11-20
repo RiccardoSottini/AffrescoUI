@@ -492,9 +492,16 @@ void SceneView::dragTo(Vec2 at) {
 		                     normalize(in.camera.target - in.camera.eye()));
 	}
 	in.transform.nodes.clear();
-	for(const DragStart& node : in.dragged)
+	const json gizmoJson = in.display.contains("gizmo") ? in.display["gizmo"] : json();
+	const bool individual = gizmoJson.is_object() && gizmoJson.contains("individual") &&
+	                        gizmoJson["individual"].is_boolean() && gizmoJson["individual"].get<bool>() &&
+	                        in.gizmo->mode != GizmoMode::Translate;
+	for(const DragStart& node : in.dragged) {
+		Gizmo about = *in.gizmo; // each node about its own origin, or all about the gizmo's
+		if(individual) about.origin = (node.parentWorld * node.transform.matrix()).origin();
 		in.transform.nodes.push_back(
-		    {node.id, applyDelta(node.transform, node.parentWorld, *in.gizmo, delta.value_or(GizmoDelta{}))});
+		    {node.id, applyDelta(node.transform, node.parentWorld, about, delta.value_or(GizmoDelta{}))});
+	}
 	in.transform.text = delta ? describe(in.gizmo->mode, *delta) : std::string();
 	in.preview = withTransforms(in.placed.scene, in.transform.nodes);
 	refresh();
