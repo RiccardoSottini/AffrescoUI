@@ -3,12 +3,15 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Glide, emphasis, the builds' timing, and the presenter's pen and laser pointer. A glide matches the objects of two slides (by name, else the same kind, text and shape, moved or resized) and moves each from its place on the slide before to its place on the slide shown, while the others fade out or in; a smooth fade is a glide that matches nothing. An emphasis pulses, spins or teeters an object that stays shown. A build waits its delay and plays as many times as it repeats. The presenter draws on the slide shown with a pen, strokes kept per slide while the show runs, or points at it with a laser dot the audience sees.",
-
 	"state": {
 		"showInk": {},
-		"showPen": { "tool": null, "stroke": [], "from": [0, 0], "laser": null }
+		"showPen": {
+			"tool": null,
+			"stroke": [],
+			"from": [0, 0],
+			"laser": null
+		}
 	},
-
 	"computed": {
 		"showDissolve": "{{computed.showKind == 'glide' || (computed.showKind == 'fade' && computed.showSlide.transition.option == 'smoothly')}}",
 		"showFromLayout": "{{find(computed.layouts, it.id == computed.showFrom.layout) ?? computed.layouts[1]}}",
@@ -24,38 +27,73 @@
 			["pulse", "heart-pulse", "Pulse"],
 			["spin", "rotate-cw", "Spin"],
 			["teeter", "vibrate", "Teeter"]
+		],
+		"pathEffects": [
+			["pathRight", "move-right", "Right"],
+			["pathDown", "move-down", "Down"],
+			["pathArc", "redo-2", "Arc"],
+			["pathCircle", "circle-dashed", "Circle"]
 		]
 	},
-
 	"keys": {
-		"mod+p": [{ "when": "{{state.show.on}}", "do": "penTool", "with": { "tool": "pen" } }],
-		"l": [{ "when": "{{state.show.on}}", "do": "penTool", "with": { "tool": "laser" } }],
-		"e": [{ "when": "{{state.show.on}}", "do": "eraseShowInk" }]
+		"mod+p": [
+			{
+				"when": "{{state.show.on}}",
+				"do": "penTool",
+				"with": {
+					"tool": "pen"
+				}
+			}
+		],
+		"l": [
+			{
+				"when": "{{state.show.on}}",
+				"do": "penTool",
+				"with": {
+					"tool": "laser"
+				}
+			}
+		],
+		"e": [
+			{
+				"when": "{{state.show.on}}",
+				"do": "eraseShowInk"
+			}
+		]
 	},
-
 	"actions": {
 		"chooseEffect": [
-			{ "note": "with: effect; an emphasis, or an entrance or exit as the build was" },
+			{
+				"note": "with: effect; an emphasis, or an entrance or exit as the build was"
+			},
 			{
 				"run": "setAnimation",
 				"with": {
 					"effect": "{{effect}}",
-					"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
+					"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : contains(['pathRight', 'pathDown', 'pathArc', 'pathCircle'], effect) ? 'path' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
 					"start": "{{computed.animation.start ?? 'click'}}",
-					"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter'], effect) ? 1000 : 500)}}"
+					"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter', 'pathRight', 'pathDown', 'pathArc', 'pathCircle'], effect) ? 1000 : 500)}}"
 				}
 			}
 		],
 		"animationDelayBy": [
 			{
 				"run": "changeAnimation",
-				"with": { "props": { "delay": "{{clamp((computed.animation.delay ?? 0) + by, 0, 59000)}}" } }
+				"with": {
+					"props": {
+						"delay": "{{clamp((computed.animation.delay ?? 0) + by, 0, 59000)}}"
+					}
+				}
 			}
 		],
 		"animationRepeatBy": [
 			{
 				"run": "changeAnimation",
-				"with": { "props": { "repeat": "{{clamp((computed.animation.repeat ?? 1) + by, 1, 10)}}" } }
+				"with": {
+					"props": {
+						"repeat": "{{clamp((computed.animation.repeat ?? 1) + by, 1, 10)}}"
+					}
+				}
 			}
 		],
 		"nextFlySide": [
@@ -69,8 +107,12 @@
 			}
 		],
 		"changeBuild": [
-			{ "note": "with: id, props; merges the properties into that build of the slide" },
-			{ "run": "commit" },
+			{
+				"note": "with: id, props; merges the properties into that build of the slide"
+			},
+			{
+				"run": "commit"
+			},
 			{
 				"set": "state.deck.slides[state.current].animations",
 				"to": "{{map(computed.slide.animations, it.id == id ? merge(it, props) : it)}}"
@@ -102,20 +144,29 @@
 			{
 				"run": "setTransition",
 				"with": {
-					"props": { "option": "{{computed.slide.transition.option == 'smoothly' ? 'black' : 'smoothly'}}" }
+					"props": {
+						"option": "{{computed.slide.transition.option == 'smoothly' ? 'black' : 'smoothly'}}"
+					}
 				}
 			}
 		],
 		"penTool": [
-			{ "note": "with: tool, pen or laser; the same again puts it down" },
+			{
+				"note": "with: tool, pen or laser; the same again puts it down"
+			},
 			{
 				"set": "state.showPen",
 				"to": "{{merge(state.showPen, { tool: state.showPen.tool == tool ? null : tool, stroke: [], laser: null })}}"
 			}
 		],
 		"penPress": [
-			{ "note": "with: left, top, width, height, the press on the slide drawn to fit" },
-			{ "set": "state.showPen.from", "to": "{{[left, top]}}" },
+			{
+				"note": "with: left, top, width, height, the press on the slide drawn to fit"
+			},
+			{
+				"set": "state.showPen.from",
+				"to": "{{[left, top]}}"
+			},
 			{
 				"if": "{{state.showPen.tool == 'pen'}}",
 				"then": [
@@ -133,7 +184,9 @@
 			}
 		],
 		"penDrag": [
-			{ "note": "with: dx, dy since the press, width, height" },
+			{
+				"note": "with: dx, dy since the press, width, height"
+			},
 			{
 				"if": "{{state.showPen.tool == 'pen'}}",
 				"then": [
@@ -165,7 +218,10 @@
 					}
 				]
 			},
-			{ "set": "state.showPen", "to": "{{merge(state.showPen, { stroke: [], laser: null })}}" }
+			{
+				"set": "state.showPen",
+				"to": "{{merge(state.showPen, { stroke: [], laser: null })}}"
+			}
 		],
 		"eraseShowInk": [
 			{
@@ -174,7 +230,6 @@
 			}
 		]
 	},
-
 	"components": {
 		"showMarks": {
 			"params": {},
@@ -190,7 +245,11 @@
 					{
 						"type": "path",
 						"id": "{{'show-stroke-' + i}}",
-						"repeat": { "for": "d", "in": "{{computed.showStrokes}}", "index": "i" },
+						"repeat": {
+							"for": "d",
+							"in": "{{computed.showStrokes}}",
+							"index": "i"
+						},
 						"x": 0,
 						"y": 0,
 						"width": 960,
@@ -212,12 +271,14 @@
 						"color": "#ff2d2d",
 						"borderWidth": 3,
 						"borderColor": "#ff9c9c",
-						"shadow": { "blur": 12, "color": "#ff2d2d99" }
+						"shadow": {
+							"blur": 12,
+							"color": "#ff2d2d99"
+						}
 					}
 				]
 			}
 		},
-
 		"presenterTools": {
 			"params": {},
 			"note": "The presenter's pen, laser pointer and Erase All, under the slide shown.",
@@ -234,23 +295,60 @@
 						"type": "label",
 						"id": "presenter-pen",
 						"style": "{{state.showPen.tool == 'pen' ? 'presenterButtonOn' : 'presenterButton'}}",
-						"runs": [{ "icon": "pencil", "size": 14 }, { "text": "Pen", "size": 13 }],
+						"runs": [
+							{
+								"icon": "pencil",
+								"size": 14
+							},
+							{
+								"text": "Pen",
+								"size": 13
+							}
+						],
 						"tooltip": "Draw on the slide (Ctrl+P)",
-						"onClick": { "run": "penTool", "with": { "tool": "pen" } }
+						"onClick": {
+							"run": "penTool",
+							"with": {
+								"tool": "pen"
+							}
+						}
 					},
 					{
 						"type": "label",
 						"id": "presenter-laser",
 						"style": "{{state.showPen.tool == 'laser' ? 'presenterButtonOn' : 'presenterButton'}}",
-						"runs": [{ "icon": "mouse-pointer-2", "size": 14 }, { "text": "Laser Pointer", "size": 13 }],
+						"runs": [
+							{
+								"icon": "mouse-pointer-2",
+								"size": 14
+							},
+							{
+								"text": "Laser Pointer",
+								"size": 13
+							}
+						],
 						"tooltip": "Point at the slide: press and drag (L)",
-						"onClick": { "run": "penTool", "with": { "tool": "laser" } }
+						"onClick": {
+							"run": "penTool",
+							"with": {
+								"tool": "laser"
+							}
+						}
 					},
 					{
 						"type": "label",
 						"id": "presenter-erase",
 						"style": "presenterButton",
-						"runs": [{ "icon": "eraser", "size": 14 }, { "text": "Erase All", "size": 13 }],
+						"runs": [
+							{
+								"icon": "eraser",
+								"size": 14
+							},
+							{
+								"text": "Erase All",
+								"size": 13
+							}
+						],
 						"disabled": "{{length(state.showInk[computed.showSlide.id] ?? []) == 0}}",
 						"tooltip": "Erase the pen on this slide (E)",
 						"onClick": "eraseShowInk"
@@ -258,9 +356,11 @@
 				]
 			}
 		},
-
 		"penLayer": {
-			"params": { "id": "", "shown": true },
+			"params": {
+				"id": "",
+				"shown": true
+			},
 			"note": "Over the slide shown while the pen or the laser is on: a drag draws, or points; a click stays.",
 			"node": {
 				"id": "{{id}}",
@@ -289,10 +389,13 @@
 					}
 				},
 				"onRelease": "penRelease",
-				"onClick": [{ "note": "a click with the pen or the laser isn't a click on the show" }]
+				"onClick": [
+					{
+						"note": "a click with the pen or the laser isn't a click on the show"
+					}
+				]
 			}
 		},
-
 		"fadeOptions": {
 			"params": {},
 			"note": "A fade's effect option, in place of the side: through black, or smoothly.",
@@ -309,9 +412,10 @@
 				"onClick": "toggleFadeOption"
 			}
 		},
-
 		"motionTiming": {
-			"params": { "a": null },
+			"params": {
+				"a": null
+			},
 			"note": "The delay and the repeats of build a, in the animation pane, while it is selected.",
 			"node": {
 				"type": "row",
@@ -334,16 +438,33 @@
 					{
 						"id": "{{'motion-' + a.id + '-delay-less'}}",
 						"use": "rbSmall",
-						"with": { "icon": "minus", "enabled": "{{(a.delay ?? 0) > 0}}" },
+						"with": {
+							"icon": "minus",
+							"enabled": "{{(a.delay ?? 0) > 0}}"
+						},
 						"tooltip": "Less delay",
-						"onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": -250 } }
+						"onClick": {
+							"run": "buildDelayBy",
+							"with": {
+								"id": "{{a.id}}",
+								"by": -250
+							}
+						}
 					},
 					{
 						"id": "{{'motion-' + a.id + '-delay-more'}}",
 						"use": "rbSmall",
-						"with": { "icon": "plus" },
+						"with": {
+							"icon": "plus"
+						},
 						"tooltip": "More delay",
-						"onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": 250 } }
+						"onClick": {
+							"run": "buildDelayBy",
+							"with": {
+								"id": "{{a.id}}",
+								"by": 250
+							}
+						}
 					},
 					{
 						"type": "label",
@@ -357,23 +478,42 @@
 					{
 						"id": "{{'motion-' + a.id + '-repeat-less'}}",
 						"use": "rbSmall",
-						"with": { "icon": "minus", "enabled": "{{(a.repeat ?? 1) > 1}}" },
+						"with": {
+							"icon": "minus",
+							"enabled": "{{(a.repeat ?? 1) > 1}}"
+						},
 						"tooltip": "Fewer repeats",
-						"onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": -1 } }
+						"onClick": {
+							"run": "buildRepeatBy",
+							"with": {
+								"id": "{{a.id}}",
+								"by": -1
+							}
+						}
 					},
 					{
 						"id": "{{'motion-' + a.id + '-repeat-more'}}",
 						"use": "rbSmall",
-						"with": { "icon": "plus", "enabled": "{{(a.repeat ?? 1) < 10}}" },
+						"with": {
+							"icon": "plus",
+							"enabled": "{{(a.repeat ?? 1) < 10}}"
+						},
 						"tooltip": "More repeats",
-						"onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": 1 } }
+						"onClick": {
+							"run": "buildRepeatBy",
+							"with": {
+								"id": "{{a.id}}",
+								"by": 1
+							}
+						}
 					}
 				]
 			}
 		},
-
 		"motionTimingMore": {
-			"params": { "a": null },
+			"params": {
+				"a": null
+			},
 			"note": "The Motion tab's delay and repeats of the selected objects' build, and the side a fly build comes from.",
 			"node": {
 				"type": "column",
@@ -403,16 +543,32 @@
 							{
 								"id": "motion-delay-less",
 								"use": "rbSmall",
-								"with": { "icon": "minus", "enabled": "{{a != null && (a.delay ?? 0) > 0}}" },
+								"with": {
+									"icon": "minus",
+									"enabled": "{{a != null && (a.delay ?? 0) > 0}}"
+								},
 								"tooltip": "Less delay",
-								"onClick": { "run": "animationDelayBy", "with": { "by": -250 } }
+								"onClick": {
+									"run": "animationDelayBy",
+									"with": {
+										"by": -250
+									}
+								}
 							},
 							{
 								"id": "motion-delay-more",
 								"use": "rbSmall",
-								"with": { "icon": "plus", "enabled": "{{a != null}}" },
+								"with": {
+									"icon": "plus",
+									"enabled": "{{a != null}}"
+								},
 								"tooltip": "More delay",
-								"onClick": { "run": "animationDelayBy", "with": { "by": 250 } }
+								"onClick": {
+									"run": "animationDelayBy",
+									"with": {
+										"by": 250
+									}
+								}
 							}
 						]
 					},
@@ -435,16 +591,32 @@
 							{
 								"id": "motion-repeat-less",
 								"use": "rbSmall",
-								"with": { "icon": "minus", "enabled": "{{a != null && (a.repeat ?? 1) > 1}}" },
+								"with": {
+									"icon": "minus",
+									"enabled": "{{a != null && (a.repeat ?? 1) > 1}}"
+								},
 								"tooltip": "Fewer repeats",
-								"onClick": { "run": "animationRepeatBy", "with": { "by": -1 } }
+								"onClick": {
+									"run": "animationRepeatBy",
+									"with": {
+										"by": -1
+									}
+								}
 							},
 							{
 								"id": "motion-repeat-more",
 								"use": "rbSmall",
-								"with": { "icon": "plus", "enabled": "{{a != null && (a.repeat ?? 1) < 10}}" },
+								"with": {
+									"icon": "plus",
+									"enabled": "{{a != null && (a.repeat ?? 1) < 10}}"
+								},
 								"tooltip": "More repeats",
-								"onClick": { "run": "animationRepeatBy", "with": { "by": 1 } }
+								"onClick": {
+									"run": "animationRepeatBy",
+									"with": {
+										"by": 1
+									}
+								}
 							}
 						]
 					},

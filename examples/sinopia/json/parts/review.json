@@ -408,7 +408,7 @@
 						  "runs": [{ "text": "{{a.start == 'click' ? '' + a.step : ''}}", "size": 11 }] },
 						{ "type": "label", "id": "{{'motion-' + a.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
 						  "textColor": "@rbInk", "label": "{{a.name + ', ' + a.effect + (a.kind == 'exit' ? ' exit' : '') + ', ' + a.start}}",
-						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : a.kind == 'emphasis' ? 'heart-pulse' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
+						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : a.kind == 'emphasis' ? 'heart-pulse' : a.kind == 'path' ? 'route' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
 						  "onClick": [{ "set": "state.board.selection", "to": "{{[a.target]}}" }] },
 						{ "id": "{{'motion-' + a.id + '-up'}}", "use": "rbSmall", "with": { "icon": "chevron-up", "enabled": "{{n > 0}}" }, "tooltip": "Play it earlier",
 						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": -1 } } },

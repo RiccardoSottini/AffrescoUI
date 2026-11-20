@@ -313,15 +313,15 @@
 						{ "id": "b-motion-preview", "use": "rbBig", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Play this slide's transition and builds",
 						  "onClick": "previewSlide" }
 					] },
-					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : 'Entrance'}}" }, "children": [
-						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 560 }, "children": [
+					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : a.kind == 'path' ? 'Motion Path' : 'Entrance'}}" }, "children": [
+						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692 }, "children": [
 							{ "type": "label",
-							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects)}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 50, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
 							  "runs": "{{[{ icon: e[1], size: 24 }, { text: '\n' + e[2], size: 11 }]}}",
 							  "onClick": { "run": "chooseEffect", "with": { "effect": "{{e[0]}}" } } }
 						] },
-						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null && a.kind != 'emphasis'}}", "width": 46 },
+						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null && (a.kind == 'entrance' || a.kind == 'exit')}}", "width": 46 },
 						  "tooltip": "Leave the slide instead of coming in", "onClick": { "run": "changeAnimation", "with": { "props": "{{ {kind: a.kind == 'exit' ? 'entrance' : 'exit'} }}" } } }
 					] },
 					{ "id": "g-motion-timing", "use": "rbGroup", "with": { "title": "Timing" }, "children": [
