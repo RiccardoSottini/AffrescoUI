@@ -53,11 +53,14 @@ std::uint16_t toUnorm16(float value) noexcept {
 } // namespace
 
 QuadRenderer::QuadRenderer()
-    : shaders_{Shader{linkQuadProgram({quadShaders::plainFragmentSource})},
-	           Shader{linkQuadProgram({quadShaders::shapeInputs, quadShaders::shapeFunctions, quadShaders::shapeMain})},
-	           Shader{linkQuadProgram({quadShaders::shapeInputs, quadShaders::colorFunctions, quadShaders::colorMain})},
-	           Shader{linkQuadProgram({quadShaders::shapeInputs, quadShaders::shapeFunctions,
-	                                   quadShaders::colorFunctions, quadShaders::shapeColorMain})}},
+    : shaders_{
+          Shader{linkQuadProgram({quadShaders::coverageFunctions, quadShaders::plainFragmentSource})},
+          Shader{linkQuadProgram({quadShaders::coverageFunctions, quadShaders::shapeInputs, quadShaders::shapeFunctions,
+		                          quadShaders::shapeMain})},
+          Shader{linkQuadProgram({quadShaders::coverageFunctions, quadShaders::shapeInputs, quadShaders::colorFunctions,
+		                          quadShaders::colorMain})},
+          Shader{linkQuadProgram({quadShaders::coverageFunctions, quadShaders::shapeInputs, quadShaders::shapeFunctions,
+		                          quadShaders::colorFunctions, quadShaders::shapeColorMain})}},
       vertexArray_(VertexArray::create()), vertexBuffer_(Buffer::create()), indexBuffer_(Buffer::create()) {
 	for(Shader& shader : shaders_) {
 		shader.scaleLocation = glGetUniformLocation(shader.program.id(), "uScale");

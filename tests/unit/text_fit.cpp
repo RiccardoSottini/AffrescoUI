@@ -142,7 +142,7 @@ TEST_CASE("text fit: a colour glyph is never moved, and at 2 a glyph is drawn as
 	const Font& dense = font->rasterAt(2.0f);
 	const Font::FittedGlyph fitted = dense.fitGlyph(font->glyph(U'W'), 10.3f);
 	CHECK(fitted.glyph == &dense.rasterGlyph(font->glyph(U'W')));
-	CHECK(fitted.pen == 10.3f);
+	CHECK(fitted.pen == 10.5f); // the nearest of its columns (half a unit at 2x): never between two
 }
 
 TEST_CASE("text fit: drawing a text again adds nothing, and whole pixels make no moved bitmap") {

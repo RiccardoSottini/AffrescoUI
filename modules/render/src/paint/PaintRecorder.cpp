@@ -257,7 +257,8 @@ void PaintRecorder::fillRect(const Rect& rect, Color color) {
 // put on a pixel row, so its glyphs' rows are the framebuffer's (a scale of 1.5 would otherwise blur them). Below 2x
 // (Font::fitsPixels) every glyph, hinted to those rows, is also drawn from a pixel column, from its bitmap moved by
 // the quarter of a pixel that puts it within an eighth of a pixel of its place (Font::fitGlyph): drawn as rasterised,
-// not resampled between columns, and still evenly spaced (widths and carets don't move)
+// not resampled between columns, and still evenly spaced (widths and carets don't move). From 2x, unhinted, each
+// glyph's pen is on the nearest column: never resampled between two either
 void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
 	const Font& raster = font.rasterAt(scale_);
 	const float scale = raster.rasterScale();
