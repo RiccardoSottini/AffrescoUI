@@ -900,11 +900,13 @@
 		},
 		{
 			"name": "a-project-shows-its-issues",
-			"note": "A project row opens the issues behind a Project filter; the chip's x removes it",
+			"note": "A project's page has View issues, which opens the issues behind a Project filter; the chip's x removes it",
 			"steps": [
 				{ "key": "g" },
 				{ "key": "p" },
 				{ "click": "#projectRow", "nth": 1 },
+				{ "expect": { "state": "projectOpen", "is": 1 } },
+				{ "click": "#projectViewIssues" },
 				{ "expect": { "state": "page", "is": "issues" } },
 				{ "expect": { "state": "fProject", "is": 1 } },
 				{ "expect": { "node": "#filterChip", "exists": true } },
@@ -980,6 +982,69 @@
 				{ "expect": { "data": "lane1[3].title", "is": "Write the release notes" } },
 				{ "expect": { "data": "lane1[3].ref", "is": "FLO-21" } },
 				{ "expect": { "state": "nextRef", "is": 22 } }
+			]
+		},
+		{
+			"name": "a-project-page-with-milestones-and-updates",
+			"note": "A project row opens its page: a milestone is ticked and one added, an update posted with its health, and the crumb goes back",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "click": "#projectRow", "nth": 0 },
+				{ "expect": { "state": "projectOpen", "is": 0 } },
+				{ "expect": { "node": "#projectHeroName", "text": "Board keyboard access" } },
+				{ "expect": { "node": "#milestonesSectionCount", "text": "1 / 3" } },
+				{ "click": "#milestoneRow", "nth": 1 },
+				{ "expect": { "data": "projects[0].milestones[1].done", "is": true } },
+				{ "expect": { "node": "#milestonesSectionCount", "text": "2 / 3" } },
+				{ "click": "#milestoneField" },
+				{ "type": "Beta release" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[0].milestones[3].name", "is": "Beta release" } },
+				{ "expect": { "state": "milestoneDraft", "is": "" } },
+				{ "click": "#updateField" },
+				{ "type": "Review found two gaps" },
+				{ "click": "#updateHealth", "nth": 1 },
+				{ "click": "#postUpdate" },
+				{ "expect": { "data": "projects[0].updates[0].text", "is": "Review found two gaps" } },
+				{ "expect": { "data": "projects[0].health", "is": "atRisk" } },
+				{ "expect": { "node": "#updateText", "text": "Review found two gaps" } },
+				{ "click": "#projectCrumb" },
+				{ "expect": { "state": "projectOpen", "is": -1 } },
+				{ "expect": { "node": "#projectRow", "exists": true } }
+			]
+		},
+		{
+			"name": "the-roadmap",
+			"note": "G then R shows the projects on a timeline, one bar each; List goes back to the table",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "r" },
+				{ "wait": 50 },
+				{ "expect": { "state": "page", "is": "projects" } },
+				{ "expect": { "state": "projectLayout", "is": "roadmap" } },
+				{ "expect": { "node": "#roadmapTimeline", "exists": true } },
+				{ "expect": { "node": "#roadmapHeader", "nth": 4, "exists": true } },
+				{ "expect": { "node": "#projectRow", "exists": false } },
+				{ "click": "#projectLayout", "nth": 0 },
+				{ "expect": { "state": "projectLayout", "is": "list" } },
+				{ "expect": { "node": "#projectRow", "exists": true } }
+			]
+		},
+		{
+			"name": "an-agent-posts-a-project-update",
+			"note": "projectUpdate asks an agent first; run by the person it posts on the project named, with its health; a project or a health that isn't there changes nothing",
+			"steps": [
+				{ "command": "projectUpdate", "with": { "project": "Label palette", "health": "at risk", "text": "Contrast fixed for one colour" }, "verdict": "ask" },
+				{ "expect": { "data": "projects[1].updates.length", "is": 1 } },
+				{ "command": "projectUpdate", "with": { "project": "label PALETTE", "health": "On track", "text": "Contrast fixed for both colours" }, "as": "studio" },
+				{ "expect": { "data": "projects[1].updates[0].text", "is": "Contrast fixed for both colours" } },
+				{ "expect": { "data": "projects[1].health", "is": "onTrack" } },
+				{ "command": "projectUpdate", "with": { "project": "Moon base", "health": "on track", "text": "Hello" }, "as": "studio" },
+				{ "expect": { "state": "toast.message", "is": "There is no project named Moon base" } },
+				{ "command": "projectUpdate", "with": { "project": "Label palette", "health": "sideways", "text": "Hello" }, "as": "studio" },
+				{ "expect": { "data": "projects[1].updates.length", "is": 2 } }
 			]
 		}
 	]
