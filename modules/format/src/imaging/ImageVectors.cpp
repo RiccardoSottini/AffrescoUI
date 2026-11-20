@@ -253,8 +253,7 @@ void deletePath(ImageDocument& image, const json& with, Window*) {
 		structure.paths.erase(structure.paths.begin() + index);
 		if(structure.activePath >= static_cast<int>(structure.paths.size()) || structure.activePath == index)
 			structure.activePath = -1;
-		else if(structure.activePath > index)
-			--structure.activePath;
+		else if(structure.activePath > index) --structure.activePath;
 	});
 }
 
@@ -274,7 +273,8 @@ void renamePath(ImageDocument& image, const json& with, Window*) {
 /// @param with points, closed.
 void setPath(ImageDocument& image, const json& with, Window*) {
 	const json points = with.contains("points") ? with["points"] : json();
-	const std::vector<im::PathPoint> read = points.is_null() ? std::vector<im::PathPoint>{} : im::pointsFromJson(points);
+	const std::vector<im::PathPoint> read =
+	    points.is_null() ? std::vector<im::PathPoint>{} : im::pointsFromJson(points);
 	changePaths(image, "Edit Path", [&](im::Structure& structure) {
 		im::VectorPath& path = activePath(structure);
 		if(!points.is_null()) path.points = read;
@@ -360,8 +360,7 @@ void pathToShape(ImageDocument& image, const json&, Window*) {
 /// @return Its index, or -1.
 [[nodiscard]] int anchorNear(const ImageDocument& image, Point at) {
 	const im::Structure& structure = image.canvas->document().structure();
-	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size())
-		return -1;
+	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size()) return -1;
 	const auto& points = structure.paths[static_cast<std::size_t>(structure.activePath)].points;
 	const double reach = grabDistance / std::max(image.view.zoom, 1e-6);
 	for(std::size_t index = 0; index < points.size(); ++index)
@@ -420,9 +419,9 @@ bool dragPen(ImageDocument& image, Point at) {
 /// @param image The image.
 /// @param at Where.
 bool dragPathSelect(ImageDocument& image, Point at) {
-	const Point last = image.press.boxTo; // where the previous move left the pointer
+	const Point last = image.pathLast; // where the previous move left the pointer
 	const float dx = at.x - last.x, dy = at.y - last.y;
-	image.press.boxTo = at;
+	image.pathLast = at;
 	if(dx == 0.0f && dy == 0.0f) return false;
 	const int anchor = image.pathAnchor;
 	image.canvas->document().changeStructure(
@@ -431,7 +430,8 @@ bool dragPathSelect(ImageDocument& image, Point at) {
 		    im::VectorPath& path = activePath(changed);
 		    for(std::size_t index = 0; index < path.points.size(); ++index) {
 			    if(anchor >= 0 && static_cast<std::size_t>(anchor) != index) continue;
-			    for(im::VectorPoint* point : {&path.points[index].anchor, &path.points[index].in, &path.points[index].out}) {
+			    for(im::VectorPoint* point :
+				    {&path.points[index].anchor, &path.points[index].in, &path.points[index].out}) {
 				    point->x += dx;
 				    point->y += dy;
 			    }
@@ -485,7 +485,7 @@ bool pressVector(ImageDocument& image, imaging::Point at) {
 		return pressPen(image, at);
 	case Gesture::pathSelect:
 		image.pathAnchor = anchorNear(image, at);
-		image.press.boxTo = at;
+		image.pathLast = at;
 		return false;
 	default:
 		return false;
@@ -562,25 +562,28 @@ json pathsJson(const imaging::Document& document) {
 std::vector<ImageOperation> vectorOperations() {
 	return {
 	    {"addText",
-	     {"text", "x", "y", "size", "font", "bold", "italic", "align", "leading", "fill"},
-	     "Adds a type layer.",
-	     addText},
+		 {"text", "x", "y", "size", "font", "bold", "italic", "align", "leading", "fill"},
+		 "Adds a type layer.",
+		 addText},
 	    {"addShape",
-	     {"shape", "x", "y", "x2", "y2", "radius", "sides", "points", "closed", "fill", "stroke", "strokeWidth"},
-	     "Adds a shape layer.",
-	     addShape},
+		 {"shape", "x", "y", "x2", "y2", "radius", "sides", "points", "closed", "fill", "stroke", "strokeWidth"},
+		 "Adds a shape layer.",
+		 addShape},
 	    {"editContent",
-	     {"id", "text", "x", "y", "x2", "y2", "size", "font", "bold", "italic", "align", "leading", "shape", "radius",
-	      "sides", "points", "closed", "fill", "stroke", "strokeWidth"},
-	     "Changes a type or shape layer's content, and draws it again.",
-	     editContent},
+		 {"id",    "text",    "x",     "y",      "x2",    "y2",     "size",   "font", "bold",   "italic",
+		  "align", "leading", "shape", "radius", "sides", "points", "closed", "fill", "stroke", "strokeWidth"},
+		 "Changes a type or shape layer's content, and draws it again.",
+		 editContent},
 	    {"rasterize", {"id"}, "Makes a type or shape layer a pixel layer of the same pixels.", rasterize},
 	    {"newPath", {"name"}, "Adds an empty path, the active one, for the pen.", newPath},
 	    {"selectPath", {"index"}, "Makes a path the active one (-1 for none).", selectPath},
 	    {"deletePath", {"index"}, "Deletes a path (the active one when no index).", deletePath},
 	    {"renamePath", {"index", "name"}, "Renames a path.", renamePath},
 	    {"setPath", {"points", "closed"}, "Replaces the active path's anchors, or closes or opens it.", setPath},
-	    {"strokePath", {"width"}, "Strokes the active path on the active layer with the foreground colour.", strokePath},
+	    {"strokePath",
+		 {"width"},
+		 "Strokes the active path on the active layer with the foreground colour.",
+		 strokePath},
 	    {"fillPath", {}, "Fills the active path on the active layer with the foreground colour.", fillPath},
 	    {"pathToSelection", {"mode"}, "Makes a selection of the active path's inside.", pathToSelection},
 	    {"pathToShape", {}, "Makes a shape layer of the active path.", pathToShape},

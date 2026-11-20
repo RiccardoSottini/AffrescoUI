@@ -132,10 +132,8 @@ void unite(Coverage& into, const Coverage& more) {
 [[nodiscard]] std::vector<std::u32string> linesOf(const std::string& text) {
 	std::vector<std::u32string> lines(1);
 	for(const char32_t codepoint : codepointsOf(text)) {
-		if(codepoint == U'\n')
-			lines.emplace_back();
-		else if(codepoint != U'\r')
-			lines.back().push_back(codepoint);
+		if(codepoint == U'\n') lines.emplace_back();
+		else if(codepoint != U'\r') lines.back().push_back(codepoint);
 	}
 	return lines;
 }
@@ -235,8 +233,10 @@ std::vector<Point> flattenPath(std::span<const PathPoint> points, bool closed) {
 }
 
 std::vector<Point> shapeOutline(const LayerContent& content) {
-	const float left = std::min(content.origin.x, content.corner.x), right = std::max(content.origin.x, content.corner.x);
-	const float top = std::min(content.origin.y, content.corner.y), bottom = std::max(content.origin.y, content.corner.y);
+	const float left = std::min(content.origin.x, content.corner.x),
+	            right = std::max(content.origin.x, content.corner.x);
+	const float top = std::min(content.origin.y, content.corner.y),
+	            bottom = std::max(content.origin.y, content.corner.y);
 	const Point centre{(left + right) / 2.0f, (top + bottom) / 2.0f};
 	const float radiusX = (right - left) / 2.0f, radiusY = (bottom - top) / 2.0f;
 	constexpr float pi = std::numbers::pi_v<float>;
@@ -283,8 +283,10 @@ Coverage strokeCoverage(int width, int height, std::span<const Point> points, bo
 		const float dx = to.x - from.x, dy = to.y - from.y, length = std::hypot(dx, dy);
 		if(!(length > 0.0f)) continue;
 		const float nx = -dy / length * half, ny = dx / length * half;
-		const std::array<Point, 4> quad{
-		    Point{from.x + nx, from.y + ny}, {to.x + nx, to.y + ny}, {to.x - nx, to.y - ny}, {from.x - nx, from.y - ny}};
+		const std::array<Point, 4> quad{Point{from.x + nx, from.y + ny},
+		                                {to.x + nx, to.y + ny},
+		                                {to.x - nx, to.y - ny},
+		                                {from.x - nx, from.y - ny}};
 		unite(coverage, polygonCoverage(width, height, quad, limits));
 	}
 	if(half >= 1.0f) // round joins and caps; thinner strokes need none
@@ -314,8 +316,9 @@ void paintCoverage(Image& image, const Coverage& coverage, const Pixel& colour) 
 				const auto mix = [&](float over, float under) {
 					return (over * alpha + under * below.alpha * (1.0f - alpha)) / out;
 				};
-				target.setPixel(x, y, {mix(colour.red, below.red), mix(colour.green, below.green),
-				                       mix(colour.blue, below.blue), out});
+				target.setPixel(
+				    x, y,
+				    {mix(colour.red, below.red), mix(colour.green, below.green), mix(colour.blue, below.blue), out});
 			}
 	}
 }
@@ -347,7 +350,7 @@ std::array<float, 4> textBounds(const LayerContent& content, const Font& font) {
 	const float advance = content.size * std::max(content.leading, 0.1f);
 	float left = content.origin.x, right = content.origin.x;
 	for(const std::u32string& line : lines) {
-		const float width = font.measure(line) * scale, start = lineStart(content, width);
+		const float width = font.shape(line).width * scale, start = lineStart(content, width);
 		left = std::min(left, start);
 		right = std::max(right, start + width);
 	}
@@ -382,8 +385,10 @@ std::shared_ptr<Image> renderText(const LayerContent& content, const Font& font,
 			const float u0 = glyph.uv.left * static_cast<float>(side), v0 = glyph.uv.top * static_cast<float>(side);
 			const float du = (glyph.uv.right - glyph.uv.left) * static_cast<float>(side) / (x1 - x0);
 			const float dv = (glyph.uv.bottom - glyph.uv.top) * static_cast<float>(side) / (y1 - y0);
-			const int left = std::max(0, static_cast<int>(std::floor(x0))), right = std::min(width, static_cast<int>(std::ceil(x1)));
-			const int top = std::max(0, static_cast<int>(std::floor(y0))), bottom = std::min(height, static_cast<int>(std::ceil(y1)));
+			const int left = std::max(0, static_cast<int>(std::floor(x0))),
+			          right = std::min(width, static_cast<int>(std::ceil(x1)));
+			const int top = std::max(0, static_cast<int>(std::floor(y0))),
+			          bottom = std::min(height, static_cast<int>(std::ceil(y1)));
 			for(int y = top; y < bottom; ++y)
 				for(int x = left; x < right; ++x) {
 					const float u = u0 + (static_cast<float>(x) + 0.5f - x0) * du;
@@ -451,7 +456,7 @@ json contentToJson(const LayerContent& content) {
 	           {"x", content.origin.x},
 	           {"y", content.origin.y},
 	           {"fill", hexOfPixel(content.fill)}};
-	if(content.kind == ContentKind::text) {
+	if(content.kind != ContentKind::shape) { // none: both, as a tool's settings for new type and shapes
 		value.update({{"text", content.text},
 		              {"font", content.font},
 		              {"size", content.size},
@@ -459,7 +464,8 @@ json contentToJson(const LayerContent& content) {
 		              {"bold", content.bold},
 		              {"italic", content.italic},
 		              {"align", alignNames.at(static_cast<std::size_t>(content.align))}});
-	} else if(content.kind == ContentKind::shape) {
+	}
+	if(content.kind != ContentKind::text) {
 		value.update({{"shape", shapeNames.at(static_cast<std::size_t>(content.shape))},
 		              {"x2", content.corner.x},
 		              {"y2", content.corner.y},
@@ -468,14 +474,16 @@ json contentToJson(const LayerContent& content) {
 		              {"stroke", hexOfPixel(content.stroke)},
 		              {"strokeWidth", content.strokeWidth},
 		              {"closed", content.closed}});
-		if(content.shape == ShapeKind::path) value["points"] = pointsToJson(content.points);
+		if(content.shape == ShapeKind::path && content.kind == ContentKind::shape)
+			value["points"] = pointsToJson(content.points);
 	}
 	return value;
 }
 
 void readContent(const json& value, LayerContent& content) {
 	if(!value.is_object()) throw DocumentError("a layer's content is an object");
-	if(value.contains("kind")) content.kind = static_cast<ContentKind>(indexIn(contentNames, value["kind"], "content kind"));
+	if(value.contains("kind"))
+		content.kind = static_cast<ContentKind>(indexIn(contentNames, value["kind"], "content kind"));
 	if(const auto text = value.find("text"); text != value.end()) {
 		if(!text->is_string() || text->get<std::string>().size() > maxTextBytes)
 			throw DocumentError("text is at most " + std::to_string(maxTextBytes) + " bytes");
@@ -487,10 +495,12 @@ void readContent(const json& value, LayerContent& content) {
 	}
 	content.size = numberIn(value, "size", 1.0f, 1000.0f, content.size);
 	content.leading = numberIn(value, "leading", 0.5f, 5.0f, content.leading);
-	if(const auto bold = value.find("bold"); bold != value.end() && bold->is_boolean()) content.bold = bold->get<bool>();
+	if(const auto bold = value.find("bold"); bold != value.end() && bold->is_boolean())
+		content.bold = bold->get<bool>();
 	if(const auto italic = value.find("italic"); italic != value.end() && italic->is_boolean())
 		content.italic = italic->get<bool>();
-	if(value.contains("align")) content.align = static_cast<TextAlign>(indexIn(alignNames, value["align"], "alignment"));
+	if(value.contains("align"))
+		content.align = static_cast<TextAlign>(indexIn(alignNames, value["align"], "alignment"));
 	content.origin = {numberIn(value, "x", -farthest, farthest, content.origin.x),
 	                  numberIn(value, "y", -farthest, farthest, content.origin.y)};
 	content.corner = {numberIn(value, "x2", -farthest, farthest, content.corner.x),

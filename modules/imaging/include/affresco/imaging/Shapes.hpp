@@ -54,8 +54,8 @@ void paintCoverage(Image& image, const Coverage& coverage, const Pixel& colour);
 /// @param format Its format.
 /// @param limits The limits.
 /// @return The image.
-[[nodiscard]] std::shared_ptr<Image> renderShape(const LayerContent& content, int width, int height,
-                                                 PixelFormat format, const Limits& limits);
+[[nodiscard]] std::shared_ptr<Image> renderShape(const LayerContent& content, int width, int height, PixelFormat format,
+                                                 const Limits& limits);
 
 /// @brief Draws a type layer's content into a new transparent image, with a font in the content's style; the glyphs
 /// are scaled from the font's size to the content's (a font a little larger than the text draws it best).
@@ -81,7 +81,8 @@ void paintCoverage(Image& image, const Coverage& coverage, const Pixel& colour);
 /// @return It, moved.
 [[nodiscard]] LayerContent movedContent(LayerContent content, float dx, float dy);
 
-/// @brief A content as JSON: {"kind", "text", "font", "size", ... "fill": "#rrggbb", "points": [...]}.
+/// @brief A content as JSON: {"kind", "text", "font", "size", ... "fill": "#rrggbbaa", "points": [...]}; a text's keys
+/// and a shape's, both for no kind (a tool's settings).
 /// @param content The content.
 [[nodiscard]] json contentToJson(const LayerContent& content);
 

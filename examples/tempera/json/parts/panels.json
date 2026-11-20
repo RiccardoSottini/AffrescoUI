@@ -258,7 +258,7 @@
 					{ "type": "editor", "id": "type-text", "label": "Text", "when": "{{computed.activeLayer.kind == 'text'}}", "text": "{{computed.activeLayer.content.text}}",
 					  "wrap": true, "width": "100%", "height": 64, "color": "@input", "textColor": "@text", "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius",
 					  "onChange": { "run": "editContent", "with": { "args": { "text": "{{event.value}}" } } } },
-					{ "type": "row", "id": "type-character", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
+					{ "type": "row", "id": "type-character", "width": "100%", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
 						{ "id": "type-size", "use": "tField", "with": { "title": "Size", "key": "size", "value": "{{computed.activeLayer.content.size}}", "min": 4, "max": 1000,
 						  "unit": " px", "width": 52, "pop": false, "run": "editContent" } },
 						{ "id": "type-bold", "use": "tIcon", "with": { "icon": "bold", "tip": "Bold", "on": "{{computed.activeLayer.content.bold}}", "run": "editContent", "args": { "bold": "{{!computed.activeLayer.content.bold}}" } } },
@@ -267,13 +267,13 @@
 						  "radius": "@kit.radius", "color": "{{computed.activeLayer.content.fill}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
 						  "onClick": { "run": "editContent", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } }
 					] },
-					{ "type": "row", "id": "type-paragraph", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 2, "alignItems": "center", "children": [
+					{ "type": "row", "id": "type-paragraph", "width": "100%", "when": "{{computed.activeLayer.kind == 'text'}}", "height": 26, "gap": 2, "alignItems": "center", "children": [
 						{ "style": "dim", "text": "Paragraph:", "width": 74, "height": 20, "fitText": false },
 						{ "id": "type-align-{{a.id}}", "use": "tIcon", "repeat": { "for": "a", "in": "{{[{id: 'left', icon: 'align-left', title: 'Align left'}, {id: 'center', icon: 'align-center', title: 'Centre'}, {id: 'right', icon: 'align-right', title: 'Align right'}]}}" },
 						  "with": { "icon": "{{a.icon}}", "tip": "{{a.title}}", "on": "{{computed.activeLayer.content.align == a.id}}", "run": "editContent", "args": { "align": "{{a.id}}" } } }
 					] },
 					{ "id": "type-rasterize", "use": "tButton", "when": "{{computed.activeLayer.kind == 'text'}}", "with": { "title": "Rasterize Type", "run": "rasterizeLayer" } },
-					{ "type": "row", "id": "shape-colours", "when": "{{computed.activeLayer.kind == 'shape'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
+					{ "type": "row", "id": "shape-colours", "width": "100%", "when": "{{computed.activeLayer.kind == 'shape'}}", "height": 26, "gap": 6, "alignItems": "center", "children": [
 						{ "style": "dim", "text": "Fill:" },
 						{ "id": "shape-fill", "role": "button", "label": "Fill", "tooltip": "A click gives the shape the foreground colour", "width": 22, "height": 22,
 						  "radius": "@kit.radius", "color": "{{computed.activeLayer.content.fill}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",

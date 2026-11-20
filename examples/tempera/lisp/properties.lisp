@@ -110,7 +110,7 @@
       :borderColor @border
       :radius @kit.radius
       :onChange ~(handler set-text event.value))
-   `(row#type-character :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+   `(row#type-character :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
       (node#type-size :use tField
         :with {:title ~(t "character.size") :key size :value ~computed.activeLayer.content.size :low 4 :high 1000
                :unit " px" :width 52 :pop false :run edit-content})
@@ -123,7 +123,7 @@
       (node#type-colour :role button :label ~(t "character.colour") :tooltip ~(t "character.colour.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
         :borderColor @border :cursor hand :onClick ~(handler edit-content {:fill state.doc.foreground})))
-   `(row#type-paragraph :when ~(= computed.activeLayer.kind "text") :height 26 :gap 2 :alignItems center
+   `(row#type-paragraph :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 2 :alignItems center
       (node :style dim :text ~(str (t "character.paragraph") ":") :width 74 :height 20 :fitText false)
       ~@(map (fn [it]
                `(node :id ~(str "type-align-" (first it))
@@ -140,7 +140,7 @@
       :with {:title ~(t "command.rasterizeType") :run rasterizeLayer})])
 
 (defview shape-values "A shape layer's fill, stroke, width and corners, each change drawn again." []
-  [`(row#shape-colours :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+  [`(row#shape-colours :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
       (node :style dim :text ~(str (t "option.shapeFill") ":"))
       (node#shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
@@ -149,7 +149,7 @@
       (node#shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.stroke :borderWidth 1
         :borderColor @border :cursor hand :onClick ~(handler edit-content {:stroke state.doc.background})))
-   `(row#shape-sizes :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+   `(row#shape-sizes :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
       (node#shape-stroke-width :use tField
         :with {:title ~(t "option.strokeWidth") :key strokeWidth :value ~computed.activeLayer.content.strokeWidth
                :low 0 :high 200 :unit " px" :width 48 :pop false :run edit-content})

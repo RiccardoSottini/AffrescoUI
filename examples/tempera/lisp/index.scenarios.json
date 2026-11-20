@@ -4661,8 +4661,10 @@
 				{
 					"action": "perform",
 					"event": {
-						"run": "set-text",
-						"args": "Hello"
+						"run": "edit-content",
+						"args": {
+							"text": "Hello"
+						}
 					}
 				},
 				{
@@ -5140,7 +5142,7 @@
 				},
 				{
 					"expect": {
-						"state": "doc.history[7].label",
+						"state": "doc.history[8].label",
 						"is": "Fill Path"
 					}
 				},
@@ -5183,7 +5185,7 @@
 				},
 				{
 					"expect": {
-						"state": "doc.history[8].label",
+						"state": "doc.history[9].label",
 						"is": "Move Path"
 					}
 				},

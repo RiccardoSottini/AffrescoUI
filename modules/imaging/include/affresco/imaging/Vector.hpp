@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief Vector content (the types; Shapes.hpp draws them): paths of anchor points with curve handles (the pen's), and the content a type or shape layer
-/// is drawn from, rendered into the layer's pixels whenever it changes.
+/// @brief Vector content (the types; Shapes.hpp draws them): paths of anchor points with curve handles (the pen's), and
+/// the content a type or shape layer is drawn from, rendered into the layer's pixels whenever it changes.
 
 #include "affresco/imaging/Pixels.hpp"
 
@@ -71,16 +71,16 @@ enum class TextAlign : std::uint8_t {
 struct LayerContent {
 	ContentKind kind = ContentKind::none; ///< What it is.
 	// text
-	std::string text;                     ///< text: its characters, UTF-8; '\n' starts a line.
-	std::string font;                     ///< text: the font's name (the document's), "" for the default.
-	float size = 48.0f;                   ///< text: the size in pixels.
-	float leading = 1.2f;                 ///< text: the distance between baselines, in sizes.
-	bool bold = false;                    ///< text: thickened.
-	bool italic = false;                  ///< text: slanted.
-	TextAlign align = TextAlign::left;    ///< text: how its lines line up.
+	std::string text;                  ///< text: its characters, UTF-8; '\n' starts a line.
+	std::string font;                  ///< text: the font's name (the document's), "" for the default.
+	float size = 48.0f;                ///< text: the size in pixels.
+	float leading = 1.2f;              ///< text: the distance between baselines, in sizes.
+	bool bold = false;                 ///< text: thickened.
+	bool italic = false;               ///< text: slanted.
+	TextAlign align = TextAlign::left; ///< text: how its lines line up.
 	// both: text's origin is its first line's top at the alignment edge; a shape's box is from origin to corner
-	VectorPoint origin;                       ///< Where it is.
-	VectorPoint corner;                        ///< shape: the box's opposite corner.
+	VectorPoint origin; ///< Where it is.
+	VectorPoint corner; ///< shape: the box's opposite corner.
 	// shape
 	ShapeKind shape = ShapeKind::rectangle; ///< shape: its outline.
 	float radius = 0.0f;                    ///< rectangle: its corners' radius.

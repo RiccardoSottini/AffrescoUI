@@ -1492,9 +1492,22 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
+| `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `fill` | Adds a type layer. |
+| `addShape` | `shape`, `x`, `y`, `x2`, `y2`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Adds a shape layer. |
+| `editContent` | `id`, `text`, `x`, `y`, `x2`, `y2`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `shape`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Changes a type or shape layer's content, and draws it again. |
+| `rasterize` | `id` | Makes a type or shape layer a pixel layer of the same pixels. |
+| `newPath` | `name` | Adds an empty path, the active one, for the pen. |
+| `selectPath` | `index` | Makes a path the active one (-1 for none). |
+| `deletePath` | `index` | Deletes a path (the active one when no index). |
+| `renamePath` | `index`, `name` | Renames a path. |
+| `setPath` | `points`, `closed` | Replaces the active path's anchors, or closes or opens it. |
+| `strokePath` | `width` | Strokes the active path on the active layer with the foreground colour. |
+| `fillPath` | — | Fills the active path on the active layer with the foreground colour. |
+| `pathToSelection` | `mode` | Makes a selection of the active path's inside. |
+| `pathToShape` | — | Makes a shape layer of the active path. |
 <!-- end generated -->
 
 Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
@@ -1511,6 +1524,18 @@ tool's press with `shift` held adds to the selection, with `alt` subtracts, with
 a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
 go through the file dialogs the person sees: a document never names a file.
 
+**Type, shapes and paths.** A type or shape layer is a pixel layer drawn from its `content` (in its snapshot row, with
+`kind` `text` or `shape`): `{"text", "font", "size", "leading", "bold", "italic", "align", "x", "y", "fill"}` for type
+(drawn with the screen's `fonts`, `""` the default), `{"shape": rectangle|ellipse|polygon|line|path, "x", "y", "x2",
+"y2", "radius", "sides", "points", "fill", "stroke", "strokeWidth"}` for a shape, colours as `#rrggbb[aa]`. `addText`,
+`addShape` and `editContent` take those keys and draw the layer again (typing and sliders coalesce into one step);
+painting and filters refuse it until `rasterize`; moving moves its content. The `vector` tool option holds what new type
+and shapes start as. The `text` gesture adds a type layer at the press or picks the one pressed, then the canvas types
+into it (Backspace, Enter, Escape stops); `shape` drags one out; `pen` adds anchors to the active path (a drag pulls
+smooth handles; a press on the first anchor closes it); `path-select` drags the active path or the anchor pressed. The
+paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
+canvas while one is active.
+
 ### Image values and the snapshot
 
 The names the operations and tool options take, and the library's limits:
@@ -1518,7 +1543,7 @@ The names the operations and tool options take, and the library's limits:
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
-| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom` |
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
 | A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |

@@ -11,6 +11,8 @@
 #include <array>
 
 using namespace affresco::imaging;
+using affresco::DocumentError;
+using affresco::json;
 
 namespace {
 
