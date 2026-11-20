@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#f5a524", "width": 2, "offset": 1 }
 	},
 
-	"include": ["locales/en.json", "locales/es.json", "locales/fr.json", "parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "parts/game-panels.json", "parts/rewards.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["locales/en.json", "locales/es.json", "locales/fr.json", "parts/data.json", "parts/chrome.json", "parts/library.json", "parts/collections.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "parts/game-panels.json", "parts/rewards.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -147,6 +147,20 @@
 			"default": true,
 			"title": "Download while playing",
 			"description": "Off, downloads wait while a game is running."
+		},
+		"downloads.region": {
+			"type": "string",
+			"enum": ["auto", "europe", "americas", "asia"],
+			"default": "auto",
+			"title": "Download region",
+			"description": "Where downloads come from: the nearest servers, or a region's."
+		},
+		"downloads.schedule": {
+			"type": "string",
+			"enum": ["anytime", "night"],
+			"default": "anytime",
+			"title": "Download schedule",
+			"description": "When downloads run: at any time, or only between 1:00 and 7:00 (UTC), when the line is quiet."
 		},
 		"library.sortBy": {
 			"type": "string",
@@ -291,6 +305,7 @@
 				]
 			},
 			{ "id": "settings-dialog", "use": "settingsDialog" },
+			{ "id": "collection-dialog", "use": "collectionDialog" },
 			{ "use": "gameMenu" },
 			{ "id": "properties-dialog", "use": "propertiesDialog" },
 			{ "id": "uninstall-dialog", "use": "uninstallDialog" },

@@ -132,9 +132,40 @@ GLFWimage iconImage(const Bitmap& icon, std::vector<std::uint8_t>& pixels) {
 /// @brief A GLFW window and its OpenGL context.
 /// @brief What the platform's windows tell its event loop, and what it tells them. Main thread only.
 struct LoopState {
-	bool waiting = false;     ///< Inside waitEvents(): only then must a window's wake() post an event.
-	std::uint64_t events = 0; ///< The events the windows were delivered (Platform::eventsDelivered()).
+	bool waiting = false;            ///< Inside waitEvents(): only then must a window's wake() post an event.
+	std::uint64_t events = 0;        ///< The events the windows were delivered (Platform::eventsDelivered()).
+	GLFWwindow* focused = nullptr;   ///< The window with the keyboard focus, where a gamepad's presses go, or nullptr.
+	std::array<double, 9> padHeld{}; ///< When each gamepad key (gamepadKeys) was pressed, by GLFW's clock; 0 if up.
+	std::array<double, 9> padRepeated{}; ///< When each held gamepad key last repeated.
 };
+
+/// @brief A gamepad control and the key it presses: a button, or a direction of the left stick as well.
+struct GamepadKey {
+	int button;   ///< GLFW_GAMEPAD_BUTTON_*.
+	int axis;     ///< GLFW_GAMEPAD_AXIS_* that presses it too, or -1.
+	float sign;   ///< The stick's direction along axis: -1 or 1.
+	int key;      ///< The GLFW_KEY_* it presses.
+	int mods;     ///< The GLFW_MOD_* held with it.
+	bool repeats; ///< Whether holding it repeats the key, as an arrow key does.
+};
+
+/// @brief What a gamepad presses: the D-pad and the left stick the arrows, A Enter, B Escape, X Space, and the bumpers
+/// Tab and Shift+Tab, so every keyboard path of a screen works from the sofa.
+constexpr std::array<GamepadKey, 9> gamepadKeys{{
+    {GLFW_GAMEPAD_BUTTON_DPAD_UP, GLFW_GAMEPAD_AXIS_LEFT_Y, -1.0F, GLFW_KEY_UP, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_DOWN, GLFW_GAMEPAD_AXIS_LEFT_Y, 1.0F, GLFW_KEY_DOWN, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_LEFT, GLFW_GAMEPAD_AXIS_LEFT_X, -1.0F, GLFW_KEY_LEFT, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_RIGHT, GLFW_GAMEPAD_AXIS_LEFT_X, 1.0F, GLFW_KEY_RIGHT, 0, true},
+    {GLFW_GAMEPAD_BUTTON_A, -1, 0.0F, GLFW_KEY_ENTER, 0, false},
+    {GLFW_GAMEPAD_BUTTON_B, -1, 0.0F, GLFW_KEY_ESCAPE, 0, false},
+    {GLFW_GAMEPAD_BUTTON_X, -1, 0.0F, GLFW_KEY_SPACE, 0, false},
+    {GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, -1, 0.0F, GLFW_KEY_TAB, 0, false},
+    {GLFW_GAMEPAD_BUTTON_LEFT_BUMPER, -1, 0.0F, GLFW_KEY_TAB, GLFW_MOD_SHIFT, false},
+}};
+constexpr double gamepadPollSeconds = 1.0 / 30.0; ///< How often the loop looks at the gamepads while one is connected.
+constexpr double gamepadRepeatDelay = 0.4;        ///< Seconds a direction is held before it repeats.
+constexpr double gamepadRepeatEvery = 0.1;        ///< Seconds between its repeats.
+constexpr float gamepadStickPress = 0.6F;         ///< How far the stick leans before it presses a direction.
 
 class GlfwWindow final : public NativeWindow {
 public:
@@ -168,6 +199,7 @@ public:
 
 	/// @brief Destroys the menu bar, the cursors and the window.
 	~GlfwWindow() override {
+		if(loop_.focused == handle_) loop_.focused = nullptr;
 		menuBar_.reset();
 		for(GLFWcursor* cursor : cursors_)
 			if(cursor) glfwDestroyCursor(cursor);
@@ -409,7 +441,9 @@ void GlfwWindow::connect(Window& window) {
 		displayChanged(delivered(native), changed.unitScale_);
 	});
 	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
-		const GlfwWindow& focusedWindow = self(native);
+		GlfwWindow& focusedWindow = self(native);
+		if(focused == GLFW_TRUE) focusedWindow.loop_.focused = native;
+		else if(focusedWindow.loop_.focused == native) focusedWindow.loop_.focused = nullptr;
 		if(focused == GLFW_TRUE && focusedWindow.menuBar_)
 			focusedWindow.menuBar_->activate(); // macOS: the bar is the app's
 	});
@@ -509,10 +543,13 @@ public:
 	}
 
 	void waitEvents(std::optional<double> timeoutSeconds) override {
+		const bool pads = gamepadConnected();
+		if(pads) timeoutSeconds = std::min(timeoutSeconds.value_or(gamepadPollSeconds), gamepadPollSeconds);
 		loop_.waiting = true;
 		if(timeoutSeconds) glfwWaitEventsTimeout(*timeoutSeconds);
 		else glfwWaitEvents();
 		loop_.waiting = false;
+		if(pads) pollGamepads();
 	}
 
 	void wake() override { glfwPostEmptyEvent(); }
@@ -525,6 +562,62 @@ public:
 	}
 
 private:
+	/// @brief Whether a gamepad is connected; then the loop wakes gamepadPollSeconds apart to look at it.
+	/// @return Whether one is.
+	[[nodiscard]] static bool gamepadConnected() {
+#ifdef __EMSCRIPTEN__
+		return false;
+#else
+		for(int pad = GLFW_JOYSTICK_1; pad <= GLFW_JOYSTICK_LAST; ++pad)
+			if(glfwJoystickIsGamepad(pad) == GLFW_TRUE) return true;
+		return false;
+#endif
+	}
+
+	/// @brief Whether any connected gamepad holds a control down: its button, or its stick leaning that way.
+	/// @param control The control.
+	/// @return Whether one does.
+	[[nodiscard]] static bool gamepadHolds(const GamepadKey& control) {
+#ifndef __EMSCRIPTEN__
+		for(int pad = GLFW_JOYSTICK_1; pad <= GLFW_JOYSTICK_LAST; ++pad) {
+			GLFWgamepadstate state{};
+			if(glfwGetGamepadState(pad, &state) != GLFW_TRUE) continue;
+			if(state.buttons[control.button] == GLFW_PRESS) return true;
+			if(control.axis >= 0 && state.axes[control.axis] * control.sign > gamepadStickPress) return true;
+		}
+#endif
+		return false;
+	}
+
+	/// @brief Presses, repeats and releases the keys the gamepads' controls stand for (gamepadKeys), in the window with
+	/// the keyboard focus, as its own keys would.
+	void pollGamepads() {
+		const double now = glfwGetTime();
+		for(std::size_t i = 0; i < gamepadKeys.size(); ++i) {
+			const GamepadKey& control = gamepadKeys.at(i);
+			const bool down = gamepadHolds(control);
+			double& since = loop_.padHeld.at(i);
+			double& repeated = loop_.padRepeated.at(i);
+			std::optional<Action> action;
+			if(down && since == 0.0) {
+				since = repeated = now;
+				action = Action::Press;
+			} else if(down && control.repeats && now - since >= gamepadRepeatDelay &&
+			          now - repeated >= gamepadRepeatEvery) {
+				repeated = now;
+				action = Action::Repeat;
+			} else if(!down && since != 0.0) {
+				since = 0.0;
+				action = Action::Release;
+			}
+			if(!action || !loop_.focused) continue;
+			auto* window = static_cast<Window*>(glfwGetWindowUserPointer(loop_.focused));
+			if(!window) continue;
+			++loop_.events;
+			window->routeKey({static_cast<Key>(control.key), 0, *action, Mods{control.mods}});
+		}
+	}
+
 	/// @brief Keeps the next window off screen and unfocused when windows open hidden.
 	void hintVisibility() const {
 		if(!hiddenWindows_) return;

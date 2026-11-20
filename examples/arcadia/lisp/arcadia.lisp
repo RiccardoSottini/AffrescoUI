@@ -248,7 +248,7 @@
   :icon "sofa"
   []
   (dismiss)
-  (set "state.couch" {:open true :at 0})
+  (set "state.couch" {:open true :at 0 :section "library"})
   (fullscreen true)
   (focus "#couch-shelf"))
 
@@ -261,14 +261,34 @@
 (defcommand couchMove "Moves along the couch shelf, left or right."
   :title ~(t "command.couchMove") :description ~(t "command.couchMove.about") :category ~(t "category.view")
   [by]
-  (let [lastAt (dec (count computed.couchGames))]
+  (let [lastAt (dec (count computed.couchItems))]
     (set "state.couch.at" (clamp (+ state.couch.at by) 0 lastAt))))
 
 (defn show-settings-page "Shows a page of Settings: interface, downloads, storage or account." [page]
   (set "state.settingsDialog.page" page))
 
-(defn couch-choose "Chooses a game on the couch shelf, by its id." [id]
-  (set "state.couch.at" (indexOf (map :id computed.couchGames) id)))
+(defn couch-choose "Chooses a tile on the couch shelf, by its id." [id]
+  (set "state.couch.at" (indexOf (map :id computed.couchItems) id)))
+
+(defn couch-section "Shows a row of couch mode: your games, the store or your friends, from its first tile." [section]
+  (set "state.couch.section" section)
+  (set "state.couch.at" 0)
+  (focus "#couch-shelf"))
+
+(defn couch-step "Shows the row of couch mode before or after this one." [by]
+  (let [sections ["library" "store" "friends"]
+        at (clamp (+ (indexOf sections state.couch.section) by) 0 2)]
+    (couch-section (get sections at))))
+
+(defn couch-enter
+  "Does what the chosen tile's button says: plays a game of yours, opens a store game's page, or chats with a friend;
+  the last two leave couch mode."
+  []
+  (let [id (:id computed.couchItem)]
+    (case state.couch.section
+      "store" (do (leaveCouch) (openStore id))
+      "friends" (do (leaveCouch) (showCommunity) (openChat id))
+      (primary computed.couchGame))))
 
 ;;; Friends
 
@@ -415,15 +435,33 @@
   (when (< k (dec (count computed.dlQueue)))
     (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(inc k) :at]))))
 
-(defn next-rate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
-  (let [rate (+ 34 (mod (* state.dlTick 7) 19))]
-    (if (> settings.downloads.limit 0) (min settings.downloads.limit rate) rate)))
+(defn region-share "How much of the full rate the download region's servers give: the nearest give it all." []
+  (case settings.downloads.region
+    :americas 0.75
+    :asia 0.6
+    1))
+
+(defn next-rate
+  "The next sample of the rate, in MB/s: a wave that repeats, as the region's servers give it, under the speed limit if
+  there is one."
+  []
+  (let [wave (+ 34 (mod (* state.dlTick 7) 19))
+        rate (round (* (region-share) wave))]
+    (if (pos? settings.downloads.limit) (min settings.downloads.limit rate) rate)))
+
+(defn hour-now "The hour of the day now, from 0 to 23 (UTC)." []
+  (-> (now) (/ 3600000) floor (mod 24)))
 
 (defn download-tick
   ;; Not while a game runs, unless Settings allow it.
-  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there."
+  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there;
+  outside the schedule's hours, nothing moves."
   []
-  (when (and (some? computed.download) (not state.dlPaused) (or settings.downloads.whilePlaying (nil? state.running)))
+  (set "state.dlHour" (hour-now))
+  (when (and (some? computed.download)
+             (not state.dlPaused)
+             (not computed.dlWaiting)
+             (or settings.downloads.whilePlaying (nil? state.running)))
     (set "state.dlTick" (inc state.dlTick))
     (set "state.dlRate" (concat (rest state.dlRate) [(next-rate)]))
     (let [step (/ (get state.dlRate 47) 1024)]

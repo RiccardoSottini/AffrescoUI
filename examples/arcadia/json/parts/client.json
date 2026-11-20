@@ -11,18 +11,26 @@
 		"backup": { "open": false, "restored": null },
 		"info": { "open": false, "kind": "about" },
 		"session": { "signedOut": false, "offline": false },
-		"couch": { "open": false, "at": 0 },
+		"couch": { "open": false, "at": 0, "section": "library" },
 		"toast": { "open": false, "text": "" },
 		"productKeys": { "AR7Q2-KX4MZ-P9T3L": "glasswing", "HX5RE-2PWNA-7LDKC": "volt" },
 		"giftCodes": { "GIFT-2026-ARCD": 20, "GIFT-5555-PLUM": 5 },
-		"redeemed": []
+		"redeemed": [],
+		"storageDrive": "main"
 	},
 
 	"computed": {
 		"couchGames": "{{sort(computed.owned, it.lastPlayed ?? 0, 'desc')}}",
 		"couchGame": "{{computed.couchGames[state.couch.at]}}",
+		"gameTitles": "{{fromEntries(map(data.games, { key: it.id, value: it.title }))}}",
+		"couchItems": "{{state.couch.section == 'store' ? map(filter(computed.storeGames, !it.owned), { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.storeLine', { genre: it.genre ?? '', price: formatCurrency(it.price * (1 - (it.discount ?? 0) / 100), 'EUR') }) }) : state.couch.section == 'friends' ? map(data.friends, { id: it.id, title: it.name, file: '../assets/art/avatars/' + it.avatar + '.svg', sub: it.presence == 'ingame' ? t('couch.playing', { game: computed.gameTitles[it.game] ?? '' }) : t('presence.' + it.presence) }) : map(computed.couchGames, { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.gameLine', { genre: it.genre ?? '', hours: formatNumber(it.hours ?? 0, 0, 1) }) })}}",
+		"couchItem": "{{computed.couchItems[state.couch.at]}}",
 		"installedGames": "{{sort(filter(data.games, it.installed), it.sizeGb ?? 0, 'desc')}}",
-		"usedGb": "{{sum(filter(data.games, it.installed), it.sizeGb ?? 0)}}"
+		"usedGb": "{{sum(filter(data.games, it.installed), it.sizeGb ?? 0)}}",
+		"drives": "{{[{ id: 'main', title: t('storage.main'), totalGb: 1000, otherGb: 180 }, { id: 'second', title: t('storage.second'), totalGb: 2000, otherGb: 60 }]}}",
+		"drive": "{{find(computed.drives, it.id == state.storageDrive)}}",
+		"driveGames": "{{filter(computed.installedGames, (it.drive ?? 'main') == state.storageDrive)}}",
+		"driveUsedGb": "{{computed.drive.otherGb + sum(computed.driveGames, it.sizeGb ?? 0)}}"
 	},
 
 	"actions": {
@@ -37,6 +45,22 @@
 			"icon": "settings",
 			"description": "Opens Settings at a page (interface, downloads, storage or account).",
 			"do": [{ "dismiss": true }, { "set": "state.settingsDialog", "to": { "open": true, "page": "{{page ?? 'interface'}}" } }]
+		},
+		"moveGame": {
+			"title": "Move to the other drive",
+			"category": "Settings",
+			"icon": "hard-drive",
+			"description": "Moves an installed game to the computer's other drive; it plays the same from there.",
+			"arguments": { "id": { "type": "string", "description": "The game's id" } },
+			"do": [
+				{
+					"if": "{{find(data.games, it.id == id).installed && find(data.games, it.id == id).status != 'running'}}",
+					"then": [
+						{ "update": "games", "id": "{{id}}", "fields": { "drive": "{{(find(data.games, it.id == id).drive ?? 'main') == 'main' ? 'second' : 'main'}}" } },
+						{ "run": "notify", "with": { "text": "{{t('storage.moved', { title: find(data.games, it.id == id).title, name: t('storage.' + find(data.games, it.id == id).drive) })}}" } }
+					]
+				}
+			]
 		},
 		"notify": {
 			"title": "Show a notice",
@@ -251,7 +275,7 @@
 			"description": "Big tiles for a television across the room, the whole screen, arrows and Enter.",
 			"do": [
 				{ "dismiss": true },
-				{ "set": "state.couch", "to": { "open": true, "at": 0 } },
+				{ "set": "state.couch", "to": { "open": true, "at": 0, "section": "library" } },
 				{ "fullscreen": true },
 				{ "focus": "#couch-shelf" }
 			]
@@ -264,7 +288,38 @@
 		"couchMove": {
 			"title": "Move along the couch shelf",
 			"category": "View",
-			"do": [{ "set": "state.couch.at", "to": "{{clamp(state.couch.at + by, 0, length(computed.couchGames) - 1)}}" }]
+			"do": [{ "set": "state.couch.at", "to": "{{clamp(state.couch.at + by, 0, length(computed.couchItems) - 1)}}" }]
+		},
+		"couchSection": {
+			"title": "Show a row of couch mode",
+			"category": "View",
+			"description": "Shows your games, the store or your friends in couch mode, from the first tile.",
+			"arguments": { "section": { "enum": ["library", "store", "friends"] } },
+			"do": [{ "set": "state.couch.section", "to": "{{section}}" }, { "set": "state.couch.at", "to": 0 }, { "focus": "#couch-shelf" }]
+		},
+		"couchStep": {
+			"title": "Show the couch row before or after",
+			"category": "View",
+			"arguments": { "by": { "type": "integer" } },
+			"do": [{ "run": "couchSection", "with": { "section": "{{['library', 'store', 'friends'][clamp(indexOf(['library', 'store', 'friends'], state.couch.section) + by, 0, 2)]}}" } }]
+		},
+		"couchEnter": {
+			"title": "Open the couch tile chosen",
+			"category": "View",
+			"description": "Plays a game of yours, opens a store game's page, or chats with a friend; the last two leave couch mode.",
+			"do": [
+				{
+					"if": "{{state.couch.section == 'store'}}",
+					"then": [{ "run": "leaveCouch" }, { "run": "openStore", "with": { "id": "{{computed.couchItem.id}}" } }],
+					"else": [
+						{
+							"if": "{{state.couch.section == 'friends'}}",
+							"then": [{ "run": "leaveCouch" }, { "run": "showCommunity" }, { "run": "openChat", "with": { "id": "{{computed.couchItem.id}}" } }],
+							"else": [{ "run": "primary", "with": { "game": "{{computed.couchGame}}" } }]
+						}
+					]
+				}
+			]
 		}
 	},
 
@@ -318,8 +373,9 @@
 					{
 						"type": "row",
 						"anchors": { "left": 0, "right": 0, "top": 22 },
-						"height": 30,
+						"height": 38,
 						"gap": 6,
+						"alignItems": "center",
 						"role": "radiogroup",
 						"label": "{{title}}",
 						"arrows": "horizontal",
@@ -468,6 +524,16 @@
 						"use": "choiceRow",
 						"with": {
 							"top": 0,
+							"title": "{{t('settings.region')}}",
+							"key": "downloads.region",
+							"current": "{{settings.downloads.region}}",
+							"options": "{{map(['auto', 'europe', 'americas', 'asia'], { value: it, title: t('settings.region.' + it) })}}"
+						}
+					},
+					{
+						"use": "choiceRow",
+						"with": {
+							"top": 64,
 							"title": "{{t('settings.limit')}}",
 							"key": "downloads.limit",
 							"current": "{{settings.downloads.limit}}",
@@ -475,9 +541,19 @@
 						}
 					},
 					{
+						"use": "choiceRow",
+						"with": {
+							"top": 128,
+							"title": "{{t('settings.schedule')}}",
+							"key": "downloads.schedule",
+							"current": "{{settings.downloads.schedule}}",
+							"options": "{{[{ value: 'anytime', title: t('settings.schedule.anytime') }, { value: 'night', title: t('settings.schedule.night') }]}}"
+						}
+					},
+					{
 						"type": "row",
 						"id": "settings-while-playing",
-						"anchors": { "left": 0, "right": 0, "top": 72 },
+						"anchors": { "left": 0, "right": 0, "top": 196 },
 						"height": 30,
 						"alignItems": "center",
 						"children": [
@@ -494,12 +570,12 @@
 							}
 						]
 					},
-					{ "style": "sectionCaps", "anchors": { "left": 0, "right": 0, "top": 124 }, "text": "{{upper(t('settings.cache'))}}" },
+					{ "style": "sectionCaps", "anchors": { "left": 0, "right": 0, "top": 244 }, "text": "{{upper(t('settings.cache'))}}" },
 					{
 						"type": "label",
 						"font": "small",
 						"wrap": true,
-						"anchors": { "left": 0, "right": 0, "top": 146 },
+						"anchors": { "left": 0, "right": 0, "top": 266 },
 						"height": 36,
 						"text": "{{t('settings.cacheNote')}}",
 						"textColor": "@color.muted"
@@ -507,7 +583,7 @@
 					{
 						"id": "settings-clear-cache",
 						"style": "pillButton",
-						"anchors": { "left": 0, "top": 186 },
+						"anchors": { "left": 0, "top": 304 },
 						"text": "{{t('settings.clearCache')}}",
 						"onClick": "clearCache"
 					}
@@ -515,50 +591,128 @@
 			}
 		},
 		"settingsStorage": {
+			"note": "The storage page: the drives to choose from, the one chosen's use, a bar of the games on it, and each game with a way to move it to the other drive or uninstall it.",
 			"params": {},
 			"node": {
 				"fill": true,
 				"color": "transparent",
 				"children": [
-					{ "style": "sectionCaps", "text": "{{upper(t('settings.drive'))}}" },
+					{
+						"type": "row",
+						"id": "storage-drives",
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 0
+						},
+						"height": 38,
+						"gap": 6,
+						"alignItems": "center",
+						"role": "tablist",
+						"arrows": "horizontal",
+						"children": [
+							{
+								"repeat": {
+									"for": "d",
+									"in": "{{computed.drives}}",
+									"key": "{{d.id}}"
+								},
+								"id": "{{'storage-drive-' + d.id}}",
+								"style": "pillButton",
+								"role": "tab",
+								"icon": "hard-drive",
+								"text": "{{t('storage.driveTab', { name: d.title, size: formatNumber(d.totalGb) })}}",
+								"selected": "{{state.storageDrive == d.id}}",
+								"color": "{{state.storageDrive == d.id ? '@color.select' : '@color.raised'}}",
+								"textColor": "{{state.storageDrive == d.id ? '@color.bright' : '@color.text'}}",
+								"onClick": {
+									"set": "state.storageDrive",
+									"to": "{{d.id}}"
+								}
+							}
+						]
+					},
 					{
 						"type": "label",
 						"id": "storage-used",
 						"font": "small",
-						"anchors": { "left": 0, "right": 0, "top": 22 },
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 48
+						},
 						"height": 18,
-						"text": "{{t('settings.used', { used: formatNumber(computed.usedGb + 180, 0, 1), total: formatNumber(1000) })}}",
+						"text": "{{t('settings.used', { used: formatNumber(computed.driveUsedGb, 0, 1), total: formatNumber(computed.drive.totalGb) })}}",
 						"textColor": "@color.text"
 					},
 					{
 						"type": "row",
 						"id": "storage-bar",
-						"anchors": { "left": 0, "right": 0, "top": 46 },
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 72
+						},
 						"height": 12,
 						"radius": 6,
 						"color": "@color.raised",
-						"label": "{{t('settings.used', { used: formatNumber(computed.usedGb + 180, 0, 1), total: formatNumber(1000) })}}",
+						"label": "{{t('settings.used', { used: formatNumber(computed.driveUsedGb, 0, 1), total: formatNumber(computed.drive.totalGb) })}}",
 						"children": [
-							{ "width": "18%", "alignSelf": "stretch", "color": "@color.dim" },
 							{
-								"repeat": { "for": "g", "in": "{{computed.installedGames}}", "index": "i" },
-								"width": "{{text(g.sizeGb / 10) + '%'}}",
+								"width": "{{text(100 * computed.drive.otherGb / computed.drive.totalGb) + '%'}}",
+								"alignSelf": "stretch",
+								"color": "@color.dim"
+							},
+							{
+								"repeat": {
+									"for": "g",
+									"in": "{{computed.driveGames}}",
+									"index": "i"
+								},
+								"width": "{{text(100 * g.sizeGb / computed.drive.totalGb) + '%'}}",
 								"alignSelf": "stretch",
 								"color": "{{['@color.accent', '@color.play', '@color.online', '@color.warm', '@color.link'][i % 5]}}"
 							}
 						]
 					},
 					{
+						"type": "label",
+						"id": "storage-empty",
+						"when": "{{empty(computed.driveGames)}}",
+						"font": "small",
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 100
+						},
+						"height": 18,
+						"text": "{{t('storage.empty')}}",
+						"textColor": "@color.muted"
+					},
+					{
 						"type": "column",
 						"id": "storage-games",
-						"anchors": { "left": 0, "right": 0, "top": 72, "bottom": 0 },
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 96,
+							"bottom": 0
+						},
 						"scroll": "vertical",
 						"children": [
 							{
 								"type": "row",
 								"id": "{{'storage-' + g.id}}",
-								"repeat": { "for": "g", "in": "{{computed.installedGames}}", "index": "i" },
-								"anchors": { "left": 0, "right": 0 },
+								"repeat": {
+									"for": "g",
+									"in": "{{computed.driveGames}}",
+									"index": "i",
+									"key": "{{g.id}}"
+								},
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
 								"height": 32,
 								"gap": 10,
 								"alignItems": "center",
@@ -570,7 +724,13 @@
 										"radius": 5,
 										"color": "{{['@color.accent', '@color.play', '@color.online', '@color.warm', '@color.link'][i % 5]}}"
 									},
-									{ "type": "label", "grow": 1, "height": 20, "text": "{{g.title}}", "textColor": "@color.text" },
+									{
+										"type": "label",
+										"grow": 1,
+										"height": 20,
+										"text": "{{g.title}}",
+										"textColor": "@color.text"
+									},
 									{
 										"type": "label",
 										"font": "small",
@@ -580,19 +740,50 @@
 									},
 									{
 										"type": "label",
+										"id": "{{'storage-move-' + g.id}}",
+										"font": "small",
+										"fitText": true,
+										"padding": 6,
+										"radius": 3,
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"hover": {
+											"color": "@color.hover"
+										},
+										"text": "{{t('storage.moveTo', { name: t(state.storageDrive == 'main' ? 'storage.second' : 'storage.main') })}}",
+										"textColor": "{{g.status == 'running' ? '@color.dim' : '@color.link'}}",
+										"disabled": "{{g.status == 'running'}}",
+										"tooltip": "{{t(g.status == 'running' ? 'storage.moveRunning' : 'storage.moveAbout')}}",
+										"onClick": {
+											"run": "moveGame",
+											"with": {
+												"id": "{{g.id}}"
+											}
+										}
+									},
+									{
+										"type": "label",
 										"id": "{{'storage-uninstall-' + g.id}}",
 										"font": "small",
 										"fitText": true,
 										"padding": 6,
 										"radius": 3,
-										"text": "{{t('menu.game.uninstall')}}",
-										"textColor": "{{g.status == 'running' ? '@color.dim' : '@color.link'}}",
-										"disabled": "{{g.status == 'running'}}",
 										"focusable": true,
 										"role": "button",
 										"cursor": "hand",
-										"hover": { "color": "@color.hover" },
-										"onClick": { "run": "askUninstall", "with": { "id": "{{g.id}}" } }
+										"hover": {
+											"color": "@color.hover"
+										},
+										"text": "{{t('menu.game.uninstall')}}",
+										"textColor": "{{g.status == 'running' ? '@color.dim' : '@color.link'}}",
+										"disabled": "{{g.status == 'running'}}",
+										"onClick": {
+											"run": "askUninstall",
+											"with": {
+												"id": "{{g.id}}"
+											}
+										}
 									}
 								]
 							}
@@ -876,7 +1067,7 @@
 			}
 		},
 		"couchMode": {
-			"note": "Couch mode: the whole screen, big tiles of the games played last, left and right to choose, Enter to play, Escape to leave.",
+			"note": "Couch mode: the whole screen, big tiles of your games, the store's or your friends; left and right to choose, up and down to change the row, Enter to play, open or chat, Escape to leave.",
 			"params": {},
 			"node": {
 				"id": "couch",
@@ -885,6 +1076,35 @@
 				"gradient": { "kind": "linear", "angle": 160, "stops": ["@color.select", "@color.top"] },
 				"children": [
 					{ "type": "label", "font": "logo", "anchors": { "left": 48, "top": 32 }, "fitText": true, "text": "Arcadia", "textColor": "@color.accent" },
+					{
+						"type": "row",
+						"id": "couch-tabs",
+						"anchors": { "left": 300, "right": 300, "top": 34 },
+						"height": 56,
+						"gap": 8,
+						"justify": "center",
+						"alignItems": "center",
+						"role": "tablist",
+						"arrows": "horizontal",
+						"label": "{{t('couch.rows')}}",
+						"children": [
+							{
+								"repeat": { "for": "section", "in": "{{['library', 'store', 'friends']}}" },
+								"id": "{{'couch-tab-' + section}}",
+								"style": "pillButton",
+								"role": "tab",
+								"font": "strong",
+								"radius": 20,
+								"padding": 12,
+								"icon": "{{section == 'library' ? 'gamepad-2' : section == 'store' ? 'store' : 'users'}}",
+								"text": "{{t('couch.tab.' + section)}}",
+								"selected": "{{state.couch.section == section}}",
+								"color": "{{state.couch.section == section ? '@color.accent' : '@color.raised'}}",
+								"textColor": "{{state.couch.section == section ? '@color.top' : '@color.text'}}",
+								"onClick": { "run": "couchSection", "with": { "section": "{{section}}" } }
+							}
+						]
+					},
 					{
 						"id": "couch-leave",
 						"style": "pillButton",
@@ -907,27 +1127,29 @@
 						"keys": {
 							"left": { "run": "couchMove", "with": { "by": -1 } },
 							"right": { "run": "couchMove", "with": { "by": 1 } },
-							"enter": { "run": "primary", "with": { "game": "{{computed.couchGame}}" } },
+							"up": { "run": "couchStep", "with": { "by": -1 } },
+							"down": { "run": "couchStep", "with": { "by": 1 } },
+							"enter": "couchEnter",
 							"escape": "leaveCouch"
 						},
 						"children": [
 							{
 								"type": "image",
 								"id": "{{'couch-' + g.id}}",
-								"repeat": { "for": "g", "in": "{{slice(computed.couchGames, max(0, state.couch.at - 1), max(0, state.couch.at - 1) + 6)}}", "index": "i" },
-								"let": { "on": "{{g.id == computed.couchGame.id}}" },
+								"repeat": { "for": "g", "in": "{{slice(computed.couchItems, max(0, state.couch.at - 1), max(0, state.couch.at - 1) + 9)}}", "index": "i" },
+								"let": { "on": "{{g.id == computed.couchItem.id}}", "square": "{{state.couch.section == 'friends'}}" },
 								"role": "option",
 								"label": "{{g.title}}",
 								"selected": "{{on}}",
-								"file": "{{'../assets/art/' + (g.art ?? g.id) + '/cover.svg'}}",
+								"file": "{{g.file}}",
 								"fit": "cover",
 								"width": "{{on ? 210 : 150}}",
-								"height": "{{on ? 315 : 225}}",
-								"radius": 12,
+								"height": "{{square ? (on ? 210 : 150) : on ? 315 : 225}}",
+								"radius": "{{square ? 105 : 12}}",
 								"borderWidth": "{{on ? 4 : 0}}",
 								"borderColor": "@color.accent",
 								"cursor": "hand",
-								"onClick": { "set": "state.couch.at", "to": "{{indexOf(map(computed.couchGames, it.id), g.id)}}" }
+								"onClick": { "set": "state.couch.at", "to": "{{indexOf(map(computed.couchItems, it.id), g.id)}}" }
 							}
 						]
 					},
@@ -936,25 +1158,34 @@
 						"font": "logo",
 						"anchors": { "left": 48, "right": 48, "top": 500 },
 						"height": 60,
-						"text": "{{computed.couchGame.title ?? ''}}",
+						"text": "{{computed.couchItem.title ?? ''}}",
 						"textColor": "@color.bright"
+					},
+					{
+						"type": "label",
+						"id": "couch-sub",
+						"font": "heading",
+						"anchors": { "left": 48, "right": 48, "top": 560 },
+						"height": 24,
+						"text": "{{computed.couchItem.sub ?? ''}}",
+						"textColor": "@color.muted"
 					},
 					{
 						"id": "couch-play",
 						"style": "pillButton",
-						"anchors": { "left": 48, "top": 576 },
+						"anchors": { "left": 48, "top": 604 },
 						"height": 44,
 						"radius": 22,
 						"padding": 22,
 						"font": "button",
-						"color": "{{computed.couchGame.status == 'ready' ? '@color.play' : '@color.accent'}}",
+						"color": "{{state.couch.section == 'friends' || computed.couchGame.status == 'ready' ? '@color.play' : '@color.accent'}}",
 						"textColor": "@color.top",
-						"text": "{{t(computed.couchGame.status == 'ready' ? 'menu.game.play' : computed.couchGame.status == 'running' ? 'menu.game.stop' : computed.couchGame.status == 'update' ? 'menu.game.update' : 'menu.game.install')}}",
-						"onClick": { "run": "primary", "with": { "game": "{{computed.couchGame}}" } }
+						"text": "{{t(state.couch.section == 'store' ? 'couch.viewStore' : state.couch.section == 'friends' ? 'couch.chat' : computed.couchGame.status == 'ready' ? 'menu.game.play' : computed.couchGame.status == 'running' ? 'menu.game.stop' : computed.couchGame.status == 'update' ? 'menu.game.update' : 'menu.game.install')}}",
+						"onClick": "couchEnter"
 					},
 					{
 						"type": "label",
-						"font": "small",
+						"font": "strong",
 						"anchors": { "left": 48, "bottom": 32 },
 						"fitText": true,
 						"text": "{{t('couch.hint')}}",

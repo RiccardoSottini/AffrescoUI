@@ -1,0 +1,263 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The library's own collections: making one, by hand or by a rule, and removing it. A collection is a name and either the games picked for it (games) or a rule (rule: { field, value }) that keeps it filled by itself: every owned game whose field holds that value is in it, now and later. library.json shows them in the game list and as shelves on the home.",
+
+	"state": {
+		"newCollection": { "open": false, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" },
+		"collectionSeq": 0
+	},
+
+	"computed": {
+		"collectionRules": "{{concat([{ key: 'installed', field: 'installed', value: true, title: t('coll.rule.installed') }, { key: 'unplayed', field: 'hours', value: 0, title: t('coll.rule.unplayed') }, { key: 'favourite', field: 'favourite', value: true, title: t('coll.rule.favourite') }], map(sortText(keys(fromEntries(map(filter(computed.owned, it.genre != null), { key: it.genre, value: true })))), { key: 'genre-' + slug(it), field: 'genre', value: it, title: it }))}}"
+	},
+
+	"actions": {
+		"newCollection": {
+			"title": "New collection",
+			"category": "Library",
+			"description": "Opens the window that makes a collection, of games picked by hand or filled by a rule.",
+			"icon": "folder-plus",
+			"do": [
+				{ "dismiss": true },
+				{
+					"set": "state.newCollection",
+					"to": { "open": true, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" }
+				}
+			]
+		},
+		"createCollection": {
+			"title": "Create the collection",
+			"category": "Library",
+			"description": "Makes the collection the window describes; it needs a name, and games or a rule.",
+			"do": [
+				{
+					"if": "{{trim(state.newCollection.title) == ''}}",
+					"then": [{ "set": "state.newCollection.error", "to": "{{t('coll.error.name')}}" }],
+					"else": [
+						{
+							"if": "{{state.newCollection.kind == 'dynamic' && state.newCollection.rule == null}}",
+							"then": [{ "set": "state.newCollection.error", "to": "{{t('coll.error.rule')}}" }],
+							"else": [
+								{ "set": "state.collectionSeq", "to": "{{state.collectionSeq + 1}}" },
+								{
+									"set": "state.collections",
+									"to": "{{concat(state.collections, [state.newCollection.kind == 'manual' ? { id: 'mine-' + state.collectionSeq, title: trim(state.newCollection.title), games: state.newCollection.games } : { id: 'mine-' + state.collectionSeq, title: trim(state.newCollection.title), games: [], rule: { field: state.newCollection.rule.field, value: state.newCollection.rule.value } }])}}"
+								},
+								{ "set": "state.newCollection.open", "to": false },
+								{
+									"run": "notify",
+									"with": {
+										"text": "{{t('coll.created', { name: trim(state.newCollection.title) })}}"
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		"deleteCollection": {
+			"title": "Delete a collection",
+			"category": "Library",
+			"description": "Removes a collection; its games stay in the library.",
+			"arguments": { "id": { "type": "string", "description": "The collection's id" } },
+			"icon": "trash-2",
+			"do": [{ "set": "state.collections", "to": "{{filter(state.collections, it.id != id)}}" }]
+		}
+	},
+
+	"components": {
+		"collectionDialog": {
+			"note": "A new collection: its name, then either the games ticked for it or the rule that fills it by itself.",
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.newCollection.open",
+					"width": 540,
+					"height": 440,
+					"title": "{{t('coll.title')}}",
+					"color": "@color.panel",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"buttons": [
+						{
+							"title": "{{t('coll.create')}}",
+							"run": "createCollection",
+							"default": true,
+							"keepOpen": true
+						},
+						{ "title": "{{t('dialog.cancel')}}" }
+					]
+				},
+				"children": [
+					{
+						"type": "textarea",
+						"id": "coll-name",
+						"height": 32,
+						"padding": 8,
+						"anchors": { "left": 20, "right": 20, "top": 56 },
+						"borderWidth": 1,
+						"borderColor": "{{state.newCollection.error != '' ? '@color.warmEnd' : '@color.border'}}",
+						"focused": { "borderColor": "@color.accent" },
+						"bind": "state.newCollection.title",
+						"maxLength": 40,
+						"radius": 3,
+						"color": "@color.field",
+						"textColor": "@color.text",
+						"placeholderColor": "@color.dim",
+						"placeholder": "{{t('coll.namePlaceholder')}}",
+						"label": "{{t('coll.name')}}",
+						"autofocus": true,
+						"onSubmit": "createCollection"
+					},
+					{
+						"type": "label",
+						"id": "coll-error",
+						"when": "{{state.newCollection.error != ''}}",
+						"font": "small",
+						"anchors": { "left": 20, "right": 20, "top": 92 },
+						"height": 16,
+						"text": "{{state.newCollection.error}}",
+						"textColor": "@color.warmEnd",
+						"live": "polite"
+					},
+					{
+						"type": "row",
+						"id": "coll-kind",
+						"anchors": { "left": 20, "right": 20, "top": 114 },
+						"height": 40,
+						"gap": 6,
+						"alignItems": "center",
+						"role": "radiogroup",
+						"arrows": "horizontal",
+						"label": "{{t('coll.kind')}}",
+						"children": [
+							{
+								"repeat": { "for": "kind", "in": "{{['manual', 'dynamic']}}" },
+								"id": "{{'coll-kind-' + kind}}",
+								"style": "pillButton",
+								"role": "radio",
+								"icon": "{{kind == 'manual' ? 'list-checks' : 'sparkles'}}",
+								"text": "{{t('coll.kind.' + kind)}}",
+								"selected": "{{state.newCollection.kind == kind}}",
+								"color": "{{state.newCollection.kind == kind ? '@color.select' : '@color.raised'}}",
+								"textColor": "{{state.newCollection.kind == kind ? '@color.bright' : '@color.text'}}",
+								"onClick": [
+									{ "set": "state.newCollection.kind", "to": "{{kind}}" },
+									{ "set": "state.newCollection.error", "to": "" }
+								]
+							}
+						]
+					},
+					{
+						"type": "label",
+						"font": "small",
+						"wrap": true,
+						"anchors": { "left": 20, "right": 20, "top": 160 },
+						"height": 30,
+						"text": "{{t('coll.kind.' + state.newCollection.kind + '.about')}}",
+						"textColor": "@color.muted"
+					},
+					{
+						"type": "column",
+						"id": "coll-games",
+						"when": "{{state.newCollection.kind == 'manual'}}",
+						"anchors": { "left": 20, "right": 20, "top": 194, "bottom": 64 },
+						"scroll": "vertical",
+						"role": "list",
+						"label": "{{t('coll.pick')}}",
+						"children": [
+							{
+								"type": "row",
+								"repeat": {
+									"for": "g",
+									"in": "{{sort(computed.owned, lower(it.title))}}",
+									"key": "{{g.id}}"
+								},
+								"id": "{{'coll-pick-' + g.id}}",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 30,
+								"gap": 10,
+								"alignItems": "center",
+								"children": [
+									{
+										"type": "checkbox",
+										"id": "{{'coll-check-' + g.id}}",
+										"checked": "{{contains(state.newCollection.games, g.id)}}",
+										"label": "{{g.title}}",
+										"width": 18,
+										"height": 18,
+										"activeColor": "@color.accent",
+										"trackColor": "@color.border",
+										"onChange": {
+											"set": "state.newCollection.games",
+											"to": "{{contains(state.newCollection.games, g.id) ? filter(state.newCollection.games, it != g.id) : concat(state.newCollection.games, [g.id])}}"
+										}
+									},
+									{
+										"type": "image",
+										"file": "{{'../assets/art/' + (g.art ?? g.id) + '/cover.svg'}}",
+										"width": 18,
+										"height": 18,
+										"fit": "cover",
+										"radius": 2
+									},
+									{
+										"type": "label",
+										"grow": 1,
+										"height": 20,
+										"text": "{{g.title}}",
+										"textColor": "@color.text"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"fitText": true,
+										"text": "{{g.genre ?? ''}}",
+										"textColor": "@color.muted"
+									},
+									{ "type": "panel", "width": 8, "height": 1, "color": "transparent" }
+								]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "coll-rules",
+						"when": "{{state.newCollection.kind == 'dynamic'}}",
+						"anchors": { "left": 20, "right": 20, "top": 194 },
+						"height": 120,
+						"wrap": true,
+						"gap": 6,
+						"role": "radiogroup",
+						"label": "{{t('coll.rule')}}",
+						"children": [
+							{
+								"repeat": {
+									"for": "rule",
+									"in": "{{computed.collectionRules}}",
+									"key": "{{rule.key}}"
+								},
+								"id": "{{'coll-rule-' + rule.key}}",
+								"style": "pillButton",
+								"role": "radio",
+								"text": "{{rule.title}}",
+								"selected": "{{state.newCollection.rule.key == rule.key}}",
+								"color": "{{state.newCollection.rule.key == rule.key ? '@color.select' : '@color.raised'}}",
+								"textColor": "{{state.newCollection.rule.key == rule.key ? '@color.bright' : '@color.text'}}",
+								"onClick": [
+									{ "set": "state.newCollection.rule", "to": "{{rule}}" },
+									{ "set": "state.newCollection.error", "to": "" }
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

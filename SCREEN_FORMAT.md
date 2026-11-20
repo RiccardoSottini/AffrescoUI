@@ -1284,6 +1284,10 @@ variables), or a list of bindings, where the first that applies runs.
 5. A press that starts a chord waits for the next one.
 6. If nothing matched, `onKey` bubbles.
 
+**Gamepads:** a connected gamepad presses keys in the focused window, so every keyboard path works with it: the D-pad
+and the left stick press the arrows (held, they repeat), A presses Enter, B Escape, X Space, the right bumper Tab and the
+left one Shift+Tab. While one is connected the desktop loop looks at it 30 times a second; the web build has none.
+
 **Variables:**
 - `context`: `focus` (the focused node's id), `focusPath` (the ids from the root), `textInputFocus`, `overlay` (one is
   open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the

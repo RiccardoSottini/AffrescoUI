@@ -28,7 +28,7 @@
 
 	"computed": {
 		"libList": "{{sort(filter(computed.owned, (!state.readyOnly || it.installed) && (!state.favOnly || it.favourite) && (empty(state.query) || fuzzy(state.query, it.title) != null)), state.recentFirst ? it.lastPlayed ?? 0 : lower(it.title), state.recentFirst ? 'desc' : 'asc')}}",
-		"collected": "{{split(join(map(state.collections, join(it.games, ',')), ','), ',')}}",
+		"collected": "{{split(join(map(filter(state.collections, it.rule == null), join(it.games, ',')), ','), ',')}}",
 		"sections": "{{concat([{ id: 'favourites', title: t('lib.favourites'), ids: map(filter(computed.owned, it.favourite), it.id) }], state.collections, [{ id: 'uncategorised', title: t('lib.uncategorised'), ids: map(filter(computed.owned, !it.favourite && !contains(computed.collected, it.id)), it.id) }])}}",
 		"recent": "{{slice(sort(filter(computed.owned, it.lastPlayed != null), it.lastPlayed, 'desc'), 0, 10)}}",
 		"recentGroups": "{{filter([{ label: t('time.today'), games: filter(computed.recent, state.today - it.lastPlayed < 86400000) }, { label: t('time.yesterday'), games: filter(computed.recent, state.today - it.lastPlayed >= 86400000 && state.today - it.lastPlayed < 172800000) }, { label: t('time.thisWeek'), games: filter(computed.recent, state.today - it.lastPlayed >= 172800000 && state.today - it.lastPlayed < 604800000) }, { label: t('time.lastWeek'), games: filter(computed.recent, state.today - it.lastPlayed >= 604800000 && state.today - it.lastPlayed < 1209600000) }, { label: t('time.earlier'), games: filter(computed.recent, state.today - it.lastPlayed >= 1209600000) }], length(it.games) > 0)}}",
@@ -338,6 +338,14 @@
 								"onClick": { "toggle": "state.recentFirst" }
 							},
 							{
+								"id": "library-new-collection",
+								"style": "iconButton",
+								"icon": "folder-plus",
+								"tooltip": "{{t('coll.new')}}",
+								"label": "{{t('coll.new')}}",
+								"onClick": "newCollection"
+							},
+							{
 								"id": "library-ready",
 								"style": "iconButton",
 								"icon": "circle-play",
@@ -423,7 +431,7 @@
 								"type": "column",
 								"repeat": { "for": "section", "in": "{{computed.sections}}", "key": "{{section.id}}" },
 								"let": {
-									"games": "{{filter(computed.libList, contains(section.ids ?? section.games, it.id))}}",
+									"games": "{{filter(computed.libList, section.rule != null ? it[section.rule.field] == section.rule.value : contains(section.ids ?? section.games, it.id))}}",
 									"open": "{{!(state.collapsed[section.id] ?? false)}}"
 								},
 								"anchors": { "left": 0, "right": 0 },
@@ -580,7 +588,7 @@
 						"id": "home-content",
 						"anchors": { "left": 28, "right": 28 },
 						"gap": 6,
-						"height": "{{412 + 286 * length(filter(computed.sections, it.id != 'uncategorised' && length(it.ids ?? it.games) > 0)) + 239 * ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164)))}}",
+						"height": "{{412 + 286 * length(filter(computed.sections, it.id != 'uncategorised' && (it.rule != null || length(it.ids ?? it.games) > 0))) + 239 * ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164)))}}",
 						"children": [
 							{ "type": "panel", "height": 10, "width": 1, "color": "transparent" },
 							{
@@ -748,12 +756,12 @@
 									"key": "{{section.id}}"
 								},
 								"let": {
-									"games": "{{filter(computed.owned, contains(section.ids ?? section.games, it.id))}}"
+									"games": "{{filter(computed.owned, section.rule != null ? it[section.rule.field] == section.rule.value : contains(section.ids ?? section.games, it.id))}}"
 								},
 								"anchors": { "left": 0, "right": 0 },
 								"height": 280,
 								"gap": 6,
-								"when": "{{length(games) > 0}}",
+								"when": "{{length(games) > 0 || section.rule != null}}",
 								"children": [
 									{
 										"use": "shelfHeader",
