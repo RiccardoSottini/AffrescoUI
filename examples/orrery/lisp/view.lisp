@@ -440,6 +440,17 @@
      :text ~(t "view.hint")
      :visible ~(and (not state.showBrowser) (>= (- window.width 461) 600))))
 
+(defview search-dialog "The search (Cmd+F): the bodies and the events, or a day after @." []
+  `(node#quickPick :use quickPick
+     :with {:color @panel
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @raised
+            :field @raised
+            :providers [{:items ~(concat computed.searchBodies computed.searchEvents) :placeholder ~(t "search.objects")}
+                        {:prefix "@" :items ~computed.searchDay :filter false :placeholder ~(t "search.day")}]}))
+
 (defview render-dialog "The render options: what the 3D view draws." []
   `(node#render :use dialog
      :with {:open state.renderOpen

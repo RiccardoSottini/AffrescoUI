@@ -6,7 +6,7 @@
 	"kept": {
 		"camel-case-name": 14,
 		"cond-one-value": 1,
-		"fn-one-parameter": 8,
+		"fn-one-parameter": 9,
 		"four-nested-calls": 2,
 		"plus-one": 2
 	}

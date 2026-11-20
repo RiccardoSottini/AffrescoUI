@@ -18,6 +18,8 @@
 
 (defstate theme dark)
 
+(defstate quickPick {:open false :query ""} "The search: open, and its text.")
+
 (defstate dayTheme dark "The theme the night mode goes back to.")
 
 (defstate selected earth)

@@ -49,3 +49,5 @@
 (defkey "m" toggleMarker)
 
 (defkey "n" toggleNight)
+
+(defkey "mod+f" findObject)

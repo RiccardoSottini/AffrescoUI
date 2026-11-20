@@ -1800,6 +1800,97 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "search-finds-a-body",
+			"steps": [
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"type": "mars"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "search-goes-to-a-day",
+			"steps": [
+				{
+					"action": "ask-day"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": "@"
+					}
+				},
+				{
+					"type": "2030-03-02"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 60
+					}
+				},
+				{
+					"action": "findObject"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"type": "@99"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 99
+					}
+				}
+			]
 		}
 	]
 }

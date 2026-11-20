@@ -436,6 +436,23 @@
   []
   (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
+;;; The search
+
+(defcommand findObject "Opens the search: a body to fly to, an event to go to, or a day after @."
+  :title ~(t "command.findObject") :description ~(t "command.findObject.about") :icon search []
+  (set "state.quickPick.query" "")
+  (set "state.quickPick.open" true))
+
+(defn ask-day "Opens the search at @, to go to a day." []
+  (set "state.quickPick.query" "@")
+  (set "state.quickPick.open" true))
+
+(defn find-body "A search row: selects the body and flies to it." [id] (fly-to-body id))
+
+(defn find-event "A search row: pauses at the event's day." [id] (go-to-event id))
+
+(defn find-day "A search row: pauses at the day it names." [day] (scrub-to day))
+
 (defcommand toggleNight "Turns the night mode on, everything in dim red to keep the eyes used to the dark, or back off."
   :title ~(t "command.toggleNight")
   :description ~(t "command.toggleNight.about")
