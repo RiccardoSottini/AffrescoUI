@@ -10,7 +10,7 @@
 		"icons": { "file": "../../shared/fonts/Lucide.ttf", "size": 14 },
 		"iconsSmall": { "file": "../../shared/fonts/Lucide.ttf", "size": 12 }
 	},
-	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "parts/editmode.json", "../../shared/addons/assistant/assistant.json"],
 	"theme": "{{state.theme}}",
 	"tokens": {
 		"gap": { "dark": "#0e1116", "light": "#9aa3ae" },
@@ -90,6 +90,8 @@
 				  "translation": [4.08, 1.0, 5.9], "rotationDegrees": [37.3, 3.2, 106.9], "scale": [1, 1, 1] }
 			],
 			"materials": [{ "id": "material", "name": "Material", "baseColor": [0.8, 0.8, 0.8, 1], "roughness": 0.5 }],
+			"meshes": [],
+			"textures": [],
 			"collections": [{ "id": "collection", "name": "Collection" }]
 		},
 		"cursor": [0, 0, 0],
@@ -138,7 +140,8 @@
 		"propTab": "object",
 		"panels": { "transform": true, "activeTool": true, "viewPanel": true, "cursorPanel": true, "colorManagement": true,
 		            "frameRange": true, "scenePanel": true, "surfaceWorld": true, "restrictions": true, "dataPanel": true,
-		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true, "format": true },
+		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true, "format": true,
+		            "modifiers": true, "texturePanel": true },
 		"sidebar": false,
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "items": null, "x": 0, "y": 0 },

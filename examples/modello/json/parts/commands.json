@@ -15,7 +15,7 @@
 	},
 	"actions": {
 		"pick": [
-			{ "if": "{{state.modal != null}}", "then": [{ "stop": true }] },
+			{ "if": "{{state.modal != null || (state.mode == 'edit' && event.type == 'boxSelect')}}", "then": [{ "stop": true }] },
 			{ "if": "{{event.type == 'boxSelect'}}", "then": [
 				{ "set": "state.view.selection", "to": "{{concat(event.shift ? filter(state.view.selection, !contains(event.ids, it)) : [], filter(event.ids, contains(computed.pickable, it)))}}" },
 				{ "if": "{{!contains(state.view.selection, state.active)}}",
@@ -24,6 +24,7 @@
 			] },
 			{ "if": "{{event.type != 'pick'}}", "then": [{ "stop": true }] },
 			{ "if": "{{event.button == 'right' && event.shift}}", "then": [{ "set": "state.cursor", "to": "{{map(event.point, round(it * 10000) / 10000)}}" }, { "stop": true }] },
+			{ "if": "{{state.mode == 'edit' && event.button != 'right'}}", "then": [{ "run": "editPick" }, { "stop": true }] },
 			{ "if": "{{event.button == 'right'}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "objectContext", "x": "{{nodes.viewport.x + event.x}}", "y": "{{nodes.viewport.y + event.y}}" } } }, { "stop": true }] },
 			{ "if": "{{state.tool == 'cursor'}}", "then": [{ "set": "state.cursor", "to": "{{map(event.point, round(it * 10000) / 10000)}}" }, { "stop": true }] },
 			{ "if": "{{state.tool == 'measure'}}", "then": [{ "run": "measurePoint", "with": { "args": { "point": "{{event.point}}", "x": "{{event.x}}", "y": "{{event.y}}" } } }, { "stop": true }] },
@@ -43,6 +44,7 @@
 			{ "set": "state.modal", "to": null },
 			{ "set": "state.modalText", "to": "" },
 			{ "if": "{{event.phase != 'end'}}", "then": [{ "stop": true }] },
+			{ "if": "{{state.mode == 'edit'}}", "then": [{ "run": "editTransformed" }, { "stop": true }] },
 			{ "run": "snapshot" },
 			{ "set": "state.lastBase", "to": [] },
 			{ "forEach": "{{event.nodes}}", "as": "m", "do": [
@@ -336,7 +338,7 @@
 			"do": [{ "if": "{{length(state.view.selection) > 0 && state.modal == null}}", "then": [{ "set": "state.ctx", "to": { "open": true, "menu": "moveTo", "x": "{{computed.centre.x}}", "y": "{{computed.centre.y}}",
 				"items": "{{concat(map(computed.collections, { title: it.name, icon: 'package', run: 'moveToCollection', with: { args: { id: it.id, snapshot: true } } }), [{ separator: true }, { title: 'New Collection', icon: 'plus', run: 'newCollection', with: { args: { move: true } } }])}}" } }] }]
 		},
-		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
+		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "if": "{{args.mode == 'edit'}}", "then": [{ "run": "enterEdit" }], "else": [{ "run": "leaveEdit" }] }] },
 		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
 		"toggleOption": [{ "toggle": "state[args.key]" }],
 		"swapEditor": [
@@ -501,8 +503,13 @@
 		"reparent": [
 			{ "if": "{{indexOf(map(state.scene.nodes, it.id), args.id) >= 0 && args.parent != args.id && (computed.parentOf[args.id] ?? '') != (args.parent ?? '') && (args.parent == null || !contains(computed.ancestors[args.parent] ?? [], args.id))}}", "then": [
 				{ "set": "state.tmpOrigins", "to": "{{[computed.origins[args.id], args.parent == null ? [0, 0, 0] : computed.origins[args.parent]]}}" },
-				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)].parent", "to": "{{args.parent ?? ''}}" },
-				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)].translation", "to": "{{[state.tmpOrigins[0][0] - state.tmpOrigins[1][0], state.tmpOrigins[0][1] - state.tmpOrigins[1][1], state.tmpOrigins[0][2] - state.tmpOrigins[1][2]]}}" }
+				{ "set": "state.tmpKept", "to": "{{args.parent == null ? computed.worlds[args.id] : transformRelative(computed.worlds[args.id], computed.worlds[args.parent])}}" },
+				{ "if": "{{state.tmpKept != null}}", "then": [
+					{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)]", "to": "{{merge(state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)], state.tmpKept, { parent: args.parent ?? '' })}}" }
+				], "else": [
+					{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)].parent", "to": "{{args.parent ?? ''}}" },
+					{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)].translation", "to": "{{[state.tmpOrigins[0][0] - state.tmpOrigins[1][0], state.tmpOrigins[0][1] - state.tmpOrigins[1][1], state.tmpOrigins[0][2] - state.tmpOrigins[1][2]]}}" }
+				] }
 			] }
 		],
 		"parentToActive": {
@@ -689,7 +696,8 @@
 		"g": { "do": "grab" },
 		"r": { "do": "rotate" },
 		"s": { "do": "resize" },
-		"x": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "x" } } }, { "do": "deleteMenu" }],
+		"x": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "x" } } }, { "when": "{{state.mode == 'edit'}}", "do": "deleteElements" },
+		      { "do": "deleteMenu" }],
 		"y": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "y" } } }],
 		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPie", "with": { "args": { "menu": "shading" } } }],
 		"grave": { "when": "{{state.modal == null}}", "do": "openPie", "with": { "args": { "menu": "view" } } },
@@ -697,9 +705,12 @@
 		"shift+y": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "zx" } } },
 		"shift+z": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "xy" } } },
 		"0": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "0" } } }],
-		"1": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "1" } } }],
-		"2": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "2" } } }],
-		"3": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "3" } } }],
+		"1": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "1" } } },
+		      { "when": "{{state.mode == 'edit'}}", "do": "setSelectMode", "with": { "args": { "mode": "vertex" } } }],
+		"2": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "2" } } },
+		      { "when": "{{state.mode == 'edit'}}", "do": "setSelectMode", "with": { "args": { "mode": "edge" } } }],
+		"3": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "3" } } },
+		      { "when": "{{state.mode == 'edit'}}", "do": "setSelectMode", "with": { "args": { "mode": "face" } } }],
 		"4": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "4" } } }],
 		"5": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "5" } } }],
 		"6": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "6" } } }],
@@ -712,7 +723,8 @@
 		"enter": [{ "when": "{{state.modal != null}}", "do": "confirmTransform" }],
 		"escape": [{ "when": "{{state.modal != null}}", "do": "cancelTransform" }],
 		"shift+a": { "do": "addMenu" },
-		"delete": [{ "when": "{{state.areas[state.hoverSlot] == 'shader'}}", "do": "deleteShaderNodes" }, { "do": "deleteSelected" }],
+		"delete": [{ "when": "{{state.areas[state.hoverSlot] == 'shader'}}", "do": "deleteShaderNodes" }, { "when": "{{state.mode == 'edit'}}", "do": "deleteElements" },
+		           { "do": "deleteSelected" }],
 		"shift+d": { "do": "duplicate" },
 		"h": { "do": "hideSelected" },
 		"m": { "do": "moveToCollectionMenu" },
@@ -721,8 +733,12 @@
 		"f2": { "do": "startRename" },
 		"shift+h": { "do": "hideUnselected" },
 		"alt+h": { "do": "revealHidden" },
-		"a": { "do": "selectAll" },
-		"alt+a": { "do": "selectNone" },
+		"a": [{ "when": "{{state.mode == 'edit'}}", "do": "selectAllElements", "with": { "args": { "all": true } } }, { "do": "selectAll" }],
+		"alt+a": [{ "when": "{{state.mode == 'edit'}}", "do": "selectAllElements", "with": { "args": { "all": false } } }, { "do": "selectNone" }],
+		"tab": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "toggleEditMode" },
+		"e": { "when": "{{state.mode == 'edit' && state.modal == null}}", "do": "extrudeFaces" },
+		"ctrl+r": { "when": "{{state.mode == 'edit' && state.modal == null}}", "do": "loopCut" },
+		"o": { "when": "{{state.modal == null}}", "do": "toggleProportional" },
 		"mod+i": { "do": "selectInvert" },
 		"numpad1": { "do": "viewFront" },
 		"mod+numpad1": { "do": "viewBack" },
@@ -757,7 +773,7 @@
 		"alt+s": { "when": "{{state.modal == null}}", "do": "clearScale" },
 		"shift+s": { "do": "snapMenu" },
 		"ctrl+space": { "when": "{{!context.textInputFocus}}", "do": "toggleMaximize" },
-		"i": { "do": "insertKeyframe" },
+		"i": [{ "when": "{{state.mode == 'edit'}}", "do": "insetFaces" }, { "do": "insertKeyframe" }],
 		"alt+i": { "do": "deleteKeyframe" },
 		"shift+alt+i": { "do": "clearKeyframes" },
 		"up": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "nextKey" },
@@ -777,7 +793,8 @@
 			"new": { "run": "newScene", "group": "1_new", "order": 1 },
 			"open": { "run": "openScene", "group": "1_new", "order": 2 },
 			"save": { "run": "saveScene", "group": "2_save" },
-			"export": { "run": "exportGltf", "group": "3_export" }
+			"import": { "run": "importGltf", "group": "3_export", "order": 1 },
+			"export": { "run": "exportGltf", "group": "3_export", "order": 2 }
 		},
 		"edit": {
 			"undo": { "run": "undo", "group": "1_history", "order": 1 },

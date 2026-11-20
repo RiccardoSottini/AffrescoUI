@@ -19,9 +19,10 @@
 (defn pick "A click or a box in the viewport: selects, opens the menu, places the 3D cursor, measures or adds, by the tool."
   []
   (cond (some? state.modal) nil
-        (= event.type :boxSelect) (box-select)
+        (= event.type :boxSelect) (when-not (= state.mode :edit) (box-select))
         (not= event.type :pick) nil
         (and (= event.button :right) event.shift) (set "state.cursor" (map rounded event.point))
+        (and (= state.mode :edit) (not= event.button :right)) (edit-pick)
         (= event.button :right) (open-popup "objectContext" (+ nodes.viewport.x event.x) (+ nodes.viewport.y event.y))
         (= state.tool :cursor) (set "state.cursor" (map rounded event.point))
         (= state.tool :measure) (measure-point event.point event.x event.y)
@@ -122,7 +123,7 @@
     (set "state.modalText" event.text)
     (do (set "state.modal" nil)
         (set "state.modalText" "")
-        (when (= event.phase :end) (transform-ended)))))
+        (when (= event.phase :end) (if (= state.mode :edit) (edit-transformed) (transform-ended))))))
 
 ;;; Adjust Last Operation
 

@@ -70,7 +70,9 @@
   (or (= state.shading :rendered) (and (= state.shading :material) (true? state.sceneWorld))))
 
 (defcomputed stats "The counts the status bar starts with, when the overlays are on."
-  (if state.overlays (t "status.stats" {:selected (count state.view.selection) :objects (count state.scene.nodes)}) ""))
+  (cond (not state.overlays) ""
+        computed.editCounts (str (t "edit.stats" computed.editCounts) " | ")
+        :else (t "status.stats" {:selected (count state.view.selection) :objects (count state.scene.nodes)})))
 
 ;;; Moving
 

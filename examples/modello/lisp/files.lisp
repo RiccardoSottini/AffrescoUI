@@ -62,6 +62,33 @@
   (dismiss)
   (openFile "state.opened" :extensions ["json"] :title (t "file.openTitle") :onDone opened :onError not-opened))
 
+(defn gltf-node "A node of an imported file as an object: a mesh if it has one, else an empty, in the active collection." [n]
+  (merge n {:kind (if (:mesh n) "mesh" "empty")
+            :collection (when (not= state.activeCollection "collection") state.activeCollection)
+            :parent (or-else (:parent n) "")}))
+
+(defn gltf-opened "A glTF file read: its objects, meshes and materials join the scene, selected; or why not, in the status bar." [result]
+  (let [part (gltfScene state.importing (str "import" (inc state.added) "-"))]
+    (if (or (nil? part) (empty? part.nodes))
+      (set "state.fileStatus" (t "file.notImported" {:name (:name result)}))
+      (do (snapshot)
+          (increment "state.added" :by 1)
+          (set "state.scene" (merge state.scene
+                                    {:nodes (concat state.scene.nodes (map gltf-node part.nodes))
+                                     :meshes (concat (or state.scene.meshes []) part.meshes)
+                                     :materials (concat state.scene.materials part.materials)}))
+          (set "state.view.selection" (map :id (filter #(:mesh %) part.nodes)))
+          (set "state.active" (last state.view.selection))
+          (set "state.fileStatus" (t "file.imported" {:name (:name result) :objects (count part.nodes)})))))
+  (set "state.importing" nil))
+
+(defcommand importGltf "Imports a glTF file's objects, meshes and materials into the scene, their meshes editable."
+  :title ~(t "command.importGltf") :description ~(t "command.importGltf.about")
+  :category ~(t "category.file") :icon "file-input" []
+  (dismiss)
+  (leave-edit)
+  (openFile "state.importing" :extensions ["gltf"] :title (t "file.importTitle") :onDone gltf-opened :onError not-opened))
+
 (defcommand exportGltf "Exports the viewport's scene, with its animation, as glTF."
   :title ~(t "command.exportGltf") :description ~(t "command.exportGltf.about")
   :category ~(t "category.file") :icon "file-output" :enablement ~(contains (vals state.areas) "viewport") []

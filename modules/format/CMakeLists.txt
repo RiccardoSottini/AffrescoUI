@@ -36,6 +36,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsForms.cpp
 	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
+	src/functions/ExpressionFunctionsMesh.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp

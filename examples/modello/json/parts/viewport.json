@@ -10,7 +10,7 @@
 		"tools": "{{[[{ id: 'select', icon: 'mouse-pointer-2', title: 'Select Box', key: 'W' }], [{ id: 'cursor', icon: 'crosshair', title: 'Cursor', key: '' }], [{ id: 'move', icon: 'move', title: 'Move', key: 'G' }, { id: 'rotate', icon: 'rotate-cw', title: 'Rotate', key: 'R' }, { id: 'scale', icon: 'scale-3-d', title: 'Scale', key: 'S' }, { id: 'transform', icon: 'move-3-d', title: 'Transform', key: '', disabled: true }], [{ id: 'annotate', icon: 'pencil', title: 'Annotate', key: '', disabled: true }, { id: 'measure', icon: 'ruler', title: 'Measure', key: '' }], [{ id: 'add', icon: 'box', title: 'Add Cube', key: '' }]]}}",
 		"toolName": "{{find(flat(computed.tools), it.id == state.tool).title}}",
 		"lens": "{{18 / tan(state.view.camera.fieldOfView / 2)}}",
-		"modeItems": "{{[{ title: 'Object Mode', icon: 'box', checked: state.mode == 'object', run: 'setMode', with: { args: { mode: 'object' } } }, { title: 'Edit Mode', icon: 'pen-tool', enabled: false, keyLabel: 'Not yet' }]}}",
+		"modeItems": "{{[{ title: 'Object Mode', icon: 'box', checked: state.mode == 'object', run: 'setMode', with: { args: { mode: 'object' } }, keyLabel: 'Tab' }, { title: 'Edit Mode', icon: 'pen-tool', checked: state.mode == 'edit', run: 'setMode', with: { args: { mode: 'edit' } }, enabled: state.mode == 'edit' || computed.activeEditable, keyLabel: 'Tab' }]}}",
 		"orientationItems": "{{map(['Global', 'Local', 'Normal', 'Gimbal', 'View', 'Cursor'], it == 'Gimbal' ? { title: it, enabled: false, keyLabel: 'Not yet' } : { title: it, checked: state.orientation == lower(it), run: 'setOption', with: { args: { key: 'orientation', value: lower(it) } } })}}",
 		"pivotItems": "{{map([['bounds', 'Bounding Box Center'], ['cursor', '3D Cursor'], ['individual', 'Individual Origins'], ['median', 'Median Point'], ['active', 'Active Element']], { title: it[1], checked: state.pivot == it[0], run: 'setOption', with: { args: { key: 'pivot', value: it[0] } } })}}",
 		"snapItems": "{{concat(map(['Vertex', 'Edge', 'Face'], { title: it, enabled: false, keyLabel: 'Not yet' }), [{ separator: true }], map([['fine', 'Increment 0.1 m, 1°'], ['unit', 'Increment 1 m, 5°'], ['coarse', 'Increment 10 m, 15°']], { title: it[1], checked: (state.snapStep ?? 'unit') == it[0], run: 'setOption', with: { args: { key: 'snapStep', value: it[0] } } }))}}",
@@ -94,7 +94,7 @@
 				"children": [
 					{
 						"type": "scene", "id": "viewport", "fill": true,
-						"bind": "state.view", "scene": "{{computed.displayScene}}", "up": "z", "glyphs": true,
+						"bind": "state.view", "scene": "{{computed.viewScene}}", "up": "z", "glyphs": true,
 						"cursor3d": "{{state.overlays && state.overlay.cursor ? state.cursor : null}}",
 						"shading": "{{state.shading == 'rendered' ? 'material' : state.shading}}",
 						"lighting": "{{state.shading == 'material' && !computed.lit ? 'studio' : 'scene'}}",
@@ -172,6 +172,10 @@
 						{ "id": "mode", "use": "hButton", "with": { "icon": "{{state.mode == 'edit' ? 'pen-tool' : 'box'}}",
 						  "text": "{{state.mode == 'edit' ? 'Edit Mode' : 'Object Mode'}}", "chevron": true, "width": 116,
 						  "tooltip": "Interaction Mode", "open": "state.open.mode", "items": "{{computed.modeItems}}" } },
+						{ "id": "select-mode-{{kind[0]}}", "when": "{{state.mode == 'edit'}}",
+						  "repeat": { "for": "kind", "in": "{{[['vertex', 'dot', 'Vertex'], ['edge', 'minus', 'Edge'], ['face', 'square', 'Face']]}}" },
+						  "use": "hButton", "with": { "icon": "{{kind[1]}}", "width": 24, "on": "{{state.edit.select == kind[0]}}",
+						  "tooltip": "{{kind[2]}}", "run": "setSelectMode", "with": { "args": { "mode": "{{kind[0]}}" } } } },
 						{ "use": "gap", "with": { "width": 6 } },
 						{ "id": "menu-{{m[0]}}",
 						  "repeat": { "for": "m", "in": "{{[['view', 'View'], ['select', 'Select'], ['add', 'Add'], ['object', 'Object']]}}" }, "use": "hButton",
@@ -199,7 +203,8 @@
 						  "menuWidth": 190, "radius": { "topRight": 4, "bottomRight": 4 } } },
 						{ "use": "gap" },
 						{ "id": "proportional", "use": "hButton", "with": { "icon": "circle-dot-dashed", "width": 24,
-						  "tooltip": "Proportional Editing isn't available yet: it moves a mesh's vertices", "disabled": true } },
+						  "tooltip": "Proportional Editing (O): moving vertices in Edit Mode pulls the ones near them along",
+						  "on": "{{state.proportional}}", "run": "toggleProportional" } },
 						{ "use": "gap" }
 					] },
 					{ "grow": 1, "height": 1, "color": "transparent" },

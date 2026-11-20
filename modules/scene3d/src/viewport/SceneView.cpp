@@ -4,7 +4,9 @@
 #include "affresco/scene3d/SceneView.hpp"
 
 #include "affresco/core/Log.hpp"
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/scene3d/Picking.hpp"
+#include "affresco/scene3d/PolyMesh.hpp"
 #include "affresco/scene3d/SceneJson.hpp"
 #include "affresco/scene3d/Viewport.hpp"
 
@@ -142,6 +144,8 @@ struct SceneView::Internals {
 	AssetFiles files;                                                           ///< The loaded files, by name.
 	std::map<std::string, LoadedFile, std::less<>> sources;                     ///< Where each came from.
 	json sceneJson = json::object();                                            ///< The scene as given.
+	std::map<std::string, json, std::less<>> meshes;                            ///< Its polygon meshes, as given.
+	std::map<std::string, std::string, std::less<>> textures;                   ///< Its pictures, as given.
 	json animations;                                                            ///< The clips as given.
 	float time = 0.0f;                                                          ///< Seconds into them.
 	PlacedScene placed{json::object(), {}, {}};                                 ///< The scene with its files placed.
@@ -186,7 +190,68 @@ void SceneView::setScene(const json& scene, const json& animations, float time) 
 	place(scene, animations, time);
 }
 
+/// @brief Puts a scene's polygon meshes ("meshes": [{id, vertices, faces, smooth}]) into the store, triangulated, the
+/// ones that changed only; an id a primitive or a file's mesh has (with ':') is skipped, as is a malformed mesh.
+/// @param scene The scene. @param given The meshes put last time, updated. @param assets The store.
+static void placeMeshes(const json& scene, std::map<std::string, json, std::less<>>& given, Assets& assets) {
+	constexpr std::size_t maxMeshes = 256;
+	const auto meshes = scene.is_object() ? scene.find("meshes") : scene.end();
+	if(!scene.is_object() || meshes == scene.end() || !meshes->is_array()) return;
+	for(std::size_t i = 0; i < meshes->size() && i < maxMeshes; ++i) {
+		const json& mesh = (*meshes)[i];
+		if(!mesh.is_object() || !mesh.contains("id") || !mesh["id"].is_string()) continue;
+		const std::string id = mesh["id"].get<std::string>();
+		if(id.empty() || id.size() > 64 || id.find(':') != std::string::npos || primitiveNamed(id)) continue;
+		if(const auto found = given.find(id); found != given.end() && found->second == mesh) continue;
+		try {
+			assets.setMesh(id, triangulate(polyMeshFromJson(mesh)));
+			given[id] = mesh;
+		} catch(const std::exception& failure) {
+			log(LogLevel::Warning, "scene: the mesh \"" + id + "\" wasn't placed: " + failure.what());
+		}
+	}
+}
+
+/// @brief Puts a scene's pictures ("textures": [{id, image}], each a PNG or JPEG `data:` URI of at most 8 MiB and
+/// 2048 pixels a side) into the store for its materials, the ones that changed only; a malformed one is skipped.
+/// @param scene The scene. @param given The pictures put last time, updated. @param assets The store.
+static void placeTextures(const json& scene, std::map<std::string, std::string, std::less<>>& given, Assets& assets) {
+	constexpr std::size_t maxTextures = 32;
+	const auto textures = scene.is_object() ? scene.find("textures") : scene.end();
+	if(!scene.is_object() || textures == scene.end() || !textures->is_array()) return;
+	for(std::size_t i = 0; i < textures->size() && i < maxTextures; ++i) {
+		const json& texture = (*textures)[i];
+		if(!texture.is_object() || !texture.contains("id") || !texture["id"].is_string() ||
+		   !texture.contains("image") || !texture["image"].is_string())
+			continue;
+		const std::string id = texture["id"].get<std::string>();
+		const std::string& image = texture["image"].get_ref<const std::string&>();
+		if(id.empty() || id.size() > 64 || id.find(':') != std::string::npos) continue;
+		if(const auto found = given.find(id); found != given.end() && found->second == image) continue;
+		try {
+			const auto bitmap =
+			    Bitmap::fromDataUri(image, Bitmap::Limits{std::size_t{8} << 20, 2048, std::size_t{1} << 22});
+			if(!bitmap) continue;
+			TextureData data{
+			    bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, true};
+			for(std::size_t p = 0; p + 3 < data.pixels.size(); p += 4) { // straight alpha, as glTF's
+				const unsigned alpha = data.pixels[p + 3];
+				if(alpha == 0 || alpha == 255) continue;
+				for(std::size_t c = 0; c < 3; ++c)
+					data.pixels[p + c] =
+					    static_cast<std::uint8_t>(std::min(255u, (data.pixels[p + c] * 255u + alpha / 2) / alpha));
+			}
+			assets.setTexture(id, std::move(data));
+			given[id] = image;
+		} catch(const std::exception& failure) {
+			log(LogLevel::Warning, "scene: the texture \"" + id + "\" wasn't placed: " + failure.what());
+		}
+	}
+}
+
 void SceneView::place(const json& scene, const json& animations, float time) {
+	placeMeshes(scene, internals_->meshes, *internals_->assets);
+	placeTextures(scene, internals_->textures, *internals_->assets);
 	PlacedScene placed = placeAssets(scene, internals_->files);
 	if(zUp(internals_->display)) placed.scene = withUpFrame(std::move(placed.scene));
 	Scene shown = sceneAtTime(placed.scene, animations, time);

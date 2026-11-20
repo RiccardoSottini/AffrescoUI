@@ -34,7 +34,7 @@
 (defview viewport-scene "The scene, as the viewport's shading, overlays and gizmo show it; a click picks, a drag transforms." []
   `(scene#viewport :fill true
      :bind state.view
-     :scene ~computed.displayScene
+     :scene ~computed.viewScene
      :up z
      :glyphs true
      :cursor3d ~(if (and state.overlays state.overlay.cursor) state.cursor nil)
@@ -232,9 +232,21 @@
               :tooltip ~(t "viewport.modeTip")
               :open state.open.mode
               :items ~computed.modeItems})
+     ~(repeat [kind ["vertex" "edge" "face"]] (select-mode-button kind))
      (node :use gap :with {:width 6})
      ~(repeat [m ["view" "select" "add" "object"]] (header-menu m))
      (node :use gap)))
+
+(defview select-mode-button "In Edit Mode, what a click picks: vertices, edges or faces (1, 2 and 3)." [kind]
+  `(node :id ~(str "select-mode-" kind)
+     :when ~(= state.mode :edit)
+     :use hButton
+     :with {:icon ~(case kind :vertex "dot" :edge "minus" "square")
+            :width 24
+            :on ~(= state.edit.select kind)
+            :tooltip ~(t (str "edit." kind))
+            :run setSelectMode
+            :with {:mode ~kind}}))
 
 (defview header-menu "One of the header's menus, a text button as wide as its title." [m]
   `(node :id ~(str "menu-" m)
@@ -278,7 +290,8 @@
      (node :use gap)
      (node#proportional
        :use hButton
-       :with {:icon circle-dot-dashed :width 24 :tooltip ~(t "viewport.proportionalTip") :disabled true})
+       :with {:icon circle-dot-dashed :width 24 :tooltip ~(t "viewport.proportionalTip") :on ~state.proportional
+              :run toggleProportional})
      (node :use gap)))
 
 (defview snap-buttons "Snapping on or off, and what it snaps to: two halves of one button." []

@@ -3,7 +3,7 @@
 		"modello/lisp"
 	],
 	"allowed": {
-		"four-nested-calls": 33
+		"four-nested-calls": 38
 	},
 	"kept": {
 		"camel-case-name": 11,

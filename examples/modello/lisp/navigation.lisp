@@ -60,11 +60,11 @@
 
 ;;; The headers' options
 
-(defcommand setMode "Changes the mode: Object Mode is the one there is."
+(defcommand setMode "Changes the mode: Object Mode, or Edit Mode on the active mesh."
   :title ~(t "command.setMode") :description ~(t "command.setMode.about")
   :category ~(t "category.object") [mode]
   (dismiss)
-  (set "state.mode" mode))
+  (if (= mode "edit") (enter-edit) (leave-edit)))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn setOption "One of the state's options, such as the shading or the pivot, set to a value." [key value]

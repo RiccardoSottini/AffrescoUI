@@ -16,13 +16,13 @@
     {:id "world" :icon "globe" :title (t "tab.world")}]
    [{:id "collection" :icon "package" :title (t "tab.collection")}]
    [{:id "object" :icon "box" :title (t "tab.object")}
-    {:id "modifiers" :icon "blocks" :title (t "tab.modifiers") :needs (t "tab.modifiers.needs")}
+    {:id "modifiers" :icon "blocks" :title (t "tab.modifiers")}
     {:id "particles" :icon "sparkles" :title (t "tab.particles") :needs (t "tab.particles.needs")}
     {:id "physics" :icon "orbit" :title (t "tab.physics") :needs (t "tab.physics.needs")}
     {:id "constraints" :icon "link" :title (t "tab.constraints") :needs (t "tab.constraints.needs")}
     {:id "data" :icon "triangle" :title (t "tab.data")}
     {:id "material" :icon "circle" :title (t "tab.material")}
-    {:id "texture" :icon "grid-2-x-2" :title (t "tab.texture") :needs (t "tab.texture.needs")}]])
+    {:id "texture" :icon "grid-2-x-2" :title (t "tab.texture")}]])
 
 ;; words are what the search finds a panel by, besides its title.
 (defcomputed propPanels "Every panel: its tab, its title, the words the search finds it by, and what it needs, if anything."
@@ -48,6 +48,16 @@
     :title (t "panel.display")
     :words "bounds wire solid display"
     :needs (if (= computed.activeNode.kind :mesh) "" (t "panel.display.needs"))}
+   {:tab "modifiers"
+    :key "modifiers"
+    :title (t "panel.modifiers")
+    :words "mirror array subdivision modifier"
+    :needs (if (editable? computed.activeNode) "" (t "panel.modifiers.needs"))}
+   {:tab "texture"
+    :key "texturePanel"
+    :title (t "panel.imageTexture")
+    :words "image picture texture"
+    :needs (if (< computed.activeMaterialIndex 0) (t "panel.surfaceMaterial.needs") "")}
    {:tab "object" :key "lineArt" :title (t "panel.lineArt") :words "" :needs (t "panel.lineArt.needs")}
    {:tab "object" :key "custom" :title (t "panel.custom") :words "" :needs (t "panel.custom.needs")}
    {:tab "material"
@@ -74,6 +84,7 @@
     :needs (case computed.activeNode.kind
              :light ""
              :camera (t "panel.depthOfField.needs")
+             :mesh (if (editable? computed.activeNode) "" (t "panel.normals.needs"))
              (t "panel.normals.needs"))}
    {:tab "material"
     :key "surfaceMaterial"
@@ -183,6 +194,9 @@
      ~(restrictions-panel)
      ~(data-panel)
      ~(shadow-panel)
+     ~(normals-panel)
+     ~(modifiers-panel)
+     ~(texture-panel)
      ~(material-slot)
      ~(surface-panel)
      ~(material-settings-panel)
@@ -470,6 +484,74 @@
      :radius ~(case kind :point {:topLeft 4 :bottomLeft 4} :spot {:topRight 4 :bottomRight 4} 0)
      :onClick ~(handler set-light "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
+
+(defview normals-panel "A mesh's normals: shaded smooth, its faces blending, or flat, each face its own." []
+  `(node
+     :when ~(and (contains computed.propShown "dataMore") (= computed.activeNode.kind :mesh) (editable? computed.activeNode))
+     :use propPanel
+     :with {:key dataMore :body 32}
+     (node :use checkRow
+       :with {:id prop-shade-smooth
+              :label ~(t "properties.shadeSmooth")
+              :checked ~computed.activeSmooth
+              :run set-smooth
+              :with {:smooth ~(not computed.activeSmooth)}})))
+
+(defview texture-panel "The Texture tab: the active material's picture, opened from a file or taken off." []
+  `(node
+     :when ~(and (contains computed.propShown "texturePanel") (>= computed.activeMaterialIndex 0))
+     :use propPanel
+     :with {:key texturePanel :body 56}
+     (node :use infoRow :with {:id texture-name :label ~(t "properties.image")
+                               :text ~(or-else (get computed.activeTexture :name) (t "properties.none"))})
+     (row#texture-buttons :height 22 :width "100%" :gap 4 :color transparent
+       (node :use hButton :with {:icon image-plus :text ~(t "command.openTexture") :width 120 :back "@widget"
+                                 :tooltip ~(t "command.openTexture.about") :run openTexture})
+       (node :use hButton :with {:icon image-off :text ~(t "command.removeTexture") :width 120 :back "@widget"
+                                 :disabled ~(nil? computed.activeTexture)
+                                 :tooltip ~(t "command.removeTexture.about") :run removeTexture}))))
+
+(defview modifiers-panel "The Modifiers tab: add a mirror, an array or a subdivision; each in the stack with its settings and a remove button." []
+  `(node
+     :when ~(and (contains computed.propShown "modifiers") (editable? computed.activeNode))
+     :use propPanel
+     :with {:key modifiers :body ~(+ 32 (* 50 (count computed.activeNode.modifiers)))}
+     (row#modifier-add :height 22 :width "100%" :gap 4 :color transparent
+       ~(repeat [kind ["mirror" "array" "subdivision"]]
+          `(node :id ~(str "modifier-add-" kind)
+             :use hButton
+             :with {:icon ~(case kind :mirror "flip-horizontal" :array "copy" "box")
+                    :text ~(t (str "modifier." kind))
+                    :width 84
+                    :back "@widget"
+                    :tooltip ~(t "modifier.add" {:kind (t (str "modifier." kind))})
+                    :run add-modifier
+                    :with {:kind ~kind}})))
+     ~(repeat [m computed.activeNode.modifiers :index i] (modifier-row m i))))
+
+(defview modifier-row "One modifier of the stack: its name, its setting, and a button that removes it." [m i]
+  `(node :id ~(str "modifier-" i) :height 46 :width "100%" :color @widget :radius 4
+     (label :text ~(t (str "modifier." m.type)) :textColor @text :anchors {:left 8 :top 4} :fitText true)
+     (node :use hButton
+       :with {:icon x :width 20 :back transparent :tooltip ~(t "modifier.remove") :run remove-modifier :with {:i ~i}}
+       :anchors {:right 4 :top 3})
+     (row :when ~(= m.type "mirror") :anchors {:left 8 :right 8 :bottom 4} :height 20 :gap 2 :color transparent
+       ~(repeat [axis ["x" "y" "z"]] (mirror-axis-button m i axis)))
+     (row :when ~(not= m.type "mirror") :anchors {:left 8 :right 8 :bottom 4} :height 20 :gap 2 :color transparent
+       (node :use hButton
+         :with {:icon minus :width 22 :back "@panelBack" :tooltip ~(t "modifier.less") :run step-modifier
+                :with {:i ~i :step -1}})
+       (label :text ~(if (= m.type "array") (t "modifier.count" {:n m.count}) (t "modifier.levels" {:n m.levels}))
+         :textColor @text :width 90 :height 20 :align center)
+       (node :use hButton
+         :with {:icon plus :width 22 :back "@panelBack" :tooltip ~(t "modifier.more") :run step-modifier
+                :with {:i ~i :step 1}}))))
+
+(defview mirror-axis-button "One axis a mirror modifier can mirror across." [m i axis]
+  `(node :use hButton
+     :with {:text ~(upper-case axis) :width 30 :on ~(= m.axis axis) :back "@panelBack"
+            :tooltip ~(t "modifier.axis" {:axis (upper-case axis)})
+            :run set-modifier :with {:i ~i :key "axis" :value ~axis}}))
 
 (defview shadow-panel "A light's shadow: whether it casts one (the material shading draws one light's shadow)." []
   `(node
