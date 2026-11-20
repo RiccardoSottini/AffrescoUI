@@ -585,7 +585,7 @@
 				{
 					"expect": {
 						"state": "bookmarks.length",
-						"is": 2
+						"is": 5
 					}
 				},
 				{
@@ -602,7 +602,7 @@
 				},
 				{
 					"expect": {
-						"state": "bookmarks[1].camera.distance",
+						"state": "bookmarks[4].camera.distance",
 						"is": 12.3
 					}
 				},
@@ -658,7 +658,7 @@
 				},
 				{
 					"expect": {
-						"state": "bookmarks[1].time",
+						"state": "bookmarks[4].time",
 						"is": 29.5
 					}
 				},
@@ -704,13 +704,13 @@
 				{
 					"expect": {
 						"state": "bookmarks.length",
-						"is": 1
+						"is": 4
 					}
 				},
 				{
 					"expect": {
 						"state": "bookmark",
-						"is": "overview"
+						"is": "mars-close"
 					}
 				},
 				{
@@ -1280,6 +1280,18 @@
 		{
 			"name": "the-last-place-deleted",
 			"steps": [
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"action": "deleteBookmark"
+				},
 				{
 					"action": "deleteBookmark"
 				},

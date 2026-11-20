@@ -209,7 +209,29 @@
     :follow ""
     :selected earth
     :time 0
-    :zoom 1.1}])
+    :zoom 1.1}
+   {:id inner
+    :label "Inner planets"
+    :camera {:tx 0 :tz 0 :yaw 0 :pitch 1.45 :distance 9}
+    :follow ""
+    :selected venus
+    :time 60
+    :zoom 1}
+   {:id earth-moon
+    :label "Earth and Moon"
+    :camera {:tx 0 :tz 0 :yaw 0.9 :pitch 0.35 :distance 2.4}
+    :follow earth
+    :selected moon
+    :time 120
+    :zoom 1}
+   {:id mars-close
+    :label "Mars at opposition"
+    :camera {:tx 0 :tz 0 :yaw 2.2 :pitch 0.3 :distance 2.2}
+    :follow mars
+    :selected mars
+    :time 107
+    :zoom 1}]
+  "The saved views: the browser's places and the stops of the tour, in its order.")
 
 (defstate bookmark overview)
 
@@ -220,6 +242,12 @@
 (defstate landed 0)
 
 (defstate nextPlace 1)
+
+(defstate touring false)
+
+(defstate tourClock 0)
+
+(defstate tourStay 80)
 
 (defstate sceneView
   {:camera {:target [0 0 0] :yaw 0.4 :pitch 0.75 :distance 15 :fieldOfView 0.8533} :selection [earth]})

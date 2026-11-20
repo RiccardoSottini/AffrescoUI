@@ -12,6 +12,7 @@
 		"pages": { "kind": "list", "item": { "id": "string", "name": "string", "image": "image" },
 			"description": "The pages in order, each with an id, a name and an image the host renders." },
 		"current": { "type": "string", "kind": "state", "optional": true, "description": "The id of the selected page." },
+		"title": { "type": "string", "kind": "state", "optional": true, "description": "What the strip is called, before the count: Pages when the app doesn't say." },
 		"reorder": { "kind": "action", "arguments": { "id": "string", "onto": "string" }, "description": "Page id takes the place of page onto." },
 		"select": { "kind": "action", "arguments": { "id": "string" }, "description": "Selects page id." },
 		"duplicate": { "kind": "action", "arguments": { "id": "string" }, "description": "Duplicates page id." },
@@ -35,7 +36,7 @@
 						{ "type": "row", "id": "slideSorter-header", "width": "100%", "height": 24, "gap": 6, "alignItems": "center",
 						  "children": [
 							{ "type": "label", "id": "slideSorter-title", "grow": 1, "height": 24, "padding": 6, "textColor": "@text",
-							  "text": "Pages ({{length(app.pages)}})" },
+							  "text": "{{app.title ?? 'Pages'}} ({{length(app.pages)}})" },
 							{ "type": "label", "id": "slideSorter-duplicate", "width": 24, "height": 24, "icon": "copy", "cursor": "hand",
 							  "tooltip": "Duplicate page", "textColor": "@text", "onClick": "slideSorter.duplicate" }
 						  ] },

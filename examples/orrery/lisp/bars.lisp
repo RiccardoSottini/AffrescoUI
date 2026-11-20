@@ -16,6 +16,7 @@
    :bookmark {:run addBookmark :group "4_places" :order 1}
    :deleteBookmark {:run deleteBookmark :group "4_places" :order 2}
    :eclipses {:run openEclipses :group "4_places" :order 3}
+   :tour {:run playTour :group "4_places" :order 4}
    :renderOptions {:run openRender :group "2_show" :order 7}
    :theme {:run toggleTheme :group "2_show" :order 8}
    :stars {:run toggleStars :group "2_show" :order 4}
@@ -46,6 +47,7 @@
                             :toggleShading state.showShading
                             :toggleGlow state.showGlow
                             :toggleMarker (>= (indexOf state.markers state.selected) 0)
+                            :playTour state.touring
                             :follow (and (not= state.follow "") (some? state.follow))
                             false)}))
        menus.view))

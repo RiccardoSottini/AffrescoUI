@@ -73,10 +73,10 @@
        :accentColor @accent)
      ~(places-bar)))
 
-(defview places-bar "Bookmark this view, and delete the bookmark chosen." []
+(defview places-bar "Bookmark this view, delete the bookmark chosen, and play the tour of them all." []
   `(row#places-bar :width 220 :height 34 :gap 6 :alignItems center
      (label#add-bookmark :style button
-       :width 170
+       :width 132
        :height 28
        :icon bookmark-plus
        :text ~(t "command.addBookmark")
@@ -90,4 +90,12 @@
        :role button
        :label ~(t "command.deleteBookmark")
        :tooltip ~(t "command.deleteBookmark")
-       :onClick deleteBookmark)))
+       :onClick deleteBookmark)
+     (label#play-tour :style button
+       :width 32
+       :height 28
+       :icon ~(if state.touring "square" "play")
+       :role button
+       :label ~(t "command.playTour")
+       :tooltip ~(t "command.playTour.about")
+       :onClick playTour)))

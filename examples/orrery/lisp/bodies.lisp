@@ -85,6 +85,18 @@
   (map (fn [it] {:id it.id :name it.name :parent it.parent :thumbnail (str "body:" (or-else it.look it.id))})
        state.bodies))
 
+;;; The tour
+
+(defn view-image "The thumbnail of the body a saved view looks at: the one it follows, else the Sun." [place]
+  (let [follow (or-else (:follow place) "")
+        id (if (empty? follow) "sun" follow)
+        body (find #(= (:id %) id) state.bodies)]
+    (str "body:" (or-else (:look body) id))))
+
+(defcomputed tourViews "The saved views for the tour strip: id, name and the thumbnail of the body each looks at."
+  ; style: keep, #(...) can't give a map
+  (map (fn [it] {:id it.id :name it.label :image (view-image it)}) state.bookmarks))
+
 ;;; The browser's tree
 
 (defcomputed bodyCells "Each body with its depth, as the browser's rows."

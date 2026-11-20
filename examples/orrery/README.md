@@ -78,11 +78,11 @@ need gets those names.
 - `index.scenarios.json`: the day counter, the next event, play, annotations, reparenting and the camera.
 - `controls.scenarios.json`: every control clicked as a person would: the toolbar, the keys, the sky's bar, the
   render options, the browser's tabs, the notes and the timeline's M and L.
-- `bodies-strip.scenarios.json`: the installed strip. It is in a file of its own because the proof plays
+- `tour-strip.scenarios.json`: the installed strip. It is in a file of its own because the proof plays
   `index.scenarios.json` before the strip is installed.
 
 ```
-./build/affrescoui test examples/orrery/lisp/index.scenarios.json examples/orrery/lisp/controls.scenarios.json examples/orrery/lisp/bodies-strip.scenarios.json
+./build/affrescoui test examples/orrery/lisp/index.scenarios.json examples/orrery/lisp/controls.scenarios.json examples/orrery/lisp/tour-strip.scenarios.json
 python3 examples/orrery/lisp/e2e_test.py build    # or: ctest --test-dir build -R mcp_orrery
 ```
 
