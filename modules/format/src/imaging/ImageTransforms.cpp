@@ -859,13 +859,13 @@ void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from
 int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept {
 	const float middleX = (box[0] + box[2]) / 2.0f, middleY = (box[1] + box[3]) / 2.0f;
 	const std::array<imaging::Point, 8> handles{{{box[0], box[1]},
-	                                            {middleX, box[1]},
-	                                            {box[2], box[1]},
-	                                            {box[2], middleY},
-	                                            {box[2], box[3]},
-	                                            {middleX, box[3]},
-	                                            {box[0], box[3]},
-	                                            {box[0], middleY}}};
+	                                             {middleX, box[1]},
+	                                             {box[2], box[1]},
+	                                             {box[2], middleY},
+	                                             {box[2], box[3]},
+	                                             {middleX, box[3]},
+	                                             {box[0], box[3]},
+	                                             {box[0], middleY}}};
 	for(std::size_t index = 0; index < handles.size(); ++index)
 		if(std::abs(handles[index].x - at.x) <= reach && std::abs(handles[index].y - at.y) <= reach)
 			return static_cast<int>(index);

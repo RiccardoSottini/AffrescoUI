@@ -212,7 +212,8 @@ void closeQuickSelection(ImageDocument& image) {
 /// @param document The document.
 [[nodiscard]] std::array<float, 4> selectionBox(const imaging::Document& document) {
 	const auto [x, y, width, height] = imaging::selectionBounds(document);
-	return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width), static_cast<float>(y + height)};
+	return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width),
+	        static_cast<float>(y + height)};
 }
 
 /// @brief selection-box's press: picks the handle of the selection's box pressed on, or inside it to move it.
@@ -345,8 +346,8 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 		return true;
 	case Gesture::selectionBox:
 		if(image.boxHandle < 0) return false;
-		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x,
-		                          at.y - image.press.start.y);
+		image.boxNow =
+		    draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
 		return true;
 	case Gesture::pan:
 		panView(image, event);

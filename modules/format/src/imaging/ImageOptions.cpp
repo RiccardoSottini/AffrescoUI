@@ -20,7 +20,7 @@ namespace {
 constexpr std::array<std::string_view, 21> gestureNameList{
     "move", "select-rectangle", "select-ellipse", "lasso",    "polygon-lasso", "magic-wand", "crop", "paint",
     "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom", "text",
-    "shape", "pen",             "path-select", "quick-select", "selection-box"};
+    "shape", "pen",             "path-select",    "quick-select", "selection-box"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
 constexpr std::array<std::string_view, 23> optionKeyList{

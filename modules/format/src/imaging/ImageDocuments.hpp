@@ -39,27 +39,27 @@ namespace imaging = affresco::imaging;
 
 /// @brief What a tool does on the canvas: the library's gestures, which a document's tools are named after.
 enum class Gesture : std::uint8_t {
-	move,             ///< Moves the active layer's pixels.
-	selectRectangle,  ///< Selects a rectangle.
-	selectEllipse,    ///< Selects an ellipse.
-	lasso,            ///< Selects a freehand shape.
-	polygonLasso,     ///< Selects a polygon, click by click, closed at its first point.
-	magicWand,        ///< Selects similar colours.
-	crop,             ///< Crops the image to a rectangle.
-	paint,            ///< Paints with the brush.
-	erase,            ///< Erases with the brush.
-	clone,            ///< Paints the image from an offset; the right button sets the source.
-	gradient,         ///< Draws a gradient from the press to the release.
-	fill,             ///< Fills similar colours.
-	sample,           ///< Picks the foreground colour (the background's with the right button).
-	pan,              ///< Pans the view.
-	zoom,             ///< Zooms in, out with the right button.
-	text,             ///< Adds a type layer where pressed, or makes the type layer pressed on the active one.
-	shape,            ///< Draws a shape layer from the press to the release (the tool's "vector" options).
-	pen,              ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
-	pathSelect,       ///< Drags the active path, or the anchor pressed on.
-	quickSelect,      ///< Selects like colours under a brush dragged over them, stopping at edges.
-	selectionBox,     ///< Moves the selection's outline, or scales it by a handle of the box around it.
+	move,            ///< Moves the active layer's pixels.
+	selectRectangle, ///< Selects a rectangle.
+	selectEllipse,   ///< Selects an ellipse.
+	lasso,           ///< Selects a freehand shape.
+	polygonLasso,    ///< Selects a polygon, click by click, closed at its first point.
+	magicWand,       ///< Selects similar colours.
+	crop,            ///< Crops the image to a rectangle.
+	paint,           ///< Paints with the brush.
+	erase,           ///< Erases with the brush.
+	clone,           ///< Paints the image from an offset; the right button sets the source.
+	gradient,        ///< Draws a gradient from the press to the release.
+	fill,            ///< Fills similar colours.
+	sample,          ///< Picks the foreground colour (the background's with the right button).
+	pan,             ///< Pans the view.
+	zoom,            ///< Zooms in, out with the right button.
+	text,            ///< Adds a type layer where pressed, or makes the type layer pressed on the active one.
+	shape,           ///< Draws a shape layer from the press to the release (the tool's "vector" options).
+	pen,             ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
+	pathSelect,      ///< Drags the active path, or the anchor pressed on.
+	quickSelect,     ///< Selects like colours under a brush dragged over them, stopping at edges.
+	selectionBox,    ///< Moves the selection's outline, or scales it by a handle of the box around it.
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).

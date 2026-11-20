@@ -13,8 +13,8 @@ namespace {
 
 /// @brief The contours being drawn, and the scale they are drawn at.
 struct Drawing {
-	float scale = 1.0f;                              ///< Pixels per font unit.
-	std::vector<std::vector<PathPoint>> contours;    ///< The contours so far.
+	float scale = 1.0f;                           ///< Pixels per font unit.
+	std::vector<std::vector<PathPoint>> contours; ///< The contours so far.
 
 	/// @brief A point in pixels, y down, from one in font units, y up.
 	/// @param x Across, in font units.
@@ -47,8 +47,8 @@ void lineTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float x, float
 }
 
 /// @brief HarfBuzz's quadratic-to: raised to a cubic segment.
-void quadraticTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float controlX, float controlY, float x,
-                 float y, void*) {
+void quadraticTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float controlX, float controlY, float x, float y,
+                 void*) {
 	auto& drawing = *static_cast<Drawing*>(data);
 	const VectorPoint from = drawing.at(state->current_x, state->current_y), control = drawing.at(controlX, controlY);
 	const VectorPoint to = drawing.at(x, y);
@@ -77,13 +77,9 @@ void closePath(hb_draw_funcs_t*, void* data, hb_draw_state_t*, void*) {
 }
 
 /// @brief Destroys a HarfBuzz object.
-template <auto destroy>
-struct Release {
+template <auto destroy> struct Release {
 	/// @brief Destroys it.
-	template <typename T>
-	void operator()(T* object) const noexcept {
-		destroy(object);
-	}
+	template <typename T> void operator()(T* object) const noexcept { destroy(object); }
 };
 
 } // namespace
@@ -92,7 +88,7 @@ std::vector<std::vector<PathPoint>> glyphContours(std::span<const unsigned char>
 	if(file.empty()) return {};
 	const std::unique_ptr<hb_blob_t, Release<hb_blob_destroy>> blob(
 	    hb_blob_create(reinterpret_cast<const char*>(file.data()), static_cast<unsigned>(file.size()),
-	                   HB_MEMORY_MODE_READONLY, nullptr, nullptr));
+		               HB_MEMORY_MODE_READONLY, nullptr, nullptr));
 	const std::unique_ptr<hb_face_t, Release<hb_face_destroy>> face(hb_face_create(blob.get(), 0));
 	const std::unique_ptr<hb_font_t, Release<hb_font_destroy>> font(hb_font_create(face.get()));
 	const std::unique_ptr<hb_draw_funcs_t, Release<hb_draw_funcs_destroy>> funcs(hb_draw_funcs_create());

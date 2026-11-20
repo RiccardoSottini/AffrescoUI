@@ -467,10 +467,11 @@ std::vector<VectorPath> textOutlines(const LayerContent& content, const Font& fo
 			const std::optional<Font::GlyphSource> source = font.glyphSource(*placed.glyph);
 			if(!source || source->face >= faces.size() || faces[source->face].color) continue;
 			const Font::FaceSource& face = faces[source->face];
-			const float x = start + spacing[std::min(codepointAt(shaped, placed.x), spacing.size() - 1)] +
-			                placed.x * scale;
+			const float x =
+			    start + spacing[std::min(codepointAt(shaped, placed.x), spacing.size() - 1)] + placed.x * scale;
 			const float y = baseline + placed.y * scale;
-			for(std::vector<PathPoint>& contour : detail::glyphContours(face.bytes, source->index, face.scale * scale)) {
+			for(std::vector<PathPoint>& contour :
+			    detail::glyphContours(face.bytes, source->index, face.scale * scale)) {
 				if(paths.size() >= maxPaths)
 					throw DocumentError("The text has more than " + std::to_string(maxPaths) + " outlines");
 				if(contour.size() > maxPathPoints)
