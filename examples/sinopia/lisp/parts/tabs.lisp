@@ -276,7 +276,14 @@
 (defcomponent rbCheck "A checkbox bound to the state path at, and its title, which toggles it too."
   {:title "" :at "" :prefix ""}
   `(row :height 22 :gap 6 :alignItems center :color transparent
-     (checkbox :id ~(str prefix "-box") :width 14 :height 14 :bind ~at :label ~title)
+     (checkbox :id ~(str prefix "-box")
+       :width 14
+       :height 14
+       :bind ~at
+       :label ~title
+       :activeColor @brand
+       :trackColor @rbFieldLine
+       :knobColor @rbFieldBg)
      (label :id ~(str prefix "-caption")
        :fitText true
        :height 20

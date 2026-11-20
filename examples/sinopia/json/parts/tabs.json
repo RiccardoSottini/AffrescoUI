@@ -359,7 +359,7 @@
 			"note": "A checkbox bound to the state path at, and its title, which toggles it too.",
 			"node": {
 				"type": "row", "height": 22, "gap": 6, "alignItems": "center", "color": "transparent", "children": [
-					{ "type": "checkbox", "id": "{{prefix + '-box'}}", "width": 14, "height": 14, "bind": "{{at}}", "label": "{{title}}" },
+					{ "type": "checkbox", "id": "{{prefix + '-box'}}", "width": 14, "height": 14, "bind": "{{at}}", "label": "{{title}}", "activeColor": "@brand", "trackColor": "@rbFieldLine", "knobColor": "@rbFieldBg" },
 					{ "type": "label", "id": "{{prefix + '-caption'}}", "fitText": true, "height": 20, "cursor": "hand", "textColor": "@rbInk",
 					  "runs": [{ "text": "{{title}}", "size": 12 }], "onClick": [{ "toggle": "{{at}}" }] }
 				]
