@@ -21,6 +21,9 @@
        :height 32
        :alignItems center
        :arrows horizontal
+       :tooltip ~(t "panels.move")
+       :drag {:data {:group ~slot}}
+       :onDrop ~(handler move-group event.data.group slot)
        (node :width 4 :height 1 :style clear)
        ~(repeat [tab tabs] (panel-tab tab))
        (node :grow 1 :height 1 :style clear)
@@ -106,13 +109,7 @@
        :width 262
        :height "100%"
        :color transparent
-       ~(colour-group)
-       ~(group-sash "colour")
-       (node :when ~state.collapsed.colour :width 1 :height 6 :style clear)
-       ~(properties-group)
-       ~(group-sash "properties")
-       (node :when ~state.collapsed.properties :width 1 :height 6 :style clear)
-       ~(layers-group))
+       ~(repeat [place state.groupOrder :key place] (dock-place place)))
      (column#panel-icons :role toolbar
        :label ~(t "panels.collapsed")
        :width 36
@@ -127,9 +124,33 @@
        (node :use tPopout :with {:name navigator :icon compass :title ~(t "panel.navigator") :height 250}
          ~(navigator-panel)))))
 
+(defview dock-place
+  "A place of the dock: the group the order puts there, then the sash that drags its height, or a gap, under every
+  group but the last. The Layers group takes the room left; Properties takes it while Layers is folded."
+  [place]
+  `(column :id ~(str "dock-place-" place)
+     :let {:folded ~(get state.collapsed place)
+           :gap ~(if (= place (last state.groupOrder)) 0 6)
+           :open ~(or-else (get state.groupHeights place) 32)}
+     :style clear
+     :width "100%"
+     :height ~(+ (if folded 32 open) gap)
+     :grow ~(case place
+              "layers" (if folded 0 1)
+              "properties" (if (and state.collapsed.layers (not folded)) 1 0)
+              0)
+     :shrink ~(if (= place "properties") 1 0)
+     :minHeight ~(+ gap (if folded 32 (case place "layers" 200 "properties" 96 32)))
+     (column :when ~(= place "colour") :style clear :width "100%" :grow 1 ~(colour-group))
+     (column :when ~(= place "properties") :style clear :width "100%" :grow 1 ~(properties-group))
+     (column :when ~(= place "layers") :style clear :width "100%" :grow 1 ~(layers-group))
+     (node :when ~(> gap 0) :style clear :width "100%" :height 6
+       (node :when ~(not= place "layers") :style clear :width "100%" :height 6 ~(group-sash place)))))
+
 (defview colour-group "The first group: the colours, the palette, the gradients and the patterns." []
   `(node :use tGroup
-     :height ~(if state.collapsed.colour 32 state.groupHeights.colour)
+     :height 32
+     :grow 1
      :with {:slot colour
             :tabs ~[{:id "colour" :label (t "panel.colour")}
                     {:id "swatches" :label (t "panel.swatches")}
@@ -145,10 +166,8 @@
 
 (defview properties-group "The second group: the active layer's properties, and the adjustments to add." []
   `(node :use tGroup
-     :height ~(if state.collapsed.properties 32 state.groupHeights.properties)
-     :grow ~(if (and state.collapsed.layers (not state.collapsed.properties)) 1 0)
-     :shrink 1
-     :minHeight ~(if state.collapsed.properties 32 96)
+     :height 32
+     :grow 1
      :with {:slot properties
             :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
      ~(properties-panel)
@@ -156,9 +175,8 @@
 
 (defview layers-group "The third group: the layers, the channels and the paths." []
   `(node :use tGroup
-     :grow ~(if state.collapsed.layers 0 1)
      :height 32
-     :minHeight ~(if state.collapsed.layers 32 200)
+     :grow 1
      :with {:slot layers
             :tabs ~[{:id "layers" :label (t "panel.layers")}
                     {:id "channels" :label (t "panel.channels")}

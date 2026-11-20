@@ -22,6 +22,9 @@
                      (fn [acc it] {:ended (or acc.ended (<= it.depth computed.activeLayer.depth)) :layer it})
                      {:ended false}))))
 
+(defcomputed picked "The layers picked together that the image still has."
+  (let [ids (map :id state.doc.layers)] (filter #(contains ids %) state.pickedLayers)))
+
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
   (t "layer.groupName" {:n (->> state.doc.layers (filter #(= (:kind %) "group")) count inc)}))
 

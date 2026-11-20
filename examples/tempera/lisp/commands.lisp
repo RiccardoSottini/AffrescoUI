@@ -405,6 +405,12 @@
   [args]
   (image "alignLayer" :with args))
 
+(defcommand distributeLayers "Spaces the layers picked together evenly, by an edge or their middles: args.edge, which."
+  :title ~(t "command.distributeLayers") :description ~(t "command.distributeLayers.about")
+  :category ~(t "category.layer") :icon "align-horizontal-distribute-center" :enablement ~(>= (count computed.picked) 3)
+  [args]
+  (image "distributeLayers" :with {:ids computed.picked :edge args.edge}))
+
 (defcommand groupLayers "Puts the active layer in a new group."
   :title ~(t "command.groupLayers") :description ~(t "command.groupLayers.about") :category ~(t "category.layer")
   :icon "folder-input" :enablement ~(not (empty? state.doc.active))
@@ -622,6 +628,12 @@
   :icon "search"
   []
   (set "state.quickPick.open" true))
+
+(defcommand lastFilter "Applies the filter last applied again, with its values."
+  :title ~(t "command.lastFilter") :description ~(t "command.lastFilter.about") :category ~(t "category.filter")
+  :icon "repeat" :enablement ~(not (empty? state.lastFilter))
+  []
+  (image "applyFilter" :with state.lastFilter))
 
 (defcommand showAbout "Says what Tempera is."
   :title ~(t "command.showAbout") :description ~(t "command.showAbout.about") :category ~(t "category.help")

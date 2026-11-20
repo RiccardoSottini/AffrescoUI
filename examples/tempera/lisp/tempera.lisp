@@ -276,8 +276,9 @@ would."
   (if (truthy? state.filter.live) (preview-filter-now) (image "cancelFilter")))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn commitFilter "Applies the filter to the image, and closes its dialog." []
+(defn commitFilter "Applies the filter to the image, kept as the last filter, and closes its dialog." []
   (image "applyFilter" :with state.filter)
+  (set "state.lastFilter" (assoc state.filter :open false))
   (set "state.filter.open" false))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
@@ -315,14 +316,25 @@ would."
   (set (str "state.groupHeights." slot) (-> state.slide (+ event.dy) round (clamp 96 520))))
 
 (defn layout-now "The dock as it is now: what a workspace keeps." []
-  {:panels state.panels :collapsed state.collapsed :groupHeights state.groupHeights :popout state.popout})
+  {:panels state.panels
+   :collapsed state.collapsed
+   :groupHeights state.groupHeights
+   :popout state.popout
+   :groupOrder state.groupOrder})
 
 (defn use-layout "Puts the dock as a workspace keeps it." [layout]
   (set "state.panels" layout.panels)
   (set "state.collapsed" layout.collapsed)
   (set "state.groupHeights" layout.groupHeights)
   (set "state.popout" layout.popout)
+  (set "state.groupOrder" (or-else layout.groupOrder ["colour" "properties" "layers"]))
   (set "state.screenMode" :standard))
+
+(defn move-group "A group's tabs dropped onto another group's: the group dragged takes that group's place." [from onto]
+  (let [rest (filter #(not= % from) state.groupOrder)
+        at (indexOf state.groupOrder onto)]
+    (when (and (contains state.groupOrder from) (not= from onto) (>= at 0))
+      (set "state.groupOrder" (concat (slice rest 0 at) [from] (slice rest at))))))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn chooseWorkspace "Chooses a workspace: standard, painting (the colours tall, the properties folded), or one saved."
@@ -357,13 +369,28 @@ would."
   {:panels {:colour "colour" :properties "properties" :layers "layers"}
    :collapsed {:colour false :properties false :layers false}
    :groupHeights {:colour 158 :properties 236}
-   :popout {:history false :navigator false}})
+   :popout {:history false :navigator false}
+   :groupOrder ["colour" "properties" "layers"]})
 
 (def painting-layout "The painting workspace's dock: the palette tall, the properties folded."
   (assoc standard-layout
          :panels {:colour "swatches" :properties "properties" :layers "layers"}
          :collapsed {:colour false :properties true :layers false}
          :groupHeights {:colour 260 :properties 236}))
+
+(defn drop-on-layer
+  "A layer's row dropped onto another's: it takes that layer's place. A dock group dropped there does nothing."
+  [onto]
+  (when-some [id event.data.id] (moveLayer {:id id :onto onto})))
+
+(defn pick-layer
+  "A layer's row clicked: with Shift or Cmd it joins the layers picked together, or leaves them; else it alone is."
+  [args]
+  (let [before (if (empty? computed.picked) [state.doc.active] computed.picked)
+        picked (if (or event.shift event.mod) (toggled before args.id) [])
+        chosen (or (empty? picked) (contains picked args.id))]
+    (set "state.pickedLayers" picked)
+    (when chosen (selectLayer args))))
 
 (defn fold-group "Folds a group in the Layers panel, or unfolds it." [args]
   (set "state.foldedGroups" (toggled state.foldedGroups (:id args))))

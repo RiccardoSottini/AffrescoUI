@@ -153,6 +153,7 @@
 			{ "id": "sharpen", "title": "Sharpen" }, { "id": "unsharp-mask", "title": "Unsharp Mask" }, { "id": "add-noise", "title": "Add Noise" }
 		],
 		"gradientEdit": { "kind": "linear", "angle": 90, "stops": [{ "at": 0, "color": "#000000ff" }, { "at": 1, "color": "#ffffffff" }] },
+		"lastFilter": {},
 		"filter": { "open": false, "kind": "gaussian-blur", "radius": 4, "amount": 100, "threshold": 0, "angle": 0,
 		            "distance": 12, "live": true, "apply": 0, "cancel": 0 },
 		"newDoc": { "open": false, "width": 1200, "height": 800, "format": "rgba8" },
@@ -187,6 +188,8 @@
 		"screenMode": "standard",
 		"layerFilter": { "on": false, "kinds": [] },
 		"foldedGroups": [],
+		"groupOrder": ["colour", "properties", "layers"],
+		"pickedLayers": [],
 		"grouping": "",
 		"props": { "transform": true, "align": true, "actions": true },
 		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },

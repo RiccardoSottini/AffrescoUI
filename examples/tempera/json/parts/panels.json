@@ -22,7 +22,8 @@
 				"type": "column", "id": "group-{{slot}}", "width": "100%", "color": "@panel", "radius": "@kit.cardRadius",
 				"children": [
 					{ "type": "row", "id": "panel-tabs-{{slot}}", "role": "tablist", "label": "Panels", "width": "100%", "height": 32,
-					  "alignItems": "center", "arrows": "horizontal",
+					  "alignItems": "center", "arrows": "horizontal", "tooltip": "Drag these tabs onto another group's to move the group there",
+					  "drag": { "data": { "group": "{{slot}}" } }, "onDrop": { "run": "moveGroup", "with": { "args": { "from": "{{event.data.group}}", "onto": "{{slot}}" } } },
 					  "children": [
 						{ "width": 4, "height": 1, "style": "clear" },
 						{ "type": "label", "id": "panel-tab-{{t.id}}", "repeat": { "for": "t", "in": "{{tabs}}" }, "role": "tab", "label": "{{t.label}}",
@@ -127,27 +128,36 @@
 					{ "type": "column", "id": "panels", "point": "panels.dock", "role": "complementary", "label": "Panels", "width": 262, "height": "100%",
 					  "color": "transparent",
 					  "children": [
-						{ "use": "tGroup", "height": "{{state.collapsed.colour ? 32 : state.groupHeights.colour}}", "with": { "slot": "colour", "tabs": [{ "id": "colour", "label": "Colour" }, { "id": "swatches", "label": "Palette" }, { "id": "gradients", "label": "Gradients" }, { "id": "patterns", "label": "Patterns" }] }, "children": [
+						{ "type": "column", "id": "dock-place-{{place}}", "repeat": { "for": "place", "in": "state.groupOrder", "key": "{{place}}" }, "style": "clear", "width": "100%",
+						  "let": { "folded": "{{state.collapsed[place]}}", "gap": "{{place == state.groupOrder[length(state.groupOrder) - 1] ? 0 : 6}}", "open": "{{state.groupHeights[place] ?? 32}}" },
+						  "height": "{{(folded ? 32 : open) + gap}}",
+						  "grow": "{{place == 'layers' ? (folded ? 0 : 1) : place == 'properties' ? (state.collapsed.layers && !folded ? 1 : 0) : 0}}",
+						  "shrink": "{{place == 'properties' ? 1 : 0}}",
+						  "minHeight": "{{gap + (folded ? 32 : place == 'layers' ? 200 : place == 'properties' ? 96 : 32)}}",
+						  "children": [
+						{ "type": "column", "when": "{{place == 'colour'}}", "style": "clear", "width": "100%", "grow": 1, "children": [
+						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "colour", "tabs": [{ "id": "colour", "label": "Colour" }, { "id": "swatches", "label": "Palette" }, { "id": "gradients", "label": "Gradients" }, { "id": "patterns", "label": "Patterns" }] }, "children": [
 							{ "use": "temperaColour", "when": "{{state.panels.colour == 'colour'}}" },
 							{ "use": "temperaSwatches", "when": "{{state.panels.colour == 'swatches'}}" },
 							{ "use": "temperaGradients", "when": "{{state.panels.colour == 'gradients'}}" },
 							{ "id": "patterns-empty", "style": "dim", "when": "{{state.panels.colour == 'patterns'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No patterns: pattern fills aren't available yet." }
-						] },
-						{ "use": "tGroupSash", "with": { "slot": "colour" } },
-						{ "when": "{{state.collapsed.colour}}", "width": 1, "height": 6, "style": "clear" },
-						{ "use": "tGroup", "height": "{{state.collapsed.properties ? 32 : state.groupHeights.properties}}", "grow": "{{state.collapsed.layers && !state.collapsed.properties ? 1 : 0}}",
-						  "shrink": 1, "minHeight": "{{state.collapsed.properties ? 32 : 96}}", "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
+						] } ] },
+						{ "type": "column", "when": "{{place == 'properties'}}", "style": "clear", "width": "100%", "grow": 1, "children": [
+						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
 							{ "use": "temperaProperties", "when": "{{state.panels.properties == 'properties'}}" },
 							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" }
-						] },
-						{ "use": "tGroupSash", "with": { "slot": "properties" } },
-						{ "when": "{{state.collapsed.properties}}", "width": 1, "height": 6, "style": "clear" },
-						{ "use": "tGroup", "grow": "{{state.collapsed.layers ? 0 : 1}}", "height": 32, "minHeight": "{{state.collapsed.layers ? 32 : 200}}", "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
+						] } ] },
+						{ "type": "column", "when": "{{place == 'layers'}}", "style": "clear", "width": "100%", "grow": 1, "children": [
+						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
 							{ "use": "temperaPaths", "when": "{{state.panels.layers == 'paths'}}" }
+						] } ] },
+						{ "when": "{{gap > 0}}", "style": "clear", "width": "100%", "height": 6, "children": [
+							{ "when": "{{place != 'layers'}}", "style": "clear", "width": "100%", "height": 6, "children": [{ "use": "tGroupSash", "with": { "slot": "{{place}}" } }] }
 						] }
+						  ] }
 					  ] },
 					{ "type": "column", "id": "panel-icons", "role": "toolbar", "label": "Collapsed panels", "width": 36, "height": "100%",
 					  "color": "@panel", "radius": "@kit.cardRadius", "alignItems": "center", "gap": 2,
@@ -307,7 +317,7 @@
 						  "max": 200, "unit": " px", "width": 48, "pop": false, "run": "editContent" } }
 					] },
 					{ "id": "shape-rasterize", "use": "tButton", "when": "{{computed.activeLayer.kind == 'shape'}}", "with": { "title": "Rasterize Layer", "run": "rasterizeLayer" } },
-					{ "type": "column", "id": "properties-sections", "when": "{{!computed.adjustment}}", "width": "100%", "height": 300, "gap": 4,
+					{ "type": "column", "id": "properties-sections", "when": "{{!computed.adjustment}}", "width": "100%", "height": 328, "gap": 4,
 					  "children": [
 						{ "id": "section-transform", "use": "tSection", "with": { "title": "Transform", "key": "transform" } },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 10, "alignItems": "center",
@@ -340,6 +350,13 @@
 							{ "id": "align-{{a.edge}}", "use": "tIcon",
 							  "repeat": { "for": "a", "in": "{{[{icon: 'align-start-vertical', edge: 'left', title: 'left edges'}, {icon: 'align-center-vertical', edge: 'center', title: 'horizontal centres'}, {icon: 'align-end-vertical', edge: 'right', title: 'right edges'}, {icon: 'align-start-horizontal', edge: 'top', title: 'top edges'}, {icon: 'align-center-horizontal', edge: 'middle', title: 'vertical centres'}, {icon: 'align-end-horizontal', edge: 'bottom', title: 'bottom edges'}]}}" }, "with": { "icon": "{{a.icon}}", "tip": "Align {{a.title}} with the {{state.doc.selection ? 'selection' : 'image'}}", "run": "alignActive",
 							  "args": { "edge": "{{a.edge}}" }, "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
+						  ] },
+						{ "type": "row", "id": "distribute-icons", "when": "{{state.props.align}}", "width": "100%", "height": 24, "gap": 2,
+						  "children": [
+							{ "id": "distribute-{{a.edge}}", "use": "tIcon",
+							  "repeat": { "for": "a", "in": "{{[{icon: 'align-horizontal-distribute-start', edge: 'left', title: 'left edges'}, {icon: 'align-horizontal-distribute-center', edge: 'center', title: 'horizontal centres'}, {icon: 'align-horizontal-distribute-end', edge: 'right', title: 'right edges'}, {icon: 'align-vertical-distribute-start', edge: 'top', title: 'top edges'}, {icon: 'align-vertical-distribute-center', edge: 'middle', title: 'vertical centres'}, {icon: 'align-vertical-distribute-end', edge: 'bottom', title: 'bottom edges'}]}}" },
+							  "with": { "icon": "{{a.icon}}", "tip": "{{count(computed.picked) >= 3 ? 'Distribute the ' + a.title + ' of the picked layers evenly' : 'Shift-click three layers or more to distribute them'}}", "run": "distributeLayers",
+							  "args": { "edge": "{{a.edge}}" }, "off": "{{count(computed.picked) < 3}}" } }
 						  ] },
 						{ "width": "100%", "height": 1, "color": "@border" },
 						{ "id": "section-actions", "use": "tSection", "with": { "title": "Quick Actions", "key": "actions" } },
@@ -465,12 +482,12 @@
 					{ "type": "column", "id": "layer-rows", "role": "list", "label": "Layers", "width": "100%", "grow": 1, "scroll": "vertical",
 					  "children": [
 						{ "type": "row", "id": "layer-{{layer.id}}", "repeat": { "for": "layer", "in": "computed.layerRows", "key": "{{layer.id}}" },
-						  "role": "listitem", "label": "{{layer.name}}", "selected": "{{layer.id == state.doc.active}}", "anchors": { "left": 4, "right": 4 }, "height": 36,
+						  "role": "listitem", "label": "{{layer.name}}", "selected": "{{layer.id == state.doc.active || contains(computed.picked, layer.id)}}", "anchors": { "left": 4, "right": 4 }, "height": 36,
 						  "alignItems": "center", "gap": 5, "cursor": "hand", "radius": "@kit.radius",
-						  "color": "{{layer.id == state.doc.active ? '@selected' : 'transparent'}}", "hover": { "color": "@hover" },
+						  "color": "{{layer.id == state.doc.active || contains(computed.picked, layer.id) ? '@selected' : 'transparent'}}", "hover": { "color": "@hover" },
 						  "drag": { "data": { "id": "{{layer.id}}" } },
-						  "onDrop": { "run": "moveLayer", "with": { "args": { "id": "{{event.data.id}}", "onto": "{{layer.id}}" } } },
-						  "onClick": { "run": "selectLayer", "with": { "args": { "id": "{{layer.id}}" } } },
+						  "onDrop": [{ "when": "{{event.data.id != null}}", "run": "moveLayer", "with": { "args": { "id": "{{event.data.id}}", "onto": "{{layer.id}}" } } }],
+						  "onClick": { "run": "pickLayer", "with": { "args": { "id": "{{layer.id}}" } } },
 						  "children": [
 							{ "width": 3, "height": 22, "radius": 2, "color": "{{layer.id == state.doc.active ? '@accent' : 'transparent'}}" },
 							{ "type": "label", "id": "layer-eye-{{layer.id}}", "role": "button", "label": "Visibility of {{layer.name}}",

@@ -159,6 +159,9 @@
 
 (defstate collapsed {:colour false :properties false :layers false} "The dock's groups folded to their tabs.")
 
+(defstate groupOrder ["colour" "properties" "layers"]
+  "The dock's groups from the top: a group's tabs dragged onto another group's take its place.")
+
 (defstate groupHeights {:colour 158 :properties 236}
   "The heights of the dock's first two groups, that the sash under each drags; the Layers group takes the rest.")
 
@@ -173,6 +176,9 @@
 (defstate layerFilter {:on false :kinds []} "The Layers panel's filter: on, and the kinds of layer it shows.")
 
 (defstate foldedGroups [] "The groups folded in the Layers panel.")
+
+(defstate pickedLayers []
+  "The layers picked together in the Layers panel (Shift or Cmd and a click): what Distribute spaces.")
 
 (defstate grouping "" "The layer being grouped or ungrouped, while a command moves it.")
 
@@ -191,6 +197,8 @@
 (defstate quickPick {:open false :query "" :index 0 :top 0 :recent []} "The command search.")
 
 ;;; The dialogs
+
+(defstate lastFilter {} "The filter last applied, with its values: Filter > Last Filter applies it again.")
 
 (defstate filter
   {:open false :kind gaussian-blur :radius 4 :amount 100 :threshold 0 :angle 0 :distance 12 :live true :apply 0

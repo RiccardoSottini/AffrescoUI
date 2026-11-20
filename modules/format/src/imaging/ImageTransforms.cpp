@@ -1,7 +1,7 @@
 /// @file
 /// @brief format::editing: the "image" step's geometry and merges: canvasSize, imageSize, rotateCanvas, flipCanvas,
-/// transformLayer, transformSelection, alignLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's
-/// copy, cut, paste and clear.
+/// transformLayer, transformSelection, alignLayer, distributeLayers, mergeDown, mergeVisible, flatten, deleteHidden,
+/// and the clipboard's copy, cut, paste and clear.
 ///
 /// A change of the image's size makes a new document and forgets the history, as crop does; a change that keeps the
 /// size (a flip, a half turn, a layer's transform, the merges) is one undoable step.
@@ -498,6 +498,58 @@ void alignLayer(ImageDocument& image, const json& with, Window*) {
 	transform(image, {{"id", std::to_string(id)}, {axis == 0 ? "x" : "y", move}}, "Align Layer");
 }
 
+/// @brief distributeLayers: spaces three or more pixel layers evenly, as one step: the boxes around their pixels keep
+/// the outermost two where they are, and the others' edges (or middles) come at equal steps between them.
+/// @param image The image.
+/// @param with ids (the layers, as ids), edge ("left", "center", "right", "top", "middle" or "bottom").
+/// @throws DocumentError If the edge is unknown, fewer than three layers are given, or one can't be moved.
+void distributeLayers(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	imaging::Document& document = image.canvas->document();
+	const std::string edge = textOf(with, "edge", "left");
+	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
+	const auto found = std::ranges::find(edges, edge);
+	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
+	const auto index = static_cast<std::size_t>(found - edges.begin());
+	const std::size_t axis = index < 3 ? 0 : 1, where = index % 3;
+	struct Placed {
+		std::uint64_t pixels = 0; ///< The layer's image.
+		double at = 0.0;          ///< Its edge or middle on the axis.
+	};
+	std::vector<Placed> placed;
+	const json ids = with.contains("ids") && with.at("ids").is_array() ? with.at("ids") : json::array();
+	for(const json& each : ids) {
+		const std::uint64_t id = layerOf(image, {{"id", each.is_string() ? each.get<std::string>() : each.dump()}});
+		if(std::ranges::any_of(placed, [&](const Placed& p) { return p.pixels == document.layer(id)->pixels; }))
+			continue;
+		const imaging::Layer& layer = *document.layer(id);
+		if(layer.kind != imaging::LayerKind::pixel || layer.content.kind != imaging::ContentKind::none)
+			throw DocumentError("Distribute pixel layers");
+		if(layer.locks.position || layer.locks.all) throw DocumentError("A layer's position is locked");
+		const auto box = contentBox(*document.image(layer.pixels));
+		if(!box) continue;
+		const double start = (*box)[axis], end = (*box)[axis + 2];
+		placed.push_back({layer.pixels, where == 0 ? start : where == 2 ? end : (start + end) / 2.0});
+	}
+	if(placed.size() < 3) throw DocumentError("Distribute three layers or more");
+	std::ranges::stable_sort(placed, {}, &Placed::at);
+	const double first = placed.front().at, step = (placed.back().at - first) / static_cast<double>(placed.size() - 1);
+	std::vector<std::pair<std::uint64_t, std::shared_ptr<imaging::Image>>> moved;
+	for(std::size_t i = 1; i + 1 < placed.size(); ++i) {
+		const double move = std::round(first + step * static_cast<double>(i) - placed[i].at);
+		if(move == 0.0) continue;
+		const imaging::Image& old = *document.image(placed[i].pixels);
+		const Mapping mapping =
+		    axis == 0 ? Mapping{1.0, 0.0, -move, 0.0, 1.0, 0.0} : Mapping{1.0, 0.0, 0.0, 0.0, 1.0, -move};
+		moved.emplace_back(placed[i].pixels,
+		                   remapped(old, old.width(), old.height(), old.format(), {mapping}, image.limits));
+	}
+	if(moved.empty()) return;
+	document.changeStructure("Distribute Layers", [&](imaging::Structure& changed) {
+		for(const auto& [pixels, made] : moved) changed.images[pixels] = made;
+	});
+}
+
 /// @brief The list of a layer's siblings in a structure.
 /// @param structure The structure.
 /// @param parent The parent's id, or 0 for the top.
@@ -868,6 +920,10 @@ std::vector<ImageOperation> transformOperations() {
 		 {"id", "edge"},
 		 "Lines a pixel layer up with an edge or the middle of the selection, or of the image.",
 		 alignLayer},
+	    {"distributeLayers",
+		 {"ids", "edge"},
+		 "Spaces three or more pixel layers evenly between the outermost two, by their edges or middles.",
+		 distributeLayers},
 	    {"mergeDown", {"id"}, "Merges a layer into the pixel layer below it.", mergeDown},
 	    {"mergeVisible", {}, "Merges the visible layers into one.", mergeVisible},
 	    {"flatten", {"background"}, "Merges every visible layer into one and discards the hidden ones.", flatten},

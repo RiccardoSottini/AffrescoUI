@@ -232,7 +232,7 @@
 ;;; A pixel layer's sections
 
 (defview layer-sections "A pixel layer's sections, each folding: Transform, Align and Distribute, Quick Actions." []
-  `(column#properties-sections :when ~(not computed.adjustment) :width "100%" :height 300 :gap 4
+  `(column#properties-sections :when ~(not computed.adjustment) :width "100%" :height 328 :gap 4
      (node#section-transform :use tSection :with {:title ~(t "section.transform") :key transform})
      ~@(transform-fields)
      (node :width "100%" :height 1 :color @border)
@@ -244,6 +244,13 @@
        ~(align-icon "align-start-horizontal" "top")
        ~(align-icon "align-center-horizontal" "middle")
        ~(align-icon "align-end-horizontal" "bottom"))
+     (row#distribute-icons :when ~state.props.align :width "100%" :height 24 :gap 2
+       ~(distribute-icon "align-horizontal-distribute-start" "left")
+       ~(distribute-icon "align-horizontal-distribute-center" "center")
+       ~(distribute-icon "align-horizontal-distribute-end" "right")
+       ~(distribute-icon "align-vertical-distribute-start" "top")
+       ~(distribute-icon "align-vertical-distribute-center" "middle")
+       ~(distribute-icon "align-vertical-distribute-end" "bottom"))
      (node :width "100%" :height 1 :color @border)
      (node#section-actions :use tSection :with {:title ~(t "section.actions") :key actions})
      (column#quick-actions :when ~state.props.actions :width "100%" :height 76 :gap 4
@@ -303,6 +310,18 @@
             :run alignActive
             :args {:edge ~edge}
             :off ~(not= computed.activeLayer.kind "pixel")}))
+
+(defview distribute-icon "A distribute icon: the layers picked together spaced evenly by an edge, or their middles."
+  [icon edge]
+  `(node :id ~(str "distribute-" edge)
+     :use tIcon
+     :with {:icon ~icon
+            :tip ~(if (>= (count computed.picked) 3)
+                    (t "distribute.tip" {:edges (t (str "align.edge." edge))})
+                    (t "distribute.pick"))
+            :run distributeLayers
+            :args {:edge ~edge}
+            :off ~(< (count computed.picked) 3)}))
 
 ;;; The Adjust panel
 

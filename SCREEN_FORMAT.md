@@ -1504,6 +1504,7 @@ The operations, and the keys of `with` each reads:
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
 | `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `distributeLayers` | `ids`, `edge` | Spaces three or more pixel layers evenly between the outermost two, by their edges or middles. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
 | `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |

@@ -92,7 +92,8 @@
    :ungroup {:run ungroupLayers :group "5_group" :order 2}
    :arrange {:submenu arrange :title ~(t "menu.layer.arrange") :group "6_arrange" :order 1}
    :align {:submenu layerAlign :title ~(t "menu.layer.align") :group "6_arrange" :order 2}
-   :lock {:run toggleLockAll :title ~(t "menu.layer.lock") :group "6_arrange" :order 3}
+   :distribute {:submenu layerDistribute :title ~(t "menu.layer.distribute") :group "6_arrange" :order 3}
+   :lock {:run toggleLockAll :title ~(t "menu.layer.lock") :group "6_arrange" :order 4}
    :rasterize {:run rasterizeLayer :title ~(t "menu.layer.rasterize") :group "7_merge" :order 1}
    :mergeDown {:run mergeDown :group "7_merge" :order 2}
    :mergeVisible {:run mergeVisible :group "7_merge" :order 3}
@@ -112,6 +113,19 @@
    :top {:run alignActive :with {:args {:edge top}} :title ~(t "menu.layerAlign.top") :group "2_down" :order 1}
    :middle {:run alignActive :with {:args {:edge middle}} :title ~(t "menu.layerAlign.middle") :group "2_down" :order 2}
    :bottom {:run alignActive :with {:args {:edge bottom}}
+            :title ~(t "menu.layerAlign.bottom") :group "2_down" :order 3}})
+
+(defmenu layerDistribute "Layer > Distribute: the layers picked together spaced evenly by an edge, or their middles."
+  {:left {:run distributeLayers :with {:args {:edge left}}
+          :title ~(t "menu.layerAlign.left") :group "1_across" :order 1}
+   :center {:run distributeLayers :with {:args {:edge center}}
+            :title ~(t "menu.layerAlign.center") :group "1_across" :order 2}
+   :right {:run distributeLayers :with {:args {:edge right}}
+           :title ~(t "menu.layerAlign.right") :group "1_across" :order 3}
+   :top {:run distributeLayers :with {:args {:edge top}} :title ~(t "menu.layerAlign.top") :group "2_down" :order 1}
+   :middle {:run distributeLayers :with {:args {:edge middle}}
+            :title ~(t "menu.layerAlign.middle") :group "2_down" :order 2}
+   :bottom {:run distributeLayers :with {:args {:edge bottom}}
             :title ~(t "menu.layerAlign.bottom") :group "2_down" :order 3}})
 
 (defmenu layerDelete "Layer > Delete."
@@ -184,7 +198,8 @@
    :quickMask {:run toggleQuickMask :title ~(t "menu.select.quickMask") :group "4_mask"}})
 
 (defmenu filter "The Filter menu: its kinds of filter."
-  {:blur {:submenu blurFilters :title ~(t "menu.filter.blur") :group "2_kinds" :order 1}
+  {:last {:run lastFilter :group "1_last"}
+   :blur {:submenu blurFilters :title ~(t "menu.filter.blur") :group "2_kinds" :order 1}
    :noise {:submenu noiseFilters :title ~(t "menu.filter.noise") :group "2_kinds" :order 2}
    :sharpen {:submenu sharpenFilters :title ~(t "menu.filter.sharpen") :group "2_kinds" :order 3}})
 

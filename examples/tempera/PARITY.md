@@ -32,7 +32,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Dark grey pasteboard, checkerboard for transparency | done | |
 | Status bar: zoom field and document size | done | One information item at a time, chosen from its › menu |
 | Search (commands), workspace switcher, screen modes | done | Searches the commands, the tools and the layers; Standard and Painting workspaces, Save Workspace keeps the dock's tabs, folds, heights and pop-outs (kept between runs), Delete and Reset; also in Window > Workspace; standard and full screen with menu bar |
-| Panels docked right in tabbed groups, collapsible to icons | partial | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it) and the sash under the first two drags their height; groups can't be dragged to another place |
+| Panels docked right in tabbed groups, collapsible to icons | done | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it), the sash under a group drags its height, and a group's tabs dragged onto another group's move the group there (a saved workspace keeps the order) |
 | Light and dark interface, locales, keyboard focus, accessible names | partial | Keep and extend every round |
 
 ## Panels
@@ -43,7 +43,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Layers: filter by kind | done | Pixel, adjustment, group, type and shape filters; a type layer shows a T for its thumbnail |
 | Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Group Layers (Cmd+G) and Ungroup (Shift+Cmd+G); the chevron folds a group; no fx |
 | Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
-| Properties (context-sensitive) | partial | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Quick Actions; adjustment controls; no Distribute |
+| Properties (context-sensitive) | done | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Shift or Cmd and a click pick layers together, and the Distribute icons (and Layer > Distribute) space three or more by their edges or middles, as one step; Quick Actions; adjustment controls |
 | Adjustments (icon grid) | done | |
 | History (states and snapshots) | partial | States only, no snapshots |
 | Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
@@ -89,7 +89,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Curves | partial | The tones show behind the curve; one curve for all channels |
 | Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; no Colorize or colour ranges |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
-| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; not every filter |
+| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; Filter > Last Filter (Alt+Cmd+F) applies the last one again with its values; not every filter |
 
 ## Image and file
 
@@ -104,7 +104,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Undo/redo with the History panel | done | |
 | Copy, cut, paste, clear; layer via copy and via cut | done | Through the image's clipboard; paste centres a new layer |
 | Rename, align and arrange layers | done | Rename from a dialog; align to the selection or the image |
-| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I) and fills; not every menu command has its key |
+| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I), fills, F6 and F7 (Colour, Layers), Cmd+; (guides), Alt+Cmd+F (Last Filter) and F1; a few menu commands still have no key |
 | Assistant chat add-on (shared) | done | The shared add-on, in Tempera's colours |
 
 ## Left for later
@@ -120,12 +120,10 @@ general feature the image step or a node needs first.
 | Pen: add, delete and convert anchors in a path's middle; Type > Create Work Path | P2 | Library: anchor editing in the pen gesture; glyph outlines as paths (the font's outlines through FreeType) |
 | Character: font family, tracking, kerning; type on a path | P3 | Library: more `LayerContent` text keys, a document font list |
 | Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
-| Panels: drag a group to another place | P3 | JSON: an order for the groups (a grid row per group), and a drop on a group's tabs |
 | Light and dark interface, locales, focus, names | P2 | JSON: a light token set, and keep each new control named and focusable |
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
 | Layers: link button | P3 | Library: linked layers that move and transform together |
-| Properties: Distribute | P3 | Library: several selected layers at once (multi-select in the image step) |
 | History snapshots | P2 | Library: named snapshots kept in the image's history |
 | Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
 | Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |

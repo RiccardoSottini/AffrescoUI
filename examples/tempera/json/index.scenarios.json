@@ -1405,6 +1405,111 @@
 			]
 		},
 		{
+			"name": "tempera-last-filter-and-panel-keys",
+			"note": "Filter > Last Filter (Alt+Cmd+F) applies the filter last applied again; F7 and F6 bring the Layers and Colour panels forward, Cmd+; shows or hides the guides, F1 says what Tempera is",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showFilter",
+						"args": {
+							"kind": "unsharp-mask"
+						}
+					}
+				},
+				{
+					"action": "commitFilter"
+				},
+				{
+					"expect": {
+						"state": "lastFilter.kind",
+						"is": "unsharp-mask"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				},
+				{
+					"key": "mod+alt+f"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showPanel",
+						"args": {
+							"slot": "layers",
+							"id": "channels"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showPanel",
+						"args": {
+							"slot": "colour",
+							"id": "swatches"
+						}
+					}
+				},
+				{
+					"key": "f7"
+				},
+				{
+					"expect": {
+						"state": "panels.layers",
+						"is": "layers"
+					}
+				},
+				{
+					"key": "f6"
+				},
+				{
+					"expect": {
+						"state": "panels.colour",
+						"is": "colour"
+					}
+				},
+				{
+					"key": "mod+semicolon"
+				},
+				{
+					"expect": {
+						"state": "view.guides",
+						"is": false
+					}
+				},
+				{
+					"key": "f1"
+				},
+				{
+					"expect": {
+						"state": "about",
+						"is": true
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-zoom",
 			"note": "Zoom keys and the status bar",
 			"steps": [
@@ -1770,9 +1875,9 @@
 				{
 					"propose": {
 						"author": "agent",
-						"message": "Add a Filters panel: one button per filter, above the Layers panel",
+						"message": "Add a Filters panel: one button per filter, under the panel groups",
 						"add": {
-							"#panels/children/3": {
+							"#panels/children/1": {
 								"type": "column",
 								"id": "filter-panel",
 								"role": "region",
@@ -1847,7 +1952,7 @@
 									}
 								]
 							},
-							"#panels/children/4": {
+							"#panels/children/2": {
 								"id": "filter-panel-split",
 								"width": "100%",
 								"height": 1,
@@ -3044,6 +3149,102 @@
 					"expect": {
 						"state": "doc.canUndo",
 						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-distribute",
+			"note": "Shift and a click pick the sample's three layers together; Properties' Distribute icons and Layer > Distribute space them evenly as one step; a plain click picks one again",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sky"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sun"
+					},
+					"mods": "shift"
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Hills"
+					},
+					"mods": "shift"
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 3
+					}
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Properties panel is shorter: its Distribute row needs a scroll",
+					"scroll": "#properties",
+					"dy": -40
+				},
+				{
+					"click": "#distribute-left"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Distribute Layers"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Distribute"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Top Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Distribute Layers"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sun"
+					},
+					"mods": "shift"
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 2
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sky"
+					}
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 0
 					}
 				}
 			]
@@ -5618,6 +5819,87 @@
 					"expect": {
 						"state": "panels.properties",
 						"is": "properties"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-dock-group-move",
+			"note": "A group's tabs dragged onto another group's move the group there; a saved workspace keeps the order, and the standard one puts it back",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"drag": "#panel-tabs-layers",
+					"to": "#panel-tabs-colour"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "layers"
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[2]",
+						"is": "properties"
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-rows",
+						"exists": true
+					}
+				},
+				{
+					"drag": "#panel-tabs-colour",
+					"to": "#panel-tabs-properties"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[1]",
+						"is": "properties"
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[2]",
+						"is": "colour"
+					}
+				},
+				{
+					"action": "saveWorkspace"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "chooseWorkspace",
+						"args": {
+							"name": "standard"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "colour"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "chooseWorkspace",
+						"args": {
+							"name": "Workspace 1"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "layers"
 					}
 				}
 			]
