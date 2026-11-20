@@ -65,7 +65,7 @@
 		],
 		"inkRelease": [
 			{ "if": "{{state.inkTool != 'eraser' && length(state.stroke) > 1}}", "then": [
-				{ "run": "addInk", "with": {
+				{ "run": "addStroke", "with": {
 					"pad": "{{computed.strokeWidth / 2 + 1}}",
 					"left": "{{min(map(state.stroke, it[0]))}}", "top": "{{min(map(state.stroke, it[1]))}}",
 					"right": "{{max(map(state.stroke, it[0]))}}", "bottom": "{{max(map(state.stroke, it[1]))}}" } }
@@ -207,10 +207,7 @@
 						{ "id": "b-ink-clear", "use": "rbBig", "with": { "icon": "brush-cleaning", "title": "Clear\nInk", "width": 46, "enabled": "{{computed.slideInk > 0}}" },
 						  "tooltip": "Delete every stroke on this slide", "onClick": "clearInk" }
 					] },
-					{ "id": "g-ink-convert", "use": "rbGroup", "with": { "title": "Convert" }, "children": [
-						{ "id": "b-ink-shape", "use": "rbBig", "with": { "icon": "shapes", "title": "Ink to\nShape", "width": 46, "enabled": false }, "tooltip": "Turning ink into shapes isn't available yet" },
-						{ "id": "b-ink-replay", "use": "rbBig", "with": { "icon": "history", "title": "Ink\nReplay", "width": 46, "enabled": false }, "tooltip": "Replaying ink isn't available yet" }
-					] }
+					{ "use": "inkConvert" }
 				]
 			}
 		},

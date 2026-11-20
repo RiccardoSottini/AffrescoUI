@@ -50,7 +50,7 @@
 					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
 					  "textColor": "{{ink}}", "runs": [{ "icon": "{{o.icon ?? 'star'}}", "size": "{{min(box.w, box.h) * 0.9}}" }] },
 					{ "type": "path", "id": "{{prefix + o.id + '-ink'}}", "when": "{{o.kind == 'ink'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}",
-					  "d": "{{o.d ?? ''}}", "viewBox": "{{'0 0 ' + (o.vw ?? box.w) + ' ' + (o.vh ?? box.h)}}", "fit": "fill",
+					  "d": "{{!edit || !computed.replaying || indexOf(computed.inkIds, o.id) < 0 ? o.d ?? '' : clamp(state.inkReplay.clock - indexOf(computed.inkIds, o.id), 0, 1) == 0 ? '' : join(slice(split(o.d ?? '', ' L '), 0, max(2, ceil(clamp(state.inkReplay.clock - indexOf(computed.inkIds, o.id), 0, 1) * length(split(o.d ?? '', ' L '))))), ' L ')}}", "viewBox": "{{'0 0 ' + (o.vw ?? box.w) + ' ' + (o.vh ?? box.h)}}", "fit": "fill",
 					  "stroke": "{{o.color ?? '#1f2933'}}", "strokeWidth": "{{o.width ?? 3}}", "strokeCap": "round", "strokeJoin": "round" },
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
