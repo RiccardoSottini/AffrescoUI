@@ -125,6 +125,7 @@
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap
      :find ~computed.findQuery
+     :insert ~state.snippetInsert
      :bind "state.files[open].text"
      :caret state.caret
      :autofocus true

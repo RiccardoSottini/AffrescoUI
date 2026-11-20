@@ -62,6 +62,19 @@
 		"layout": "row",
 		"splitSizes": [],
 		"indentPick": { "open": false, "query": "" },
+		"snippets": {
+			"C++": [{ "prefix": "class", "text": "class Name {\npublic:\n\tName();\n\nprivate:\n};" }, { "prefix": "for", "text": "for(std::size_t i = 0; i < count; ++i) {\n\t\n}" }, { "prefix": "if", "text": "if(condition) {\n\t\n}" }, { "prefix": "include", "text": "#include <header>" }, { "prefix": "main", "text": "int main(int argc, char** argv) {\n\treturn 0;\n}" }, { "prefix": "namespace", "text": "namespace name {\n\n} // namespace name" }],
+			"CMake": [{ "prefix": "executable", "text": "add_executable(name main.cpp)" }, { "prefix": "library", "text": "add_library(name STATIC source.cpp)" }, { "prefix": "link", "text": "target_link_libraries(name PRIVATE dependency)" }],
+			"JSON": [{ "prefix": "object", "text": "{\n\t\"key\": \"value\"\n}" }],
+			"JavaScript": [{ "prefix": "function", "text": "function name(args) {\n\t\n}" }, { "prefix": "for", "text": "for (const item of items) {\n\t\n}" }],
+			"TypeScript": [{ "prefix": "function", "text": "function name(args: unknown): void {\n\t\n}" }, { "prefix": "interface", "text": "interface Name {\n\tkey: string;\n}" }],
+			"Markdown": [{ "prefix": "code", "text": "```\ncode\n```" }, { "prefix": "heading", "text": "## Heading" }, { "prefix": "link", "text": "[text](https://example.com)" }, { "prefix": "table", "text": "| Column | Column |\n|---|---|\n| Cell | Cell |" }],
+			"Python": [{ "prefix": "def", "text": "def name(args):\n\tpass" }, { "prefix": "for", "text": "for item in items:\n\tpass" }, { "prefix": "main", "text": "if __name__ == \"__main__\":\n\tmain()" }],
+			"Shell": [{ "prefix": "for", "text": "for item in \"$@\"; do\n\techo \"$item\"\ndone" }, { "prefix": "if", "text": "if [ -f \"$file\" ]; then\n\techo found\nfi" }]
+		},
+		"snippetPick": { "open": false, "query": "" },
+		"snippetInsert": null,
+		"snippetRequest": 0,
 		"wrap": false,
 		"ruler": false,
 		"findBar": { "open": false, "replacing": false, "inFiles": false, "where": "", "scope": [], "text": "", "replace": "", "regex": false, "wholeWord": false, "caseSensitive": false, "inSelection": false, "step": "first", "request": 0 },
@@ -169,6 +182,7 @@
 		"settingsText": "{{'{\\n\\t// Quaderno settings: save this file (Cmd+S) to apply them.\\n\\t// theme: \"dark\", \"light\" or \"system\"\\n\\t\"theme\": ' + json(state.theme) + ',\\n\\t\"wordWrap\": ' + json(state.wrap) + ',\\n\\t\"ruler\": ' + json(state.ruler) + ',\\n\\t\"minimap\": ' + json(state.minimap) + ',\\n\\t\"sideBar\": ' + json(state.sidebarOpen) + '\\n}\\n'}}",
 		"keysText": "{{'// Quaderno key bindings (read only): the keys section of the screen\\n[\\n' + join(map(filter(commands, it.key), '\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), ',\\n') + '\\n]\\n'}}",
 		"indentations": "{{map([2, 4, 8], { title: 'Spaces: ' + it, size: it, detail: it == (computed.file.tabSize ?? 4) ? 'Current' : '' })}}",
+		"snippetItems": "{{map(state.snippets[computed.file.language ?? ''] ?? [], { title: it.prefix, detail: split(it.text, '\\n')[0], text: it.text })}}",
 		"findSummary": "{{empty(state.findBar.text) ? '' : computed.findMatches == 0 ? 'No results' : plural(computed.findMatches, 'match', 'matches')}}"
 	},
 
@@ -220,6 +234,7 @@
 			"indent": { "run": "indentLines", "group": "1_line", "order": 6 },
 			"outdent": { "run": "outdentLines", "group": "1_line", "order": 7 },
 			"comment": { "run": "toggleComment", "group": "2_comment" },
+			"snippet": { "run": "insertSnippet", "group": "2_comment", "order": 2 },
 			"sort": { "run": "sortLines", "group": "3_text" },
 			"reverse": { "run": "reverseLines", "group": "3_text", "order": 2 },
 			"unique": { "run": "uniqueLines", "group": "3_text", "order": 3 },
@@ -694,6 +709,18 @@
 		"selectIndentation": { "title": "Indentation", "category": "View", "icon": "indent", "enablement": "{{state.active >= 0}}",
 			"description": "Picks how many spaces an indentation level is, for the file shown.",
 			"do": [{ "set": "state.indentPick", "to": { "open": true, "query": "" } }] },
+		"insertSnippet": { "title": "Insert Snippet…", "category": "Edit", "icon": "braces", "enablement": "{{state.active >= 0 && !(computed.file.readOnly ?? false)}}",
+			"description": "Inserts a snippet of the file's language at the caret; a prefix just typed becomes its snippet.",
+			"do": [{ "set": "state.snippetPick", "to": { "open": true, "query": "" } }] },
+		"insertSnippetItem": [
+			{ "note": "with: item, a row of computed.snippetItems; the text before the caret is handed on" },
+			{ "run": "sendSnippet", "with": { "item": "{{item}}", "before": "{{slice(split(state.files[state.active].text, '\\n')[state.caret.line - 1] ?? '', 0, state.caret.column - 1)}}" } }
+		],
+		"sendSnippet": [
+			{ "note": "with: item, before; the editor inserts the snippet, its prefix replaced when just typed before the caret" },
+			{ "set": "state.snippetRequest", "to": "{{state.snippetRequest + 1}}" },
+			{ "set": "state.snippetInsert", "to": { "text": "{{item.text}}", "before": "{{length(before) >= length(item.title) && slice(before, length(before) - length(item.title)) == item.title ? length(item.title) : 0}}", "request": "{{state.snippetRequest}}" } }
+		],
 		"setIndentation": [{ "note": "with: item, a row of computed.indentations" }, { "set": "state.files[state.active].tabSize", "to": "{{item.size}}" }]
 	},
 
@@ -952,6 +979,7 @@
 										"rulers": "{{state.ruler ? [80] : []}}",
 										"wrap": "{{state.wrap}}",
 										"find": "{{computed.findQuery}}",
+										"insert": "{{state.snippetInsert}}",
 										"bind": "state.files[open].text",
 										"caret": "state.caret",
 										"autofocus": true,
@@ -970,7 +998,10 @@
 											{ "set": "state.caret", "to": { "line": 1, "column": 1, "selected": 0 } },
 											{ "forEach": "{{state.place ? [state.place] : []}}", "as": "place", "do": [{ "set": "state.place", "to": null }, { "run": "goToPlace", "with": { "item": "{{place}}" } }] }
 										],
-										"onChange": { "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" },
+										"onChange": [
+											{ "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" },
+											{ "if": "{{state.snippetInsert != null}}", "then": [{ "set": "state.snippetInsert", "to": null }] }
+										],
 										"onContextMenu": { "set": "state.editorMenu", "to": { "open": true, "x": "{{min(event.x, event.x - event.left + event.width - 240)}}", "y": "{{min(event.y, event.y - event.top + event.height - 204)}}" } },
 										"onDoubleClick": { "if": "{{state.files[open].scratch}}", "then": [{ "run": "openResult", "with": { "line": "{{state.caret.line}}" } }] }
 									},
@@ -1458,6 +1489,21 @@
 					"highlight": "@rowSelected",
 					"field": "@input",
 					"providers": [{ "items": "{{computed.indentations}}", "run": "setIndentation", "placeholder": "Select the indentation of the file" }]
+				}
+			},
+			{
+				"id": "snippetPick",
+				"when": "{{state.snippetPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"name": "snippetPick",
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@rowSelected",
+					"field": "@input",
+					"providers": [{ "items": "{{computed.snippetItems}}", "run": "insertSnippetItem", "placeholder": "Select a snippet: its prefix, typed before the caret, is replaced" }]
 				}
 			}
 		]

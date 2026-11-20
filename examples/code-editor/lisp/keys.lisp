@@ -31,6 +31,7 @@
    :indent {:run indentLines :group "1_line" :order 6}
    :outdent {:run outdentLines :group "1_line" :order 7}
    :comment {:run toggleComment :group "2_comment"}
+   :snippet {:run insertSnippet :group "2_comment" :order 2}
    :sort {:run sortLines :group "3_text"}
    :reverse {:run reverseLines :group "3_text" :order 2}
    :unique {:run uniqueLines :group "3_text" :order 3}

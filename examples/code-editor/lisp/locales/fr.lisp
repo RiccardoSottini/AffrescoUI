@@ -226,4 +226,7 @@
                 :ui.current "Actuel"
                 :ui.selectIndentation "Choisissez le retrait du fichier"
                 :ui.openToTheSide "Ouvrir sur le côté"
-                :status.problems "{errors, plural, one {# erreur} other {# erreurs}}, {warnings, plural, one {# avertissement} other {# avertissements}}"}}}
+                :status.problems "{errors, plural, one {# erreur} other {# erreurs}}, {warnings, plural, one {# avertissement} other {# avertissements}}"
+                :command.insertSnippet "Insérer un extrait…"
+                :command.insertSnippet.about "Insère un extrait du langage du fichier au curseur ; un préfixe tout juste tapé devient son extrait."
+                :ui.selectASnippet "Choisissez un extrait : son préfixe, tapé avant le curseur, est remplacé"}}}

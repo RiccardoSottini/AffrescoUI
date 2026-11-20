@@ -226,4 +226,7 @@
                 :ui.current "Actual"
                 :ui.selectIndentation "Selecciona la sangría del archivo"
                 :ui.openToTheSide "Abrir al lado"
-                :status.problems "{errors, plural, one {# error} other {# errores}}, {warnings, plural, one {# advertencia} other {# advertencias}}"}}}
+                :status.problems "{errors, plural, one {# error} other {# errores}}, {warnings, plural, one {# advertencia} other {# advertencias}}"
+                :command.insertSnippet "Insertar fragmento…"
+                :command.insertSnippet.about "Inserta un fragmento del lenguaje del archivo en el cursor; un prefijo recién escrito se convierte en su fragmento."
+                :ui.selectASnippet "Selecciona un fragmento: su prefijo, escrito antes del cursor, se reemplaza"}}}

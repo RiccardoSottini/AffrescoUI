@@ -747,6 +747,26 @@
 				{ "expect": { "state": "files[0].tabSize", "is": 2 } },
 				{ "expect": { "node": "#statusIndent", "text": "Spaces: 2" } }
 			]
+		},
+		{
+			"name": "snippet-replaces-its-prefix",
+			"note": "Insert Snippet lists the file's language's snippets; for, typed before the caret, becomes the for loop",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+end" },
+				{ "key": "enter" },
+				{ "type": "for" },
+				{ "action": "insertSnippet" },
+				{ "wait": 50 },
+				{ "expect": { "state": "snippetPick.open", "is": true } },
+				{ "type": "for" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "snippetPick.open", "is": false } },
+				{ "expect": { "state": "snippetInsert", "is": null, "note": "inserted, then spent" } },
+				{ "expect": { "state": "caret.line", "is": 18 } },
+				{ "expect": { "state": "files[0].text.length", "is": 485, "note": "main.cpp, a new line and the loop, its body indented by four spaces" } }
+			]
 		}
 	]
 }

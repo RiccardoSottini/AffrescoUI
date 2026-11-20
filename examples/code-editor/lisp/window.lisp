@@ -74,7 +74,7 @@
      ~(status-problems)
      ~(status-size)
      (node#statusIndent :style statusItem
-       :text ~(if computed.file (t "bar.spaces" {:n (or-else computed.file.tabSize 4)}) "")
+       :text ~(if computed.file (t "bar.spaces" {:n computed.tabSize}) "")
        :hover {:textColor @text}
        :anchors {:right 140}
        :cursor hand
@@ -278,3 +278,16 @@
             :field @input
             :providers [{:items ~computed.indentations :run set-indentation
                          :placeholder ~(t "ui.selectIndentation")}]}))
+
+(defview snippet-pick "The snippet picker: the file's language's snippets, by prefix." []
+  `(node#snippetPick :when ~state.snippetPick.open
+     :use quickPick
+     :with {:name snippetPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.snippetItems :run insert-snippet
+                         :placeholder ~(t "ui.selectASnippet")}]}))

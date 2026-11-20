@@ -226,4 +226,7 @@
                 :ui.current "Current"
                 :ui.selectIndentation "Select the indentation of the file"
                 :ui.openToTheSide "Open to the Side"
-                :status.problems "{errors, plural, one {# error} other {# errors}}, {warnings, plural, one {# warning} other {# warnings}}"}}}
+                :status.problems "{errors, plural, one {# error} other {# errors}}, {warnings, plural, one {# warning} other {# warnings}}"
+                :command.insertSnippet "Insert Snippet…"
+                :command.insertSnippet.about "Inserts a snippet of the file’s language at the caret; a prefix just typed becomes its snippet."
+                :ui.selectASnippet "Select a snippet: its prefix, typed before the caret, is replaced"}}}

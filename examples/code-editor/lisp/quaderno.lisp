@@ -368,8 +368,9 @@
     (set "state.place" nil)
     (go-to-place place)))
 
-(defn mark-dirty "Marks a file as changed since it was saved, unless it is a scratch buffer." [file]
-  (set (place file "dirty") (not (:scratch (file-at file)))))
+(defn mark-dirty "Marks a file as changed since it was saved, unless it is a scratch buffer; a snippet sent is spent." [file]
+  (set (place file "dirty") (not (:scratch (file-at file))))
+  (when state.snippetInsert (set "state.snippetInsert" nil)))
 
 (defn open-editor-menu "Opens the editor's menu at the pointer, kept inside the editor." [x y left top width height]
   (set "state.editorMenu" {:open true
@@ -722,3 +723,19 @@
 
 (defn set-indentation "Gives the file shown a row of the indentation picker's size." [item]
   (set "state.files[state.active].tabSize" item.size))
+
+;;; Snippets
+
+(defcommand insertSnippet "Opens the snippet picker: the file's language's snippets."
+  :description ~(t "command.insertSnippet.about") :title ~(t "command.insertSnippet") :category ~(t "category.edit")
+  :icon braces :enablement ~(and (file-open) (not computed.readOnly)) []
+  (set "state.snippetPick" {:open true :query ""}))
+
+(defn insert-snippet "Inserts a snippet at the caret; its prefix, when just typed before the caret, becomes it." [item]
+  (let [lines (str/split (:text (file-at state.active)) "\n")
+        line (nth lines (dec state.caret.line) "")
+        before (subs line 0 (min (count line) (dec state.caret.column)))]
+    (set "state.snippetRequest" (inc state.snippetRequest))
+    (set "state.snippetInsert" {:text item.text
+                                :before (if (str/ends-with? before item.title) (count item.title) 0)
+                                :request state.snippetRequest})))
