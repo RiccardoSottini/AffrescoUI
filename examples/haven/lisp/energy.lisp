@@ -62,7 +62,8 @@
   (map (fn [d] {:title (case d 0 (t "energy.today") 1 (t "energy.yesterday") (t "energy.daysAgo" {:n d}))
                 :icon (if (= d state.energyDay) "check" "calendar")
                 :run "show-energy-day"
-                :with {:day d}})
+                :with {:day d}
+                :separator false})
        (range 7)))
 
 (defcomputed gridHourly "What came from the grid, hour by hour: the use the sun didn't cover."

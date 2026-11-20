@@ -41,7 +41,7 @@
 		"dayPeak": "{{indexOf(computed.dayUse, max(computed.dayUse))}}",
 		"dayName": "{{state.energyDay == 0 ? t('energy.today') : state.energyDay == 1 ? t('energy.yesterday') : t('energy.daysAgo', { n: state.energyDay })}}",
 		"budgetText": "{{t(state.energyDay == 0 ? 'budget.today' : 'budget.thatDay', { n: computed.dayTotal })}}",
-		"dayChoices": "{{map(range(7), { title: it == 0 ? t('energy.today') : it == 1 ? t('energy.yesterday') : t('energy.daysAgo', { n: it }), icon: it == state.energyDay ? 'check' : 'calendar', run: 'showEnergyDay', with: { day: it } })}}",
+		"dayChoices": "{{map(range(7), { title: it == 0 ? t('energy.today') : it == 1 ? t('energy.yesterday') : t('energy.daysAgo', { n: it }), icon: it == state.energyDay ? 'check' : 'calendar', run: 'showEnergyDay', with: { day: it }, separator: false })}}",
 		"gridHourly": "{{map(computed.dayUse, max(it - computed.daySolar[index], 0))}}",
 		"gridIn": "{{sum(computed.gridHourly)}}",
 		"solarMade": "{{sum(computed.daySolar)}}",

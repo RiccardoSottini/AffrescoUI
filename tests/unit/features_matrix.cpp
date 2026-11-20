@@ -346,9 +346,9 @@ TEST_CASE("features matrix: a feature written as a program installs into a progr
 TEST_CASE("features matrix: a static app refuses a feature that holds code") { programIntoJson(pageListLisp()); }
 
 TEST_CASE("features matrix: Sinopia's slide sorter has two versions, a JSON manifest and a program") {
-	CHECK(slideSorter("json")["release"] == "1.0.0");
+	CHECK(slideSorter("json")["release"] == "1.1.0");
 	const json program = slideSorter("lisp");
-	CHECK(program["release"] == "2.0.0");
+	CHECK(program["release"] == "2.1.0");
 	CHECK(program["provides"].contains("program"));
 }
 

@@ -45,11 +45,11 @@
 		"dayNames": "{{ { today: t('log.today'), yesterday: t('log.yesterday'), ago2: t('log.daysAgo', { n: 2 }), ago3: t('log.daysAgo', { n: 3 }), ago4: t('log.daysAgo', { n: 4 }), ago5: t('log.daysAgo', { n: 5 }), ago6: t('log.daysAgo', { n: 6 }) } }}",
 		"logDays": "{{state.logPeriod == 'today' ? ['today'] : state.logPeriod == 'yesterday' ? ['yesterday'] : state.logPeriod == 'week' ? ['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'] : ['today', 'yesterday']}}",
 		"logPeriodName": "{{t('log.p.' + state.logPeriod)}}",
-		"logPeriods": "{{map(['today', 'yesterday', 'twoDays', 'week'], { title: t('log.p.' + it), icon: it == state.logPeriod ? 'check' : '', run: 'pickLogPeriod', with: { period: it } })}}",
+		"logPeriods": "{{map(['today', 'yesterday', 'twoDays', 'week'], { title: t('log.p.' + it), icon: it == state.logPeriod ? 'check' : '', run: 'pickLogPeriod', with: { period: it }, separator: false })}}",
 		"histTemps": "{{state.histDay == 0 ? state.tempHistory : state.pastTemps[state.histDay - 1]}}",
 		"histPeriodName": "{{state.histDay == 0 ? t('hist.today') : t('hist.day', { day: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][state.histDay]] })}}",
 		"histTitle": "{{state.histDay == 0 ? t('hist.timeline') : t('hist.timelineOn', { day: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][state.histDay]] })}}",
-		"histDays": "{{map(range(7), { title: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][it]], icon: it == state.histDay ? 'check' : '', run: 'pickHistDay', with: { day: it } })}}",
+		"histDays": "{{map(range(7), { title: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][it]], icon: it == state.histDay ? 'check' : '', run: 'pickHistDay', with: { day: it }, separator: false })}}",
 		"logShown": "{{filter(data.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"
 	},
 

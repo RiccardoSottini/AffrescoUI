@@ -66,7 +66,7 @@
 
 (defcomputed hiddenChoices "Add card's menu: each card taken off the dashboard, by its icon and title."
   (map (fn [card]
-         {:title (get computed.cardTitle card) :icon (get computed.cardIcon card) :run "add-card" :with {:card card}})
+         {:title (get computed.cardTitle card) :icon (get computed.cardIcon card) :run "add-card" :with {:card card} :separator false})
        state.hiddenCards))
 
 (defcomputed cardCode "The configuration being changed, as code."

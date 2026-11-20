@@ -230,7 +230,10 @@ TEST_CASE("file steps: openFile as an image reads a PNG or JPEG as a data URI, w
 	REQUIRE(asked.size() == 1);
 	CHECK(asked[0].filters.at(0).extensions == std::vector<std::string>{"png", "jpg", "jpeg"});
 	CHECK(state["opened"].get<std::string>().starts_with("data:image/png;base64,iVBORw0KGgo"));
-	CHECK(state["saved"] == json{{"name", "photo.png"}, {"bytes", 24}, {"width", 300}, {"height", 120}});
+	CHECK(state["saved"]["name"] == "photo.png");
+	CHECK(state["saved"]["bytes"] == 24);
+	CHECK(state["saved"]["width"] == 300);
+	CHECK(state["saved"]["height"] == 120);
 
 	// A JPEG's start, an APP0 segment to skip, then a start-of-frame: height 40, width 64
 	const std::string jpeg = std::string("\xff\xd8\xff\xe0\0\x04zz\xff\xc0\0\x11\x08\0\x28\0\x40\x03xxxxxxxxx", 27);

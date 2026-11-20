@@ -29,7 +29,7 @@
 		"scenesTop": "{{computed.cardShown.lights ? '#lights.bottom + 16' : computed.compact ? 0 : 136}}",
 		"securityTop": "{{computed.cardShown.scenes ? '#scenes.bottom + 16' : computed.scenesTop}}",
 		"devicesTop": "{{computed.cardShown.cover ? '#blindsCard.bottom + 12' : computed.cardShown.climate ? '#climateCard.bottom + 12' : 116}}",
-		"hiddenChoices": "{{map(state.hiddenCards, { title: computed.cardTitle[it], icon: computed.cardIcon[it], run: 'addCard', with: { card: it } })}}",
+		"hiddenChoices": "{{map(state.hiddenCards, { title: computed.cardTitle[it], icon: computed.cardIcon[it], run: 'addCard', with: { card: it }, separator: false })}}",
 		"cardCode": "{{'{\\n' + join(map(entries(state.cardEdit.draft), '  ' + json(it.key) + ': ' + json(it.value)), ',\\n') + '\\n}'}}"
 	},
 

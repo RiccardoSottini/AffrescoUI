@@ -350,8 +350,10 @@ TEST_CASE("catalogue: the check passes a good entry and names the broken one") {
 	write(folder / "slideSorter" / "1.0.0.json", sorter);
 	write(folder / "wordCount" / "1.0.0.json", brokenBytes);
 	const auto release = [](const std::string& url, const std::string& bytes) {
-		return json{
-		    {"release", "1.0.0"}, {"url", url}, {"digest", affresco::format::digestOf(bytes)}, {"size", bytes.size()}};
+		return json{{"release", json::parse(bytes).value("release", "1.0.0")},
+		            {"url", url},
+		            {"digest", affresco::format::digestOf(bytes)},
+		            {"size", bytes.size()}};
 	};
 	json index = {
 	    {"format", "affrescoui-catalog"},
