@@ -1,4 +1,6 @@
-{:strings {:en {:projects.openPage "Open the project"
+{:strings {:en {:project.summary "Summary"
+                :project.nameHint "Enter renames the project"
+                :projects.openPage "Open the project"
                 :projects.layout.list "List"
                 :projects.layout.roadmap "Roadmap"
                 :projects.back "Back to projects"

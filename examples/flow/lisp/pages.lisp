@@ -29,6 +29,10 @@
 
 (defstate milestoneDraft "")
 
+(defstate projectName "")
+
+(defstate projectSummary "")
+
 (defstate roadmapStart "2026-02-01")
 
 (defstate projectOf {:feature 0 :bug 0 :design 1 :chore 2})
@@ -78,6 +82,12 @@
 (defcomputed milestonesDone (count (filter :done computed.milestones)))
 
 (defcomputed milestoneCount (str computed.milestonesDone " / " (count computed.milestones)))
+
+(defcomputed projectTags (filter #(= (get state.projectOf %) state.projectOpen) (keys state.projectOf)))
+
+(defcomputed projectIssues (filter #(contains computed.projectTags (:tag %)) computed.allCards))
+
+(defcomputed projectIssueCount (count computed.projectIssues))
 
 (defcomputed updateCount (count (or-else computed.project.updates [])))
 
@@ -683,6 +693,8 @@
        :tracks ~computed.roadmapTracks
        :duration 120
        :fps 1
+       :timeFormat none
+       :trackButtons false
        :pixelsPerSecond 9
        :offset 0
        :time ~(daysBetween state.roadmapStart state.today)
@@ -720,27 +732,32 @@
        ~(project-section "updates" "megaphone" 'computed.updateCount)
        ~(update-composer)
        ~(repeat [u (or-else computed.project.updates []) :index k]
-         (update-item u)))
+         (update-item u))
+       ~(project-section "issues" "copy" 'computed.projectIssueCount)
+       ~(repeat [card computed.projectIssues :key card.ref]
+         (project-issue card)))
      (node#projectAsideLine :anchors {:right 300 :top 48 :bottom 0} :width 1 :color @color.border)
      ~(project-aside)))
 
 (defview project-header "The project page's bar: Projects › its name, and View issues." []
   `(node#projectHeader :anchors {:left 0 :right 0 :top 0} :height 48 :color transparent
-     (label#projectCrumb :style topButton
-       :icon box
-       :text ~(t "nav.projects")
-       :height 28
-       :textColor @color.muted
-       :anchors {:left 12 :top 10}
-       :tooltip ~(t "projects.back")
-       :label ~(t "projects.back")
-       :onClick close-project-page)
-     (label#projectCrumbName :font small
-       :text ~(str "›   " computed.project.name)
-       :textColor @color.text
-       :fitText true
-       :anchors {:left 100 :top 0 :bottom 0}
-       :align {:horizontal start :vertical center})
+     (row#projectCrumbs :anchors {:left 12 :top 10} :height 28 :fitContent width :gap 2 :alignItems center
+       (label#projectCrumb :style topButton
+         :icon box
+         :text ~(t "nav.projects")
+         :height 28
+         :textColor @color.muted
+         :tooltip ~(t "projects.back")
+         :label ~(t "projects.back")
+         :onClick close-project-page)
+       (label#projectCrumbSep :font small :icon chevron-right :text "" :fitText true :height 28 :textColor @color.muted)
+       (label#projectCrumbName :font small
+         :text ~computed.project.name
+         :textColor @color.text
+         :fitText true
+         :padding 6
+         :height 28
+         :align {:horizontal start :vertical center}))
      (label#projectViewIssues :style toolButton
        :icon list-filter
        :text ~(t "project.viewIssues")
@@ -749,7 +766,7 @@
      (node#projectHeaderLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)))
 
 (defview project-hero "The project's icon, name and summary." []
-  `(node#projectHero :anchors {:left 0 :right 0} :height 124 :color transparent
+  `(node#projectHero :anchors {:left 0 :right 0} :height 140 :color transparent
      (label#projectHeroIcon :icon ~computed.project.icon
        :font iconsLarge
        :text ""
@@ -760,19 +777,37 @@
        :color ~(str computed.project.color "24")
        :textColor ~computed.project.color
        :anchors {:left 0 :top 28})
-     (label#projectHeroName :font display
-       :text ~computed.project.name
+     (textarea#projectHeroName :font display
+       :anchors {:left -6 :right 0 :top 70}
+       :height 38
+       :padding 6
+       :radius @radius.chip
+       :color transparent
+       :hover {:color @color.column}
+       :focused {:color @color.field}
        :textColor @color.text
-       :anchors {:left 0 :right 0 :top 74}
-       :height 30
-       :align {:horizontal start :vertical center}
-       :role heading)
-     (label#projectSummary :text ~(or-else computed.project.summary (t "project.noSummary"))
+       :label ~(t "project.name")
+       :tooltip ~(t "project.nameHint")
+       :placeholder ~computed.project.name
+       :placeholderColor @color.muted
+       :autofocus ~(= state.projectName "")
+       :bind state.projectName
+       :onSubmit rename-project
+       :keys {:escape {:set state.projectName :to ~computed.project.name}})
+     (textarea#projectSummary :anchors {:left -6 :right 0 :top 108}
+       :height 28
+       :padding 6
+       :radius @radius.chip
+       :color transparent
+       :hover {:color @color.column}
+       :focused {:color @color.field}
        :textColor @color.muted
-       :wrap true
-       :anchors {:left 0 :right 0 :top 106}
-       :height 18
-       :align {:horizontal start :vertical center})))
+       :placeholder ~(t "project.noSummary")
+       :placeholderColor @color.muted
+       :label ~(t "project.summary")
+       :bind state.projectSummary
+       :onSubmit save-project-summary
+       :keys {:escape {:set state.projectSummary :to ~(or-else computed.project.summary "")}})))
 
 (defview project-section "A heading of the project page with an icon and a count." [key icon n]
   `(node :id ~(str key "Section") :anchors {:left 0 :right 0} :height 52 :color transparent
@@ -788,7 +823,7 @@
      (node :id ~(str key "SectionCount")
        :style caption
        :text ~n
-       :anchors {:right 0 :top 20 :bottom 0}
+       :anchors {:right 8 :top 20 :bottom 0}
        :align {:horizontal end :vertical center})
      (node :id ~(str key "SectionLine") :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)))
 
@@ -823,6 +858,45 @@
        :textColor ~(cond m.done "@color.muted" (< (daysBetween state.today m.target) 0) "@bug" :else "@color.muted")
        :anchors {:right 8 :top 0 :bottom 0}
        :align {:horizontal end :vertical center})))
+
+(defview project-issue "One of the project's issues: a click opens it." [card]
+  `(node#projectIssue :anchors {:left 0 :right 0}
+     :height 34
+     :radius @radius.chip
+     :color transparent
+     :hover {:color @color.column}
+     :cursor hand
+     :focusable true
+     :role listitem
+     :label ~(str card.ref " " card.title)
+     :onClick [~(handler select-card card.c card.at) {:set state.page :to issues} {:set state.issueOpen :to true}]
+     :keys {:enter [~(handler select-card card.c card.at) {:set state.page :to issues} {:set state.issueOpen :to true}]}
+     (label#projectIssueStatus :icon ~(or-else (get state.statusIcons card.c) "circle")
+       :text ""
+       :fitText true
+       :textColor ~(get-in computed.columns [card.c :color])
+       :anchors {:left 8 :top 0 :bottom 0}
+       :align center)
+     (node#projectIssueRef :style caption
+       :text ~card.ref
+       :width 52
+       :fitText false
+       :anchors {:left 36 :top 0 :bottom 0}
+       :align {:horizontal start :vertical center})
+     (label#projectIssueTitle :font small
+       :text ~card.title
+       :textColor @color.text
+       :anchors {:left 92 :right 40 :top 0 :bottom 0}
+       :align {:horizontal start :vertical center})
+     (node#projectIssueOwner :style badge
+       :font tiny
+       :text ~card.who
+       :width 20
+       :height 20
+       :radius 999
+       :anchors {:right 8 :top 7}
+       :color ~(or-else (:color (find #(= (:who %) card.who) state.members)) "@color.muted")
+       :textColor "#ffffff")))
 
 (defview milestone-field "The field under the milestones: Enter adds one by that name." []
   `(textarea#milestoneField :anchors {:left 0 :right 0}
@@ -889,21 +963,20 @@
        :anchors {:left 0 :top 16}
        :color ~(or-else (:color (find #(= (:who %) u.who) state.members)) "@color.muted")
        :textColor "#ffffff")
-     (label#updateHealthLabel :font small
-       :icon circle
-       :text ~(t (str "health." u.health))
-       :textColor ~(or-else (get state.healthColors u.health) "@color.muted")
-       :fitText true
-       :anchors {:left 30 :top 16}
-       :height 20
-       :align {:horizontal start :vertical center})
-     (node#updateMeta :style caption
-       :text ~(str (or-else (:name (find #(= (:who %) u.who) state.members)) u.who)
-                   "  ·  "
-                   (formatDate (dateMs u.when) "MMM d" "utc"))
-       :anchors {:left 130 :top 16}
-       :height 20
-       :align {:horizontal start :vertical center})
+     (row#updateHead :anchors {:left 30 :top 16} :height 20 :fitContent width :gap 12 :alignItems center
+       (label#updateHealthLabel :font small
+         :icon circle
+         :text ~(t (str "health." u.health))
+         :textColor ~(or-else (get state.healthColors u.health) "@color.muted")
+         :fitText true
+         :height 20
+         :align {:horizontal start :vertical center})
+       (node#updateMeta :style caption
+         :text ~(str (or-else (:name (find #(= (:who %) u.who) state.members)) u.who)
+                     "  ·  "
+                     (formatDate (dateMs u.when) "MMM d" "utc"))
+         :height 20
+         :align {:horizontal start :vertical center}))
      (label#updateText :font small
        :text ~u.text
        :textColor @color.text

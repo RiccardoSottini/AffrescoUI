@@ -1,6 +1,8 @@
 {
 	"strings": {
 		"fr": {
+			"project.summary": "Résumé",
+			"project.nameHint": "Entrée renomme le projet",
 			"projects.openPage": "Ouvrir le projet",
 			"projects.layout.list": "Liste",
 			"projects.layout.roadmap": "Feuille de route",

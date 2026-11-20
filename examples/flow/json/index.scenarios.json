@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "projects-tabs-and-new-project",
-			"note": "Projects' tabs show all, active or completed projects, and New project adds one",
+			"note": "Projects' tabs show all, active or completed projects; New project adds one and opens its page, whose title and summary are edited in place",
 			"steps": [
 				{ "key": "g" },
 				{ "key": "p" },
@@ -36,7 +36,15 @@
 				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
 				{ "click": "#newProject" },
 				{ "expect": { "data": "projects[5].name", "is": "Project 6" } },
-				{ "expect": { "state": "projectScope", "is": "all" } }
+				{ "expect": { "state": "projectScope", "is": "all" } },
+				{ "expect": { "state": "projectOpen", "is": 5 } },
+				{ "type": "Offline mode" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[5].name", "is": "Offline mode" } },
+				{ "click": "#projectSummary" },
+				{ "type": "Work without a connection" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[5].summary", "is": "Work without a connection" } }
 			]
 		},
 		{
@@ -986,7 +994,7 @@
 		},
 		{
 			"name": "a-project-page-with-milestones-and-updates",
-			"note": "A project row opens its page: a milestone is ticked and one added, an update posted with its health, and the crumb goes back",
+			"note": "A project row opens its page: a milestone is ticked and one added, an update posted with its health, the crumb or Escape goes back, and one of its issues opens",
 			"steps": [
 				{ "key": "g" },
 				{ "key": "p" },
@@ -1012,7 +1020,18 @@
 				{ "expect": { "node": "#updateText", "text": "Review found two gaps" } },
 				{ "click": "#projectCrumb" },
 				{ "expect": { "state": "projectOpen", "is": -1 } },
-				{ "expect": { "node": "#projectRow", "exists": true } }
+				{ "expect": { "node": "#projectRow", "exists": true } },
+				{ "click": "#projectRow", "nth": 2 },
+				{ "expect": { "node": "#projectHeroName", "text": "Public board API" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "projectOpen", "is": -1 } },
+				{ "click": "#projectRow", "nth": 0 },
+				{ "expect": { "node": "#issuesSectionCount", "text": "7" } },
+				{ "scroll": "#projectBody", "dy": -40 },
+				{ "wait": 50 },
+				{ "click": "#projectIssue", "nth": 0 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "issueOpen", "is": true } }
 			]
 		},
 		{

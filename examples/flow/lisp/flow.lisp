@@ -396,11 +396,23 @@
   (show-page :issues))
 
 (defn open-project-page "A project's own page: its properties, milestones and updates." [at]
-  (let [health (:health (get data.projects at))]
+  (let [project (get data.projects at)
+        health (:health project)]
     (set "state.projectOpen" at)
     (set "state.projectDraft" {:text "" :health (if (= health "completed") "onTrack" health)})
     (set "state.milestoneDraft" "")
+    (set "state.projectName" (:name project))
+    (set "state.projectSummary" (or-else (:summary project) ""))
     (show-page :projects)))
+
+(defn rename-project "Enter in the project page's title: the project takes the name typed, unless it is blank." []
+  (let [typed (str/trim state.projectName)]
+    (if (str/blank? typed)
+      (set "state.projectName" computed.project.name)
+      (update-record "projects" :id computed.project.id :fields {:name typed}))))
+
+(defn save-project-summary "Enter in the project page's summary: the project keeps what is typed." []
+  (update-record "projects" :id computed.project.id :fields {:summary (str/trim state.projectSummary)}))
 
 (defn close-project-page "Back from a project's page to the list of projects." []
   (set "state.projectOpen" -1))
@@ -793,8 +805,11 @@
   :title ~(t "command.addProject") :description ~(t "command.addProject.about")
   :category ~(t "category.go") :icon "plus" []
   (insert "projects" :value {:name (t "projects.untitled" {:n (inc (count data.projects))}) :icon "box" :color "#0d9488"
-                             :health "onTrack" :lead state.me :target state.cycle.end :progress 0 :issues 0})
-  (set "state.projectScope" :all))
+                             :health "onTrack" :lead state.me :start state.today :target state.cycle.end :progress 0
+                             :issues 0 :milestones [] :updates []})
+  (set "state.projectScope" :all)
+  (open-project-page (dec (count data.projects)))
+  (set "state.projectName" ""))
 
 (defcommand projectUpdate "Posts an update on a project, by its name, with its health."
   :title ~(t "command.projectUpdate") :description ~(t "command.projectUpdate.about")
