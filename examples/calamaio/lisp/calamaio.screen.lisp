@@ -32,6 +32,7 @@
             calamaio.macros
             calamaio.registers
             calamaio.options
+            calamaio.customize
             calamaio.guides
             calamaio.loop
             calamaio.keys

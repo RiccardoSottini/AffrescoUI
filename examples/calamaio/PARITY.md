@@ -44,7 +44,7 @@ the difference in the note) or **missing**. The words, the sample texts and the 
 | Minor modes | Line numbers, visual line, show-paren, electric pair, menu bar, tool bar | partial | From Options and `M-x`; auto-fill and whitespace not yet |
 | Dired | Listing, RET, `g`, `q`, `d`, `u`, `x`, `+`, `R`, `C` | done | `C-x d`; `x` asks yes or no; a buffer visiting a renamed file follows it. The files are the sample folder's |
 | Shell | A shell buffer | missing | |
-| Customize | A buffer of the variables, set and reset | partial | Changes apply at once and are kept for the next session; no SET/SAVED states |
+| Customize | A buffer of the variables, set and reset | done | Each variable's state, STANDARD or SAVED and set, and Reset to Standard; changes apply at once and are kept for the next session |
 | Themes | `M-x load-theme` | done | default, inchiostro, pergamena |
 | Tutorial | `C-h t` | done | Calamaio's own text, a buffer to practise in |
 | Assistant | A binding changed through a reviewed revision | missing | |

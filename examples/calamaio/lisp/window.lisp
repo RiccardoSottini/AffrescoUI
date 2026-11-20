@@ -26,8 +26,8 @@
      (node :width 8 :alignSelf stretch :color @fringe)
      (node :grow 1 :basis 0 :alignSelf stretch :color @bg
        (node :when ~(= b.kind "splash") :use splash :with {:w ~w})
-       (node :when ~(= b.kind "customize") :use settingsPage :anchors {:left 0 :top 0 :right 0 :bottom 0} :color @bg
-         :with {:search ~state.customQuery :query state.customQuery})
+       (node :when ~(= b.kind "customize") :anchors {:left 0 :top 0 :right 0 :bottom 0} :color @bg
+         ~(customize-page))
        ~(buffer-editor w))
      (node :width 8 :alignSelf stretch :color @fringe)
      ~(scroll-bar w)))
@@ -119,7 +119,9 @@
      :onPress scroll-bar-press
      :onDrag scroll-bar-drag
      :let {:lines ~(max 1 (or-else v.lines 1))
-           :shown ~(min 1 (max 0.05 (/ (inc (- (or-else v.last 1) (or-else v.first 1))) lines)))}
+           :shown ~(if (or (= b.kind "splash") (= b.kind "customize"))
+                     1
+                     (min 1 (max 0.05 (/ (inc (- (or-else v.last 1) (or-else v.first 1))) lines))))}
      (node :x 2 :width 6 :radius 3 :color @thumb
        :y ~(str (fixed (* 100 (min (- 1 shown) (/ (dec (or-else v.first 1)) lines))) 2) "%")
        :height ~(str (fixed (* 100 shown) 2) "%"))))
@@ -149,7 +151,7 @@
        :text ~(str (get-in state.modes [b.mode :title]) (if (get settings "visual-line-mode") (t "modeLine.wrap") "")
                    (if (and on state.kmacro.on) (t "modeLine.defining") "")))
      (node :grow 1 :height 1 :color transparent)
-     (label :fitText true :textColor ~(if on "@mlFg" "@mliFg")
+     (label :when ~(not= b.kind "customize") :fitText true :textColor ~(if on "@mlFg" "@mliFg")
        :text ~(t "modeLine.position"
                  {:line (str line) :column (str (dec column)) :where (where-in-view top bottom lines)}))
      (node :width 6 :height 1 :color transparent)))

@@ -3148,6 +3148,66 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "customize-states",
+			"note": "Customize shows each variable's state: STANDARD, or SAVED and set once changed; Reset to Standard gives the default back.",
+			"steps": [
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"type": "display-line-numbers-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"type": "customize"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.buf",
+						"is": "bc"
+					}
+				},
+				{
+					"capture": "all"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Reset to Standard"
+					}
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "global-display-line-numbers-mode is back to its standard value"
+					}
+				}
+			]
 		}
 	]
 }

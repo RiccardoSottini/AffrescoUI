@@ -31,7 +31,7 @@ template: a Lisp program that the stock host runs, with no C++ of its own.
 | `buffers.lisp`, `files.lisp`, `listings.lisp` | Buffers; visiting, saving and inserting files; a folder's files (`C-x d`) and the buffer list (`C-x C-b`) |
 | `dired.lisp` | Changing a folder from its listing: flags (`d`, `u`), deleting (`x`), renaming (`R`), copying (`C`), new folders (`+`) |
 | `help.lisp`, `guides.lisp` | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`; the tutorial (`C-h t`) and the tour |
-| `options.lisp` | The minor modes Options toggles, the theme, Customize |
+| `options.lisp`, `customize.lisp` | The minor modes Options toggles, the theme; the *Customize* buffer, each variable with its state |
 | `loop.lisp` | Extending it from inside: `C-M-x`, `C-x C-e`, `C-j`, your init file, hook points, asking what is defined |
 | `keys.lisp`, `menus.lisp` | The key bindings; the menus |
 | `PARITY.md` | What it does like its model, and what not yet |
