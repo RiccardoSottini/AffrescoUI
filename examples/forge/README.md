@@ -15,7 +15,7 @@ a button to; its size and its signed catalogue make it a move of its own.
 
 `app.json` asks for what Forge uses, and the host asks the person before granting any of it: the folder to work in
 (`workspace`, read and written), the programs its services run (the login shell, sh for the debugger's
-terminal, git, clangd, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
+terminal, git, the language servers, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
 and the assistant. Without the folder it shows the welcome page. The layout, the theme and the settings are kept in
 `--data DIR`.
 
@@ -64,8 +64,11 @@ A theme is a set of variants of the same tokens (`themes.json`), switched by `"t
 
 ## Language servers
 
-`features/lsp/` talks to clangd through the `lsp` provider. A server that isn't installed, or that the person didn't
-allow, doesn't start, and the editor works without it. A server starts with the first
+`features/lsp/` talks to a language server per language through the `lsp` provider, each its own service routed by
+the file's extension: clangd for C, C++ and Objective-C, `pyright-langserver` for Python, `typescript-language-server`
+for TypeScript and JavaScript, `gopls` for Go and `rust-analyzer` for Rust (the host starts the two that need it with
+`--stdio`). A server that isn't installed, or that the person didn't allow, doesn't start, and the editor works
+without it. A server starts with the first
 file of its language, and gets incremental changes in the encoding it chose. It gives diagnostics (squiggles, and rows
 in Problems), hover, completion (fuzzy, Ctrl+Space) and signature help, Go to Definition (F12), Find References
 (Shift+F12, a peek list), Rename (F2) and Format Document (Shift+Alt+F) as a list of edits applied only after you

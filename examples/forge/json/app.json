@@ -15,6 +15,10 @@
 			"sh": "The debugger starts the program you debug on a terminal of its own, through the plain POSIX shell sh.",
 			"git": "The Source Control view reads and changes the folder's repository.",
 			"clangd": "Completion, diagnostics and navigation in C and C++ files.",
+			"pyright-langserver": "Completion, diagnostics and navigation in Python files (npm install -g pyright).",
+			"typescript-language-server": "Completion, diagnostics and navigation in TypeScript and JavaScript files.",
+			"gopls": "Completion, diagnostics and navigation in Go files.",
+			"rust-analyzer": "Completion, diagnostics and navigation in Rust files.",
 			"lldb-dap": "Debugs programs built from C, C++ and Swift.",
 			"debugpy-adapter": "Debugs Python programs (pip install debugpy)."
 		},

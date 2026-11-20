@@ -35,8 +35,8 @@ P3 rarely. Each round takes the gaps a daily user would notice first.
 | Source control: stage, commit, branches, stash, remotes, commit graph | partial | Conflicts are resolved in the file (each side tinted, a bar accepts the current, incoming or both), not in a three-way merge editor (P2: JSON, three editors over git's stages 1 to 3, or a library merge view); a push or pull that asks for a password prompts in the terminal that started the host (P2: a host feature, an askpass prompt in the window) |
 | Run and debug | done | |
 | Terminal | done | |
-| Problems and language features | partial | P1. Through the `lsp` service, one language server (clangd). JSON only: per server (Python, TypeScript) a program grant in app.json, an `lsp` service entry, and the lsp feature's calls routed by the file's language |
-| Outline | partial | P2. A language's symbols where the language server runs (C and C++); Python's classes and functions and Markdown's headings by their text; other files the lines that open a block. Grows with the language servers above (JSON only) |
+| Problems and language features | done | A server per language, each its own `lsp` service routed by the file's extension: clangd (C, C++), pyright (Python), typescript-language-server (TypeScript, JavaScript), gopls (Go), rust-analyzer (Rust) |
+| Outline | done | A language's symbols from its server where one runs; without one, Python's classes and functions and Markdown's headings by their text, other files the lines that open a block |
 | Features (extensions) view | done | |
 | Settings editor | done | |
 | Themes | done | |

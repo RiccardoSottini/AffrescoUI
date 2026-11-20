@@ -1,7 +1,8 @@
 ;;; lsp.lisp --- Forge's language server: hovers, completion, signatures, navigation, renames and diagnostics
 ;;;
-;;; The lsp service runs clangd (granted by the host when it finds it) for C and C++ files and speaks the protocol;
-;;; this file asks it about the active file, shows its answers, and applies the edits a rename or a format proposes
+;;; An lsp service per language runs its server (granted by the host when it finds it): clangd for C and C++,
+;;; pyright for Python, typescript-language-server for TypeScript and JavaScript, gopls for Go and rust-analyzer for
+;;; Rust. This file asks the server of the active file's language about it, shows its answers, and applies the edits a rename or a format proposes
 ;;; after a review. Its diagnostics squiggle the editors and fill Problems.
 
 (ns forge.features.lsp.lsp)
@@ -10,9 +11,14 @@
 
 (defstate lsp
   {:request 0
-   :languages {:c c :h cpp :cc cpp :cpp cpp :cxx cpp :hh cpp :hpp cpp :hxx cpp :m objective-c :mm objective-cpp}
+   :languages {:c c :h cpp :cc cpp :cpp cpp :cxx cpp :hh cpp :hpp cpp :hxx cpp :m objective-c :mm objective-cpp
+               :py python :pyi python :ts typescript :mts typescript :cts typescript :tsx typescriptreact
+               :js javascript :mjs javascript :cjs javascript :jsx javascriptreact :go go :rs rust}
+   :servers {:c lsp :cpp lsp :objective-c lsp :objective-cpp lsp :python lspPython
+             :typescript lspTypescript :typescriptreact lspTypescript :javascript lspTypescript
+             :javascriptreact lspTypescript :go lspGo :rust lspRust}
    :open []
-   :listening false
+   :listening []
    :files []
    :hover {:open false :text "" :x 0 :y 0 :request 0}
    :at {:x 0 :y 0 :top 0}
@@ -29,28 +35,43 @@
         nil
         (or-else (get state.lsp.languages (lower-case (get (reverse (split computed.activeDoc.id ".")) 0))) nil)))
 
+(defcomputed lspServer
+  (when-some [language computed.lspLanguage] (or-else (get state.lsp.servers language) nil)))
+
+(defn lsp-server-of
+  "The language and the server of a file (`id`), each nil when no server knows its language."
+  [id]
+  ; style: keep, the host's split keeps the empty text after a last dot: a name ending in one has no language
+  (let [language (get state.lsp.languages (str/lower-case (last (split id "."))))]
+    {:language language :server (when-some [known language] (or-else (get state.lsp.servers known) nil))}))
+
 (defpart lsp-service
-  "The language server, started when first asked; and the symbol picker's query, sent as it is typed."
-  :services {:lsp {:provider lsp
-                   :process clangd
-                   :root workspace
-                   :language cpp
-                   :start onDemand
-                   :restart {:times 3 :after 1000}}}
+  "A language server per language, each started when first asked; and the symbol picker's query, sent as it is typed."
+  :services {:lsp {:provider lsp :process clangd :root workspace :language cpp :start onDemand
+                   :restart {:times 3 :after 1000}}
+             :lspPython {:provider lsp :process pyright-langserver :root workspace :language python :start onDemand
+                         :restart {:times 3 :after 1000}}
+             :lspTypescript {:provider lsp :process typescript-language-server :root workspace :language typescript
+                             :start onDemand :restart {:times 3 :after 1000}}
+             :lspGo {:provider lsp :process gopls :root workspace :language go :start onDemand
+                     :restart {:times 3 :after 1000}}
+             :lspRust {:provider lsp :process rust-analyzer :root workspace :language rust :start onDemand
+                       :restart {:times 3 :after 1000}}}
   :watch {:state.symbolPick.query search-workspace-symbols})
 
 (defn lsp-ask
   "Asks the server about the active file, its text sent along; line and column from 0, or nil for the caret's."
   [kind line column newName query]
   (when (not= kind "outline") (increment "state.lsp.request" :by 1))
-  (when-some [language computed.lspLanguage]
-    (lsp-listen)
-    (lsp-call kind
+  (when-some [service computed.lspServer]
+    (lsp-listen service)
+    (lsp-call service
+             kind
              state.lsp.request
              (if (= kind "workspaceSymbols") "" computed.activeDoc.id)
              (if (= kind "workspaceSymbols")
                {:query (or-else query "")}
-               (merge {:path computed.activeDoc.id :text computed.activeDoc.text :language language}
+               (merge {:path computed.activeDoc.id :text computed.activeDoc.text :language computed.lspLanguage}
                       (if (contains? #{:hover :completion :signature :definition :references :rename} kind)
                         {:line (or-else line (max (dec state.caret.line) 0))
                          :column (or-else column (max (dec state.caret.column) 0))}
@@ -60,24 +81,30 @@
     (when (and (not= kind "workspaceSymbols") (not (contains state.lsp.open computed.activeDoc.id)))
       (set "state.lsp.open" (slice (conj state.lsp.open computed.activeDoc.id) (- 256))))))
 
+(def lsp-methods
+  "Each kind of question: the server's method that answers it, and the id that cancels the last one of the silent kinds."
+  {:hover {:method "hover" :id "lsp-hover"}
+   :completion {:method "completion" :id "lsp-completion"}
+   :signature {:method "signature" :id "lsp-signature"}
+   :tokens {:method "tokens" :id "lsp-tokens"}
+   :definition {:method "definition"}
+   :references {:method "references"}
+   :rename {:method "rename"}
+   :format {:method "format"}
+   :outline {:method "symbols" :id "lsp-outline"}
+   :symbols {:method "symbols"}
+   :workspaceSymbols {:method "workspaceSymbols"}})
+
 (defn lsp-call
-  "Asks one kind of question, each a step naming its method; the silent kinds cancel the last. Answers go to lspAnswer."
-  [kind request path arguments]
-  (let [done [lsp-answered kind request path]
-        failed [lsp-failed kind request path]]
-    (case kind
-      :hover (invoke "lsp.hover" :with arguments :id "lsp-hover" :onDone done :onError failed)
-      :completion (invoke "lsp.completion" :with arguments :id "lsp-completion" :onDone done :onError failed)
-      :signature (invoke "lsp.signature" :with arguments :id "lsp-signature" :onDone done :onError failed)
-      :tokens (invoke "lsp.tokens" :with arguments :id "lsp-tokens" :onDone done :onError failed)
-      :definition (invoke "lsp.definition" :with arguments :onDone done :onError failed)
-      :references (invoke "lsp.references" :with arguments :onDone done :onError failed)
-      :rename (invoke "lsp.rename" :with arguments :onDone done :onError failed)
-      :format (invoke "lsp.format" :with arguments :onDone done :onError failed)
-      :outline (invoke "lsp.symbols" :with arguments :id "lsp-outline" :onDone done :onError failed)
-      :symbols (invoke "lsp.symbols" :with arguments :onDone done :onError failed)
-      :workspaceSymbols (invoke "lsp.workspaceSymbols" :with arguments :onDone done :onError failed)
-      nil)))
+  "Asks the server (`service`) one kind of question; the silent kinds cancel the last. Answers go to lspAnswer."
+  [service kind request path arguments]
+  (when-some [question (get lsp-methods (keyword kind))]
+    (let [done [lsp-answered kind request path]
+          failed [lsp-failed kind request path]
+          name (str service "." (:method question))]
+      (if (some? (:id question))
+        (invoke name :with arguments :id (:id question) :onDone done :onError failed)
+        (invoke name :with arguments :onDone done :onError failed)))))
 
 (defn lsp-answered "The server's answer to a question." [kind request path result]
   (lsp-answer {:kind kind :request request :path path :result result :error nil}))
@@ -179,17 +206,20 @@
 ;;; Diagnostics
 
 (defn lsp-listen
-  "Listens to the server's diagnostics, file by file, from its first request on (again after the stream ends)."
-  []
-  (when-not (true? state.lsp.listening)
-    (set "state.lsp.listening" true)
-    (subscribe "lsp.diagnostics" :id "lsp-diagnostics" :do lsp-listen-each :onError lsp-listen-failed)))
+  "Listens to a server's diagnostics (`service`), file by file, from its first request on (again after the stream ends)."
+  [service]
+  (when-not (contains state.lsp.listening service)
+    (set "state.lsp.listening" (conj state.lsp.listening service))
+    (subscribe (str service ".diagnostics")
+               :id (str service "-diagnostics")
+               :do lsp-listen-each
+               :onError [lsp-listen-failed service])))
 
 (defn lsp-listen-each "A file's diagnostics, as they come." [event]
   (lsp-published event))
 
-(defn lsp-listen-failed "The stream ended: the next request listens again." []
-  (set "state.lsp.listening" false))
+(defn lsp-listen-failed "The stream ended: the next request to that server listens again." [service]
+  (set "state.lsp.listening" (remove #{service} state.lsp.listening)))
 
 (defn lsp-published
   "A file's diagnostics (`published`, from 0): squiggles in its editor, and rows (from 1) in Problems."
@@ -230,22 +260,22 @@
   [id]
   (when (contains state.lsp.open id) (debounce 500 lsp-changed-later id)))
 
-(defn lsp-changed-later "Sends an edited file's text to the server." [id]
+(defn lsp-changed-later "Sends an edited file's text to the server of its language." [id]
   (doseq [doc (filter #(and (= (:id %) id) (= (:kind %) "file")) state.docs)]
-    (invoke "lsp.sync"
-            :with {:path doc.id
-                   :text doc.text
-                   ; style: keep, the host's split keeps the empty text after a last dot: a name ending in one has no language
-                   :language (or-else (get state.lsp.languages (str/lower-case (last (split doc.id ".")))) "cpp")}
-            :onError lsp-changed-later-failed)))
+    (let [{:keys [language server]} (lsp-server-of doc.id)]
+      (when-some [to server]
+        (invoke (str to ".sync")
+                :with {:path doc.id :text doc.text :language language}
+                :onError lsp-changed-later-failed)))))
 
 (defn lsp-changed-later-failed "A text the server didn't take: nothing to do." []
   nil)
 
-(defn lsp-closed "A file no longer open in Forge (`id`): the server reads it from disk again." [id]
+(defn lsp-closed "A file no longer open in Forge (`id`): the server of its language reads it from disk again." [id]
   (when (contains state.lsp.open id)
     (set "state.lsp.open" (remove #{id} state.lsp.open))
-    (invoke "lsp.close" :with {:path id} :onError lsp-closed-failed)))
+    (when-some [server (:server (lsp-server-of id))]
+      (invoke (str server ".close") :with {:path id} :onError lsp-closed-failed))))
 
 (defn lsp-closed-failed "A file the server didn't close: nothing to do." []
   nil)

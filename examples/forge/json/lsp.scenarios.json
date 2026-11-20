@@ -720,6 +720,48 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-lsp-server-per-language",
+			"note": "Each language has its server, a service of its own: a C++ file asks clangd's (lsp: its outline as it opens); Python, TypeScript and JavaScript, Go and Rust files go to theirs",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.open[0]",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.servers.python",
+						"is": "lspPython"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.languages.tsx",
+						"is": "typescriptreact"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.servers.javascript",
+						"is": "lspTypescript"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.servers.rust",
+						"is": "lspRust"
+					}
+				}
+			]
 		}
 	]
 }
