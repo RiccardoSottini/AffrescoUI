@@ -427,10 +427,49 @@
                             :actions [{:title (t "toast.done") :run "cellClick"
                                        :with {:h row :d state.today :x 0 :y 0}}]}))))
 
-(defn tick "Every minute: today's date, and the reminders due." []
-  (set "state.today" (today))
+(defn tick "Every minute: today's date (unless a day is pinned), and the reminders due." []
+  (when-not (true? state.dayPinned) (set "state.today" (today)))
   (when (true? state.reminders)
     (doseq [[row item] (map-indexed vector data.ordered)] (remind-now row item))))
+
+;;; The demo habits, kept alive
+
+(def seed-day "The last day the demo habits in seed/ were written up to." "2026-10-15")
+
+(defn shift-habit "Moves a habit's days, and the notes on them, some days later (earlier if negative)." [habit days]
+  (update-record "habits" :id (:id habit)
+    :fields {:from (addDays (:from habit) days)
+             :notes (into {} (for [[day note] (:notes habit)]
+                               [(addDays day days) note]))}))
+
+(defn untouched-demo? "Whether a habit is still a demo one: as seed/ wrote it (never changed, begun by its last day),
+  or not changed since start-up last moved it." [habit]
+  (let [{:keys [created updated from]} habit]
+    (if (pos? state.demoStamp)
+      (<= updated state.demoStamp)
+      (and (= created updated)
+           (not (neg? (daysBetween from seed-day)))))))
+
+(defn start-up "As Streak opens: today's date, and the demo habits the person never changed moved so their last day
+  is today (unless a scenario pinned the day first)." []
+  (when-not (true? state.dayPinned)
+    (let [day (today)
+          days (daysBetween state.demoDay day)]
+      (set "state.today" day)
+      (when (pos? days)
+        (doseq [habit data.ordered] (when (untouched-demo? habit) (shift-habit habit days)))
+        (set "state.demoDay" day)
+        (set "state.demoStamp" (now))))))
+
+(defn pin-seed-day "Moves Streak back to the day its demo habits were written, and keeps it there: a fixed day for
+  screenshots and tests." []
+  (let [days (daysBetween state.demoDay seed-day)]
+    (set "state.dayPinned" true)
+    (set "state.today" seed-day)
+    (set "state.demoDay" seed-day)
+    (when-not (zero? days) (doseq [habit data.ordered] (shift-habit habit days)))))
+
+(defpart start "What runs as Streak opens." :onLoad start-up)
 
 ;;; Syncing with the document server
 

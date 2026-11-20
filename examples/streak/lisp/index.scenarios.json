@@ -10,6 +10,10 @@
 			"note": "A click on an empty box ticks it, a second skips the day, a third clears it",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"expect": {
 						"node": "#cell",
 						"nth": 40,
@@ -68,6 +72,10 @@
 			"note": "A click on a habit's name shows it in the detail pane",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"expect": {
 						"state": "selected",
 						"is": "meditate"
@@ -98,6 +106,10 @@
 			"name": "enter-a-number",
 			"note": "A measurable box asks for the number; Enter saves it",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"click": "#cell",
 					"nth": 40
@@ -144,6 +156,10 @@
 			"note": "The day's menu (Shift+F10) writes a note; the notes card shows it",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"click": "#cell",
 					"nth": 0
 				},
@@ -188,6 +204,10 @@
 			"name": "sort-by-name",
 			"note": "The filter menu sorts the list by name and back by hand",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"click": "#filterButton"
 				},
@@ -251,6 +271,10 @@
 			"note": "Hiding the completed habits leaves only those still due today",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"click": "#filterButton"
 				},
 				{
@@ -284,6 +308,10 @@
 			"name": "show-archived",
 			"note": "Archived habits come back with the filter",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"expect": {
 						"node": "#habitRow",
@@ -327,6 +355,10 @@
 			"note": "Dragging a habit onto another moves it there",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"drag": "#habitRow",
 					"nth": 1,
 					"to": "#habitRow",
@@ -355,6 +387,10 @@
 			"name": "create-a-habit",
 			"note": "Cmd+N, a name, a colour and Save add a yes-or-no habit and select it",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+n"
 				},
@@ -429,6 +465,10 @@
 			"note": "Save with no name keeps the dialog open and marks the field",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+n"
 				},
 				{
@@ -468,6 +508,10 @@
 			"name": "create-a-measurable-habit",
 			"note": "Cmd+Shift+N asks for a unit and a target, at least or at most",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+shift+n"
 				},
@@ -547,6 +591,10 @@
 			"note": "Cmd+E opens the selected habit; a new name is saved",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+e"
 				},
 				{
@@ -614,6 +662,10 @@
 			"note": "A frequency of every three days",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+e"
 				},
 				{
@@ -655,6 +707,10 @@
 			"name": "a-reminder",
 			"note": "A reminder at a time on chosen days",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+e"
 				},
@@ -714,6 +770,10 @@
 			"note": "Archive hides the habit and offers to undo",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+shift+h"
 				},
 				{
@@ -753,6 +813,10 @@
 			"name": "pick-several-and-archive",
 			"note": "A right click picks habits; the bar archives them all and Undo brings them back",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"click": [
 						100,
@@ -846,6 +910,10 @@
 			"name": "pick-several-and-delete",
 			"note": "Deleting picked habits asks once; Escape leaves the selection",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"click": [
 						100,
@@ -959,6 +1027,10 @@
 			"note": "Cmd+Shift+A opens the assistant chat; Escape closes it",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+shift+a"
 				},
 				{
@@ -1001,6 +1073,10 @@
 			"name": "delete-asks-first",
 			"note": "Delete asks; Cancel keeps the habit, Delete removes it",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+backspace"
 				},
@@ -1061,6 +1137,10 @@
 			"name": "settings-theme-and-week",
 			"note": "Settings switch the theme, pure black and the first day of the week",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+comma"
 				},
@@ -1131,6 +1211,10 @@
 			"note": "The language menu switches the whole app",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+comma"
 				},
 				{
@@ -1178,6 +1262,10 @@
 			"note": "The language menu switches to French",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+comma"
 				},
 				{
@@ -1224,6 +1312,10 @@
 			"name": "keyboard-only",
 			"note": "The keyboard moves between habits and checks today",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"key": "mod+down"
 				},
@@ -1275,6 +1367,10 @@
 			"note": "Cmd+K finds a command by name",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"key": "mod+k"
 				},
 				{
@@ -1308,6 +1404,10 @@
 			"note": "Export copies the habit's history as CSV and says so",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"click": "#detailMore"
 				},
 				{
@@ -1334,6 +1434,10 @@
 			"name": "backup-and-restore",
 			"note": "Settings saves every habit to a backup file and restores a deleted one from it; another app's file, a damaged entry and a cancelled dialog change nothing",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"choose": "habits.json"
 				},
@@ -1532,6 +1636,10 @@
 			"note": "The score card's period button switches to months",
 			"steps": [
 				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
 					"click": {
 						"role": "button",
 						"name": "Period: Week"
@@ -1561,6 +1669,10 @@
 			"name": "narrow-shows-one-pane",
 			"note": "In a narrow window the list fills it; a habit opens its detail, Escape comes back",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{
 					"resize": [
 						520,
@@ -1633,6 +1745,10 @@
 			"name": "an-agent-uses-the-habits",
 			"note": "An agent runs the habits' commands (Commands as tools): marking a habit done is allowed by permissions.run, today, on an earlier day, or with an amount; a habit that isn't there, or a day after today, changes nothing, and a toast says so; adding and renaming a habit ask",
 			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
 				{ "command": "habitDone", "with": { "habit": "exercise" }, "as": "agent" },
 				{ "expect": { "node": "#cell", "nth": 24, "property": "name", "is": "Thu 15 Oct: done" } },
 				{ "command": "habitDone", "with": { "habit": "Run", "amount": 5 }, "as": "agent" },

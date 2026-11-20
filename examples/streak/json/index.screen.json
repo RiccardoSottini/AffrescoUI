@@ -282,6 +282,9 @@
 	},
 	"state": {
 		"today": "2026-10-15",
+		"demoDay": "2026-10-15",
+		"demoStamp": 0,
+		"dayPinned": false,
 		"nextId": 1,
 		"selected": "meditate",
 		"page": "list",
@@ -438,10 +441,19 @@
 		},
 		"today": {
 			"type": "string"
+		},
+		"demoDay": {
+			"type": "string"
+		},
+		"dayPinned": {
+			"type": "boolean"
 		}
 	},
+	"onLoad": "startUp",
 	"persist": [
 		"state.nextId",
+		"state.demoDay",
+		"state.demoStamp",
 		"state.selected",
 		"state.sort",
 		"state.hideCompleted",
@@ -1769,10 +1781,95 @@
 			"icon": "check",
 			"enablement": "{{computed.sel >= 0}}"
 		},
-		"tick": [
+		"startUp": [
+			{
+				"note": "As Streak opens: today's date, and the demo habits the person never changed moved so their last day is today (unless a scenario pinned the day first)"
+			},
+			{
+				"if": "{{state.dayPinned}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
 			{
 				"set": "state.today",
 				"to": "{{today()}}"
+			},
+			{
+				"if": "{{daysBetween(state.demoDay, state.today) > 0}}",
+				"then": [
+					{
+						"forEach": "data.ordered",
+						"as": "sh",
+						"do": [
+							{
+								"if": "{{state.demoStamp > 0 ? sh.updated <= state.demoStamp : sh.created == sh.updated && daysBetween(sh.from, '2026-10-15') >= 0}}",
+								"then": [
+									{
+										"update": "habits",
+										"id": "{{sh.id}}",
+										"fields": {
+											"from": "{{addDays(sh.from, daysBetween(state.demoDay, state.today))}}",
+											"notes": "{{fromEntries(map(entries(sh.notes ?? {}), {key: addDays(it.key, daysBetween(state.demoDay, state.today)), value: it.value}))}}"
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"set": "state.demoDay",
+						"to": "{{state.today}}"
+					},
+					{
+						"set": "state.demoStamp",
+						"to": "{{now()}}"
+					}
+				]
+			}
+		],
+		"pinSeedDay": [
+			{
+				"note": "Moves Streak back to the day its demo habits were written, and keeps it there: a fixed day for screenshots and tests"
+			},
+			{
+				"set": "state.dayPinned",
+				"to": true
+			},
+			{
+				"forEach": "data.ordered",
+				"as": "sh",
+				"do": [
+					{
+						"update": "habits",
+						"id": "{{sh.id}}",
+						"fields": {
+							"from": "{{addDays(sh.from, daysBetween(state.demoDay, '2026-10-15'))}}",
+							"notes": "{{fromEntries(map(entries(sh.notes ?? {}), {key: addDays(it.key, daysBetween(state.demoDay, '2026-10-15')), value: it.value}))}}"
+						}
+					}
+				]
+			},
+			{
+				"set": "state.today",
+				"to": "2026-10-15"
+			},
+			{
+				"set": "state.demoDay",
+				"to": "2026-10-15"
+			}
+		],
+		"tick": [
+			{
+				"if": "{{!state.dayPinned}}",
+				"then": [
+					{
+						"set": "state.today",
+						"to": "{{today()}}"
+					}
+				]
 			},
 			{
 				"if": "{{state.reminders}}",
