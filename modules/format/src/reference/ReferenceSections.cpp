@@ -428,7 +428,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
 	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
-	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
+	 "true` it also reads the comments and trailing commas settings and theme files have. With `\"as\": \"image\"` "
+	 "it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an "
+	 "`image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A "
+	 "control step",
 	 "outsideSteps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
