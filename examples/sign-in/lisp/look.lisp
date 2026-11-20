@@ -81,6 +81,9 @@
 (defstyle hint "A small muted line: a hint, a time, a count."
   (label :font small :height 18 :textColor @color.muted :anchors {:left 0 :right 10}))
 
+(defstyle subheading "A heading inside a section of the account page: a group of rows."
+  (label :font strong :height 22 :color transparent :textColor @color.text :anchors {:left 0 :right 10}))
+
 (defstyle heading "A section's heading on the account page."
   (label :font heading :height 28 :textColor @color.text :role heading :anchors {:left 0 :right 10}))
 
@@ -130,8 +133,9 @@
 
 ;;; Buttons and links
 
-(defstyle primary "The main button of a form: the accent, full width."
-  (label :height 46
+(defstyle primary "The main button of a form: the accent, full width, its words strong."
+  (label :font strong
+    :height 46
     :anchors {:left 0 :right 10}
     :align center
     :radius @radius.field
@@ -147,6 +151,7 @@
 
 (defstyle secondary "Another way to go on: outlined, full width."
   {:style primary
+   :font default
    :color transparent
    :textColor @color.text
    :borderWidth 1

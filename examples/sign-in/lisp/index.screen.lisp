@@ -38,6 +38,7 @@
   :strings {:default en :locale ~state.locale :keep ["EXAM PLEE XAMP LE23" "DEMO-1001" "Example ID"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons arabic]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [iconsSmall arabicSmall]}
+          :strong {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :bold true :fallback [icons arabic]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :bold true :fallback [arabicTitle]}
           :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 19 :bold true :fallback [icons arabicHeading]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 18}

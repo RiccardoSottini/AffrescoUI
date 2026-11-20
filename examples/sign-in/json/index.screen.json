@@ -27,6 +27,12 @@
 			"size": 13,
 			"fallback": ["iconsSmall", "arabicSmall"]
 		},
+		"strong": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 15,
+			"bold": true,
+			"fallback": ["icons", "arabic"]
+		},
 		"title": {
 			"file": "../../shared/fonts/Roboto-Regular.ttf",
 			"size": 26,
@@ -699,6 +705,7 @@
 		},
 		"primary": {
 			"type": "label",
+			"font": "strong",
 			"height": 46,
 			"anchors": {
 				"left": 0,
@@ -728,6 +735,7 @@
 		},
 		"secondary": {
 			"style": "primary",
+			"font": "default",
 			"color": "transparent",
 			"textColor": "@color.text",
 			"borderWidth": 1,
@@ -978,6 +986,17 @@
 			"gap": 14,
 			"scroll": "none",
 			"fitContent": false
+		},
+		"subheading": {
+			"type": "label",
+			"font": "strong",
+			"height": 22,
+			"color": "transparent",
+			"textColor": "@color.text",
+			"anchors": {
+				"left": 0,
+				"right": 10
+			}
 		},
 		"heading": {
 			"type": "label",
@@ -6135,7 +6154,7 @@
 														{
 															"type": "row",
 															"id": "row-two-step",
-															"height": 36,
+															"height": 52,
 															"gap": 12,
 															"alignItems": "center",
 															"anchors": {
@@ -6144,53 +6163,64 @@
 															},
 															"children": [
 																{
-																	"type": "toggle",
-																	"id": "twoStep",
-																	"width": 44,
-																	"height": 24,
-																	"role": "switch",
-																	"focusable": true,
-																	"label": "{{t('twoStep')}}",
-																	"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
-																	"checked": "{{state.user.twoStep}}",
-																	"activeColor": "@color.accent",
-																	"trackColor": "@color.border",
-																	"onChange": {
-																		"run": "setTwoStep",
-																		"with": {
-																			"on": "{{event.value}}"
-																		}
-																	},
-																	"keys": {
-																		"space": {
-																			"run": "setTwoStep",
-																			"with": {
-																				"on": "{{!state.user.twoStep}}"
-																			}
-																		},
-																		"enter": {
-																			"run": "setTwoStep",
-																			"with": {
-																				"on": "{{!state.user.twoStep}}"
-																			}
-																		}
-																	}
+																	"id": "two-step-icon",
+																	"style": "itemIcon",
+																	"icon": "shield-check"
 																},
 																{
 																	"type": "column",
 																	"id": "column-two-step",
-																	"grow": 1,
-																	"height": 36,
 																	"children": [
 																		{
 																			"id": "label-two-step-name",
-																			"style": "fieldLabel",
+																			"style": "itemTitle",
 																			"text": "{{t('twoStep')}}"
 																		},
 																		{
 																			"id": "label-two-step-state",
-																			"style": "hint",
+																			"style": "itemHint",
 																			"text": "{{t('twoStepState', { on: state.user.twoStep })}}"
+																		}
+																	],
+																	"style": "itemText"
+																},
+																{
+																	"id": "twoStep",
+																	"width": 44,
+																	"height": 24,
+																	"radius": 12,
+																	"color": "{{state.user.twoStep ? '@color.accent' : '@color.border'}}",
+																	"cursor": "hand",
+																	"role": "switch",
+																	"focusable": true,
+																	"label": "{{t('twoStep')}}",
+																	"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
+																	"selected": "{{state.user.twoStep}}",
+																	"transition": {
+																		"color": 120
+																	},
+																	"onClick": {
+																		"run": "setTwoStep",
+																		"with": {
+																			"on": "{{!state.user.twoStep}}"
+																		}
+																	},
+																	"children": [
+																		{
+																			"id": "twoStep-knob",
+																			"width": 18,
+																			"height": 18,
+																			"radius": 9,
+																			"color": "#ffffff",
+																			"anchors": {
+																				"left": "{{state.user.twoStep ? 23 : 3}}",
+																				"top": 3
+																			},
+																			"shadow": {
+																				"y": 1,
+																				"blur": 3,
+																				"color": "@color.shadow"
+																			}
 																		}
 																	]
 																}
@@ -6293,7 +6323,7 @@
 												},
 												{
 													"id": "label-passkeys",
-													"style": "fieldLabel",
+													"style": "subheading",
 													"text": "{{t('passkeys')}}",
 													"role": "heading"
 												},
