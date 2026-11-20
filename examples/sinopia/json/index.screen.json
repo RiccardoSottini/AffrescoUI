@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -251,8 +251,9 @@
 					{ "id": "thumbs-line", "when": "{{state.view == 'normal'}}", "width": 1, "color": "@barLine" },
 					{ "use": "outlineView", "when": "{{state.view == 'outline'}}" },
 					{ "use": "sorterView", "when": "{{state.view == 'sorter'}}" },
+					{ "use": "notesPageView", "when": "{{state.view == 'notesPage'}}" },
 					{
-						"type": "column", "id": "centre", "when": "{{state.view != 'sorter'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
+						"type": "column", "id": "centre", "when": "{{state.view != 'sorter' && state.view != 'notesPage'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
 						"children": [
 							{ "id": "board-area", "grow": 1, "color": "@work", "children": [
 								{
@@ -324,6 +325,7 @@
 		]
 		},
 		{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}" }, "use": "slideImage", "with": { "s": "{{s}}" } },
+		{ "repeat": { "for": "s", "in": "{{state.view == 'notesPage' ? state.deck.slides : []}}", "key": "{{s.id}}", "index": "n" }, "use": "notesPageImage", "with": { "s": "{{s}}", "n": "{{n}}" } },
 		{ "use": "showStage", "when": "{{state.show.on}}" }]
 	}
 }

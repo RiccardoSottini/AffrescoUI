@@ -255,7 +255,7 @@
 						{ "id": "b-normal", "use": "rbBig", "with": { "icon": "panel-left", "title": "Normal", "on": "{{state.view == 'normal'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "normal" }] },
 						{ "id": "b-outline-view", "use": "rbBig", "with": { "icon": "list-tree", "title": "Outline\nView", "on": "{{state.view == 'outline'}}", "width": 48 }, "onClick": [{ "set": "state.view", "to": "outline" }] },
 						{ "id": "b-sorter", "use": "rbBig", "with": { "icon": "layout-grid", "title": "Slide\nSorter", "on": "{{state.view == 'sorter'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "sorter" }] },
-						{ "id": "b-notes-page", "use": "rbBig", "with": { "icon": "notebook-text", "title": "Notes\nPage", "width": 46, "enabled": false }, "tooltip": "The notes page view isn't available yet" },
+						{ "id": "b-notes-page", "use": "rbBig", "with": { "icon": "notebook-text", "title": "Notes\nPage", "on": "{{state.view == 'notesPage'}}", "width": 46 }, "tooltip": "The slide over its notes, on a page you can print", "onClick": [{ "set": "state.view", "to": "notesPage" }] },
 						{ "id": "b-reading", "use": "rbBig", "with": { "icon": "book-open", "title": "Reading\nView", "width": 50 }, "onClick": { "run": "readingView", "with": { "from": "{{state.current}}" } } }
 					] },
 					{ "id": "g-show", "use": "rbGroup", "with": { "title": "Show", "launcher": true }, "children": [

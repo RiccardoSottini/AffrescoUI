@@ -20,7 +20,11 @@
 		"showLeaving": "{{computed.showDissolve && computed.showFrom != null ? filter(computed.showFrom.objects, !(it.hidden ?? false) && !(computed.showKind == 'glide' && contains(computed.showSigs, computed.showFromSigs[index]))) : []}}",
 		"showStrokes": "{{map(filter(concat(state.showInk[computed.showSlide.id] ?? [], [state.showPen.stroke]), length(it) > 1), 'M ' + join(map(it, fixed(it[0], 1) + ' ' + fixed(it[1], 1)), ' L '))}}",
 		"flySides": [["bottom", "move-down"], ["left", "move-left"], ["top", "move-up"], ["right", "arrow-right"]],
-		"emphasisEffects": [["pulse", "heart-pulse", "Pulse"], ["spin", "rotate-cw", "Spin"], ["teeter", "vibrate", "Teeter"]]
+		"emphasisEffects": [
+			["pulse", "heart-pulse", "Pulse"],
+			["spin", "rotate-cw", "Spin"],
+			["teeter", "vibrate", "Teeter"]
+		]
 	},
 
 	"keys": {
@@ -32,47 +36,143 @@
 	"actions": {
 		"chooseEffect": [
 			{ "note": "with: effect; an emphasis, or an entrance or exit as the build was" },
-			{ "run": "setAnimation", "with": {
-				"effect": "{{effect}}",
-				"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
-				"start": "{{computed.animation.start ?? 'click'}}",
-				"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter'], effect) ? 1000 : 500)}}" } }
+			{
+				"run": "setAnimation",
+				"with": {
+					"effect": "{{effect}}",
+					"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
+					"start": "{{computed.animation.start ?? 'click'}}",
+					"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter'], effect) ? 1000 : 500)}}"
+				}
+			}
 		],
-		"animationDelayBy": [{ "run": "changeAnimation", "with": { "props": { "delay": "{{clamp((computed.animation.delay ?? 0) + by, 0, 59000)}}" } } }],
-		"animationRepeatBy": [{ "run": "changeAnimation", "with": { "props": { "repeat": "{{clamp((computed.animation.repeat ?? 1) + by, 1, 10)}}" } } }],
-		"nextFlySide": [{ "run": "changeAnimation", "with": { "props": { "direction": "{{map(computed.flySides, it[0])[(indexOf(map(computed.flySides, it[0]), computed.animation.direction ?? 'bottom') + 1) % 4]}}" } } }],
+		"animationDelayBy": [
+			{
+				"run": "changeAnimation",
+				"with": { "props": { "delay": "{{clamp((computed.animation.delay ?? 0) + by, 0, 59000)}}" } }
+			}
+		],
+		"animationRepeatBy": [
+			{
+				"run": "changeAnimation",
+				"with": { "props": { "repeat": "{{clamp((computed.animation.repeat ?? 1) + by, 1, 10)}}" } }
+			}
+		],
+		"nextFlySide": [
+			{
+				"run": "changeAnimation",
+				"with": {
+					"props": {
+						"direction": "{{map(computed.flySides, it[0])[(indexOf(map(computed.flySides, it[0]), computed.animation.direction ?? 'bottom') + 1) % 4]}}"
+					}
+				}
+			}
+		],
 		"changeBuild": [
 			{ "note": "with: id, props; merges the properties into that build of the slide" },
 			{ "run": "commit" },
-			{ "set": "state.deck.slides[state.current].animations", "to": "{{map(computed.slide.animations, it.id == id ? merge(it, props) : it)}}" }
+			{
+				"set": "state.deck.slides[state.current].animations",
+				"to": "{{map(computed.slide.animations, it.id == id ? merge(it, props) : it)}}"
+			}
 		],
-		"buildDelayBy": [{ "run": "changeBuild", "with": { "id": "{{id}}", "props": { "delay": "{{clamp((find(computed.slide.animations, it.id == id).delay ?? 0) + by, 0, 59000)}}" } } }],
-		"buildRepeatBy": [{ "run": "changeBuild", "with": { "id": "{{id}}", "props": { "repeat": "{{clamp((find(computed.slide.animations, it.id == id).repeat ?? 1) + by, 1, 10)}}" } } }],
-		"toggleFadeOption": [{ "run": "setTransition", "with": { "props": { "option": "{{computed.slide.transition.option == 'smoothly' ? 'black' : 'smoothly'}}" } } }],
+		"buildDelayBy": [
+			{
+				"run": "changeBuild",
+				"with": {
+					"id": "{{id}}",
+					"props": {
+						"delay": "{{clamp((find(computed.slide.animations, it.id == id).delay ?? 0) + by, 0, 59000)}}"
+					}
+				}
+			}
+		],
+		"buildRepeatBy": [
+			{
+				"run": "changeBuild",
+				"with": {
+					"id": "{{id}}",
+					"props": {
+						"repeat": "{{clamp((find(computed.slide.animations, it.id == id).repeat ?? 1) + by, 1, 10)}}"
+					}
+				}
+			}
+		],
+		"toggleFadeOption": [
+			{
+				"run": "setTransition",
+				"with": {
+					"props": { "option": "{{computed.slide.transition.option == 'smoothly' ? 'black' : 'smoothly'}}" }
+				}
+			}
+		],
 		"penTool": [
 			{ "note": "with: tool, pen or laser; the same again puts it down" },
-			{ "set": "state.showPen", "to": "{{merge(state.showPen, { tool: state.showPen.tool == tool ? null : tool, stroke: [], laser: null })}}" }
+			{
+				"set": "state.showPen",
+				"to": "{{merge(state.showPen, { tool: state.showPen.tool == tool ? null : tool, stroke: [], laser: null })}}"
+			}
 		],
 		"penPress": [
 			{ "note": "with: left, top, width, height, the press on the slide drawn to fit" },
 			{ "set": "state.showPen.from", "to": "{{[left, top]}}" },
-			{ "if": "{{state.showPen.tool == 'pen'}}",
-			  "then": [{ "set": "state.showPen.stroke", "to": "{{[[clamp((left - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((top - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]]}}" }],
-			  "else": [{ "set": "state.showPen.laser", "to": "{{[clamp((left - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((top - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}" }] }
+			{
+				"if": "{{state.showPen.tool == 'pen'}}",
+				"then": [
+					{
+						"set": "state.showPen.stroke",
+						"to": "{{[[clamp((left - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((top - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]]}}"
+					}
+				],
+				"else": [
+					{
+						"set": "state.showPen.laser",
+						"to": "{{[clamp((left - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((top - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}"
+					}
+				]
+			}
 		],
 		"penDrag": [
 			{ "note": "with: dx, dy since the press, width, height" },
-			{ "if": "{{state.showPen.tool == 'pen'}}",
-			  "then": [{ "if": "{{length(state.showPen.stroke) < 2000}}",
-			             "then": [{ "push": "state.showPen.stroke", "value": "{{[clamp((state.showPen.from[0] + dx - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((state.showPen.from[1] + dy - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}" }] }],
-			  "else": [{ "set": "state.showPen.laser", "to": "{{[clamp((state.showPen.from[0] + dx - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((state.showPen.from[1] + dy - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}" }] }
+			{
+				"if": "{{state.showPen.tool == 'pen'}}",
+				"then": [
+					{
+						"if": "{{length(state.showPen.stroke) < 2000}}",
+						"then": [
+							{
+								"push": "state.showPen.stroke",
+								"value": "{{[clamp((state.showPen.from[0] + dx - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((state.showPen.from[1] + dy - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}"
+							}
+						]
+					}
+				],
+				"else": [
+					{
+						"set": "state.showPen.laser",
+						"to": "{{[clamp((state.showPen.from[0] + dx - (width - 960 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 960), clamp((state.showPen.from[1] + dy - (height - 540 * max(min(width / 960, height / 540), 0.01)) / 2) / max(min(width / 960, height / 540), 0.01), 0, 540)]}}"
+					}
+				]
+			}
 		],
 		"penRelease": [
-			{ "if": "{{length(state.showPen.stroke) > 1}}",
-			  "then": [{ "set": "state.showInk", "to": "{{merge(state.showInk, fromEntries([{ key: computed.showSlide.id, value: concat(state.showInk[computed.showSlide.id] ?? [], [state.showPen.stroke]) }]))}}" }] },
+			{
+				"if": "{{length(state.showPen.stroke) > 1}}",
+				"then": [
+					{
+						"set": "state.showInk",
+						"to": "{{merge(state.showInk, fromEntries([{ key: computed.showSlide.id, value: concat(state.showInk[computed.showSlide.id] ?? [], [state.showPen.stroke]) }]))}}"
+					}
+				]
+			},
 			{ "set": "state.showPen", "to": "{{merge(state.showPen, { stroke: [], laser: null })}}" }
 		],
-		"eraseShowInk": [{ "set": "state.showInk", "to": "{{fromEntries(filter(entries(state.showInk), it.key != computed.showSlide.id))}}" }]
+		"eraseShowInk": [
+			{
+				"set": "state.showInk",
+				"to": "{{fromEntries(filter(entries(state.showInk), it.key != computed.showSlide.id))}}"
+			}
+		]
 	},
 
 	"components": {
@@ -80,13 +180,40 @@
 			"params": {},
 			"note": "Over the slide shown: the presenter's pen strokes, and the laser's dot.",
 			"node": {
-				"id": "show-marks", "x": 0, "y": 0, "width": 960, "height": 540, "color": "transparent",
+				"id": "show-marks",
+				"x": 0,
+				"y": 0,
+				"width": 960,
+				"height": 540,
+				"color": "transparent",
 				"children": [
-					{ "type": "path", "id": "{{'show-stroke-' + i}}", "repeat": { "for": "d", "in": "{{computed.showStrokes}}", "index": "i" },
-					  "x": 0, "y": 0, "width": 960, "height": 540, "d": "{{d}}", "stroke": "#e03131", "strokeWidth": 4, "strokeCap": "round", "strokeJoin": "round" },
-					{ "id": "show-laser", "when": "{{state.showPen.laser != null}}",
-					  "x": "{{(state.showPen.laser[0] ?? 0) - 9}}", "y": "{{(state.showPen.laser[1] ?? 0) - 9}}", "width": 18, "height": 18, "radius": 9,
-					  "color": "#ff2d2d", "borderWidth": 3, "borderColor": "#ff9c9c", "shadow": { "blur": 12, "color": "#ff2d2d99" } }
+					{
+						"type": "path",
+						"id": "{{'show-stroke-' + i}}",
+						"repeat": { "for": "d", "in": "{{computed.showStrokes}}", "index": "i" },
+						"x": 0,
+						"y": 0,
+						"width": 960,
+						"height": 540,
+						"d": "{{d}}",
+						"stroke": "#e03131",
+						"strokeWidth": 4,
+						"strokeCap": "round",
+						"strokeJoin": "round"
+					},
+					{
+						"id": "show-laser",
+						"when": "{{state.showPen.laser != null}}",
+						"x": "{{(state.showPen.laser[0] ?? 0) - 9}}",
+						"y": "{{(state.showPen.laser[1] ?? 0) - 9}}",
+						"width": 18,
+						"height": 18,
+						"radius": 9,
+						"color": "#ff2d2d",
+						"borderWidth": 3,
+						"borderColor": "#ff9c9c",
+						"shadow": { "blur": 12, "color": "#ff2d2d99" }
+					}
 				]
 			}
 		},
@@ -95,17 +222,39 @@
 			"params": {},
 			"note": "The presenter's pen, laser pointer and Erase All, under the slide shown.",
 			"node": {
-				"type": "row", "id": "presenter-tools", "fitContent": "width", "height": 32, "gap": 6, "alignItems": "center", "color": "transparent",
+				"type": "row",
+				"id": "presenter-tools",
+				"fitContent": "width",
+				"height": 32,
+				"gap": 6,
+				"alignItems": "center",
+				"color": "transparent",
 				"children": [
-					{ "type": "label", "id": "presenter-pen", "style": "{{state.showPen.tool == 'pen' ? 'presenterButtonOn' : 'presenterButton'}}",
-					  "runs": [{ "icon": "pencil", "size": 14 }, { "text": "Pen", "size": 13 }], "tooltip": "Draw on the slide (Ctrl+P)",
-					  "onClick": { "run": "penTool", "with": { "tool": "pen" } } },
-					{ "type": "label", "id": "presenter-laser", "style": "{{state.showPen.tool == 'laser' ? 'presenterButtonOn' : 'presenterButton'}}",
-					  "runs": [{ "icon": "mouse-pointer-2", "size": 14 }, { "text": "Laser Pointer", "size": 13 }], "tooltip": "Point at the slide: press and drag (L)",
-					  "onClick": { "run": "penTool", "with": { "tool": "laser" } } },
-					{ "type": "label", "id": "presenter-erase", "style": "presenterButton",
-					  "runs": [{ "icon": "eraser", "size": 14 }, { "text": "Erase All", "size": 13 }],
-					  "disabled": "{{length(state.showInk[computed.showSlide.id] ?? []) == 0}}", "tooltip": "Erase the pen on this slide (E)", "onClick": "eraseShowInk" }
+					{
+						"type": "label",
+						"id": "presenter-pen",
+						"style": "{{state.showPen.tool == 'pen' ? 'presenterButtonOn' : 'presenterButton'}}",
+						"runs": [{ "icon": "pencil", "size": 14 }, { "text": "Pen", "size": 13 }],
+						"tooltip": "Draw on the slide (Ctrl+P)",
+						"onClick": { "run": "penTool", "with": { "tool": "pen" } }
+					},
+					{
+						"type": "label",
+						"id": "presenter-laser",
+						"style": "{{state.showPen.tool == 'laser' ? 'presenterButtonOn' : 'presenterButton'}}",
+						"runs": [{ "icon": "mouse-pointer-2", "size": 14 }, { "text": "Laser Pointer", "size": 13 }],
+						"tooltip": "Point at the slide: press and drag (L)",
+						"onClick": { "run": "penTool", "with": { "tool": "laser" } }
+					},
+					{
+						"type": "label",
+						"id": "presenter-erase",
+						"style": "presenterButton",
+						"runs": [{ "icon": "eraser", "size": 14 }, { "text": "Erase All", "size": 13 }],
+						"disabled": "{{length(state.showInk[computed.showSlide.id] ?? []) == 0}}",
+						"tooltip": "Erase the pen on this slide (E)",
+						"onClick": "eraseShowInk"
+					}
 				]
 			}
 		},
@@ -114,10 +263,31 @@
 			"params": { "id": "", "shown": true },
 			"note": "Over the slide shown while the pen or the laser is on: a drag draws, or points; a click stays.",
 			"node": {
-				"id": "{{id}}", "when": "{{shown && state.showPen.tool != null}}", "fill": 0, "color": "transparent",
-				"cursor": "{{state.showPen.tool == 'pen' ? 'ibeam' : 'hand'}}", "role": "region", "label": "Pen and laser pointer",
-				"onPress": { "run": "penPress", "with": { "left": "{{event.left}}", "top": "{{event.top}}", "width": "{{event.width}}", "height": "{{event.height}}" } },
-				"onDrag": { "run": "penDrag", "with": { "dx": "{{event.dx}}", "dy": "{{event.dy}}", "width": "{{event.width}}", "height": "{{event.height}}" } },
+				"id": "{{id}}",
+				"when": "{{shown && state.showPen.tool != null}}",
+				"fill": 0,
+				"color": "transparent",
+				"cursor": "{{state.showPen.tool == 'pen' ? 'ibeam' : 'hand'}}",
+				"role": "region",
+				"label": "Pen and laser pointer",
+				"onPress": {
+					"run": "penPress",
+					"with": {
+						"left": "{{event.left}}",
+						"top": "{{event.top}}",
+						"width": "{{event.width}}",
+						"height": "{{event.height}}"
+					}
+				},
+				"onDrag": {
+					"run": "penDrag",
+					"with": {
+						"dx": "{{event.dx}}",
+						"dy": "{{event.dy}}",
+						"width": "{{event.width}}",
+						"height": "{{event.height}}"
+					}
+				},
 				"onRelease": "penRelease",
 				"onClick": [{ "note": "a click with the pen or the laser isn't a click on the show" }]
 			}
@@ -127,9 +297,14 @@
 			"params": {},
 			"note": "A fade's effect option, in place of the side: through black, or smoothly.",
 			"node": {
-				"id": "b-fade-option", "use": "rbBig", "when": "{{computed.slide.transition.kind == 'fade'}}",
-				"with": { "icon": "{{computed.slide.transition.option == 'smoothly' ? 'blend' : 'square'}}",
-				          "title": "{{computed.slide.transition.option == 'smoothly' ? 'Smoothly' : 'Through\nBlack'}}", "width": 56 },
+				"id": "b-fade-option",
+				"use": "rbBig",
+				"when": "{{computed.slide.transition.kind == 'fade'}}",
+				"with": {
+					"icon": "{{computed.slide.transition.option == 'smoothly' ? 'blend' : 'square'}}",
+					"title": "{{computed.slide.transition.option == 'smoothly' ? 'Smoothly' : 'Through\nBlack'}}",
+					"width": 56
+				},
 				"tooltip": "Fade through black, or straight from one slide to the next",
 				"onClick": "toggleFadeOption"
 			}
@@ -139,21 +314,60 @@
 			"params": { "a": null },
 			"note": "The delay and the repeats of build a, in the animation pane, while it is selected.",
 			"node": {
-				"type": "row", "id": "{{'motion-' + a.id + '-timing'}}", "when": "{{contains(state.board.selection, a.target)}}",
-				"height": 24, "gap": 2, "alignItems": "center", "color": "@rbChecked",
+				"type": "row",
+				"id": "{{'motion-' + a.id + '-timing'}}",
+				"when": "{{contains(state.board.selection, a.target)}}",
+				"height": 24,
+				"gap": 2,
+				"alignItems": "center",
+				"color": "@rbChecked",
 				"children": [
-					{ "type": "label", "id": "{{'motion-' + a.id + '-delay'}}", "width": 96, "height": 22, "padding": 4, "textColor": "@rbInk",
-					  "runs": "{{[{ icon: 'hourglass', size: 12 }, { text: ' Delay: ' + fixed((a.delay ?? 0) / 1000, 2), size: 11 }]}}" },
-					{ "id": "{{'motion-' + a.id + '-delay-less'}}", "use": "rbSmall", "with": { "icon": "minus", "enabled": "{{(a.delay ?? 0) > 0}}" }, "tooltip": "Less delay",
-					  "onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": -250 } } },
-					{ "id": "{{'motion-' + a.id + '-delay-more'}}", "use": "rbSmall", "with": { "icon": "plus" }, "tooltip": "More delay",
-					  "onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": 250 } } },
-					{ "type": "label", "id": "{{'motion-' + a.id + '-repeat'}}", "width": 50, "height": 22, "padding": 4, "textColor": "@rbInk",
-					  "runs": "{{[{ icon: 'repeat', size: 12 }, { text: ' ' + (a.repeat ?? 1), size: 11 }]}}" },
-					{ "id": "{{'motion-' + a.id + '-repeat-less'}}", "use": "rbSmall", "with": { "icon": "minus", "enabled": "{{(a.repeat ?? 1) > 1}}" }, "tooltip": "Fewer repeats",
-					  "onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": -1 } } },
-					{ "id": "{{'motion-' + a.id + '-repeat-more'}}", "use": "rbSmall", "with": { "icon": "plus", "enabled": "{{(a.repeat ?? 1) < 10}}" }, "tooltip": "More repeats",
-					  "onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": 1 } } }
+					{
+						"type": "label",
+						"id": "{{'motion-' + a.id + '-delay'}}",
+						"width": 96,
+						"height": 22,
+						"padding": 4,
+						"textColor": "@rbInk",
+						"runs": "{{[{ icon: 'hourglass', size: 12 }, { text: ' Delay: ' + fixed((a.delay ?? 0) / 1000, 2), size: 11 }]}}"
+					},
+					{
+						"id": "{{'motion-' + a.id + '-delay-less'}}",
+						"use": "rbSmall",
+						"with": { "icon": "minus", "enabled": "{{(a.delay ?? 0) > 0}}" },
+						"tooltip": "Less delay",
+						"onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": -250 } }
+					},
+					{
+						"id": "{{'motion-' + a.id + '-delay-more'}}",
+						"use": "rbSmall",
+						"with": { "icon": "plus" },
+						"tooltip": "More delay",
+						"onClick": { "run": "buildDelayBy", "with": { "id": "{{a.id}}", "by": 250 } }
+					},
+					{
+						"type": "label",
+						"id": "{{'motion-' + a.id + '-repeat'}}",
+						"width": 50,
+						"height": 22,
+						"padding": 4,
+						"textColor": "@rbInk",
+						"runs": "{{[{ icon: 'repeat', size: 12 }, { text: ' ' + (a.repeat ?? 1), size: 11 }]}}"
+					},
+					{
+						"id": "{{'motion-' + a.id + '-repeat-less'}}",
+						"use": "rbSmall",
+						"with": { "icon": "minus", "enabled": "{{(a.repeat ?? 1) > 1}}" },
+						"tooltip": "Fewer repeats",
+						"onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": -1 } }
+					},
+					{
+						"id": "{{'motion-' + a.id + '-repeat-more'}}",
+						"use": "rbSmall",
+						"with": { "icon": "plus", "enabled": "{{(a.repeat ?? 1) < 10}}" },
+						"tooltip": "More repeats",
+						"onClick": { "run": "buildRepeatBy", "with": { "id": "{{a.id}}", "by": 1 } }
+					}
 				]
 			}
 		},
@@ -162,27 +376,90 @@
 			"params": { "a": null },
 			"note": "The Motion tab's delay and repeats of the selected objects' build, and the side a fly build comes from.",
 			"node": {
-				"type": "column", "id": "motion-timing-more", "width": 150, "height": 72, "gap": 2, "alignItems": "stretch", "color": "transparent",
+				"type": "column",
+				"id": "motion-timing-more",
+				"width": 150,
+				"height": 72,
+				"gap": 2,
+				"alignItems": "stretch",
+				"color": "transparent",
 				"children": [
-					{ "type": "row", "id": "motion-delay-row", "height": 22, "gap": 2, "alignItems": "center", "color": "transparent", "children": [
-						{ "type": "label", "id": "motion-delay", "width": 102, "height": 22, "textColor": "@rbInk",
-						  "runs": "{{[{ icon: 'hourglass', size: 14 }, { text: ' Delay: ' + fixed((a.delay ?? 0) / 1000, 2), size: 12 }]}}" },
-						{ "id": "motion-delay-less", "use": "rbSmall", "with": { "icon": "minus", "enabled": "{{a != null && (a.delay ?? 0) > 0}}" }, "tooltip": "Less delay",
-						  "onClick": { "run": "animationDelayBy", "with": { "by": -250 } } },
-						{ "id": "motion-delay-more", "use": "rbSmall", "with": { "icon": "plus", "enabled": "{{a != null}}" }, "tooltip": "More delay",
-						  "onClick": { "run": "animationDelayBy", "with": { "by": 250 } } }
-					] },
-					{ "type": "row", "id": "motion-repeat-row", "height": 22, "gap": 2, "alignItems": "center", "color": "transparent", "children": [
-						{ "type": "label", "id": "motion-repeat", "width": 102, "height": 22, "textColor": "@rbInk",
-						  "runs": "{{[{ icon: 'repeat', size: 14 }, { text: ' Repeat: ' + (a.repeat ?? 1), size: 12 }]}}" },
-						{ "id": "motion-repeat-less", "use": "rbSmall", "with": { "icon": "minus", "enabled": "{{a != null && (a.repeat ?? 1) > 1}}" }, "tooltip": "Fewer repeats",
-						  "onClick": { "run": "animationRepeatBy", "with": { "by": -1 } } },
-						{ "id": "motion-repeat-more", "use": "rbSmall", "with": { "icon": "plus", "enabled": "{{a != null && (a.repeat ?? 1) < 10}}" }, "tooltip": "More repeats",
-						  "onClick": { "run": "animationRepeatBy", "with": { "by": 1 } } }
-					] },
-					{ "type": "label", "id": "motion-side", "height": 22, "style": "{{a.effect == 'fly' ? 'rbButton' : 'rbButtonOff'}}", "padding": 2, "fitText": true,
-					  "runs": "{{[{ icon: (find(computed.flySides, it[0] == (a.direction ?? 'bottom')) ?? computed.flySides[0])[1], size: 14 }, { text: ' From ' + (a.direction ?? 'bottom'), size: 12 }]}}",
-					  "tooltip": "The side a fly build comes from, or leaves to", "disabled": "{{a.effect != 'fly'}}", "onClick": "nextFlySide" }
+					{
+						"type": "row",
+						"id": "motion-delay-row",
+						"height": 22,
+						"gap": 2,
+						"alignItems": "center",
+						"color": "transparent",
+						"children": [
+							{
+								"type": "label",
+								"id": "motion-delay",
+								"width": 102,
+								"height": 22,
+								"textColor": "@rbInk",
+								"runs": "{{[{ icon: 'hourglass', size: 14 }, { text: ' Delay: ' + fixed((a.delay ?? 0) / 1000, 2), size: 12 }]}}"
+							},
+							{
+								"id": "motion-delay-less",
+								"use": "rbSmall",
+								"with": { "icon": "minus", "enabled": "{{a != null && (a.delay ?? 0) > 0}}" },
+								"tooltip": "Less delay",
+								"onClick": { "run": "animationDelayBy", "with": { "by": -250 } }
+							},
+							{
+								"id": "motion-delay-more",
+								"use": "rbSmall",
+								"with": { "icon": "plus", "enabled": "{{a != null}}" },
+								"tooltip": "More delay",
+								"onClick": { "run": "animationDelayBy", "with": { "by": 250 } }
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "motion-repeat-row",
+						"height": 22,
+						"gap": 2,
+						"alignItems": "center",
+						"color": "transparent",
+						"children": [
+							{
+								"type": "label",
+								"id": "motion-repeat",
+								"width": 102,
+								"height": 22,
+								"textColor": "@rbInk",
+								"runs": "{{[{ icon: 'repeat', size: 14 }, { text: ' Repeat: ' + (a.repeat ?? 1), size: 12 }]}}"
+							},
+							{
+								"id": "motion-repeat-less",
+								"use": "rbSmall",
+								"with": { "icon": "minus", "enabled": "{{a != null && (a.repeat ?? 1) > 1}}" },
+								"tooltip": "Fewer repeats",
+								"onClick": { "run": "animationRepeatBy", "with": { "by": -1 } }
+							},
+							{
+								"id": "motion-repeat-more",
+								"use": "rbSmall",
+								"with": { "icon": "plus", "enabled": "{{a != null && (a.repeat ?? 1) < 10}}" },
+								"tooltip": "More repeats",
+								"onClick": { "run": "animationRepeatBy", "with": { "by": 1 } }
+							}
+						]
+					},
+					{
+						"type": "label",
+						"id": "motion-side",
+						"height": 22,
+						"style": "{{a.effect == 'fly' ? 'rbButton' : 'rbButtonOff'}}",
+						"padding": 2,
+						"fitText": true,
+						"runs": "{{[{ icon: (find(computed.flySides, it[0] == (a.direction ?? 'bottom')) ?? computed.flySides[0])[1], size: 14 }, { text: ' From ' + (a.direction ?? 'bottom'), size: 12 }]}}",
+						"tooltip": "The side a fly build comes from, or leaves to",
+						"disabled": "{{a.effect != 'fly'}}",
+						"onClick": "nextFlySide"
+					}
 				]
 			}
 		}
