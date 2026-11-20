@@ -204,7 +204,7 @@
 		},
 		{
 			"name": "sinopia-group-and-ungroup",
-			"note": "Group makes the selected objects one: a click on any of them selects them all, and a pasted copy is a group of its own; Ungroup takes them apart",
+			"note": "Group makes the selected objects one: a click on any of them selects them all, and a pasted copy is a group of its own; Ungroup takes them apart; Arrange turns and flips the selection",
 			"steps": [
 				{ "click": "#thumb-s4-row" },
 				{ "click": "#o9" },
@@ -226,7 +226,16 @@
 				{ "expect": { "state": "deck.slides[3].objects[1].group", "is": null } },
 				{ "key": "escape" },
 				{ "click": "#o12" },
-				{ "expect": { "state": "board.selection.length", "is": 1 } }
+				{ "expect": { "state": "board.selection.length", "is": 1 } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Rotate Left 90°" } },
+				{ "expect": { "state": "deck.slides[3].objects[4].rotate", "is": 270 } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Flip Horizontal" } },
+				{ "expect": { "state": "deck.slides[3].objects[4].flipH", "is": true } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Flip Horizontal" } },
+				{ "expect": { "state": "deck.slides[3].objects[4].flipH", "is": false } }
 			]
 		},
 		{
@@ -265,6 +274,25 @@
 				{ "key": "escape" },
 				{ "expect": { "state": "editing", "is": null } },
 				{ "expect": { "node": "#o40-c0-0-t", "text": "Phase" } }
+			]
+		},
+		{
+			"name": "sinopia-insert-a-picture",
+			"note": "Insert > Pictures puts a PNG or JPEG the person chooses on the slide, at most 640 by 400 and in its proportions, kept in the deck",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-insert-label" },
+				{ "choose": "dusk.png", "from": "fixtures/picture.png" },
+				{ "click": "#b-ins-pictures" },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Inserted dusk.png." } },
+				{ "expect": { "state": "deck.slides[3].objects[7].kind", "is": "picture" } },
+				{ "expect": { "state": "deck.slides[3].objects[7].w", "is": 160 } },
+				{ "expect": { "state": "deck.slides[3].objects[7].h", "is": 90 } },
+				{ "expect": { "state": "deck.slides[3].objects[7].x", "is": 400 } },
+				{ "expect": { "state": "board.selection[0]", "is": "o40" } },
+				{ "expect": { "node": "#o40-picture", "exists": true } },
+				{ "expect": { "state": "picture", "is": null } }
 			]
 		},
 		{

@@ -138,9 +138,13 @@
 			  "onDone": [{ "run": "pictureOpened", "with": { "result": "{{result}}" } }],
 			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + error.message}}" }] }
 		],
+		"placePicture": [
+			{ "note": "with: result, k: the picture's size scaled by k (400 by 300 when the file doesn't say), in the middle of the slide" },
+			{ "run": "insertObject", "with": { "object": "{{ {kind: 'picture', w: (result.width ?? 0) > 0 ? round(result.width * k) : 400, h: (result.height ?? 0) > 0 ? round(result.height * k) : 300, x: 480 - ((result.width ?? 0) > 0 ? round(result.width * k) : 400) / 2, y: 270 - ((result.height ?? 0) > 0 ? round(result.height * k) : 300) / 2, src: state.picture, alt: result.name} }}" } }
+		],
 		"pictureOpened": [
 			{ "note": "with: result: the picture just opened goes in the middle of the slide, at most 640 by 400, and is selected" },
-			{ "run": "insertObject", "with": { "object": "{{ {kind: 'picture', x: 480 - (result.width > 0 ? result.width * min(640 / result.width, 400 / max(result.height, 1), 1) : 400) / 2, y: 270 - (result.height > 0 ? result.height * min(640 / max(result.width, 1), 400 / result.height, 1) : 300) / 2, w: result.width > 0 ? result.width * min(640 / result.width, 400 / max(result.height, 1), 1) : 400, h: result.height > 0 ? result.height * min(640 / max(result.width, 1), 400 / result.height, 1) : 300, src: state.picture, alt: result.name} }}" } },
+			{ "run": "placePicture", "with": { "result": "{{result}}", "k": "{{min(640 / max(result.width ?? 0, 1), 400 / max(result.height ?? 0, 1), 1)}}" } },
 			{ "set": "state.picture", "to": null },
 			{ "set": "state.fileStatus", "to": "{{'Inserted ' + result.name + '.'}}" }
 		]

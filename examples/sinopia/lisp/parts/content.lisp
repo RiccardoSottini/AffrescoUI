@@ -216,8 +216,8 @@
   (let [w (max (or-else result.width 0) 1)
         h (max (or-else result.height 0) 1)
         k (min (/ 640 w) (/ 400 h) 1)
-        pw (if (pos? (or-else result.width 0)) (* w k) 400)
-        ph (if (pos? (or-else result.height 0)) (* h k) 300)]
+        pw (if (pos? (or-else result.width 0)) (round (* w k)) 400)
+        ph (if (pos? (or-else result.height 0)) (round (* h k)) 300)]
     (insertObject {:kind "picture"
                    :x (- 480 (/ pw 2))
                    :y (- 270 (/ ph 2))

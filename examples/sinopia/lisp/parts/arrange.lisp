@@ -35,3 +35,25 @@
 (defn ungroup-objects "Takes the selected objects out of their groups; they stay selected." []
   (when computed.canUngroup
     (setObjects {:group nil})))
+
+;;; Rotate and flip
+
+(defn turnable? "Whether an object is one of the selected and isn't locked: what Rotate and Flip change." [o]
+  (and (selected? o)
+       (not (true? (:locked o)))))
+
+(defn rotate-objects "Turns the selected objects but the locked ones by a quarter: 90 to the right, -90 to the left."
+  [by]
+  (when (seq computed.selected)
+    (commit)
+    (set-objects (map #(if (turnable? %)
+                         (assoc % :rotate (-> (or-else (:rotate %) 0)
+                                              (+ by 360)
+                                              (mod 360)))
+                         %)
+                      computed.objects))))
+
+(defn flip-objects "Mirrors the selected objects but the locked ones: across (flipH) or upside down (flipV)." [axis]
+  (when (seq computed.selected)
+    (commit)
+    (set-objects (map #(if (turnable? %) (update % axis not) %) computed.objects))))

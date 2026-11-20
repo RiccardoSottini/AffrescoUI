@@ -106,6 +106,14 @@
             :enabled computed.canUngroup}]
           [{:separator true}]
           (map (fn [it]
+                 {:title (t (str "arrange." it.0)) :icon it.1 :run it.2 :with it.3
+                  :enabled (pos? (count computed.selected))})
+               [["rotateRight" "rotate-cw" "rotate-objects" {:by 90}]
+                ["rotateLeft" "rotate-ccw" "rotate-objects" {:by -90}]
+                ["flipVertical" "flip-vertical-2" "flip-objects" {:axis "flipV"}]
+                ["flipHorizontal" "flip-horizontal-2" "flip-objects" {:axis "flipH"}]])
+          [{:separator true}]
+          (map (fn [it]
                  {:title (t (str "distribute." it.0)) :icon it.1 :run "distribute" :with {:axis it.0}
                   :enabled (> (count computed.selected) 1)})
                [["x" "align-horizontal-distribute-center"] ["y" "align-vertical-distribute-center"]])))
