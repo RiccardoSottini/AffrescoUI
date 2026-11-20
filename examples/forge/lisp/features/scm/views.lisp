@@ -23,6 +23,7 @@
      ~(scm-staged)
      ~(scm-changes-head)
      ~(scm-changes)
+     ~(scm-discard-dialog)
      ~(scm-branch-list)
      ~(scm-history)))
 
@@ -233,6 +234,14 @@
        :tooltip ~(t "scm-stage.tip")
        :hover {:textColor @color.text}
        :onClick scmStage)
+     (label#scm-discard :icon undo-2
+       :padding 4
+       :fitText true
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "scm-discard.tip")
+       :hover {:textColor @color.text}
+       :onClick scmDiscard)
      (node#scm-stash :use forgeScmTool
        :with {:icon archive :tip ~(t "scm-stash.tip") :action scmStash :on ~(> state.scm.status.count 0)})
      (node#scm-stash-pop :use forgeScmTool
@@ -264,6 +273,14 @@
      :selectedBackground @color.selection
      :accentColor @color.accent
      :onOpen scm-open-diff))
+
+(defview scm-discard-dialog "Asks before a change is discarded, as it can't be undone." []
+  `(node#scm-discard-dialog :use dialog
+     :with {:open state.scm.discard.open
+            :title ~(t "scm-discard-dialog.title" {:name (base-name state.scm.discard.path)})
+            :message ~(if state.scm.discard.untracked (t "scm-discard-dialog.new") (t "scm-discard-dialog.changed"))
+            :buttons [{:title ~(t "scm-discard-dialog.discard") :run scmDiscardConfirmed}
+                      {:title ~(t "scm-discard-dialog.cancel")}]}))
 
 ;;; Branches and history
 

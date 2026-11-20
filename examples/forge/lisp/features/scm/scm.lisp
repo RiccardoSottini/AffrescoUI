@@ -15,6 +15,7 @@
    :message ""
    :branchName ""
    :stashes 0
+   :discard {:open false :path "" :untracked false}
    :error ""
    :busy false
    :showBranches false
@@ -218,6 +219,27 @@
   :description ~(t "command.scmUnstageAll") :category ~(t "category.sourceControl") :icon "list-minus"
   :enablement ~(> (count state.scm.status.staged) 0) []
   (scm-git ["restore" "--staged" "--" "."] ""))
+
+(defcommand scmDiscard "Discard the chosen change, once a dialog says yes: git restores the file, or a new file is deleted."
+  :title ~(t "command.scmDiscard") :category ~(t "category.sourceControl") :icon "undo-2"
+  :description ~(t "command.scmDiscard.about")
+  :enablement ~(not (empty? (or-else event.id state.scm.selectedChange))) []
+  (let [path (or-else event.id state.scm.selectedChange)]
+    (when-some [change (find #(= (:id %) path) state.scm.status.changes)]
+      (set "state.scm.discard" {:open true :path path :untracked (= change.kind "untracked")}))))
+
+; style: keep, named in examples/forge/lisp/scm.scenarios.json
+(defn scmDiscardConfirmed "Discards the change, once the dialog said yes: its file as the last commit has it, or gone." []
+  (set "state.scm.discard.open" false)
+  (if state.scm.discard.untracked
+    (invoke "files.delete" :with {:path state.scm.discard.path} :onError scm-discard-failed :onDone scm-discarded)
+    (scm-git ["restore" "--" state.scm.discard.path] "")))
+
+(defn scm-discarded "A new file discarded: the changes are read again." []
+  (scmRefresh))
+
+(defn scm-discard-failed "Says why a new file couldn't be discarded." [error]
+  (notify "error" (t "notify.cannotDelete" {:error error.message})))
 
 (defcommand scmCommit "Commit the staged changes with the message (it goes to git's input, never its arguments)."
   :title ~(t "command.scmCommit") :category ~(t "category.sourceControl") :icon "check"
