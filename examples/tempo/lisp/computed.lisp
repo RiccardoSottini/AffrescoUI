@@ -101,10 +101,12 @@
                       (number (get (str/split (or-else it.time "0:0") ":") 1)))))
             60)))
 
-(defcomputed songMenuItems "The song menu: play, play next, add to the queue or a playlist, like, remove."
+(defcomputed songMenuItems "The song menu: play, play next, add to (or take out of) the queue, add to a playlist, like, remove."
   (concat [{:title (t "song.play") :run "play" :with {:list state.songMenu.list :track state.songMenu.track}}
            {:title (t "song.playNext") :run "playNext" :with {:key computed.songMenuKey}}
-           {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}}
+           (if (contains state.queue computed.songMenuKey)
+             {:title (t "song.unqueue") :run "removeFromQueue" :with {:key computed.songMenuKey}}
+             {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}})
            {:separator true}
            {:title (t "song.addToPlaylist")
             :submenu (concat (map-indexed (fn [index it]

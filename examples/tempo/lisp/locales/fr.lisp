@@ -19,6 +19,7 @@
                 :song.unlike "Retirer des titres aimés"
                 :song.addToPlaylist "Ajouter à une playlist"
                 :song.remove "Retirer de cette playlist"
+                :song.unqueue "Retirer de la file"
                 :playlist.new "Nouvelle playlist"
                 :now.show "Afficher {name}"
                 :playlist.newName "Ma playlist {n}"

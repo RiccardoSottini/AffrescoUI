@@ -189,6 +189,11 @@
   (set "state.queuePick" nil))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
+(defn removeFromQueue "A song of the queue, as list:track, leaves it." [key]
+  (set "state.queue" (without state.queue key))
+  (set "state.queuePick" nil))
+
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn addToQueue "Any song, as list:track, goes to the end of the queue." [key]
   (set "state.queue" (take 1000 (conj (without state.queue key) key)))
   (set "state.queuePick" nil))

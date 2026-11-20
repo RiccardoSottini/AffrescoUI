@@ -24,7 +24,7 @@ difference the note says. `missing`: not yet.
 | Search that finds songs as you type | done | Fuzzy, on the title and the artist: the playlists' songs, then the library's |
 | Quick open of a song, a palette of commands | done | Cmd+P, Cmd+Shift+P |
 | Like a song, and a list of the liked ones | done | The heart in the player or a song's menu; Cmd+4 shows them. Playing one, the liked songs after it (up to 50) come next |
-| A context menu on a song: play next, add to the queue | done | A right click or Shift+F10, in a table or the queue: play, play next, add to the queue, add to a playlist, like, remove from this playlist. The queue takes any song, from any mix, the library or a search |
+| A context menu on a song: play next, add to the queue | done | A right click or Shift+F10, in a table or the queue: play, play next, add to (or remove from) the queue, add to a playlist, like, remove from this playlist. The queue takes any song, from any mix, the library or a search |
 | Make, rename and delete playlists | done | The "+" by the mixes, a playlist's "..." menu, a double click on its name; deleting asks first |
 | Add a song to a playlist, remove it | done | The song's menu: "Add to playlist" (or a new one), "Remove from this playlist" |
 

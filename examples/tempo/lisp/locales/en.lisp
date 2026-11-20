@@ -19,6 +19,7 @@
                 :song.unlike "Remove from liked songs"
                 :song.addToPlaylist "Add to playlist"
                 :song.remove "Remove from this playlist"
+                :song.unqueue "Remove from the queue"
                 :playlist.new "New playlist"
                 :now.show "Show {name}"
                 :playlist.newName "My playlist {n}"

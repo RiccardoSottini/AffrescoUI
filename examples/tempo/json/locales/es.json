@@ -22,6 +22,7 @@
 			"song.unlike": "Quitar de favoritas",
 			"song.addToPlaylist": "Añadir a una lista",
 			"song.remove": "Quitar de esta lista",
+			"song.unqueue": "Quitar de la cola",
 			"playlist.new": "Nueva lista",
 			"now.show": "Mostrar {name}",
 			"playlist.newName": "Mi lista {n}",
