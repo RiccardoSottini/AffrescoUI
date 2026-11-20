@@ -2996,7 +2996,7 @@
 				{
 					"expect": {
 						"state": "doc.active",
-						"is": "5"
+						"is": "3"
 					}
 				},
 				{
@@ -4664,6 +4664,64 @@
 					"expect": {
 						"state": "doc.histogram[0]",
 						"is": 77160
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-search-tools-and-layers",
+			"note": "The search finds tools and layers as well as commands, and choosing one chooses it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Magic Wand"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "wand"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Layer: Sky"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.active",
+						"is": "3"
 					}
 				}
 			]

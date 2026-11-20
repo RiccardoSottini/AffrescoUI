@@ -200,7 +200,7 @@
 				] },
 				{ "id": "workspace-foot", "style": "clear", "width": 1, "height": 0 }
 			] },
-			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
+			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search commands, tools and layers', items: computed.searchItems}]}}" } },
 			{ "use": "temperaFilterDialog" },
 			{ "use": "temperaNewDialog" },
 			{ "use": "temperaTransformDialog" },

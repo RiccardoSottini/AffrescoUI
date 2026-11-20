@@ -7,7 +7,7 @@
 	"computed": {
 		"activeLayer": "{{find(state.doc.layers, it.id == state.doc.active)}}",
 		"layerBelow": "{{find(slice(state.doc.layers, indexOf(map(state.doc.layers, it.id), state.doc.active) + 1), it.depth <= (computed.activeLayer.depth ?? 0))}}",
-		"searchItems": "{{map(filter(commands, it.enabled != false && !empty(it.title ?? '') && it.name != 'unavailable'), {title: (empty(it.category ?? '') ? '' : it.category + ': ') + it.title, run: it.name})}}",
+		"searchItems": "{{concat(map(filter(commands, it.enabled != false && !empty(it.title ?? '') && it.name != 'unavailable'), {title: (empty(it.category ?? '') ? '' : it.category + ': ') + it.title, run: it.name}), map(filter(flat(state.tools), it.id), {title: it.title, run: 'setTool', with: {args: {tool: it.id}}}), map(state.doc.layers, {title: 'Layer: ' + it.name, run: 'selectLayer', with: {args: {id: it.id}}}))}}",
 		"nextGroupName": "{{'Group ' + (count(state.doc.layers, it.kind == 'group') + 1)}}",
 		"groupBelow": "{{slice(state.doc.layers, indexOf(map(state.doc.layers, it.id), state.doc.active) + 1)}}",
 		"groupEnds": "{{scan(computed.groupBelow, acc || it.depth <= computed.activeLayer.depth, false)}}",

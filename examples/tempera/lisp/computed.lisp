@@ -140,10 +140,19 @@
 
 ;;; The command search
 
-(defcomputed searchItems "The command search's items: every command that can run, its category before its title."
-  ; style: keep, #(...) can't give a map
-  (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
-       (filter #(and (not= (:enabled %) false)
-                     (-> % :title (or-else "") empty? not)
-                     (not= (:name %) "unavailable"))
-               commands)))
+(defcomputed searchItems
+  "The search's items: every command that can run, its category before its title; then every tool that works, and every
+  layer of the image, each choosing it."
+  (concat
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
+         (filter #(and (not= (:enabled %) false)
+                       (-> % :title (or-else "") empty? not)
+                       (not= (:name %) "unavailable"))
+                 commands))
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (t (str "tool." it.name)) :run "setTool" :with {:args {:tool it.id}}})
+         (filter :id (flatten state.tools)))
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (str (t "search.layer") ": " it.name) :run "selectLayer" :with {:args {:id it.id}}})
+         state.doc.layers)))

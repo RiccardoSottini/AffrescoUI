@@ -331,7 +331,7 @@
 					{ "grow": 1, "height": 1, "style": "clear" },
 					{ "type": "row", "id": "options-end", "width": 112, "height": 30, "alignItems": "center", "justify": "end", "gap": 4,
 					  "children": [
-						{ "id": "search", "use": "tIcon", "with": { "icon": "search", "tip": "Search the commands (Cmd+F)", "run": "showSearch" } },
+						{ "id": "search", "use": "tIcon", "with": { "icon": "search", "tip": "Search commands, tools and layers (Cmd+F)", "run": "showSearch" } },
 						{ "type": "row", "id": "workspace-switcher", "role": "button", "label": "Workspace", "tooltip": "Choose a workspace", "width": 40, "height": 22,
 						  "alignItems": "center", "gap": 2, "radius": "@kit.radius", "cursor": "hand", "hover": { "color": "@hover" }, "onClick": { "toggle": "state.workspaceMenu" },
 						  "children": [
