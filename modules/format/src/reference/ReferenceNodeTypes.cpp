@@ -358,17 +358,20 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
 		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"},
 		"icon": {"type": "string"}, "iconColor": {"type": ["string", "null"]},
+		"marks": {"type": ["array", "null"], "maxItems": 64, "items": {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "integer", "minimum": 0}}},
 		"cells": {"type": "array", "minItems": 1, "maxItems": 256,
 		"items": {"type": ["string", "number", "boolean", "null"]}}}}]}},
 		{"$ref": "#/$defs/v2/dynamic"}],
-		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"})json",
+		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, marks, children (tree), expandable (tree), cells (table) }"})json",
 	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
 	 "\"label\", \"icon\", \"iconColor\" }` (an icon before the label, by name, as a label's `icon`, in a hex colour "
 	 "or "
 	 "the text's); in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
 	 "children aren't loaded yet: `onExpand` can load them); in a `table`, `\"cells\"`: the texts of the row's "
-	 "columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as "
-	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
+	 "columns, in order (at most 256). `\"marks\"`: parts of the label drawn highlighted, each `[first, count]` in "
+	 "characters (at most 64), such as a search's matches in a line. Only the rows in view are drawn, so a list "
+	 "scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
 	 "list"},
     {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
 		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
