@@ -29,9 +29,9 @@
 
 (defkey "mod+a" {:when ~(not context.textInputFocus) :do selectAll})
 
-(defkey "mod+g" {:when ~(not context.textInputFocus) :do groupObjects})
+(defkey "mod+g" {:when ~(not context.textInputFocus) :do group-objects})
 
-(defkey "mod+shift+g" {:when ~(not context.textInputFocus) :do ungroupObjects})
+(defkey "mod+shift+g" {:when ~(not context.textInputFocus) :do ungroup-objects})
 
 (defkey "mod+b" {:when ~(not context.textInputFocus) :do toggle-text :with {:key bold}})
 

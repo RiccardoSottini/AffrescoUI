@@ -101,8 +101,8 @@
                 ["middle" "align-center-horizontal"]
                 ["bottom" "align-end-horizontal"]])
           [{:separator true}]
-          [{:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "groupObjects" :enabled computed.canGroup}
-           {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroupObjects"
+          [{:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "group-objects" :enabled computed.canGroup}
+           {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroup-objects"
             :enabled computed.canUngroup}]
           [{:separator true}]
           (map (fn [it]
