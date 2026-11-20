@@ -106,7 +106,7 @@ Exit signFile(std::span<const std::string_view> args) {
 	if(!document.is_object()) throw FileProblem(file.string() + ": isn't a manifest, a catalogue's index or a package");
 	if(document.value("format", json()) == "affrescoui-catalog") refreshReleases(document, file.parent_path());
 	const SigningKey key = readKey(*keyFile);
-	const bool package = document.value("format", json()) == format::packageFormat;
+	const bool package = document.value("format", json()) == json(std::string(format::packageFormat));
 	const json signedDocument = key.sign(std::move(document));
 	if(package) {
 		try {

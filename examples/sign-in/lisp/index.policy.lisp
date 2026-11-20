@@ -37,12 +37,12 @@
           :reason "can't change \"connections\""}
          {:name "nor makes another button sign in"
           :revision {:author "agent/claude-code"
-                     :set {"/program/sign-in.lisp/closeShortcuts" "(defn closeShortcuts \"Closes the shortcuts' list.\" [] (signIn \"exampleId\"))"}}
+                     :set {"/program/sign-in.lisp/close-shortcuts" "(defn close-shortcuts \"Closes the shortcuts' list.\" [] (signIn \"exampleId\"))"}}
           :expect deny
           :reason "can't add, change or move"}
          {:name "nor points the sign-in step at another provider"
           :revision {:author "agent/claude-code"
-                     :set {"/program/sign-in.lisp/providerSignIn" "(defn providerSignIn \"Example ID's button: its sign-in page, through the connection; scenarios play its answers.\" []\n  (when (= state.busy \"\")\n    (set \"state.formError\" \"\")\n    (set \"state.providerName\" \"exampleId\")\n    (set \"state.busy\" \"provider\")\n    (signIn \"other\" :onDone providerAnswered :onError providerRefused)))"}}
+                     :set {"/program/sign-in.lisp/provider-sign-in" "(defn provider-sign-in \"Example ID's button: its sign-in page, through the connection; scenarios play its answers.\" []\n  (when (empty? state.busy)\n    (set \"state.formError\" \"\")\n    (set \"state.providerName\" \"exampleId\")\n    (set \"state.busy\" \"provider\")\n    (signIn \"other\" :onDone provider-answered :onError provider-refused)))"}}
           :expect deny
           :reason "a definition that runs a control step"}
          {:name "nor adds a sign-out to a button"

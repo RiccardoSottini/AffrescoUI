@@ -7,6 +7,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/core/Portable.hpp>
 #include <affresco/data/Store.hpp>
 #include <affresco/format/PackageFiles.hpp>
 #include <affresco/format/PackageInstall.hpp>
@@ -226,8 +227,8 @@ std::vector<std::string> privateTexts(const std::filesystem::path& data, const s
 		if(!error) texts.push_back(real.string());
 	};
 	for(const char* name : {"HOME", "USERPROFILE"})
-		if(const char* home = std::getenv(name); home != nullptr && *home != '\0')
-			add(home); // NOLINT(concurrency-mt-unsafe)
+		if(const std::optional<std::string> home = affresco::environmentVariable(name); home && !home->empty())
+			add(*home);
 	add(data);
 	add(std::filesystem::is_directory(app) ? app : app.parent_path());
 	return texts;

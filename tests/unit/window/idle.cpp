@@ -85,6 +85,13 @@ TEST_CASE("idle: an idle second of every template runs no update, draws nothing 
 		const affresco::Window& window = screen.createWindow(app);
 
 		runOneSecond(app); // settles: onLoad, the first frame and the first timers do their work
+		// A slow build (a sanitizer's) may still be settling, work the first second started landing after it: up to
+		// three more seconds, while the state still moves
+		for(int more = 0; more < 3; ++more) {
+			const std::string settling = screen.stateJson();
+			runOneSecond(app);
+			if(screen.stateJson() == settling) break;
+		}
 		const bool timerPending = window.secondsToNextTimer().has_value();
 		const Counts before = countsOf(app, screen, window);
 		const std::string state = screen.stateJson();
