@@ -425,11 +425,12 @@
   "The next sample of the rate, in MB/s: a wave that repeats, as the region's servers give it, under the speed limit if
   there is one."
   []
-  (let [rate (round (* (region-share) (+ 34 (mod (* state.dlTick 7) 19))))]
+  (let [wave (+ 34 (mod (* state.dlTick 7) 19))
+        rate (round (* (region-share) wave))]
     (if (pos? settings.downloads.limit) (min settings.downloads.limit rate) rate)))
 
 (defn hour-now "The hour of the day now, from 0 to 23 (UTC)." []
-  (mod (floor (/ (now) 3600000)) 24))
+  (-> (now) (/ 3600000) floor (mod 24)))
 
 (defn download-tick
   ;; Not while a game runs, unless Settings allow it.

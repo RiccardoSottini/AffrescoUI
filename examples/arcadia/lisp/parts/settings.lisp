@@ -198,8 +198,7 @@
               :title ~(t "settings.region")
               :key downloads.region
               :current ~settings.downloads.region
-              ; style: keep, #(...) can't give a map
-              :options ~(map (fn [it] {:value it :title (t (str "settings.region." it))})
+              :options ~(map #(hash-map :value % :title (t (str "settings.region." %)))
                              ["auto" "europe" "americas" "asia"])})
      (node :use choiceRow
        :with {:top 64
