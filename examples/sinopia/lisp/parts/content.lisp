@@ -128,7 +128,7 @@
                            :size ~size
                            :bold ~(zero? r)
                            :color ~(get computed.palette (if (zero? r) "light1" "dark1"))}]))))))
-     (editor :id ~(str "edit-" o.id)
+     (editor :id ~(str "cell-" o.id)
        :when ~editing
        :autofocus true
        :wrap true
@@ -196,7 +196,7 @@
   (set "state.board.selection" [id])
   (set "state.cell" [r c])
   (set "state.editing" id)
-  (focus (str "#edit-" id)))
+  (focus (str "#cell-" id)))
 
 (defn edit-object
   "A double click on an object: a table edits the cell under the pointer (left and top within its width and height),

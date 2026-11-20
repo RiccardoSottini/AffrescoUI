@@ -84,7 +84,7 @@
 						}
 					] },
 					{
-						"type": "editor", "id": "{{'edit-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
+						"type": "editor", "id": "{{'cell-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
 						"let": { "k": "{{size / 48}}", "r": "{{state.cell[0]}}", "c": "{{state.cell[1]}}", "cw": "{{w / cols}}", "rh": "{{h / rows}}" },
 						"bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].cells[' + r + '][' + c + ']'}}",
 						"keys": { "tab": { "run": "nextCell", "with": { "by": 1 } }, "shift+tab": { "run": "nextCell", "with": { "by": -1 } } },
@@ -128,7 +128,7 @@
 			{ "set": "state.board.selection", "to": ["{{id}}"] },
 			{ "set": "state.cell", "to": ["{{r}}", "{{c}}"] },
 			{ "set": "state.editing", "to": "{{id}}" },
-			{ "focus": "{{'#edit-' + id}}" }
+			{ "focus": "{{'#cell-' + id}}" }
 		],
 		"editObject": [
 			{ "note": "with: id, left, top, width, height: a double click on an object; a table edits the cell under the pointer, other objects their text" },
