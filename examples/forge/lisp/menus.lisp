@@ -13,6 +13,8 @@
    :openFolder {:run openFolder :group "1_open" :order 1}
    :reindex {:run reindex :group "1_open" :order 2}
    :closeEditor {:run closeEditor :group "2_close" :order 1}
+   :reopenClosedEditor {:run reopenClosedEditor :group "2_close" :order 2}
+   :cloneRepository {:run cloneRepository :group "1_open" :order 5}
    :newFile {:run explorerNewFile :group "0_new" :order 1}
    :newFolder {:run explorerNewFolder :group "0_new" :order 2}
    :openRecent {:run openRecent :group "1_open" :order 3}
@@ -52,6 +54,10 @@
    :pin {:run pinEditor :group "3_groups" :order 3}
    :unpin {:run unpinEditor :group "3_groups" :order 4}
    :closeOthers {:run closeOtherEditors :group "3_groups" :order 5}
+   :closeToTheRight {:run closeEditorsToTheRight :group "3_groups" :order 6}
+   :closeAll {:run closeAllEditors :group "3_groups" :order 7}
+   :nextEditor {:run nextEditor :group "3_groups" :order 8}
+   :previousEditor {:run previousEditor :group "3_groups" :order 9}
    :minimap {:run toggleMinimap :group "4_editor" :order 2}
    :breadcrumbs {:run toggleBreadcrumbs :group "4_editor" :order 3}})
 

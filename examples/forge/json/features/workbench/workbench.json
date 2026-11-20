@@ -5,6 +5,7 @@
 	"note": "Forge's workbench extras: the secondary side bar with the Outline (the active file's symbols from the language server, else its headings or the lines that open a block), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON. The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has state.layout.secondary.",
 
 	"state": {
+		"closedTabs": [],
 		"outline": [],
 		"outlineSymbols": "",
 		"settingsJson": "",
@@ -115,6 +116,39 @@
 			"do": [{ "forEach": "{{filter(state.groups[state.activeGroup].tabs, it.id != state.groups[state.activeGroup].active && !it.sticky)}}", "as": "tab",
 			          "do": [{ "run": "closeTab", "with": { "gi": "{{state.activeGroup}}", "id": "{{tab.id}}" } }] }] },
 
+		"closeAllEditors": { "title": "Close All Editors", "category": "View",
+			"description": "Close every group's editors but the pinned ones.",
+			"enablement": "{{some(state.groups, !empty(it.tabs))}}",
+			"do": [{ "forEach": "{{reverse(range(length(state.groups)))}}", "as": "gi",
+			          "do": [{ "forEach": "{{filter(state.groups[gi].tabs, !it.sticky)}}", "as": "tab",
+			                   "do": [{ "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{tab.id}}" } }] }] }] },
+		"closeEditorsToTheRight": { "title": "Close Editors to the Right", "category": "View",
+			"description": "Close the active group's editors after the active one, but the pinned ones.",
+			"enablement": "{{length(state.groups[state.activeGroup].tabs) > 1}}",
+			"do": [{ "forEach": "{{filter(slice(state.groups[state.activeGroup].tabs, indexOf(map(state.groups[state.activeGroup].tabs, it.id), state.groups[state.activeGroup].active) + 1), !it.sticky)}}", "as": "tab",
+			          "do": [{ "run": "closeTab", "with": { "gi": "{{state.activeGroup}}", "id": "{{tab.id}}" } }] }] },
+		"nextEditor": { "title": "Open Next Editor", "category": "View", "icon": "chevron-right",
+			"description": "Show the next tab of the active group, from the last back to the first.",
+			"enablement": "{{length(state.groups[state.activeGroup].tabs) > 1}}",
+			"do": [{ "run": "cycleEditor", "with": { "step": 1 } }] },
+		"previousEditor": { "title": "Open Previous Editor", "category": "View", "icon": "chevron-left",
+			"description": "Show the previous tab of the active group, from the first round to the last.",
+			"enablement": "{{length(state.groups[state.activeGroup].tabs) > 1}}",
+			"do": [{ "run": "cycleEditor", "with": { "step": -1 } }] },
+		"cycleEditor": [
+			{ "note": "step: how many tabs from the active one, going round" },
+			{ "run": "showTabAround", "with": { "tabs": "{{state.groups[state.activeGroup].tabs}}", "active": "{{state.groups[state.activeGroup].active}}", "step": "{{step}}" } }
+		],
+		"showTabAround": [
+			{ "note": "Shows the tab `step` places from the one whose id is `active`, in `tabs`, going round" },
+			{ "run": "showTab", "with": { "id": "{{tabs[(indexOf(map(tabs, it.id), active) + step + length(tabs)) % length(tabs)].id}}",
+			                              "label": "{{tabs[(indexOf(map(tabs, it.id), active) + step + length(tabs)) % length(tabs)].label}}" } }
+		],
+		"reopenClosedEditor": { "title": "Reopen Closed Editor", "category": "View", "icon": "rotate-ccw",
+			"description": "Open the file whose tab was closed last again.",
+			"enablement": "{{length(state.closedTabs ?? []) > 0}}",
+			"do": [{ "run": "openPath", "with": { "path": "{{state.closedTabs[length(state.closedTabs) - 1].id}}", "label": "{{state.closedTabs[length(state.closedTabs) - 1].label}}" } },
+			       { "set": "state.closedTabs", "to": "{{slice(state.closedTabs, 0, -1)}}" }] },
 		"openSettingsJson": { "title": "Open Settings (JSON)", "category": "Preferences", "icon": "braces",
 			"description": "The settings you changed, as JSON: edit them and Apply.",
 			"do": [{ "set": "state.settingsJson", "to": "{{json(state.settings ?? {})}}" }, { "set": "state.settingsJsonError", "to": "" },
@@ -141,13 +175,21 @@
 		"mod+2": "focusSecondGroup",
 		"mod+k shift+enter": "pinEditor",
 		"mod+k mod+shift+enter": "unpinEditor",
-		"mod+k u": "closeOtherEditors"
+		"mod+k u": "closeOtherEditors",
+		"mod+k mod+w": "closeAllEditors",
+		"mod+alt+right": "nextEditor",
+		"mod+alt+left": "previousEditor",
+		"ctrl+pagedown": "nextEditor",
+		"ctrl+pageup": "previousEditor",
+		"mod+shift+t": "reopenClosedEditor"
 	},
 
 	"menus": {
 		"file": {
 			"openRecent": { "run": "openRecent", "group": "1_open", "order": 3 },
-			"clearRecent": { "run": "clearRecent", "group": "1_open", "order": 4 }
+			"clearRecent": { "run": "clearRecent", "group": "1_open", "order": 4 },
+			"reopenClosedEditor": { "run": "reopenClosedEditor", "group": "2_close", "order": 2 },
+			"cloneRepository": { "run": "cloneRepository", "group": "1_open", "order": 5 }
 		},
 		"view": {
 			"secondary": { "run": "toggleSecondarySidebar", "group": "2_layout", "order": 2 },
@@ -156,6 +198,10 @@
 			"pin": { "run": "pinEditor", "group": "3_groups", "order": 3 },
 			"unpin": { "run": "unpinEditor", "group": "3_groups", "order": 4 },
 			"closeOthers": { "run": "closeOtherEditors", "group": "3_groups", "order": 5 },
+			"closeToTheRight": { "run": "closeEditorsToTheRight", "group": "3_groups", "order": 6 },
+			"closeAll": { "run": "closeAllEditors", "group": "3_groups", "order": 7 },
+			"nextEditor": { "run": "nextEditor", "group": "3_groups", "order": 8 },
+			"previousEditor": { "run": "previousEditor", "group": "3_groups", "order": 9 },
 			"minimap": { "run": "toggleMinimap", "group": "4_editor", "order": 2 },
 			"breadcrumbs": { "run": "toggleBreadcrumbs", "group": "4_editor", "order": 3 }
 		},

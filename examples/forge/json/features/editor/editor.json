@@ -163,6 +163,16 @@
 		],
 		"closeTab": [
 			{
+				"note": "A file's tab is remembered for Reopen Closed Editor (the last 20)",
+				"if": "{{some(state.docs, it.id == id && it.kind == 'file')}}",
+				"then": [
+					{
+						"set": "state.closedTabs",
+						"to": "{{slice(concat(filter(state.closedTabs ?? [], it.id != id), [{id: id, label: find(state.docs, it.id == id).label}]), -20)}}"
+					}
+				]
+			},
+			{
 				"set": "state.groups[gi].tabs",
 				"to": "{{filter(state.groups[gi].tabs, it.id != id)}}"
 			},
