@@ -99,14 +99,14 @@
        (label#format-title :grow 1
          :height 22
          :textColor @rbInk
-         :runs [{:text ~(if (some? 'o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
+         :runs [{:text ~(if (some? o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
        (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close")
          :onClick [{:set state.formatPane :to false}]))
      ~(format-background)
      ~(format-object)))
 
 (defview format-background "The slide's background colour, when nothing is selected." []
-  `(column#format-slide :when ~(nil? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-slide :when ~(nil? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-background-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches
        :with {:prefix format-background
@@ -118,10 +118,11 @@
        :fitText true
        :padding 4
        :runs [{:icon rotate-ccw :size 13} {:text ~(t "view.theThemeSBackground") :size 12}]
-       :onClick ~(handler setBackground nil))))
+       :onClick ~(handler setBackground nil))
+     ~(format-own-colors)))
 
 (defview format-object "The selected objects' fill, line, effects, size and place, lock and alt text." []
-  `(column#format-object :when ~(some? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-object :when ~(some? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-fill-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches :with {:prefix format-fill :chosen ~(or-else o.fill "none") :run setObjects :key fill})
      ~(format-gradient)

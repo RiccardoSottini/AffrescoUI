@@ -449,7 +449,9 @@
                   :checked (= state.deck.colors it.id)
                   :run "setColorSet"
                   :with {:id it.id}})
-               computed.themes)))
+               computed.themes)
+          [{:separator true}
+           {:title (t "design.ownColors") :icon "palette" :checked (= state.deck.colors "own") :run "formatBackground"}]))
 
 (defcomputed menu-b-fonts "The Fonts menu: the heading and body fonts, Roboto or JetBrains Mono."
   (map (fn [it]

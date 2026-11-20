@@ -98,6 +98,26 @@
 				{ "key": "mod+z" },
 				{ "expect": { "state": "deck.slides.length", "is": 1 } }
 			]
+		},
+		{
+			"name": "sinopia-own-theme-colours",
+			"note": "The format pane on the background lists the theme colours; a hex code typed for one gives the deck its own colours, saved with it, and Reset puts the theme's back",
+			"steps": [
+				{ "action": "formatBackground" },
+				{ "expect": { "node": "#own-accent1-name", "exists": true } },
+				{ "click": "#own-accent1-hex" },
+				{ "type": "#7a1fa2" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.colors", "is": "own" } },
+				{ "expect": { "state": "deck.ownColors.accent1", "is": "#7a1fa2" } },
+				{ "capture": "own" },
+				{ "click": "#own-accent2-hex" },
+				{ "type": "nope" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.ownColors.accent2", "is": "#2bb3a7" } },
+				{ "click": "#format-own-reset" },
+				{ "expect": { "state": "deck.colors", "is": null } }
+			]
 		}
 	]
 }

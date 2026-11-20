@@ -27,4 +27,9 @@
                 :file.recent "Recent"
                 :file.noRecent "The decks you open or save are listed here."
                 :file.openAgain "Open {name} again"
-                :file.started "A new deck."}}}
+                :file.started "A new deck."
+                :design.themeColors "Theme colours"
+                :design.reset "Reset"
+                :design.resetAbout "The theme's own colours again"
+                :design.hexFor "Hex code for {slot}"
+                :design.ownColors "Your Own Colours…"}}}

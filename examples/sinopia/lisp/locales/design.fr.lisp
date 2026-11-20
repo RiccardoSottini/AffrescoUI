@@ -27,4 +27,9 @@
                 :file.recent "Récentes"
                 :file.noRecent "Les présentations que vous ouvrez ou enregistrez apparaissent ici."
                 :file.openAgain "Rouvrir {name}"
-                :file.started "Une nouvelle présentation."}}}
+                :file.started "Une nouvelle présentation."
+                :design.themeColors "Couleurs du thème"
+                :design.reset "Réinitialiser"
+                :design.resetAbout "Les couleurs du thème à nouveau"
+                :design.hexFor "Code hexadécimal de {slot}"
+                :design.ownColors "Vos propres couleurs…"}}}

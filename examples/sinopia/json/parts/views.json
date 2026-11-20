@@ -118,7 +118,8 @@
 						{ "use": "swatches", "with": { "prefix": "format-background", "chosen": "{{computed.slide.background ?? computed.theme.background}}", "run": "setBackground", "key": "background" } },
 						{ "type": "label", "id": "format-background-reset", "style": "rbButton", "height": 24, "fitText": true, "padding": 4,
 						  "runs": [{ "icon": "rotate-ccw", "size": 13 }, { "text": " The theme's background", "size": 12 }],
-						  "onClick": { "run": "setBackground", "with": { "slot": null } } }
+						  "onClick": { "run": "setBackground", "with": { "slot": null } } },
+						{ "use": "formatOwnColors" }
 					] },
 					{ "type": "column", "id": "format-object", "when": "{{o != null}}", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 6, "color": "transparent", "children": [
 						{ "type": "label", "id": "format-fill-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Fill", "size": 12 }] },

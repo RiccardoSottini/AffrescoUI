@@ -102,7 +102,7 @@
 		},
 
 		"theme": "{{find(computed.themes, it.id == state.deck.theme) ?? computed.themes[0]}}",
-		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {}, state.deck.colors == null ? {} : (find(computed.themes, it.id == state.deck.colors) ?? { colors: {} }).colors)}}",
+		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {}, state.deck.colors == null ? {} : state.deck.colors == 'own' ? state.deck.ownColors ?? {} : (find(computed.themes, it.id == state.deck.colors) ?? { colors: {} }).colors)}}",
 		"headingFont": "{{(state.deck.fonts ?? {}).heading ?? 'default'}}",
 		"bodyFont": "{{(state.deck.fonts ?? {}).body ?? 'default'}}",
 		"slotTint": "{{map(computed.slotNames, it == 'light1' || it == 'light2' ? 'light' : it == 'dark1' || it == 'dark2' ? 'dark' : 'accent')}}",
