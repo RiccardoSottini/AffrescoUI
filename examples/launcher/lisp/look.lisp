@@ -17,6 +17,8 @@
    :c.accent {:light "#5b4fe0" :dark "#8b80ff"}
    :c.accentHover {:light "#4a3fcc" :dark "#a097ff"}
    :c.accentSoft {:light "#ecebff" :dark "#28244d"}
+   :c.primary {:light "#5b4fe0" :dark "#5f52e6"}
+   :c.primaryHover {:light "#4a3fcc" :dark "#6e62f0"}
    :c.onAccent "#ffffff"
    :c.danger {:light "#cf3446" :dark "#ff6b7a"}
    :c.dangerSoft {:light "#fdecee" :dark "#3a1d24"}
@@ -32,7 +34,7 @@
    :kit.body @c.muted
    :kit.selection @c.accentSoft
    :kit.border @c.border
-   :kit.primary @c.accent
+   :kit.primary @c.primary
    :kit.onPrimary "#ffffff"
    :kit.secondary @c.raised
    :kit.onSecondary @c.text
@@ -66,16 +68,16 @@
 (defstyle hint "A small, muted hint."
   (label :font small :textColor @c.muted :height 18))
 
-(defstyle primary "The main button: the accent, white text."
+(defstyle primary "The main button: the accent, deep enough for white text in both themes."
   (label :align center
     :radius 10
-    :color @c.accent
+    :color @c.primary
     :textColor @c.onAccent
     :font strong
     :cursor hand
     :focusable true
     :role button
-    :hover {:color @c.accentHover}
+    :hover {:color @c.primaryHover}
     :transition {:color 120}))
 
 (defstyle secondary "A button beside the main one."

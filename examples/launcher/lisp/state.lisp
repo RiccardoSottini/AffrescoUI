@@ -11,6 +11,8 @@
 
 (defstate query "" "The search over the apps.")
 
+(defstate kind all "The category the Apps page shows: all, the person's own (mine), or an example's category.")
+
 (defstate theme system "Light, dark, or the system's." :type {:enum [system light dark]})
 
 (defstate locale system "The language: English, Spanish, French, or the system's." :type {:enum [system en es fr]})
@@ -108,14 +110,34 @@
 (defcomputed sideWidth "The sidebar's width." (if computed.wide 232 72))
 
 (defcomputed columns "How many cards the Apps page fits in a row."
-  (-> (- window.width computed.sideWidth 52) (/ 290) floor (max 1)))
+  (-> (- window.width computed.sideWidth 72) (/ 280) floor (max 1)))
 
 (defcomputed everyApp "The person's apps, then the examples, as cards."
   ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (concat (map (fn [it] {:id it.id :name it.name :modified it.modified :mine true}) state.mine) state.examples))
 
-(defcomputed shown "The apps whose name, or tagline, holds the search."
+(defcomputed kinds "The filters of the Apps page: all, the person's own while there are any, then each category."
+  (concat ["all"]
+          (if (empty? state.mine) [] ["mine"])
+          state.categories))
+
+(defcomputed inKind "The apps of the category shown: all, the person's own, or an example's category."
+  (filter #(case (str state.kind)
+             "all" true
+             "mine" (true? (:mine %))
+             (= (str (:category %)) (str state.kind)))
+          computed.everyApp))
+
+(defcomputed shown "The apps of the category shown whose name, or tagline, holds the search."
   (filter #(or (= (trim state.query) "")
                (contains (lower-case (str (:name %) " " (if (:mine %) (:id %) (t (str "tagline." (:id %))))))
                          (lower-case (trim state.query))))
-          computed.everyApp))
+          computed.inKind))
+
+(defcomputed welcomed "Whether the Apps page welcomes a newcomer: no app of their own yet, and no search or category."
+  (and (empty? state.mine) (= (trim state.query) "") (= (str state.kind) "all")))
+
+(defcomputed gridHeight "The height of the cards' grid: its rows, and room under the last for its shadow."
+  (let [rows (ceil (/ (count computed.shown) computed.columns))
+        gaps (max 0 (dec rows))]
+    (+ (* rows 252) (* gaps 20) 32)))

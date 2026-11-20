@@ -27,6 +27,9 @@
 
 (defn go "Shows a page." [page] (set "state.page" page))
 
+(defn show-kind "Shows the apps of a category on the Apps page: all, the person's own, or an example's category." [kind]
+  (set "state.kind" kind))
+
 (defn clear-toasts "Takes the notes away." [] (set "state.toasts" []))
 
 (defn toast "A note at the bottom for a few seconds, in red when it is an error." [message error]

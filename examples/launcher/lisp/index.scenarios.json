@@ -10,8 +10,9 @@
 				{ "expect": { "state": "page", "is": "apps" } },
 				{ "expect": { "node": "#appsCount", "text": "13 apps" } },
 				{ "expect": { "node": "#cardName", "text": "Flow" } },
-				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
 				{ "capture": "apps" },
+				{ "scroll": "#appsScroll", "dy": -8 },
+				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
 				{ "note": "Calamaio, a program with only its lisp folder, is listed too" },
 				{ "click": "#appSearch" },
 				{ "type": "calamaio" },
@@ -27,11 +28,11 @@
 				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "query", "is": "" } },
-				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Example" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Productivity" } },
 				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
 				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Yours" } },
 				{ "expect": { "node": "#cardName", "nth": 0, "text": "Reading list" } },
-				{ "expect": { "node": "#cardKind", "nth": 1, "text": "Example" } },
+				{ "expect": { "node": "#cardKind", "nth": 1, "text": "Productivity" } },
 				{ "click": "#appSearch" },
 				{ "type": "reading" },
 				{ "expect": { "node": "#appsCount", "text": "1 app" } },
@@ -39,6 +40,47 @@
 				{ "click": "#appSearch" },
 				{ "type": "zzzz" },
 				{ "expect": { "node": "#appsNone", "text": "No app matches “zzzz”." } }
+			]
+		},
+		{
+			"name": "categories-and-welcome",
+			"note": "A newcomer is welcomed; the categories file the examples, and the person's own apps get one of their own",
+			"steps": [
+				{ "expect": { "node": "#welcomeTitle", "text": "Welcome to AffrescoUI" } },
+				{ "expect": { "node": "#kindChip", "nth": 0, "text": "All" } },
+				{ "click": { "role": "radio", "name": "Creative" } },
+				{ "expect": { "state": "kind", "is": "creative" } },
+				{ "expect": { "node": "#appsCount", "text": "3 apps" } },
+				{ "expect": { "node": "#cardName", "nth": 0, "text": "Sinopia" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Creative" } },
+				{ "expect": { "node": "#welcomeTitle", "exists": false } },
+				{ "click": { "role": "radio", "name": "Developer" } },
+				{ "expect": { "node": "#appsCount", "text": "3 apps" } },
+				{ "click": "#appSearch" },
+				{ "type": "forge" },
+				{ "expect": { "node": "#appsCount", "text": "1 app" } },
+				{ "key": "escape" },
+				{ "click": { "role": "radio", "name": "All" } },
+				{ "expect": { "node": "#appsCount", "text": "13 apps" } },
+				{ "expect": { "node": "#kindChip", "nth": 6, "exists": false } },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
+				{ "expect": { "node": "#welcomeTitle", "exists": false } },
+				{ "click": { "role": "radio", "name": "Your apps" } },
+				{ "expect": { "node": "#appsCount", "text": "1 app" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Yours" } }
+			]
+		},
+		{
+			"name": "welcome-new-app",
+			"steps": [
+				{ "click": "#welcomeNew" },
+				{ "expect": { "state": "page", "is": "create" } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#createName", "property": "focused", "is": true } },
+				{ "key": "mod+1" },
+				{ "key": "mod+n" },
+				{ "wait": 0 },
+				{ "expect": { "node": "#createName", "property": "focused", "is": true } }
 			]
 		},
 		{

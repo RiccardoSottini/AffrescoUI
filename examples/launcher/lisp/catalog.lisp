@@ -1,49 +1,113 @@
 ;;; catalog.lisp --- the Apps page: the person's apps and the examples, as cards
 ;;;
-;;; Each card is tagged Example or Yours; a click or Enter opens its app, and an example a new app can start from has
+;;; Each card is tagged with its category, or Yours; a click or Enter opens its app, and an example a new app can start from has
 ;;; a button that starts one. The search keeps the apps whose name or tagline holds it.
 
 (ns launcher.catalog)
 
 ;;; The page
 
-(defview apps-page "The Apps page: its title, the search, the count, and the cards." []
+(defview apps-page "The Apps page: its title and the search, then, scrolled, the welcome, the categories and the cards." []
   `(node#appsPage :when ~(= state.page :apps) :fill true :color transparent :role tabpanel :label ~(t "nav.apps")
      (node#appsTitle :style pageTitle :text ~(t "apps.title") :role heading)
-     (node#appsSub :style pageSub :text ~(t "apps.sub") :anchors {:left 36 :right 320 :top 72})
      (node#appSearch :use searchField
        :with {:name query
               :placeholder ~(t "apps.search")
               :label ~(t "apps.search")
               :clearLabel ~(t "apps.clear")
-              :width ~(min 280 (- window.width computed.sideWidth 420))
+              :width ~(min 280 (- window.width computed.sideWidth 220))
               :height 38
               :color @c.surface}
-       :anchors {:right 36 :top 36})
-     (label#appsCount :when ~(> (- window.width computed.sideWidth) 860)
-       :font small
-       :textColor @c.dim
-       :align "end center"
-       :text ~(t "apps.count" {:n (count computed.shown)})
-       :anchors {:right 36 :top 82}
-       :height 22
-       :width 160)
-     (grid#appsGrid :anchors {:left 24 :right 24 :top 116 :bottom 0}
-       :columns ~computed.columns
-       :gap 20
-       :scroll vertical
-       :role list
-       :label ~(t "nav.apps")
-       ~(repeat [app computed.shown :key app.id]
-         `(node#appCard :use appCard :with {:app ~app})))
+       :anchors {:right 48 :top 32})
+     (column#appsScroll :anchors {:left 0 :right 0 :top 84 :bottom 0} :scroll vertical :gap 0
+       ~(welcome)
+       ~(kind-chips)
+       (grid#appsGrid :anchors {:left 28 :right 40}
+         :height ~computed.gridHeight
+         :columns ~computed.columns
+         :gap 20
+         :role list
+         :label ~(t "nav.apps")
+         ~(repeat [app computed.shown :key app.id]
+           `(node#appCard :use appCard :with {:app ~app}))))
      (label#appsNone :when ~(empty? computed.shown)
        :textColor @c.muted
        :align center
        :wrap true
-       :text ~(t "apps.none" {:query (trim state.query)})
-       :anchors {:left 36 :right 36 :top 180}
+       :text ~(if (= (trim state.query) "") (t "apps.noneHere") (t "apps.none" {:query (trim state.query)}))
+       :anchors {:left 36 :right 48 :top ~(if computed.welcomed 360 180)}
        :height 48
        :live polite)))
+
+(defview welcome "The first thing a newcomer sees: the mark, a welcome, what the apps are, and New app." []
+  `(node#welcome :when ~computed.welcomed :anchors {:left 36 :right 48} :height 160 :color transparent
+     (node#welcomeCard :anchors {:left 0 :right 0 :top 0}
+       :height 136
+       :radius 18
+       :color @c.accentSoft
+       :borderWidth 1
+       :borderColor @c.border
+       (image#welcomeMark :file "../assets/affrescoui-mark.svg"
+         :fit contain
+         :anchors {:left 28 :top 32}
+         :width 72
+         :height 72
+         :label "AffrescoUI")
+       (label#welcomeTitle :text ~(t "apps.welcome")
+         :font heading
+         :textColor @c.text
+         :anchors {:left 124 :right 224 :top 34}
+         :height 26
+         :role heading)
+       (label#welcomeSub :text ~(t "apps.welcomeSub")
+         :textColor @c.muted
+         :wrap true
+         :anchors {:left 124 :right 224 :top 66}
+         :height 42)
+       (node#welcomeNew :style primary
+         :icon plus
+         :text ~(t "nav.newApp")
+         :anchors {:right 28 :top 46}
+         :width 168
+         :height 44
+         :onClick showCreate))))
+
+(defview kind-chips "The categories, one chip each, the one shown filled; and how many apps are shown." []
+  `(node#kinds :anchors {:left 36 :right 48} :height 58 :color transparent
+     (row#kindChips :anchors {:left 0 :right 120 :top 0}
+       :height 40
+       :gap 8
+       :role radiogroup
+       :arrows horizontal
+       :label ~(t "apps.kinds")
+       ~(repeat [k computed.kinds :key k]
+         (kind-chip k)))
+     (label#appsCount :font small
+       :textColor @c.dim
+       :align "end center"
+       :text ~(t "apps.count" {:n (count computed.shown)})
+       :anchors {:right 0 :top 0}
+       :height 34
+       :width 120)))
+
+(defview kind-chip "A category of the Apps page: filled while it is the one shown." [k]
+  `(label#kindChip :text ~(t (str "kind." k))
+     :font small
+     :align center
+     :fitText true
+     :height 34
+     :padding 10
+     :radius 999
+     :focusable true
+     :role radio
+     :checked ~(= state.kind k)
+     :cursor hand
+     :color ~(if (= state.kind k) "@c.primary" "@c.surface")
+     :textColor ~(if (= state.kind k) "@c.onAccent" "@c.text")
+     :borderWidth 1
+     :borderColor ~(if (= state.kind k) "@c.primary" "@c.border")
+     :hover {:borderColor @c.accent}
+     :onClick ~(handler show-kind k)))
 
 ;;; A card
 
@@ -64,9 +128,9 @@
      (label#cardName :text ~app.name :font strong :textColor @c.text :anchors {:left 16 :right 52 :top 178} :height 22)
      ~(card-tagline app)
      (label#cardKind :font small
-       :text ~(if app.mine (t "apps.tagMine") (t "apps.tagExample"))
+       :text ~(if app.mine (t "apps.tagMine") (t (str "kind." app.category)))
        :textColor "#ffffff"
-       :color ~(if app.mine "@c.accent" "#16142acc")
+       :color ~(if app.mine "@c.primary" "#16142acc")
        :radius 999
        :padding 5
        :anchors {:left 18 :top 18}
