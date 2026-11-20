@@ -1,8 +1,8 @@
 ;;; key-hints.lisp --- Key hints: Alt pressed alone shows a letter on every tab and a digit on every quick command;
 ;;; that key then opens the tab or runs the command, and Alt, Escape or any other key hides them
 ;;;
-;;; The hints are a layer over the window that takes the keys while it is open (its "*"); each badge is placed under
-;;; its command.
+;;; The hints are a layer that takes the keys while it is open (its "*"), just outside the window so that its focus
+;;; ring doesn't show; each badge is placed under its command.
 
 (ns sinopia.parts.key-hints)
 
@@ -39,8 +39,8 @@
 
 (defcomponent keyHintsLayer "The key hints: a badge under every tab and quick command, and the keys they take." {}
   `(node#key-hints :overlay {:placement window}
-     :x 0
-     :y 0
+     :x -20
+     :y -20
      :width 1
      :height 1
      :color transparent

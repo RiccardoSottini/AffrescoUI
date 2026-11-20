@@ -22,7 +22,7 @@
 			"params": {},
 			"note": "The key hints: a badge under every tab and quick command, and the keys they take.",
 			"node": {
-				"id": "key-hints", "overlay": { "placement": "window" }, "x": 0, "y": 0, "width": 1, "height": 1, "color": "transparent",
+				"id": "key-hints", "overlay": { "placement": "window" }, "x": -20, "y": -20, "width": 1, "height": 1, "color": "transparent",
 				"focusable": true, "autofocus": true, "label": "Key hints",
 				"keys": { "*": "keyHint" },
 				"children": [
