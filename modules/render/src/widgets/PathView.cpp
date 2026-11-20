@@ -5,6 +5,7 @@
 #include "affresco/render/Painter.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace affresco {
@@ -52,6 +53,13 @@ void PathView::setFillRule(FillRule rule) {
 	changed();
 }
 
+void PathView::setFeather(float feather) {
+	const float clamped = std::isfinite(feather) ? std::clamp(feather, 0.0f, maxPathFeather) : 1.0f;
+	if(clamped == feather_) return;
+	feather_ = clamped;
+	changed();
+}
+
 void PathView::setFillGradient(std::optional<Gradient> gradient) {
 	if(gradient == fillGradient_) return;
 	fillGradient_ = std::move(gradient);
@@ -94,10 +102,10 @@ void PathView::build(Vec2 size) const {
 	const PathTransform transform = transformFor(size);
 	const std::vector<VectorPath::Contour> contours = path_.flatten(transform);
 	if(fillGradient_) {
-		appendFill(contours, fillRule_, fillMesh_);
+		appendFill(contours, fillRule_, fillMesh_, feather_);
 		appendGradientFill(fillMesh_, *fillGradient_, {0.0f, 0.0f, size.x, size.y}, gradientBands_);
 		fillMesh_.clear();
-	} else if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_);
+	} else if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_, feather_);
 	if(strokeColor_.a <= 0.0f) return;
 	StrokeStyle style = strokeStyle_;
 	if(viewBox_ && fit_ != ImageFit::fill) {
