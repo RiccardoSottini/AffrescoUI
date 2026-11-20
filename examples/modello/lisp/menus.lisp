@@ -216,11 +216,9 @@
             :with {:key "orientation" :value it}}))
        ["global" "local" "normal" "gimbal" "view" "cursor"]))
 
-(defcomputed pivotItems "The pivot points; Individual Origins is to come."
+(defcomputed pivotItems "The pivot points: what the selected objects turn and scale about."
   (map (fn [it]
-         (if (= it "individual")
-           {:title (t (str "pivot." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}}))
+         {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}})
        ["bounds" "cursor" "individual" "median" "active"]))
 
 (defcomputed snapItems "What snapping snaps to (vertices, edges and faces are to come), and its increments."

@@ -89,7 +89,7 @@
 
 (defstate cursor [0 0 0] "The 3D cursor's place.")
 
-(defstate pivot median "What objects turn and scale about: median, bounds, cursor or active.")
+(defstate pivot median "What objects turn and scale about: median, bounds, cursor, active, or each its own origin (individual).")
 
 (defstate orientation global "The transform's axes: global, local, normal or cursor.")
 

@@ -62,7 +62,7 @@
 			{ "set": "state.lastOp.values[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
 			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
-				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : state.lastOp.kind == 'rotate' ? { rotationDegrees: map(b.rotationDegrees, b.lock_rotationDegrees[index] == true ? it : round((it + state.lastOp.values[index]) * 100) / 100) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
+				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : (state.pivot == 'individual' ? b.translation[index] : computed.lastCentre[index]) + (it - (state.pivot == 'individual' ? b.translation[index] : computed.lastCentre[index])) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : state.lastOp.kind == 'rotate' ? { rotationDegrees: map(b.rotationDegrees, b.lock_rotationDegrees[index] == true ? it : round((it + state.lastOp.values[index]) * 100) / 100) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
 			] },
 			{ "run": "autoKey" }
 		],

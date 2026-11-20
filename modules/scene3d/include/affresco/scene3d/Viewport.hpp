@@ -35,6 +35,7 @@ struct GizmoSettings {
 	float pixels = 90.0f;                  ///< Its handles' length on screen, in window units.
 	std::optional<Vec3> pivot;             ///< Where it turns and scales about, in the scene's frame, if not the
 	                                       ///< selection's centre (e.g. a 3D cursor).
+	bool individual = false;               ///< Each node turns and scales about its own origin instead.
 };
 
 /// @brief Everything a viewport's parameters say, except the scene.
@@ -76,7 +77,7 @@ inline constexpr std::string_view upFrameId = "<up>";
 ///
 /// The keys are `camera` (see cameraFromJson()), `selection` and `outlined` (ids), `shading`, `grid`, `axes`,
 /// `background`, `gridColor` and `outline` (`"#rrggbb"` or three numbers 0..1), `exposure`, `time`, `gizmo`
-/// (`{ "visible", "mode", "space": "world" | "local", "axis", "pivot" }`), `box` (four numbers), `up` (`"y"` or
+/// (`{ "visible", "mode", "space": "world" | "local", "axis", "pivot", "individual" }`), `box` (four numbers), `up` (`"y"` or
 /// `"z"`), `cursor3d` (three numbers), `glyphs` and `extras` (flags), `xray` (0 to 1) and `lighting` (`"scene"` or `"studio"`).
 /// @param params The parameters.
 /// @return The settings.
