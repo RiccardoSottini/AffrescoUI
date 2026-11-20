@@ -408,6 +408,12 @@ void transform(ImageDocument& image, const json& with, const std::string& name) 
 	const imaging::Layer layer = *document.layer(id);
 	if(layer.kind != imaging::LayerKind::pixel) throw DocumentError("Transform a pixel layer");
 	if(layer.locks.position || layer.locks.all) throw DocumentError("The layer's position is locked");
+	if(layer.content.kind != imaging::ContentKind::none && id == document.structure().active &&
+	   numberOf(with, "scaleX", 100.0) == 100.0 && numberOf(with, "scaleY", 100.0) == 100.0 &&
+	   numberOf(with, "angle", 0.0) == 0.0) { // a type or shape layer moves with its content
+		moveActiveLayer(document, wholeOf(with, "x", 0), wholeOf(with, "y", 0));
+		return;
+	}
 	if(const auto why = document.paintable(layer.pixels)) throw DocumentError(*why);
 	const auto box = contentBox(*document.image(layer.pixels));
 	const double centreX = box ? ((*box)[0] + (*box)[2]) / 2.0 : document.width() / 2.0;

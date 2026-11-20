@@ -35,6 +35,16 @@
 
 (defkey "i" {:do setTool :with {:args {:tool eyedropper}}})
 
+(defkey "p" {:do setTool :with {:args {:tool pen}}})
+
+(defkey "t" {:do setTool :with {:args {:tool type}}})
+
+(defkey "a" {:do setTool :with {:args {:tool path-select}}})
+
+(defkey "u" {:do setTool :with {:args {:tool rectangle-shape}}})
+
+(defkey "shift+u" {:do setTool :with {:args {:tool ellipse-shape}}})
+
 (defkey "h" {:do setTool :with {:args {:tool hand}}})
 
 (defkey "z" {:do setTool :with {:args {:tool zoom}}})

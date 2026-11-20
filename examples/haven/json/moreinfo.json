@@ -204,15 +204,18 @@
 					{ "id": "infoAlarmBody", "use": "infoBody", "with": { "kind": "alarm" }, "children": [{ "id": "alarmKeypad", "use": "alarmKeypad" }] },
 
 					{ "id": "infoDeviceBody", "use": "infoBody", "with": { "kind": "device" }, "children": [
+						{ "type": "label", "id": "infoTrack", "when": "{{computed.infoDevice.id == 'speaker'}}", "font": "small", "textColor": "@muted", "text": "{{computed.track.title}}  ·  {{computed.track.artist}}",
+							"anchors": { "left": 24, "right": 24, "top": 112 }, "height": 18, "align": "center", "live": "polite" },
 						{ "type": "label", "id": "infoDeviceIcon", "font": "title", "icon": "{{computed.infoDevice.on ? computed.infoDevice.icon : computed.infoDevice.iconOff}}", "text": "",
-							"anchors": { "left": 164, "top": "{{computed.infoDevice.id == 'speaker' ? 120 : 128}}" }, "width": 72, "height": 72, "radius": 36, "align": "center",
+							"anchors": { "left": "{{computed.infoDevice.id == 'speaker' ? 170 : 164}}", "top": "{{computed.infoDevice.id == 'speaker' ? 134 : 128}}" },
+							"width": "{{computed.infoDevice.id == 'speaker' ? 60 : 72}}", "height": "{{computed.infoDevice.id == 'speaker' ? 60 : 72}}", "radius": "{{computed.infoDevice.id == 'speaker' ? 30 : 36}}", "align": "center",
 							"textColor": "{{computed.infoDevice.on ? '@accent' : '@muted'}}", "color": "{{computed.infoDevice.on ? '@accentSoft' : '@raised'}}" },
 						{ "type": "row", "id": "infoTransport", "when": "{{computed.infoDevice.id == 'speaker'}}", "anchors": { "left": 0, "right": 0, "top": 198 }, "height": 44, "gap": 16,
 							"justify": "center", "role": "toolbar", "arrows": "horizontal", "label": "{{computed.infoName}}", "children": [
-								{ "use": "iconBtn", "with": { "icon": "skip-back", "tip": "info.previous" }, "tooltip": "{{t('info.queueEmpty')}}", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@off", "cursor": "arrow", "disabled": true },
+								{ "id": "infoPrevious", "use": "iconBtn", "with": { "icon": "skip-back", "tip": "info.previous" }, "color": "transparent", "hover": { "color": "@raised" }, "onClick": "previousTrack" },
 								{ "id": "infoPlay", "use": "iconBtn", "with": { "icon": "{{computed.infoDevice.on ? 'pause' : 'play'}}", "tip": "{{computed.infoDevice.on ? 'info.pause' : 'info.play'}}" },
 									"color": "@accentSoft", "textColor": "@accent", "onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
-								{ "use": "iconBtn", "with": { "icon": "skip-forward", "tip": "info.next" }, "tooltip": "{{t('info.queueEmpty')}}", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@off", "cursor": "arrow", "disabled": true }
+								{ "id": "infoNext", "use": "iconBtn", "with": { "icon": "skip-forward", "tip": "info.next" }, "color": "transparent", "hover": { "color": "@raised" }, "onClick": "nextTrack" }
 							] },
 						{ "id": "infoVolume", "when": "{{computed.infoDevice.id == 'speaker'}}", "anchors": { "left": 24, "right": 24, "top": 248 }, "height": 40, "color": "transparent", "children": [
 							{ "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "left": 0, "top": 8 }, "width": 24, "height": 24, "align": "center" },

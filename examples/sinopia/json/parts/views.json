@@ -182,7 +182,7 @@
 						  ] },
 						{ "type": "row", "id": "{{'sorter-' + s.id + '-caption'}}", "height": 16, "gap": 4, "color": "transparent", "children": [
 							{ "type": "label", "id": "{{'sorter-' + s.id + '-number'}}", "fitText": true, "height": 16, "textColor": "@rbInk",
-							  "runs": [{ "text": "{{text(i + 1)}}", "size": 12, "bold": "{{i == state.current}}" }] },
+							  "runs": [{ "text": "{{text(i + 1)}}", "size": 12, "bold": "{{i == state.current}}", "strike": "{{s.hidden ?? false}}" }] },
 							{ "type": "label", "id": "{{'sorter-' + s.id + '-hidden'}}", "when": "{{s.hidden ?? false}}", "fitText": true, "height": 16, "textColor": "@rbMuted",
 							  "runs": [{ "icon": "eye-off", "size": 11 }], "tooltip": "Hidden in the show" },
 							{ "type": "label", "id": "{{'sorter-' + s.id + '-star'}}", "when": "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}",

@@ -113,6 +113,13 @@ public:
 	/// @brief Turns word wrap on or off.
 	/// @param wrap true to break lines that don't fit the width.
 	void setWrap(bool wrap);
+	/// @brief Justifies wrapped plain text: every line but a paragraph's last is stretched to the full width, the room
+	/// left shared between its spaces. Lines are placed from the start otherwise; rich text (runs) and right-to-left
+	/// text are left as they are.
+	/// @param justify true to justify.
+	void setJustify(bool justify);
+	/// @brief Whether wrapped lines are justified (setJustify()).
+	[[nodiscard]] bool justify() const noexcept { return justify_; }
 
 	/// @brief Sizes the label to its text plus padding, instead of its width and height.
 	/// @param fit true to fit the text.
@@ -143,6 +150,13 @@ private:
 	/// @param line The line.
 	/// @param top Its top, in window units.
 	void paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
+	/// @brief Paints one line stretched to the content's width: its words placed as measured, the room left shared
+	/// between its spaces (setJustify()).
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param line The line, without the spaces it ends with.
+	/// @param top The line's top.
+	void paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
 	/// @brief Puts the icon before the text in shown_, if the text, the icon or the font changed.
 	void updateShown();
 	/// @brief Draws the runs.
@@ -189,6 +203,7 @@ private:
 	Align horizontal_ = Align::Start;  ///< Horizontal alignment.
 	Align vertical_ = Align::Start;    ///< Vertical alignment.
 	bool wrap_ = false;                ///< See setWrap().
+	bool justify_ = false;             ///< See setJustify().
 	bool fitToText_ = false;           ///< See setFitToText().
 	float fitMaxWidth_ = std::numeric_limits<float>::infinity(); ///< See setFitToText().
 

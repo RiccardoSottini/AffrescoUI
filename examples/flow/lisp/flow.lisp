@@ -395,6 +395,75 @@
   (set "state.fProject" at)
   (show-page :issues))
 
+(defn open-project-page "A project's own page: its properties, milestones and updates." [at]
+  (let [project (get data.projects at)
+        health (:health project)]
+    (set "state.projectOpen" at)
+    (set "state.projectDraft" {:text "" :health (if (= health "completed") "onTrack" health)})
+    (set "state.milestoneDraft" "")
+    (set "state.projectName" (:name project))
+    (set "state.projectSummary" (or-else (:summary project) ""))
+    (show-page :projects)))
+
+(defn rename-project "Enter in the project page's title: the project takes the name typed, unless it is blank." []
+  (let [typed (str/trim state.projectName)]
+    (if (str/blank? typed)
+      (set "state.projectName" computed.project.name)
+      (update-record "projects" :id computed.project.id :fields {:name typed}))))
+
+(defn save-project-summary "Enter in the project page's summary: the project keeps what is typed." []
+  (update-record "projects" :id computed.project.id :fields {:summary (str/trim state.projectSummary)}))
+
+(defn close-project-page "Back from a project's page to the list of projects." []
+  (set "state.projectOpen" -1))
+
+(defn same-name? "Whether a typed name is this one, in any case and with spaces around it." [typed name]
+  (= (-> typed str/trim str/lower-case) (str/lower-case name)))
+
+(defn project-named "A project's place among the projects by its name, in any case; -1 if there is none." [name]
+  (let [named? (fn [i {n :name}] (when (same-name? name n) i))]
+    (or-else (first (keep-indexed named? data.projects)) -1)))
+
+(defn health-named "A health by its name or key (on track, atRisk...); nil if there is none." [name]
+  (let [wanted (str/replace name " " "")]
+    (first (filter #(same-name? wanted %) ["onTrack" "atRisk" "offTrack" "completed"]))))
+
+(defn post-project-update
+  "A project update, newest first, from the person; the project takes the update's health." [at health text]
+  (let [project (get data.projects at)
+        typed (str/trim text)
+        entry {:who state.me :health health :when state.today :text typed}
+        updates (into [entry] (:updates project))]
+    (cond (nil? project) (notify (t "toast.noProject"))
+          (str/blank? typed) (notify (t "toast.noUpdate"))
+          :else (do (update-record "projects" :id (:id project)
+                                   :fields {:health health :updates updates})
+                    (notify (t "toast.updatePosted" {:project (:name project)}))))))
+
+(defn submit-project-update "The project page's composer: posts what is typed with the health picked, then clears it." []
+  (when-not (str/blank? state.projectDraft.text)
+    (post-project-update state.projectOpen state.projectDraft.health state.projectDraft.text)
+    (set "state.projectDraft.text" "")))
+
+(defn toggle-milestone "Marks one of the open project's milestones done, or not done again." [k]
+  (let [project computed.project]
+    (update-record "projects" :id (:id project) :fields {:milestones (update-in (:milestones project) [k :done] not)})))
+
+(defn add-milestone "A milestone named as typed, due on the open project's target date." []
+  (let [project computed.project
+        typed (str/trim state.milestoneDraft)
+        milestone {:name typed :target (or-else (:target project) state.today) :done false}]
+    (when (and (some? project) (not (str/blank? typed)))
+      (update-record "projects" :id (:id project) :fields {:milestones (conj (vec (:milestones project)) milestone)})
+      (set "state.milestoneDraft" ""))))
+
+(defn change-roadmap-clip "A project's bar moved or trimmed on the roadmap: its start and target dates follow." []
+  (let [from (round event.start)
+        to (round (+ event.start event.duration))]
+    (when-some [project (get data.projects (number event.id))]
+      (update-record "projects" :id (:id project)
+                     :fields {:start (addDays state.roadmapStart from) :target (addDays state.roadmapStart to)}))))
+
 (defn pick-notification "A notification among the shown ones, marked read." [at]
   (set "state.inboxAt" at)
   (update-record "inbox" :id (:id (get computed.inboxShown at)) :fields {:read true}))
@@ -736,8 +805,31 @@
   :title ~(t "command.addProject") :description ~(t "command.addProject.about")
   :category ~(t "category.go") :icon "plus" []
   (insert "projects" :value {:name (t "projects.untitled" {:n (inc (count data.projects))}) :icon "box" :color "#0d9488"
-                             :health "onTrack" :lead state.me :target state.cycle.end :progress 0 :issues 0})
-  (set "state.projectScope" :all))
+                             :health "onTrack" :lead state.me :start state.today :target state.cycle.end :progress 0
+                             :issues 0 :milestones [] :updates []})
+  (set "state.projectScope" :all)
+  (open-project-page (dec (count data.projects)))
+  (set "state.projectName" ""))
+
+(defcommand projectUpdate "Posts an update on a project, by its name, with its health."
+  :title ~(t "command.projectUpdate") :description ~(t "command.projectUpdate.about")
+  :category ~(t "category.project") :icon "megaphone"
+  :arguments {:project {:type string :description "The project's name, like Label palette"}
+              :health {:type string :description "on track, at risk, off track or completed"}
+              :text {:type string :description "What changed, in a sentence or two"}}
+  [project health text]
+  (let [at (project-named project)
+        named (health-named health)]
+    (cond (neg? at) (notify (t "toast.noProjectNamed" {:project project}))
+          (nil? named) (notify (t "toast.noHealth" {:health health}))
+          :else (post-project-update at named text))))
+
+(defcommand showRoadmap "Shows the projects on a timeline."
+  :title ~(t "command.showRoadmap") :description ~(t "command.showRoadmap.about")
+  :category ~(t "category.go") :icon "chart-gantt" []
+  (set "state.projectLayout" :roadmap)
+  (close-project-page)
+  (show-page :projects))
 
 (defcommand goToInbox "Shows the inbox."
   :title ~(t "command.goToInbox") :description ~(t "command.goToInbox.about")
@@ -753,7 +845,9 @@
 
 (defcommand goToProjects "Shows the projects."
   :title ~(t "command.goToProjects") :description ~(t "command.goToProjects.about")
-  :category ~(t "category.go") :icon "box" [] (show-page :projects))
+  :category ~(t "category.go") :icon "box" []
+  (close-project-page)
+  (show-page :projects))
 
 (defcommand nextNotification "Chooses the next notification."
   :title ~(t "command.nextNotification") :description ~(t "command.nextNotification.about")

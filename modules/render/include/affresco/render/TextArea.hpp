@@ -99,6 +99,7 @@ private:
 	std::size_t maxLength_ = 0;              ///< See setMaxLength().
 	Accept accept_ = Accept::Any;            ///< See setAccept().
 	bool typedNow_ = false;                  ///< What onTextChanged reports now is the person's typing.
+	bool allSelected_ = false; ///< Cmd+A (Ctrl+A) selected the whole text: typing, a paste or a deletion replaces it.
 };
 
 } // namespace affresco

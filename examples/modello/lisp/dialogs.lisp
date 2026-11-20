@@ -5,8 +5,8 @@
 
 ;;; Over the window
 
-(defview playback-timer "A timer, while the animation plays: a frame on every 42 ms, 24 a second." []
-  `(node#playback :when ~(not= state.playing false) :width 0 :height 0 :every {:ms 42 :do tick}))
+(defview playback-timer "A timer, while the animation plays: a frame each tick, as many a second as the output's frame rate." []
+  `(node#playback :when ~(not= state.playing false) :width 0 :height 0 :every {:ms ~(round (/ 1000 computed.fps)) :do tick}))
 
 (defview popup-menu "The menu that popped up: its own items, or a menu of menus.lisp by name." []
   `(node#popup :use contextMenu
@@ -33,12 +33,17 @@
             :message ~(t "about.message")
             :buttons [{:title ~(t "dialog.close")}]}))
 
+(defn render-height "The render window's height: its image, 720 wide, takes the resolution's shape." []
+  (let [[w h] (or-else state.render.resolution [1920 1080])
+        tall (round (* 720 (/ h w)))]
+    (clamp (+ 100 tall) 260 720)))
+
 (defview render-window "The render window: the render, and a button that saves it." []
   `(node#render-window :use dialog
      :with {:open state.rendering
             :title ~(t "dialog.render")
             :width 760
-            :height 518
+            :height ~(render-height)
             :buttons [{:title ~(t "dialog.close")} {:title ~(t "dialog.saveImage") :run saveRender :keepOpen true}]}
      ~(render-image)))
 

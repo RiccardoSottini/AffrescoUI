@@ -91,6 +91,13 @@
 
 (defcomputed paints "The tool paints." (contains ["brush" "pencil" "eraser" "clone"] state.doc.tool))
 
+(defcomputed activeHoldsContent "The active layer is a type or shape layer."
+  (contains ["text" "shape"] computed.activeLayer.kind))
+
+(defcomputed hasPath "A path is active, with anchors." (-> (find #(:active %) state.doc.paths) :anchors (or-else 0) (> 0)))
+
+(defcomputed vectorTool "The tool makes type or shapes." (contains ["text" "shape"] state.doc.gesture))
+
 (defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand"] state.doc.tool))
 
 ;;; The canvas and its rulers

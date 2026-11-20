@@ -1,11 +1,13 @@
 /// @file
 /// @brief The file steps: saveFile, which writes a value as a JSON file where the person chooses, and openFile, which
-/// reads a JSON file the person chooses into the state. Both show the OS's dialog after the event; the person's
-/// choice is the grant, and the document learns only the chosen file's own name, never where it is.
+/// reads a JSON file the person chooses into the state (or, "as": "image", a PNG or JPEG picture as a data URI). Both
+/// show the OS's dialog after the event; the person's choice is the grant, and the document learns only the chosen
+/// file's own name, never where it is.
 
 #include "FileSteps.hpp"
 #include "Engine.hpp"
 
+#include "affresco/core/Assets.hpp"
 #include "affresco/core/Json.hpp"
 
 #include <algorithm>
@@ -18,6 +20,38 @@ namespace {
 
 constexpr std::size_t maxTitle = 200;     ///< The longest dialog title, in bytes (untrusted input).
 constexpr std::size_t maxNameBytes = 120; ///< The longest suggested file name, in bytes.
+constexpr std::size_t maxImageBytes = std::size_t{8} << 20; ///< The largest picture openFile reads ("as": "image").
+
+/// @brief A big-endian number of two or four bytes.
+/// @param bytes The bytes.
+/// @param at Where it starts (checked by the caller).
+/// @param count 2 or 4.
+/// @return It.
+std::uint32_t bigEndian(std::string_view bytes, std::size_t at, std::size_t count) {
+	std::uint32_t value = 0;
+	for(std::size_t i = 0; i < count; ++i) value = (value << 8U) | static_cast<std::uint8_t>(bytes[at + i]);
+	return value;
+}
+
+/// @brief A PNG's or a JPEG's size in pixels, from its header (a PNG's IHDR, a JPEG's first start-of-frame marker).
+/// @param bytes The file's bytes, already known to start as a PNG or a JPEG does.
+/// @param png Whether it is a PNG.
+/// @return {width, height}, or {0, 0} when the header doesn't say.
+std::pair<std::uint32_t, std::uint32_t> pictureSize(std::string_view bytes, bool png) {
+	if(png) return bytes.size() >= 24 ? std::pair{bigEndian(bytes, 16, 4), bigEndian(bytes, 20, 4)} : std::pair{0U, 0U};
+	std::size_t at = 2;
+	while(at + 9 < bytes.size() && static_cast<std::uint8_t>(bytes[at]) == 0xFF) {
+		const auto marker = static_cast<std::uint8_t>(bytes[at + 1]);
+		if(marker == 0xFF) { // a fill byte
+			++at;
+			continue;
+		}
+		const bool frame = marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
+		if(frame) return {bigEndian(bytes, at + 7, 2), bigEndian(bytes, at + 5, 2)};
+		at += 2 + bigEndian(bytes, at + 2, 2);
+	}
+	return {0, 0};
+}
 
 /// @brief A file's own name, as UTF-8.
 /// @param file Its path (UTF-8).
@@ -60,16 +94,17 @@ std::optional<std::string> writeBytes(const std::string& path, const std::vector
 	return std::nullopt;
 }
 
-/// @brief Reads a file of at most maxOpenedBytes.
+/// @brief Reads a file of at most @p limit bytes.
 /// @param path The file (UTF-8).
 /// @param bytes Filled in with its text.
+/// @param limit The most it may hold (maxOpenedBytes or maxImageBytes).
 /// @return An error, or nothing.
-std::optional<std::string> readText(const std::string& path, std::string& bytes) {
+std::optional<std::string> readText(const std::string& path, std::string& bytes, std::size_t limit = maxOpenedBytes) {
 	const std::filesystem::path file(std::u8string(path.begin(), path.end()));
 	std::error_code error;
 	const auto size = std::filesystem::file_size(file, error);
 	if(error) return "the file can't be read";
-	if(size > maxOpenedBytes) return "the file is larger than 16 MB";
+	if(size > limit) return "the file is larger than " + std::to_string(limit >> 20U) + " MB";
 	bytes.resize(static_cast<std::size_t>(size));
 	std::ifstream input(file, std::ios::binary);
 	input.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
@@ -93,18 +128,43 @@ bool saveFile(const Running& s) {
 	return true;
 }
 
-/// @brief Reads the chosen JSON file into the state, then runs onDone with result {name, bytes}, or onError.
+/// @brief Reads a chosen picture as a data URI ("data:image/png;base64,..."), which an image node's "source" shows and
+/// a saved document carries.
+/// @param path The chosen file.
+/// @param value Filled in with the data URI.
+/// @param result Filled in with {bytes, width, height}.
+/// @return An error, or nothing.
+std::optional<std::string> readPicture(const std::string& path, json& value, json& result) {
+	std::string bytes;
+	if(std::optional<std::string> error = readText(path, bytes, maxImageBytes)) return error;
+	const bool png = !assetBytesProblem("image/png", bytes);
+	if(!png && assetBytesProblem("image/jpeg", bytes)) return "the file isn't a PNG or JPEG picture";
+	const auto [width, height] = pictureSize(bytes, png);
+	value = std::string(png ? "data:image/png;base64," : "data:image/jpeg;base64,") + encodeBase64(bytes);
+	result = json{{"bytes", bytes.size()}, {"width", width}, {"height", height}};
+	return std::nullopt;
+}
+
+/// @brief Reads the chosen file into the state, then runs onDone with result {name, bytes} (a picture's also with
+/// {width, height}), or onError.
 /// @param engine The runtime.
 /// @param path The chosen file.
 /// @param into Where its value goes.
 /// @param comments Whether comments and trailing commas are read too (plainJson()).
+/// @param image Whether it is read as a picture (readPicture()) rather than as JSON.
 /// @param followers onDone and onError.
-void openChosen(Engine& engine, const std::string& path, const json::json_pointer& into, bool comments,
+void openChosen(Engine& engine, const std::string& path, const json::json_pointer& into, bool comments, bool image,
                 const Followers& followers) {
 	std::string text;
-	std::optional<std::string> error = readText(path, text);
 	json value;
-	if(!error) try {
+	json result;
+	std::optional<std::string> error;
+	if(image) error = readPicture(path, value, result);
+	else {
+		error = readText(path, text);
+		result = json{{"bytes", text.size()}};
+	}
+	if(!error && !image) try {
 			value = parseUntrusted(comments ? plainJson(text) : text);
 		} catch(const std::exception&) {
 			error = "the file isn't JSON, or nests too deeply";
@@ -119,16 +179,19 @@ void openChosen(Engine& engine, const std::string& path, const json::json_pointe
 	statePlace(engine.versions.state(), into, "openFile") = std::move(value);
 	engine.document.markStateChanged(into);
 	engine.reconciler.requestStateUpdate();
-	followers.outcome->vars = json{{"result", {{"name", name}, {"bytes", text.size()}}}};
+	result["name"] = name;
+	followers.outcome->vars = json{{"result", std::move(result)}};
 	followers.succeeded();
 }
 
 /// @brief An "openFile" step's "extensions": 1 to 16 of them, each 1 to 16 characters without a dot or a slash.
 /// @param s The step.
+/// @param image Whether it opens a picture: then "png", "jpg" and "jpeg" if it gives none.
 /// @return Its extensions, or "json" if it gives none.
 /// @throws DocumentError If they aren't such a list.
-std::vector<std::string> extensionsOf(const Running& s) {
-	if(!s.step.contains("extensions")) return {"json"};
+std::vector<std::string> extensionsOf(const Running& s, bool image) {
+	if(!s.step.contains("extensions"))
+		return image ? std::vector<std::string>{"png", "jpg", "jpeg"} : std::vector<std::string>{"json"};
 	std::vector<std::string> extensions;
 	const json given = s.value("extensions");
 	if(!given.is_array() || given.empty() || given.size() > 16)
@@ -143,14 +206,21 @@ std::vector<std::string> extensionsOf(const Running& s) {
 }
 
 /// @brief "openFile": a JSON file the person chooses (of the "extensions" given, "json" by default), into a state
-/// path; with "comments": true, its comments and trailing commas are read too.
+/// path; with "comments": true, its comments and trailing commas are read too; with "as": "image", a PNG or JPEG
+/// picture of at most 8 MB, as a data URI.
 /// @param s The step.
 /// @return true.
 bool openFile(const Running& s) {
 	s.steps.checkControl(s.where);
 	const json::json_pointer into = s.target("openFile");
 	std::string title = titleOf(s, "Open");
-	std::vector<std::string> extensions = extensionsOf(s);
+	bool image = false;
+	if(s.step.contains("as")) {
+		const std::string as = string(s.value("as"), s.where + ".as");
+		if(as != "json" && as != "image") fail(s.where + ".as", "must be \"json\" or \"image\"");
+		image = as == "image";
+	}
+	std::vector<std::string> extensions = extensionsOf(s, image);
 	bool comments = false;
 	if(s.step.contains("comments")) {
 		const json given = s.value("comments");
@@ -161,12 +231,12 @@ bool openFile(const Running& s) {
 	if(!engine.window || dialogRefused(s)) return true; // a check or a preview: nothing to show
 	// The dialog is modal: it waits for the event to end, so the steps around it run first
 	engine.scheduler.defer([&engine, alive = std::weak_ptr<bool>(engine.alive), title = std::move(title),
-	                        extensions = std::move(extensions), into, comments, followers = followersOf(s)] {
+	                        extensions = std::move(extensions), into, comments, image, followers = followersOf(s)] {
 		if(!alive.lock() || !engine.window) return;
-		const std::vector<std::string> chosen =
-		    engine.window->chooseFiles({FileDialogKind::Open, title, {{"JSON", extensions}}, "", "", false});
+		const std::vector<std::string> chosen = engine.window->chooseFiles(
+		    {FileDialogKind::Open, title, {{image ? "Pictures" : "JSON", extensions}}, "", "", false});
 		if(!alive.lock() || chosen.empty()) return; // cancelled, or the screen went away meanwhile
-		openChosen(engine, chosen.front(), into, comments, followers);
+		openChosen(engine, chosen.front(), into, comments, image, followers);
 	});
 	return true;
 }
@@ -247,7 +317,7 @@ void saveAfterEvent(const Running& s, std::vector<std::uint8_t> bytes, std::stri
 void registerFileSteps(StepRegistry& registry) {
 	registry.add({"file",
 	              {{"saveFile", {"name", "title", "onDone", "onError"}, true},
-	               {"openFile", {"extensions", "comments", "title", "onDone", "onError"}, true}},
+	               {"openFile", {"extensions", "comments", "as", "title", "onDone", "onError"}, true}},
 	              runFileStep});
 }
 

@@ -17,7 +17,30 @@
 		},
 		"uninstall": {
 			"open": false
-		}
+		},
+		"filesShown": false,
+		"gameFiles": [
+			{
+				"name": "data",
+				"icon": "folder",
+				"share": 0.71
+			},
+			{
+				"name": "movies",
+				"icon": "folder",
+				"share": 0.16
+			},
+			{
+				"name": "bin",
+				"icon": "folder",
+				"share": 0.09
+			},
+			{
+				"name": "saves",
+				"icon": "folder",
+				"share": 0.03
+			}
+		]
 	},
 	"computed": {
 		"manageGame": "{{find(data.games, it.id == state.manage)}}",
@@ -169,7 +192,12 @@
 										"id": "{{'properties-tab-' + tab}}",
 										"repeat": {
 											"for": "tab",
-											"in": ["general", "updates", "files", "dlc"]
+											"in": [
+												"general",
+												"updates",
+												"files",
+												"dlc"
+											]
 										},
 										"anchors": {
 											"left": 0,
@@ -637,31 +665,52 @@
 												"height": 22
 											},
 											{
-												"id": "properties-verify",
-												"use": "quietButton",
+												"type": "row",
 												"anchors": {
 													"left": 0,
+													"right": 0,
 													"top": 128
 												},
 												"height": 32,
-												"with": {
-													"title": "{{t('properties.verify')}}",
-													"icon": "shield-check"
-												},
-												"disabled": "{{state.properties.verify == 'running'}}",
-												"onClick": [
+												"gap": 8,
+												"children": [
 													{
-														"set": "state.properties.verify",
-														"to": "running"
-													},
-													{
-														"after": 1500,
-														"do": [
+														"id": "properties-verify",
+														"use": "quietButton",
+														"height": 32,
+														"with": {
+															"title": "{{t('properties.verify')}}",
+															"icon": "shield-check"
+														},
+														"disabled": "{{state.properties.verify == 'running'}}",
+														"onClick": [
 															{
 																"set": "state.properties.verify",
-																"to": "done"
+																"to": "running"
+															},
+															{
+																"after": 1500,
+																"do": [
+																	{
+																		"set": "state.properties.verify",
+																		"to": "done"
+																	}
+																]
 															}
 														]
+													},
+													{
+														"id": "properties-browse",
+														"use": "quietButton",
+														"height": 32,
+														"with": {
+															"title": "{{t(state.filesShown ? 'properties.hideFiles' : 'properties.browse')}}",
+															"icon": "folder-open",
+															"on": "{{state.filesShown}}"
+														},
+														"onClick": {
+															"toggle": "state.filesShown"
+														}
 													}
 												]
 											},
@@ -678,6 +727,67 @@
 												"height": 20,
 												"text": "{{state.properties.verify == 'running' ? t('properties.verifying') : state.properties.verify == 'done' ? t('properties.verified') : ''}}",
 												"textColor": "{{state.properties.verify == 'done' ? '@color.play' : '@color.muted'}}"
+											},
+											{
+												"type": "column",
+												"id": "properties-files",
+												"when": "{{state.filesShown}}",
+												"let": {
+													"gb": "{{(computed.manageGame.sizeGb ?? 0)}}"
+												},
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 192
+												},
+												"height": "{{(22 * length(state.gameFiles))}}",
+												"role": "list",
+												"label": "{{t('properties.folder')}}",
+												"children": [
+													{
+														"type": "row",
+														"repeat": {
+															"for": "f",
+															"in": "state.gameFiles"
+														},
+														"let": {
+															"size": "{{(round((10 * f.share * gb)) / 10)}}"
+														},
+														"height": 22,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"gap": 8,
+														"alignItems": "center",
+														"role": "listitem",
+														"children": [
+															{
+																"type": "label",
+																"font": "small",
+																"icon": "{{f.icon}}",
+																"text": "{{f.name}}",
+																"fitText": true,
+																"height": 20,
+																"textColor": "@color.text"
+															},
+															{
+																"type": "panel",
+																"grow": 1,
+																"height": 1,
+																"color": "transparent"
+															},
+															{
+																"type": "label",
+																"font": "small",
+																"fitText": true,
+																"height": 20,
+																"text": "{{t('properties.sizeValue', {'size': formatNumber(size)})}}",
+																"textColor": "@color.muted"
+															}
+														]
+													}
+												]
 											}
 										]
 									},

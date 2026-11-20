@@ -7,6 +7,8 @@
 		"genMenu": false,
 		"devTab": "devices",
 		"devQuery": "",
+		"devFilter": "",
+		"devFilterOpen": false,
 		"settingsGroups": [
 			{ "id": "home", "rows": [
 				{ "id": "devices", "icon": "cpu", "color": "#4a50b8" },
@@ -29,7 +31,8 @@
 
 	"actions": {
 		"pickSetting": [{ "note": "with: key, a settings key, and value" }, { "set": "{{'settings.' + key}}", "to": "{{value}}" }],
-		"pickLanguage": [{ "note": "with: lang, a language code" }, { "set": "settings.ui.language", "to": "{{lang}}" }]
+		"pickLanguage": [{ "note": "with: lang, a language code" }, { "set": "settings.ui.language", "to": "{{lang}}" }],
+		"pickDeviceFilter": [{ "note": "with: filter, a room's name or a connection, or empty for all" }, { "set": "state.devFilter", "to": "{{filter}}" }]
 	},
 
 	"computed": {
@@ -37,9 +40,11 @@
 		"devInBar": "{{window.width - computed.sideWidth >= 900}}",
 		"devTop": "{{computed.devInBar ? 56 : 104}}",
 		"deviceMakers": "{{ { door: ['Keystead', 0, 'Zigbee'], vacuum: ['Tidyworks', 1, 'Wi-Fi'], speaker: ['Aurelle', 0, 'Wi-Fi'] } }}",
-		"deviceRows": "{{filter(map(state.devices, { id: it.id, cells: [it.name, computed.deviceMakers[it.id][0], t('kind.' + it.id), state.rooms[computed.deviceMakers[it.id][1]].name, computed.deviceMakers[it.id][2]] }), contains(lower(it.cells[0]), lower(state.devQuery)))}}",
+		"connections": "{{['Zigbee', 'Wi-Fi']}}",
+		"deviceFilters": "{{concat([{ title: t('dev.filterAll'), icon: state.devFilter == '' ? 'check' : '', run: 'pickDeviceFilter', with: { filter: '' } }, { separator: true }], map(state.rooms, { title: it.name, icon: state.devFilter == it.name ? 'check' : '', run: 'pickDeviceFilter', with: { filter: it.name } }), [{ separator: true }], map(computed.connections, { title: it, icon: state.devFilter == it ? 'check' : '', run: 'pickDeviceFilter', with: { filter: it } }))}}",
+		"deviceRows": "{{filter(map(state.devices, { id: it.id, cells: [it.name, computed.deviceMakers[it.id][0], t('kind.' + it.id), state.rooms[computed.deviceMakers[it.id][1]].name, computed.deviceMakers[it.id][2]] }), contains(lower(it.cells[0]), lower(state.devQuery)) && (state.devFilter == '' || it.cells[3] == state.devFilter || it.cells[4] == state.devFilter))}}",
 		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: floor((window.width - computed.sideWidth - 48) * 0.28) }, { id: 'maker', title: t('table.maker'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'kind', title: t('table.model'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'area', title: t('table.area'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'via', title: t('table.integration'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }]}}",
-		"roomEntityRows": "{{filter(map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] }), contains(lower(it.cells[0]), lower(state.devQuery)))}}",
+		"roomEntityRows": "{{filter(map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] }), contains(lower(it.cells[0]), lower(state.devQuery)) && (state.devFilter == '' || contains(computed.connections, state.devFilter) || it.cells[0] == state.devFilter))}}",
 		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: floor((window.width - computed.sideWidth - 48) * 0.4) }, { id: 'lights', title: t('lights.title'), width: floor((window.width - computed.sideWidth - 48) * 0.3) }, { id: 'climate', title: t('climate.title'), width: floor((window.width - computed.sideWidth - 48) * 0.3) }]}}"
 	},
 
@@ -158,10 +163,14 @@
 								"children": [{ "when": "{{state.devTab == tab}}", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 2, "color": "{{computed.devInBar ? '@onHeader' : '@accent'}}" }] }
 						] },
 					{ "id": "devTabsRule", "when": "{{state.settingsView == 'devices' && !computed.devInBar}}", "anchors": { "left": 0, "right": 0, "top": 104 }, "height": 1, "color": "@divider" },
-					{ "id": "devFilters", "when": "{{state.settingsView == 'devices'}}", "style": "button", "icon": "filter", "text": " {{t('dev.filters')}}", "color": "transparent",
-						"hover": { "color": "transparent" }, "textColor": "@muted", "borderWidth": 1, "borderColor": "@border", "anchors": { "left": 24, "top": "{{computed.devTop + 16}}" },
-						"width": 112, "height": 40, "radius": 8, "tooltip": "{{t('dev.filtersSoon')}}", "cursor": "arrow", "disabled": true },
-					{ "id": "devSearchBox", "when": "{{state.settingsView == 'devices'}}", "anchors": { "left": 148, "right": 24, "top": "{{computed.devTop + 16}}" }, "height": 40, "radius": 8,
+					{ "id": "devFilters", "when": "{{state.settingsView == 'devices'}}", "style": "button", "icon": "filter", "text": " {{state.devFilter == '' ? t('dev.filters') : state.devFilter}}",
+						"color": "{{state.devFilter == '' ? 'transparent' : '@accentSoft'}}", "hover": { "color": "@cardHover" }, "textColor": "{{state.devFilter == '' ? '@text' : '@accent'}}",
+						"borderWidth": 1, "borderColor": "{{state.devFilter == '' ? '@border' : '@accent'}}", "anchors": { "left": 24, "top": "{{computed.devTop + 16}}" },
+						"width": 136, "height": 40, "radius": 8, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('dev.filters')}}", "tooltip": "{{t('dev.filtersTip')}}",
+						"isOpen": "{{state.devFilterOpen}}", "onClick": { "toggle": "state.devFilterOpen" }, "children": [
+							{ "id": "devFilterMenu", "use": "popMenu", "with": { "open": "state.devFilterOpen", "width": 220, "placement": "below", "items": "{{computed.deviceFilters}}" } }
+						] },
+					{ "id": "devSearchBox", "when": "{{state.settingsView == 'devices'}}", "anchors": { "left": 172, "right": 24, "top": "{{computed.devTop + 16}}" }, "height": 40, "radius": 8,
 						"color": "@card", "borderWidth": 1, "borderColor": "@border", "children": [
 							{ "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 10, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
 							{ "type": "textarea", "id": "devSearch", "bind": "state.devQuery", "placeholder": "{{t('dev.searchN.' + state.devTab, { n: length(state.devTab == 'entities' ? state.rooms : state.devices) })}}",

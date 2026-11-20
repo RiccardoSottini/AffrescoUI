@@ -32,7 +32,7 @@
      (panel :height 1 :anchors {:left 32 :right 32} :color @color.border)
      (row#game-columns :anchors {:left 32 :right 32}
        :gap 24
-       :height ~(max 700 (+ 150 (* (count (of-game data.activity)) 96) (* (count (of-game data.news)) 120)))
+       :height ~(max 860 (+ 150 (* (count (of-game data.activity)) 96) (* (count (of-game data.news)) 120)))
        ~(activity)
        ~(side-panels))))
 
@@ -308,25 +308,13 @@
      (node :slot true)))
 
 (defview side-panels
-  "The side panels: friends who play it, achievements, screenshots, the controller and your note."
+  "The side panels: friends who play it, achievements, your screenshots, the controller (game-panels.lisp) and your note."
   []
   `(column#game-side :width 312 :gap 14 :anchors {:top 16 :bottom 0}
      (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118} ~(friends-who-play))
      ~(achievements-card)
-     (node#screenshots-card :use sideCard :with {:title ~(t "game.screenshots") :height 132}
-       (row :gap 6 :anchors {:left 14 :right 14 :top 40} :height 80
-         ~(repeat [k [1 2 3]]
-            `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg")
-               :grow 1
-               :height 80
-               :fit cover
-               :radius 2))))
-     (node#controller-card :use sideCard :with {:title ~(t "game.controller") :height 74}
-       (label :icon gamepad-2
-         :text ~(t (str "controller." g.controller))
-         :textColor @color.text
-         :anchors {:left 14 :right 14 :top 42}
-         :height 20))
+     ~(your-shots-card)
+     ~(controller-card)
      (node#notes-card :use sideCard :with {:title ~(t "game.notes") :height 74}
        (label#write-note :icon pencil
          :text ~(if (empty? g.note) (t "game.writeNote") g.note)

@@ -145,18 +145,18 @@
       (when-some [_ there] (set (str "state.areas." there) from)))))
 
 ;; A workspace sets the editors, the timeline's height, the shading and the properties' tab it is made for.
-(defn set-workspace "A workspace tab chosen: Layout, Model, Materials, Animate or Render." [id name]
+(defn set-workspace "A workspace tab chosen: Stage, Shape, Surface, Motion or Shot." [id name]
   (dismiss)
   (set "state.workspace" name)
-  (set "state.areas" {:a "viewport" :b (if (= id :shading) "shader" "timeline") :c "outliner" :d "properties"})
-  (set "state.sizes.left" [(case id :animation 520 :shading 470 :modeling 790 720)])
-  (set "state.shading" (case id :shading :material :rendering :rendered :solid))
+  (set "state.areas" {:a "viewport" :b (if (= id :surface) "shader" "timeline") :c "outliner" :d "properties"})
+  (set "state.sizes.left" [(case id :motion 520 :surface 470 :shape 790 720)])
+  (set "state.shading" (case id :surface :material :shot :rendered :solid))
   (set "state.xray" false)
-  (set "state.overlays" (not= id :rendering))
-  (set "state.propTab" (case id :shading :material :rendering :render state.propTab)))
+  (set "state.overlays" (not= id :shot))
+  (set "state.propTab" (case id :surface :material :shot :render :shape :data state.propTab)))
 
-(defn workspace-after "The workspace a step away from the one shown, round the tabs that need nothing." [step]
-  (let [tabs (filter #(nil? (:needs %)) computed.workspaces)
+(defn workspace-after "The workspace a step away from the one shown, round the tabs." [step]
+  (let [tabs computed.workspaces
         at (indexOf (map :name tabs) state.workspace)
         {:keys [id name]} (get tabs (mod (+ at step (count tabs)) (count tabs)))]
     (set-workspace id name)))

@@ -10,7 +10,7 @@
 
 (defview two-step-card "The code screen: its card, centred, the resend countdown ticking." []
   `(node#panel-two-step :style screen :every {:ms 1000 :do count-down}
-     (node#card-two-step :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#card-two-step :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#card-two-step-top :height 36 :color transparent)
        ~(two-step-form)
        (node#card-two-step-end :height 36 :color transparent))))
@@ -119,7 +119,7 @@
 
 (defview reset-card "The new-password screen: its card, centred, the code's expiry ticking." []
   `(node#panel-reset :style screen :every {:ms 1000 :do reset-tick}
-     (node#card-reset :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#card-reset :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#card-reset-top :height 36 :color transparent)
        ~(reset-form)
        (node#card-reset-end :height 36 :color transparent))))

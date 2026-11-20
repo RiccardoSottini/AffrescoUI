@@ -175,7 +175,8 @@
 
 (defn rewind "Pauses and goes back to day 0." [] (set "state.playing" false) (set "state.time" 0))
 
-(defn tick "Every 50 ms while playing: time moves on at its rate, and stops at either end." []
+(defn tick "Every 50 ms: the tour moves on; while playing, time moves on at its rate, and stops at either end." []
+  (tour-tick)
   (when state.playing
     (let [time (clamp (+ state.time state.speed) 0 state.duration)]
       (set "state.time" time)
@@ -292,13 +293,12 @@
   (set "state.browserTab" :places)
   (set "state.showBrowser" true))
 
-; style: keep, named in examples/orrery/lisp/index.scenarios.json
-(defn goToBookmark "Goes back to the place picked in the list." []
-  (when-some [place (bookmark event.value)]
+(defn go-to-place "Goes back to the place of an id, if it is one: its camera, body, day and zoom." [id]
+  (when-some [place (bookmark id)]
     (increment "state.flights" :by 1)
     (animate "state.fly" :to 0 :ms 1)
     (hold)
-    (set "state.bookmark" event.value)
+    (set "state.bookmark" id)
     (set "state.playing" false)
     (set "state.selected" (:selected place))
     (set "state.camera" (:camera place))
@@ -306,6 +306,9 @@
     (set "state.zoom" (or (:zoom place) state.zoom))
     (set "state.follow" (:follow place))
     (animate "state.camera.distance" :to state.camera.distance :ms 1)))
+
+; style: keep, named in examples/orrery/lisp/index.scenarios.json
+(defn goToBookmark "Goes back to the place picked in the list." [] (go-to-place event.value))
 
 (defcommand deleteBookmark "Deletes the bookmark picked; the last one left is picked."
   :title ~(t "command.deleteBookmark")
@@ -326,6 +329,50 @@
     (set "state.skyTrack" (if solar "sun" moon))
     (animate "state.time" :to time :ms 600 :easing "inOut")))
 
+;;; The tour: the places as views, one after another
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn goToView "Goes to view args.id, a stop of the tour: what the tour strip's select gives." [args]
+  (set "state.touring" false)
+  (go-to-place (:id args)))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn reorderView "Moves view args.id to the place of view args.onto: the tour's order." [args]
+  (let [{:keys [id onto]} args moved (bookmark id) target (bookmark onto)]
+    (when (and (not= id onto) (some? moved) (some? target))
+      (let [others (remove #(= (:id %) id) state.bookmarks) place (indexOf (map :id state.bookmarks) onto)]
+        (set "state.bookmarks" (concat (take place others) [moved] (drop place others)))))))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn copyView "Adds a copy of view args.id after the others, and picks it." [args]
+  (when-some [place (bookmark (:id args))]
+    (let [label (str (:label place) " " state.nextPlace)]
+      (push "state.bookmarks" (merge place {:id (str "place-" state.nextPlace) :label label})))
+    (set "state.bookmark" (str "place-" state.nextPlace))
+    (increment "state.nextPlace" :by 1)))
+
+(defn next-view "The view after the picked one, round to the first." []
+  (let [ids (map :id state.bookmarks) here (indexOf ids state.bookmark)]
+    (get ids (rem (inc here) (count ids)))))
+
+(defcommand playTour "Plays the saved views one after another, a few seconds each, or stops the tour."
+  :title ~(t "command.playTour")
+  :description ~(t "command.playTour.about")
+  :icon clapperboard
+  []
+  (if state.touring
+    (set "state.touring" false)
+    (when (pos? (count state.bookmarks))
+      (go-to-place (or (some-> state.bookmark bookmark :id) (some-> state.bookmarks first :id)))
+      (set "state.tourClock" 0)
+      (set "state.touring" true))))
+
+(defn tour-tick "While the tour plays: the next view when the current one has had its time." []
+  (when state.touring
+    (if (>= state.tourClock state.tourStay)
+      (do (go-to-place (next-view)) (set "state.tourClock" 0))
+      (increment "state.tourClock" :by 1))))
+
 ;;; The 3D view
 
 (defn view-press "Holds the camera where it is, as a drag starts." [] (set "state.grab" state.camera))
@@ -343,7 +390,7 @@
           :state.time sync-scene
           :state.selected sync-scene
           :state.bodies sync-scene}
-  :onLoad sync-scene)
+  :onLoad [{:run sync-scene} {:set state.assistant.floor :to 24}])
 
 ;;; What the views show
 
@@ -388,6 +435,43 @@
   :icon "sun-moon"
   []
   (set "state.theme" (if (= state.theme :dark) :light :dark)))
+
+(defn move-latitude "Moves where the sky is seen from by some degrees north (south when negative), up to 85°." [degrees]
+  (set "state.sky.latitude" (clamp (+ state.sky.latitude degrees) -85 85)))
+
+(defcommand goNorth "Stands 5° further north, under a sky that turns lower round the pole star's place."
+  :title ~(t "command.goNorth") :description ~(t "command.goNorth.about") :icon "arrow-up" []
+  (move-latitude 5))
+
+(defcommand goSouth "Stands 5° further south."
+  :title ~(t "command.goSouth") :description ~(t "command.goSouth.about") :icon "arrow-down" []
+  (move-latitude -5))
+
+;;; The search
+
+(defcommand findObject "Opens the search: a body to fly to, an event to go to, or a day after @."
+  :title ~(t "command.findObject") :description ~(t "command.findObject.about") :icon search []
+  (set "state.quickPick.query" "")
+  (set "state.quickPick.open" true))
+
+(defn ask-day "Opens the search at @, to go to a day." []
+  (set "state.quickPick.query" "@")
+  (set "state.quickPick.open" true))
+
+(defn find-body "A search row: selects the body and flies to it." [id] (fly-to-body id))
+
+(defn find-event "A search row: pauses at the event's day." [id] (go-to-event id))
+
+(defn find-day "A search row: pauses at the day it names." [day] (scrub-to day))
+
+(defcommand toggleNight "Turns the night mode on, everything in dim red to keep the eyes used to the dark, or back off."
+  :title ~(t "command.toggleNight")
+  :description ~(t "command.toggleNight.about")
+  :icon "eye"
+  []
+  (if (= state.theme :night)
+    (set "state.theme" state.dayTheme)
+    (do (set "state.dayTheme" state.theme) (set "state.theme" :night))))
 
 (defcommand openRender "Opens the options of what the 3D view draws."
   :title ~(t "command.openRender")

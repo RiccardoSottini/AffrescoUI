@@ -13,7 +13,7 @@
   (case state.mb.kind
     ("command" "function") computed.commandNames
     ("buffer" "kill") computed.names
-    ("file" "write" "insert") (map :path state.files)
+    ("file" "write" "insert" "dired-rename" "dired-copy") (map :path state.files)
     "dired" (concat [state.home] (->> state.files (filter #(= (:dir %) true)) (map :path)))
     "theme" ["default" "inchiostro" "pergamena"]
     "variable" (map :key settingsList)
@@ -61,6 +61,11 @@
     "theme" (mb-theme value)
     "replace-from" (mb-replace-from value)
     "replace-to" (mb-replace-to value)
+    "string-rectangle" (mb-string-rectangle value)
+    "dired-delete" (mb-dired-delete value)
+    "dired-rename" (mb-dired-rename value)
+    "dired-copy" (mb-dired-copy value)
+    "dired-mkdir" (mb-dired-mkdir value)
     nil))
 
 (defn minibuffer-done

@@ -71,6 +71,12 @@
 				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "crop": { "gesture": "crop" },
 				"brush": { "gesture": "paint" }, "pencil": { "gesture": "paint", "hardness": 100 }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
 				"gradient": { "gesture": "gradient" }, "fill": { "gesture": "fill" }, "eyedropper": { "gesture": "sample" },
+				"type": { "gesture": "text", "vector": { "size": 48 } },
+				"rectangle-shape": { "gesture": "shape", "vector": { "shape": "rectangle" } },
+				"ellipse-shape": { "gesture": "shape", "vector": { "shape": "ellipse" } },
+				"polygon-shape": { "gesture": "shape", "vector": { "shape": "polygon" } },
+				"line-shape": { "gesture": "shape", "vector": { "shape": "line" } },
+				"pen": { "gesture": "pen" }, "path-select": { "gesture": "path-select" },
 				"hand": { "gesture": "pan" }, "zoom": { "gesture": "zoom" }
 			}
 		}
@@ -105,10 +111,11 @@
 			[{ "icon": "droplet", "title": "Blur Tool" }],
 			[{ "icon": "sun-dim", "title": "Dodge Tool" }],
 			[],
-			[{ "icon": "pen-tool", "title": "Pen Tool" }],
-			[{ "icon": "text-cursor", "title": "Text Tool" }],
-			[{ "icon": "mouse-pointer-2", "title": "Path Selection Tool" }],
-			[{ "icon": "square", "title": "Rectangle Tool" }],
+			[{ "id": "pen", "icon": "pen-tool", "title": "Pen Tool", "key": "P" }],
+			[{ "id": "type", "icon": "type", "title": "Type Tool", "key": "T" }],
+			[{ "id": "path-select", "icon": "mouse-pointer-2", "title": "Path Selection Tool", "key": "A" }],
+			[{ "id": "rectangle-shape", "icon": "square", "title": "Rectangle Tool", "key": "U" }, { "id": "ellipse-shape", "icon": "circle", "title": "Ellipse Tool", "key": "Shift+U" },
+			 { "id": "polygon-shape", "icon": "hexagon", "title": "Polygon Tool" }, { "id": "line-shape", "icon": "slash", "title": "Line Tool" }],
 			[],
 			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
 			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]

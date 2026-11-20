@@ -479,10 +479,8 @@
      (label :icon ~step.icon :text "" :textColor @accent :anchors {:left 16 :top 0 :bottom 0} :width 24 :align center)
      (label :text ~(t (str "rule." step.key))
        :textColor @text
-       :anchors {:left 48 :right 96 :top 0 :bottom 0}
+       :anchors {:left 48 :right 56 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
-     (label :icon chevron-down :text "" :textColor @muted :anchors {:right 56 :top 12} :width 24 :height 24
-       :align center)
      ~(step-menu step s)))
 
 (defview step-menu "A step's menu: duplicate, delete." [step s]

@@ -327,6 +327,13 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 		return lines;
 	}
 	for(const Finding& finding : *found) lines.push_back(finding.text());
+	// The root is the window's own panel whatever its type: a container's arrangement would silently not happen
+	if(const auto root = screen.find("root"); root != screen.end() && root->is_object() && root->contains("type"))
+		if(const json& kind = (*root)["type"]; kind.is_string())
+			if(const std::string& type = kind.get_ref<const std::string&>();
+			   type == "row" || type == "column" || type == "stack" || type == "grid")
+				lines.push_back("root: a " + type + " root doesn't arrange its children: the root is a panel that " +
+				                "always fills the window; put the " + type + " inside it, with \"fill\": true");
 	return lines;
 }
 

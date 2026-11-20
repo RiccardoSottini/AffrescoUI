@@ -245,14 +245,13 @@
   (set "state.codeMode" "verify")
   (startTwoStep))
 
-(defn finish-verify "The email is verified: the account exists, and its session opens." []
+(defn finish-verify "The email is verified: the account exists, its session opens, and the success screen welcomes it."
+  []
   (set "state.accounts" (concat (remove #(same-email? (:email %) state.pending.email) state.accounts)
                                 [(merge state.pending {:password state.password})]))
   (set "state.codeMode" "twoStep")
   (enter)
-  (notify (if computed.inviteValid
-              (t "joinedTeam" {:name state.pending.name})
-              (t "welcome" {:name state.pending.name})))
+  (show-done {:kind "created" :email state.pending.email :name state.pending.name :team computed.inviteValid})
   (set "state.username" "")
   (set "state.usernameChecked" "")
   (set "state.terms" false)
@@ -405,7 +404,8 @@
         :else
         (password-reset)))
 
-(defn password-reset "The new password, saved: the lock lifts, and the password step waits with the email." []
+(defn password-reset "The new password, saved: the lock lifts, the success screen says so, then the password step waits."
+  []
   (update-account state.reset.email {:password state.reset.password :passwordDays 0})
   (set "state.failures" (remove #{(str/lower-case state.reset.email)} state.failures))
   (set "state.email" state.reset.email)
@@ -413,9 +413,7 @@
   (set "state.submitted" false)
   (set "state.reset" {:email "" :code "" :password "" :confirm "" :submitted false :error "" :left 0})
   (set "state.step" "password")
-  (navigate "signInForm")
-  (focus "#textarea-placeholder")
-  (notify (t "passwordChanged")))
+  (show-done {:kind "reset" :email state.email}))
 
 ;;; The session
 

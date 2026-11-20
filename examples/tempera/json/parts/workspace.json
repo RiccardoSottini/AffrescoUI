@@ -308,6 +308,48 @@
 						{ "id": "gradient-transparency", "use": "tCheck", "with": { "title": "Transparency", "checked": true, "off": true } }
 					  ] },
 
+					{ "type": "row", "id": "options-type", "when": "{{state.doc.gesture == 'text'}}", "alignItems": "center", "gap": 8, "height": 30, "children": [
+						{ "id": "option-type-size", "use": "tField", "with": { "title": "Size", "key": "size", "value": "{{state.doc.vector.size}}", "min": 4, "max": 1000,
+						  "unit": " px", "width": 52, "pop": false, "run": "setVector" } },
+						{ "style": "sep" },
+						{ "id": "option-type-bold", "use": "tIcon", "with": { "icon": "bold", "tip": "Bold", "on": "{{state.doc.vector.bold}}", "run": "setVector", "args": { "bold": "{{!state.doc.vector.bold}}" } } },
+						{ "id": "option-type-italic", "use": "tIcon", "with": { "icon": "italic", "tip": "Italic", "on": "{{state.doc.vector.italic}}", "run": "setVector", "args": { "italic": "{{!state.doc.vector.italic}}" } } },
+						{ "style": "sep" },
+						{ "id": "option-align-{{a.id}}", "use": "tIcon", "repeat": { "for": "a", "in": "{{[{id: 'left', icon: 'align-left', title: 'Align left'}, {id: 'center', icon: 'align-center', title: 'Centre'}, {id: 'right', icon: 'align-right', title: 'Align right'}]}}" },
+						  "with": { "icon": "{{a.icon}}", "tip": "{{a.title}}", "on": "{{state.doc.vector.align == a.id}}", "run": "setVector", "args": { "align": "{{a.id}}" } } },
+						{ "style": "sep" },
+						{ "id": "option-type-colour", "role": "button", "label": "Text colour", "tooltip": "The foreground colour: a click gives it to the active type layer",
+						  "width": 22, "height": 22, "radius": "@kit.radius", "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "setVector", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } },
+						{ "type": "label", "style": "dim", "text": "Click to add text, or click text to edit it in Properties", "fitText": true }
+					  ] },
+					{ "type": "row", "id": "options-shape", "when": "{{state.doc.gesture == 'shape'}}", "alignItems": "center", "gap": 8, "height": 30, "children": [
+						{ "style": "dim", "text": "Fill:" },
+						{ "id": "option-shape-fill", "role": "button", "label": "Fill", "tooltip": "The foreground colour fills new shapes: a click gives it to the active one",
+						  "width": 22, "height": 22, "radius": "@kit.radius", "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "setVector", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } },
+						{ "style": "dim", "text": "Stroke:" },
+						{ "id": "option-shape-stroke", "role": "button", "label": "Stroke", "tooltip": "A click strokes with the background colour; a width of 0 strokes nothing",
+						  "width": 22, "height": 22, "radius": "@kit.radius", "color": "{{state.doc.vector.stroke}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
+						  "onClick": { "run": "setVector", "with": { "args": { "stroke": "{{state.doc.background}}" } } } },
+						{ "id": "option-stroke-width", "use": "tField", "with": { "title": "", "key": "strokeWidth", "value": "{{state.doc.vector.strokeWidth}}", "max": 200,
+						  "unit": " px", "width": 48, "pop": false, "run": "setVector", "tip": "Width" } },
+						{ "id": "option-shape-radius", "use": "tField", "when": "{{state.doc.vector.shape == 'rectangle'}}", "with": { "title": "Radius", "key": "radius",
+						  "value": "{{state.doc.vector.radius}}", "max": 1000, "unit": " px", "width": 48, "pop": false, "run": "setVector" } },
+						{ "id": "option-shape-sides", "use": "tField", "when": "{{state.doc.vector.shape == 'polygon'}}", "with": { "title": "Sides", "key": "sides",
+						  "value": "{{state.doc.vector.sides}}", "min": 3, "max": 64, "unit": "", "width": 36, "pop": false, "run": "setVector" } }
+					  ] },
+					{ "type": "row", "id": "options-path", "when": "{{state.doc.gesture == 'pen' || state.doc.gesture == 'path-select'}}", "alignItems": "center", "gap": 6, "height": 30, "children": [
+						{ "style": "dim", "text": "Make:" },
+						{ "id": "path-to-selection", "use": "tButton", "with": { "title": "Selection", "run": "selectActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-to-shape", "use": "tButton", "with": { "title": "Shape", "run": "shapeFromPath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-stroke", "use": "tButton", "with": { "title": "Stroke", "run": "strokeActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "id": "path-fill", "use": "tButton", "with": { "title": "Fill", "run": "fillActivePath", "off": "{{!some(state.doc.paths, it.active)}}" } },
+						{ "style": "sep" },
+						{ "type": "label", "style": "dim", "fitText": true,
+						  "text": "{{state.doc.gesture == 'pen' ? 'Click to add anchors, drag to curve, click the first to close' : 'Drag the path, or one of its anchors'}}" }
+					  ] },
+
 					{ "id": "option-crop", "use": "tPicker", "when": "{{state.doc.tool == 'crop'}}",
 					  "with": { "title": "Ratio", "tip": "Crop", "open": "state.cropMenu", "items": [{ "title": "Crop to Selection", "run": "cropToSelection" },
 					    { "title": "Square, 1 : 1", "run": "cropToRatio", "with": { "args": { "width": 1, "height": 1 } } },

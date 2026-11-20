@@ -467,3 +467,46 @@ A review step runs from a step that the person's input or a scenario plays, not 
     (toggle path)
     (do (if (empty? close) (dismiss true) (set close false))
         (when-some [action item.run] (run action :with item.with)))))
+
+;;; Type, shapes and paths
+
+(defn add-text "Adds a type layer: its text, where it starts, its size and colour." [args]
+  (image "addText" :with args))
+
+(defn add-shape "Adds a shape layer: its outline, its box, its fill and stroke." [args]
+  (image "addShape" :with args))
+
+(defn edit-content "Changes the active type or shape layer: its text, size, colours or box; it is drawn again." [args]
+  (image "editContent" :with args))
+
+(defn rasterize "Makes the active type or shape layer a pixel layer of the same pixels." [args]
+  (image "rasterize" :with args))
+
+(defn set-vector "Changes what new type or shapes start as; the active layer of that kind changes with it." [args]
+  (setOptions {:vector args})
+  (when (= computed.activeLayer.kind (if (= state.doc.gesture "text") "text" "shape"))
+    (edit-content args)))
+
+(defn set-text "The Character panel's text typed: the active type layer's text." [text]
+  (edit-content {:text text}))
+
+(defn new-path "Adds an empty path for the pen, the active one." [args]
+  (image "newPath" :with args))
+
+(defn select-path "Makes a path the active one, by its index (-1 for none)." [args]
+  (image "selectPath" :with args))
+
+(defn delete-path "Deletes a path, the active one if no index is given." [args]
+  (image "deletePath" :with args))
+
+(defn stroke-path "Strokes the active path on the active layer with the foreground colour, the brush's size wide." [args]
+  (image "strokePath" :with args))
+
+(defn fill-path "Fills the active path on the active layer with the foreground colour." [args]
+  (image "fillPath" :with args))
+
+(defn path-to-selection "Selects the active path's inside." [args]
+  (image "pathToSelection" :with args))
+
+(defn path-to-shape "Makes a shape layer of the active path, in the foreground colour." [args]
+  (image "pathToShape" :with args))

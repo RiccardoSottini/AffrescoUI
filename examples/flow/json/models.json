@@ -152,6 +152,38 @@
 					"type": "integer",
 					"minimum": 0,
 					"default": 0
+				},
+				"start": {
+					"type": "date"
+				},
+				"summary": {
+					"type": "string",
+					"maxLength": 2000
+				},
+				"milestones": {
+					"type": "list",
+					"maxItems": 64,
+					"of": {
+						"type": "object",
+						"fields": {
+							"name": { "type": "string" },
+							"target": { "type": "date" },
+							"done": { "type": "boolean" }
+						}
+					}
+				},
+				"updates": {
+					"type": "list",
+					"maxItems": 500,
+					"of": {
+						"type": "object",
+						"fields": {
+							"who": { "type": "string" },
+							"health": { "type": "string" },
+							"when": { "type": "date" },
+							"text": { "type": "string" }
+						}
+					}
 				}
 			}
 		},

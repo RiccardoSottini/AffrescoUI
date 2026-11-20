@@ -72,10 +72,13 @@
    [{:name blur :icon droplet}]
    [{:name dodge :icon sun-dim}]
    []
-   [{:name pen :icon pen-tool}]
-   [{:name text :icon text-cursor}]
-   [{:name pathSelection :icon mouse-pointer-2}]
-   [{:name rectangle :icon square}]
+   [{:id pen :name pen :icon pen-tool :key "P"}]
+   [{:id type :name text :icon type :key "T"}]
+   [{:id path-select :name pathSelection :icon mouse-pointer-2 :key "A"}]
+   [{:id rectangle-shape :name rectangle :icon square :key "U"}
+    {:id ellipse-shape :name ellipseShape :icon circle :key "Shift+U"}
+    {:id polygon-shape :name polygonShape :icon hexagon}
+    {:id line-shape :name lineShape :icon slash}]
    []
    [{:id hand :name hand :icon hand :key "H"}]
    [{:id zoom :name zoom :icon zoom-in :key "Z"}]]

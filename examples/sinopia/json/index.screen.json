@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -82,6 +82,7 @@
 		],
 		"viewChanged": [
 			{ "set": "state.board", "to": "{{view}}" },
+			{ "if": "{{length(computed.touchedGroups) > 0}}", "then": [{ "set": "state.board.selection", "to": "{{computed.groupedSelection}}" }] },
 			{ "if": "{{state.editing != null && !contains(view.selection ?? [], state.editing)}}", "then": [{ "set": "state.editing", "to": null }] },
 			{ "if": "{{abs(view.camera.zoom - computed.fitCamera.zoom) > 0.0001 || abs(view.camera.x - computed.fitCamera.x) > 0.01 || abs(view.camera.y - computed.fitCamera.y) > 0.01}}",
 			  "then": [{ "set": "state.fit", "to": false }] }
@@ -100,13 +101,15 @@
 		"mod+x": [{ "when": "{{!context.textInputFocus}}", "do": "cutObjects" }],
 		"mod+v": [{ "when": "{{!context.textInputFocus}}", "do": "pasteObjects" }],
 		"mod+a": [{ "when": "{{!context.textInputFocus}}", "do": "selectAll" }],
+		"mod+g": [{ "when": "{{!context.textInputFocus}}", "do": "groupObjects" }],
+		"mod+shift+g": [{ "when": "{{!context.textInputFocus}}", "do": "ungroupObjects" }],
 		"mod+b": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "bold" } }],
 		"mod+i": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "italic" } }],
 		"mod+u": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "underline" } }],
-		"mod+l": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "left" } } }],
-		"mod+e": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "center" } } }],
-		"mod+r": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "right" } } }],
-		"mod+j": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "justify" } } }],
+		"mod+l": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "left" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "left" } }],
+		"mod+e": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "center" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "center" } }],
+		"mod+r": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "right" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "right" } }],
+		"mod+j": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "justify" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "justify" } }],
 		"mod+shift+.": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": 1 } }],
 		"mod+shift+,": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": -1 } }],
 		"delete": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
@@ -237,7 +240,7 @@
 									{ "type": "row", "id": "{{'thumb-' + s.id + '-gutter'}}", "width": 170, "height": 18, "gap": 4, "color": "transparent", "alignItems": "center", "children": [
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-number'}}", "fitText": true, "height": 16,
 										  "textColor": "{{i == state.current ? '@brandLine' : '@rbMuted'}}",
-										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}" }] },
+										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}", "strike": "{{s.hidden ?? false}}" }] },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-star'}}", "when": "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}",
 										  "width": 14, "height": 16, "align": "center", "textColor": "@rbMuted", "runs": [{ "icon": "wand-sparkles", "size": 10 }], "tooltip": "Has a transition or animations" },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-hidden'}}", "when": "{{s.hidden ?? false}}",
@@ -269,7 +272,7 @@
 										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
 										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
 											{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
-										  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
+										  "onDoubleClick": { "run": "editObject", "with": { "id": "{{o.id}}", "left": "{{event.left}}", "top": "{{event.top}}", "width": "{{event.width}}", "height": "{{event.height}}" } } }
 									]
 								},
 								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" }
