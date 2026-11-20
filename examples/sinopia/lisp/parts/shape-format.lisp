@@ -119,7 +119,7 @@
      :textColor ~(get computed.palette q.ink)
      :tooltip ~(t "ribbon.shapeStyles2")
      :disabled ~(nil? computed.first)
-     :runs [{:text "Abc" :size 10}]
+     :runs [{:text ~(t "shapeFormat.sample") :size 10}]
      :onClick ~(handler apply-color "b-quick-styles" q.id)))
 
 (defview g-sf-arrange "Forward and backward, the selection pane, and the arrange menu (align, distribute, order)." []
@@ -169,7 +169,7 @@
        :borderColor @rbFieldLine
        :textColor ~(if (some? computed.first) "@rbInk" "@rbMuted")
        :label ~(t title)
-       :runs [{:text ~(str (fixed value 1) " pt") :size 12}])
+       :runs [{:text ~(t "shapeFormat.points" {:n (fixed value 1)}) :size 12}])
      (node :id ~(str prefix "-minus")
        :use rbSmall
        :with {:icon minus :enabled ~(some? computed.first)}

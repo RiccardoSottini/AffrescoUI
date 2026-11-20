@@ -47,4 +47,6 @@
                 :shape.flowChartOfflineStorage "Flowchart: Stored Data Offline"
                 :shape.flowChartMagneticTape "Flowchart: Sequential Access Storage"
                 :shape.flowChartMagneticDrum "Flowchart: Direct Access Storage"
-                :shape.irregularSeal2 "Explosion: 14 Points"}}}
+                :shape.irregularSeal2 "Explosion: 14 Points"
+                :shapeFormat.sample "Abc"
+                :shapeFormat.points "{n} pt"}}}

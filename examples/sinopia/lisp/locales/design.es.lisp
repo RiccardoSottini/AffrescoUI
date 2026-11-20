@@ -47,4 +47,6 @@
                 :shape.flowChartOfflineStorage "Diagrama de flujo: almacenamiento sin conexión"
                 :shape.flowChartMagneticTape "Diagrama de flujo: almacenamiento de acceso secuencial"
                 :shape.flowChartMagneticDrum "Diagrama de flujo: almacenamiento de acceso directo"
-                :shape.irregularSeal2 "Explosión: 14 puntas"}}}
+                :shape.irregularSeal2 "Explosión: 14 puntas"
+                :shapeFormat.sample "Abc"
+                :shapeFormat.points "{n} pt"}}}

@@ -47,4 +47,6 @@
                 :shape.flowChartOfflineStorage "Organigramme : stockage hors ligne"
                 :shape.flowChartMagneticTape "Organigramme : stockage à accès séquentiel"
                 :shape.flowChartMagneticDrum "Organigramme : stockage à accès direct"
-                :shape.irregularSeal2 "Explosion : 14 branches"}}}
+                :shape.irregularSeal2 "Explosion : 14 branches"
+                :shapeFormat.sample "Abc"
+                :shapeFormat.points "{n} pt"}}}
