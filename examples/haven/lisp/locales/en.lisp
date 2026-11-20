@@ -461,6 +461,8 @@
                 :setting.notify "Device notifications"
                 :setting.notify.about "Show a note in the corner when a device has answered."
                 :setting.language.about "English, Spanish or French."
+                :settings.developerStatusBar "Developer status bar"
+                :settings.developerStatusBar.about "Show the revision on screen and the window's size in a bar at the bottom of the window."
                 :setting.motionAlerts "Motion alerts"
                 :setting.motionAlerts.about "While the security mode is Away, motion in the hall sends a notification."
                 :setting.simulation "Simulated devices"

@@ -115,6 +115,7 @@
 		                        "description": "The energy a day should stay under, in kWh, shown on the Energy page." },
 		"devices.notify": { "type": "boolean", "default": true, "title": "Device notifications",
 		                    "description": "Show a note in the corner when a device has answered." },
+		"window.statusBar": { "type": "boolean", "default": false, "title": "Developer status bar", "description": "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers." },
 		"ui.language": { "type": "string", "enum": ["en", "es", "fr"], "default": "en", "title": "Language",
 		                 "description": "English, Spanish or French." }
 	},
@@ -825,6 +826,7 @@
 					{ "id": "settingsPageView", "dir": "auto", "when": "{{state.page == 'settings'}}", "use": "settingsPageMain", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
 					{
 						"id": "statusBar",
+						"when": "{{settings.window.statusBar}}",
 						"dir": "auto",
 						"anchors": { "left": "{{computed.sideWidth}}", "right": 0, "bottom": 0 },
 						"height": 32,

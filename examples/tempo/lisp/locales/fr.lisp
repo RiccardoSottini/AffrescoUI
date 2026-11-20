@@ -184,5 +184,7 @@
                 :settings.crossfade.about "Combien de secondes la fin d’un titre chevauche le début du suivant ; 0 pour aucun."
                 :settings.language "Langue"
                 :settings.language.about "Anglais, espagnol ou français."
+                :settings.developerStatusBar "Barre d'état pour développeurs"
+                :settings.developerStatusBar.about "Afficher la révision à l'écran et la taille de la fenêtre dans une barre en bas de la fenêtre."
                 :sound.band "{label}  {gain} dB"
                 :status.revision "Révision {number}  ·  {author} : {message}"}}}

@@ -461,6 +461,8 @@
                 :setting.notify "Notifications des appareils"
                 :setting.notify.about "Afficher une note dans le coin quand un appareil a répondu."
                 :setting.language.about "Anglais, espagnol ou français."
+                :settings.developerStatusBar "Barre d'état pour développeurs"
+                :settings.developerStatusBar.about "Afficher la révision à l'écran et la taille de la fenêtre dans une barre en bas de la fenêtre."
                 :setting.motionAlerts "Alertes de mouvement"
                 :setting.motionAlerts.about "En mode de sécurité Absent, un mouvement dans l’entrée envoie une notification."
                 :setting.simulation "Appareils simulés"

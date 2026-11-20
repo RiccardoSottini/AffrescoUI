@@ -184,5 +184,7 @@
                 :settings.crossfade.about "How many seconds the end of a song overlaps the start of the next; 0 for none."
                 :settings.language "Language"
                 :settings.language.about "English, Spanish or French."
+                :settings.developerStatusBar "Developer status bar"
+                :settings.developerStatusBar.about "Show the revision on screen and the window's size in a bar at the bottom of the window."
                 :sound.band "{label}  {gain} dB"
                 :status.revision "Revision {number}  ·  {author}: {message}"}}}

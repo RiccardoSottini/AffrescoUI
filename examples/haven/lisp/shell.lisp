@@ -148,7 +148,7 @@
                                                                           :bottom 32}))
 
 (defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
-  `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
+  `(node#statusBar :when ~settings.window.statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
      (node#panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author
                                                     :message revision.message})

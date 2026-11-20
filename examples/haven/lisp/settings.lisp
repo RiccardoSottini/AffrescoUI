@@ -27,6 +27,10 @@
   true "Show a note in the corner when a device has answered."
   :type boolean :title ~(t "setting.notify") :description ~(t "setting.notify.about"))
 
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
+
 (defcustom ui.language
   "en" "English, Spanish or French."
   :type string :enum [en es fr] :title ~(t "set.language") :description ~(t "setting.language.about"))

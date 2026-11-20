@@ -330,6 +330,8 @@
                 :window.title "Flow : un modèle AffrescoUI"
                 :settings.language "Langue"
                 :settings.language.about "Anglais, espagnol ou français."
+                :settings.developerStatusBar "Barre d'état pour développeurs"
+                :settings.developerStatusBar.about "Afficher la révision à l'écran et la taille de la fenêtre dans une barre en bas de la fenêtre."
                 :settings.wipWarnings "Avertir au-delà de la limite d'une colonne"
                 :settings.wipWarnings.about "Afficher un avis quand un déplacement dépasse la limite de travail en cours d'une colonne."
                 :settings.weekStart "Premier jour de la semaine"
