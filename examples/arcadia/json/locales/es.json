@@ -539,7 +539,9 @@
 			"pad.bottom": "Botón inferior",
 			"pad.left": "Botón izquierdo",
 			"pad.right": "Botón derecho",
-			"pad.top": "Botón superior"
+			"pad.top": "Botón superior",
+			"properties.browse": "Ver archivos",
+			"properties.hideFiles": "Ocultar archivos"
 		}
 	}
 }

@@ -298,6 +298,21 @@
 			]
 		},
 		{
+			"name": "properties-files",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#game-settings" },
+				{ "click": { "role": "menuitem", "name": "Properties…" } },
+				{ "click": "#properties-tab-files" },
+				{ "click": "#properties-browse" },
+				{ "expect": { "state": "filesShown", "is": true } },
+				{ "expect": { "node": "#properties-files", "property": "shown", "is": true } },
+				{ "capture": "properties-files" },
+				{ "click": "#properties-browse" },
+				{ "expect": { "state": "filesShown", "is": false } }
+			]
+		},
+		{
 			"name": "game-links",
 			"steps": [
 				{ "click": "#row-favourites-starfall" },

@@ -537,6 +537,8 @@
                 :pad.left "Botón izquierdo"
                 :pad.right "Botón derecho"
                 :pad.top "Botón superior"
+                :properties.browse "Ver archivos"
+                :properties.hideFiles "Ocultar archivos"
                 :command.takeScreenshot "Hacer una captura"
                 :command.takeScreenshot.about "Hace una captura del juego en marcha, guardada con las capturas del juego."
                 :command.openShot "Abrir una captura"

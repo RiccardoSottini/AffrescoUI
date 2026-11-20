@@ -537,6 +537,8 @@
                 :pad.left "Left button"
                 :pad.right "Right button"
                 :pad.top "Top button"
+                :properties.browse "Browse files"
+                :properties.hideFiles "Hide files"
                 :command.takeScreenshot "Take a screenshot"
                 :command.takeScreenshot.about "Takes a screenshot of the game running, kept with the game's screenshots."
                 :command.openShot "Open a screenshot"

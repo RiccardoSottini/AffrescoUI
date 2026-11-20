@@ -637,6 +637,8 @@
 
 (defn files-verified "Says the game's files were checked." [] (set "state.properties.verify" "done"))
 
+(defn toggle-files "Shows the folders of the game's installed files, or hides them." [] (toggle "state.filesShown"))
+
 (defn verify-files "Checks the game's files: a moment, then they are fine." []
   (set "state.properties.verify" "running")
   (after 1500 files-verified))

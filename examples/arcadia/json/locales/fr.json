@@ -539,7 +539,9 @@
 			"pad.bottom": "Bouton du bas",
 			"pad.left": "Bouton de gauche",
 			"pad.right": "Bouton de droite",
-			"pad.top": "Bouton du haut"
+			"pad.top": "Bouton du haut",
+			"properties.browse": "Parcourir les fichiers",
+			"properties.hideFiles": "Masquer les fichiers"
 		}
 	}
 }
