@@ -246,7 +246,7 @@
                 :command.showRename "Cambiar nombre de capa..."
                 :command.showRename.about "Abre el cuadro de diálogo Cambiar nombre de capa sobre la capa activa."
                 :command.showSearch "Buscar"
-                :command.showSearch.about "Busca entre los comandos, y ejecuta el elegido."
+                :command.showSearch.about "Busca entre los comandos, las herramientas y las capas, y ejecuta o elige el escogido."
                 :command.showTransform "Transformación libre..."
                 :command.showTransform.about "Abre el cuadro de diálogo Transformación libre sobre la capa activa."
                 :command.swapColours "Intercambiar colores"

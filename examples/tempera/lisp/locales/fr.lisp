@@ -246,7 +246,7 @@
                 :command.showRename "Renommer le calque..."
                 :command.showRename.about "Ouvre la boîte de dialogue Renommer le calque sur le calque actif."
                 :command.showSearch "Rechercher"
-                :command.showSearch.about "Recherche parmi les commandes, et exécute celle choisie."
+                :command.showSearch.about "Recherche parmi les commandes, les outils et les calques, et exécute ou choisit celui retenu."
                 :command.showTransform "Transformation manuelle..."
                 :command.showTransform.about "Ouvre la boîte de dialogue Transformation manuelle sur le calque actif."
                 :command.swapColours "Permuter les couleurs"

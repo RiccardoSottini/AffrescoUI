@@ -246,7 +246,7 @@
                 :command.showRename "Rename Layer..."
                 :command.showRename.about "Opens the Rename Layer dialog on the active layer."
                 :command.showSearch "Search"
-                :command.showSearch.about "Searches the commands, and runs the one chosen."
+                :command.showSearch.about "Searches the commands, the tools and the layers, and runs or chooses the one picked."
                 :command.showTransform "Free Transform..."
                 :command.showTransform.about "Opens the Free Transform dialog on the active layer."
                 :command.swapColours "Swap Colours"

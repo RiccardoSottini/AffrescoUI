@@ -568,7 +568,7 @@
     (set "state.workspaces" left))
   (chooseWorkspace {:name "standard"}))
 
-(defcommand showSearch "Searches the commands, and runs the one chosen."
+(defcommand showSearch "Searches the commands, the tools and the layers, and runs or chooses the one picked."
   :title ~(t "command.showSearch") :description ~(t "command.showSearch.about") :category ~(t "category.help")
   :icon "search"
   []
