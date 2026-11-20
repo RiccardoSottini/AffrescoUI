@@ -130,10 +130,7 @@
                     {:id "paths" :label (t "panel.paths")}]}
      ~(layers-panel)
      ~(channels-panel)
-     (node#paths-empty :style dim
-       :when ~(= state.panels.layers "paths")
-       :anchors {:left 10 :top 10}
-       :text ~(t "panel.paths.none"))))
+     ~(paths-panel)))
 
 ;;; Colours
 
