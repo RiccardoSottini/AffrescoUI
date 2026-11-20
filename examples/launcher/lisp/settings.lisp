@@ -37,7 +37,7 @@
          :width 160
          :height 38
          :onClick ~(handler reveal-mine "")))
-     (node#settingsIntelligence :anchors {:left 0 :right 16} :height 960 :color transparent
+     (node#settingsIntelligence :style card :anchors {:left 0 :right 16} :height 960
        (node#intelligenceSettingsPage :use intelligenceSettings))
      ~(keys-card)
      (node#settingsAbout :use settingsCard :with {:title ~(t "settings.about") :icon info :height 112}
@@ -126,7 +126,7 @@
 (defview keys-card "The keys, as the platform writes them, and what each does." []
   `(node#settingsKeys :use settingsCard :with {:title ~(t "settings.keys") :icon keyboard :height 208}
      (column#keysList :anchors {:left 54 :right 20 :top 56} :height 134 :gap 4
-       ~(repeat [k [["⌘1 · ⌘2 · ⌘4" "settings.keyPages"]
+       ~(repeat [k [["⌘1 · ⌘2 · ⌘," "settings.keyPages"]
                     ["⌘N" "settings.keyNew"]
                     ["⌘F" "settings.keySearch"]
                     ["⌘R" "settings.keyRefresh"]

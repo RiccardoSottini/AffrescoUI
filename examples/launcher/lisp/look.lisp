@@ -40,8 +40,8 @@
    :kit.onSecondary @c.text
    :kit.accent @c.accent
    :kit.focus @c.accent
-   :intelligence.accent @c.accent
-   :intelligence.accentHover @c.accentHover
+   :intelligence.accent @c.primary
+   :intelligence.accentHover @c.primaryHover
    :intelligence.onAccent @c.onAccent
    :intelligence.surface @c.surface
    :intelligence.raised @c.raised

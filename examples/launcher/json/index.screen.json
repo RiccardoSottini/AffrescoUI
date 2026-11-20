@@ -79,7 +79,7 @@
 		"kit.onSecondary": "@c.text",
 		"kit.accent": "@c.accent",
 		"kit.focus": "@c.accent",
-		"intelligence.accent": "@c.accent", "intelligence.accentHover": "@c.accentHover", "intelligence.onAccent": "@c.onAccent", "intelligence.surface": "@c.surface", "intelligence.raised": "@c.raised", "intelligence.selected": "@c.accentSoft", "intelligence.border": "@c.border", "intelligence.text": "@c.text", "intelligence.dim": "@c.muted", "intelligence.success": "@c.success", "intelligence.danger": "@c.danger",
+		"intelligence.accent": "@c.primary", "intelligence.accentHover": "@c.primaryHover", "intelligence.onAccent": "@c.onAccent", "intelligence.surface": "@c.surface", "intelligence.raised": "@c.raised", "intelligence.selected": "@c.accentSoft", "intelligence.border": "@c.border", "intelligence.text": "@c.text", "intelligence.dim": "@c.muted", "intelligence.success": "@c.success", "intelligence.danger": "@c.danger",
 		"kit.radius": 8,
 		"kit.cardRadius": 14
 	},
@@ -1031,14 +1031,14 @@
 										{ "id": "folderReveal", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}",
 										  "anchors": { "right": 20, "top": 62 }, "width": 160, "height": 38, "onClick": { "run": "revealMine", "with": { "id": "" } } }
 									  ] },
-									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 16 }, "height": 960, "color": "transparent",
+									{ "id": "settingsIntelligence", "style": "card", "anchors": { "left": 0, "right": 16 }, "height": 960,
 									  "children": [{ "id": "intelligenceSettingsPage", "use": "intelligenceSettings" }] },
 									{ "id": "settingsKeys", "use": "settingsCard", "with": { "title": "{{t('settings.keys')}}", "icon": "keyboard", "height": 208 },
 									  "children": [
 										{ "type": "column", "id": "keysList", "anchors": { "left": 54, "right": 20, "top": 56 }, "height": 134, "gap": 4,
 										  "children": [
 											{ "type": "row", "id": "keyRow",
-											  "repeat": { "for": "k", "in": "{{[['⌘1 · ⌘2 · ⌘4', 'settings.keyPages'], ['⌘N', 'settings.keyNew'], ['⌘F', 'settings.keySearch'], ['⌘R', 'settings.keyRefresh'], ['Delete', 'settings.keyDelete']]}}" }, "height": 22, "anchors": { "left": 0, "right": 0 }, "gap": 12,
+											  "repeat": { "for": "k", "in": "{{[['⌘1 · ⌘2 · ⌘,', 'settings.keyPages'], ['⌘N', 'settings.keyNew'], ['⌘F', 'settings.keySearch'], ['⌘R', 'settings.keyRefresh'], ['Delete', 'settings.keyDelete']]}}" }, "height": 22, "anchors": { "left": 0, "right": 0 }, "gap": 12,
 											  "children": [
 												{ "type": "label", "id": "keyCombo", "font": "small", "text": "{{context.platform == 'mac' ? k[0] : join(split(k[0], '⌘'), 'Ctrl+')}}", "textColor": "@c.text",
 												  "color": "@c.raised", "radius": 6, "width": 150, "height": 22, "align": "center" },
