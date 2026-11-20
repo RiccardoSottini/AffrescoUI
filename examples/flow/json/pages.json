@@ -17,6 +17,11 @@
 			{ "number": 10, "start": "2026-02-09", "end": "2026-02-22", "scope": 21, "done": 21 }
 		],
 		"projectScope": "all",
+		"projectOpen": -1,
+		"projectLayout": "list",
+		"projectDraft": { "text": "", "health": "onTrack" },
+		"milestoneDraft": "",
+		"roadmapStart": "2026-02-01",
 		"projectOf": { "feature": 0, "bug": 0, "design": 1, "chore": 2 },
 		"healthColors": { "onTrack": "#16a34a", "atRisk": "#d97706", "offTrack": "#dc2626", "completed": "#0d9488" }
 	},
@@ -28,7 +33,14 @@
 		"notificationCard": "{{computed.notification == null ? null : find(computed.allCards, it.ref == computed.notification.ref)}}",
 		"cycleScope": "{{sum(computed.allCards, it.points ?? 0)}}",
 		"cycleDone": "{{sum(filter(computed.allCards, it.c == computed.lastColumn), it.points ?? 0)}}",
-		"cycleTop": "{{max(concat(state.cycle.scopeHistory, [computed.cycleScope])) + 4}}"
+		"cycleTop": "{{max(concat(state.cycle.scopeHistory, [computed.cycleScope])) + 4}}",
+		"project": "{{state.projectOpen >= 0 ? data.projects[state.projectOpen] : null}}",
+		"projectsShown": "{{filter(data.projects, state.projectScope == 'all' || (state.projectScope == 'completed') == (it.health == 'completed'))}}",
+		"roadmapTracks": "{{map(data.projects, { id: '' + index, label: it.name, clips: [{ id: '' + index, label: it.name, start: max(0, daysBetween(state.roadmapStart, it.start ?? it.target)), duration: max(1, daysBetween(it.start ?? it.target, it.target)), color: it.color + '38' }] })}}",
+		"milestones": "{{computed.project.milestones ?? []}}",
+		"milestonesDone": "{{count(computed.milestones, it.done)}}",
+		"milestoneCount": "{{computed.milestonesDone}} / {{length(computed.milestones)}}",
+		"updateCount": "{{length(computed.project.updates ?? [])}}"
 	},
 
 	"actions": {
@@ -46,7 +58,55 @@
 		"goToInbox": { "title": "Go to inbox", "category": "Go", "icon": "inbox", "do": [{ "run": "showPage", "with": { "page": "inbox" } }] },
 		"goToIssues": { "title": "Go to issues", "category": "Go", "icon": "copy", "do": [{ "run": "showPage", "with": { "page": "issues" } }] },
 		"goToCycles": { "title": "Go to sprints", "category": "Go", "icon": "timer", "do": [{ "run": "showPage", "with": { "page": "cycles" } }] },
-		"goToProjects": { "title": "Go to projects", "category": "Go", "icon": "box", "do": [{ "run": "showPage", "with": { "page": "projects" } }] },
+		"goToProjects": { "title": "Go to projects", "category": "Go", "icon": "box", "do": [{ "set": "state.projectOpen", "to": -1 }, { "run": "showPage", "with": { "page": "projects" } }] },
+		"showRoadmap": { "title": "{{t('command.showRoadmap')}}", "description": "{{t('command.showRoadmap.about')}}", "category": "Go", "icon": "chart-gantt",
+			"do": [{ "set": "state.projectLayout", "to": "roadmap" }, { "set": "state.projectOpen", "to": -1 }, { "run": "showPage", "with": { "page": "projects" } }] },
+		"openProjectPage": [
+			{ "note": "with: at, the project's index: its own page, with its properties, milestones and updates" },
+			{ "set": "state.projectOpen", "to": "{{at}}" },
+			{ "set": "state.projectDraft.text", "to": "" },
+			{ "set": "state.projectDraft.health", "to": "{{data.projects[at].health == 'completed' ? 'onTrack' : data.projects[at].health}}" },
+			{ "set": "state.milestoneDraft", "to": "" },
+			{ "run": "showPage", "with": { "page": "projects" } }
+		],
+		"closeProjectPage": [{ "set": "state.projectOpen", "to": -1 }],
+		"postProjectUpdate": [
+			{ "note": "with: at, health and text. A project update, newest first, from the person; the project takes the update's health" },
+			{ "if": "{{data.projects[at] == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noProject')}}" } }, { "stop": true }] },
+			{ "if": "{{trim(text) == ''}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noUpdate')}}" } }, { "stop": true }] },
+			{ "update": "projects", "id": "{{data.projects[at].id}}", "fields": { "health": "{{health}}",
+				"updates": "{{concat([{ who: state.me, health: health, when: state.today, text: trim(text) }], data.projects[at].updates ?? [])}}" } },
+			{ "run": "notify", "with": { "message": "{{t('toast.updatePosted', { project: data.projects[at].name })}}" } }
+		],
+		"submitProjectUpdate": [
+			{ "note": "the project page's composer: posts what is typed with the health picked, then clears it" },
+			{ "if": "{{trim(state.projectDraft.text) == ''}}", "then": [{ "stop": true }] },
+			{ "run": "postProjectUpdate", "with": { "at": "{{state.projectOpen}}", "health": "{{state.projectDraft.health}}", "text": "{{state.projectDraft.text}}" } },
+			{ "set": "state.projectDraft.text", "to": "" }
+		],
+		"toggleMilestone": [
+			{ "note": "with: k, a milestone of the open project: done, or not done again" },
+			{ "update": "projects", "id": "{{computed.project.id}}", "fields": { "milestones": "{{map(computed.project.milestones, index == k ? merge(it, { done: !it.done }) : it)}}" } }
+		],
+		"addMilestone": [
+			{ "note": "a milestone named as typed, due on the open project's target date" },
+			{ "if": "{{computed.project == null || trim(state.milestoneDraft) == ''}}", "then": [{ "stop": true }] },
+			{ "update": "projects", "id": "{{computed.project.id}}", "fields": { "milestones": "{{concat(computed.project.milestones ?? [], [{ name: trim(state.milestoneDraft), target: computed.project.target ?? state.today, done: false }])}}" } },
+			{ "set": "state.milestoneDraft", "to": "" }
+		],
+		"changeRoadmapClip": [
+			{ "note": "a project's bar moved or trimmed on the roadmap: its start and target dates follow" },
+			{ "if": "{{data.projects[number(event.id)] == null}}", "then": [{ "stop": true }] },
+			{ "update": "projects", "id": "{{data.projects[number(event.id)].id}}", "fields": { "start": "{{addDays(state.roadmapStart, round(event.start))}}", "target": "{{addDays(state.roadmapStart, round(event.start + event.duration))}}" } }
+		],
+		"projectUpdate": { "title": "{{t('command.projectUpdate')}}", "description": "{{t('command.projectUpdate.about')}}", "category": "Project", "icon": "megaphone",
+			"arguments": { "project": { "type": "string", "description": "The project's name, like Label palette" }, "health": { "type": "string", "description": "on track, at risk, off track or completed" }, "text": { "type": "string", "description": "What changed, in a sentence or two" } },
+			"do": [
+				{ "note": "an update on the project with that name, in any case; a project or a health that isn't there changes nothing, and the notice says so" },
+				{ "if": "{{indexOf(map(data.projects, lower(it.name)), lower(trim(project))) < 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noProjectNamed', { project: project })}}" } }, { "stop": true }] },
+				{ "if": "{{find(['onTrack', 'atRisk', 'offTrack', 'completed'], lower(it) == join(split(lower(trim(health)), ' '), '')) == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noHealth', { health: health })}}" } }, { "stop": true }] },
+				{ "run": "postProjectUpdate", "with": { "at": "{{indexOf(map(data.projects, lower(it.name)), lower(trim(project)))}}", "health": "{{find(['onTrack', 'atRisk', 'offTrack', 'completed'], lower(it) == join(split(lower(trim(health)), ' '), ''))}}", "text": "{{text}}" } }
+			] },
 		"openProject": [
 			{ "note": "with: at, the project's index: its issues, behind a Project filter whose chip removes it" },
 			{ "set": "state.fProject", "to": "{{at}}" },
@@ -84,6 +144,7 @@
 		"g a": { "when": "{{!context.textInputFocus}}", "do": "goToIssues" },
 		"g v": { "when": "{{!context.textInputFocus}}", "do": "goToCycles" },
 		"g p": { "when": "{{!context.textInputFocus}}", "do": "goToProjects" },
+		"g r": { "when": "{{!context.textInputFocus}}", "do": "showRoadmap" },
 		"u": { "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "toggleRead" },
 		"h": { "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "snoozeNotification" },
 		"enter": { "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "openNotification" }
@@ -315,7 +376,7 @@
 		},
 
 		"projectsPage": {
-			"note": "The projects as a table: name, health, lead, target date and progress",
+			"note": "The projects as a table or on a roadmap, and a project's own page with its milestones and updates",
 			"params": {},
 			"node": {
 				"id": "panel-projects-page",
@@ -323,62 +384,1326 @@
 				"role": "region",
 				"label": "{{t('nav.projects')}}",
 				"children": [
-					{ "id": "projectsHeader", "use": "pageHeader", "with": { "icon": "box", "text": "{{t('nav.projects')}}" } },
-					{ "type": "row", "id": "projectTabs", "gap": 2, "anchors": { "left": 120, "top": 10 }, "width": 360, "height": 28, "role": "tablist", "arrows": "horizontal", "children": [
-						{ "id": "projectTab", "repeat": { "for": "scope", "in": "['all', 'active', 'completed']" }, "style": "{{state.projectScope == scope ? 'toolButtonOn' : 'toolButton'}}",
-							"borderWidth": "{{state.projectScope == scope ? 1 : 0}}", "text": "{{t('projects.' + scope)}}", "role": "tab", "selected": "{{state.projectScope == scope}}",
-							"onClick": { "set": "state.projectScope", "to": "{{scope}}" } }
-					] },
-					{ "id": "newProject", "style": "topButton", "icon": "plus", "text": " {{t('projects.new')}}", "fitText": true, "height": 28, "anchors": { "right": 12, "top": 10 },
-						"label": "{{t('projects.new')}}", "onClick": "addProject" },
-					{ "id": "projectsColumns", "anchors": { "left": 0, "right": 0, "top": 48 }, "height": 32, "color": "transparent", "children": [
-						{ "id": "projectsColumnName", "style": "caption", "text": "{{t('project.name')}}", "anchors": { "left": 52, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
-						{ "id": "projectsColumnHealth", "style": "caption", "text": "{{t('project.health')}}", "anchors": { "right": 440, "top": 0, "bottom": 0 }, "width": 110, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
-						{ "id": "projectsColumnLead", "style": "caption", "text": "{{t('project.lead')}}", "anchors": { "right": 360, "top": 0, "bottom": 0 }, "width": 60, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
-						{ "id": "projectsColumnTarget", "style": "caption", "text": "{{t('project.target')}}", "anchors": { "right": 240, "top": 0, "bottom": 0 }, "width": 100, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
-						{ "id": "projectsColumnProgress", "style": "caption", "text": "{{t('project.progress')}}", "anchors": { "right": 24, "top": 0, "bottom": 0 }, "width": 196, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
-						{ "id": "projectsColumnsLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" }
-					] },
 					{
-						"type": "column",
-						"id": "projectRows",
-						"anchors": { "left": 0, "right": 0, "top": 80, "bottom": 0 },
-						"scroll": "vertical",
-						"role": "list",
+						"id": "projectsList",
+						"when": "{{(state.projectOpen < 0)}}",
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 0,
+							"bottom": 0
+						},
+						"color": "transparent",
 						"children": [
 							{
-								"id": "projectRow",
-								"repeat": { "for": "project", "in": "filter(data.projects, state.projectScope == 'all' || (state.projectScope == 'completed') == (it.health == 'completed'))", "key": "{{project.name}}" },
-								"anchors": { "left": 0, "right": 0 },
-								"height": 44,
-								"color": "transparent",
-								"hover": { "color": "@color.column" },
-								"cursor": "hand",
-								"focusable": true,
-								"role": "listitem",
-								"label": "{{project.name}}, {{t('health.' + project.health)}}, {{formatPercent(project.progress)}}",
-								"tooltip": "{{t('projects.open')}}",
-								"onClick": { "run": "openProject", "with": { "at": "{{indexOf(map(data.projects, it.name), project.name)}}" } },
-								"keys": { "enter": { "run": "openProject", "with": { "at": "{{indexOf(map(data.projects, it.name), project.name)}}" } } },
+								"id": "projectsHeader",
+								"use": "pageHeader",
+								"with": {
+									"icon": "box",
+									"text": "{{t('nav.projects')}}"
+								}
+							},
+							{
+								"type": "row",
+								"id": "projectTabs",
+								"gap": 2,
+								"anchors": {
+									"left": 120,
+									"top": 10
+								},
+								"width": 360,
+								"height": 28,
+								"role": "tablist",
+								"arrows": "horizontal",
 								"children": [
-									{ "id": "projectRowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
-									{ "type": "label", "id": "projectIcon", "icon": "{{project.icon}}", "text": "", "width": 22, "height": 22, "radius": 5, "align": "center",
-										"color": "{{project.color + '24'}}", "textColor": "{{project.color}}", "anchors": { "left": 20, "top": 11 } },
-									{ "type": "label", "id": "projectName", "font": "small", "text": "{{project.name}}", "textColor": "@color.text",
-										"anchors": { "left": 52, "right": 560, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "type": "label", "id": "projectHealth", "font": "small", "icon": "circle", "text": " {{t('health.' + project.health)}}",
-										"textColor": "{{state.healthColors[project.health]}}", "anchors": { "right": 440, "top": 0, "bottom": 0 }, "width": 110,
-										"align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "projectLead", "style": "badge", "text": "{{project.lead}}", "width": 22, "height": 22, "radius": 999, "anchors": { "right": 398, "top": 11 },
-										"color": "{{find(state.members, it.who == project.lead).color ?? '@color.muted'}}", "textColor": "#ffffff",
-										"tooltip": "{{find(state.members, it.who == project.lead).name ?? project.lead}}" },
-									{ "id": "projectTarget", "style": "caption", "width": 100, "fitText": false, "anchors": { "right": 240, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
-										"icon": "calendar", "text": " {{formatDate(dateMs(project.target), 'MMM d', 'utc')}}",
-										"textColor": "{{daysBetween(state.today, project.target) < 0 && project.progress < 1 ? '@bug' : '@color.muted'}}" },
-									{ "id": "projectBar", "use": "progressBar", "with": { "ratio": "{{project.progress}}", "color": "{{project.color}}", "width": 120 },
-										"anchors": { "right": 100, "top": 20 } },
-									{ "id": "projectPercent", "style": "caption", "width": 56, "fitText": false, "anchors": { "right": 24, "top": 0, "bottom": 0 }, "align": { "horizontal": "end", "vertical": "center" },
-										"text": "{{formatPercent(project.progress)}}  ·  {{project.issues}}" }
+									{
+										"id": "projectTab",
+										"repeat": {
+											"for": "scope",
+											"in": "{{['all', 'active', 'completed']}}"
+										},
+										"style": "{{((state.projectScope == scope) ? 'toolButtonOn' : 'toolButton')}}",
+										"borderWidth": "{{((state.projectScope == scope) ? 1 : 0)}}",
+										"text": "{{t(('projects.' + scope))}}",
+										"role": "tab",
+										"selected": "{{(state.projectScope == scope)}}",
+										"onClick": {
+											"set": "state.projectScope",
+											"to": "{{scope}}"
+										}
+									}
+								]
+							},
+							{
+								"type": "row",
+								"id": "projectLayouts",
+								"gap": 2,
+								"anchors": {
+									"right": 140,
+									"top": 10
+								},
+								"fitContent": true,
+								"height": 28,
+								"role": "radiogroup",
+								"children": [
+									{
+										"type": "label",
+										"id": "projectLayout",
+										"repeat": {
+											"for": "layout",
+											"in": "{{['list', 'roadmap']}}"
+										},
+										"style": "{{((state.projectLayout == layout) ? 'toolButtonOn' : 'toolButton')}}",
+										"borderWidth": "{{((state.projectLayout == layout) ? 1 : 0)}}",
+										"icon": "{{((layout == 'list') ? 'list' : 'chart-gantt')}}",
+										"text": "{{t(('projects.layout.' + layout))}}",
+										"role": "radio",
+										"selected": "{{(state.projectLayout == layout)}}",
+										"tooltip": "{{t(('projects.layout.' + layout))}}",
+										"onClick": {
+											"set": "state.projectLayout",
+											"to": "{{layout}}"
+										}
+									}
+								]
+							},
+							{
+								"id": "newProject",
+								"style": "topButton",
+								"icon": "plus",
+								"text": "{{t('projects.new')}}",
+								"fitText": true,
+								"height": 28,
+								"anchors": {
+									"right": 12,
+									"top": 10
+								},
+								"label": "{{t('projects.new')}}",
+								"onClick": "addProject"
+							},
+							{
+								"id": "projectsTable",
+								"when": "{{(state.projectLayout != 'roadmap')}}",
+								"anchors": {
+									"left": 0,
+									"right": 0,
+									"top": 48,
+									"bottom": 0
+								},
+								"color": "transparent",
+								"children": [
+									{
+										"id": "projectsColumns",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 48
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "projectsColumnName",
+												"style": "caption",
+												"text": "{{t('project.name')}}",
+												"anchors": {
+													"left": 52,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectsColumnHealth",
+												"style": "caption",
+												"text": "{{t('project.health')}}",
+												"anchors": {
+													"right": 440,
+													"top": 0,
+													"bottom": 0
+												},
+												"width": 110,
+												"fitText": false,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectsColumnLead",
+												"style": "caption",
+												"text": "{{t('project.lead')}}",
+												"anchors": {
+													"right": 360,
+													"top": 0,
+													"bottom": 0
+												},
+												"width": 60,
+												"fitText": false,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectsColumnTarget",
+												"style": "caption",
+												"text": "{{t('project.target')}}",
+												"anchors": {
+													"right": 240,
+													"top": 0,
+													"bottom": 0
+												},
+												"width": 100,
+												"fitText": false,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectsColumnProgress",
+												"style": "caption",
+												"text": "{{t('project.progress')}}",
+												"anchors": {
+													"right": 24,
+													"top": 0,
+													"bottom": 0
+												},
+												"width": 196,
+												"fitText": false,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectsColumnsLine",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"bottom": 0
+												},
+												"height": 1,
+												"color": "@color.border"
+											}
+										]
+									},
+									{
+										"type": "column",
+										"id": "projectRows",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 32,
+											"bottom": 0
+										},
+										"scroll": "vertical",
+										"role": "list",
+										"children": [
+											{
+												"id": "projectRow",
+												"repeat": {
+													"for": "project",
+													"in": "computed.projectsShown",
+													"key": "{{project.name}}"
+												},
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"height": 44,
+												"color": "transparent",
+												"hover": {
+													"color": "@color.column"
+												},
+												"cursor": "hand",
+												"focusable": true,
+												"role": "listitem",
+												"label": "{{project.name}}, {{t(('health.' + project.health))}}, {{formatPercent(project.progress)}}",
+												"tooltip": "{{t('projects.openPage')}}",
+												"onClick": {
+													"run": "openProjectPage",
+													"with": {
+														"at": "{{indexOf(map(data.projects, it.name), project.name)}}"
+													}
+												},
+												"keys": {
+													"enter": {
+														"run": "openProjectPage",
+														"with": {
+															"at": "{{indexOf(map(data.projects, it.name), project.name)}}"
+														}
+													}
+												},
+												"children": [
+													{
+														"id": "projectRowLine",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"bottom": 0
+														},
+														"height": 1,
+														"color": "@color.border"
+													},
+													{
+														"type": "label",
+														"id": "projectIcon",
+														"icon": "{{project.icon}}",
+														"text": "",
+														"width": 22,
+														"height": 22,
+														"radius": 5,
+														"align": "center",
+														"color": "{{project.color}}24",
+														"textColor": "{{project.color}}",
+														"anchors": {
+															"left": 20,
+															"top": 11
+														}
+													},
+													{
+														"type": "label",
+														"id": "projectName",
+														"font": "small",
+														"text": "{{project.name}}",
+														"textColor": "@color.text",
+														"anchors": {
+															"left": 52,
+															"right": 560,
+															"top": 0,
+															"bottom": 0
+														},
+														"align": {
+															"horizontal": "start",
+															"vertical": "center"
+														}
+													},
+													{
+														"type": "label",
+														"id": "projectHealth",
+														"font": "small",
+														"icon": "circle",
+														"text": "{{t(('health.' + project.health))}}",
+														"textColor": "{{state.healthColors[project.health]}}",
+														"anchors": {
+															"right": 440,
+															"top": 0,
+															"bottom": 0
+														},
+														"width": 110,
+														"align": {
+															"horizontal": "start",
+															"vertical": "center"
+														}
+													},
+													{
+														"id": "projectLead",
+														"style": "badge",
+														"text": "{{project.lead}}",
+														"width": 22,
+														"height": 22,
+														"radius": 999,
+														"anchors": {
+															"right": 398,
+															"top": 11
+														},
+														"color": "{{(find(state.members, (it.who == project.lead)).color ?? '@color.muted')}}",
+														"textColor": "#ffffff",
+														"tooltip": "{{(find(state.members, (it.who == project.lead)).name ?? project.lead)}}"
+													},
+													{
+														"id": "projectTarget",
+														"style": "caption",
+														"width": 100,
+														"fitText": false,
+														"anchors": {
+															"right": 240,
+															"top": 0,
+															"bottom": 0
+														},
+														"align": {
+															"horizontal": "start",
+															"vertical": "center"
+														},
+														"icon": "calendar",
+														"text": "{{formatDate(dateMs(project.target), 'MMM d', 'utc')}}",
+														"textColor": "{{(((daysBetween(state.today, project.target) < 0) && (project.progress < 1)) ? '@bug' : '@color.muted')}}"
+													},
+													{
+														"id": "projectBar",
+														"use": "progressBar",
+														"with": {
+															"ratio": "{{project.progress}}",
+															"color": "{{project.color}}",
+															"width": 120
+														},
+														"anchors": {
+															"right": 100,
+															"top": 20
+														}
+													},
+													{
+														"id": "projectPercent",
+														"style": "caption",
+														"width": 56,
+														"fitText": false,
+														"anchors": {
+															"right": 24,
+															"top": 0,
+															"bottom": 0
+														},
+														"align": {
+															"horizontal": "end",
+															"vertical": "center"
+														},
+														"text": "{{formatPercent(project.progress)}}  ·  {{project.issues}}"
+													}
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "roadmapView",
+								"when": "{{(state.projectLayout == 'roadmap')}}",
+								"anchors": {
+									"left": 0,
+									"right": 0,
+									"top": 48,
+									"bottom": 0
+								},
+								"color": "transparent",
+								"children": [
+									{
+										"type": "timeline",
+										"id": "roadmapTimeline",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 0,
+											"bottom": 0
+										},
+										"tracks": "{{computed.roadmapTracks}}",
+										"duration": 120,
+										"fps": 1,
+										"pixelsPerSecond": 9,
+										"offset": 0,
+										"time": "{{daysBetween(state.roadmapStart, state.today)}}",
+										"markers": "{{map([2, 3, 4, 5], {'time': daysBetween(state.roadmapStart, ('2026-0' + it + '-01')), 'label': formatDate(dateMs(('2026-0' + it + '-01')), 'MMMM', 'utc')})}}",
+										"headerWidth": 220,
+										"trackHeight": 40,
+										"label": "{{t('roadmap.title')}}",
+										"color": "@color.surface",
+										"clipColor": "@color.accent",
+										"headerColor": "@color.surface",
+										"textColor": "@color.text",
+										"accentColor": "@color.accent",
+										"onClipChange": "changeRoadmapClip",
+										"children": [
+											{
+												"type": "label",
+												"id": "roadmapHeader",
+												"repeat": {
+													"for": "project",
+													"in": "data.projects"
+												},
+												"font": "small",
+												"icon": "{{project.icon}}",
+												"text": "{{project.name}}",
+												"textColor": "@color.text",
+												"color": "@color.surface",
+												"fill": 0,
+												"padding": 16,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "projectPage",
+						"when": "{{(computed.project != null)}}",
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"top": 0,
+							"bottom": 0
+						},
+						"color": "transparent",
+						"children": [
+							{
+								"id": "projectHeader",
+								"anchors": {
+									"left": 0,
+									"right": 0,
+									"top": 0
+								},
+								"height": 48,
+								"color": "transparent",
+								"children": [
+									{
+										"type": "label",
+										"id": "projectCrumb",
+										"style": "topButton",
+										"icon": "box",
+										"text": "{{t('nav.projects')}}",
+										"height": 28,
+										"textColor": "@color.muted",
+										"anchors": {
+											"left": 12,
+											"top": 10
+										},
+										"tooltip": "{{t('projects.back')}}",
+										"label": "{{t('projects.back')}}",
+										"onClick": "closeProjectPage"
+									},
+									{
+										"type": "label",
+										"id": "projectCrumbName",
+										"font": "small",
+										"text": "›   {{computed.project.name}}",
+										"textColor": "@color.text",
+										"fitText": true,
+										"anchors": {
+											"left": 100,
+											"top": 0,
+											"bottom": 0
+										},
+										"align": {
+											"horizontal": "start",
+											"vertical": "center"
+										}
+									},
+									{
+										"type": "label",
+										"id": "projectViewIssues",
+										"style": "toolButton",
+										"icon": "list-filter",
+										"text": "{{t('project.viewIssues')}}",
+										"anchors": {
+											"right": 12,
+											"top": 10
+										},
+										"onClick": {
+											"run": "openProject",
+											"with": {
+												"at": "{{state.projectOpen}}"
+											}
+										}
+									},
+									{
+										"id": "projectHeaderLine",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"bottom": 0
+										},
+										"height": 1,
+										"color": "@color.border"
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "projectBody",
+								"anchors": {
+									"left": 40,
+									"right": 340,
+									"top": 48,
+									"bottom": 0
+								},
+								"scroll": "vertical",
+								"gap": 4,
+								"children": [
+									{
+										"id": "projectHero",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 124,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"id": "projectHeroIcon",
+												"icon": "{{computed.project.icon}}",
+												"font": "iconsLarge",
+												"text": "",
+												"width": 36,
+												"height": 36,
+												"radius": 8,
+												"align": "center",
+												"color": "{{computed.project.color}}24",
+												"textColor": "{{computed.project.color}}",
+												"anchors": {
+													"left": 0,
+													"top": 28
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectHeroName",
+												"font": "display",
+												"text": "{{computed.project.name}}",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 74
+												},
+												"height": 30,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												},
+												"role": "heading"
+											},
+											{
+												"type": "label",
+												"id": "projectSummary",
+												"text": "{{(computed.project.summary ?? t('project.noSummary'))}}",
+												"textColor": "@color.muted",
+												"wrap": true,
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 106
+												},
+												"height": 18,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"id": "milestonesSection",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 52,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"id": "milestonesSectionTitle",
+												"font": "heading",
+												"icon": "milestone",
+												"text": "{{t('project.milestones')}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 0,
+													"top": 20,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												},
+												"role": "heading"
+											},
+											{
+												"id": "milestonesSectionCount",
+												"style": "caption",
+												"text": "{{computed.milestoneCount}}",
+												"anchors": {
+													"right": 0,
+													"top": 20,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "end",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "milestonesSectionLine",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"bottom": 0
+												},
+												"height": 1,
+												"color": "@color.border"
+											}
+										]
+									},
+									{
+										"id": "milestoneRow",
+										"repeat": {
+											"for": "m",
+											"in": "{{(computed.project.milestones ?? [])}}",
+											"index": "k"
+										},
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 36,
+										"radius": "@radius.chip",
+										"color": "transparent",
+										"hover": {
+											"color": "@color.column"
+										},
+										"cursor": "hand",
+										"focusable": true,
+										"role": "checkbox",
+										"selected": "{{m.done}}",
+										"label": "{{m.name}}, {{formatDate(dateMs(m.target), 'MMM d', 'utc')}}",
+										"tooltip": "{{t((m.done ? 'milestone.reopen' : 'milestone.done'))}}",
+										"onClick": {
+											"run": "toggleMilestone",
+											"with": {
+												"k": "{{k}}"
+											}
+										},
+										"keys": {
+											"space": {
+												"run": "toggleMilestone",
+												"with": {
+													"k": "{{k}}"
+												}
+											},
+											"enter": {
+												"run": "toggleMilestone",
+												"with": {
+													"k": "{{k}}"
+												}
+											}
+										},
+										"children": [
+											{
+												"type": "label",
+												"id": "milestoneIcon",
+												"icon": "{{(m.done ? 'check-circle-2' : 'diamond')}}",
+												"text": "",
+												"fitText": true,
+												"textColor": "{{(m.done ? computed.project.color : '@color.muted')}}",
+												"anchors": {
+													"left": 8,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": "center"
+											},
+											{
+												"type": "label",
+												"id": "milestoneName",
+												"font": "small",
+												"text": "{{m.name}}",
+												"textColor": "{{(m.done ? '@color.muted' : '@color.text')}}",
+												"anchors": {
+													"left": 36,
+													"right": 120,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "milestoneDate",
+												"style": "caption",
+												"icon": "calendar",
+												"text": "{{formatDate(dateMs(m.target), 'MMM d', 'utc')}}",
+												"textColor": "{{(m.done ? '@color.muted' : ((daysBetween(state.today, m.target) < 0) ? '@bug' : '@color.muted'))}}",
+												"anchors": {
+													"right": 8,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "end",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"type": "textarea",
+										"id": "milestoneField",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"padding": 8,
+										"font": "small",
+										"radius": "@radius.chip",
+										"color": "transparent",
+										"focused": {
+											"color": "@color.field"
+										},
+										"textColor": "@color.text",
+										"placeholder": "{{t('milestone.add')}}",
+										"label": "{{t('milestone.add')}}",
+										"placeholderColor": "@color.muted",
+										"bind": "state.milestoneDraft",
+										"onSubmit": "addMilestone",
+										"keys": {
+											"escape": {
+												"set": "state.milestoneDraft",
+												"to": ""
+											}
+										}
+									},
+									{
+										"id": "updatesSection",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 52,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"id": "updatesSectionTitle",
+												"font": "heading",
+												"icon": "megaphone",
+												"text": "{{t('project.updates')}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 0,
+													"top": 20,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												},
+												"role": "heading"
+											},
+											{
+												"id": "updatesSectionCount",
+												"style": "caption",
+												"text": "{{computed.updateCount}}",
+												"anchors": {
+													"right": 0,
+													"top": 20,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "end",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "updatesSectionLine",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"bottom": 0
+												},
+												"height": 1,
+												"color": "@color.border"
+											}
+										]
+									},
+									{
+										"id": "updateComposer",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 112,
+										"radius": "@radius.card",
+										"borderWidth": 1,
+										"borderColor": "@color.border",
+										"color": "@color.surface",
+										"children": [
+											{
+												"type": "textarea",
+												"id": "updateField",
+												"anchors": {
+													"left": 8,
+													"right": 8,
+													"top": 6
+												},
+												"height": 54,
+												"padding": 6,
+												"wrap": true,
+												"color": "transparent",
+												"focused": {
+													"color": "transparent"
+												},
+												"textColor": "@color.text",
+												"placeholder": "{{t('update.placeholder')}}",
+												"label": "{{t('update.placeholder')}}",
+												"placeholderColor": "@color.muted",
+												"bind": "state.projectDraft.text",
+												"keys": {
+													"mod+enter": "submitProjectUpdate"
+												}
+											},
+											{
+												"type": "row",
+												"id": "updateHealths",
+												"gap": 6,
+												"anchors": {
+													"left": 12,
+													"bottom": 12
+												},
+												"fitContent": true,
+												"height": 26,
+												"role": "radiogroup",
+												"children": [
+													{
+														"type": "label",
+														"id": "updateHealth",
+														"repeat": {
+															"for": "h",
+															"in": "{{['onTrack', 'atRisk', 'offTrack']}}"
+														},
+														"style": "displayPill",
+														"height": 26,
+														"icon": "circle",
+														"text": "{{t(('health.' + h))}}",
+														"textColor": "{{state.healthColors[h]}}",
+														"borderColor": "{{((state.projectDraft.health == h) ? state.healthColors[h] : '@color.border')}}",
+														"color": "{{((state.projectDraft.health == h) ? '@color.chipHover' : 'transparent')}}",
+														"role": "radio",
+														"selected": "{{(state.projectDraft.health == h)}}",
+														"onClick": {
+															"set": "state.projectDraft.health",
+															"to": "{{h}}"
+														}
+													}
+												]
+											},
+											{
+												"type": "label",
+												"id": "postUpdate",
+												"style": "toolButtonOn",
+												"text": "{{t('update.post')}}",
+												"tooltip": "{{t('update.postKeys')}}",
+												"anchors": {
+													"right": 12,
+													"bottom": 12
+												},
+												"onClick": "submitProjectUpdate"
+											}
+										]
+									},
+									{
+										"id": "updateItem",
+										"repeat": {
+											"for": "u",
+											"in": "{{(computed.project.updates ?? [])}}",
+											"index": "k"
+										},
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 76,
+										"color": "transparent",
+										"role": "article",
+										"label": "{{t(('health.' + u.health))}}, {{u.who}}, {{u.text}}",
+										"children": [
+											{
+												"id": "updateWho",
+												"style": "badge",
+												"font": "tiny",
+												"text": "{{u.who}}",
+												"width": 20,
+												"height": 20,
+												"radius": 999,
+												"anchors": {
+													"left": 0,
+													"top": 16
+												},
+												"color": "{{(find(state.members, (it.who == u.who)).color ?? '@color.muted')}}",
+												"textColor": "#ffffff"
+											},
+											{
+												"type": "label",
+												"id": "updateHealthLabel",
+												"font": "small",
+												"icon": "circle",
+												"text": "{{t(('health.' + u.health))}}",
+												"textColor": "{{(state.healthColors[u.health] ?? '@color.muted')}}",
+												"fitText": true,
+												"anchors": {
+													"left": 30,
+													"top": 16
+												},
+												"height": 20,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "updateMeta",
+												"style": "caption",
+												"text": "{{(find(state.members, (it.who == u.who)).name ?? u.who)}}  ·  {{formatDate(dateMs(u.when), 'MMM d', 'utc')}}",
+												"anchors": {
+													"left": 130,
+													"top": 16
+												},
+												"height": 20,
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "updateText",
+												"font": "small",
+												"text": "{{u.text}}",
+												"textColor": "@color.text",
+												"wrap": true,
+												"anchors": {
+													"left": 30,
+													"right": 0,
+													"top": 40,
+													"bottom": 8
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "start"
+												}
+											},
+											{
+												"id": "updateLine",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"bottom": 0
+												},
+												"height": 1,
+												"color": "@color.border"
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "projectAsideLine",
+								"anchors": {
+									"right": 300,
+									"top": 48,
+									"bottom": 0
+								},
+								"width": 1,
+								"color": "@color.border"
+							},
+							{
+								"type": "column",
+								"id": "projectAside",
+								"anchors": {
+									"right": 24,
+									"top": 64,
+									"bottom": 0
+								},
+								"width": 252,
+								"gap": 2,
+								"children": [
+									{
+										"id": "projectAsideTitle",
+										"style": "caption",
+										"text": "{{t('project.properties')}}",
+										"height": 32,
+										"align": {
+											"horizontal": "start",
+											"vertical": "center"
+										}
+									},
+									{
+										"id": "prop-health",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-health-name",
+												"style": "caption",
+												"text": "{{t('project.health')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectAsideHealth",
+												"font": "small",
+												"icon": "circle",
+												"text": "{{t(('health.' + computed.project.health))}}",
+												"textColor": "{{state.healthColors[computed.project.health]}}",
+												"fitText": true,
+												"anchors": {
+													"left": 100,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"id": "prop-lead",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-lead-name",
+												"style": "caption",
+												"text": "{{t('project.lead')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectAsideLead",
+												"font": "small",
+												"text": "{{(find(state.members, (it.who == computed.project.lead)).name ?? computed.project.lead)}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 100,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"id": "prop-start",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-start-name",
+												"style": "caption",
+												"text": "{{t('project.start')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectAsideStart",
+												"font": "small",
+												"text": "{{((computed.project.start != null) ? formatDate(dateMs(computed.project.start), 'MMM d, yyyy', 'utc') : '–')}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 100,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"id": "prop-target",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-target-name",
+												"style": "caption",
+												"text": "{{t('project.target')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectAsideTarget",
+												"font": "small",
+												"text": "{{formatDate(dateMs(computed.project.target), 'MMM d, yyyy', 'utc')}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 100,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									},
+									{
+										"id": "prop-progress",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-progress-name",
+												"style": "caption",
+												"text": "{{t('project.progress')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"id": "projectAsideProgress",
+												"anchors": {
+													"left": 100,
+													"right": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"color": "transparent",
+												"children": [
+													{
+														"id": "projectAsideBar",
+														"use": "progressBar",
+														"with": {
+															"ratio": "{{computed.project.progress}}",
+															"color": "{{computed.project.color}}",
+															"width": 100
+														},
+														"anchors": {
+															"left": 0,
+															"top": 14
+														}
+													},
+													{
+														"id": "projectAsidePercent",
+														"style": "caption",
+														"text": "{{formatPercent(computed.project.progress)}}",
+														"anchors": {
+															"left": 112,
+															"top": 0,
+															"bottom": 0
+														},
+														"align": {
+															"horizontal": "start",
+															"vertical": "center"
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "prop-issues",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 32,
+										"color": "transparent",
+										"children": [
+											{
+												"id": "prop-issues-name",
+												"style": "caption",
+												"text": "{{t('project.issues')}}",
+												"anchors": {
+													"left": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											},
+											{
+												"type": "label",
+												"id": "projectAsideIssues",
+												"font": "small",
+												"text": "{{('' + computed.project.issues)}}",
+												"textColor": "@color.text",
+												"fitText": true,
+												"anchors": {
+													"left": 100,
+													"top": 0,
+													"bottom": 0
+												},
+												"align": {
+													"horizontal": "start",
+													"vertical": "center"
+												}
+											}
+										]
+									}
 								]
 							}
 						]
