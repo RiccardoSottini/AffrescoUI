@@ -401,7 +401,7 @@
        :fitText true
        :height 16
        :textColor ~(if (= i state.current) "@brandLine" "@rbMuted")
-       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current) :strike ~(or-else s.hidden false)}])
      (label :id ~(str "thumb-" s.id "-star")
        :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :width 14 :height 16 :align center :textColor @rbMuted

@@ -237,7 +237,7 @@
 									{ "type": "row", "id": "{{'thumb-' + s.id + '-gutter'}}", "width": 170, "height": 18, "gap": 4, "color": "transparent", "alignItems": "center", "children": [
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-number'}}", "fitText": true, "height": 16,
 										  "textColor": "{{i == state.current ? '@brandLine' : '@rbMuted'}}",
-										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}" }] },
+										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}", "strike": "{{s.hidden ?? false}}" }] },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-star'}}", "when": "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}",
 										  "width": 14, "height": 16, "align": "center", "textColor": "@rbMuted", "runs": [{ "icon": "wand-sparkles", "size": 10 }], "tooltip": "Has a transition or animations" },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-hidden'}}", "when": "{{s.hidden ?? false}}",
