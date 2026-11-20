@@ -143,10 +143,12 @@ TEST_CASE("lisp examples: the two notations share one copy of an example's asset
 			for(const auto& file : std::filesystem::recursive_directory_iterator(example.path() / notation)) {
 				const std::string extension = file.path().extension().string();
 				CAPTURE(file.path().string());
-				// Documents and the scripts of the JSON folder, and the catalogue's line-ending rule: no picture or
+				// Documents and the scripts of the JSON folder, the catalogue's line-ending rule, and the small files a
+				// scenario chooses (fixtures/, which a scenario may only name under its own folder): no picture or
 				// sound
 				CHECK((!file.is_regular_file() || extension == ".json" || extension == ".lisp" || extension == ".py" ||
-				       file.path().filename() == ".gitattributes"));
+				       file.path().filename() == ".gitattributes" ||
+				       file.path().parent_path().filename() == "fixtures"));
 			}
 		}
 	}

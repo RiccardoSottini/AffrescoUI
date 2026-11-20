@@ -322,6 +322,7 @@ TEST_CASE("render: a clip is trimmed from either edge, moved to another track, a
 
 TEST_CASE("render: without track buttons, M and L leave a track as it is") {
 	TimelineFixture fixture;
+	fixture.window->setFocus(fixture.view); // the keys go to the timeline
 	fixture.view->setTrackButtons(false);
 	fixture.press(Key::Down);
 	fixture.press(Key::M);
