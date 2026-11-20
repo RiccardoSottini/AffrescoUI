@@ -59,7 +59,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Reminder with a time picked on a clock (hours, then minutes in fives) and weekday chips | done | |
 | Archive, delete (asks first), export CSV | done | CSV goes to the clipboard: a document can't write files |
 | A name is required | done | |
-| Cmd+A in a field | partial | P2: library — select-all and caret movement in the text field (general, every app gains) |
+| Cmd+A in a field: selects the text, typing replaces it, Backspace clears it, Cmd+C and Cmd+X copy and cut | done | the caret doesn't move inside the text yet (library) |
 
 ## Settings
 
@@ -86,6 +86,6 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 ## Counts
 
-- done: 45
-- partial: 1
+- done: 46
+- partial: 0
 - missing: 1
