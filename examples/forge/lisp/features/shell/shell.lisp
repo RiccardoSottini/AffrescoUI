@@ -112,7 +112,7 @@
 
 ;;; Cloning a repository
 
-(defstate clone {:url "" :folder "" :busy false})
+(defstate clone {:url ""})
 
 (defcomputed cloneItems
   (if (str/blank? (clone-address))
@@ -134,23 +134,12 @@
     (do (set "state.clone.url" item.url)
         (chooseFolder "workspace" :title (t "dialog.cloneInto") :onError open-folder-failed :onDone clone-into))))
 
-(defn clone-into "The folder chosen: git clones the repository into it, with a toast while it runs." [result]
-  (set "state.toast" {:open true :message (t "toast.cloning" {:url state.clone.url}) :progress 0.3})
-  (set "state.clone" {:url state.clone.url :folder result.name :busy true})
-  (invoke "git.run"
-          :with {:arguments ["clone" "--" state.clone.url "."] :collect true}
-          :onError clone-failed
-          :onDone clone-done))
-
-(defn clone-done "git finished: the folder opened, or why it could not clone." [result]
-  (set "state.clone.busy" false)
-  (if (= result.code 0)
-    (do (open-folder-done {:name state.clone.folder}) (notify "info" (t "notify.cloned" {:folder state.clone.folder})))
-    (notify "error" (t "notify.cloneFailed" {:error (str/trim (or-else result.output ""))}))))
-
-(defn clone-failed "git didn't run: says why." [error]
-  (set "state.clone.busy" false)
-  (notify "error" (t "notify.cloneFailed" {:error error.message})))
+(defn clone-into
+  "The folder chosen, opened: git clones the repository into it in a terminal of its own, where the person sees it run
+and answers it if it asks for a password; the explorer shows the files as they arrive."
+  [result]
+  (open-folder-done result)
+  (task-start {:title (t "terminal.clone") :line (shellLine ["git" "clone" "--" state.clone.url "."])}))
 
 ;;; Documents and tabs
 

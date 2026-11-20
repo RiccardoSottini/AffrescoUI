@@ -19,7 +19,7 @@
 		"nav": { "back": [], "forward": [], "moving": false },
 		"notificationCentre": false,
 		"walkthrough": { "theme": false, "live": false, "keys": false },
-		"clone": { "url": "", "folder": "", "busy": false },
+		"clone": { "url": "" },
 		"languages": { "c": "C++", "cc": "C++", "cpp": "C++", "h": "C++", "hpp": "C++", "json": "JSON", "md": "Markdown",
 			"cmake": "CMake", "py": "Python", "js": "JavaScript", "mjs": "JavaScript", "ts": "TypeScript", "tsx": "TypeScript",
 			"sh": "Shell", "bash": "Shell", "zsh": "Shell" }
@@ -91,20 +91,12 @@
 			             "onDone": [{ "run": "cloneInto", "with": { "name": "{{result.name}}" } }] }] }
 		],
 		"cloneInto": [
-			{ "note": "name: the folder chosen. git clones the repository into it, with a toast while it runs" },
-			{ "set": "state.toast", "to": "{{ {open: true, message: 'Cloning ' + state.clone.url, progress: 0.3} }}" },
-			{ "set": "state.clone", "to": "{{ {url: state.clone.url, folder: name, busy: true} }}" },
-			{ "invoke": "git.run", "with": { "arguments": ["clone", "--", "{{state.clone.url}}", "."], "collect": true },
-			  "onError": [{ "set": "state.clone.busy", "to": false },
-			              { "run": "notify", "with": { "severity": "error", "message": "{{'The repository was not cloned: ' + error.message}}" } }],
-			  "onDone": [{ "set": "state.clone.busy", "to": false },
-			             { "if": "{{result.code == 0}}",
-			               "then": [{ "set": "state.explorer", "to": "{{ {expanded: [], selected: null} }}" },
-			                        { "set": "state.explorerTree", "to": "{{ {entries: [], listed: []} }}" },
-			                        { "set": "state.folder.root", "to": "{{state.clone.folder}}" },
-			                        { "run": "explorerRefresh" }, { "run": "indexFolder" },
-			                        { "run": "notify", "with": { "severity": "info", "message": "{{'Cloned into ' + state.clone.folder}}" } }],
-			               "else": [{ "run": "notify", "with": { "severity": "error", "message": "{{'The repository was not cloned: ' + trim(result.output ?? '')}}" } }] }] }
+			{ "note": "name: the folder chosen, opened. git clones the repository into it in a terminal of its own, where the person sees it run and answers it if it asks for a password; the explorer shows the files as they arrive" },
+			{ "set": "state.explorer", "to": "{{ {expanded: [], selected: null} }}" },
+			{ "set": "state.explorerTree", "to": "{{ {entries: [], listed: []} }}" },
+			{ "set": "state.folder.root", "to": "{{name}}" },
+			{ "run": "explorerRefresh" }, { "run": "indexFolder" },
+			{ "run": "taskStart", "with": { "item": "{{ {title: 'git clone', line: shellLine(['git', 'clone', '--', state.clone.url, '.'])} }}" } }
 		],
 		"welcomeStepTheme": [{ "set": "state.walkthrough.theme", "to": true }, { "run": "pickTheme" }],
 		"welcomeStepLive": [{ "set": "state.walkthrough.live", "to": true }, { "run": "showAgent" }],
