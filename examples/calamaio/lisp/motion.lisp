@@ -101,7 +101,7 @@
   (when computed.text
     (let [here (assoc (point) :win state.sel)
           step (if (= here state.recenter.at) (mod (inc state.recenter.step) 3) 0)]
-      (edit (get ["scrollCaretToCenter" "scrollCaretToTop" "scrollCaretToBottom"] step) :in computed.ed)
+      (edit (get ["recenter" "recenterTop" "recenterBottom"] step) :in computed.ed)
       (set "state.recenter" {:at here :step step}))))
 
 (defcommand scroll-down-command "Shows the previous screenful of text."

@@ -1337,7 +1337,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "scrollCaretToCenter", "scrollCaretToTop" and "scrollCaretToBottom" scroll the caret's row there |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "recenter", "recenterTop" and "recenterBottom" scroll the caret's row to the middle, the top or the bottom |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
