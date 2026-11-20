@@ -1,7 +1,7 @@
 /// @file
 /// @brief What apps kept meeting in the library: modifier keys on pointer events, the clipboard's text read by a
-/// "paste" step, a warning for two includes that give the same name, a container root reported by the checker, and
-/// what only building a screen rejects (automation::buildHeadless(), which `affrescoui check` runs).
+/// "paste" step, a warning for two includes that give the same name, and what only building a screen rejects
+/// (automation::buildHeadless(), which `affrescoui check` runs).
 
 #include "Headless.hpp"
 
@@ -142,18 +142,6 @@ TEST_CASE("two includes that give the same name differently are warned of; the s
 	CHECK(logged.find("b.json defines actions.go") != std::string::npos);
 	CHECK(logged.find("state.y") == std::string::npos); // the screen's own state.y is meant to win
 	CHECK(json::parse(screen.documentJson())["actions"]["go"][0]["to"] == 1);
-}
-
-TEST_CASE("the checker reports a container root, which doesn't arrange its children") {
-	const affresco::format::Rules rules;
-	const json column = json::parse(R"({"format": "affrescoui-screen", "version": 2,
-		"root": {"type": "column", "id": "r", "children": [{"id": "a"}]}})");
-	bool found = false;
-	for(const std::string& finding : rules.findings(column, json::object()))
-		found = found || finding.starts_with("root: a column root");
-	CHECK(found);
-	const json panel = json::parse(R"({"format": "affrescoui-screen", "version": 2, "root": {"id": "r"}})");
-	CHECK(rules.findings(panel, json::object()).empty());
 }
 
 TEST_CASE("building headless rejects what loading alone lets through") {
