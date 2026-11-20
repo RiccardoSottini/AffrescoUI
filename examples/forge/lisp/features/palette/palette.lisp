@@ -15,7 +15,7 @@
 
 (defcomputed commandItems
   (map (fn [it]
-           {:title (+ (if it.category (str it.category ": ") "") it.title)
+           {:title (if (or (empty? it.category) (= it.category it.title)) it.title (str it.category ": " it.title))
             :detail (or-else it.keyLabel "")
             :run it.name})
          (filter :enabled commands)))
@@ -180,6 +180,9 @@
 
 (defn set-number-setting "A number typed for a setting, kept once it reads as one." [key text]
   (when-some [n (number text)] (set-setting key n)))
+
+(defn toggle-setting "A boolean setting turned the other way, from its value now." [key value]
+  (set (str "settings." key) (not (true? value))))
 
 (defn reset-setting "A setting back to its default: the value set is taken away." [key]
   (remove-state (str "settings." key)))

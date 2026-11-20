@@ -110,6 +110,37 @@
 
 (defkey "mod+o" openFolder)
 
+;;; Cloning a repository
+
+(defstate clone {:url ""})
+
+(defcomputed cloneItems
+  (if (str/blank? (clone-address))
+        []
+        [{:title (t "pick.cloneFrom" {:url (clone-address)}) :url (clone-address)}]))
+
+(defn clone-address "The repository's address typed in the palette after 'clone '." []
+  (str/trim (slice (or-else state.quickPick.query "") 6)))
+
+(defcommand cloneRepository "Clone a git repository into a folder you choose, then open it."
+  :title ~(t "command.cloneRepository") :category ~(t "category.file") :icon "git-branch"
+  :description ~(t "command.cloneRepository.about") []
+  (set "state.quickPick.query" "clone ")
+  (set "state.quickPick.open" true))
+
+(defn clone-picked "A repository's address typed in the palette: an empty folder is asked for, to clone it into." [item]
+  (if (or (str/blank? item.url) (str/starts-with? item.url "-") (str/includes? item.url " "))
+    (notify "error" (t "notify.cloneAddress"))
+    (do (set "state.clone.url" item.url)
+        (chooseFolder "workspace" :title (t "dialog.cloneInto") :onError open-folder-failed :onDone clone-into))))
+
+(defn clone-into
+  "The folder chosen, opened: git clones the repository into it in a terminal of its own, where the person sees it run
+and answers it if it asks for a password; the explorer shows the files as they arrive."
+  [result]
+  (open-folder-done result)
+  (task-start {:title (t "terminal.clone") :line (shellLine ["git" "clone" "--" state.clone.url "."])}))
+
 ;;; Documents and tabs
 
 (defstate docs [])
@@ -151,6 +182,36 @@
                        (or-else state.quickPick.recent []))
                0
                5)))
+
+;;; The welcome page's walkthrough and keys
+
+(defstate walkthrough {:theme false :live false :keys false})
+
+(defcomputed welcomeKeys (welcome-keys))
+
+(defn welcome-keys "The keys the welcome page lists, each its command's name, what it does and its key." []
+  (mapv welcome-key-row
+        ["quickOpen" "showCommands" "toggleSidebar" "togglePanel" "splitEditor" "toggleZen" "openSettings"]))
+
+(defn welcome-key-row "A key the welcome page lists: the command's name, what it does, and its key." [name]
+  {:name name :title (t (str "welcome-key." name)) :key (key-label name)})
+
+(defn key-label "The key of a command, by its name, as the keyboard shortcuts page shows it ('' if it has none)."
+  [command-name]
+  (let [command (first (filter #(= (:name %) command-name) commands))]
+    (or-else (:keyLabel command) "")))
+
+(defn welcome-step-theme "The walkthrough's first step: a colour theme to choose." []
+  (set "state.walkthrough.theme" true)
+  (pickTheme))
+
+(defn welcome-step-live "The walkthrough's third step: the Agent view, which changes Forge while it runs." []
+  (set "state.walkthrough.live" true)
+  (showAgent))
+
+(defn welcome-step-keys "The walkthrough's last step: the keyboard shortcuts page." []
+  (set "state.walkthrough.keys" true)
+  (openKeybindings))
 
 ; style: keep, named in examples/forge/lisp/features.scenarios.json, examples/forge/lisp/catalog/todoTree/1.2.0.json
 (defn showTab "Shows a tab in the active group, adding it if it isn't there." [id label]
