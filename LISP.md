@@ -35,17 +35,24 @@ tools. This page is the standard in one place; the full reference is
 (defkey "mod+shift+k" clear-done)
 (defcustom show-count true "Shows how many tasks are left." :type boolean)
 
-(defview task-row "One task: a box to tick, labelled with its title." [task i]
-  `(checkbox#task :checked ~task.done :label ~task.title :onClick ~(handler toggle i)))
+(defview task-row "One task: a box to tick, and its title." [task i]
+  `(row#task :height 24 :gap 8 :alignItems stretch
+     (checkbox#done :width 24 :checked ~task.done :label ~task.title :onChange ~(handler toggle i))
+     (label#title :grow 1 :text ~task.title)))
 
 (defscreen main :window {:title "Tasks"}
-  (column#list :gap 4
-    (textarea#draft :bind state.draft :placeholder ~(t "draft.hint") :onSubmit add-task)
-    ~(repeat [task state.tasks :index i] (task-row task i))
-    (label#left :visible ~settings.show-count :text ~(t "left" {:n computed.left}))))
+  :fonts {:default {:file "Roboto-Regular.ttf" :size 15}}
+  :strings {:default en
+            :en {"draft.hint" "What needs doing?" "left" "{n} left" "command.clear" "Clear finished tasks"}}
+  (panel#app
+    (column#list :fill 16 :gap 4 :alignItems stretch
+      (textarea#draft :height 32 :bind state.draft :placeholder ~(t "draft.hint") :onSubmit add-task)
+      ~(repeat [task state.tasks :index i] (task-row task i))
+      (label#left :height 24 :visible ~settings.show-count :text ~(t "left" {:n computed.left})))))
 ```
 
-`affrescoui run tasks.lisp` prints what it builds: `~task.done` becomes the binding `"{{task.done}}"`, `left` becomes
+With `Roboto-Regular.ttf` beside it (`examples/shared/fonts/` has it), `affrescoui check tasks.lisp` finds no problems
+and `affrescoui run tasks.lisp` prints what it builds: `~task.done` becomes the binding `"{{task.done}}"`, `left` becomes
 `"{{length(filter(state.tasks, !(it.done)))}}"`, and the repeat becomes `"repeat": {"for": "task", "in": "state.tasks", "index": "i"}`.
 It is written in the dialect's own style ([reference/style.md](modules/lisp/reference/style.md)): `:done` as the
 function that reads a task's member, `when-not` and `str/blank?`, a label `(ns tasks)` as the first form.
@@ -116,7 +123,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 
 | Topic | The rule |
 |---|---|
-| Reading | `state.count`, `computed.h`, `data.songs`, `settings.x`, `event.x` read the running app. `item.name` reads a local's member, and `state.rows.0` is an index |
+| Reading | `state.count`, `computed.h`, `data.songs`, `settings.x`, `event.x` read the running app (a pointer event's `event.shift`, `event.alt`, `event.mod`: the modifier keys held). `item.name` reads a local's member, and `state.rows.0` is an index |
 | Changing | Only through steps, each a function: `(set "state.x" 1)`, `(toggle "state.open")`, `(push "state.list" v)`, `(insert "songs" :value v)`, `(remove-state ...)`, `(update-record ...)`, `(run "action")`, `(invoke "files.read" ...)`, `(undo)` |
 | Callbacks | `:then f`, `:onDone [f arg ...]`; the parameters past the given ones come by name (`result`, `error`) |
 | Later | `(after 500 f arg)`, `(debounce 300 f arg)`: a function named by a definition, never a closure |
