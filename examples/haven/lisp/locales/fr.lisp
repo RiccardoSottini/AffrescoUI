@@ -93,6 +93,8 @@
                 :toolbar.assist "Demander"
                 :edit.addCard "Ajouter une carte"
                 :edit.addCardSoon "Toutes les cartes sont déjà sur ce tableau de bord"
+                :edit.addCardTip "Remettre une carte sur le tableau de bord"
+                :edit.hide "Retirer {name} du tableau de bord"
                 :dev.integrations "Connexions"
                 :dev.devices "Appareils"
                 :dev.entities "Commandes"

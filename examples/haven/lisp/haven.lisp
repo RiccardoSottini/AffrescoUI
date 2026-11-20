@@ -425,6 +425,12 @@
   (set "state.editing" false)
   (set "state.cardEdit.open" false))
 
+(defn hide-card "Takes a card off the dashboard, by its key in state.cards; Add card puts it back." [card]
+  (set "state.hiddenCards" (conj state.hiddenCards card)))
+
+(defn add-card "Puts a card taken off the dashboard back, by its key in state.cards." [card]
+  (set "state.hiddenCards" (filter #(not= % card) state.hiddenCards)))
+
 (defn edit-card "Opens the editor of a card, by its key in state.cards." [card]
   (set "state.cardEdit" {:open true :id card :code false :draft (get state.cards card) :text "" :error ""}))
 

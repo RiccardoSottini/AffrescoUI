@@ -93,6 +93,8 @@
                 :toolbar.assist "Ask"
                 :edit.addCard "Add card"
                 :edit.addCardSoon "Every card is already on this dashboard"
+                :edit.addCardTip "Put a card back on the dashboard"
+                :edit.hide "Take {name} off the dashboard"
                 :dev.integrations "Connections"
                 :dev.devices "Devices"
                 :dev.entities "Controls"

@@ -93,6 +93,8 @@
                 :toolbar.assist "Preguntar"
                 :edit.addCard "Añadir tarjeta"
                 :edit.addCardSoon "Todas las tarjetas ya están en este panel"
+                :edit.addCardTip "Volver a poner una tarjeta en el panel"
+                :edit.hide "Quitar {name} del panel"
                 :dev.integrations "Conexiones"
                 :dev.devices "Dispositivos"
                 :dev.entities "Controles"

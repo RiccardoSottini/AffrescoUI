@@ -456,6 +456,25 @@
 			]
 		},
 		{
+			"name": "hide-and-add-cards",
+			"note": "While arranging, a card's eye button takes it off the dashboard; Add card lists the cards taken off and puts one back",
+			"steps": [
+				{ "click": "#dashMore" },
+				{ "click": { "role": "menuitem", "name": "Arrange cards" } },
+				{ "expect": { "node": "#editAddCard", "property": "tooltip", "is": "Every card is already on this dashboard" } },
+				{ "click": "#editHide", "nth": 1 },
+				{ "expect": { "state": "hiddenCards", "is": ["scenes"] } },
+				{ "expect": { "state": "editing", "is": true } },
+				{ "expect": { "state": "cardEdit.open", "is": false } },
+				{ "click": "#editHide", "nth": 3 },
+				{ "expect": { "state": "hiddenCards", "is": ["scenes", "cover"] } },
+				{ "click": "#editAddCard" },
+				{ "click": { "role": "menuitem", "name": "Scenes" } },
+				{ "expect": { "state": "hiddenCards", "is": ["cover"] } },
+				{ "expect": { "state": "addCardOpen", "is": false } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [
