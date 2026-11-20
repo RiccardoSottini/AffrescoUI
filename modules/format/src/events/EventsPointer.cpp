@@ -77,9 +77,10 @@ void Events::released(Panel& panel, Vec2 at) {
 		dropped(ended, at);
 		return; // a drag is not a click
 	}
-	if(!panel.bounds().contains(at)) return;
-
-	bubble(panel, "onRelease", {{"type", "release"}}, &at);
+	// The press's release reaches the panel pressed wherever it is let go, as a capture would; a click only over it
+	const bool inside = panel.bounds().contains(at);
+	bubble(panel, "onRelease", {{"type", "release"}, {"inside", inside}}, &at);
+	if(!inside) return;
 
 	// A toggle or slider keeps its click (like a native control): it changed its value
 	const Record* own = engine_.reconciler.recordOf(&panel);

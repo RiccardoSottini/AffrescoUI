@@ -178,7 +178,8 @@ private:
 	/// @param panel The panel pressed.
 	/// @param at Where.
 	void pressed(Panel& panel, Vec2 at);
-	/// @brief Handles a release of the left button: a drop, or a release and a click (or a double click).
+	/// @brief Handles a release of the left button: a drop, or a release (wherever it is) and, over the panel pressed,
+	/// a click (or a double click).
 	/// @param panel The panel that holds the mouse.
 	/// @param at Where.
 	void released(Panel& panel, Vec2 at);

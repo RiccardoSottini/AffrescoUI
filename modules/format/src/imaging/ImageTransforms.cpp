@@ -1,7 +1,7 @@
 /// @file
 /// @brief format::editing: the "image" step's geometry and merges: canvasSize, imageSize, rotateCanvas, flipCanvas,
-/// transformLayer, alignLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's copy, cut, paste and
-/// clear.
+/// transformLayer, transformSelection, alignLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's
+/// copy, cut, paste and clear.
 ///
 /// A change of the image's size makes a new document and forgets the history, as crop does; a change that keeps the
 /// size (a flip, a half turn, a layer's transform, the merges) is one undoable step.
@@ -66,7 +66,9 @@ class Reader {
 public:
 	/// @brief A reader of an image, which must outlive it.
 	/// @param image The image.
-	explicit Reader(const imaging::Image& image) : image_(image), absent_(absentOf(image.format())) {}
+	/// @param absent Its absent pixel, when not its format's (the selection's is unselected, not white).
+	explicit Reader(const imaging::Image& image, std::optional<Pixel> absent = std::nullopt)
+	    : image_(image), absent_(absent.value_or(absentOf(image.format()))) {}
 
 	/// @brief One pixel.
 	/// @param x Across.
@@ -152,13 +154,16 @@ struct Sampling {
 /// @param format Its format.
 /// @param sampling How it samples the old one.
 /// @param limits Its limits.
+/// @param absentPixel Both images' absent pixel, when not their formats' (the selection's is unselected).
 /// @return It.
 [[nodiscard]] std::shared_ptr<imaging::Image> remapped(const imaging::Image& source, int width, int height,
                                                        imaging::PixelFormat format, const Sampling& sampling,
-                                                       const imaging::Limits& limits) {
+                                                       const imaging::Limits& limits,
+                                                       std::optional<Pixel> absentPixel = std::nullopt) {
 	auto made = std::make_shared<imaging::Image>(width, height, format, limits);
-	Reader reader(source);
-	const Pixel absent = absentOf(format), outside = absentOf(source.format());
+	Reader reader(source, absentPixel);
+	const Pixel absent = absentPixel.value_or(absentOf(format)),
+	            outside = absentPixel.value_or(absentOf(source.format()));
 	const Mapping& mapping = sampling.mapping;
 	const int samples = std::clamp(sampling.samples, 1, mostSamples);
 	std::vector<Pixel> pixels(imaging::tilePixels);
@@ -360,6 +365,38 @@ void flipCanvas(ImageDocument& image, const json& with, Window*) {
 	return std::array{left, top, right, bottom};
 }
 
+/// @brief The sampling that moves, scales, flips and turns an image about a centre, or nothing when it changes nothing.
+/// @param with x and y (pixels), scaleX and scaleY (percent, 100 by default; negative flips), angle (degrees,
+/// clockwise).
+/// @param centreX The centre across.
+/// @param centreY The centre down.
+/// @return The sampling.
+/// @throws DocumentError If a scale is under 1 %.
+[[nodiscard]] std::optional<Sampling> boxSampling(const json& with, double centreX, double centreY) {
+	const auto scaleOf = [&](std::string_view key) {
+		const double scale = std::clamp(numberOf(with, key, 100.0), -mostScale, mostScale);
+		if(std::abs(scale) < leastScale) throw DocumentError("A layer scales by at least 1 %");
+		return scale / 100.0;
+	};
+	const double scaleX = scaleOf("scaleX"), scaleY = scaleOf("scaleY");
+	const double degrees = std::fmod(numberOf(with, "angle", 0.0), 360.0);
+	const double moveX = std::clamp(numberOf(with, "x", 0.0), -farthest, farthest);
+	const double moveY = std::clamp(numberOf(with, "y", 0.0), -farthest, farthest);
+	if(scaleX == 1.0 && scaleY == 1.0 && degrees == 0.0 && moveX == 0.0 && moveY == 0.0) return std::nullopt;
+	// From the new image back to the old: p = C + S⁻¹ R⁻¹ (p' - C - T), R clockwise with y down
+	const double radians = degrees * std::numbers::pi / 180.0, cosine = std::cos(radians), sine = std::sin(radians);
+	const double toX = centreX + moveX, toY = centreY + moveY;
+	Sampling sampling;
+	sampling.mapping = {cosine / scaleX, sine / scaleX,   centreX - (cosine * toX + sine * toY) / scaleX,
+	                    -sine / scaleY,  cosine / scaleY, centreY - (-sine * toX + cosine * toY) / scaleY};
+	const bool quarter = std::fmod(degrees, 90.0) == 0.0;
+	const bool whole = moveX == std::round(moveX) && moveY == std::round(moveY);
+	sampling.smooth = !(quarter && whole && std::abs(scaleX) == 1.0 && std::abs(scaleY) == 1.0);
+	sampling.samples =
+	    static_cast<int>(std::ceil(std::min(1.0 / std::min(std::abs(scaleX), std::abs(scaleY)), double{mostSamples})));
+	return sampling;
+}
+
 /// @brief Moves, scales, flips and turns a pixel layer (with its mask) about the centre of its pixels, as one step.
 /// @param image The image.
 /// @param with transformLayer's arguments.
@@ -372,33 +409,14 @@ void transform(ImageDocument& image, const json& with, const std::string& name) 
 	if(layer.kind != imaging::LayerKind::pixel) throw DocumentError("Transform a pixel layer");
 	if(layer.locks.position || layer.locks.all) throw DocumentError("The layer's position is locked");
 	if(const auto why = document.paintable(layer.pixels)) throw DocumentError(*why);
-	const auto scaleOf = [&](std::string_view key) {
-		const double scale = std::clamp(numberOf(with, key, 100.0), -mostScale, mostScale);
-		if(std::abs(scale) < leastScale) throw DocumentError("A layer scales by at least 1 %");
-		return scale / 100.0;
-	};
-	const double scaleX = scaleOf("scaleX"), scaleY = scaleOf("scaleY");
-	const double degrees = std::fmod(numberOf(with, "angle", 0.0), 360.0);
-	const double moveX = std::clamp(numberOf(with, "x", 0.0), -farthest, farthest);
-	const double moveY = std::clamp(numberOf(with, "y", 0.0), -farthest, farthest);
-	if(scaleX == 1.0 && scaleY == 1.0 && degrees == 0.0 && moveX == 0.0 && moveY == 0.0) return;
 	const auto box = contentBox(*document.image(layer.pixels));
 	const double centreX = box ? ((*box)[0] + (*box)[2]) / 2.0 : document.width() / 2.0;
 	const double centreY = box ? ((*box)[1] + (*box)[3]) / 2.0 : document.height() / 2.0;
-	// From the new image back to the old: p = C + S⁻¹ R⁻¹ (p' - C - T), R clockwise with y down
-	const double radians = degrees * std::numbers::pi / 180.0, cosine = std::cos(radians), sine = std::sin(radians);
-	const double toX = centreX + moveX, toY = centreY + moveY;
-	Sampling sampling;
-	sampling.mapping = {cosine / scaleX, sine / scaleX,   centreX - (cosine * toX + sine * toY) / scaleX,
-	                    -sine / scaleY,  cosine / scaleY, centreY - (-sine * toX + cosine * toY) / scaleY};
-	const bool quarter = std::fmod(degrees, 90.0) == 0.0;
-	const bool whole = moveX == std::round(moveX) && moveY == std::round(moveY);
-	sampling.smooth = !(quarter && whole && std::abs(scaleX) == 1.0 && std::abs(scaleY) == 1.0);
-	sampling.samples =
-	    static_cast<int>(std::ceil(std::min(1.0 / std::min(std::abs(scaleX), std::abs(scaleY)), double{mostSamples})));
+	const std::optional<Sampling> sampling = boxSampling(with, centreX, centreY);
+	if(!sampling) return;
 	const auto remap = [&](std::uint64_t from) {
 		const imaging::Image& old = *document.image(from);
-		return remapped(old, old.width(), old.height(), old.format(), sampling, image.limits);
+		return remapped(old, old.width(), old.height(), old.format(), *sampling, image.limits);
 	};
 	auto pixels = remap(layer.pixels);
 	auto mask = layer.mask != 0 ? remap(layer.mask) : nullptr;
@@ -417,6 +435,28 @@ void transform(ImageDocument& image, const json& with, const std::string& name) 
 void transformLayer(ImageDocument& image, const json& with, Window*) {
 	settle(image);
 	transform(image, with, "Free Transform");
+}
+
+/// @brief transformSelection: moves, scales, flips and turns the selection (not the pixels) about the centre of its
+/// bounds, as one step.
+/// @param image The image.
+/// @param with x and y (pixels), scaleX and scaleY (percent, 100 by default; negative flips), angle (degrees,
+/// clockwise).
+/// @throws DocumentError If there is no selection, or a scale is under 1 %.
+void transformSelection(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	imaging::Document& document = image.canvas->document();
+	if(!document.hasSelection()) throw DocumentError("There is no selection to transform");
+	const std::array<int, 4> bounds = imaging::selectionBounds(document);
+	const std::optional<Sampling> sampling =
+	    boxSampling(with, bounds[0] + bounds[2] / 2.0, bounds[1] + bounds[3] / 2.0);
+	if(!sampling) return;
+	const imaging::Image& old = document.selection();
+	const auto moved = remapped(old, old.width(), old.height(), old.format(), *sampling, image.limits, Pixel{});
+	imaging::Coverage coverage;
+	for(const imaging::TileKey& key : moved->writtenTiles())
+		if(auto tile = moved->tile(key)) coverage.emplace(std::pair{key.column, key.row}, std::move(tile));
+	imaging::select(document, "Transform Selection", coverage, imaging::SelectionMode::replace);
 }
 
 /// @brief alignLayer: moves a pixel layer so that the box around its pixels lines up with an edge or the middle of
@@ -814,6 +854,10 @@ std::vector<ImageOperation> transformOperations() {
 		 {"id", "x", "y", "scaleX", "scaleY", "angle"},
 		 "Moves, scales, flips and turns a pixel layer about its centre.",
 		 transformLayer},
+	    {"transformSelection",
+		 {"x", "y", "scaleX", "scaleY", "angle"},
+		 "Moves, scales, flips and turns the selection about the centre of its bounds.",
+		 transformSelection},
 	    {"alignLayer",
 		 {"id", "edge"},
 		 "Lines a pixel layer up with an edge or the middle of the selection, or of the image.",
