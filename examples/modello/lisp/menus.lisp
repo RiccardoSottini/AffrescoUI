@@ -102,6 +102,8 @@
    :snap {:submenu snap :title ~(t "menu.snap") :group "1_transform" :order 2}
    :duplicate {:run duplicate :group "2_edit" :order 1}
    :delete {:run deleteSelected :group "2_edit" :order 2}
+   :parent {:run parentToActive :group "2_edit" :order 3}
+   :clearParent {:run clearParent :group "2_edit" :order 4}
    :keyframe {:run insertKeyframe :group "3_anim"}
    :show {:submenu objectShowHide :title ~(t "menu.showHide") :group "4_show"}})
 
@@ -138,6 +140,8 @@
    :duplicate {:run duplicate :group "3_edit" :order 1}
    :hide {:run hideSelected :group "3_edit" :order 2}
    :collection {:run moveToCollectionMenu :group "3_edit" :order 3}
+   :parent {:run parentToActive :group "3_edit" :order 4}
+   :clearParent {:run clearParent :group "3_edit" :order 5}
    :keyframe {:run insertKeyframe :group "4_anim"}
    :delete {:run deleteSelected :group "5_delete"}})
 

@@ -38,7 +38,7 @@
    {:tab "collection" :key "restrictions" :title (t "panel.restrictions") :words "selectable visible render" :needs ""}
    {:tab "object" :key "transform" :title (t "transform.title") :words "location rotation scale" :needs ""}
    {:tab "object" :key "visibility" :title (t "panel.visibility") :words "selectable show viewports renders" :needs ""}
-   {:tab "object" :key "relations" :title (t "panel.relations") :words "parent" :needs (t "panel.relations.needs")}
+   {:tab "object" :key "relations" :title (t "panel.relations") :words "parent" :needs ""}
    {:tab "object" :key "collections" :title (t "panel.collections") :words "link" :needs (t "panel.collections.needs")}
    {:tab "object" :key "delta" :title (t "panel.delta") :words "delta" :needs (t "panel.delta.needs")}
    {:tab "object" :key "instancing" :title (t "panel.instancing") :words "" :needs (t "panel.instancing.needs")}
@@ -158,6 +158,7 @@
      ~(object-name)
      (node :when ~(contains computed.propShown "transform") :use transformPanel)
      ~(visibility-panel)
+     ~(relations-panel)
      ~(active-tool-panel)
      ~(color-management-panel)
      ~(frame-range-panel)

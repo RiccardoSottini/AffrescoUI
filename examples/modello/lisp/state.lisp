@@ -180,7 +180,8 @@
    :surfaceWorld true
    :restrictions true
    :dataPanel true
-   :surfaceMaterial true}
+   :surfaceMaterial true
+   :relations true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")

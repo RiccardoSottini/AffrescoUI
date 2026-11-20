@@ -176,6 +176,9 @@
   :category ~(t "category.object") :icon "trash-2" :enablement ~(pos? (count state.view.selection)) []
   (dismiss)
   (snapshot)
+  (doseq [n state.scene.nodes]
+    (when (and (not (selected? n)) (contains state.view.selection (:parent n)))
+      (reparent (:id n) nil)))
   (set "state.scene.nodes" (remove selected? state.scene.nodes))
   (set "state.view.selection" [])
   (set "state.active" nil)
