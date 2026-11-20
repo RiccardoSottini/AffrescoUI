@@ -56,6 +56,20 @@ void built(Screen screen, std::vector<Problem>& problems) {
 	for(std::string& error : errors) problems.push_back({"format", "", std::move(error)});
 }
 
+/// @brief Reports a root typed as a container: the root is the window's own panel whatever its type, so a column's
+/// arrangement silently wouldn't happen.
+/// @param document The document, as loaded.
+/// @param problems Receives the finding, if there is one.
+void containerRoot(const json& document, std::vector<Problem>& problems) {
+	const auto root = document.find("root");
+	if(root == document.end() || !root->is_object() || !root->contains("type") || !(*root)["type"].is_string()) return;
+	const std::string& type = (*root)["type"].get_ref<const std::string&>();
+	if(type == "row" || type == "column" || type == "stack" || type == "grid")
+		problems.push_back({"checker", "root",
+		                    "a " + type + " root doesn't arrange its children: the root is a panel that always fills " +
+		                        "the window; put the " + type + " inside it, with \"fill\": true"});
+}
+
 /// @brief Loads a screen as the library does, keeping its log quiet: the checker's warnings on load are reported by
 /// the check itself.
 /// @param text The file.
@@ -109,6 +123,7 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	for(std::string& finding :
 	    rules.findings(checked, loaded ? loaded->second : document.value("state", json::object())))
 		problems.push_back({"checker", "", std::move(finding)});
+	containerRoot(checked, problems);
 	return problems;
 }
 
@@ -147,6 +162,7 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 		const json document = json::parse(screen.documentJson());
 		for(std::string& finding : format::Rules().findings(document, json::parse(screen.stateJson())))
 			problems.push_back({"checker", app.entry, std::move(finding)});
+		containerRoot(document, problems);
 		for(const std::string& key : format::undeclaredCapabilities(app, document))
 			problems.push_back({"capabilities", app.entry,
 			                    "the screen uses " + key + ", which app.json doesn't declare: it is never granted"});

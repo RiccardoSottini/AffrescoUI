@@ -123,6 +123,13 @@ public:
 	void setJustify(bool justify);
 	/// @brief Whether wrapped lines are justified (setJustify()).
 	[[nodiscard]] bool justify() const noexcept { return justify_; }
+	/// @brief Sets extra room between the characters of plain text on one line (headings, small capitals), as CSS's
+	/// letter-spacing: after each character but the last, counted in the alignment and when fitted to the text.
+	/// Wrapped text and rich text (runs) keep the font's own spacing.
+	/// @param pixels The room, in pixels; negative tightens; 0 (the default) is the font's.
+	void setLetterSpacing(float pixels);
+	/// @brief The extra room between characters, in pixels (setLetterSpacing()).
+	[[nodiscard]] float letterSpacing() const noexcept { return letterSpacing_; }
 
 	/// @brief Sizes the label to its text plus padding, instead of its width and height.
 	/// @param fit true to fit the text.
@@ -160,6 +167,13 @@ private:
 	/// @param line The line, without the spaces it ends with.
 	/// @param top The line's top.
 	void paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
+	/// @brief Whether plain text is drawn with letterSpacing(): one line of it, no runs.
+	[[nodiscard]] bool spaced() const noexcept;
+	/// @brief A line's width with letterSpacing() when spaced(), else the font's.
+	/// @param font The font.
+	/// @param line The line.
+	/// @return Its width, in pixels.
+	[[nodiscard]] float lineWidth(const Font& font, std::u32string_view line) const;
 	/// @brief Puts the icon before the text in shown_, if the text, the icon or the font changed.
 	void updateShown();
 	/// @brief Draws the runs.
@@ -207,6 +221,7 @@ private:
 	Align vertical_ = Align::Start;    ///< Vertical alignment.
 	bool wrap_ = false;                ///< See setWrap().
 	bool justify_ = false;             ///< See setJustify().
+	float letterSpacing_ = 0.0f;       ///< See setLetterSpacing().
 	bool fitToText_ = false;           ///< See setFitToText().
 	float fitMaxWidth_ = std::numeric_limits<float>::infinity(); ///< See setFitToText().
 

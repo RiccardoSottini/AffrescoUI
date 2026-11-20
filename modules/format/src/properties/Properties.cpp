@@ -339,6 +339,7 @@ void Properties::resetWidget(Panel& panel, const Record& record) {
 		label->setPadding(0.0f);
 		label->setAlignment(Align::Start, Align::Start);
 		label->setJustify(false);
+		label->setLetterSpacing(0.0f);
 		label->setWrap(false);
 		label->setFitToText(false);
 	}

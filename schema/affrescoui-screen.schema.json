@@ -2218,6 +2218,18 @@
 					"selectionColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"letterSpacing": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": -16,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"bind": {
 						"type": "string",
 						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
