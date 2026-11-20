@@ -62,13 +62,13 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
 | Arrange | Group and ungroup | missing | done | group-and-ungroup (Arrange, the context menu, Ctrl+G and Ctrl+Shift+G; a click on one member selects the group) |
 | Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
-| Arrange | Rotate (handle, 90 degrees) and flip | partial | partial | format-size-and-rotation |
+| Arrange | Rotate (handle, 90 degrees) and flip | partial | done | format-size-and-rotation, group-and-ungroup (Arrange: rotate 90° either way, flip either way; the canvas's handle turns one object) |
 | Arrange | Selection pane (names, show and hide) | missing | partial | selection-pane (Home > Select > Selection Pane; the names are given, not renamed) |
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
-| Content | Insert picture | partial | missing | |
+| Content | Insert picture | partial | done | insert-a-picture (a PNG or JPEG, at most 640 by 400 in its proportions, kept in the deck so the saved file carries it) |
 | Content | Crop a picture | missing | missing | |
 | Content | Tables | missing | done | insert-a-table (Insert > Table's size grid; a double click edits a cell, Tab and Shift+Tab move, Tab in the last cell adds a row) |
-| Content | Table styles | missing | missing | |
+| Content | Table styles | missing | done | insert-a-table (an accent of the theme for the selected table, under Insert > Table) |
 | Content | Charts (column, bar, line, pie) | missing | missing | |
 | Content | Icons | missing | done | insert-tab |
 | Content | Links (to a slide of the deck, to a web address) | missing | partial | link-to-a-slide (to a slide, followed by a click in the show; no web addresses) |
@@ -149,7 +149,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 
 | Priority | Row or control | What it needs |
 |---|---|---|
-| P1 | Content: insert picture (Insert > Pictures) | Library: `openFile` of an image into an asset the slide draws and the saved deck carries; then JSON for an object of kind `picture` |
 | P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: justified text | Library: justified wrapping in labels |
@@ -161,7 +160,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P2 | Format pane: size and position (scale in percent, lock the proportions) | JSON: scale fields and a lock that resizing honours |
 | P2 | Format pane: text box options (margins, wrap) | JSON: margins and wrap in the pane, and the slide's text layout honouring them |
 | P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
-| P2 | Arrange: a rotate handle, and flip | JSON: the handle on the canvas; library: mirrored drawing of path nodes |
 | P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
 | P2 | Content: charts (Insert > Chart) | JSON: a chart object drawn as shapes from a small data table |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
@@ -182,7 +180,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
 | P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
 | P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
-| P3 | Content: table styles | After tables; JSON |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
 | P3 | Design: theme colours of one's own | JSON: a hex field for each of the ten slots |

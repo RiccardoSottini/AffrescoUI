@@ -12,6 +12,8 @@
                 :table.size "Tabla de {rows} × {cols}"
                 :table.insertTip "Inserta una tabla: elige su tamaño en la cuadrícula"
                 :table.cell "Fila {row}, columna {col}"
+                :table.styles "Estilos de tabla"
+                :table.style "Énfasis {n}"
                 :picture.name "Imagen"
                 :picture.choose "Insertar una imagen"
                 :picture.insertTip "Inserta una imagen PNG o JPEG desde un archivo"

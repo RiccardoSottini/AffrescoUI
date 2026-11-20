@@ -12,6 +12,8 @@
                 :table.size "Tableau {rows} × {cols}"
                 :table.insertTip "Insérer un tableau : choisissez sa taille dans la grille"
                 :table.cell "Ligne {row}, colonne {col}"
+                :table.styles "Styles de tableau"
+                :table.style "Accentuation {n}"
                 :picture.name "Image"
                 :picture.choose "Insérer une image"
                 :picture.insertTip "Insérer une image PNG ou JPEG depuis un fichier"

@@ -24,10 +24,15 @@
           :c (inc (mod k 8))})
        (range 48)))
 
-(defcomponent tableGrid "Insert > Table: a grid of sizes; the pointer picks one, a click puts that table on the slide."
+(defcomputed tableSelected "Whether a table is among the selected objects, so the table grid offers its styles."
+  (some #(= (:kind %) "table") computed.selected))
+
+(defcomponent tableGrid
+  "Insert > Table: a grid of sizes; the pointer picks one, a click puts that table on the slide. With a table selected,
+  its styles too: a swatch for each accent of the theme."
   {}
   `(column#table-grid :width 196
-     :height 182
+     :height ~(if computed.tableSelected 236 182)
      :gap 6
      :radius 10
      :color @card
@@ -60,7 +65,27 @@
             :borderWidth 1
             :borderColor ~(if on "@brand" "@rbFieldLine")
             :onHover ~(handler pick-table-size z.r z.c)
-            :onClick ~(handler insert-table z.r z.c))))))
+            :onClick ~(handler insert-table z.r z.c))))
+     (label#table-styles-title :when ~computed.tableSelected
+       :height 18
+       :anchors {:left 10 :right 10}
+       :textColor @rbInk
+       :runs [{:text ~(t "table.styles") :size 12 :bold true}])
+     (row#table-styles :when ~computed.tableSelected :height 22 :gap 6 :anchors {:left 10 :right 10} :color transparent
+       ~(repeat [tint ["accent1" "accent2" "accent3" "accent4" "accent5" "accent6"]]
+         `(column :id ~(str "table-style-" tint)
+            :width 22
+            :height 22
+            :radius 3
+            :cursor hand
+            :role menuitem
+            :label ~(t "table.style" {:n (slice tint 6)})
+            :color ~(get computed.palette (str tint ".1"))
+            :borderWidth 1
+            :borderColor ~(get computed.palette tint)
+            :hover {:borderColor @brand}
+            :onClick ~(handler set-table-tint tint)
+            (node :id ~(str "table-style-" tint "-head") :height 7 :color ~(get computed.palette tint)))))))
 
 (defcomponent slideTable
   "A table object's cells, in a box `w` by `h`: the header row in its tint, the rows banded; while a cell is edited, an

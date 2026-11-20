@@ -273,7 +273,10 @@
 				{ "expect": { "state": "cell", "is": [3, 0] } },
 				{ "key": "escape" },
 				{ "expect": { "state": "editing", "is": null } },
-				{ "expect": { "node": "#o40-c0-0-t", "text": "Phase" } }
+				{ "expect": { "node": "#o40-c0-0-t", "text": "Phase" } },
+				{ "click": "#b-ins-table" },
+				{ "click": "#table-style-accent3" },
+				{ "expect": { "state": "deck.slides[3].objects[7].tint", "is": "accent3" } }
 			]
 		},
 		{

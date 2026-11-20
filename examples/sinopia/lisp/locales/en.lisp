@@ -12,6 +12,8 @@
                 :table.size "{rows} × {cols} Table"
                 :table.insertTip "Insert a table: pick its size in the grid"
                 :table.cell "Row {row}, column {col}"
+                :table.styles "Table Styles"
+                :table.style "Accent {n}"
                 :picture.name "Picture"
                 :picture.choose "Insert a picture"
                 :picture.insertTip "Insert a PNG or JPEG picture from a file"
