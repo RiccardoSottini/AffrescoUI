@@ -277,6 +277,10 @@ Coverage strokeCoverage(int width, int height, std::span<const Point> points, bo
 		throw DocumentError("imaging: a stroke of " + std::to_string(points.size()) + " points, beyond the limit of " +
 		                    std::to_string(limits.polygonPoints));
 	const float half = strokeWidth / 2.0f;
+	// Each point gets a round join: bound the pixels those discs cover, so a document can't stall the drawing
+	if(constexpr double maxJoinPixels = 4e8;
+	   static_cast<double>(points.size()) * (2.0 * half + 1.0) * (2.0 * half + 1.0) > maxJoinPixels)
+		throw DocumentError("imaging: the stroke is too large to draw (its points times its width)");
 	const std::size_t segments = closed ? points.size() : points.size() - 1;
 	for(std::size_t index = 0; index < segments; ++index) {
 		const Point from = points[index], to = points[(index + 1) % points.size()];

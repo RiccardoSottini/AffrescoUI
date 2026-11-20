@@ -240,8 +240,9 @@ void selectPath(ImageDocument& image, const json& with, Window*) {
 	const int index = wholeOf(with, "index", -1);
 	const int count = static_cast<int>(document.structure().paths.size());
 	settle(image);
-	document.changeStructure("Select Path",
-	                         [&](im::Structure& structure) { structure.activePath = index < count ? index : -1; });
+	document.changeStructure("Select Path", [&](im::Structure& structure) {
+		structure.activePath = index >= 0 && index < count ? index : -1;
+	});
 }
 
 /// @brief deletePath: deletes a path.

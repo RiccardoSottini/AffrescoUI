@@ -133,11 +133,6 @@ void mergeList(json& list, const json& part) {
 	list = std::move(merged);
 }
 
-/// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
-/// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
-/// merge one level deeper, menu by menu, so several files can add items to the same menu; "persist" lists join.
-/// @param document The screen.
-/// @param part The included file, its own includes already merged.
 /// @brief Warns of each entry an included file gives that an earlier included file already gave differently: two
 /// parts defining the same name, where the earlier one silently wins. The including file's own entries are meant to
 /// win, and aren't warned of; nor are "strings" and "menus", which merge deeper.
@@ -161,6 +156,11 @@ void warnOfTwiceDefined(const json& document, const json& own, const json& part,
 	}
 }
 
+/// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
+/// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
+/// merge one level deeper, menu by menu, so several files can add items to the same menu; "persist" lists join.
+/// @param document The screen.
+/// @param part The included file, its own includes already merged.
 void mergeInclude(json& document, const json& part) {
 	static constexpr std::array<std::string_view, 5> screensOwn = {"$schema", "format", "version", "root", "window"};
 	for(const auto& [key, value] : part.items()) {

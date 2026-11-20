@@ -24,6 +24,9 @@ bool paste(const Running& s) {
 	    s.step.contains("into") ? std::optional<json::json_pointer>(s.target("into")) : std::nullopt;
 	s.steps.checkControl(s.where); // a revision can't read the person's clipboard for it
 	Engine& engine = s.steps.engine();
+	// An unaccepted proposal could wire a button to paste into state its author reads: no inbound clipboard then
+	if(engine.versions.previewing())
+		fail(s.where + ".paste", "doesn't read the clipboard while a proposal is previewed");
 	if(!engine.window) return true;
 	if(!engine.window->routingOwnPress())
 		fail(s.where + ".paste", "reads the clipboard only on the person's own input");
