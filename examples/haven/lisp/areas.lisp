@@ -39,7 +39,7 @@
      :role button
      :label ~room.name
      :onClick ~(handler open-room (str "r" r))
-     (image :file ~room.image :fit cover :radius 12 :anchors {:left 0 :right 0 :top 0 :bottom 56})
+     (image :file ~room.image :fit cover :radius 12 :color ~room.tint :anchors {:left 0 :right 0 :top 0 :bottom 56})
      (label :text ~room.name
        :font heading
        :textColor @text
