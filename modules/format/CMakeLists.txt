@@ -214,6 +214,7 @@ target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
 	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
 	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageTransforms.cpp
+	src/imaging/ImageVectors.cpp
 	src/imaging/ImageView.cpp src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
