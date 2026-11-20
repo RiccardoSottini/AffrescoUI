@@ -45,7 +45,7 @@ std::optional<bool> runAudioStep(const Running& s) {
 	const std::string operation = string(s.value("audio"), where + ".audio");
 	if(!std::ranges::contains(audioOperations(), operation))
 		fail(where + ".audio", "unknown audio operation \"" + operation +
-		                           "\" (expected play, pause, toggle, stop, seek, volume, pan, rate, loop or master)");
+		                           "\" (expected play, pause, toggle, stop, seek, volume, pan, rate, loop, eq or master)");
 	std::string name;
 	if(operation != "master") {
 		const json& document = engine.versions.document();
@@ -71,7 +71,7 @@ std::optional<bool> runAudioStep(const Running& s) {
 
 const std::vector<std::string>& audioOperations() {
 	static const std::vector<std::string> operations = {"play", "pause", "toggle", "stop", "seek",
-	                                                    "volume", "pan", "rate", "loop", "master"};
+	                                                    "volume", "pan", "rate", "loop", "eq", "master"};
 	return operations;
 }
 

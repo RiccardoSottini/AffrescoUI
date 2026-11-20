@@ -1593,6 +1593,7 @@ last 1,024 samples mixed, all 0 unless it plays; `"updates": 50` makes it follow
 | `seek` | `to` (seconds) | Moves it (a file, bytes or a tone; not a live stream). |
 | `volume` | `to` (0 to 4), `ms` | Sets its gain, over `ms` if given. |
 | `pan`, `rate`, `loop` | `to` | Sets its balance, its playback rate, whether it loops. |
+| `eq` | `to` | Sets its equaliser: a list of up to 16 bands `{ "frequency": 60, "gain": 6, "q": 1 }` (20 Hz to 20 kHz, -24 to 24 dB, `q` 0.1 to 10, 1 by default), peaking filters on what it plays; `[]` takes it off. |
 | `master` | `to` (0 to 4) | Sets the gain of every sound (no `of`). |
 
 `of` names the sound, and may be left out when the screen declares only one; the operation may be computed

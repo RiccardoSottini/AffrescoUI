@@ -16,7 +16,7 @@ and miniaudio 0.11.25: CoreAudio, WASAPI, PulseAudio or ALSA, and its WAV, FLAC 
 | Header | Offers |
 |---|---|
 | `Engine.hpp` | `Engine` (`createVoice`, `play`, `setMasterVolume`, `levels`, `stopAll`, `render`), `EngineOptions` (`output`, rate, channels, period, `executor`, `limits`), `Output` (`System`, `Null`, `Manual`) |
-| `Voice.hpp` | `Voice` (`play`, `pause`, `stop`, `seek`, `setLoop`, `setVolume`, `fade`, `setPan`, `setRate`; `state`, `position`, `duration`, `levels`, `underruns`, `error`), `VoiceOptions`, `Event` and `EventType` (`Started`, `Ended`, `Underrun`, `Error`, `Position`), `State` |
+| `Voice.hpp` | `Voice` (`play`, `pause`, `stop`, `seek`, `setLoop`, `setVolume`, `fade`, `setPan`, `setRate`, `setEqualizer`; `state`, `position`, `duration`, `levels`, `underruns`, `error`), `VoiceOptions`, `EqualizerBand`, `Event` and `EventType` (`Started`, `Ended`, `Underrun`, `Error`, `Position`), `State` |
 | `Source.hpp` | `Source` (`file`, `memory`, `generator`, `tone`), `PcmStream` (float or 16-bit frames, `push`, `finish`), `EncodedStream` (bytes, `push`, `finish`), `Generator`, `Format`, `Limits`, `Levels`, `Encoding` and `encodingOf` |
 
 ```cpp
@@ -36,7 +36,7 @@ speech->push(frames); // from the thread that receives them; finish() at the end
   rate steps through its source by linear interpolation: at rate 1 the source's frames come out exactly.
 - **Gains are the documented ones.** A volume from 0 to 4 multiplies; a fade changes it linearly, frame by frame; the
   balance turns the side away from it down (`pan` 1: left 0, right 1; the centre leaves both at 1), on the first two
-  channels; the master volume (0 to 4) multiplies the mix. Every sample a source gives is made finite before it is
+  channels; an equaliser (`setEqualizer`, up to 16 peaking biquads) shapes what a voice plays before its gain; the master volume (0 to 4) multiplies the mix. Every sample a source gives is made finite before it is
   mixed (NaN is silence, anything beyond ±16 is clamped), so the mix is finite whatever a file holds.
 - **Everything is bounded** (`Limits`, and the streams' capacities): a file at most 1 GiB, bytes in memory 256 MiB, a
   file or bytes playing at most a day (a sound whose length is longer is refused; one whose length isn't known, or a
