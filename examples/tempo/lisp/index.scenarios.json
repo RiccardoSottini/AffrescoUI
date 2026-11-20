@@ -118,7 +118,7 @@
 				{ "expect": { "state": "playingList", "is": -1 } },
 				{ "expect": { "state": "playingTrack", "is": 2 } },
 				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers  ·  Kerning Club" } },
-				{ "expect": { "node": "#queueFrom", "text": "from All songs" } },
+				{ "expect": { "node": "#queueFromName", "text": "All songs" } },
 				{ "key": "right" },
 				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers  ·  Pixel Choir" } }
 			]
@@ -208,8 +208,8 @@
 				{ "expect": { "state": "page", "is": "search" } },
 				{ "wait": 100 },
 				{ "expect": { "node": "#searchField", "property": "focused", "is": true } },
-				{ "type": "rivers" },
-				{ "expect": { "state": "search", "is": "rivers" } },
+				{ "type": "golden rivers" },
+				{ "expect": { "state": "search", "is": "golden rivers" } },
 				{ "expect": { "node": "#searchTable", "exists": true } },
 				{ "key": "down" },
 				{ "wait": 50 },
@@ -217,6 +217,22 @@
 				{ "key": "down", "note": "picks the first result" },
 				{ "key": "enter" },
 				{ "expect": { "state": "playingList", "is": -1 } }
+			]
+		},
+		{
+			"name": "search-finds-playlist-songs",
+			"note": "The search finds the playlists' songs too, before the library's: Enter on the first plays it from its playlist",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "wait": 100 },
+				{ "type": "glyph atlas" },
+				{ "expect": { "node": "#searchTable", "exists": true } },
+				{ "key": "down" },
+				{ "wait": 50 },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "state": "playingList", "is": 0 } },
+				{ "expect": { "state": "playingTrack", "is": 3 } }
 			]
 		},
 		{
@@ -596,7 +612,23 @@
 				{ "command": "songLike", "with": { "title": "Golden Rivers", "artist": "Nora Vale" }, "as": "agent" },
 				{ "expect": { "state": "liked", "is": ["-1:4"] } },
 				{ "expect": { "state": "page", "is": "search" } },
-				{ "expect": { "state": "search", "is": "Golden Rivers" } }
+				{ "expect": { "state": "search", "is": "Golden Rivers" } },
+				{ "command": "songPlay", "with": { "title": "Glyph Atlas" }, "as": "agent", "note": "a playlist's song, by its title" },
+				{ "expect": { "state": "playingList", "is": 0 } },
+				{ "expect": { "state": "playingTrack", "is": 3 } }
+			]
+		},
+		{
+			"name": "an-agent-shapes-the-sound",
+			"note": "An agent sets the equaliser's preset and the crossfade by commands; no run rule allows them, so the person is asked first",
+			"steps": [
+				{ "command": "soundPreset", "with": { "preset": "vocal" }, "verdict": "ask" },
+				{ "command": "soundPreset", "with": { "preset": "vocal" }, "as": "studio" },
+				{ "expect": { "state": "eq.points[2][1]", "is": 0.7 } },
+				{ "expect": { "state": "eqOn", "is": true } },
+				{ "command": "soundCrossfade", "with": { "seconds": 4 }, "as": "studio" },
+				{ "key": "mod+6" },
+				{ "expect": { "node": "#crossfadeValue", "text": "4 seconds" } }
 			]
 		}
 	]

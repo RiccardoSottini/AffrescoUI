@@ -24,8 +24,15 @@
        :sound (get-in computed.library [state.playingTrack :sound])}
       (get computed.playing.tracks state.playingTrack)))
 
-(defcomputed sound "The sound the song playing plays: its own, or the beat."
-  (or-else computed.track.sound "beat"))
+(defcomputed sound "The sound the song playing plays: its own, or the beat on the deck playing."
+  (or-else computed.track.sound (if (= state.soundOn "beat2") "beat2" "beat")))
+
+(defcomputed eqBands "The equaliser's bands as the sound takes them: each band's frequency and gain (flat when off)."
+  (map (fn [band]
+         {:frequency band.frequency
+          :gain (if state.eqOn (-> (curve state.eq band.at) (- 0.5) (* 24)) 0)
+          :q 1.1})
+       state.bands))
 
 (defcomputed loudness "How loud the sound plays, from 0 to 1."
   (if state.muted 0 (/ state.volume 100)))

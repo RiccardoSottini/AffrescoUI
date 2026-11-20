@@ -25,7 +25,11 @@
                (range 5)))
 
 (defcomputed spectrum "The spectrum of the sound playing, as its bands."
-  (or-else (if (= state.soundOn "beat") state.beat.spectrum (get-in state.sounds [state.soundOn :spectrum])) []))
+  (or-else (case state.soundOn
+             "beat" state.beat.spectrum
+             "beat2" state.beat2.spectrum
+             (get-in state.sounds [state.soundOn :spectrum]))
+           []))
 
 (defcomputed barHeights "The visualiser's 32 bars' heights: the spectrum, through the crossfade and the equaliser."
   (map-indexed (fn [index it]
@@ -53,7 +57,7 @@
   `(node :dir auto :color transparent
      (image#nowCover
        :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 8
        :anchors {:left 32 :top 32}
        :width 160
@@ -126,7 +130,7 @@
   `(node :dir auto :color transparent :scroll vertical
      (node#soundTitle :style pageTitle :text ~(t "menu.sound"))
      ~@(equaliser)
-     (grid#bands :anchors {:left 32 :right 32 :top 284} :height 20 :columns 5
+     (grid#bands :anchors {:left 37 :right 37 :top 284} :height 20 :columns ["1fr" "2fr" "2fr" "2fr" "1fr"] :gap 0
        ~(repeat [band state.bands] (band-gain band)))
      (stack#presets
        :direction row
@@ -136,7 +140,7 @@
        :role toolbar
        :label ~(t "sound.presets")
        ~(repeat [preset (keys state.presets)]
-          `(node#preset :style chip :text ~(t (str "preset." preset)) :onClick ~(handler set-preset preset))))
+          (preset-choice preset)))
      ~@(crossfade)
      (node#appearanceCaption :style caption :text ~(t "sound.appearance") :anchors {:left 32 :top 428})
      (stack#themes
@@ -188,16 +192,17 @@
       :bind state.eq
       :color @surface
       :radius 8
-      :accentColor @accent)])
+      :textColor @accent
+      :accentColor @text)])
 
 (defmacro gain [band]
   ;; A macro, not a function: what it writes stays an expression.
   "A band's gain in decibels, from -12 to 12, as the curve gives it."
   `(-> (curve state.eq (:at ~band)) (- 0.5) (* 24) round))
 
-(defview band-gain "A band of the equaliser and its gain." [band]
+(defview band-gain "A band of the equaliser and its gain, under its point on the curve (the ends' labels flush with the curve's ends)." [band]
   `(label#band :font small
-     :align center
+     :align ~(case band.at 0 "start center" 1 "end center" "center")
      :textColor ~(if state.eqOn "@text" "@muted")
      :height 20
      :text ~(t "sound.band" {:label band.label :gain (str (if (pos? (gain band)) "+" "") (gain band))})))
@@ -220,6 +225,14 @@
       :textColor @text
       :anchors {:left 288 :top 386}
       :fitText true)])
+
+(defview preset-choice "A preset of the equaliser, marked while the curve is it." [preset]
+  `(node#preset :style chip
+     :text ~(t (str "preset." preset))
+     :role radio
+     :checked ~(= state.eq.points (get state.presets preset))
+     :color ~(if (= state.eq.points (get state.presets preset)) "@accentSoft" "@button")
+     :onClick ~(handler set-preset preset)))
 
 (defview theme-choice "A theme to choose, dark or light." [theme]
   `(node#themeChoice :style chip

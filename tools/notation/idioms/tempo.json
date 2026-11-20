@@ -3,7 +3,7 @@
 		"tempo/lisp"
 	],
 	"allowed": {
-		"four-nested-calls": 24
+		"four-nested-calls": 23
 	},
 	"kept": {
 		"camel-case-name": 10,

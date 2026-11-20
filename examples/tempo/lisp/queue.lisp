@@ -10,12 +10,17 @@
      (node#label-now-playing :style caption :text ~(t "queue.now") :anchors {:left 20 :top 22})
      (image#queueCover
        :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 12
        :anchors {:left 20 :top 48}
        :width 96
        :height 96)
-     (node#queueFrom :style caption :text ~(t "queue.from" {:name computed.playingName}) :anchors {:left 132 :top 54})
+     (node#queueFrom :style caption :text ~(t "queue.from") :anchors {:left 132 :top 66})
+     (label#queueFromName
+       :text ~computed.playingName
+       :textColor @text
+       :anchors {:left 132 :right 20 :top 84}
+       :height 20)
      (label#queueTitle
        :text ~computed.track.title
        :font heading
