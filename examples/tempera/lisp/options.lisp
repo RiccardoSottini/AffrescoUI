@@ -49,7 +49,7 @@
 ;;; Type, shapes and paths
 
 (defview type-options "The Type tool's options: size, bold and italic, alignment, and the colour (the foreground)." []
-  `(row#options-type :when ~(= state.doc.gesture "text") :alignItems center :gap 8 :height 30
+  `(row#options-type :when ~(= state.doc.gesture "text") :grow 100 :alignItems center :gap 8 :height 30
      (node#option-type-size :use tField
        :with {:title ~(t "option.typeSize") :key size :value ~state.doc.vector.size :low 4 :high 1000 :unit " px"
               :width 52 :pop false :run set-vector})
@@ -74,7 +74,7 @@
      (label :style dim :text ~(t "option.typeHint") :fitText true)))
 
 (defview shape-options "A shape tool's options: the fill (the foreground), the stroke, its width, and the corners." []
-  `(row#options-shape :when ~(= state.doc.gesture "shape") :alignItems center :gap 8 :height 30
+  `(row#options-shape :when ~(= state.doc.gesture "shape") :grow 100 :alignItems center :gap 8 :height 30
      (node :style dim :text ~(str (t "option.shapeFill") ":"))
      (node#option-shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
        :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
@@ -96,15 +96,19 @@
               :width 36 :pop false :run set-vector})))
 
 (defview path-options "The pen's and the path selection's options: what to make of the active path." []
-  `(row#options-path :when ~(contains ["pen" "path-select"] state.doc.gesture) :alignItems center :gap 6 :height 30
+  `(row#options-path :when ~(contains ["pen" "path-select"] state.doc.gesture)
+     :grow 100
+     :alignItems center
+     :gap 6
+     :height 30
      (node :style dim :text ~(str (t "option.makePath") ":"))
-     (node#path-to-selection :use tButton
+     (node#option-path-selection :use tButton
        :with {:title ~(t "option.path.selection") :run selectActivePath :off ~(not computed.hasPath)})
-     (node#path-to-shape :use tButton
+     (node#option-path-shape :use tButton
        :with {:title ~(t "option.path.shape") :run shapeFromPath :off ~(not computed.hasPath)})
-     (node#path-stroke :use tButton
+     (node#option-path-stroke :use tButton
        :with {:title ~(t "option.path.stroke") :run strokeActivePath :off ~(not computed.hasPath)})
-     (node#path-fill :use tButton
+     (node#option-path-fill :use tButton
        :with {:title ~(t "option.path.fill") :run fillActivePath :off ~(not computed.hasPath)})
      (node :style sep)
      (label :style dim :text ~(t (if (= state.doc.gesture "pen") "option.penHint" "option.pathSelectHint"))

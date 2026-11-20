@@ -407,7 +407,8 @@ A review step runs from a step that the person's input or a scenario plays, not 
 (defn delete-path "Deletes a path, the active one if no index is given." [args]
   (image "deletePath" :with args))
 
-(defn stroke-path "Strokes the active path on the active layer with the foreground colour, the brush's size wide." [args]
+(defn stroke-path "Strokes the active path on the active layer with the foreground colour, as wide as the brush."
+  [args]
   (image "strokePath" :with args))
 
 (defn fill-path "Fills the active path on the active layer with the foreground colour." [args]

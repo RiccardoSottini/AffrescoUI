@@ -94,7 +94,8 @@
 (defcomputed activeHoldsContent "The active layer is a type or shape layer."
   (contains ["text" "shape"] computed.activeLayer.kind))
 
-(defcomputed hasPath "A path is active, with anchors." (-> (find #(:active %) state.doc.paths) :anchors (or-else 0) (> 0)))
+(defcomputed hasPath "A path is active, with anchors."
+  (-> (find #(:active %) state.doc.paths) :anchors (or-else 0) (> 0)))
 
 (defcomputed vectorTool "The tool makes type or shapes." (contains ["text" "shape"] state.doc.gesture))
 

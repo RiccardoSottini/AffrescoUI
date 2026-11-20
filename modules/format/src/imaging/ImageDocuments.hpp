@@ -189,6 +189,7 @@ struct ImageDocument {
 	/// Loads a font of the screen by name, size and style, for type layers; set by the runtime (ImageDocuments).
 	std::weak_ptr<const std::function<std::shared_ptr<const Font>(const std::string&, float, FontStyle)>> fonts;
 	int pathAnchor = -1;   ///< path-select: the anchor being dragged, or -1 for the whole path.
+	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
 };

@@ -181,7 +181,7 @@ std::vector<ImageOperation> viewOperations() {
 	    {"setOptions",
 	     {"preset", "size", "sizeStep", "hardness", "spacing", "opacity", "flow", "mode", "tolerance", "contiguous",
 	      "allLayers", "fillOpacity", "shape", "gradientPreset", "gradient", "foreground", "background", "swap", "reset",
-	      "quickMask", "cloneSource", "autoSelect"},
+	      "quickMask", "cloneSource", "autoSelect", "vector"},
 	     "Sets the tools' options and the colours.",
 	     setToolOptions},
 	    {"setProfile", {"working", "display", "proof"}, "Sets the working, display or proof colour profile.",
