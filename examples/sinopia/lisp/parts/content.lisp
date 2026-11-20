@@ -14,6 +14,8 @@
 
 (defstate cell [0 0] "The row and column of the table cell being edited.")
 
+(defstate caret {:line 1 :column 1 :selected 0} "Where the caret is in the text being edited, which Align acts on.")
+
 (defstate picture nil "The picture a file held, until it is put on the slide.")
 
 (defcomputed tableSizes "The table grid's sizes, row by row: 6 rows of 8 columns."

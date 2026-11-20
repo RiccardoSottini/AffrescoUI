@@ -39,13 +39,21 @@
 
 (defkey "mod+u" {:when ~(not context.textInputFocus) :do toggle-text :with {:key underline}})
 
-(defkey "mod+l" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align left}}})
+(defkey "mod+l"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align left}}
+   {:when ~(some? state.editing) :do set-align :with {:align left}}])
 
-(defkey "mod+e" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align center}}})
+(defkey "mod+e"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align center}}
+   {:when ~(some? state.editing) :do set-align :with {:align center}}])
 
-(defkey "mod+r" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align right}}})
+(defkey "mod+r"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align right}}
+   {:when ~(some? state.editing) :do set-align :with {:align right}}])
 
-(defkey "mod+j" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align justify}}})
+(defkey "mod+j"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align justify}}
+   {:when ~(some? state.editing) :do set-align :with {:align justify}}])
 
 (defkey "mod+shift+." {:when ~(not context.textInputFocus) :do grow-text :with {:by 1}})
 

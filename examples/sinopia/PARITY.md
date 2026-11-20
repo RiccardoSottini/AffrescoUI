@@ -39,7 +39,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
 | Text | Font colour and highlight | missing | done | colour-grids |
 | Text | Change case and clear formatting | missing | done | font-size-and-case |
-| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | align-text (a text box's text as a whole; justified text draws flush left) |
+| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | align-text, align-a-paragraph (per paragraph while the text is edited; justified text draws flush left) |
 | Text | Line spacing and columns | missing | done | paragraph-menus |
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
 | Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
@@ -152,7 +152,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P1 | Content: insert picture (Insert > Pictures) | Library: `openFile` of an image into an asset the slide draws and the saved deck carries; then JSON for an object of kind `picture` |
 | P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
-| P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |
+| P1 | Text: justified text | Library: justified wrapping in labels |
 | P2 | Shell: a contextual tab for the selected shape | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
 | P2 | Shell: File view (new deck, recent decks) | JSON: New from the themes; library: a list of recently opened files |
 | P2 | Canvas: rulers, gridlines and guides | JSON: rulers along the canvas, a drawn grid, guides dragged from the rulers that objects snap to |

@@ -67,7 +67,7 @@
 							{ "id": "r-para-2", "use": "rbRow", "children": [
 								{ "id": "{{'b-align-' + a[0]}}",
 								  "repeat": { "for": "a", "in": "{{[['left', 'align-left', 'Align Left (Ctrl+L)'], ['center', 'align-center', 'Center (Ctrl+E)'], ['right', 'align-right', 'Align Right (Ctrl+R)'], ['justify', 'align-justify', 'Justify (Ctrl+J)']]}}" }, "use": "rbSmall", "with": { "icon": "{{a[1]}}", "on": "{{computed.first != null && (computed.first.align ?? computed.firstPlaceholder.align ?? 'left') == a[0]}}" },
-								  "tooltip": "{{a[2]}}", "onClick": { "run": "setObjects", "with": { "props": "{{ {align: a[0]} }}" } } },
+								  "tooltip": "{{a[2]}}", "onClick": { "run": "setAlign", "with": { "align": "{{a[0]}}" } } },
 								{ "id": "b-direction", "use": "rbSmall", "with": { "icon": "arrow-down-up", "menu": true }, "tooltip": "Text Direction", "onClick": { "run": "openDrop", "with": { "id": "b-direction" } } },
 								{ "id": "b-anchor", "use": "rbSmall", "with": { "icon": "align-vertical-justify-center", "menu": true }, "tooltip": "Align Text",
 								  "onClick": { "run": "openDrop", "with": { "id": "b-anchor" } } },

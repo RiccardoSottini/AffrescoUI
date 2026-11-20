@@ -1191,6 +1191,31 @@
 			]
 		},
 		{
+			"name": "sinopia-align-a-paragraph",
+			"note": "While a text is edited, Align and Ctrl+L, E, R, J align the caret's paragraph only; outside the editor, the whole text again",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o4" },
+				{ "click": "#o4" },
+				{ "wait": 0 },
+				{ "key": "mod+up" },
+				{ "key": "down" },
+				{ "expect": { "state": "caret.line", "is": 2 } },
+				{ "key": "mod+e" },
+				{ "expect": { "state": "deck.slides[1].objects[1].aligns[1]", "is": "center" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].aligns[0]", "is": null } },
+				{ "key": "down" },
+				{ "click": "#b-align-right" },
+				{ "expect": { "state": "deck.slides[1].objects[1].aligns[2]", "is": "right" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].aligns[1]", "is": "center" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "editing", "is": null } },
+				{ "click": "#b-align-left" },
+				{ "expect": { "state": "deck.slides[1].objects[1].align", "is": "left" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].aligns", "is": null } }
+			]
+		},
+		{
 			"name": "sinopia-present-go-to-number",
 			"note": "While presenting, a slide's number and Enter go to it (a number past the end goes to the last slide)",
 			"steps": [
