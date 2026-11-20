@@ -89,4 +89,5 @@
      :drag {}
      :onDrop drop-queued
      :onOpen jump-to
+     :onContextMenu queue-menu
      :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1) :delete unqueue :backspace unqueue}))

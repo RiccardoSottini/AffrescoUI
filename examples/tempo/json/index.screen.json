@@ -1246,6 +1246,8 @@
 								"drag": {},
 								"onDrop": "dropQueued",
 								"onOpen": "jumpTo",
+								"onContextMenu": { "if": "{{(event.data.id ?? state.queuePick) != null}}", "then": [{ "run": "openSongMenu", "with": {
+									"list": "{{number(split(event.data.id ?? state.queuePick, ':')[0])}}", "track": "{{number(split(event.data.id ?? state.queuePick, ':')[1])}}" } }] },
 								"keys": { "alt+up": { "run": "moveQueued", "with": { "by": -1 } }, "alt+down": { "run": "moveQueued", "with": { "by": 1 } }, "delete": "unqueue", "backspace": "unqueue" }
 							},
 							{ "id": "queueEmpty", "when": "{{length(computed.upNext) == 0}}", "style": "caption", "text": "{{t('queue.empty')}}", "anchors": { "left": 20, "top": 330 } }

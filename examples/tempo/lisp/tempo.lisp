@@ -651,6 +651,9 @@
 (defn browse-back "Back from an album or an artist to the tiles it was opened from." []
   (show (if (= state.collection.kind :artist) :artists :albums)))
 
+(defn queue-menu "A right click on a song up next (or Shift+F10 on the picked one): its menu." []
+  (when-some [key (or event.data.id state.queuePick)] (open-song-menu (list-of key) (track-of key))))
+
 (defn search-menu "A right click on a song the search found: its menu." []
   (when-some [key state.searchPick] (open-song-menu (list-of key) (track-of key))))
 
