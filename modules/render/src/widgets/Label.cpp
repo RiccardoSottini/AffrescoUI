@@ -143,6 +143,20 @@ void Label::setJustify(bool justify) {
 	invalidatePaint();
 }
 
+void Label::setLetterSpacing(float pixels) {
+	if(letterSpacing_ == pixels) return;
+	letterSpacing_ = pixels;
+	invalidate();
+}
+
+bool Label::spaced() const noexcept { return letterSpacing_ != 0.0f && !wrap_ && runs_.empty(); }
+
+float Label::lineWidth(const Font& font, std::u32string_view line) const {
+	const float width = font.measure(line);
+	if(!spaced() || line.size() < 2) return width;
+	return width + letterSpacing_ * static_cast<float>(line.size() - 1);
+}
+
 void Label::setFitToText(bool fit, float maxWidth) {
 	fitToText_ = fit;
 	fitMaxWidth_ = maxWidth;
@@ -167,7 +181,7 @@ void Label::prepareLayout() {
 	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != shown())) {
 		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth);
 		float textWidth = 0.0f;
-		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));
+		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, lineWidth(*f, line));
 		fitted_ = {shown(), f->id(), maxTextWidth, textWidth, lines.size()};
 	}
 
@@ -236,9 +250,15 @@ void Label::paintJustifiedLine(Painter& painter, const Font& font, std::u32strin
 
 void Label::paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const {
 	const Rect content = contentRect();
-	const float left = aligned(readingAlign(horizontal_), content.left, content.width(), font.measure(line));
+	const float left = aligned(readingAlign(horizontal_), content.left, content.width(), lineWidth(font, line));
 	// Whole pixels keep glyphs sharp: atlas texels map 1:1 onto screen pixels
-	painter.drawText(font, line, {std::round(left), std::round(top + font.ascent())}, textColor_);
+	const float baseline = std::round(top + font.ascent());
+	if(!spaced()) return painter.drawText(font, line, {std::round(left), baseline}, textColor_);
+	// Each character where the font puts it, moved by the spacing of those before it
+	for(std::size_t index = 0; index < line.size(); ++index) {
+		const float x = left + font.measure(line.substr(0, index)) + letterSpacing_ * static_cast<float>(index);
+		painter.drawText(font, line.substr(index, 1), {std::round(x), baseline}, textColor_);
+	}
 }
 
 /* Rich text and selection */

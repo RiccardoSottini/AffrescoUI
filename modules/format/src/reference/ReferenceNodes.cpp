@@ -376,6 +376,12 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "are left out of the copy.",
 	 "label"},
     {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
+    {"letterSpacing",
+	 R"json({"anyOf": [{"type": "number", "minimum": -16, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's "
+	 "`letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's "
+	 "spacing.",
+	 "label"},
 });
 
 /// @brief The three parts of the table, joined once in order.

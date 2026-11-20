@@ -241,6 +241,7 @@ only for the elements that changed.
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "underline", "strike", "background", "shadow", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
+| `letterSpacing` | Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's `letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's spacing. |
 <!-- end generated -->
 
 ```json
