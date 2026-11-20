@@ -551,7 +551,7 @@
 
 (defview g-transition-to "The transitions, and the side the transition comes from." []
   `(node#g-transition-to :use rbGroup :with {:title ~(t "ribbon.transitionToThisSlide")}
-     (node#gal-transitions :use rbGallery :with {:width 520}
+     (node#gal-transitions :use rbGallery :with {:width 520 :more gal-transitions}
        ~(repeat [k computed.transitionKinds]
          `(label :id ~(str "tr-" k.0)
             :width 60
@@ -623,7 +623,7 @@
                       "emphasis" (t "motion.emphasis")
                       "path" (t "motion.motionPath")
                       (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 692}
+     (node#gal-effects :use rbGallery :with {:width 692 :more gal-effects}
        ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
             :width 50

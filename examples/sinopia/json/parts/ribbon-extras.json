@@ -2,10 +2,15 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The ribbon while it is collapsed: a tab shows it over the slide, a click elsewhere or Escape hides it again, and its pin keeps it open in its place. Its tabs are the same component as the pinned ribbon's; only one of the two is ever built.",
+	"note": "The ribbon while it is collapsed, and the whole lists of its transitions' and builds' galleries. While it is collapsed, a tab shows it over the slide, a click elsewhere or Escape hides it again, and its pin keeps it open in its place. Its tabs are the same component as the pinned ribbon's; only one of the two is ever built.",
 
 	"state": {
 		"ribbonPeek": false
+	},
+
+	"computed": {
+		"menu-gal-transitions": "{{map([['none', 'ban', 'None'], ['glide', 'blend', 'Glide'], ['fade', 'sun-dim', 'Fade'], ['push', 'arrow-left-to-line', 'Push'], ['wipe', 'chevrons-left', 'Wipe'], ['split', 'columns-2', 'Split'], ['reveal', 'arrow-left-from-line', 'Reveal'], ['cover', 'square-stack', 'Cover']], { title: it[2], icon: it[1], checked: (computed.slide.transition.kind ?? 'none') == it[0], run: 'setTransition', with: { props: { kind: it[0] } } })}}",
+		"menu-gal-effects": "{{map(concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom'], null], computed.emphasisEffects, [null], computed.pathEffects), it == null ? { separator: true } : { title: it[2], icon: it[1], checked: (computed.animation.effect ?? 'none') == it[0], enabled: length(computed.selected) > 0, run: 'chooseEffect', with: { effect: it[0] } })}}"
 	},
 
 	"components": {

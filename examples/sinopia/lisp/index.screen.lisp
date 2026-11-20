@@ -23,7 +23,7 @@
             sinopia.parts.arrange
             sinopia.parts.content
             sinopia.parts.ribbon
-            sinopia.parts.ribbon-peek
+            sinopia.parts.ribbon-extras
             sinopia.parts.tabs
             sinopia.parts.show
             sinopia.parts.motion

@@ -81,6 +81,57 @@
 			]
 		},
 		{
+			"name": "sinopia-transition-and-build-galleries",
+			"note": "The transitions' and the builds' galleries open their whole lists, which give the slide a transition and the selected object a build",
+			"steps": [
+				{
+					"click": "#tab-transitions-label"
+				},
+				{
+					"click": "#gal-transitions-all"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Split"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].transition.kind",
+						"is": "split"
+					}
+				},
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#tab-animations-label"
+				},
+				{
+					"click": "#gal-effects-all"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Spin"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].effect",
+						"is": "spin"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].kind",
+						"is": "emphasis"
+					}
+				}
+			]
+		},
+		{
 			"name": "sinopia-wipe-from-every-side",
 			"note": "A wipe build starts from the left; Motion's side button turns it to the top, the right and the bottom, and the show plays it",
 			"steps": [

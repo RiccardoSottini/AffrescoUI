@@ -216,7 +216,7 @@
 						  "onClick": "previewSlide" }
 					] },
 					{ "id": "g-transition-to", "use": "rbGroup", "with": { "title": "Transition to This Slide" }, "children": [
-						{ "id": "gal-transitions", "use": "rbGallery", "with": { "width": 520 }, "children": [
+						{ "id": "gal-transitions", "use": "rbGallery", "with": { "width": 520, "more": "gal-transitions" }, "children": [
 							{ "type": "label",
 							  "id": "{{'tr-' + k[0]}}", "repeat": { "for": "k", "in": "{{[['none', 'ban', 'None'], ['glide', 'blend', 'Glide'], ['fade', 'sun-dim', 'Fade'], ['push', 'arrow-left-to-line', 'Push'], ['wipe', 'chevrons-left', 'Wipe'], ['split', 'columns-2', 'Split'], ['reveal', 'arrow-left-from-line', 'Reveal'], ['cover', 'square-stack', 'Cover']]}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{(computed.slide.transition.kind ?? 'none') == k[0] ? 'rbButtonOn' : 'rbButton'}}",
@@ -317,7 +317,7 @@
 						  "onClick": "previewSlide" }
 					] },
 					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : a.kind == 'path' ? 'Motion Path' : 'Entrance'}}" }, "children": [
-						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692 }, "children": [
+						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692, "more": "gal-effects" }, "children": [
 							{ "type": "label",
 							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 50, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
