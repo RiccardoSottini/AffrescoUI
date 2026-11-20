@@ -1,7 +1,7 @@
 ;;; terminal.lisp --- Forge's terminals, and the tasks they run
 ;;;
-;;; Up to 8 shells in the panel's Terminal tab, each a tab of its own: the terminal node, its shell on the terminal
-;;; service of the pty provider. The node keeps Tab for the shell. Run Task (and Cmd+Shift+B, the build task) runs a
+;;; Up to 8 shells in the panel's Terminal tab, each a tab of its own (one more can show beside it, split): the
+;;; terminal node, its shell on the terminal service of the pty provider. The node keeps Tab for the shell. Run Task (and Cmd+Shift+B, the build task) runs a
 ;;; task of .forge/tasks.json, read through files.read and parsed with parseJsonc, in a new terminal, through
 ;;; runInTerminal.
 
@@ -9,7 +9,7 @@
 
 ;;; Terminals
 
-(defstate terminals {:list [] :active "" :next 1})
+(defstate terminals {:list [] :active "" :next 1 :split ""})
 
 (defpart terminal-service "The shells: the pty provider's, in the open folder."
   :services {:terminal {:provider pty :process shell :root workspace}})
@@ -29,9 +29,31 @@
 (defn focus-terminal "Focuses the terminal shown, once it is." []
   (focus "#terminal"))
 
+(defcommand terminalSplit "Split the terminal: a new shell shows beside the one shown, and gets the focus."
+  :title ~(t "command.terminalSplit") :category ~(t "category.terminal") :icon "columns-2"
+  :description ~(t "command.terminalSplit.about")
+  :enablement ~(< (count state.terminals.list) 8) []
+  (if (empty? state.terminals.active)
+    (terminalNew)
+    (let [shown state.terminals.active]
+      (terminalNew)
+      (set "state.terminals.split" state.terminals.active)
+      (set "state.terminals.active" shown)
+      (after 0 focus-split))))
+
+(defn focus-split "Focuses the terminal shown beside the other, once it is." []
+  (focus "#terminal-split"))
+
+(defcommand terminalUnsplit "Unsplit Terminal"
+  :title ~(t "command.terminalUnsplit")
+  :description ~(t "command.terminalUnsplit") :category ~(t "category.terminal") :icon "square"
+  :enablement ~(not (empty? state.terminals.split)) []
+  (set "state.terminals.split" ""))
+
 (defn terminal-close "Closes a terminal and its shell; the Output tab shows when the last one goes." [id]
   (closeTerminal id)
   (set "state.terminals.list" (remove #(= (:id %) id) state.terminals.list))
+  (when (= state.terminals.split id) (set "state.terminals.split" ""))
   (when (= state.terminals.active id)
     (set "state.terminals.active" (if (seq state.terminals.list) state.terminals.list.0.id "")))
   (when (and (empty? state.terminals.list) (= state.panelTab "terminal")) (set "state.panelTab" "output")))
@@ -59,6 +81,8 @@
   nil)
 
 (defkey "mod+alt+t" terminalNew)
+
+(defkey "mod+shift+5" terminalSplit)
 
 ;;; Tasks
 
