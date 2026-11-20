@@ -329,7 +329,7 @@
      :visible ~(and state.showLabels (> b.depth 0.3))))
 
 (defview thumbnail
-  "A body's thumbnail, a disc in its colour drawn into the image body:<id> for the features that show it."
+  "A body's thumbnail, a disc in its colour drawn into the image body:<id> for the features that show it (veiled red at night)."
   [b]
   `(panel :id ~(str "thumb-" b.id)
      :snapshot ~{:image (str "body:" b.id) :scale 1}
@@ -343,7 +343,8 @@
        :height 46
        :radius 999
        :color ~b.hex
-       :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
+       :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})
+     (panel :id ~(str "thumb-night-" b.id) :when ~(= state.theme :night) :fill true :color @nightFilter)))
 
 (defview scene-view "The 3D scene, bound to the computed camera; a left click selects a body." []
   `(scene#view-scene :fill true
