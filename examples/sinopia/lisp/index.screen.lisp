@@ -20,6 +20,7 @@
             sinopia.parts.ribbon
             sinopia.parts.tabs
             sinopia.parts.show
+            sinopia.parts.motion
             sinopia.parts.views
             sinopia.parts.menus
             sinopia.parts.review

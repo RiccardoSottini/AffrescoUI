@@ -316,7 +316,7 @@
        :textColor @rbMuted
        :runs [{:text ~(t "pane.noBuildsOnThisSlide") :size 12}])
      ~(repeat [a computed.motionRows :index n :key a.id]
-       (motion-row a n))))
+       (motion-build a n))))
 
 (defcomponent accessList
   "Each slide's findings: no title, an empty placeholder, an icon or ink without alt text; a click goes there."
@@ -527,7 +527,7 @@
        :role button
        :textColor @rbInk
        :label ~(t "pane.buildLabel" {:name a.name :effect a.effect :exit (= a.kind "exit") :start a.start})
-       :runs ~[{:icon (if (= a.kind "exit") "log-out" "log-in") :size 13}
+       :runs ~[{:icon (case a.kind "exit" "log-out" "emphasis" "heart-pulse" "log-in") :size 13}
                {:text (str " " a.name) :size 12}
                {:text (str "  " a.effect (if (= a.start :click) "" (str ", " a.start))) :size 11 :color "@rbMuted"}]
        :onClick ~(handler select-target a.target))
