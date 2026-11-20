@@ -528,6 +528,12 @@
 
 (defn show-device-tab "Shows a tab of the devices and controls." [tab] (set "state.devTab" tab))
 
+(defn show-energy-day "Shows a day on the energy page: 0 is today, 6 the oldest kept." [day]
+  (set "state.energyDay" (clamp day 0 6)))
+
+(defn step-energy-day "Moves the energy page a day back (1) or forward (-1), within the days kept." [step]
+  (show-energy-day (+ state.energyDay step)))
+
 (defn show-energy-view "What the energy page's week is by: day, device or room." [view] (set "state.energyView" view))
 
 ; style: keep, a string of the code names it, and a rename never changes a string

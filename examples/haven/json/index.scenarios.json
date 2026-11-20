@@ -371,6 +371,32 @@
 			]
 		},
 		{
+			"name": "energy-days",
+			"note": "The energy page steps through today and the six days before it, or picks one from its menu; the figures follow the day",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "expect": { "node": "#energyDay", "text": "Today" } },
+				{ "click": "#energyPrev" },
+				{ "expect": { "state": "energyDay", "is": 1 } },
+				{ "expect": { "node": "#energyDay", "text": "Yesterday" } },
+				{ "expect": { "node": "#todayFigure", "text": "26.2 kWh" } },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "expect": { "state": "energyDay", "is": 6 } },
+				{ "expect": { "node": "#energyDay", "text": "6 days ago" } },
+				{ "click": "#energyNext" },
+				{ "expect": { "state": "energyDay", "is": 5 } },
+				{ "click": "#energyPick" },
+				{ "click": { "role": "menuitem", "name": "Today" } },
+				{ "expect": { "state": "energyDay", "is": 0 } },
+				{ "expect": { "state": "energyPickOpen", "is": false } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [
@@ -378,7 +404,7 @@
 				{ "click": "#energyNext" },
 				{ "expect": { "node": "#energyDay", "text": "Today" } },
 				{ "expect": { "state": "toast.open", "is": false } },
-				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "This demo keeps only today" } },
+				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "The page keeps today and the six days before it" } },
 				{ "key": "mod+comma" },
 				{ "click": "#settingsRow", "nth": 0 },
 				{ "click": "#devAdd" },
