@@ -13,6 +13,9 @@
 
 (defstate properties {:open false :tab general :verify "" :browse false})
 
+(defcomputed manageDrive "The name of the drive the game being managed is installed on."
+  (t (str "storage." (or-else computed.manageGame.drive "main"))))
+
 (defcomputed gameFiles
   "The files in the game's folder, the largest first: its packs, the program and its settings, each with its share of
   the game's size, in GB."
@@ -215,7 +218,7 @@
        :anchors {:left 0 :right 0 :top 24}
        :height 22)
      ~(caps-title "properties.folder" 56)
-     (label#properties-folder :runs [{:text ~(str (t (str "storage." (or-else computed.manageGame.drive "main"))) "  ›  ")
+     (label#properties-folder :runs [{:text ~(str computed.manageDrive "  ›  ")
                                       :color @color.muted}
                                      {:text ~(t "properties.folderPath" {:game computed.manageGame.title})}]
        :textColor @color.text
