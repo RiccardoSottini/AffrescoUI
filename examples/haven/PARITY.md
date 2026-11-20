@@ -63,7 +63,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Automations list with on and off | done | a plain app bar; a searchable table with name and last ran columns, without a count that could be cut; disabled rules dimmed; a menu per row to run, duplicate, disable or delete it; a floating New automation button |
-| Editor: triggers, conditions, actions as cards | done | a plain app bar with back, the name and more; a banner with Enable while it is disabled; When, And if, Then do cards, each step an outlined row with a chevron and a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Disable, Duplicate and Delete, which asks first |
+| Editor: triggers, conditions, actions as cards | done | a plain app bar with back, the name and more; a banner with Enable while it is disabled; When, And if, Then do cards, each step an outlined row with a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Disable, Duplicate and Delete, which asks first |
 | Confirm dialogs | done | rounded, with text buttons: Cancel, then Delete in red |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
