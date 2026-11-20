@@ -21,7 +21,7 @@ and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorte
 | Part | What it does |
 |---|---|
 | Title bar | The deck's name, the tabs, a search (Alt+Q) that lists the commands whose names hold what is typed and runs one, undo, redo, save, present |
-| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, distribute; Find, Replace, Select and the Selection Pane), Insert (text box, shapes, icons, styled text, symbols, a link to a slide, footer and slide numbers), Design (themes, variants, another theme's colours, the fonts of titles and text, Format Background), Transitions and Motion (builds and the Animation Pane; Preview plays the slide in the window), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so; [`PARITY.md`](PARITY.md) lists them, with what each needs |
+| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, group and ungroup, rotate and flip, distribute; Find, Replace, Select and the Selection Pane), Insert (tables from a size grid, with a style in each accent; pictures from PNG and JPEG files; text box, shapes, icons, styled text, symbols, a link to a slide, footer and slide numbers), Design (themes, variants, another theme's colours, the fonts of titles and text, Format Background), Transitions and Motion (builds and the Animation Pane; Preview plays the slide in the window), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so; [`PARITY.md`](PARITY.md) lists them, with what each needs |
 | Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it, and a right click (or Shift+F10) opens the slide menu; a section's title folds its slides away and back |
 | Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar. A double click or F2 edits a text box's or shape's text in place (Tab and Shift+Tab change the list level; Escape or a click elsewhere ends it); a right click opens the shape's menu, or the slide's on an empty part |
 | Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |
@@ -32,7 +32,8 @@ and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorte
 
 Keys while editing: `mod+f` find, `mod+h` replace, `mod+s` save, `mod+o` open, `mod+z` and `mod+y` undo and redo, `mod+m` new slide, `mod+d`
 duplicate, `mod+c`, `mod+x` and `mod+v`, `mod+a` select all, `mod+b`, `mod+i` and `mod+u`, `mod+l`, `mod+e`, `mod+r`
-and `mod+j` align the text, the arrow keys nudge (Shift: 10), Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
+and `mod+j` align the text (while it is edited, the caret's paragraph), `mod+g` and `mod+shift+g` group and ungroup,
+a double click edits a text or a table's cell (Tab and Shift+Tab go to the next and the previous cell), the arrow keys nudge (Shift: 10), Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
 While presenting: a click on linked text goes to its slide; Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
 screen black or white, a slide's number and Enter go to it, and Escape ends.
 
@@ -42,7 +43,9 @@ The deck is the state `deck` (the sample is [`parts/sample-deck.lisp`](lisp/part
 a theme and variant, sections and slides. A slide has a layout, notes, a background, a transition (`fade`, `push`,
 `wipe`, `cover`, `glide` and more, with a duration and a direction), builds (`appear`, `fade`, `wipe`, `fly` or `zoom`,
 as an entrance or an exit, on a click, with or after the one before) and objects, back to front: text, shapes from
-[`parts/geometry.lisp`](lisp/parts/geometry.lisp)'s presets, and lines. Saved, it is that JSON; opened, it is checked to
+[`parts/geometry.lisp`](lisp/parts/geometry.lisp)'s presets, lines, tables (`cells`: rows of texts, the first the
+header, in a `tint`) and pictures (`src`: the PNG or JPEG as a data URI, so the saved deck carries it). Objects with
+the same `group` are selected and moved as one. Saved, it is that JSON; opened, it is checked to
 be a deck before it replaces the one on screen, as a change undo takes back.
 
 ## The parts
@@ -53,6 +56,8 @@ be a deck before it replaces the one on screen, as a change undo takes back.
 | [`geometry.lisp`](lisp/parts/geometry.lisp), [`slide.lisp`](lisp/parts/slide.lisp) | Shapes as paths, and a slide as nodes: its background and objects |
 | [`sinopia.lisp`](lisp/sinopia.lisp) | The program: Undo and Redo, the slides, and the selection's order, alignment, spacing and case |
 | [`edit.lisp`](lisp/parts/edit.lisp) | The other edits, each one undoable: objects, text, themes, transitions and builds |
+| [`arrange.lisp`](lisp/parts/arrange.lisp) | Groups (selected as one), and rotating and flipping the selection |
+| [`content.lisp`](lisp/parts/content.lisp) | Tables (the size grid, the banded cells, the cell editor and its Tab) and pictures |
 | [`ribbon.lisp`](lisp/parts/ribbon.lisp), [`tabs.lisp`](lisp/parts/tabs.lisp) | The ribbon's buttons, galleries and groups, and its tabs |
 | [`show.lisp`](lisp/parts/show.lisp) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
 | [`views.lisp`](lisp/parts/views.lisp) | The outline, the sorter, the format pane, and the deck as a file (`saveFile`, `openFile`, `export`) |
