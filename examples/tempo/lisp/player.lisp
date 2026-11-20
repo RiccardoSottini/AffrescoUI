@@ -170,7 +170,7 @@
      :tooltip ~(t "player.mute")
      :onClick toggleMute))
 
-(defview volume-slider "The volume." []
+(defview volume-slider "The volume, dimmed while muted (muting keeps it)." []
   `(slider#volume :anchors {:right 16 :top 24}
      :width 100
      :height 16
@@ -179,8 +179,8 @@
      :label ~(t "player.volume")
      :bind state.volume
      :trackColor @faint
-     :activeColor @muted
-     :knobColor @text
+     :activeColor ~(if state.muted "@faint" "@muted")
+     :knobColor ~(if state.muted "@muted" "@text")
      :tooltip ~(t "player.volume")))
 
 ;;; The mini player

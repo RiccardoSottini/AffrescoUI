@@ -1347,8 +1347,8 @@
 						"label": "{{t('player.volume')}}",
 						"bind": "state.volume",
 						"trackColor": "@faint",
-						"activeColor": "@muted",
-						"knobColor": "@text",
+						"activeColor": "{{state.muted ? '@faint' : '@muted'}}",
+						"knobColor": "{{state.muted ? '@muted' : '@text'}}",
 						"tooltip": "{{t('player.volume')}}"
 					}
 				]
