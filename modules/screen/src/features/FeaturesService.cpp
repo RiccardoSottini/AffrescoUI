@@ -197,7 +197,9 @@ public:
 			} else if(method.name == "status") {
 				call->finish(format::featureStatus(features_, source, name));
 			} else if(method.name == "upgrade") {
-				submitLater(upgradeOf(features_, source, name), std::move(call));
+				// Worked out before the call moves: an argument's order isn't fixed, and a refusal answers on the call
+				Upgrade upgrade = upgradeOf(features_, source, name);
+				submitLater(std::move(upgrade), std::move(call));
 			} else if(json revision = revisionOf(method.name, with, source); revision.is_null()) {
 				call->fail("unproven", unproven_);
 			} else {

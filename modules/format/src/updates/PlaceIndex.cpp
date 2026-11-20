@@ -299,8 +299,9 @@ void PlaceIndex::collect(const StateChanges& changes, std::vector<ReaderId>& out
 
 void PlaceIndex::dropBelow(std::uint32_t node, std::vector<ReaderId>& out) {
 	std::vector<std::uint32_t> nodes{node};
+	// A child at a time: GCC 13 at -O3 misreads a range insert into the list being read (-Wstringop-overflow)
 	for(std::size_t i = 0; i < nodes.size(); ++i)
-		nodes.insert(nodes.end(), nodes_[nodes[i]].children.begin(), nodes_[nodes[i]].children.end());
+		for(const std::uint32_t child : nodes_[nodes[i]].children) nodes.push_back(child);
 	for(const std::uint32_t at : nodes) {
 		std::vector<Entry>& readers = nodes_[at].readers;
 		while(!readers.empty()) {

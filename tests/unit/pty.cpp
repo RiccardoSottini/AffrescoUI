@@ -71,10 +71,11 @@ public:
 	}
 	/// @brief Waits until the output holds some text.
 	/// @param text The text.
-	/// @return Whether it did within 10 seconds.
-	bool waitForOutput(const std::string& text) {
+	/// @param within How long to wait.
+	/// @return Whether it did in time.
+	bool waitForOutput(const std::string& text, std::chrono::seconds within = std::chrono::seconds(10)) {
 		std::unique_lock lock(mutex_);
-		return changed_.wait_for(lock, std::chrono::seconds(10), [&] { return output_.contains(text); });
+		return changed_.wait_for(lock, within, [&] { return output_.contains(text); });
 	}
 	/// @brief Waits for the call to finish or fail.
 	/// @return Its exit code, or std::nullopt if it failed or didn't end within 10 seconds.
@@ -188,9 +189,14 @@ TEST_CASE("pty: a resize reaches the program, and an interrupt reaches its foreg
 	REQUIRE_FALSE(shell.invoke(
 	    "resize", std::make_shared<TerminalCall>(json{{"session", session}, {"cols", 120}, {"rows", 40}})));
 	CHECK(open->waitForOutput("40 120"));
-	REQUIRE_FALSE(
-	    shell.invoke("signal", std::make_shared<TerminalCall>(json{{"session", session}, {"name", "interrupt"}})));
-	CHECK(open->waitForOutput("caught"));
+	// Sent again while it isn't caught: on a busy machine the shell can miss one between its loop's steps
+	bool caught = false;
+	for(int attempt = 0; attempt < 5 && !caught; ++attempt) {
+		REQUIRE_FALSE(
+		    shell.invoke("signal", std::make_shared<TerminalCall>(json{{"session", session}, {"name", "interrupt"}})));
+		caught = open->waitForOutput("caught", std::chrono::seconds(4));
+	}
+	CHECK(caught);
 	CHECK(open->waitForEnd() == 3);
 }
 

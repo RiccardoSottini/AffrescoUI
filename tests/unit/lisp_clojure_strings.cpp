@@ -387,7 +387,8 @@ TEST_CASE("lisp clojure.string: a 1 MiB text goes through split, replace and joi
 	for(const auto& [name, arguments] : calls) {
 		CAPTURE(name);
 		CAPTURE(arguments(16).back());
-		const double growth = affresco::test::growthOfFour(
+		const double growth = affresco::test::growthBelow(
+		    8.0,
 		    [&](std::size_t size) {
 			    const std::vector<std::string> texts = arguments(size);
 			    lisp::Interpreter interpreter;
@@ -401,7 +402,8 @@ TEST_CASE("lisp clojure.string: a 1 MiB text goes through split, replace and joi
 	CHECK(secondsFor(growing, "clojure.string/replace", {as(mebibyte), "a", std::string(1024, 'x')}) < 0.0);
 	// A long separator between many pieces, more than the budget at either size: the budget's error, as the text grows,
 	// and so no more work for more pieces than for fewer
-	const double joins = affresco::test::growthOfFour(
+	const double joins = affresco::test::growthBelow(
+	    8.0,
 	    [](std::size_t pieces) {
 		    lisp::Interpreter joining;
 		    std::string items;

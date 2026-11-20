@@ -6,6 +6,7 @@
 #include "packages/PackagesService.hpp"
 #include "ScratchFolder.hpp"
 #include "affresco/Screen.hpp"
+#include "affresco/core/Portable.hpp"
 #include "affresco/data/Store.hpp"
 #include "affresco/format/App.hpp"
 #include "affresco/format/Package.hpp"
@@ -179,9 +180,8 @@ public:
 		if(!grant.dataDirectory.empty()) add(grant.dataDirectory, "data:");
 		add(fs::temp_directory_path(), "");
 		for(const char* variable : {"HOME", "USERPROFILE"})
-			if(const char* home = std::getenv(variable);
-			   home != nullptr && *home != '\0') // NOLINT(concurrency-mt-unsafe)
-				add(home, "~/");
+			if(const std::optional<std::string> home = affresco::environmentVariable(variable); home && !home->empty())
+				add(*home, "~/");
 		// The longest first, so a root inside the home folder is named as the root
 		std::ranges::sort(places_, [](const auto& a, const auto& b) { return a.first.size() > b.first.size(); });
 	}

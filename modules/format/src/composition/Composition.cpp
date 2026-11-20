@@ -291,8 +291,9 @@ private:
 		const auto required = joined.find("requires"); // a record may have none
 		if(required != joined.end() && required->is_object())
 			for(const json& point : required->value("points", json::array())) placed.push_back(point.get<std::string>());
-		for(const auto& [point, nodes] : adapted.provides.value("views", json::object()).items())
-			placed.push_back(point);
+		// Named, not iterated as a temporary: items() keeps a reference to it, which a range-for doesn't extend
+		const json views = adapted.provides.value("views", json::object());
+		for(const auto& [point, nodes] : views.items()) placed.push_back(point);
 		std::vector<FeatureExtension> accepted;
 		for(std::string& each : programExtensionProblems(name, built, document_, placed, accepted))
 			problems_.push_back(std::move(each));

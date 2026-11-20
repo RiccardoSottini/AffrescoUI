@@ -494,7 +494,7 @@ std::pair<json, json> evaluatedBoth(const json& before, const json& after, const
 	const auto evaluated = [&](lisp::Interpreter& interpreter) -> json {
 		try {
 			return interpreter.print(interpreter.eval(text));
-		} catch(const std::exception& error) {
+		} catch(const std::exception&) {
 			return std::string("error");
 		}
 	};

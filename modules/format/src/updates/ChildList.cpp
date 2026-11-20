@@ -11,6 +11,26 @@
 
 namespace affresco::format {
 
+/// @brief What one update does to one element of the children (partial()). Defined here, where Item is complete: a
+/// vector of optionals of a forward-declared Item doesn't compile with clang and libstdc++.
+struct ChildList::EntryPlan {
+	bool shape = false;                       ///< Its list itself was written.
+	std::vector<std::size_t> inside{};        ///< The rows a change lies inside (by number, repeats allowed).
+	std::size_t at = 0;                       ///< The first row inserted or removed.
+	std::size_t inserted = 0;                 ///< How many rows are inserted at `at`.
+	std::size_t removed = 0;                  ///< How many rows are removed at `at`.
+	std::vector<ListRow> rows{};              ///< The rows inserted, or built again (inside), built already.
+	std::vector<std::optional<Item>> items{}; ///< Their instances (std::nullopt: "when" doesn't hold).
+	std::vector<std::size_t> numbers{};       ///< Their numbers.
+	ReadSet reads{};                          ///< What building them read.
+};
+/// @brief What one update does to a panel's children (partial()).
+struct ChildList::Plan {
+	std::vector<EntryPlan> entries{}; ///< One per element.
+	StateChanges others{};            ///< The changes for the panels below: all but the lists that changed shape.
+	bool shapes = false;              ///< A list changes shape.
+};
+
 namespace {
 
 /// @brief Whether two scopes hold the same variables with the same values, all the way out.

@@ -328,7 +328,8 @@ PackageBase baseFrom(const json& value) {
 /// @param package Receives it.
 /// @throws DocumentError If it isn't one.
 void readHeader(const json& value, Package& package) {
-	if(value.value("format", json()) != packageFormat) refuse("format", "expected \"affrescoui-package\"");
+	if(value.value("format", json()) != json(std::string(packageFormat)))
+		refuse("format", "expected \"affrescoui-package\"");
 	if(value.value("version", json()) != 1) refuse("version", "expected 1");
 	const std::string kind = textOf(value, "kind", "kind", 7, true);
 	if(kind != "changes" && kind != "app") refuse("kind", R"(expected "changes" or "app")");

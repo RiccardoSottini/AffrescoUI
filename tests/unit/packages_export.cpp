@@ -70,6 +70,14 @@ std::filesystem::path freshFolder(const std::string& name) {
 	return std::filesystem::canonical(root);
 }
 
+/// @brief Removes a test's folder at its end. Windows keeps a file the screen still has open, so what it keeps stays
+/// until freshFolder() empties it next time.
+/// @param root The folder.
+void removeAfter(const std::filesystem::path& root) {
+	std::error_code ignored;
+	std::filesystem::remove_all(root, ignored);
+}
+
 /// @brief Commits a change by an author.
 /// @param screen The screen.
 /// @param author Its author.
@@ -124,7 +132,7 @@ TEST_CASE("packages export: an app's files are the ones its manifest reaches, ne
 	std::filesystem::remove(app / "theme.json");
 	CHECK_THROWS_WITH_AS(static_cast<void>(format::appFiles(app / "app.json")),
 	                     doctest::Contains("theme.json: can't be read"), affresco::DocumentError);
-	std::filesystem::remove_all(root);
+	removeAfter(root);
 }
 
 TEST_CASE("packages export: five commits by three authors leave no trace, nor the records, the state or the paths") {
@@ -189,7 +197,7 @@ TEST_CASE("packages export: five commits by three authors leave no trace, nor th
 	CHECK_FALSE(dumped.contains(root.string()));
 	CHECK_FALSE(dumped.contains(strayKey));
 	CHECK_FALSE(dumped.contains("own notes"));
-	std::filesystem::remove_all(root);
+	removeAfter(root);
 }
 
 TEST_CASE("packages export: a whole app holds its files, and its base is the app's") {
@@ -208,7 +216,7 @@ TEST_CASE("packages export: a whole app holds its files, and its base is the app
 	CHECK_FALSE(package.base.files.contains("notes.txt"));
 	CHECK(format::packageJson(format::readPackage(format::packageJson(package).dump())) ==
 	      format::packageJson(package));
-	std::filesystem::remove_all(root);
+	removeAfter(root);
 }
 
 TEST_CASE("packages export: a screen that isn't an app's has no package") {
@@ -236,7 +244,7 @@ TEST_CASE("packages export: a program's definitions, added and changed, are in i
 	CHECK(summary["base"]["exact"] == true);
 	CHECK(summary["definitions"]["added"] == json::array({file + "/blockedName"}));
 	CHECK(summary["definitions"]["removed"].empty());
-	std::filesystem::remove_all(root);
+	removeAfter(root);
 }
 
 TEST_CASE("packages export: the scan refuses the person's paths and anything that looks like a key, naming only the "
@@ -281,5 +289,5 @@ TEST_CASE("packages export: the scan refuses the person's paths and anything tha
 	format::Package whole = clean;
 	whole.base.files = {{"seed/notes.csv", {{"data", affresco::encodeBase64("x," + std::string(strayKey))}}}};
 	CHECK(format::scrubProblems(whole, privateTexts).size() == 1);
-	std::filesystem::remove_all(root);
+	removeAfter(root);
 }

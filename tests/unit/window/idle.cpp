@@ -97,9 +97,10 @@ TEST_CASE("idle: an idle second of every template runs no update, draws nothing 
 			CHECK(after.updates == before.updates);
 			CHECK(after.frames == before.frames);
 		} else { // the screen's own timer moved it on (a song that plays from the start): an update and a frame each
+			// At most one of each per turn: a timer due as the quit is posted runs in the quit's turn, counted as posted
 			MESSAGE(name, ": its own timers changed its state");
-			CHECK(after.updates - before.updates <= timers);
-			CHECK(after.frames - before.frames <= timers);
+			CHECK(after.updates - before.updates <= after.turns - before.turns);
+			CHECK(after.frames - before.frames <= after.turns - before.turns);
 		}
 		CHECK(after.turns - before.turns == timers + 1);
 		CHECK(timers <= 3);

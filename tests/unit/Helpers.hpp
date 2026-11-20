@@ -132,6 +132,22 @@ inline double growthOfFour(const std::function<double(std::size_t)>& seconds, st
 	return fastest(size) / fastest(size / 4U);
 }
 
+/// @brief growthOfFour(), measured again, at most twice, while it isn't below a limit, keeping the lowest. A machine
+/// busy for a moment (another job on a shared runner) gives one high ratio; work that grows faster than its size gives
+/// a high one every time, so it still fails.
+/// @param limit The ratio it must stay below.
+/// @param seconds Runs the work at a size, and says how many seconds what it measures took.
+/// @param size The larger size.
+/// @param runs Runs at each size.
+/// @return The lowest ratio measured.
+inline double growthBelow(double limit, const std::function<double(std::size_t)>& seconds, std::size_t size,
+                          int runs = 3) {
+	double growth = growthOfFour(seconds, size, runs);
+	for(int again = 0; again < 2 && growth >= limit; ++again)
+		growth = std::min(growth, growthOfFour(seconds, size, runs));
+	return growth;
+}
+
 /// @brief How long something takes, in seconds.
 /// @param work It.
 /// @return The seconds.

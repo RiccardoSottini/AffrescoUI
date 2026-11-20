@@ -524,8 +524,9 @@ json wideDocument(const WideCase& row, int count) {
 }
 
 /// @brief Checks wide documents, which must be checked (not too large) and have no findings, at a cost that follows
-/// their size: four times the keys take less than eight times as long (a search among those before each takes
-/// sixteen). A ratio, not a time, so a loaded or instrumented machine passes as an idle one does.
+/// their size: four times the keys take less than ten times as long (a search among those before each takes
+/// sixteen). A ratio, not a time, so a loaded or instrumented machine passes as an idle one does. The cost is about
+/// four on a desktop; a shared macOS runner measures about eight at these sizes, every time, hence ten.
 /// @param cases The table.
 void checkWide(const std::vector<WideCase>& cases) {
 	for(const WideCase& row : cases) {
@@ -534,7 +535,8 @@ void checkWide(const std::vector<WideCase>& cases) {
 		const auto found = affresco::format::check(document, document.value("state", json::object()));
 		REQUIRE(found);
 		CHECK(found->empty());
-		const double growth = affresco::test::growthOfFour(
+		const double growth = affresco::test::growthBelow(
+		    10.0,
 		    [&row](std::size_t count) {
 			    const json sized = wideDocument(row, static_cast<int>(count));
 			    const json state = sized.value("state", json::object());
@@ -542,7 +544,7 @@ void checkWide(const std::vector<WideCase>& cases) {
 		    },
 		    static_cast<std::size_t>(wideCount), 2);
 		CAPTURE(growth);
-		CHECK(growth < 8.0);
+		CHECK(growth < 10.0);
 	}
 }
 

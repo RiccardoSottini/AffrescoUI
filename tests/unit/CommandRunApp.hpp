@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -182,10 +183,9 @@ struct TemporaryFolder {
 inline TemporaryFolder::TemporaryFolder() {
 	std::filesystem::remove_all(path);
 	std::filesystem::create_directories(path);
-	std::FILE* file = std::fopen((path / "note.txt").string().c_str(), "wb");
-	REQUIRE(file != nullptr);
-	std::fputs("inside", file);
-	std::fclose(file);
+	std::ofstream file(path / "note.txt", std::ios::binary);
+	REQUIRE(file.is_open());
+	file << "inside";
 }
 
 /// @brief A screen on a headless window with a run control, whose commands peers run.
