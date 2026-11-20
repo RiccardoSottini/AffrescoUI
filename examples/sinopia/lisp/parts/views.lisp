@@ -319,7 +319,8 @@
 (defn fileStatus "Says what the last save, open or export did, on the File tab." [text]
   (set "state.fileStatus" text))
 
-(defn saved "Says the deck was saved." [result]
+(defn saved "Says the deck was saved, and keeps it among the recent ones." [result]
+  (remember-deck result.name)
   (fileStatus (t "file.saved" {:name result.name})))
 
 (defn not-saved "Says why the deck wasn't saved." [error]
@@ -346,6 +347,7 @@
         (set "state.deck" state.opened)
         (set "state.current" 0)
         (set "state.board.selection" [])
+        (remember-deck name)
         (fileStatus (t "file.opened" {:name name})))
     (fileStatus (t "file.notADeck" {:name name})))
   (set "state.opened" nil))

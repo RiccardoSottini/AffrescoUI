@@ -21,4 +21,10 @@
                 :shapeFormat.insertShapes "Insérer des formes"
                 :shapeFormat.shapeStyles "Styles de forme"
                 :shapeFormat.size "Taille"
-                :shapeFormat.inThePane "Remplissage et trait dans le volet de mise en forme"}}}
+                :shapeFormat.inThePane "Remplissage et trait dans le volet de mise en forme"
+                :file.new "Nouvelle"
+                :file.newIn "Une nouvelle présentation en {theme}"
+                :file.recent "Récentes"
+                :file.noRecent "Les présentations que vous ouvrez ou enregistrez apparaissent ici."
+                :file.openAgain "Rouvrir {name}"
+                :file.started "Une nouvelle présentation."}}}

@@ -21,4 +21,10 @@
                 :shapeFormat.insertShapes "Insert Shapes"
                 :shapeFormat.shapeStyles "Shape Styles"
                 :shapeFormat.size "Size"
-                :shapeFormat.inThePane "Fill and line in the format pane"}}}
+                :shapeFormat.inThePane "Fill and line in the format pane"
+                :file.new "New"
+                :file.newIn "A new deck in {theme}"
+                :file.recent "Recent"
+                :file.noRecent "The decks you open or save are listed here."
+                :file.openAgain "Open {name} again"
+                :file.started "A new deck."}}}

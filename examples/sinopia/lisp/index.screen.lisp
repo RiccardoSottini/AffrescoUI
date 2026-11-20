@@ -27,6 +27,7 @@
             sinopia.parts.format
             sinopia.parts.shape-format
             sinopia.parts.canvas
+            sinopia.parts.file
             sinopia.parts.menus
             sinopia.parts.review
             "../../shared/addons/assistant/assistant.lisp"
@@ -41,7 +42,7 @@
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 12}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 12 :fallback [icons]}
           :slideText {:file "../../shared/fonts/Roboto-Regular.ttf" :size 48 :fallback [icons]}}
-  :persist [state.deck state.theme state.presenterView]
+  :persist [state.deck state.theme state.presenterView state.recentDecks]
   :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
   :theme ~state.theme
   (node#root :color @work

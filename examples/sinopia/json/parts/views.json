@@ -21,7 +21,7 @@
 	"actions": {
 		"saveDeck": [
 			{ "saveFile": "{{state.deck}}", "name": "{{computed.deckName + '.json'}}", "title": "Save the deck",
-			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Saved ' + result.name + '.'}}" }],
+			  "onDone": [{ "run": "rememberDeck", "with": { "name": "{{result.name}}" } }, { "set": "state.fileStatus", "to": "{{'Saved ' + result.name + '.'}}" }],
 			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not saved: ' + error.message}}" }] }
 		],
 		"openDeck": [
@@ -36,6 +36,7 @@
 				{ "set": "state.deck", "to": "{{state.opened}}" },
 				{ "set": "state.current", "to": 0 },
 				{ "set": "state.board.selection", "to": [] },
+				{ "run": "rememberDeck", "with": { "name": "{{name}}" } },
 				{ "set": "state.fileStatus", "to": "{{'Opened ' + name + '.'}}" }
 			  ],
 			  "else": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + name + ' is not a deck.'}}" }] },

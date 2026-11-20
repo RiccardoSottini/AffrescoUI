@@ -77,6 +77,27 @@
 				{ "click": "#cb-guides-caption" },
 				{ "expect": { "state": "guides", "is": false } }
 			]
+		},
+		{
+			"name": "sinopia-new-and-recent-decks",
+			"note": "File starts a deck from a theme, as a change Undo takes back; a saved deck is listed under Recent and opens again from there",
+			"steps": [
+				{ "click": "#tab-file-label" },
+				{ "expect": { "node": "#file-recent-none", "exists": true } },
+				{ "choose": "deck.json" },
+				{ "key": "mod+s" },
+				{ "wait": 0 },
+				{ "expect": { "state": "recentDecks[0].name", "is": "deck.json" } },
+				{ "click": "#new-ember" },
+				{ "expect": { "state": "deck.theme", "is": "ember" } },
+				{ "expect": { "state": "deck.slides.length", "is": 1 } },
+				{ "capture": "new" },
+				{ "click": "#recent-0" },
+				{ "expect": { "state": "deck.slides.length", "is": 7 } },
+				{ "expect": { "state": "deck.title", "is": "Harbour Lights" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides.length", "is": 1 } }
+			]
 		}
 	]
 }

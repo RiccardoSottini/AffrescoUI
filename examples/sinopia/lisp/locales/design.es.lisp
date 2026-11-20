@@ -21,4 +21,10 @@
                 :shapeFormat.insertShapes "Insertar formas"
                 :shapeFormat.shapeStyles "Estilos de forma"
                 :shapeFormat.size "Tamaño"
-                :shapeFormat.inThePane "Relleno y línea en el panel de formato"}}}
+                :shapeFormat.inThePane "Relleno y línea en el panel de formato"
+                :file.new "Nueva"
+                :file.newIn "Una presentación nueva en {theme}"
+                :file.recent "Recientes"
+                :file.noRecent "Aquí aparecen las presentaciones que abres o guardas."
+                :file.openAgain "Abrir {name} de nuevo"
+                :file.started "Una presentación nueva."}}}

@@ -220,6 +220,7 @@
 (defcomponent tabFile "The File tab: open and save the deck, export it, and what the last of those did."
   {}
   `(row#tab-file :fitContent width :height 92 :gap 4 :color transparent
+     ~(g-file-new)
      (node#g-file :use rbGroup :with {:title ~(t "ribbon.deck")}
        (node#b-open :use rbBig
          :with {:icon folder-open :title ~(t "ribbon.open") :width 46}
@@ -238,6 +239,7 @@
          :with {:icon file-image :title ~(t "ribbon.picture") :width 50}
          :tooltip ~(t "ribbon.thisSlideAsAPng")
          :onClick exportPng))
+     ~(g-file-recent)
      (node#g-file-info :use rbGroup :with {:title ~(t "ribbon.last")}
        (label#file-status :width 220
          :height 72
