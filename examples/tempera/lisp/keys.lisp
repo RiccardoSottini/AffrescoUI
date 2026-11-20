@@ -151,6 +151,8 @@
 
 (defkey "mod+d" deselect)
 
+(defkey "mod+shift+d" reselect)
+
 (defkey "mod+shift+i" invertSelection)
 
 (defkey "shift+f6" featherSelection)

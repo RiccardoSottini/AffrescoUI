@@ -95,6 +95,10 @@
 (defn transform-active "Moves, scales and turns the active layer." [args]
   (image "transformLayer" :with args))
 
+; style: keep, a string of the scenarios names it, and a rename never changes a string
+(defn transformSelectionBy "Moves, scales and turns the selection's outline, not its pixels." [args]
+  (image "transformSelection" :with args))
+
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn setTool "Chooses a tool. The pencil is always hard: the brush's hardness comes back when it is left." [args]
   (let [leavingPencil (and (= state.doc.tool :pencil) (not= args.tool :pencil))]
@@ -184,12 +188,15 @@
   (set "state.rename.open" false))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn applyTransform "Moves, scales and turns the active layer as the Free Transform dialog says." []
-  (transform-active {:x (or-else (number state.transform.x) 0)
-                    :y (or-else (number state.transform.y) 0)
-                    :scaleX (or-else (number state.transform.scaleX) 100)
-                    :scaleY (or-else (number state.transform.scaleY) 100)
-                    :angle (or-else (number state.transform.angle) 0)})
+(defn applyTransform "Moves, scales and turns the active layer, or the selection, as the transform dialog says." []
+  (let [args {:x (or-else (number state.transform.x) 0)
+              :y (or-else (number state.transform.y) 0)
+              :scaleX (or-else (number state.transform.scaleX) 100)
+              :scaleY (or-else (number state.transform.scaleY) 100)
+              :angle (or-else (number state.transform.angle) 0)}]
+    (if (= state.transform.target :selection)
+      (transformSelectionBy args)
+      (transform-active args)))
   (set "state.transform.open" false))
 
 (defn transform-box
@@ -290,8 +297,47 @@ would."
 
 ;;; The panels and the workspace
 
-(defn show-panel "Shows a panel in its group: args.slot is the group, args.id the panel." [args]
-  (set (str "state.panels." args.slot) args.id))
+(defn show-panel "Shows a panel in its group, unfolding it: args.slot is the group, args.id the panel." [args]
+  (set (str "state.panels." args.slot) args.id)
+  (set (str "state.collapsed." args.slot) false))
+
+(defn fold-panel-group "Folds a group of the dock to its tabs, or unfolds it." [slot]
+  (toggle (str "state.collapsed." slot)))
+
+(defn press-group-sash "A group's sash pressed: its height, kept for the drag." [slot]
+  (set "state.slide" (if (= slot :colour) state.groupHeights.colour state.groupHeights.properties)))
+
+(defn drag-group-sash "A group's sash dragged: the group as much taller, or shorter, as the pointer moved." [slot]
+  (set (str "state.groupHeights." slot) (-> state.slide (+ event.dy) round (clamp 96 520))))
+
+(defn layout-now "The dock as it is now: what a workspace keeps." []
+  {:panels state.panels :collapsed state.collapsed :groupHeights state.groupHeights :popout state.popout})
+
+(defn use-layout "Puts the dock as a workspace keeps it." [layout]
+  (set "state.panels" layout.panels)
+  (set "state.collapsed" layout.collapsed)
+  (set "state.groupHeights" layout.groupHeights)
+  (set "state.popout" layout.popout)
+  (set "state.screenMode" :standard))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn chooseWorkspace "Chooses a workspace: standard, painting (the colours tall, the properties folded), or one saved."
+  [args]
+  (use-layout (case args.name
+                "standard" standard-layout
+                "painting" painting-layout
+                (saved-layout args.name)))
+  (set "state.workspace" args.name)
+  (set "state.workspaceMenu" false))
+
+(defn saved-layout "The dock as the workspace saved under a name keeps it." [name]
+  (let [saved (find #(= (:name %) name) state.workspaces)]
+    (:layout saved)))
+
+(defn save-workspace "Saves the dock as it is as a new workspace, Workspace 1, 2..., and chooses it." []
+  (let [name (t "workspace.saved" {:n (inc (count state.workspaces))})]
+    (push "state.workspaces" {:name name :layout (layout-now)})
+    (set "state.workspace" name)))
 
 (defn show-popout "Pops the History or the Navigator panel out, or back in." [args]
   (set "state.popout" {:history (and (= (:id args) "history") (not state.popout.history))
@@ -302,6 +348,18 @@ would."
 
 (defn toggle-layer-filter "Turns the Layers panel's filter on or off." []
   (toggle "state.layerFilter.on"))
+
+(def standard-layout "The dock as it first is."
+  {:panels {:colour "colour" :properties "properties" :layers "layers"}
+   :collapsed {:colour false :properties false :layers false}
+   :groupHeights {:colour 158 :properties 236}
+   :popout {:history false :navigator false}})
+
+(def painting-layout "The painting workspace's dock: the palette tall, the properties folded."
+  (assoc standard-layout
+         :panels {:colour "swatches" :properties "properties" :layers "layers"}
+         :collapsed {:colour false :properties true :layers false}
+         :groupHeights {:colour 260 :properties 236}))
 
 (defn fold-group "Folds a group in the Layers panel, or unfolds it." [args]
   (set "state.foldedGroups" (toggled state.foldedGroups (:id args))))
@@ -319,11 +377,49 @@ would."
   [args]
   (push (str "state.guides." args.axis) (round args.at)))
 
-(defn guide-across "A click on the top ruler adds an upright guide there." []
-  (addGuide {:axis "vertical" :at (-> event.left (- (/ event.width 2)) (/ computed.px) (+ state.doc.view.x))}))
+(defn guide-across "A click on the top ruler adds an upright guide there, unless the press dragged a guide out." []
+  (when-not state.guideDrag.moved
+    (addGuide {:axis "vertical" :at (-> event.left (- (/ event.width 2)) (/ computed.px) (+ state.doc.view.x))})))
 
-(defn guide-down "A click on the side ruler adds a level guide there." []
-  (addGuide {:axis "horizontal" :at (-> event.top (- (/ event.height 2)) (/ computed.px) (+ state.doc.view.y))}))
+(defn guide-down "A click on the side ruler adds a level guide there, unless the press dragged a guide out." []
+  (when-not state.guideDrag.moved
+    (addGuide {:axis "horizontal" :at (-> event.top (- (/ event.height 2)) (/ computed.px) (+ state.doc.view.y))})))
+
+(defn guide-pressed "A ruler or a guide pressed: nothing dragged yet, and where the guide pressed is." [at]
+  (set "state.guideDrag" {:axis "" :at at :moved false}))
+
+(defn guide-out
+  "A ruler dragged: past its edge, over the image, a guide follows the pointer (level out of the top ruler, upright out
+  of the side one); back on the ruler, there is none."
+  [axis]
+  (let [level (= axis :horizontal)
+        inside (if level (- event.top event.height) (- event.left event.width))]
+    (set "state.guideDrag"
+         {:axis (if (pos? inside) axis "")
+          :at (if level
+                (-> inside (- (/ computed.canvasHeight 2)) (/ computed.px) (+ state.doc.view.y))
+                (-> inside (- (/ computed.canvasWidth 2)) (/ computed.px) (+ state.doc.view.x)))
+          :moved true})))
+
+(defn guide-dropped "A ruler let go: the guide dragged out of it stays where it was let go." []
+  (when-not (empty? state.guideDrag.axis)
+    (addGuide {:axis state.guideDrag.axis :at state.guideDrag.at}))
+  (set "state.guideDrag.axis" ""))
+
+(defn guide-moved "A guide dragged: it follows the pointer, in image pixels." [axis index]
+  (let [moved (if (= axis :vertical) event.dx event.dy)]
+    (set (str "state.guides." axis "." index) (-> moved (/ computed.px) (+ state.guideDrag.at) round))))
+
+(defn guide-let-go "A guide let go: off the image, onto its ruler, it goes." [axis index]
+  (let [upright (= axis :vertical)
+        place (if upright (nth state.guides.vertical index) (nth state.guides.horizontal index))
+        on-screen (if upright
+                    (+ (/ computed.canvasWidth 2) (* (- place state.doc.view.x) computed.px))
+                    (+ (/ computed.canvasHeight 2) (* (- place state.doc.view.y) computed.px)))]
+    (when (neg? on-screen)
+      (let [kept (keep-indexed #(when (not= %1 index) %2)
+                               (if upright state.guides.vertical state.guides.horizontal))]
+        (set (str "state.guides." axis) kept)))))
 
 (defn zoom-typed "The zoom typed in the status bar, in per cent." []
   (zoom {:to (-> event.text (str/split "%") first str/trim number (or-else computed.zoomPercent) (clamp 1 3200) (/ 100))}))

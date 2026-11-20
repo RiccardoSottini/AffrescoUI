@@ -9,7 +9,9 @@
 
 ;;; The groups
 
-(defcomponent tGroup "A group of the dock: pill tabs for its panels, and the panel chosen under them (the children)."
+(defcomponent tGroup
+  "A group of the dock: pill tabs for its panels and a chevron that folds it to them, and the panel chosen under them
+  (the children)."
   {:slot "" :tabs []}
   `(column :id ~(str "group-" slot) :width "100%" :color @panel :radius @kit.cardRadius
      (row :id ~(str "panel-tabs-" slot)
@@ -17,13 +19,41 @@
        :label ~(t "panels.label")
        :width "100%"
        :height 32
-       :gap 2
        :alignItems center
        :arrows horizontal
        (node :width 4 :height 1 :style clear)
-       ~(repeat [tab tabs] (panel-tab tab)))
-     (node :id ~(str "panel-" slot) :style clear :width "100%" :grow 1
+       ~(repeat [tab tabs] (panel-tab tab))
+       (node :grow 1 :height 1 :style clear)
+       (label :id ~(str "group-fold-" slot)
+         :role button
+         :label ~(t (if (get state.collapsed slot) "panels.expand" "panels.collapse"))
+         :tooltip ~(t (if (get state.collapsed slot) "panels.expand" "panels.collapse"))
+         :focusable true
+         :icon ~(if (get state.collapsed slot) "chevron-down" "chevron-up")
+         :width 18
+         :height 18
+         :align center
+         :radius 999
+         :cursor hand
+         :textColor @muted
+         :hover {:color @hover :textColor @text}
+         :focused {:borderWidth 1 :borderColor @accent}
+         :onClick ~(handler fold-panel-group slot))
+       (node :width 4 :height 1 :style clear))
+     (node :id ~(str "panel-" slot) :when ~(not (get state.collapsed slot)) :style clear :width "100%" :grow 1
        (node :slot true))))
+
+(defview group-sash "The sash under a group of the dock: dragged, it makes the group taller or shorter." [slot]
+  `(node :id ~(str "group-sash-" slot)
+     :role separator
+     :label ~(t "panels.resize")
+     :when ~(not (get state.collapsed slot))
+     :width "100%"
+     :height 6
+     :style clear
+     :cursor resize-vertical
+     :onPress ~(handler press-group-sash slot)
+     :onDrag ~(handler drag-group-sash slot)))
 
 (defview panel-tab "A group's tab: a pill, filled while its panel is shown." [tab]
   `(label :id ~(str "panel-tab-" tab.id)
@@ -32,7 +62,7 @@
      :focusable true
      :selected ~(= (get state.panels slot) tab.id)
      :text ~tab.label
-     :width ~(+ (* (count tab.label) 6) 14)
+     :width ~(+ (* (count tab.label) 6) 12)
      :height 22
      :align center
      :radius 999
@@ -76,9 +106,12 @@
        :width 262
        :height "100%"
        :color transparent
-       :gap 6
        ~(colour-group)
+       ~(group-sash "colour")
+       (node :when ~state.collapsed.colour :width 1 :height 6 :style clear)
        ~(properties-group)
+       ~(group-sash "properties")
+       (node :when ~state.collapsed.properties :width 1 :height 6 :style clear)
        ~(layers-group))
      (column#panel-icons :role toolbar
        :label ~(t "panels.collapsed")
@@ -96,7 +129,7 @@
 
 (defview colour-group "The first group: the colours, the palette, the gradients and the patterns." []
   `(node :use tGroup
-     :height 158
+     :height ~(if state.collapsed.colour 32 state.groupHeights.colour)
      :with {:slot colour
             :tabs ~[{:id "colour" :label (t "panel.colour")}
                     {:id "swatches" :label (t "panel.swatches")}
@@ -112,9 +145,10 @@
 
 (defview properties-group "The second group: the active layer's properties, and the adjustments to add." []
   `(node :use tGroup
-     :height 236
+     :height ~(if state.collapsed.properties 32 state.groupHeights.properties)
+     :grow ~(if (and state.collapsed.layers (not state.collapsed.properties)) 1 0)
      :shrink 1
-     :minHeight 96
+     :minHeight ~(if state.collapsed.properties 32 96)
      :with {:slot properties
             :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
      ~(properties-panel)
@@ -122,8 +156,9 @@
 
 (defview layers-group "The third group: the layers, the channels and the paths." []
   `(node :use tGroup
-     :grow 1
-     :minHeight 200
+     :grow ~(if state.collapsed.layers 0 1)
+     :height 32
+     :minHeight ~(if state.collapsed.layers 32 200)
      :with {:slot layers
             :tabs ~[{:id "layers" :label (t "panel.layers")}
                     {:id "channels" :label (t "panel.channels")}

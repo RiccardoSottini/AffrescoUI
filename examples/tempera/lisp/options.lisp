@@ -283,7 +283,17 @@
          :with {:open state.workspaceMenu
                 :placement below-end
                 :width 200
-                :items ~[{:title (t "workspace.standard") :checked true :run "resetWorkspace"}
-                         {:separator true}
-                         {:title (t "command.resetWorkspace") :run "resetWorkspace"}]}))
+                :items ~(concat
+                          [{:title (t "workspace.standard") :checked (= state.workspace "standard")
+                            :run "chooseWorkspace" :with {:args {:name "standard"}}}
+                           {:title (t "workspace.painting") :checked (= state.workspace "painting")
+                            :run "chooseWorkspace" :with {:args {:name "painting"}}}]
+                          (map #(hash-map :title (:name %) :checked (= state.workspace (:name %))
+                                          :run "chooseWorkspace" :with {:args {:name (:name %)}})
+                               state.workspaces)
+                          [{:separator true}
+                           {:title (t "command.saveWorkspace") :run "saveWorkspace"}
+                           {:title (t "command.deleteWorkspace") :run "deleteWorkspace"
+                            :enabled computed.workspaceSaved}
+                           {:title (t "command.resetWorkspace") :run "resetWorkspace"}])}))
      (node :width 6 :height 1 :style clear)))

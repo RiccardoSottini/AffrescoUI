@@ -156,7 +156,7 @@
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
   :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
   []
-  (set "state.transform" {:open true :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
+  (set "state.transform" {:open true :target :layer :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
 (defcommand rotateLayer180 "Turns the active layer half a turn."
   :title ~(t "command.rotateLayer180") :description ~(t "command.rotateLayer180.about") :category ~(t "category.edit")
@@ -454,6 +454,18 @@
   []
   (select {:kind "none"}))
 
+(defcommand reselect "Selects again what the last Deselect took away."
+  :title ~(t "command.reselect") :description ~(t "command.reselect.about") :category ~(t "category.select")
+  :icon "rotate-ccw-square" :enablement ~(not state.doc.selection)
+  []
+  (select {:kind "reselect"}))
+
+(defcommand showTransformSelection "Opens the transform dialog on the selection: moves, scales and turns its outline."
+  :title ~(t "command.showTransformSelection") :description ~(t "command.showTransformSelection.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (set "state.transform" {:open true :target :selection :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
+
 (defcommand invertSelection "Selects what isn't selected, and nothing of what is."
   :title ~(t "command.invertSelection") :description ~(t "command.invertSelection.about")
   :category ~(t "category.select") :icon "contrast"
@@ -540,9 +552,21 @@
   :title ~(t "command.resetWorkspace") :description ~(t "command.resetWorkspace.about")
   :category ~(t "category.window") :icon "layout-panel-left"
   []
-  (set "state.panels" {:colour "colour" :properties "properties" :layers "layers"})
-  (set "state.popout" {:history false :navigator false})
-  (set "state.screenMode" :standard))
+  (chooseWorkspace {:name "standard"}))
+
+(defcommand saveWorkspace "Saves the dock as it is as a new workspace."
+  :title ~(t "command.saveWorkspace") :description ~(t "command.saveWorkspace.about") :category ~(t "category.window")
+  :icon "save"
+  []
+  (save-workspace))
+
+(defcommand deleteWorkspace "Deletes the workspace chosen, one saved, and goes back to the standard one."
+  :title ~(t "command.deleteWorkspace") :description ~(t "command.deleteWorkspace.about")
+  :category ~(t "category.window") :icon "trash-2" :enablement ~computed.workspaceSaved
+  []
+  (let [left (remove #(= (:name %) state.workspace) state.workspaces)]
+    (set "state.workspaces" left))
+  (chooseWorkspace {:name "standard"}))
 
 (defcommand showSearch "Searches the commands, and runs the one chosen."
   :title ~(t "command.showSearch") :description ~(t "command.showSearch.about") :category ~(t "category.help")

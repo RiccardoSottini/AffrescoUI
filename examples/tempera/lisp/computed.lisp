@@ -138,6 +138,11 @@
   (map #(+ (first computed.rulerTicksY) (/ (* % computed.rulerStep) 5))
        (->> computed.rulerTicksY count (* 5) (min 400) range)))
 
+;;; The workspaces
+
+(defcomputed workspaceSaved "Whether the workspace chosen is one saved (Delete Workspace deletes it)."
+  (boolean (some #(= % state.workspace) (map :name state.workspaces))))
+
 ;;; The command search
 
 (defcomputed searchItems

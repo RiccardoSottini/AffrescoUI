@@ -144,11 +144,24 @@
 
 (defstate theme dark "The colours: dark or light.")
 
-(defstate guides {:vertical [] :horizontal []} "The guides, in image pixels, that a click on a ruler adds.")
+(defstate guides {:vertical [] :horizontal []}
+  "The guides, in image pixels, that a click on a ruler adds, or a drag out of one.")
+
+(defstate guideDrag {:axis "" :at 0 :moved false}
+  "A drag out of a ruler (the guide's axis while it is over the image, and where) or of a guide (where it was).")
 
 (defstate view {:rulers true :guides true} "Whether the rulers and the guides are shown.")
 
 (defstate panels {:colour colour :properties properties :layers layers} "The tab each group of the dock shows.")
+
+(defstate collapsed {:colour false :properties false :layers false} "The dock's groups folded to their tabs.")
+
+(defstate groupHeights {:colour 158 :properties 236}
+  "The heights of the dock's first two groups, that the sash under each drags; the Layers group takes the rest.")
+
+(defstate workspace standard "The workspace chosen: standard, painting, or the name of one saved.")
+
+(defstate workspaces [] "The workspaces saved: each a name and the dock's tabs, folds, heights and pop-outs.")
 
 (defstate popout {:history false :navigator false} "Whether the History and the Navigator panels are out.")
 
@@ -183,7 +196,8 @@
 
 (defstate newDoc {:open false :width 1200 :height 800 :format rgba8} "The New dialog.")
 
-(defstate transform {:open false :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0} "The Free Transform dialog.")
+(defstate transform {:open false :target layer :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}
+  "The Free Transform dialog, on the active layer or (target selection) on the selection.")
 
 (defstate resize {:open false :width 0 :height 0 :linked true} "The Image Size dialog.")
 
