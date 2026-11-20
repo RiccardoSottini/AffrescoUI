@@ -206,7 +206,7 @@
      :color @accent
      :hover {:color @accent}
      :textColor @onAccent
-     :anchors {:right 32 :bottom 32}
+     :anchors {:right 72 :bottom 32}
      :width 208
      :height 52
      :radius 16

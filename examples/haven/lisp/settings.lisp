@@ -325,7 +325,7 @@
      :color @raised
      :hover {:color @raised}
      :textColor @muted
-     :anchors {:right 32 :bottom 32}
+     :anchors {:right 72 :bottom 32}
      :width 200
      :height 52
      :radius 16
