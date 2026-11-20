@@ -183,7 +183,7 @@
      ~(doc-title)
      (node#command-divider :width 1 :height 20 :color @rbLine)
      (node#command-pad-2 :width 6 :height 1 :color transparent)
-     ~(repeat [tab computed.tabs :key tab.id]
+     ~(repeat [tab (concat computed.tabs computed.contextTabs) :key tab.id]
        (tab-title tab))
      (node#command-gap :grow 1 :height 1 :color transparent)
      ~(search)
@@ -215,7 +215,8 @@
   `(label :id ~(str "tab-" tab.id "-label")
      :style ~(if (and (= state.tab tab.id) state.ribbon) "tabOn" "tab")
      :selected ~(= state.tab tab.id)
-     :runs [{:text ~tab.title :size 12}]
+     :textColor ~(cond (and (= state.tab tab.id) state.ribbon) "@onBrand" tab.contextual "@brandLine" :else "@rbInk")
+     :runs [{:text ~tab.title :size 12 :bold ~(or-else tab.contextual false)}]
      :onClick ~(handler show-tab tab.id)))
 
 (defview search "The search box: commands whose names hold its text, and a search of the slides." []
@@ -280,7 +281,8 @@
        (node :use tabInk :when ~(= state.tab "draw"))
        (node :use tabRecord :when ~(= state.tab "record"))
        (node :use tabCheck :when ~(= state.tab "review"))
-       (node :use tabHelp :when ~(= state.tab "help")))))
+       (node :use tabHelp :when ~(= state.tab "help"))
+       (node :use tabShapeFormat :when ~(= state.tab "shapeFormat")))))
 
 ;;; The work area
 

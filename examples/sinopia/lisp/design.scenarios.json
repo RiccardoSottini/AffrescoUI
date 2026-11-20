@@ -35,6 +35,33 @@
 				{ "click": "#format-gradient-none" },
 				{ "expect": { "state": "deck.slides[3].objects[1].gradient", "is": null } }
 			]
+		},
+		{
+			"name": "sinopia-shape-format-tab",
+			"note": "Selecting a shape shows the contextual Shape Format tab: its size steps keep the proportions when locked, its order buttons move the shape, and the tab goes when nothing is selected",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "expect": { "node": "#tab-shapeFormat-label", "exists": false } },
+				{ "click": "#o9" },
+				{ "click": "#tab-shapeFormat-label" },
+				{ "expect": { "state": "tab", "is": "shapeFormat" } },
+				{ "expect": { "node": "#sf-w-value", "text": "210.0 pt" } },
+				{ "capture": "tab" },
+				{ "click": "#b-sf-ratio" },
+				{ "click": "#sf-h-plus" },
+				{ "expect": { "state": "deck.slides[3].objects[1].h", "is": 100 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].w", "is": 233.3 } },
+				{ "click": "#sf-style-accent3" },
+				{ "expect": { "state": "deck.slides[3].objects[1].fill", "is": "accent3" } },
+				{ "click": "#b-sf-forward" },
+				{ "expect": { "state": "deck.slides[3].objects[2].id", "is": "o9" } },
+				{ "click": "#sf-effects" },
+				{ "expect": { "state": "drop.id", "is": "sf-effects" } },
+				{ "key": "escape" },
+				{ "click": "#tab-home-label" },
+				{ "key": "escape" },
+				{ "expect": { "node": "#tab-shapeFormat-label", "exists": false } }
+			]
 		}
 	]
 }

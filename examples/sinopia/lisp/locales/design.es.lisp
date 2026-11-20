@@ -16,4 +16,9 @@
                 :format.textBox "Cuadro de texto"
                 :format.marginSides "Izquierda, derecha"
                 :format.marginTopBottom "Arriba, abajo"
-                :format.wrapText "Ajustar texto en la forma"}}}
+                :format.wrapText "Ajustar texto en la forma"
+                :shapeFormat.tab "Formato de forma"
+                :shapeFormat.insertShapes "Insertar formas"
+                :shapeFormat.shapeStyles "Estilos de forma"
+                :shapeFormat.size "Tamaño"
+                :shapeFormat.inThePane "Relleno y línea en el panel de formato"}}}

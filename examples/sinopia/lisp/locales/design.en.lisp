@@ -16,4 +16,9 @@
                 :format.textBox "Text box"
                 :format.marginSides "Left, right"
                 :format.marginTopBottom "Top, bottom"
-                :format.wrapText "Wrap text in shape"}}}
+                :format.wrapText "Wrap text in shape"
+                :shapeFormat.tab "Shape Format"
+                :shapeFormat.insertShapes "Insert Shapes"
+                :shapeFormat.shapeStyles "Shape Styles"
+                :shapeFormat.size "Size"
+                :shapeFormat.inThePane "Fill and line in the format pane"}}}

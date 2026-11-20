@@ -16,4 +16,9 @@
                 :format.textBox "Zone de texte"
                 :format.marginSides "Gauche, droite"
                 :format.marginTopBottom "Haut, bas"
-                :format.wrapText "Renvoyer le texte dans la forme"}}}
+                :format.wrapText "Renvoyer le texte dans la forme"
+                :shapeFormat.tab "Format de la forme"
+                :shapeFormat.insertShapes "Insérer des formes"
+                :shapeFormat.shapeStyles "Styles de forme"
+                :shapeFormat.size "Taille"
+                :shapeFormat.inThePane "Remplissage et trait dans le volet de mise en forme"}}}

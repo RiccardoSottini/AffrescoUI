@@ -92,6 +92,12 @@
              pt)
      :h (/ (+ need (* 2 my)) (max down 0.1))}))
 
+(defn fit-size "The size a shrinking text box gives its text (text-fit's arguments)." [text pt spacing drawn inset mx my]
+  (:size (text-fit text pt spacing drawn inset mx my)))
+
+(defn fit-height "The height a box resized to its text takes (text-fit's arguments)." [text pt spacing drawn inset mx my]
+  (:h (text-fit text pt spacing drawn inset mx my)))
+
 (defview object-measures "What object `o` is drawn from: its placeholder `p`, its box, its text and colour."
   []
   `{:p ~(or-else (find #(= (:ph %) o.ph) layout.ph) {})
@@ -101,12 +107,15 @@
     :inset ~(if (= o.kind :shape)
                 (or-else (get-in computed.shapes [(or-else o.shape "rect") :text]) [0 0 0 0])
                 [0 0 0 0])
-    :fit ~(text-fit o.text (or-else o.size p.size 18) o.spacing drawn inset mx my)
-    :box ~(if (= o.autofit "resize") (assoc drawn :h fit.h) drawn)
+    :box ~(if (= o.autofit "resize")
+              (assoc drawn :h (fit-height o.text (or-else o.size p.size 18) o.spacing drawn inset mx my))
+              drawn)
     :shape ~(or (contains? #{:shape :line} o.kind)
                 (not= (or-else o.fill :none) :none)
                 (not= (or-else o.line :none) :none))
-    :size ~(if (= o.autofit "shrink") fit.size (or-else o.size p.size 18))
+    :size ~(if (= o.autofit "shrink")
+               (fit-size o.text (or-else o.size p.size 18) o.spacing drawn inset mx my)
+               (or-else o.size p.size 18))
     :empty ~(= (str/trim (or-else o.text "")) "")
     :editing ~(and edit (= state.editing o.id))
     :prompt ~(and edit empty (some? o.ph) (not editing))
