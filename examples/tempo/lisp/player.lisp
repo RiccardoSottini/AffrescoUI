@@ -7,7 +7,7 @@
 
 (defview player "The floating player at the bottom, hidden in the mini player." []
   `(node#player :when ~(not state.mini)
-     :anchors {:left 12 :right 12 :bottom 40}
+     :anchors {:left 12 :right 12 :bottom ~(if settings.window.statusBar 40 12)}
      :height 64
      :radius 16
      :color @bar

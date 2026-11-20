@@ -382,6 +382,10 @@
 (defn sync-scene "Gives the scene the camera worked out from the state." []
   (set "state.sceneView" computed.sceneView))
 
+(defn start-up "At start: the scene from the state, and the assistant's launcher above the status bar." []
+  (sync-scene)
+  (set "state.assistant.floor" 24))
+
 (defpart scene "The scene follows the camera, the day, the selection and the bodies, from the start."
   :watch {:state.camera sync-scene
           :state.zoom sync-scene
@@ -390,7 +394,7 @@
           :state.time sync-scene
           :state.selected sync-scene
           :state.bodies sync-scene}
-  :onLoad [{:run sync-scene} {:set state.assistant.floor :to 24}])
+  :onLoad start-up)
 
 ;;; What the views show
 

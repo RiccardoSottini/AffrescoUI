@@ -221,5 +221,8 @@
 
 ;;; Starting
 
-(defpart start "The scene Modello opens with, kept for New, and the assistant's launcher above the status bar."
-  :onLoad [{:set state.startScene :to ~state.scene} {:set state.assistant.floor :to 22}])
+(defpart start "The scene Modello opens with, kept for New, and the assistant's launcher in the tab strip above the status bar."
+  :onLoad [{:set state.startScene :to ~state.scene}
+           {:set state.assistant.floor :to 22}
+           {:set state.assistant.size :to 26}
+           {:set state.assistant.inset :to 2}])

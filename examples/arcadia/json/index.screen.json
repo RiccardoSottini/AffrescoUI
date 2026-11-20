@@ -269,6 +269,7 @@
 	},
 
 	"onLoad": [
+		{ "set": "state.assistant.floor", "to": 40 },
 		{
 			"if": "{{settings.appearance.startPage != 'library'}}",
 			"then": [{ "set": "state.nav", "to": "{{[{ tab: settings.appearance.startPage, page: 'home', id: null }]}}" }]

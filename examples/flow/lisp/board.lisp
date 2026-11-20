@@ -98,9 +98,14 @@
 
 ;;; What it adds to the screen
 
+(defn start-up "At start: the timeline, and the assistant's launcher in the sidebar's empty bottom, clear of the board." []
+  (build-timeline)
+  (set "state.assistant.side" :start)
+  (set "state.assistant.floor" 32))
+
 (defpart board "What board adds."
   :watch {:computed.columns build-timeline :state.members build-timeline}
-  :onLoad build-timeline
+  :onLoad start-up
   :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
   :actions {"team:committed" [~(handler team-committed)]
             "team:event" [~(handler team-event)]

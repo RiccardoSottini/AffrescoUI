@@ -3,8 +3,8 @@
 
 	"settings": {
 		"appearance.language": { "type": "string", "enum": ["en", "es", "fr"], "default": "en", "title": "Language", "description": "English, Spanish or French." },
-		"window.statusBar": { "type": "boolean", "default": false, "title": "Developer status bar", "description": "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers." },
 		"board.wipWarnings": { "type": "boolean", "default": true, "title": "Warn over a column's limit", "description": "Show a notice when a move puts a column over its work-in-progress limit." },
+		"window.statusBar": { "type": "boolean", "default": false, "title": "Developer status bar", "description": "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers." },
 		"board.weekStart": { "type": "number", "minimum": 0, "maximum": 6, "default": 1, "title": "First day of the week", "description": "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker." }
 	},
 
@@ -45,7 +45,11 @@
 		"state.members": "buildTimeline"
 	},
 
-	"onLoad": "buildTimeline",
+	"onLoad": [
+		{ "set": "state.assistant.side", "to": "start", "note": "the assistant's launcher in the sidebar's empty bottom, clear of the board" },
+		{ "set": "state.assistant.floor", "to": 32 },
+		{ "run": "buildTimeline" }
+	],
 
 	"channels": {
 		"team": { "socket": "studio.sock", "reconnect": { "after": 2000 } }

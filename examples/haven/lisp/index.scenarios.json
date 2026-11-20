@@ -284,7 +284,7 @@
 			"steps": [
 				{ "key": "mod+4" },
 				{ "click": "#autoTabFlow" },
-				{ "drag": [680, 630], "to": [748, 630], "moves": 8 },
+				{ "drag": [680, 662], "to": [748, 662], "moves": 8 },
 				{ "expect": { "state": "schedules[0].clips[0].start", "is": 8 } },
 				{ "expect": { "state": "schedules[0].clips[0].duration", "is": 3 } }
 			]

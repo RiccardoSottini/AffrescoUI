@@ -7,7 +7,7 @@
 
 (defview main-area "The page shown (state.page), and the queue beside it; hidden in the mini player." []
   `(split#main :when ~(not state.mini)
-     :anchors {:left 248 :right 0 :top 0 :bottom 112}
+     :anchors {:left 248 :right 0 :top 0 :bottom ~(if settings.window.statusBar 112 84)}
      :bind state.sizes
      :defaultSizes [744]
      :minSize [480 240]

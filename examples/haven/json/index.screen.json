@@ -456,7 +456,7 @@
 						"id": "main",
 						"dir": "auto",
 						"when": "{{state.page == 'home'}}",
-						"anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 },
+						"anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" },
 						"color": "transparent",
 						"children": [
 							{
@@ -831,13 +831,13 @@
 							}
 						]
 					},
-					{ "id": "areasPageView", "dir": "auto", "when": "{{state.page == 'areas'}}", "use": "areasPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "logbookPageView", "dir": "auto", "when": "{{state.page == 'logbook'}}", "use": "logbookPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "historyPageView", "dir": "auto", "when": "{{state.page == 'history'}}", "use": "historyPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "energyPage", "dir": "auto", "when": "{{state.page == 'energy'}}", "use": "energyPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "planPage", "when": "{{state.page == 'plan'}}", "use": "planPage", "dir": "ltr", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "automationsPage", "when": "{{state.page == 'automations'}}", "use": "automationsPage", "dir": "ltr", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
-					{ "id": "settingsPageView", "dir": "auto", "when": "{{state.page == 'settings'}}", "use": "settingsPageMain", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
+					{ "id": "areasPageView", "dir": "auto", "when": "{{state.page == 'areas'}}", "use": "areasPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "logbookPageView", "dir": "auto", "when": "{{state.page == 'logbook'}}", "use": "logbookPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "historyPageView", "dir": "auto", "when": "{{state.page == 'history'}}", "use": "historyPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "energyPage", "dir": "auto", "when": "{{state.page == 'energy'}}", "use": "energyPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "planPage", "when": "{{state.page == 'plan'}}", "use": "planPage", "dir": "ltr", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "automationsPage", "when": "{{state.page == 'automations'}}", "use": "automationsPage", "dir": "ltr", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
+					{ "id": "settingsPageView", "dir": "auto", "when": "{{state.page == 'settings'}}", "use": "settingsPageMain", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": "{{settings.window.statusBar ? 32 : 0}}" } },
 					{
 						"id": "statusBar",
 						"when": "{{settings.window.statusBar}}",
