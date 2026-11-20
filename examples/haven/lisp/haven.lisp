@@ -534,6 +534,10 @@
 (defn step-energy-day "Moves the energy page a day back (1) or forward (-1), within the days kept." [step]
   (show-energy-day (+ state.energyDay step)))
 
+(defn pick-log-period "The logbook's period: today, yesterday, twoDays or week." [period] (set "state.logPeriod" period))
+
+(defn pick-hist-day "The day history shows: 0 is today, 6 the oldest kept." [day] (set "state.histDay" (clamp day 0 6)))
+
 (defn show-energy-view "What the energy page's week is by: day, device or room." [view] (set "state.energyView" view))
 
 ; style: keep, a string of the code names it, and a rename never changes a string

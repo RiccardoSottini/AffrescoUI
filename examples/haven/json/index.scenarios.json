@@ -397,6 +397,33 @@
 			]
 		},
 		{
+			"name": "log-and-history-periods",
+			"note": "The activity log shows a period of the last seven days, from its field or its bar's calendar; history shows today or a day before, its temperature that day's",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "expect": { "node": "#logPeriod", "property": "name", "is": "Yesterday – Today" } },
+				{ "expect": { "node": "#logDay", "nth": 1, "property": "name", "is": "Yesterday" } },
+				{ "click": "#logPeriod" },
+				{ "click": { "role": "menuitem", "name": "Last 7 days" } },
+				{ "expect": { "state": "logPeriod", "is": "week" } },
+				{ "expect": { "node": "#logDay", "nth": 6, "property": "name", "is": "6 days ago" } },
+				{ "expect": { "node": "#logRow", "nth": 18, "property": "name", "is": "Ceiling: turned off, 08:10" } },
+				{ "click": "#logRange" },
+				{ "click": { "role": "menuitem", "name": "Yesterday" } },
+				{ "expect": { "node": "#logDay", "nth": 0, "property": "name", "is": "Yesterday" } },
+				{ "expect": { "node": "#logRow", "nth": 0, "property": "name", "is": "Good night: triggered, 23:00" } },
+				{ "key": "mod+6" },
+				{ "expect": { "node": "#histPeriod", "property": "name", "is": "Today, 00:00 – now" } },
+				{ "click": "#histPeriod" },
+				{ "click": { "role": "menuitem", "name": "2 days ago" } },
+				{ "expect": { "state": "histDay", "is": 2 } },
+				{ "expect": { "node": "#histPeriod", "property": "name", "is": "2 days ago, 00:00 – 24:00" } },
+				{ "click": "#histRange" },
+				{ "click": { "role": "menuitem", "name": "Today" } },
+				{ "expect": { "state": "histDay", "is": 0 } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [
