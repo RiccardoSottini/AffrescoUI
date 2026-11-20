@@ -58,7 +58,7 @@ Every part of the format follows these, and so should every extension:
 | Key | Meaning |
 |---|---|
 | `version` | Required. `2` (a file of version 1 is read by migrating it: "Migrating from version 1"). |
-| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
+| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `"fill": true` (`affrescoui check` reports a container root). |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"letters"` (`C-x`, `M-<`; `"emacs"` is its older name). |
@@ -233,7 +233,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -268,7 +268,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
@@ -748,7 +748,7 @@ to load is left out and named in the log.
 |---|---|
 | `bind` | A state path keeping the view (camera and selection), both ways. |
 | `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
-| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "display", "asset" }`; `display` is `"solid"` (the default), `"wire"` (its edges) or `"bounds"` (the box around it), and a node is picked by its surfaces however it is drawn; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone", "castsShadow" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
 | `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
 | `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
 | `time` | The animations' time, in seconds (default 0). |
@@ -959,13 +959,15 @@ The parts of a conversation with an assistant (see Asking the agents) are built-
   unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
   action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
   left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
-  badge).
+  badge; `size` is its diameter, 56 by default, its icon scaled with it).
 
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
 `kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
-like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system). The sizes include a type scale
+(`kit.fontCaption` to `kit.fontDisplay`, 13 pixels for body text at 1x) and one icon size, `kit.iconSize`, for a font's
+`size` and an icon font's (`"fonts": { "default": { "file": "...", "size": "@kit.fontBody" } }`).
 
 <!-- generated: kitTokens -->
 | Token | Dark | Light | For |
@@ -994,6 +996,14 @@ like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
 | `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
 | `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
 | `kit.borderWidth` | 1 | 1 | Borders. |
+| `kit.fontCaption` | 11 | 11 | The type scale: captions, badges and shortcut hints. |
+| `kit.fontSmall` | 12 | 12 | The type scale: secondary text, status bars and metadata. |
+| `kit.fontBody` | 13 | 13 | The type scale: body text, controls and lists (a font's `size`). |
+| `kit.fontSubheading` | 15 | 15 | The type scale: a group's or a card's heading. |
+| `kit.fontHeading` | 18 | 18 | The type scale: a panel's or a dialog's heading. |
+| `kit.fontTitle` | 24 | 24 | The type scale: a page's title. |
+| `kit.fontDisplay` | 32 | 32 | The type scale: large figures and hero text. |
+| `kit.iconSize` | 16 | 16 | Icons in bars, buttons, lists and menus: one size per row. |
 <!-- end generated -->
 
 ## Values, expressions and state
@@ -1183,7 +1193,10 @@ are stored in the state as they are shown to a `calendar`. The functions give nu
 ## Events
 
 A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
-`event.left`/`top` (in the handling node) and its `width`/`height`.
+`event.left`/`top` (in the handling node) and its `width`/`height`. Pointer events (press, release, click, double
+click, context menu, drag, drop and scroll) also get the modifier keys held: `event.shift`, `ctrl`, `alt`, `cmd` and
+`mod` (Cmd on macOS, Ctrl elsewhere, as in shortcuts), e.g. `{{event.shift ? 'extend' : 'replace'}}` or
+`(if event.shift ...)` in a handler.
 
 <!-- generated: events -->
 | Handler | When |
@@ -1339,13 +1352,14 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "scrollCaretToCenter", "scrollCaretToTop" and "scrollCaretToBottom" scroll the caret's row there |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
+| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
 | `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
@@ -1595,6 +1609,7 @@ last 1,024 samples mixed, all 0 unless it plays; `"updates": 50` makes it follow
 | `seek` | `to` (seconds) | Moves it (a file, bytes or a tone; not a live stream). |
 | `volume` | `to` (0 to 4), `ms` | Sets its gain, over `ms` if given. |
 | `pan`, `rate`, `loop` | `to` | Sets its balance, its playback rate, whether it loops. |
+| `eq` | `to` | Sets its equaliser: a list of up to 16 bands `{ "frequency": 60, "gain": 6, "q": 1 }` (20 Hz to 20 kHz, -24 to 24 dB, `q` 0.1 to 10, 1 by default), peaking filters on what it plays; `[]` takes it off. |
 | `master` | `to` (0 to 4) | Sets the gain of every sound (no `of`). |
 
 `of` names the sound, and may be left out when the screen declares only one; the operation may be computed
@@ -2226,7 +2241,7 @@ allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part. `"mods": "shift+alt"` holds modifier keys over the step (`shift`, `ctrl`, `alt`, `cmd`, `mod`), on `drag` and `scroll` too |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
@@ -2252,7 +2267,7 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks disabled` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has; `disabled` is whether it takes no input) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 

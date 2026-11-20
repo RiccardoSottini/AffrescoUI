@@ -208,6 +208,111 @@
 			]
 		},
 		{
+			"name": "hub-thread",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#section-link-discussions" },
+				{ "click": "#hub-tab-hub" },
+				{ "click": "#hub-post-allEndings" },
+				{ "expect": { "state": "hubPost", "is": "allEndings" } },
+				{ "expect": { "node": "#hub-thread-title", "property": "text", "is": "Every ending of Starfall Odyssey, and how to reach each one" } },
+				{ "click": "#hub-vote" },
+				{ "expect": { "state": "hubVoted", "is": ["allEndings"] } },
+				{ "click": "#hub-reply-input" },
+				{ "type": "Great guide, thanks" },
+				{ "key": "enter" },
+				{ "expect": { "state": "hubDraft", "is": "" } },
+				{ "expect": { "state": "hubReplies", "is": [{ "post": "allEndings", "text": "Great guide, thanks" }] } },
+				{ "capture": "hub-thread" },
+				{ "click": "#hub-thread-back" },
+				{ "expect": { "state": "hubPost", "is": null } },
+				{ "expect": { "node": "#hub-post-allEndings", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "hub-screenshots",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#section-link-discussions" },
+				{ "click": "#hub-tab-hub" },
+				{ "click": "#hub-shots-all" },
+				{ "expect": { "state": "hubTab", "is": "screenshots" } },
+				{ "click": "#hub-shot-1" },
+				{ "expect": { "state": "hubShot", "is": 1 } },
+				{ "click": "#hub-shot-vote" },
+				{ "expect": { "state": "hubVoted", "is": ["shot-2"] } },
+				{ "click": "#hub-shot-next" },
+				{ "expect": { "state": "hubShot", "is": 2 } },
+				{ "click": "#hub-shot-prev" },
+				{ "capture": "hub-screenshot" },
+				{ "click": "#hub-shot-back" },
+				{ "expect": { "state": "hubShot", "is": null } }
+			]
+		},
+		{
+			"name": "rewards-and-experiments",
+			"steps": [
+				{ "action": "storeHome" },
+				{ "expect": { "node": "#store-bar", "property": "shown", "is": true } },
+				{ "click": "#store-bar-points" },
+				{ "expect": { "node": "#store-rewards-page", "property": "shown", "is": true } },
+				{ "click": "#redeem-ember-frame" },
+				{ "expect": { "state": "points", "is": 3320 } },
+				{ "expect": { "state": "rewardsOwned", "is": ["gem-badge", "ember-frame"] } },
+				{ "click": "#reward-kind-sticker" },
+				{ "click": "#store-bar-labs" },
+				{ "expect": { "node": "#store-labs-page", "property": "shown", "is": true } },
+				{ "click": "#labs-queue-toggle" },
+				{ "expect": { "state": "labsQueue", "is": true } },
+				{ "capture": "discovery-queue" },
+				{ "click": "#labs-queue-next" },
+				{ "expect": { "state": "labsAt", "is": 1 } },
+				{ "click": "#labs-queue-skip" },
+				{ "click": "#labs-queue-wish" },
+				{ "scroll": "#store-labs-page", "dy": -5 },
+				{ "click": "#labs-hide-owned-toggle" },
+				{ "expect": { "state": "labsHideOwned", "is": true } }
+			]
+		},
+		{
+			"name": "game-panels",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "scroll": [700, 500], "dy": -30 },
+				{ "click": "#pad-layout-southpaw" },
+				{ "expect": { "state": "padLayouts.starfall", "is": "southpaw" } },
+				{ "click": "#my-shot-1" },
+				{ "expect": { "state": "shotView.open", "is": true } },
+				{ "capture": "screenshot-viewer" },
+				{ "click": "#shot-viewer-next" },
+				{ "expect": { "state": "shotView.at", "is": 2 } },
+				{ "action": "deleteShot" },
+				{ "expect": { "state": "shotView.at", "is": 1 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "shotView.open", "is": false } },
+				{ "scroll": [700, 500], "dy": 30 },
+				{ "click": "#play-button" },
+				{ "expect": { "state": "running", "is": "starfall" } },
+				{ "key": "f12" },
+				{ "expect": { "state": "toast.open", "is": true } }
+			]
+		},
+		{
+			"name": "properties-files",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#game-settings" },
+				{ "click": { "role": "menuitem", "name": "Properties…" } },
+				{ "click": "#properties-tab-files" },
+				{ "click": "#properties-browse" },
+				{ "expect": { "state": "filesShown", "is": true } },
+				{ "expect": { "node": "#properties-files", "property": "shown", "is": true } },
+				{ "capture": "properties-files" },
+				{ "click": "#properties-browse" },
+				{ "expect": { "state": "filesShown", "is": false } }
+			]
+		},
+		{
 			"name": "game-links",
 			"steps": [
 				{ "click": "#row-favourites-starfall" },
@@ -278,9 +383,8 @@
 				{ "scroll": [700, 400], "dy": 40 },
 				{ "click": "#store-bar-noteworthy" },
 				{ "expect": { "state": "storeList", "is": "new" } },
-				{ "expect": { "node": "#store-bar-points", "property": "tooltip", "is": "Coming in a later version" } },
 				{ "click": "#store-bar-points" },
-				{ "expect": { "node": "#store-home", "property": "shown", "is": true } },
+				{ "expect": { "node": "#store-rewards-page", "property": "shown", "is": true } },
 				{ "click": "#store-bar-news" },
 				{ "expect": { "node": "#library-home", "property": "shown", "is": true } },
 				{ "action": "showStore" },

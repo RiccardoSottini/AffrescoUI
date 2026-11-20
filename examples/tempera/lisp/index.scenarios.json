@@ -4591,6 +4591,629 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-type-layer",
+			"note": "The Type tool adds a type layer; its text, size and style edit in place, and it rasterizes",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#ff0000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "type"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.gesture",
+						"is": "text"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 200,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 200,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "text"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.fill",
+						"is": "#ff0000ff"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "set-text",
+						"args": "Hello"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.text",
+						"is": "Hello"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hello"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "edit-content",
+						"args": {
+							"size": 72,
+							"bold": true
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.size",
+						"is": 72
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.bold",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 205,
+									"y": 190,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 205,
+									"y": 190,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "text"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "rasterizeLayer",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "pixel"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "undo",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "text"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-shape-layer",
+			"note": "A shape tool drags out a shape layer in the foreground colour; its stroke and corners edit, and it moves with its content",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#0000ff"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "rectangle-shape"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 200,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 200,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "shape"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.shape",
+						"is": "rectangle"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.x2",
+						"is": 300
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "edit-content",
+						"args": {
+							"radius": 20,
+							"strokeWidth": 6,
+							"stroke": "#000000"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.radius",
+						"is": 20
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "move"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 150,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 160,
+									"y": 170,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.x",
+						"is": 110
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.y",
+						"is": 120
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "ellipse-shape"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 400,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 450,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.shape",
+						"is": "ellipse"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "toggle-layer-filter",
+						"args": {}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "toggle-layer-kind",
+						"args": {
+							"kind": "shape"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "layerFilter.kinds[0]",
+						"is": "shape"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-pen-path",
+			"note": "The Pen draws a path in the Paths panel, curving on a drag and closing at its first anchor; it fills, selects and moves",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "u"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "rectangle-shape"
+					}
+				},
+				{
+					"key": "t"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "type"
+					}
+				},
+				{
+					"key": "a"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "path-select"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "pen"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 340,
+									"y": 140,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 360,
+									"y": 160,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 300,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 300,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].name",
+						"is": "Work Path"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].anchors",
+						"is": 3
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 101,
+									"y": 101,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 101,
+									"y": 101,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].closed",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "selectActivePath",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "deselect",
+						"args": {}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "newLayer",
+						"args": {}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "fillActivePath",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[7].label",
+						"is": "Fill Path"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "path-select"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 150,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 170,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 190,
+									"y": 150,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[8].label",
+						"is": "Move Path"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "shapeFromPath",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "shape"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "deleteActivePath",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths",
+						"is": []
+					}
+				}
+			]
 		}
 	]
 }

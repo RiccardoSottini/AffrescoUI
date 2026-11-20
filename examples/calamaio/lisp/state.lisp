@@ -84,9 +84,9 @@
    :org {:title "Org" :menu outline :language org}
    :messages {:title "Messages"}
    :help {:title "Help"}
-   :dired {:title "Folder"}
+   :dired {:title "Folder" :language dired}
    :customize {:title "Customize"}
-   :buffer-menu {:title "Buffer List"}}
+   :buffer-menu {:title "Buffer List" :language buffer-menu}}
   "The major modes: the mode line's name, the menu, the colours (a grammar or a language) and the comment marker.")
 
 (defstate modeFor {:py python :c c :h c :el lisp :lisp lisp :md markdown :org org :txt text}

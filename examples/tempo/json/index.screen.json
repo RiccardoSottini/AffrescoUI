@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"strings": { "default": "en", "locale": "{{settings.ui.language}}" },
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+4 (the liked songs), Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language; Cmd+S shuffles, Cmd+R repeats all or one song, Cmd+Alt+Down mutes, Cmd+[ and Cmd+] go back and forward through the pages, and a click on a line of the lyrics goes there. The heart in the player likes the song playing; a right click (or Shift+F10) on a song opens its menu: play, play next, add to the queue, like. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+4 (the liked songs), Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language; Cmd+S shuffles, Cmd+R repeats all or one song, Cmd+Alt+Down mutes, Cmd+[ and Cmd+] go back and forward through the pages, and a click on a line of the lyrics goes there. The heart in the player likes the song playing; a right click (or Shift+F10) on a song opens its menu: play, play next, add to the queue, like. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser shapes the sound (five peaking bands) and the visualiser; a crossfade overlaps the song ending and the next (the beat plays on two decks, beat and beat2).",
 
 	"include": ["locales/en.json", "locales/es.json", "locales/fr.json", "pages.json", "../../shared/addons/assistant/assistant.json"],
 
@@ -13,7 +13,9 @@
 
 	"audio": {
 		"beat": { "file": "../assets/audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat", "bands": 32, "updates": 50,
-		          "note": "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)" }
+		          "note": "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)" },
+		"beat2": { "file": "../assets/audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat2", "bands": 32, "updates": 50,
+		           "note": "The beat's second deck: the next song fades in on it while the song ending fades out" }
 	},
 
 	"fonts": {
@@ -79,6 +81,7 @@
 			"title": "Crossfade",
 			"description": "How many seconds the end of a song overlaps the start of the next; 0 for none."
 		},
+		"window.statusBar": { "type": "boolean", "default": false, "title": "Developer status bar", "description": "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers." },
 		"ui.language": {
 			"type": "string",
 			"enum": ["en", "es", "fr"],
@@ -96,8 +99,11 @@
 		"playingTrack": 2,
 		"isPlaying": true,
 		"beat": { "status": "stopped", "playing": false },
+		"beat2": { "status": "stopped", "playing": false },
 		"sounds": {},
 		"soundOn": "",
+		"soundFor": "",
+		"soundNext": "",
 		"elapsed": 84,
 		"volume": 70,
 		"muted": false,
@@ -154,8 +160,12 @@
 		"isPlaying": {"type": "boolean"},
 		"beat": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"},
 			"spectrum": {"type": "array", "items": {"type": "number"}}}},
+		"beat2": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"},
+			"spectrum": {"type": "array", "items": {"type": "number"}}}},
 		"sounds": {"type": "object"},
 		"soundOn": {"type": "string"},
+		"soundFor": {"type": "string"},
+		"soundNext": {"type": "string"},
 		"elapsed": {"type": "number"},
 		"volume": {"type": "number", "minimum": 0, "maximum": 100},
 		"muted": {"type": "boolean"},
@@ -417,12 +427,15 @@
 		"list": "{{data.playlists[state.current]}}",
 		"playing": "{{state.playingList < 0 ? state.libraryInfo : data.playlists[state.playingList]}}",
 		"track": "{{state.playingList < 0 ? { title: computed.library[state.playingTrack].cells[1], artist: computed.library[state.playingTrack].cells[2], album: computed.library[state.playingTrack].cells[3], time: computed.library[state.playingTrack].cells[4], sound: computed.library[state.playingTrack].sound } : computed.playing.tracks[state.playingTrack]}}",
-		"sound": "{{computed.track.sound ?? 'beat'}}",
+		"sound": "{{computed.track.sound ?? (state.soundOn == 'beat2' ? 'beat2' : 'beat')}}",
+		"nextSound": "{{(computed.queueSongs[0].list < 0 ? computed.library[computed.queueSongs[0].track].sound : data.playlists[computed.queueSongs[0].list].tracks[computed.queueSongs[0].track].sound) ?? (state.soundOn == 'beat' ? 'beat2' : 'beat')}}",
+		"eqBands": "{{map(state.bands, { frequency: it.frequency, gain: state.eqOn ? (curve(state.eq, it.at) - 0.5) * 24 : 0, q: 1.1 })}}",
 		"loudness": "{{state.muted ? 0 : state.volume / 100}}",
 		"playingName": "{{state.playingList >= 0 ? computed.playing.name : state.source != '' ? state.source : t('library.all')}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
 		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
 		"listSizes": "{{map(data.playlists, length(it.tracks))}}",
+		"namedSongs": "{{concat(map(computed.playlistSongs, { key: it.id, title: it.cells[1], artist: it.cells[2] }), map(data.songs, { key: '-1:' + it.id, title: it.title, artist: it.artist }))}}",
 		"queueSongs": "{{map(filter(map(state.queue, { key: it, list: number(split(it, ':')[0]), track: number(split(it, ':')[1]) }), it.list < 0 ? it.track < length(computed.library) : it.track < (computed.listSizes[it.list] ?? 0)), merge(it, it.list < 0 ? { title: computed.library[it.track].cells[1], artist: computed.library[it.track].cells[2] } : { title: data.playlists[it.list].tracks[it.track].title, artist: data.playlists[it.list].tracks[it.track].artist }))}}",
 		"upNext": "{{map(computed.queueSongs, { id: it.key, label: it.title + '  ·  ' + it.artist })}}",
 		"queueAt": "{{state.queuePick == null ? -1 : indexOf(state.queue, state.queuePick)}}",
@@ -431,7 +444,7 @@
 		"songMenuKey": "{{state.songMenu.list}}:{{state.songMenu.track}}",
 		"songMenuSong": "{{state.songMenu.list < 0 ? merge({ title: computed.library[state.songMenu.track].cells[1], artist: computed.library[state.songMenu.track].cells[2], album: computed.library[state.songMenu.track].cells[3], time: computed.library[state.songMenu.track].cells[4] }, computed.library[state.songMenu.track].sound == null ? {} : { sound: computed.library[state.songMenu.track].sound }) : data.playlists[state.songMenu.list].tracks[state.songMenu.track]}}",
 		"listMinutes": "{{round(sum(computed.list.tracks ?? [], number(split(it.time ?? '0:0', ':')[0]) * 60 + number(split(it.time ?? '0:0', ':')[1])) / 60)}}",
-		"songMenuItems": "{{concat([{ title: t('song.play'), run: 'play', with: { list: state.songMenu.list, track: state.songMenu.track } }, { title: t('song.playNext'), run: 'playNext', with: { key: computed.songMenuKey } }, { title: t('song.addToQueue'), run: 'addToQueue', with: { key: computed.songMenuKey } }, { separator: true }, { title: t('song.addToPlaylist'), submenu: concat(map(data.playlists, { title: it.name, enabled: index != state.songMenu.list, run: 'addToPlaylist', with: { list: index } }), [{ separator: true }, { title: t('playlist.new'), run: 'newPlaylist', with: { withSong: true } }]) }, { title: t(contains(state.liked, computed.songMenuKey) ? 'song.unlike' : 'song.like'), run: 'toggleLike', with: { key: computed.songMenuKey } }], state.songMenu.list < 0 ? [] : [{ title: t('song.remove'), run: 'removeFromPlaylist', with: { list: state.songMenu.list, track: state.songMenu.track } }])}}",
+		"songMenuItems": "{{concat([{ title: t('song.play'), run: 'play', with: { list: state.songMenu.list, track: state.songMenu.track } }, { title: t('song.playNext'), run: 'playNext', with: { key: computed.songMenuKey } }, contains(state.queue, computed.songMenuKey) ? { title: t('song.unqueue'), run: 'removeFromQueue', with: { key: computed.songMenuKey } } : { title: t('song.addToQueue'), run: 'addToQueue', with: { key: computed.songMenuKey } }, { separator: true }, { title: t('song.addToPlaylist'), submenu: concat(map(data.playlists, { title: it.name, enabled: index != state.songMenu.list, run: 'addToPlaylist', with: { list: index } }), [{ separator: true }, { title: t('playlist.new'), run: 'newPlaylist', with: { withSong: true } }]) }, { title: t(contains(state.liked, computed.songMenuKey) ? 'song.unlike' : 'song.like'), run: 'toggleLike', with: { key: computed.songMenuKey } }], state.songMenu.list < 0 ? [] : [{ title: t('song.remove'), run: 'removeFromPlaylist', with: { list: state.songMenu.list, track: state.songMenu.track } }])}}",
 		"listMenuItems": "{{[{ title: t('playlist.rename'), run: 'startRename' }, { title: t('playlist.delete'), run: 'askDelete' }]}}",
 		"palette": "{{map(filter(commands, it.enabled && slice(it.name, 0, 4) != 'song'), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
 		"wave": "{{map(range(64), 3 + (index * index * (length(computed.track.title) + state.playingTrack) + index * 7) % 21)}}",
@@ -545,7 +558,7 @@
 			{ "if": "{{!state.isPlaying}}", "then": [{ "stop": true }] },
 			{ "increment": "state.elapsed" },
 			{ "if": "{{settings.playback.crossfade > 0 && state.soundOn != '' && state.repeat != 'one' && length(state.queue) > 0 && state.elapsed == computed.duration - settings.playback.crossfade}}",
-			  "then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": 0, "ms": "{{settings.playback.crossfade * 1000}}", "onError": [] }] },
+			  "then": [{ "run": "crossInto", "with": { "next": "{{computed.nextSound}}", "ms": "{{settings.playback.crossfade * 1000}}" } }] },
 			{ "if": "{{state.elapsed >= computed.duration && state.repeat == 'one'}}", "then": [{ "run": "replay" }, { "stop": true }] },
 			{ "if": "{{state.elapsed >= computed.duration}}", "then": [{ "run": "advance", "with": { "at": "{{settings.playback.crossfade}}" } }] }
 		],
@@ -567,6 +580,11 @@
 		"playNext": [
 			{ "note": "with: key, any song as list:track: it comes next" },
 			{ "set": "state.queue", "to": "{{slice(concat([key], filter(state.queue, it != key)), 0, 1000)}}" },
+			{ "set": "state.queuePick", "to": null }
+		],
+		"removeFromQueue": [
+			{ "note": "with: key, a song of the queue as list:track: it leaves the queue" },
+			{ "set": "state.queue", "to": "{{filter(state.queue, it != key)}}" },
 			{ "set": "state.queuePick", "to": null }
 		],
 		"addToQueue": [
@@ -615,6 +633,17 @@
 			{ "note": "with: by, -1 or 1: moves the song picked in the queue up or down" },
 			{ "if": "{{computed.queueAt < 0}}", "then": [{ "stop": true }] },
 			{ "run": "placeQueued", "with": { "song": "{{state.queue[computed.queueAt]}}", "at": "{{clamp(computed.queueAt + by, 0, length(state.queue) - 1)}}" } }
+		],
+		"unqueue": [
+			{ "note": "Takes the song picked in the queue out of it, picks the one after it, and says so" },
+			{ "if": "{{computed.queueAt < 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.queueNote", "to": "{{t('queue.removed', { title: computed.queueSongs[indexOf(map(computed.queueSongs, it.key), state.queuePick)].title ?? '' })}}" },
+			{ "run": "leaveQueue", "with": { "song": "{{state.queuePick}}", "at": "{{computed.queueAt}}" } }
+		],
+		"leaveQueue": [
+			{ "note": "with: song (its key), at (its place): it leaves the queue, and the song now at its place is picked" },
+			{ "set": "state.queue", "to": "{{filter(state.queue, it != song)}}" },
+			{ "set": "state.queuePick", "to": "{{state.queue[min(at, length(state.queue) - 1)] ?? null}}" }
 		],
 		"dropQueued": [
 			{ "note": "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows" },
@@ -720,10 +749,44 @@
 			  "then": [{ "audio": "stop", "of": "{{state.soundOn}}", "onError": [] }] },
 			{ "set": "state.soundOn", "to": "{{computed.sound}}" },
 			{ "audio": "volume", "of": "{{computed.sound}}", "to": "{{computed.loudness}}", "onError": [] },
+			{ "audio": "eq", "of": "{{computed.sound}}", "to": "{{computed.eqBands}}", "onError": [] },
 			{ "audio": "play", "of": "{{computed.sound}}", "onError": [{ "set": "state.soundOn", "to": "" }] }
 		],
+		"followEqualiser": [
+			{ "note": "The equaliser's curve, or its switch, shapes the sound playing (and the one fading in)" },
+			{ "if": "{{state.soundOn != ''}}", "then": [{ "audio": "eq", "of": "{{state.soundOn}}", "to": "{{computed.eqBands}}", "onError": [] }] },
+			{ "if": "{{state.soundNext != ''}}", "then": [{ "audio": "eq", "of": "{{state.soundNext}}", "to": "{{computed.eqBands}}", "onError": [] }] }
+		],
+		"crossInto": [
+			{ "note": "with: next, ms: the crossfade begins: the song playing fades out, and the next song's sound fades in under it from its start, through the equaliser. A sound can't overlap itself: then it fades in once the next song starts" },
+			{ "audio": "volume", "of": "{{state.soundOn}}", "to": 0, "ms": "{{ms}}", "onError": [] },
+			{ "if": "{{next != state.soundOn}}", "then": [
+				{ "set": "state.soundNext", "to": "{{next}}" },
+				{ "audio": "volume", "of": "{{next}}", "to": 0, "onError": [] },
+				{ "audio": "eq", "of": "{{next}}", "to": "{{computed.eqBands}}", "onError": [] },
+				{ "audio": "play", "of": "{{next}}", "from": 0, "onError": [{ "run": "forgetNext" }] },
+				{ "audio": "volume", "of": "{{next}}", "to": "{{computed.loudness}}", "ms": "{{ms}}", "onError": [] }
+			] }
+		],
+		"forgetNext": [
+			{ "note": "The crossfade's next sound stops (a skip, a pause), if one fades in" },
+			{ "if": "{{state.soundNext != ''}}", "then": [
+				{ "audio": "stop", "of": "{{state.soundNext}}", "onError": [] },
+				{ "set": "state.soundNext", "to": "" }
+			] }
+		],
 		"songChanged": [
-			{ "note": "A new song: its sound from the start while playing (the same sound again, or another one). After a crossfade (the song starts past 0) it fades in over the crossfade's seconds, as the song before faded out" },
+			{ "note": "A new song: its sound from the start while playing (the same sound again, or another one). After a crossfade (the song starts past 0) its sound already plays, faded in under the song before; one that couldn't overlap fades in now. Once per song: a list and a track changing together start it once" },
+			{ "if": "{{state.soundFor == computed.playingKey}}", "then": [{ "stop": true }] },
+			{ "set": "state.soundFor", "to": "{{computed.playingKey}}" },
+			{ "if": "{{state.isPlaying && state.soundNext != '' && state.elapsed > 0}}", "then": [
+				{ "note": "The next song starts where its sound already plays; the song that ended stops" },
+				{ "audio": "stop", "of": "{{state.soundOn}}", "onError": [] },
+				{ "set": "state.soundOn", "to": "{{state.soundNext}}" },
+				{ "set": "state.soundNext", "to": "" },
+				{ "stop": true }
+			] },
+			{ "run": "forgetNext" },
 			{ "if": "{{state.isPlaying && state.soundOn != ''}}", "then": [
 				{ "if": "{{state.soundOn == computed.sound}}",
 				  "then": [{ "audio": "seek", "of": "{{state.soundOn}}", "to": 0, "onError": [] }],
@@ -753,30 +816,38 @@
 		"songPlay": { "title": "{{t('command.songPlay')}}", "description": "{{t('command.songPlay.about')}}", "category": "Playback", "icon": "play",
 			"arguments": { "title": { "type": ["string", "null"], "description": "The song's title, like Golden Rivers; the paused song when left out" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
 			"do": [
-				{ "note": "a library song, by its title (and artist), plays; without a title, the song again where it paused; a song that isn't there changes nothing but the page: the search shows what its title finds" },
+				{ "note": "a song, a playlist's or the library's, by its title (and artist), plays; without a title, the song again where it paused; a song that isn't there changes nothing but the page: the search shows what its title finds" },
 				{ "if": "{{title == null}}", "then": [{ "set": "state.isPlaying", "to": true }, { "stop": true }] },
-				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
-				{ "run": "play", "with": { "list": -1, "track": "{{number(find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id)}}" } }
+				{ "if": "{{find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "run": "play", "with": { "list": "{{number(split(find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).key, ':')[0])}}", "track": "{{number(split(find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).key, ':')[1])}}" } }
 			] },
 		"songPause": { "title": "{{t('command.songPause')}}", "description": "{{t('command.songPause.about')}}", "category": "Playback", "icon": "pause", "do": [{ "set": "state.isPlaying", "to": false }] },
 		"songQueue": { "title": "{{t('command.songQueue')}}", "description": "{{t('command.songQueue.about')}}", "category": "Playback", "icon": "list-plus",
 			"arguments": { "title": { "type": "string", "description": "The song's title, like Golden Rivers" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
 			"do": [
-				{ "note": "a library song, by its title (and artist), goes to the end of the queue" },
-				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
-				{ "run": "addToQueue", "with": { "key": "{{'-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id}}" } }
+				{ "note": "a song, a playlist's or the library's, by its title (and artist), goes to the end of the queue" },
+				{ "if": "{{find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "run": "addToQueue", "with": { "key": "{{find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).key}}" } }
 			] },
 		"songLike": { "title": "{{t('command.songLike')}}", "description": "{{t('command.songLike.about')}}", "category": "Playback", "icon": "heart",
 			"arguments": { "title": { "type": "string", "description": "The song's title, like Golden Rivers" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
 			"do": [
-				{ "note": "a library song, by its title (and artist), is liked; a liked song stays liked" },
-				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
-				{ "if": "{{!contains(state.liked, '-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id)}}", "then": [{ "run": "toggleLike", "with": { "key": "{{'-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id}}" } }] }
+				{ "note": "a song, a playlist's or the library's, by its title (and artist), is liked; a liked song stays liked" },
+				{ "if": "{{find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "if": "{{!contains(state.liked, find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).key)}}", "then": [{ "run": "toggleLike", "with": { "key": "{{find(computed.namedSongs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).key}}" } }] }
 			] },
+		"soundPreset": { "title": "{{t('command.soundPreset')}}", "description": "{{t('command.soundPreset.about')}}", "category": "Playback", "icon": "sliders-horizontal",
+			"arguments": { "preset": { "type": "string", "enum": ["flat", "bass", "vocal", "treble"], "description": "The preset: flat, bass (a bass boost), vocal or treble" } },
+			"do": [{ "run": "setPreset", "with": { "preset": "{{preset}}" } }] },
+		"soundCrossfade": { "title": "{{t('command.soundCrossfade')}}", "description": "{{t('command.soundCrossfade.about')}}", "category": "Playback", "icon": "blend",
+			"arguments": { "seconds": { "type": "number", "minimum": 0, "maximum": 12, "description": "The seconds, from 0 (off) to 12" } },
+			"do": [{ "set": "settings.playback.crossfade", "to": "{{clamp(round(seconds), 0, 12)}}" }] },
 		"showNowPlaying": { "title": "Show now playing", "category": "View", "icon": "radio", "do": [{ "set": "state.page", "to": "nowPlaying" }] },
 		"showSound": { "title": "Show the equaliser and crossfade", "category": "View", "icon": "sliders-horizontal", "do": [{ "set": "state.page", "to": "sound" }] },
 		"cancelRename": { "title": "Leave the playlist's name", "category": "View", "icon": "x", "enablement": "{{state.renaming}}",
 			"do": [{ "set": "state.renaming", "to": false }] },
+		"clearQueue": { "title": "{{t('command.clearQueue')}}", "description": "{{t('command.clearQueue.about')}}", "category": "Playback", "icon": "list-x",
+			"enablement": "{{length(state.queue) > 0}}", "do": [{ "set": "state.queue", "to": [] }, { "set": "state.queuePick", "to": null }] },
 		"toggleQueue": { "title": "Show or hide the queue", "category": "View", "icon": "list-ordered", "do": [{ "toggle": "state.queueOpen" }] },
 		"toggleShuffle": { "title": "Shuffle", "category": "Playback", "icon": "shuffle", "do": [
 			{ "toggle": "state.shuffle" },
@@ -838,13 +909,15 @@
 	"watch": {
 		"state.isPlaying": [{ "note": "The song's sound follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly" },
 			{ "if": "{{state.isPlaying}}", "then": [{ "run": "startSound" }],
-			  "else": [{ "if": "{{state.soundOn != ''}}", "then": [{ "audio": "pause", "of": "{{state.soundOn}}", "onError": [] }] }] }],
+			  "else": [{ "run": "forgetNext" }, { "if": "{{state.soundOn != ''}}", "then": [{ "audio": "pause", "of": "{{state.soundOn}}", "onError": [] }] }] }],
 		"state.playingTrack": [{ "run": "songChanged" }],
 		"state.playingList": [{ "run": "songChanged" }],
 		"state.volume": [{ "if": "{{state.soundOn != ''}}",
 			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": 80, "onError": [] }] }],
 		"state.muted": [{ "if": "{{state.soundOn != ''}}",
 			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": 80, "onError": [] }] }],
+		"state.eq": [{ "run": "followEqualiser" }],
+		"state.eqOn": [{ "run": "followEqualiser" }],
 		"state.page": [{ "run": "placeChanged" }],
 		"state.mini": [{ "run": "liftAssistant" }],
 		"state.current": [{ "run": "placeChanged" }],
@@ -948,7 +1021,7 @@
 								"onDoubleClick": { "run": "play", "with": { "list": "{{index}}", "track": 0 } },
 								"tooltip": "{{t('playlist.play')}}",
 								"children": [
-									{ "type": "image", "id": "image-list-cover", "file": "{{list.cover}}", "fit": "cover", "radius": 10, "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40 },
+									{ "type": "image", "id": "image-list-cover", "file": "{{list.cover}}", "fit": "cover", "color": "@button", "radius": 10, "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40 },
 									{ "type": "label", "id": "label-list-name", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
 									{ "id": "label-plural-list-tracks", "style": "caption", "text": "{{t('songs', { n: length(list.tracks) })}}", "anchors": { "left": 62, "top": 31 } },
 									{
@@ -997,7 +1070,7 @@
 										"color": "@surface",
 										"gradient": { "kind": "linear", "angle": 90, "stops": ["@accentSoft", "@surface"] },
 										"children": [
-											{ "type": "image", "id": "cover", "file": "{{computed.list.cover}}", "fit": "cover", "radius": 24, "anchors": { "right": 40, "top": 48 }, "width": 168, "height": 168,
+											{ "type": "image", "id": "cover", "file": "{{computed.list.cover}}", "fit": "cover", "color": "@button", "radius": 24, "anchors": { "right": 40, "top": 48 }, "width": 168, "height": 168,
 												"role": "img", "label": "{{computed.list.name}}" },
 											{ "id": "label-playlist", "style": "caption", "text": "{{t('playlist.caption')}}", "anchors": { "left": 40, "top": 62 } },
 											{ "type": "label", "id": "listName", "when": "{{!state.renaming}}", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 36, "top": 80 }, "fitText": true,
@@ -1093,7 +1166,7 @@
 										"height": 132,
 										"color": "@surface",
 										"children": [
-											{ "type": "image", "id": "libraryCover", "file": "{{state.libraryInfo.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84 },
+											{ "type": "image", "id": "libraryCover", "file": "{{state.libraryInfo.cover}}", "fit": "cover", "color": "@button", "radius": 6, "anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84 },
 											{ "id": "label-library", "style": "caption", "text": "{{t('library.caption')}}", "anchors": { "left": 140, "top": 28 } },
 											{ "type": "label", "id": "libraryName", "text": "{{t('library.all')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
 											{ "id": "libraryCount", "style": "caption", "text": "{{t('library.count', { n: length(computed.library) })}}", "anchors": { "left": 140, "top": 88 } },
@@ -1151,15 +1224,18 @@
 						"label": "{{t('queue.upNext')}}",
 						"children": [
 							{ "id": "label-now-playing", "style": "caption", "text": "{{t('queue.now')}}", "anchors": { "left": 20, "top": 22 } },
-							{ "type": "image", "id": "queueCover", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 12, "anchors": { "left": 20, "top": 48 }, "width": 96, "height": 96 },
-							{ "id": "queueFrom", "style": "caption", "text": "{{t('queue.from', { name: computed.playingName })}}", "anchors": { "left": 132, "top": 54 } },
+							{ "type": "image", "id": "queueCover", "file": "{{computed.playing.cover}}", "fit": "cover", "color": "@button", "radius": 12, "anchors": { "left": 20, "top": 48 }, "width": 96, "height": 96 },
+							{ "id": "queueFrom", "style": "caption", "text": "{{t('queue.from')}}", "anchors": { "left": 132, "top": 66 } },
+							{ "type": "label", "id": "queueFromName", "text": "{{computed.playingName}}", "textColor": "@text", "anchors": { "left": 132, "right": 20, "top": 84 }, "height": 20 },
 							{ "type": "label", "id": "queueTitle", "text": "{{computed.track.title}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 160 }, "fitText": true },
 							{ "type": "label", "id": "queueArtist", "text": "{{computed.track.artist}}  ·  {{computed.track.album}}", "textColor": "@muted", "anchors": { "left": 20, "top": 184 }, "fitText": true },
 							{ "type": "path", "id": "wavePlayed", "d": "{{computed.wavePlayed}}", "viewBox": "0 0 128 56", "fit": "fill", "anchors": { "left": 20, "right": 20, "top": 216 }, "height": 48, "stroke": "@accent", "strokeWidth": 2.5, "strokeCap": "round" },
 							{ "type": "path", "id": "waveLeft", "d": "{{computed.waveLeft}}", "viewBox": "0 0 128 56", "fit": "fill", "anchors": { "left": 20, "right": 20, "top": 216 }, "height": 48, "stroke": "@faint", "strokeWidth": 2.5, "strokeCap": "round" },
 							{ "id": "queueTime", "style": "caption", "text": "{{computed.elapsedText}} / {{computed.track.time}}", "anchors": { "left": 20, "top": 270 } },
 							{ "id": "label-up-next", "style": "caption", "text": "{{t('queue.upNext')}}", "anchors": { "left": 20, "top": 304 } },
-							{ "id": "queueNote", "style": "caption", "live": "polite", "text": "{{state.queueNote}}", "anchors": { "right": 20, "top": 304 } },
+							{ "id": "queueNote", "style": "caption", "live": "polite", "text": "{{state.queueNote}}", "anchors": { "right": 56, "top": 304 } },
+							{ "id": "clearQueue", "style": "control", "when": "{{length(computed.upNext) > 0}}", "icon": "list-x", "font": "small", "width": 28, "height": 28, "radius": 14,
+								"color": "@surface", "anchors": { "right": 16, "top": 296 }, "label": "{{t('queue.clear')}}", "tooltip": "{{t('queue.clear')}}", "onClick": "clearQueue" },
 							{
 								"type": "list",
 								"id": "queue",
@@ -1176,7 +1252,9 @@
 								"drag": {},
 								"onDrop": "dropQueued",
 								"onOpen": "jumpTo",
-								"keys": { "alt+up": { "run": "moveQueued", "with": { "by": -1 } }, "alt+down": { "run": "moveQueued", "with": { "by": 1 } } }
+								"onContextMenu": { "if": "{{(event.data.id ?? state.queuePick) != null}}", "then": [{ "run": "openSongMenu", "with": {
+									"list": "{{number(split(event.data.id ?? state.queuePick, ':')[0])}}", "track": "{{number(split(event.data.id ?? state.queuePick, ':')[1])}}" } }] },
+								"keys": { "alt+up": { "run": "moveQueued", "with": { "by": -1 } }, "alt+down": { "run": "moveQueued", "with": { "by": 1 } }, "delete": "unqueue", "backspace": "unqueue" }
 							},
 							{ "id": "queueEmpty", "when": "{{length(computed.upNext) == 0}}", "style": "caption", "text": "{{t('queue.empty')}}", "anchors": { "left": 20, "top": 330 } }
 						]
@@ -1228,7 +1306,7 @@
 						"anchors": { "left": 224, "right": 268, "top": 0, "bottom": 0 },
 						"color": "transparent",
 						"children": [
-							{ "type": "image", "id": "playingCover", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 10, "anchors": { "left": 0, "top": 10 }, "width": 44, "height": 44,
+							{ "type": "image", "id": "playingCover", "file": "{{computed.playing.cover}}", "fit": "cover", "color": "@button", "radius": 10, "anchors": { "left": 0, "top": 10 }, "width": 44, "height": 44,
 								"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('now.show', { name: computed.playingName })}}", "tooltip": "{{t('now.show', { name: computed.playingName })}}",
 								"onClick": [{ "if": "{{state.playingList >= 0}}", "then": [{ "run": "openList", "with": { "list": "{{state.playingList}}" } }], "else": [{ "set": "state.page", "to": "library" }] }] },
 							{ "type": "label", "id": "nowPlaying", "anchors": { "left": 56, "right": 36, "top": 9 }, "height": 20,
@@ -1277,15 +1355,15 @@
 						"label": "{{t('player.volume')}}",
 						"bind": "state.volume",
 						"trackColor": "@faint",
-						"activeColor": "@muted",
-						"knobColor": "@text",
+						"activeColor": "{{state.muted ? '@faint' : '@muted'}}",
+						"knobColor": "{{state.muted ? '@muted' : '@text'}}",
 						"tooltip": "{{t('player.volume')}}"
 					}
 				]
 			},
 			{
 				"id": "statusBar",
-				"when": "{{!state.mini}}",
+				"when": "{{!state.mini && settings.window.statusBar}}",
 				"anchors": { "left": 0, "right": 0, "bottom": 0 },
 				"height": 32,
 				"color": "@sidebar",

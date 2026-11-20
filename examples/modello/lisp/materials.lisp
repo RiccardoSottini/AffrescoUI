@@ -118,3 +118,9 @@
 
 (defn select-shader-nodes "Nodes selected in the graph." []
   (set "state.shaderSelected" event.ids))
+
+(defn set-material "One of the active material's settings, such as how it uses its alpha; undoable." [key value]
+  (let [i computed.activeMaterialIndex]
+    (when (and (>= i 0) (not= (get-in state.scene.materials [i key]) value))
+      (snapshot)
+      (set (str "state.scene.materials[" i "]." key) value))))

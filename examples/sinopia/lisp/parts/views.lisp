@@ -232,7 +232,7 @@
        :fitText true
        :height 16
        :textColor @rbInk
-       :runs [{:text ~(text (inc i)) :size 12 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 12 :bold ~(= i state.current) :strike ~(or-else s.hidden false)}])
      (label :id ~(str "sorter-" s.id "-hidden")
        :when ~(or-else s.hidden false)
        :fitText true

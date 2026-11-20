@@ -115,6 +115,14 @@
 
 (defcomputed wide "The window is wide enough for the sections down the side." (>= window.width 760))
 
+(defcomputed narrow "The window is too narrow for a card: the forms sit on the page itself." (< window.width 560))
+
+(defcomputed cardStyle "A form's card: raised on a wide window, flat on the page on a narrow one."
+  (if (< window.width 560) "cardFlat" "card"))
+
+(defcomputed cardWidth "A form's card's width: 420 at most, the whole window on a narrow one."
+  (if (< window.width 560) window.width (min 420 (- window.width 32))))
+
 (defcomputed sections "The account's sections, in their order, each with its icon."
   [{:name "profile" :icon "user"}
    {:name "emails" :icon "mail"}

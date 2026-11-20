@@ -1,4 +1,4 @@
-{:note "Calamaio's own languages, each coloured by the @syntax.* colours of look.lisp; Python, C and Markdown take their grammar."
+{:note "Calamaio's own languages, each coloured by the @syntax.* colours of look.lisp; Python, C and Markdown take their grammar. A folder's listing and the buffer list are languages too: their first line dimmed, a flagged line, folders."
  :languages {:lisp {:title "Lisp"
                     :aliases [lisp-interaction]
                     :files ["*.el" "*.lisp"]
@@ -21,4 +21,15 @@
                               {:match "^\\*{3,} .*" :scope keyword}
                               {:match "\\[\\[[^\\]]*\\](?:\\[[^\\]]*\\])?\\]" :scope text.uri}
                               {:match "\\b(?:TODO|NEXT)\\b" :scope string}
-                              {:match "\\bDONE\\b" :scope type}]}}}
+                              {:match "\\bDONE\\b" :scope type}]}
+             :dired {:title "Folder"
+                     :patterns [{:match "^D .*" :scope constant}
+                                {:match "^\\S.*" :scope comment}
+                                {:match "\\d+ \\S+ \\d\\d:\\d\\d" :scope comment}
+                                {:match "\\S+/$" :scope keyword}]}
+             :buffer-menu {:title "Buffer List"
+                           :patterns [{:match "^[^\\s%*].*" :scope comment}
+                                      {:match "^  -.*" :scope comment}
+                                      {:match "^\\* " :scope constant}
+                                      {:match "^% " :scope comment}
+                                      {:match "(?<=^[ %*] )\\S+" :scope keyword}]}}}

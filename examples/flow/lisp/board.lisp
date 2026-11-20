@@ -88,6 +88,10 @@
   true "Show a notice when a move puts a column over its work-in-progress limit."
   :type boolean :title ~(t "settings.wipWarnings") :description ~(t "settings.wipWarnings.about"))
 
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
+
 (defcustom board.weekStart
   1 "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker."
   :type number :minimum 0 :maximum 6 :title ~(t "settings.weekStart") :description ~(t "settings.weekStart.about"))

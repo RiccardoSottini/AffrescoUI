@@ -25,7 +25,8 @@
                         {:prefix "task " :items ~state.tasks.items :run task-start :placeholder ~(t "palette.chooseATask")}
                         {:prefix "indent " :items ~computed.indentItems :placeholder ~(t "palette.selectTheSpaces")}
                         {:prefix "eol " :items ~computed.eolItems :placeholder ~(t "palette.selectTheEnd")}
-                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}]}))
+                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}
+                        {:prefix "clone " :items ~computed.cloneItems :run clone-picked :placeholder ~(t "palette.cloneAddress")}]}))
 
 ;;; The settings page
 
@@ -69,16 +70,25 @@
      ~(setting-number)
      ~(setting-reset)))
 
-(defview setting-check "A boolean setting's check box." []
-  `(checkbox#setting-check :when ~(= s.type :boolean)
+(defview setting-check "A boolean setting's check box: the accent with a tick while it is on." []
+  `(label#setting-check :when ~(= s.type :boolean)
+     :role checkbox
      :label ~s.title
-     :bind ~(str "settings." s.key)
-     :width 14
-     :height 14
-     :anchors {:left 16 :top 33}
-     :activeColor @color.accent
-     :trackColor @color.input
-     :knobColor @color.text))
+     :selected ~(true? s.value)
+     :icon ~(if (true? s.value) "check" "")
+     :width 16
+     :height 16
+     :align center
+     :radius 4
+     :color ~(if (true? s.value) "@color.accent" "@color.input")
+     :borderWidth 1
+     :borderColor ~(if (true? s.value) "@color.accent" "@color.border")
+     :textColor "#ffffff"
+     :focusable true
+     :cursor hand
+     :hover {:borderColor @color.accent}
+     :anchors {:left 16 :top 32}
+     :onClick ~(handler toggle-setting s.key s.value)))
 
 (defview setting-title "A setting's title; its key in the tooltip." []
   `(label#setting-title :text ~s.title :textColor @color.text :fitText true :tooltip ~s.key :anchors {:left 16 :top 8}))

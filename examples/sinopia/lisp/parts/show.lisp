@@ -45,9 +45,13 @@
 
 (defcomputed showPhIds "Their names." (map :ph computed.showPh))
 
-(defcomputed showUnbuilt "The objects whose builds haven't come yet, or have gone."
+(defcomputed showUnbuilt "The objects whose builds haven't come yet, or have gone (an emphasis keeps its object)."
   (->> computed.showTimings
-       (filter #(if (= (:kind %) :exit) (< (:step %) state.show.step) (> (:step %) state.show.step)))
+       (filter #(case (:kind %)
+                  :exit (< (:step %) state.show.step)
+                  :emphasis false
+                  :path false
+                  (> (:step %) state.show.step)))
        (map :target)))
 
 (defmacro shown-placeholder "The placeholder of the shown slide's layout that object `o` fills, or an empty map." [o]
@@ -74,10 +78,10 @@
 (defcomputed showStepEnd "When the builds of the step shown end, in milliseconds."
   (->> computed.showTimings (filter #(= (:step %) state.show.step)) (map :end) (concat [0]) max))
 
-(defcomputed showFades "Whether the transition fades through black."
-  (contains? #{:fade :glide} computed.showKind))
+(defcomputed showFades "Whether the transition fades through black: a fade, unless it fades smoothly."
+  (and (= computed.showKind :fade) (not= computed.showSlide.transition.option "smoothly")))
 
-(defcomputed showTimings "Each build of the shown slide with its step, its start and its end."
+(defcomputed showTimings "Each build of the shown slide with its step, its start and its end, its repeats included."
   (scan (or-else computed.showSlide.animations [])
         (fn [acc it]
           (merge it
@@ -86,7 +90,7 @@
                             (or-else it.delay 0))
                   :end (+ (case it.start :click 0 :with acc.start acc.end)
                           (or-else it.delay 0)
-                          (or-else it.ms 500))}))
+                          (* (or-else it.ms 500) (max (or-else it.repeat 1) 1)))}))
         {:step 0 :start 0 :end 0}))
 
 (defcomputed showSteps "How many clicks the shown slide's builds take."
@@ -122,8 +126,9 @@
   {:style presenterButton :color "#0e7c6b" :hover {:color "#139080"}})
 
 (defcomponent showSlide
-  "A slide as the show draws it: each object hidden until its build, then faded, wiped, flown in or grown."
-  {:slide nil :step 0 :clock 0 :timings [] :prefix ""}
+  "A slide as the show draws it: each object hidden until its build, then built; in a glide or a smooth fade, the
+  objects of the slide before that it hasn't fade out, those it shares move to their places, and its others fade in."
+  {:slide nil :step 0 :clock 0 :timings [] :prefix "" :glide [] :leaving [] :fromLayout nil :fade 1 :moved 1}
   `(node :id ~(str prefix "show")
      :color transparent
      :x 0
@@ -137,6 +142,8 @@
                            0
                            7)}
      (node :use slideBackground :with {:slide ~slide :prefix ~prefix})
+     ~(repeat [o leaving :key o.id]
+       (leaving-object prefix o))
      ~(repeat [o slide.objects :key o.id]
        (build step clock timings prefix o))))
 
@@ -165,6 +172,7 @@
                     [0 0 960 540])}
      ~(show-from)
      ~(show-to)
+     ~(show-marks)
      (node#show-from-over :when ~(and (some? computed.showFrom) (= k :reveal))
        :color transparent
        :x 0
@@ -196,6 +204,7 @@
 (defview show-from "The slide before, under the slide shown, pushed away or faded out." []
   `(node#show-from :when ~(and (some? computed.showFrom)
                                (not (#{:none :reveal} k))
+                               (not computed.showDissolve)
                                (not (and computed.showFades (>= t 0.5))))
      :color transparent
      :x 0
@@ -219,7 +228,12 @@
                 :step ~state.show.step
                 :clock ~state.show.clock
                 :timings ~computed.showTimings
-                :prefix a-}))))
+                :prefix a-
+                :glide ~computed.showGlide
+                :leaving ~computed.showLeaving
+                :fromLayout ~computed.showFromLayout
+                :fade ~(if computed.showDissolve t 1)
+                :moved ~t}))))
 
 (defcomponent slideImage
   "A slide drawn once into the image slide-<id>, for the thumbnails and the presenter; the PDF's pages."
@@ -242,6 +256,7 @@
      :every {:ms 1000 :do show-second}
      :onClick ~(handler show-view-click event.left event.top event.width event.height)
      (image#show-image :when ~(or (not state.presenterView) state.show.preview) :fill 0 :source audience :fit contain)
+     ~(pen-layer "show-pen-layer" (or (not state.presenterView) state.show.preview))
      (node :use presenter :when ~(and state.presenterView (not state.show.preview)))
      ~(rehearsal)))
 
@@ -250,7 +265,8 @@
   `(node#presenter :fill 0 :color "#141a19" :every {:ms 1000 :do show-tick}
      ~(presenter-top)
      (node#presenter-current :anchors {:left 24 :top 60 :right 384 :bottom 76} :color "#000000" :radius 4
-       (image#presenter-current-image :fill 0 :source audience :fit contain))
+       (image#presenter-current-image :fill 0 :source audience :fit contain)
+       ~(pen-layer "presenter-pen-layer" true))
      (grid#presenter-navigator :when ~state.show.navigator
        :anchors {:left 24 :top 60 :right 384 :bottom 76}
        :columns 4
@@ -336,25 +352,46 @@
 
 ;;; Views
 
-(defview build "Object `o` as the show draws it: hidden until its build, then faded, wiped, flown in or grown."
+(defview build
+  "Object `o` as the show draws it: hidden until its build, then faded, wiped, flown in or grown; pulsed, spun or
+  teetered by an emphasis, each build repeated as often as it says; in a glide, moved from its place on the slide
+  before."
   [step clock timings prefix o]
   `(node :id ~(str prefix "build-" o.id)
      :let {:a ~(find #(= (:target %) o.id) timings)
-           :p ~(cond (or (nil? a) (< a.step step)) 1
+           :reps ~(max (or-else a.repeat 1) 1)
+           :r ~(cond (or (nil? a) (< a.step step)) reps
                      (> a.step step) 0
-                     :else (clamp (/ (- clock a.start) (max (or-else a.ms 500) 1)) 0 1))
-           :q ~(cond (nil? a) 1 (= a.kind :exit) (- 1 p) :else p)
+                     :else (clamp (/ (- clock a.start) (max (or-else a.ms 500) 1)) 0 reps))
+           :p ~(if (>= r reps) 1 (- r (floor r)))
+           :q ~(cond (nil? a) 1 (#{:emphasis :path} a.kind) 1 (= a.kind :exit) (- 1 p) :else p)
+           :g ~(find #(= (:id %) o.id) glide)
+           :v ~(if (some? g) q (* q fade))
            :ph ~(or-else (find #(= (:ph %) o.ph) layout.ph) {})
            :box ~{:x (or-else o.x ph.x 0) :y (or-else o.y ph.y 0) :w (or-else o.w ph.w 100) :h (or-else o.h ph.h 100)}
-           :effect ~(if (>= q 1) "none" (or-else a.effect "appear"))}
-     :when ~(pos? q)
+           :effect ~(cond (= a.kind :emphasis) (if (and (pos? r) (< r reps)) a.effect "none")
+                          (= a.kind :path) (if (pos? r) a.effect "none")
+                          (< q 1) (or-else a.effect "appear")
+                          (< v 1) "fade"
+                          :else "none")
+           :away ~(- 1 q)
+           :wave ~(sin (* 3.14159 p))
+           :swing ~(sin (* 12.566 p))}
+     :when ~(pos? v)
      :color transparent
      :x 0
      :y 0
      :width ~(if (= effect :wipe) (+ box.x (* box.w q)) 960)
      :height 540
-     :translate ~(if (= effect :fly) [0 (* (- 1 q) (- 560 box.y))] [0 0])
-     :scale ~(if (= effect :zoom) (max q 0.01) 1)
+     :translate ~(cond (= effect :fly) (fly-offset (or-else a.direction "bottom") box away)
+                       (= a.kind :path) (path-offset effect p)
+                       (some? g) (glide-offset g box moved)
+                       :else [0 0])
+     :scale ~(cond (= effect :zoom) (max q 0.01)
+                   (= effect :pulse) (inc (* 0.15 wave))
+                   (some? g) (glide-scale g box moved)
+                   :else 1)
+     :rotate ~(case effect :spin (* 360 p) :teeter (* 8 swing) 0)
      :transformOrigin ~[(/ (+ box.x (/ box.w 2)) 9.6) (/ (+ box.y (/ box.h 2)) 5.4)]
      (node :use slideObject :with {:o ~o :prefix ~prefix :layout ~layout :edit false})
      (node :id ~(str prefix "veil-" o.id)
@@ -364,7 +401,7 @@
        :width ~(+ box.w 8)
        :height ~(+ box.h 8)
        :rotate ~(or-else o.rotate 0)
-       :color ~(gradientColor {:stops [{:at 0 :color ground} {:at 1 :color (str ground "00")}]} q))))
+       :color ~(gradientColor {:stops [{:at 0 :color ground} {:at 1 :color (str ground "00")}]} v))))
 
 (defview rehearsal "The rehearsal's bar over the show: Next, Pause, this slide's time and the total." []
   `(row#rehearsal :when ~state.show.rehearsing
@@ -518,6 +555,7 @@
      (label#presenter-all :style ~(if state.show.navigator "presenterButtonOn" "presenterButton")
        :runs [{:icon layout-grid :size 14} {:text ~(t "show.seeAllSlides") :size 13}]
        :onClick [{:toggle state.show.navigator}])
+     ~(presenter-tools)
      (node#presenter-gap :grow 1 :height 1 :color transparent)
      (label#presenter-end :style presenterButton :runs [{:text ~(t "show.endSlideShow") :size 13}] :onClick show-end)))
 
@@ -537,6 +575,8 @@
 
 (defn show-start "Starts the show at the first slide shown from an index." [from]
   (set "state.show" (merge state.show show-reset))
+  (set "state.showInk" {})
+  (pen-tool nil)
   (show-enter -1 (or-else (find #(>= % from) computed.showOrder) (get computed.showOrder 0) 0))
   (focus "#show-view"))
 

@@ -250,11 +250,21 @@
                 :roughness 1}))
        state.bodies))
 
+(defn redden "A colour as the night mode shows it, its brightness in red only; as it is otherwise." [colour]
+  (if (and (= state.theme :night) (some? colour))
+    (concat [(+ (* (get colour 0) 0.3) (* (get colour 1) 0.6) (* (get colour 2) 0.1)) 0 0] (drop 3 colour))
+    colour))
+
+(defn night-material "A material as the night mode shows it." [material]
+  (merge material
+         {:baseColor (redden (:baseColor material))}
+         (if (some? (:emissive material)) {:emissive (redden (:emissive material))} {})))
+
 (defcomputed sceneGraph "The 3D scene: the bodies, the orbits, the stars and the Sun's light."
   {:nodes (concat computed.bodyNodes
                   [{:id "sunlight"
                     :translation (if computed.sun [computed.sun.x 0 computed.sun.z] [0 0 0])
-                    :light {:type "point" :color [1 0.95 0.85] :intensity 60}}]
+                    :light {:type "point" :color (redden [1 0.95 0.85]) :intensity 60}}]
                   (if (and state.showGlow computed.sun)
                     [{:id "halo"
                       :translation [computed.sun.x 0 computed.sun.z]
@@ -264,7 +274,8 @@
                     [])
                   computed.orbitSegments
                   computed.starNodes)
-   :materials (concat computed.bodyMaterials
+   :materials (map #(night-material %)
+                   (concat computed.bodyMaterials
                       [{:id "orbit" :baseColor [0 0 0 1] :emissive [0.1 0.09 0.07] :roughness 1}
                        {:id "orbit-on" :baseColor [0 0 0 1] :emissive [0.18 0.8 0.7] :roughness 1}
                        {:id "star" :baseColor [0 0 0 1] :emissive [0.75 0.8 0.9] :roughness 1}
@@ -272,7 +283,7 @@
                         :baseColor [1 0.6 0.1 0.12]
                         :emissive [0.5 0.3 0.05]
                         :alphaMode "blend"
-                        :roughness 1}])})
+                        :roughness 1}]))})
 
 (defcomputed renderOptions "What the 3D view can draw, each on or off."
   [{:id "orbits" :title (t "view.orbits") :on state.showOrbits :run "toggleOrbits"}
@@ -314,11 +325,11 @@
      :fitText true
      :font small
      :text ~b.name
-     :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
+     :textColor ~(if (= b.id state.selected) "@accent" "@skyLabel")
      :visible ~(and state.showLabels (> b.depth 0.3))))
 
 (defview thumbnail
-  "A body's thumbnail, a disc in its colour drawn into the image body:<id> for the features that show it."
+  "A body's thumbnail, a disc in its colour drawn into the image body:<id> for the features that show it (veiled red at night)."
   [b]
   `(panel :id ~(str "thumb-" b.id)
      :snapshot ~{:image (str "body:" b.id) :scale 1}
@@ -332,7 +343,8 @@
        :height 46
        :radius 999
        :color ~b.hex
-       :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
+       :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})
+     (panel :id ~(str "thumb-night-" b.id) :when ~(= state.theme :night) :fill true :color @nightFilter)))
 
 (defview scene-view "The 3D scene, bound to the computed camera; a left click selects a body." []
   `(scene#view-scene :fill true
@@ -340,7 +352,7 @@
      :scene ~computed.sceneGraph
      :grid false
      :axes false
-     :background "#070b0c"
+     :background @sky
      :outlineColor @accent
      :controls {:orbit none :pan none :zoom false :select left :selects false}
      :onSelect ~(handler pick-in-scene event.button event.id)))
@@ -428,6 +440,17 @@
      :textColor @onSkyMuted
      :text ~(t "view.hint")
      :visible ~(and (not state.showBrowser) (>= (- window.width 461) 600))))
+
+(defview search-dialog "The search (Cmd+F): the bodies and the events, or a day after @." []
+  `(node#quickPick :use quickPick
+     :with {:color @panel
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @raised
+            :field @raised
+            :providers [{:items ~(concat computed.searchBodies computed.searchEvents) :placeholder ~(t "search.objects")}
+                        {:prefix "@" :items ~computed.searchDay :filter false :placeholder ~(t "search.day")}]}))
 
 (defview render-dialog "The render options: what the 3D view draws." []
   `(node#render :use dialog

@@ -67,7 +67,7 @@
 							{ "id": "r-para-2", "use": "rbRow", "children": [
 								{ "id": "{{'b-align-' + a[0]}}",
 								  "repeat": { "for": "a", "in": "{{[['left', 'align-left', 'Align Left (Ctrl+L)'], ['center', 'align-center', 'Center (Ctrl+E)'], ['right', 'align-right', 'Align Right (Ctrl+R)'], ['justify', 'align-justify', 'Justify (Ctrl+J)']]}}" }, "use": "rbSmall", "with": { "icon": "{{a[1]}}", "on": "{{computed.first != null && (computed.first.align ?? computed.firstPlaceholder.align ?? 'left') == a[0]}}" },
-								  "tooltip": "{{a[2]}}", "onClick": { "run": "setObjects", "with": { "props": "{{ {align: a[0]} }}" } } },
+								  "tooltip": "{{a[2]}}", "onClick": { "run": "setAlign", "with": { "align": "{{a[0]}}" } } },
 								{ "id": "b-direction", "use": "rbSmall", "with": { "icon": "arrow-down-up", "menu": true }, "tooltip": "Text Direction", "onClick": { "run": "openDrop", "with": { "id": "b-direction" } } },
 								{ "id": "b-anchor", "use": "rbSmall", "with": { "icon": "align-vertical-justify-center", "menu": true }, "tooltip": "Align Text",
 								  "onClick": { "run": "openDrop", "with": { "id": "b-anchor" } } },
@@ -122,10 +122,10 @@
 						{ "id": "b-ins-new-slide", "use": "rbBig", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 }, "onClick": { "run": "newSlide", "with": { "layout": "content" } } }
 					] },
 					{ "id": "g-ins-tables", "use": "rbGroup", "with": { "title": "Tables" }, "children": [
-						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "width": 46, "enabled": false }, "tooltip": "Inserting a table isn't available yet" }
+						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "menu": true, "width": 46 }, "tooltip": "Insert a table: pick its size in the grid", "onClick": "openTableGrid" }
 					] },
 					{ "id": "g-ins-images", "use": "rbGroup", "with": { "title": "Images" }, "children": [
-						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52, "enabled": false }, "tooltip": "Inserting pictures isn't available yet" },
+						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52 }, "tooltip": "Insert a PNG or JPEG picture from a file", "onClick": "insertPicture" },
 						{ "id": "b-ins-album", "use": "rbBig", "with": { "icon": "images", "title": "Photo\nAlbum", "width": 50, "enabled": false }, "tooltip": "A photo album isn't available yet" }
 					] },
 					{ "id": "g-ins-illustrations", "use": "rbGroup", "with": { "title": "Illustrations" }, "children": [
@@ -223,7 +223,8 @@
 							  "runs": "{{[{ icon: k[1], size: 24 }, { text: '\n' + k[2], size: 11 }]}}",
 							  "onClick": { "run": "setTransition", "with": { "props": "{{ {kind: k[0]} }}" } } }
 						] },
-						{ "id": "b-effect-options", "use": "rbBig", "with": { "icon": "{{computed.directionIcons[computed.slide.transition.direction ?? 'left']}}", "title": "{{'From\n' + (computed.slide.transition.direction ?? 'left')}}", "width": 52,
+						{ "use": "fadeOptions" },
+						{ "id": "b-effect-options", "use": "rbBig", "when": "{{computed.slide.transition.kind != 'fade'}}", "with": { "icon": "{{computed.directionIcons[computed.slide.transition.direction ?? 'left']}}", "title": "{{'From\n' + (computed.slide.transition.direction ?? 'left')}}", "width": 52,
 						                                                    "enabled": "{{contains(['push', 'wipe', 'reveal', 'cover'], computed.slide.transition.kind ?? 'none')}}" },
 						  "tooltip": "The side the transition comes from",
 						  "onClick": { "run": "setTransition", "with": { "props": "{{ {direction: computed.directions[(indexOf(computed.directions, computed.slide.transition.direction ?? 'left') + 1) % 4]} }}" } } }
@@ -254,7 +255,7 @@
 						{ "id": "b-normal", "use": "rbBig", "with": { "icon": "panel-left", "title": "Normal", "on": "{{state.view == 'normal'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "normal" }] },
 						{ "id": "b-outline-view", "use": "rbBig", "with": { "icon": "list-tree", "title": "Outline\nView", "on": "{{state.view == 'outline'}}", "width": 48 }, "onClick": [{ "set": "state.view", "to": "outline" }] },
 						{ "id": "b-sorter", "use": "rbBig", "with": { "icon": "layout-grid", "title": "Slide\nSorter", "on": "{{state.view == 'sorter'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "sorter" }] },
-						{ "id": "b-notes-page", "use": "rbBig", "with": { "icon": "notebook-text", "title": "Notes\nPage", "width": 46, "enabled": false }, "tooltip": "The notes page view isn't available yet" },
+						{ "id": "b-notes-page", "use": "rbBig", "with": { "icon": "notebook-text", "title": "Notes\nPage", "on": "{{state.view == 'notesPage'}}", "width": 46 }, "tooltip": "The slide over its notes, on a page you can print", "onClick": [{ "set": "state.view", "to": "notesPage" }] },
 						{ "id": "b-reading", "use": "rbBig", "with": { "icon": "book-open", "title": "Reading\nView", "width": 50 }, "onClick": { "run": "readingView", "with": { "from": "{{state.current}}" } } }
 					] },
 					{ "id": "g-show", "use": "rbGroup", "with": { "title": "Show", "launcher": true }, "children": [
@@ -312,15 +313,15 @@
 						{ "id": "b-motion-preview", "use": "rbBig", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Play this slide's transition and builds",
 						  "onClick": "previewSlide" }
 					] },
-					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : 'Entrance'}}" }, "children": [
-						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 380 }, "children": [
+					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : a.kind == 'path' ? 'Motion Path' : 'Entrance'}}" }, "children": [
+						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692 }, "children": [
 							{ "type": "label",
-							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{[['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']]}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 50, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
 							  "runs": "{{[{ icon: e[1], size: 24 }, { text: '\n' + e[2], size: 11 }]}}",
-							  "onClick": { "run": "setAnimation", "with": { "effect": "{{e[0]}}", "kind": "{{a.kind ?? 'entrance'}}", "start": "{{a.start ?? 'click'}}", "ms": "{{a.ms ?? 500}}" } } }
+							  "onClick": { "run": "chooseEffect", "with": { "effect": "{{e[0]}}" } } }
 						] },
-						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null}}", "width": 46 },
+						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null && (a.kind == 'entrance' || a.kind == 'exit')}}", "width": 46 },
 						  "tooltip": "Leave the slide instead of coming in", "onClick": { "run": "changeAnimation", "with": { "props": "{{ {kind: a.kind == 'exit' ? 'entrance' : 'exit'} }}" } } }
 					] },
 					{ "id": "g-motion-timing", "use": "rbGroup", "with": { "title": "Timing" }, "children": [
@@ -342,7 +343,8 @@
 							] },
 							{ "type": "label", "id": "motion-count", "height": 22, "textColor": "@rbMuted",
 							  "runs": [{ "text": "{{length(computed.slide.animations ?? []) + ' on this slide, ' + count(computed.slide.animations ?? [], it.start == 'click') + ' on a click'}}", "size": 12 }] }
-						] }
+						] },
+						{ "use": "motionTimingMore", "with": { "a": "{{a}}" } }
 					] },
 					{ "id": "g-motion-advanced", "use": "rbGroup", "with": { "title": "Advanced" }, "children": [
 						{ "id": "b-motion-pane", "use": "rbBig", "with": { "icon": "list-ordered", "title": "Animation\nPane", "on": "{{state.sidePane == 'motion' && !state.formatPane}}", "width": 64 },

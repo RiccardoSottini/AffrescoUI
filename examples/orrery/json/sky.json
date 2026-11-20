@@ -397,6 +397,46 @@
 						"strokeWidth": 1
 					},
 					{
+						"type": "label",
+						"id": "{{'sky-label-' + b.id}}",
+						"repeat": {
+							"for": "b",
+							"in": "{{state.skyLayers.labels ? filter(computed.skyShown, it.kind == 'body' && (it.up > -0.01 || !state.skyLayers.ground)) : []}}",
+							"key": "{{b.id}}"
+						},
+						"x": "{{b.x + 10}}",
+						"y": "{{b.parent == 'earth' ? b.y + 2 : b.y - 16}}",
+						"height": 16,
+						"fitText": true,
+						"font": "small",
+						"text": "{{b.name}}",
+						"textColor": "{{b.id == state.selected ? '@accent' : '#e9d9b0'}}"
+					},
+					{
+						"type": "label",
+						"id": "{{'sky-cardinal-' + p.id}}",
+						"repeat": {
+							"for": "p",
+							"in": "{{state.skyLayers.cardinal ? filter(computed.skyShown, it.kind == 'cardinal') : []}}",
+							"key": "{{p.id}}"
+						},
+						"x": "{{p.x - 10}}",
+						"y": "{{p.y - 24}}",
+						"width": 20,
+						"height": 22,
+						"align": "center",
+						"font": "title",
+						"text": "{{p.id}}",
+						"textColor": "#5eead4"
+					},
+					{
+						"type": "panel",
+						"id": "sky-night",
+						"when": "{{state.theme == 'night'}}",
+						"fill": true,
+						"color": "@nightFilter"
+					},
+					{
 						"type": "panel",
 						"id": "{{'sky-body-' + b.id}}",
 						"repeat": {
@@ -434,39 +474,6 @@
 						"borderColor": "#2dd4bf"
 					},
 					{
-						"type": "label",
-						"id": "{{'sky-label-' + b.id}}",
-						"repeat": {
-							"for": "b",
-							"in": "{{state.skyLayers.labels ? filter(computed.skyShown, it.kind == 'body' && (it.up > -0.01 || !state.skyLayers.ground)) : []}}",
-							"key": "{{b.id}}"
-						},
-						"x": "{{b.x + 10}}",
-						"y": "{{b.parent == 'earth' ? b.y + 2 : b.y - 16}}",
-						"height": 16,
-						"fitText": true,
-						"font": "small",
-						"text": "{{b.name}}",
-						"textColor": "{{b.id == state.selected ? '@accent' : '#e9d9b0'}}"
-					},
-					{
-						"type": "label",
-						"id": "{{'sky-cardinal-' + p.id}}",
-						"repeat": {
-							"for": "p",
-							"in": "{{state.skyLayers.cardinal ? filter(computed.skyShown, it.kind == 'cardinal') : []}}",
-							"key": "{{p.id}}"
-						},
-						"x": "{{p.x - 10}}",
-						"y": "{{p.y - 24}}",
-						"width": 20,
-						"height": 22,
-						"align": "center",
-						"font": "title",
-						"text": "{{p.id}}",
-						"textColor": "#5eead4"
-					},
-					{
 						"id": "sky-bar",
 						"use": "toolbar",
 						"anchors": {
@@ -477,11 +484,11 @@
 							"items": "{{computed.skyBar}}",
 							"width": 272,
 							"label": "Sky layers",
-							"color": "#0b1514d8",
+							"color": "@hud",
 							"textColor": "@onSky",
 							"dimColor": "@onSkyMuted",
-							"highlight": "#1f3331",
-							"checkedColor": "#24514b"
+							"highlight": "@raised",
+							"checkedColor": "@hudChecked"
 						}
 					},
 					{

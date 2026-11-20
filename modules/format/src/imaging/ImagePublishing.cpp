@@ -42,6 +42,12 @@ void attachImageDocuments(Engine& engine) {
 		    return images == document.end() ? nullptr : &*images;
 	    },
 	    [&engine](editing::ImageDocument& image) { publish(engine, image); });
+	engine.types.imageDocuments()->attachFonts(
+	    [&engine](const std::string& name, float size, FontStyle style) -> std::shared_ptr<const Font> {
+		    const std::shared_ptr<const Font> base = engine.document.findFont(name.empty() ? "default" : name);
+		    if(!base) return nullptr;
+		    return engine.document.fontVariant(base.get(), size, style, "images");
+	    });
 }
 
 void detachImageDocuments(Engine& engine) noexcept {

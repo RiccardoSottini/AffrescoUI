@@ -15,7 +15,7 @@ screen without meeting the app's own names.
 
 ## What the person sees
 
-- **The launcher**, 56 pixels at the bottom right, with a badge for the replies that came while the panel was closed.
+- **The launcher**, 40 pixels in the bottom right corner, 16 from the edges, with a badge for the replies that came while the panel was closed.
   It is always there by default. An app that sets `state.assistant.show` to `false` hides it until an agent connects
   or a conversation is kept. `Ctrl+Shift+A` (`Cmd+Shift+A` on
   macOS) opens and closes the panel from anywhere.
@@ -102,6 +102,9 @@ All in `state.assistant`:
 |---|---|
 | `open` | Whether the panel is open |
 | `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
+| `size` | The launcher's diameter in pixels (`40` by default); the panel opens just over it |
+| `inset` | Pixels between the launcher (and the panel) and the window's right and bottom edges (`16` by default) |
+| `floor` | The height of the app's own bar along the bottom (a status bar), which the launcher and the panel stay above (`0` by default). An app whose corner holds content says where the launcher goes with `floor`, `inset` and `size`, set as it starts, e.g. `"onLoad": [{ "set": "state.assistant.floor", "to": 22 }]` |
 | `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
 | `codeFont` | The font of evaluated code and its results (`"default"` until the app names a monospace one) |

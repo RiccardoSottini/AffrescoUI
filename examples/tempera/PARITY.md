@@ -16,6 +16,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 5 (tools and fill) | 28 | 26 | 10 |
 | 6 (keys, Shift and Alt, Auto-Select) | 30 | 24 | 10 |
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
+| 8 (type, shapes and paths) | 34 | 24 | 5 |
 
 ## Workspace
 
@@ -38,7 +39,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Panel | Status | Gap |
 | --- | --- | --- |
 | Layers: thumbnails, eye, locks, blend mode, opacity and fill | partial | Fill shown, not editable; transparency and artboard locks disabled; the bottom layer isn't a locked Background |
-| Layers: filter by kind | partial | Pixel, adjustment and group filters; type and shape layers don't exist yet |
+| Layers: filter by kind | done | Pixel, adjustment, group, type and shape filters; a type layer shows a T for its thumbnail |
 | Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Group Layers (Cmd+G) and Ungroup (Shift+Cmd+G); the chevron folds a group; no fx |
 | Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
 | Properties (context-sensitive) | partial | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Quick Actions; adjustment controls; no Distribute |
@@ -47,10 +48,10 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
 | Brushes (presets) | partial | Presets, size, hardness and spacing in the options bar's brush picker; no Brushes panel |
 | Channels | partial | Composite and channel rows, display only |
-| Paths | missing | An empty panel until the pen tool exists |
+| Paths | done | The document's paths (kept in the project file and the history): click one to show it on the canvas, and fill, stroke, make a selection or a shape layer of it, add or delete one |
 | Navigator | done | |
 | Info (pointer position, colour under the pointer) | missing | |
-| Character and Paragraph | missing | |
+| Character and Paragraph | partial | Properties edits a type layer's text, size, bold, italic, colour, alignment and leading; one font (the document's), no tracking or kerning |
 
 ## Tools
 
@@ -74,9 +75,9 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | History brush | missing | |
 | Blur, sharpen, smudge | missing | |
 | Dodge, burn, sponge | missing | |
-| Pen and path selection | missing | |
-| Type tool, editable type layers | missing | |
-| Shapes as vector layers | missing | |
+| Pen and path selection | partial | The Pen adds corner anchors on a click and smooth ones on a drag, and closes at the first anchor; Path Selection drags the path or one anchor; no adding or converting anchors in the middle |
+| Type tool, editable type layers | done | A click adds a type layer (or picks the one clicked) and types into it on the canvas (Backspace, Enter for a new line, Escape to stop); its text, size and style stay editable in Properties; Layer > Rasterize makes it pixels |
+| Shapes as vector layers | done | Rectangle (rounded corners), ellipse, polygon and line tools drag out shape layers with a fill and a stroke, edited in the options bar and Properties, moved with their content; Layer > Rasterize |
 | Hand (and space to pan), zoom | done | |
 
 ## Adjustments and filters
@@ -113,9 +114,10 @@ general feature the image step or a node needs first.
 
 | Item | Pri | Needs |
 | --- | --- | --- |
-| Type tool, editable type layers (and the toolbar's Text Tool) | P1 | Library: a text layer kind, laid out and drawn into the composite, editable in place |
 | Free transform: on-canvas handles, skew | P1 | Library: transform handles in the raster overlay that preview and commit `transformBox`, and a skew term |
 | Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
+| Pen: add, delete and convert anchors in a path's middle; Type > Create Work Path | P2 | Library: anchor editing in the pen gesture; glyph outlines as paths (the font's outlines through FreeType) |
+| Character: font family, tracking, kerning; type on a path | P3 | Library: more `LayerContent` text keys, a document font list |
 | Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
 | Rulers: drag a guide out of a ruler | P2 | Library: a drag from the ruler that publishes a guide position (the raster node's rulers); then JSON |
 | Panels: drag, resize, collapse groups | P2 | Library: dockable panel groups in the kit (general, every app with panels) |
@@ -124,16 +126,12 @@ general feature the image step or a node needs first.
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
 | Layers: link button | P3 | Library: linked layers that move and transform together |
-| Layers: filter by type and shape | P3 | Type and shape layers (above and below) |
 | Properties: Distribute | P3 | Library: several selected layers at once (multi-select in the image step) |
 | History snapshots | P2 | Library: named snapshots kept in the image's history |
 | Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
 | Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |
 | Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
 | Info panel (pointer position, colour under it) | P2 | Library: the raster node publishing the pointer's document position and the composite colour there |
-| Paths panel; Pen and Path Selection tools; Type > Create Work Path | P2 | Library: vector paths on the document (pen editing, stroke and fill, to a selection) |
-| Shapes as vector layers (the Rectangle Tool); Layer > Rasterize | P2 | Library: shape layers built on the vector paths |
-| Character and Paragraph; Type > Panels, Rasterize Type Layer | P3 | Type layers |
 | Quick selection | P2 | Library: an edge-aware brush selection |
 | Transform Selection; Select > Reselect | P2 | Library: `transformBox` on the selection mask, and keeping the last selection |
 | Crop ratios that hold a drag to their shape | P2 | Library: a ratio option on the crop drag, next to the Shift square in `stretchBox` |

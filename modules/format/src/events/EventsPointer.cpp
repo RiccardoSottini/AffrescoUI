@@ -26,6 +26,7 @@ const DragHooks* dragHooks(const Record* record) {
 
 void Events::mouseButton(Panel& panel, const MouseButtonEvent& event) {
 	const Vec2 at = event.position;
+	modifiers_ = event.mods;
 	if(event.button == MouseButton::Right) {
 		if(event.action != affresco::Action::Release || !panel.bounds().contains(at)) return;
 		// The item under the pointer (a tab, a row), as a drag from there would carry it
@@ -67,6 +68,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 		if(own) return;
 	}
 	drop["data"] = ended.data;
+	addModifiers(drop);
 	fire(*ended.over, "onDrop", drop);
 }
 

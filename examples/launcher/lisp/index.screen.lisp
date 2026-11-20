@@ -1,8 +1,8 @@
 ;;; index.screen.lisp --- The AffrescoUI Launcher: the home of the example apps and of the person's own
 ;;;
-;;; Apps (your apps and the examples as cards, each tagged Example or Yours; a search; a click or Enter opens one), My
-;;; apps (open, export to share, duplicate, show in the folder, delete after a confirm; install a file someone gave,
-;;; after a review), Create (a name, a starting point, a description for the assistant, features from other apps) and
+;;; Apps (a welcome, then your apps and the examples as cards, each tagged with its category or Yours; the categories
+;;; and a search filter them; a click or Enter opens one), My apps (open, export to share, duplicate, show in the
+;;; folder, delete after a confirm; install a file someone gave, after a review), Create (a name, a starting point, a description for the assistant, features from other apps) and
 ;;; Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without
 ;;; a file and grants it the folders it reads and writes (the services examples and apps), the programs that open the
 ;;; apps (the service launch) and the packages it exports and installs (the service packages). Where nothing is

@@ -108,7 +108,8 @@
                       :else "translate")
           :space (if (#{:local :normal} state.orientation) "local" "world")
           :snap (if state.snap computed.snapSteps {})}
-         (cond (= state.pivot :cursor) {:pivot state.cursor}
+         (cond (= state.pivot :individual) {:individual true}
+               (= state.pivot :cursor) {:pivot state.cursor}
                (and (= state.pivot :active) computed.activeNode) {:pivot computed.activeNode.translation}
                (and (= state.pivot :bounds) (some? computed.boundsCentre)) {:pivot computed.boundsCentre}
                :else {})))

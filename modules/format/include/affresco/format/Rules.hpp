@@ -131,7 +131,8 @@ public:
 	/// @return The hint, or "" if the whole path is there.
 	[[nodiscard]] std::string pathHint(const json& document, std::string_view path) const override;
 
-	/// @brief Checks a screen without running it: what it refers to but doesn't define (SCREEN_FORMAT.md, "Errors").
+	/// @brief Checks a screen without running it: what it refers to but doesn't define (SCREEN_FORMAT.md, "Errors"),
+	/// and a root typed as a container, which doesn't arrange its children (the root is always the window's panel).
 	/// @param document The document.
 	/// @param state The state to check against (the live state of a running screen).
 	/// @return One line per finding, with its place and a hint; empty if there are none.

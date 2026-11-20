@@ -130,13 +130,7 @@
          :with {:icon brush-cleaning :title ~(t "pane.clearInk") :width 46 :enabled ~(pos? computed.slideInk)}
          :tooltip ~(t "pane.deleteEveryStrokeOnThis")
          :onClick clearInk))
-     (node#g-ink-convert :use rbGroup :with {:title ~(t "pane.convert")}
-       (node#b-ink-shape :use rbBig
-         :with {:icon shapes :title ~(t "pane.inkToShape") :width 46 :enabled false}
-         :tooltip ~(t "pane.turningInkIntoShapesIsn"))
-       (node#b-ink-replay :use rbBig
-         :with {:icon history :title ~(t "pane.inkReplay") :width 46 :enabled false}
-         :tooltip ~(t "pane.replayingInkIsnTAvailable")))))
+     ~(g-ink-convert)))
 
 (defcomponent inkLayer
   "Over the slide while a pen is chosen: a press, a drag and a release draw, or erase, in slide points."
@@ -316,7 +310,7 @@
        :textColor @rbMuted
        :runs [{:text ~(t "pane.noBuildsOnThisSlide") :size 12}])
      ~(repeat [a computed.motionRows :index n :key a.id]
-       (motion-row a n))))
+       (motion-build a n))))
 
 (defcomponent accessList
   "Each slide's findings: no title, an empty placeholder, an icon or ink without alt text; a click goes there."
@@ -527,7 +521,7 @@
        :role button
        :textColor @rbInk
        :label ~(t "pane.buildLabel" {:name a.name :effect a.effect :exit (= a.kind "exit") :start a.start})
-       :runs ~[{:icon (if (= a.kind "exit") "log-out" "log-in") :size 13}
+       :runs ~[{:icon (case a.kind "exit" "log-out" "emphasis" "heart-pulse" "path" "route" "log-in") :size 13}
                {:text (str " " a.name) :size 12}
                {:text (str "  " a.effect (if (= a.start :click) "" (str ", " a.start))) :size 11 :color "@rbMuted"}]
        :onClick ~(handler select-target a.target))
@@ -611,7 +605,7 @@
   (when (and (not= state.inkTool :eraser) (> (count state.stroke) 1))
     (let [xs (map first state.stroke)
           ys (map second state.stroke)]
-      (add-ink (apply min xs) (apply min ys) (apply max xs) (apply max ys))))
+      (add-stroke (apply min xs) (apply min ys) (apply max xs) (apply max ys))))
   (set "state.stroke" []))
 
 (defn add-ink

@@ -47,3 +47,11 @@
 (defkey "minus" brighter)
 
 (defkey "m" toggleMarker)
+
+(defkey "n" toggleNight)
+
+(defkey "mod+f" findObject)
+
+(defkey "shift+up" goNorth)
+
+(defkey "shift+down" goSouth)

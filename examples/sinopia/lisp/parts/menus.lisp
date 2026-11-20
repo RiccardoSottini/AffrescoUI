@@ -104,6 +104,9 @@
    {:separator true}
    {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
    {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
+   {:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "group-objects" :enabled computed.canGroup}
+   {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroup-objects"
+    :enabled computed.canUngroup}
    {:separator true}
    {:title (t "menu.formatShape") :icon "paintbrush" :run "openFormatPane"}
    {:title (t "menu.delete") :icon "trash-2" :keyLabel "Del" :run "deleteObjects"}])

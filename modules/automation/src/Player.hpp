@@ -6,6 +6,7 @@
 #include "affresco/automation/Scenarios.hpp"
 #include "affresco/core/Channel.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Input.hpp"
 
 #include <filesystem>
 #include <functional>
@@ -102,6 +103,10 @@ private:
 	/// @return Whether it was one of them.
 	/// @throws StepError If a target isn't there.
 	bool playPointer(const json& step);
+	/// @brief Presses or releases the modifier keys a pointer step holds (scenario "mods"), one key event each.
+	/// @param mods The modifiers.
+	/// @param action Press or Release.
+	void holdModifiers(Mods mods, affresco::Action action);
 	/// @brief Plays a drag: press on a target, move to the other in steps, release.
 	/// @param step The step.
 	/// @throws StepError If a target isn't there.

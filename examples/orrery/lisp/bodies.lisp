@@ -85,6 +85,39 @@
   (map (fn [it] {:id it.id :name it.name :parent it.parent :thumbnail (str "body:" (or-else it.look it.id))})
        state.bodies))
 
+;;; The tour
+
+(defn view-image "The thumbnail of the body a saved view looks at: the one it follows, else the Sun." [place]
+  (let [follow (or-else (:follow place) "")
+        id (if (empty? follow) "sun" follow)
+        body (find #(= (:id %) id) state.bodies)]
+    (str "body:" (or-else (:look body) id))))
+
+(defcomputed tourViews "The saved views for the tour strip: id, name and the thumbnail of the body each looks at."
+  ; style: keep, #(...) can't give a map
+  (map (fn [it] {:id it.id :name it.label :image (view-image it)}) state.bookmarks))
+
+;;; The search
+
+(defcomputed searchBodies "The bodies, for the search: a row flies to one."
+  ; style: keep, #(...) can't give a map
+  (map (fn [it] {:title it.name :detail (t "search.body") :icon "circle" :run "find-body" :with {:id it.id}})
+       state.bodies))
+
+(defcomputed searchEvents "The events, for the search: a row goes to its day."
+  ; style: keep, #(...) can't give a map
+  (map (fn [it] {:title it.label :detail (t "search.event" {:day (fixed it.time 1)}) :icon "calendar" :run "find-event"
+                 :with {:id it.id}})
+       computed.events))
+
+(defcomputed searchDay "The day the search names after @, a date (2030-06-15) or a day's number, if in the span."
+  (let [text (str/trim (slice state.quickPick.query 1))
+        since (- (dateMs text) (dateMs "2030-01-01"))
+        day (if (isDate text) (/ since 86400000) (number text))]
+    (if (and (not (empty? text)) (some? day) (>= day 0) (<= day state.duration))
+      [{:title (t "search.goToDay" {:day (fixed day 1)}) :icon "calendar" :run "find-day" :with {:day day}}]
+      [])))
+
 ;;; The browser's tree
 
 (defcomputed bodyCells "Each body with its depth, as the browser's rows."
