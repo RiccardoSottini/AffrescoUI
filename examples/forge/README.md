@@ -1,8 +1,8 @@
-# Forge: a demo IDE in JSON
+# Forge: a demo IDE made of live documents
 
 Forge is a demo of what the library can carry: a code workbench whose whole user interface is one screen document,
-which people and agents change while it runs. It is JSON only, with no C++ of its own: an app (`app.json`) that the
-stock host opens, from the Launcher or from the command line. It is an example, not part of the library.
+which people and agents change while it runs. It is written in Lisp (`lisp/`, what the Launcher opens) and in JSON
+(`json/`), with no C++ of its own: an app that the stock host opens, from the Launcher or from the command line. It is an example, not part of the library.
 
 **It has real behaviour, and is still JSON for now** (RFC 0005, stage 6): most of its actions run services through
 `invoke`, `request` and `subscribe`. A program's code that names their methods written out is judged as JSON is
