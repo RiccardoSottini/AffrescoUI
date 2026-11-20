@@ -76,6 +76,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"foldMarkers", "flag",
+	 "`true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line "
+	 "(pointing right); a click on it folds or unfolds the line.",
+	 "editor"},
     {"tabSize",
 	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the "

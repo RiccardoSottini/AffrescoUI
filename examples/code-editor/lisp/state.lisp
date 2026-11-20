@@ -59,6 +59,14 @@
 
 (defstate results {:query "" :at 0} "Find in Files' last search: its query, counts, text and the result shown.")
 
+(defstate split -1 "The file the second editor group shows, by index; -1 when the editor isn't split.")
+
+(defstate layout row "How the two editor groups sit: row (side by side) or column (one under the other).")
+
+(defstate splitSizes [] "The editor groups' sizes, kept as the sash is dragged.")
+
+(defstate indentPick {:open false :query ""} "The indentation picker: open, and its text.")
+
 (defstate wrap false "Whether long lines wrap.")
 
 (defstate ruler false "Whether the ruler at column 80 is shown.")
@@ -133,3 +141,47 @@
   {:help [{:t "commands: build, run, help, clear" :c plain}]
    :build [{:t "[100%] Built target station" :c plain} {:t "[Done in 0.8s]" :c comment}]
    :run [{:t "station: reading sensor-0 every second" :c plain}]})
+
+(defstate snippets
+  {"C++" [{:prefix "class" :text "class Name {\npublic:\n\tName();\n\nprivate:\n};"}
+          {:prefix "for" :text "for(std::size_t i = 0; i < count; ++i) {\n\t\n}"}
+          {:prefix "if" :text "if(condition) {\n\t\n}"}
+          {:prefix "include" :text "#include <header>"}
+          {:prefix "main" :text "int main(int argc, char** argv) {\n\treturn 0;\n}"}
+          {:prefix "namespace" :text "namespace name {\n\n} // namespace name"}]
+   "CMake" [{:prefix "executable" :text "add_executable(name main.cpp)"}
+            {:prefix "library" :text "add_library(name STATIC source.cpp)"}
+            {:prefix "link" :text "target_link_libraries(name PRIVATE dependency)"}]
+   "JSON" [{:prefix "object" :text "{\n\t\"key\": \"value\"\n}"}]
+   "JavaScript" [{:prefix "function" :text "function name(args) {\n\t\n}"}
+                 {:prefix "for" :text "for (const item of items) {\n\t\n}"}]
+   "TypeScript" [{:prefix "function" :text "function name(args: unknown): void {\n\t\n}"}
+                 {:prefix "interface" :text "interface Name {\n\tkey: string;\n}"}]
+   "Markdown" [{:prefix "code" :text "```\ncode\n```"}
+               {:prefix "heading" :text "## Heading"}
+               {:prefix "link" :text "[text](https://example.com)"}
+               {:prefix "table" :text "| Column | Column |\n|---|---|\n| Cell | Cell |"}]
+   "Python" [{:prefix "def" :text "def name(args):\n\tpass"}
+             {:prefix "for" :text "for item in items:\n\tpass"}
+             {:prefix "main" :text "if __name__ == \"__main__\":\n\tmain()"}]
+   "Shell" [{:prefix "for" :text "for item in \"$@\"; do\n\techo \"$item\"\ndone"}
+            {:prefix "if" :text "if [ -f \"$file\" ]; then\n\techo found\nfi"}]}
+  "The snippets per language: the prefix typed before the caret, and the text it becomes.")
+
+(defstate branch main "The sample project's branch, which the status bar shows.")
+
+(defstate branches [main develop sensor-calibration] "The sample project's branches.")
+
+(defstate branchPick {:open false :query ""} "The branch picker: open, and its text.")
+
+(defstate userKeys [] "The person's own key bindings, from the Key Bindings file: keys and a command each.")
+
+(defstate unsaved {}
+  "Hot exit: each unsaved file's text by its index, kept in the state file so quitting loses nothing.")
+
+(defstate snippetPick {:open false :query ""} "The snippet picker: open, and its text.")
+
+(defstate snippetInsert nil
+  "What the editor inserts next: a snippet's text, the prefix it replaces and its request; nil once inserted.")
+
+(defstate snippetRequest 0 "How many snippets were sent: each insert's request number.")

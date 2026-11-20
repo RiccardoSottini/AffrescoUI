@@ -70,11 +70,28 @@
         (set (place file "dirty") false)))))
 
 ; style: keep, named in tests/unit/checker.cpp, tools/affrescoui/check.py
-(defn saveFile "Saves a file; the Settings file applies its values instead." [file]
-  (if (:settings (file-at file))
-    (apply-settings file)
+(defn saveFile "Saves a file; the Settings and Key Bindings files apply their values instead." [file]
+  (case (:settings (file-at file))
+    "settings" (apply-settings file)
+    "keys" (apply-keys file)
     (do (set (place file "saved") (:text (file-at file)))
         (set (place file "dirty") false))))
+
+(defn binding? "Whether a value is a key binding: keys and a command, both text." [it]
+  (and (= (type it) "object") (string? (:keys it)) (string? (:command it))))
+
+(defn apply-keys
+  "Saves the Key Bindings file and makes its bindings the person's own; a broken one stays unsaved, with an error in
+  the console."
+  [file]
+  (let [values (parseJsonc (:text (file-at file)))]
+    (if (not= (type values) "list")
+      (do (push "state.terminal" {:t (t "cmd.keyBindingsJsonNotValid") :c :error})
+          (set "state.panelOpen" true)
+          (set "state.panelTab" :terminal))
+      (do (set "state.userKeys" (filterv binding? values))
+          (set (place file "saved") (:text (file-at file)))
+          (set (place file "dirty") false)))))
 
 (defn save-and-close "Saves the file being closed, then closes it." []
   (saveFile state.closing.file)
@@ -95,13 +112,15 @@
   (let [at (indexOf state.tabs file)]
     (close-saved (drop (inc at) state.tabs))))
 
-(defn open-virtual "Opens the file of that name outside the project, made with the text the first time."
-  [name text readOnly]
+(defn open-virtual
+  "Opens the file of that name outside the project, made with the text the first time; saving it applies it, as `kind`
+  says: settings or keys."
+  [name text kind]
   (let [found (fn [] (find #(and (= (:name (file-at %)) name) (nil? (:folder (file-at %))))
                            (range (count state.files))))]
     (when (nil? (found))
       (push "state.files" {:name name :folder nil :language "JSON" :dirty false :text text :saved text
-                           :readOnly readOnly :settings (not readOnly)}))
+                           :settings kind}))
     (open (found))))
 
 (defn pick-tree-row "A file row opens the file, a folder row opens or closes the folder." []
@@ -196,14 +215,33 @@
   (find-problems))
 
 (defn prepare
-  "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems; the
-  assistant's launcher sits above the status bar."
+  "Generates the large file once (5,000 lines), saves every file as it is, gives back the text the last run left unsaved,
+  then finds the symbols and the problems; the assistant's launcher sits above the status bar."
   []
   (set "state.assistant.floor" 24)
-  (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
-  (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
+  (let [kept state.unsaved]
+    (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
+    (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
+    (restore-unsaved kept))
   (set "state.symbolIndex" (map (constantly []) state.files))
   (index-all))
+
+;;; Hot exit: the unsaved text outlives a restart
+
+(defn keep-unsaved "Keeps each unsaved file's text by its index, which the state file holds across a restart." []
+  (let [now (into {} (for [[f file] (map-indexed vector state.files) :when (:dirty file)] [(str f) (:text file)]))]
+    (when (not= now state.unsaved) (set "state.unsaved" now))))
+
+(defn restore-unsaved "Gives the files the text the last run left unsaved, and keeps the tabs to files that are there." [kept]
+  (let [files (count state.files)
+        tabs (filterv #(< % files) state.tabs)
+        fallback (or-else (first tabs) -1)]
+    (doseq [[k text] kept :let [f (parse-long (name k))] :when (and (some? f) (< f files))]
+      (set (place f "text") text)
+      (set (place f "dirty") true))
+    (set "state.tabs" tabs)
+    (when (>= state.active files) (set "state.active" fallback))
+    (when (>= state.split files) (set "state.split" -1))))
 
 ;;; File commands
 
@@ -254,14 +292,14 @@
 (defcommand openSettings "Opens the settings, as a JSON file."
   :description ~(t "command.openSettings.about") :title ~(t "command.openSettings")
   :category ~(t "category.preferences") :icon settings []
-  (open-virtual "Settings.json" computed.settingsText false))
+  (open-virtual "Settings.json" computed.settingsText "settings"))
 
-(defcommand openKeyBindings "Opens the key bindings, as a JSON file to read."
+(defcommand openKeyBindings "Opens the key bindings, as a JSON file: the person's own, which saving applies."
   :description ~(t "command.openKeyBindings.about") :title ~(t "command.openKeyBindings")
   :category ~(t "category.preferences")
   :icon keyboard
   []
-  (open-virtual "Key Bindings.json" computed.keysText true))
+  (open-virtual "Key Bindings.json" computed.keysText "keys"))
 
 ;;; Find
 
@@ -370,8 +408,9 @@
     (set "state.place" nil)
     (go-to-place place)))
 
-(defn mark-dirty "Marks a file as changed since it was saved, unless it is a scratch buffer." [file]
-  (set (place file "dirty") (not (:scratch (file-at file)))))
+(defn mark-dirty "Marks a file as changed since it was saved, unless it is a scratch buffer; a snippet sent is spent." [file]
+  (set (place file "dirty") (not (:scratch (file-at file))))
+  (when state.snippetInsert (set "state.snippetInsert" nil)))
 
 (defn open-editor-menu "Opens the editor's menu at the pointer, kept inside the editor." [x y left top width height]
   (set "state.editorMenu" {:open true
@@ -692,3 +731,61 @@
 (defcommand about "Says what Quaderno is."
   :description ~(t "command.about.about") :title ~(t "command.about") :category ~(t "category.help") :icon "info" []
   (set "state.aboutOpen" true))
+
+;;; Layouts: a second editor group
+
+(defcommand splitEditor "Shows the file in a second editor group too, beside the first; again, closes it."
+  :description ~(t "command.splitEditor.about") :title ~(t "command.splitEditor") :category ~(t "category.view")
+  :icon columns-2 :enablement ~(or (file-open) (>= state.split 0)) []
+  (set "state.split" (if (>= state.split 0) -1 state.active)))
+
+(defcommand closeSplit "Closes the second editor group; its file stays open in the first."
+  :description ~(t "command.closeSplit.about") :title ~(t "command.closeSplit") :category ~(t "category.view")
+  :icon x :enablement ~(>= state.split 0) []
+  (set "state.split" -1))
+
+(defcommand toggleLayout "Puts the two editor groups side by side, or one under the other."
+  :description ~(t "command.toggleLayout.about") :title ~(t "command.toggleLayout") :category ~(t "category.view")
+  :icon rows-2 []
+  (set "state.splitSizes" [])
+  (set "state.layout" (if (= state.layout :row) :column :row))
+  (when (neg? state.split) (set "state.split" state.active)))
+
+(defn open-to-side "Shows a file in the second editor group." [file]
+  (set "state.split" file))
+
+;;; Indentation
+
+(defcommand selectIndentation "Picks how many spaces an indentation level is, for the file shown."
+  :description ~(t "command.selectIndentation.about") :title ~(t "command.selectIndentation")
+  :category ~(t "category.view") :icon indent :enablement ~(file-open) []
+  (set "state.indentPick" {:open true :query ""}))
+
+(defn set-indentation "Gives the file shown a row of the indentation picker's size." [item]
+  (set "state.files[state.active].tabSize" item.size))
+
+;;; Snippets
+
+(defcommand insertSnippet "Opens the snippet picker: the file's language's snippets."
+  :description ~(t "command.insertSnippet.about") :title ~(t "command.insertSnippet") :category ~(t "category.edit")
+  :icon braces :enablement ~(and (file-open) (not computed.readOnly)) []
+  (set "state.snippetPick" {:open true :query ""}))
+
+(defn insert-snippet "Inserts a snippet at the caret; its prefix, when just typed before the caret, becomes it." [item]
+  (let [lines (str/split (:text (file-at state.active)) "\n")
+        line (nth lines (dec state.caret.line) "")
+        before (subs line 0 (min (count line) (dec state.caret.column)))]
+    (set "state.snippetRequest" (inc state.snippetRequest))
+    (set "state.snippetInsert" {:text item.text
+                                :before (if (str/ends-with? before item.title) (count item.title) 0)
+                                :request state.snippetRequest})))
+
+;;; Branches
+
+(defcommand switchBranch "Opens the branch picker."
+  :description ~(t "command.switchBranch.about") :title ~(t "command.switchBranch") :category ~(t "category.tools")
+  :icon git-branch []
+  (set "state.branchPick" {:open true :query ""}))
+
+(defn set-branch "Switches to a row of the branch picker." [item]
+  (set "state.branch" item.title))

@@ -177,6 +177,15 @@
    {:title "Shell" :language "Shell" :grammar "script.sh"}
    {:title "TypeScript" :language "TypeScript" :grammar "typescript"}])
 
+(defcomputed indentations "The indentation picker's rows: spaces per level, the file's own marked."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:title (t "bar.spaces" {:n it}) :size it :detail (if (= it computed.tabSize) (t "ui.current") "")})
+       [2 4 8]))
+
+(defcomputed readOnly "Whether the shown file is read only." (or-else (:readOnly computed.file) false))
+
+(defcomputed tabSize "The shown file's spaces per indentation level." (or-else (:tabSize computed.file) 4))
+
 (defcomputed settingsText "The settings as a JSON file, which Save applies."
   (str "{\n\t// Quaderno settings: save this file (Cmd+S) to apply them.\n\t// theme: \"dark\", \"light\" or \"system\"\n\t\"theme\": "
        (json state.theme)
@@ -191,10 +200,14 @@
        "\n}\n"))
 
 (defcomputed keysText "The key bindings as a JSON file."
-  (str "// Quaderno key bindings (read only): the keys section of the screen\n[\n"
+  (str (t "keys.header")
        (->> commands
             (filter :key)
-            (map #(str "\t{ \"keys\": " (json (:key %)) ", \"command\": " (json (:name %)) " }"))
+            (map #(str "//\t{ \"keys\": " (json (:key %)) ", \"command\": " (json (:name %)) " }"))
+            (join "\n"))
+       "\n[\n"
+       (->> state.userKeys
+            (map #(str "\t{ \"keys\": " (json (:keys %)) ", \"command\": " (json (:command %)) " }"))
             (join ",\n"))
        "\n]\n"))
 
@@ -202,3 +215,14 @@
   (cond (empty? state.findBar.text) ""
         (zero? computed.findMatches) (t "ui.noResults")
         :else (plural computed.findMatches "match" "matches")))
+
+(defcomputed snippetItems "The snippet picker's rows: the file's language's snippets, each by its prefix and first line."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:title (:prefix it) :detail (first (str/split it.text "\n")) :text (:text it)})
+       (or-else (get state.snippets computed.language) [])))
+
+(defcomputed language "The shown file's language, empty for plain text." (or-else (:language computed.file) ""))
+
+(defcomputed branches "The branch picker's rows: each branch, the current one marked."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:title it :detail (if (= it state.branch) (t "ui.current") "")}) state.branches))

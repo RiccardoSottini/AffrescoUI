@@ -181,6 +181,12 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
     {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/keyHandler"},
 		"description": "Screen-wide shortcuts: \"mod+k\" -> handler"})json",
 	 "Screen-wide shortcuts: `\"mod+k\" → handler` (see Events).", "sections"},
+    {"keyBindings", R"json({"type": "string", "pattern": "^state\\.",
+		"description": "The state path of the person's own key bindings, [{keys, command}], run before keys"})json",
+	 "`\"state.keyBindings\"`: where the person's own key bindings are, `[{ \"keys\": \"mod+alt+t\", \"command\": "
+	 "\"toggleTheme\" }]`, each running a command (an action with a title) by name. They are read before `keys`, so "
+	 "one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file.",
+	 "sections"},
     {"menus", R"json({"type": "object", "description": "menu -> item key -> item, listed by the menus variable",
 		"additionalProperties": {"type": "object", "additionalProperties": {"type": "object",
 		"additionalProperties": false, "properties": {"run": {"type": "string"}, "submenu": {"type": "string"},

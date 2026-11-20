@@ -188,6 +188,12 @@ public:
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing
+	/// right); a click on it folds or unfolds the line.
+	/// @param shown true to draw them.
+	void setFoldMarkers(bool shown);
+	/// @brief Whether the gutter shows fold markers.
+	[[nodiscard]] bool foldMarkers() const noexcept { return foldMarkers_; }
 	/// @brief Draws a thin vertical line, the whole height of the text, at each of some columns (in the guides'
 	/// colour), e.g. to show where lines should end.
 	/// @param columns The columns, counted from 0 in spaces (at most maxRulers kept).
@@ -998,6 +1004,7 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	bool foldMarkers_ = false;        ///< See setFoldMarkers().
 	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
 	std::u32string composition_;      ///< See setComposition().
