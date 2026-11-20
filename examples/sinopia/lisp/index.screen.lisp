@@ -26,6 +26,7 @@
             sinopia.parts.views
             sinopia.parts.format
             sinopia.parts.shape-format
+            sinopia.parts.canvas
             sinopia.parts.menus
             sinopia.parts.review
             "../../shared/addons/assistant/assistant.lisp"

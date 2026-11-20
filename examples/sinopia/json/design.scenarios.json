@@ -62,6 +62,21 @@
 				{ "key": "escape" },
 				{ "expect": { "node": "#tab-shapeFormat-label", "exists": false } }
 			]
+		},
+		{
+			"name": "sinopia-rulers-grid-and-guides",
+			"note": "View shows the rulers, the gridlines and the guides through the slide's centre, which the canvas snaps objects to",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#cb-ruler-caption" },
+				{ "click": "#cb-grid-caption" },
+				{ "click": "#cb-guides-caption" },
+				{ "expect": { "state": "guides", "is": true } },
+				{ "capture": "shown" },
+				{ "click": "#cb-guides-caption" },
+				{ "expect": { "state": "guides", "is": false } }
+			]
 		}
 	]
 }

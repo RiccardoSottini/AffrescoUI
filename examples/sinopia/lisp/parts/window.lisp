@@ -89,7 +89,7 @@
    :zoom computed.fitZoom})
 
 (defcomputed view "The canvas's view: the board's, with the fitted camera while the slide is fitted."
-  (if state.fit (merge state.board {:camera computed.fitCamera}) state.board))
+  (merge (if state.fit (merge state.board {:camera computed.fitCamera}) state.board) {:guides computed.guidesShown}))
 
 (defcomputed zoom "The canvas's zoom." computed.view.camera.zoom)
 
@@ -108,6 +108,7 @@
   (set "state.fit" false))
 
 (defn view-changed "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
+  (guides-dragged view)
   (set "state.board" view)
   (when (and (some? state.editing) (not (contains (or-else view.selection []) state.editing)))
     (set "state.editing" nil))
@@ -444,6 +445,7 @@
      :onTransform ~(handler place-objects event.items)
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
        (node :use slideBackground :with {:slide ~computed.slide :prefix e-}))
+     ~(grid-lines)
      ~(repeat [o computed.objects :key o.id]
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}
