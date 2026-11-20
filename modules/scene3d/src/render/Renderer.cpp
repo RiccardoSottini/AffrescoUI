@@ -342,6 +342,7 @@ void SceneRenderer::setShared(const FrameView& view, const GlProgram& program, c
 	glUniform1f(program.uniform("exposure"), view.settings.exposure);
 	glUniform1f(program.uniform("opacity"), 1.0f - view.settings.xray);
 	glUniform1i(program.uniform("solid"), view.settings.shading == Shading::Solid ? 1 : 0);
+	glUniform1i(program.uniform("zUp"), view.settings.zUp ? 1 : 0);
 	glUniform1i(program.uniform("baseColorMap"), 1);
 	glUniform1i(program.uniform("metallicRoughnessMap"), 2);
 	glUniform1i(program.uniform("normalMap"), 3);

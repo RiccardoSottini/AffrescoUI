@@ -420,7 +420,7 @@
 { "key": "backspace" },
 { "key": "backspace" },
 { "key": "backspace" },
-				{ "expect": { "node": "#panel-materialSettings", "property": "tooltip", "is": "Blend and shadow settings aren't available yet" } },
+				{ "expect": { "node": "#blend-mode-blend", "exists": true } },
 				{ "click": "#prop-tab-world" },
 				{ "click": "#color-world" },
 				{ "wait": 50 },
@@ -751,6 +751,25 @@
 				{ "expect": { "state": "scene.nodes[0].parent", "is": "cube" } },
 				{ "expect": { "state": "scene.nodes[2].parent", "is": "cube" } },
 				{ "expect": { "state": "scene.nodes[3].parent", "is": "cube" } }
+			]
+		},
+		{
+			"name": "modello-shadow-blend",
+			"note": "The Data tab's Shadow panel makes the light cast shadows; the Material tab's Settings panel blends the cube's material, and Ctrl+Z makes it opaque again",
+			"steps": [
+				{ "click": "#outliner-light" },
+				{ "click": "#prop-tab-data" },
+				{ "click": "#prop-cast-shadow" },
+				{ "expect": { "state": "scene.nodes[2].light.castsShadow", "is": true } },
+				{ "click": "#outliner-cube" },
+				{ "click": "#prop-tab-material" },
+				{ "click": "#blend-mode-blend" },
+				{ "expect": { "state": "scene.materials[0].alphaMode", "is": "blend" } },
+				{ "expect": { "node": "#blend-mode-blend", "property": "color", "is": "#465061" } },
+				{ "wait": 30 },
+				{ "capture": "settings" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.materials[0]", "is": { "id": "material", "name": "Material", "baseColor": [0.8, 0.8, 0.8, 1], "roughness": 0.5 } } }
 			]
 		},
 		{

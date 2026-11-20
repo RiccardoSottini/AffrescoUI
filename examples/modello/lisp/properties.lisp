@@ -46,7 +46,11 @@
    {:tab "object" :key "display" :title (t "panel.display") :words "bounds wire" :needs (t "panel.display.needs")}
    {:tab "object" :key "lineArt" :title (t "panel.lineArt") :words "" :needs (t "panel.lineArt.needs")}
    {:tab "object" :key "custom" :title (t "panel.custom") :words "" :needs (t "panel.custom.needs")}
-   {:tab "material" :key "materialSettings" :title (t "panel.materialSettings") :words "blend shadow" :needs (t "panel.materialSettings.needs")}
+   {:tab "material"
+    :key "materialSettings"
+    :title (t "panel.materialSettings")
+    :words "blend alpha opacity transparent"
+    :needs (if (< computed.activeMaterialIndex 0) (t "panel.surfaceMaterial.needs") "")}
    {:tab "data"
     :key "dataPanel"
     :title (case computed.activeNode.kind
@@ -64,7 +68,7 @@
              (t "panel.normals"))
     :words ""
     :needs (case computed.activeNode.kind
-             :light (t "panel.shadow.needs")
+             :light ""
              :camera (t "panel.depthOfField.needs")
              (t "panel.normals.needs"))}
    {:tab "material"
@@ -172,11 +176,13 @@
          :with {:label ~(t "properties.color") :value ~state.world.color :target world :key pickWorld}))
      ~(restrictions-panel)
      ~(data-panel)
+     ~(shadow-panel)
      ~(material-slot)
      ~(surface-panel)
+     ~(material-settings-panel)
      ~(repeat [p (filter #(and (not= (:needs %) "")
                                (contains computed.propShown (:key %))
-                               (not (#{:dataPanel :surfaceMaterial} (:key %))))
+                               (not (#{:dataPanel :surfaceMaterial :materialSettings} (:key %))))
                          computed.propPanels)]
         `(node :use panelHeader :with {:title ~p.title :key ~p.key :needs ~p.needs}))
      (label#properties-empty :when ~(empty? computed.propShown)
@@ -395,6 +401,18 @@
      :onClick ~(handler set-light "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
 
+(defview shadow-panel "A light's shadow: whether it casts one (the material shading draws one light's shadow)." []
+  `(node
+     :when ~(and (contains computed.propShown "dataMore") (= computed.activeNode.kind :light))
+     :use propPanel
+     :with {:key dataMore :body 32}
+     (node :use checkRow
+       :with {:id prop-cast-shadow
+              :label ~(t "properties.castShadow")
+              :checked ~(true? computed.activeNode.light.castsShadow)
+              :run set-light
+              :with {:key castsShadow :value ~(not (true? computed.activeNode.light.castsShadow))}})))
+
 ;;; The Material tab
 
 (defview material-slot "The active mesh's material: browse the materials, its name, a new one, unlink it." []
@@ -464,3 +482,42 @@
               :first true
               :last true
               :text ~(fixed (material-value :roughness 0.5) 3)})))
+
+(defview material-settings-panel "The material's settings: how its alpha is used (opaque, clipped or blended), and its alpha." []
+  `(node
+     :when ~(and (contains computed.propShown "materialSettings") (>= computed.activeMaterialIndex 0))
+     :use propPanel
+     :with {:key materialSettings :body 56}
+     (node :height 20 :width "100%" :color transparent
+       ~(caption "properties.blendMode")
+       (row
+         :anchors {:left "41%" :right 22 :top 0 :bottom 0}
+         :gap 1
+         :color transparent
+         :role radiogroup
+         :label ~(t "properties.blendMode")
+         ~(repeat [mode ["opaque" "mask" "blend"]] (blend-mode-button mode))))
+     (node :use numberField
+       :with {:label ~(t "properties.alpha")
+              :path ~(str "scene.materials[" computed.activeMaterialIndex "].baseColor[3]")
+              :value ~(get (material-value :baseColor [0.8 0.8 0.8 1]) 3)
+              :step 0.005
+              :min 0
+              :max 1
+              :first true
+              :last true
+              :text ~(fixed (get (material-value :baseColor [0.8 0.8 0.8 1]) 3) 3)})))
+
+(defview blend-mode-button "One way a material uses its alpha; the ends round the row's corners." [mode]
+  `(node :id ~(str "blend-mode-" mode)
+     :grow 1
+     :height 20
+     :role radio
+     :focusable true
+     :label ~(t (str "blendMode." mode))
+     :selected ~(= (material-value :alphaMode "opaque") mode)
+     :color ~(if (= (material-value :alphaMode "opaque") mode) "@sel" "@widget")
+     :hover {:color @widgetHover}
+     :radius ~(case mode :opaque {:topLeft 4 :bottomLeft 4} :blend {:topRight 4 :bottomRight 4} 0)
+     :onClick ~(handler set-material "alphaMode" mode)
+     (label :text ~(t (str "blendMode." mode)) :textColor @text :align center :fill true)))

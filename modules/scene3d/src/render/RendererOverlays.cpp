@@ -94,13 +94,16 @@ void addGizmo(Lines& lines, const Gizmo& gizmo, const GizmoSettings& settings, V
 	}
 }
 
-/// @brief A light or camera glyph's colour: dark, or the outline's colour when selected, lighter when active.
+/// @brief A light or camera glyph's colour: dark over a light background and light over a dark one, or the outline's
+/// colour when selected, lighter when active.
 /// @param view The frame. @param id The node's id. @return The colour.
 Vec4 glyphColor(const FrameView& view, const std::string& id) noexcept {
 	const auto& selection = view.settings.selection;
 	const Vec3 o = view.settings.outline;
 	if(!selection.empty() && selection.back() == id) return {0.6f * o.x + 0.4f, 0.6f * o.y + 0.4f, 0.6f * o.z + 0.4f, 1.0f};
 	if(std::ranges::find(selection, id) != selection.end()) return {o.x, o.y, o.z, 1.0f};
+	const Vec3 b = view.settings.background;
+	if(0.2126f * b.x + 0.7152f * b.y + 0.0722f * b.z < 0.45f) return {0.8f, 0.81f, 0.84f, 0.85f};
 	return {0.0f, 0.0f, 0.0f, 0.9f};
 }
 

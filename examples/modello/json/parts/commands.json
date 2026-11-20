@@ -227,6 +227,12 @@
 			{ "if": "{{args.target == 'light' && computed.activeNode.kind == 'light'}}", "then": [
 				{ "set": "state.scene.nodes[computed.activeIndex].light.color", "to": "{{slice(colorList(args.value), 0, 3)}}" }] }
 		],
+		"setMaterial": [
+			{ "if": "{{computed.activeMaterialIndex >= 0 && state.scene.materials[computed.activeMaterialIndex][args.key] != args.value}}", "then": [
+				{ "run": "snapshot" },
+				{ "set": "state.scene.materials[computed.activeMaterialIndex][args.key]", "to": "{{args.value}}" }
+			] }
+		],
 		"setLight": [
 			{ "if": "{{computed.activeIndex < 0 || computed.activeNode.kind != 'light' || computed.activeNode.light[args.key] == args.value}}", "then": [{ "stop": true }] },
 			{ "run": "snapshot" },
