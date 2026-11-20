@@ -38,12 +38,32 @@
       (digit-argument (parse-long digit)))
     (run (:command b))))
 
+(def listing-keys "The keys of a listing (a folder's, the buffer list), and the commands they run."
+  {"enter" "listing-visit" "g" "listing-revert"})
+
+(def dired-keys "The keys only a folder's listing has, and the commands they run."
+  {"d" "dired-flag-file-deletion" "u" "dired-unmark" "x" "dired-do-flagged-delete" "shift+r" "dired-do-rename"
+   "shift+c" "dired-do-copy" "shift+equal" "dired-create-directory"})
+
+(defn window-command
+  "The command a key runs in the selected window's own keys (a listing's, q in a buffer that only shows), or nil."
+  [k]
+  (let [mode computed.buf.mode]
+    (cond (= mode "dired") (get (merge listing-keys dired-keys) k)
+          (= mode "buffer-menu") (get listing-keys k)
+          (and (= k "q") computed.buf.readOnly (not= computed.buf.kind "splash") (not= mode "messages")) "quit-window"
+          :else nil)))
+
+(defn electric? "Whether electric-pair-mode types this character itself." [c]
+  (and (get settings "electric-pair-mode") (contains? #{"(" ")" "[" "]" "{" "}" "\""} c)))
+
 (defn dispatch-key
   "A key Calamaio reads itself: a digit of the argument, a binding, the start of one, a character, or the editor's."
   [k]
   (let [s (str/trim (str state.keyseq " " k))
         b (screen-binding s)
-        c (typed-char k)]
+        c (typed-char k)
+        wc (when (= state.keyseq "") (window-command k))]
     (cond (= k "ctrl+g") (do (set "state.keyseq" "") (keyboard-quit))
           (and (= state.keyseq "") (some? state.arg) (some? (parse-long k))) (digit-argument (parse-long k))
           (some? b) (do (set "state.keyseq" "") (set "state.echo" "") (run-binding b k))
@@ -51,6 +71,9 @@
                           (set "state.echo" (str (keyLabel s "letters") "-")))
           (not= state.keyseq "") (do (set "state.keyseq" "")
                                      (message (t "echo.noBinding" {:keys (keyLabel s "letters")})))
+          (some? wc) (do (set "state.arg" nil) (run wc))
+          (and (some? c) (electric? c)) (electric-pair c)
+          (and (= k "space") (get settings "auto-fill-mode")) (auto-fill-space)
           (some? c) (self-insert c)
           (and computed.text (not computed.buf.readOnly)) (do (press k :in computed.ed :times computed.n)
                                                               (set "state.arg" nil))

@@ -283,6 +283,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `whitespace` | `true` draws a small dot in each space, in `guideColor`, so blanks can be seen. |
 | `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |

@@ -76,6 +76,7 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"whitespace", "flag", "`true` draws a small dot in each space, in `guideColor`, so blanks can be seen.", "editor"},
     {"foldMarkers", "flag",
 	 "`true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line "
 	 "(pointing right); a click on it folds or unfolds the line.",

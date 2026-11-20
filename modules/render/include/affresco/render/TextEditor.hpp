@@ -188,6 +188,9 @@ public:
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a small dot, in the guides' colour, in the middle of each space, so blanks can be seen.
+	/// @param shown true to draw them.
+	void setVisibleWhitespace(bool shown);
 	/// @brief Draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing
 	/// right); a click on it folds or unfolds the line.
 	/// @param shown true to draw them.
@@ -1004,6 +1007,7 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	bool whitespace_ = false;         ///< See setVisibleWhitespace().
 	bool foldMarkers_ = false;        ///< See setFoldMarkers().
 	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
