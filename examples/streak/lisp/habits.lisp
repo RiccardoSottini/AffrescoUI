@@ -548,6 +548,12 @@
 (defn click-row "A row clicked: picked or let go while picking, else shown in the detail." [h id]
   (if (truthy? computed.picking) (toggle-pick id) (select h)))
 
+(defn pick-time "Sets the reminder's hour or minute, keeping the other; a minute closes the clock." [part value]
+  (let [hour (if (= part :hour) value computed.reminderHour)
+        minute (if (= part :minute) value computed.reminderMinute)]
+    (set "state.edit.time" (str (pad hour 2) ":" (pad minute 2)))
+    (when (= part :minute) (set "state.timeOpen" false))))
+
 (defn step-times "The frequency's times, one less or one more: at least 1, at most 7 a week or 31 a month." [by]
   (set "state.edit.n" (if (neg? by)
                         (max 1 (dec state.edit.n))

@@ -705,7 +705,7 @@
 		},
 		{
 			"name": "a-reminder",
-			"note": "A reminder at a time on chosen days",
+			"note": "A reminder at a time picked on the clock, on chosen days",
 			"steps": [
 				{
 					"action": "pinSeedDay",
@@ -718,25 +718,32 @@
 					"wait": 50
 				},
 				{
-					"click": "#timeField"
+					"click": "#timeButton",
+					"note": "The time opens a clock: an hour, then a minute, which closes it"
 				},
 				{
-					"key": "backspace"
+					"click": {
+						"role": "radio",
+						"name": "Hour 06"
+					}
 				},
 				{
-					"key": "backspace"
+					"expect": {
+						"state": "edit.time",
+						"is": "06:30"
+					}
 				},
 				{
-					"key": "backspace"
+					"click": {
+						"role": "radio",
+						"name": "Minute 45"
+					}
 				},
 				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"type": "06:45"
+					"expect": {
+						"state": "timeOpen",
+						"is": false
+					}
 				},
 				{
 					"click": "#dayChip",

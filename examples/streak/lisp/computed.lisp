@@ -54,6 +54,16 @@
 
 (defcomputed onColor "The colour of a tick on a habit's colour." (if (= computed.theme "light") "#ffffff" "#1b1b1b"))
 
+(defcomputed reminderHour "The hour of the reminder's time being edited, as a number."
+  (or (parse-long
+        (first (str/split state.edit.time ":")))
+      0))
+
+(defcomputed reminderMinute "The minute of the reminder's time being edited, as a number."
+  (or (parse-long
+        (second (str/split state.edit.time ":")))
+      0))
+
 (defcomputed wide "Whether the list and the detail show side by side." (>= window.width 960))
 
 (defcomputed picking "Whether rows are picked." (pos? (count state.picked)))

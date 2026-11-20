@@ -67,6 +67,8 @@
 
 (defstate colorOpen false "Whether the dialog's palette is open.")
 
+(defstate timeOpen false "Whether the reminder's clock is open.")
+
 (defstate confirmDelete false "Whether the dialog that deletes is shown.")
 
 (defstate picked [] "The rows picked, by id.")
