@@ -83,6 +83,8 @@
 			"command.soundPreset.about": "Donne un préréglage à l’égaliseur (neutre, basses renforcées, voix ou aigus) et l’active.",
 			"command.soundCrossfade": "Régler le fondu enchaîné",
 			"command.soundCrossfade.about": "Fixe combien de secondes la chanson qui finit et la suivante se chevauchent ; 0 le désactive.",
+			"command.clearQueue": "Vider la file",
+			"command.clearQueue.about": "Vide la file d’attente : plus rien après la chanson en cours.",
 			"player.next": "Suivant (→)",
 			"player.seek": "Position dans le titre",
 			"player.queue": "File d’attente (Cmd+U)",

@@ -83,6 +83,8 @@
 			"command.soundPreset.about": "Gives the equaliser a preset (flat, bass boost, vocal or treble) and turns it on.",
 			"command.soundCrossfade": "Set the crossfade",
 			"command.soundCrossfade.about": "Sets how many seconds the song ending and the next overlap; 0 turns it off.",
+			"command.clearQueue": "Clear the queue",
+			"command.clearQueue.about": "Empties the queue: nothing comes after the song playing.",
 			"player.next": "Next (→)",
 			"player.seek": "Position in the song",
 			"player.queue": "Queue (Cmd+U)",
