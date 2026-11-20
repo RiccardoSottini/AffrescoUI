@@ -679,6 +679,77 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "couch-rows",
+			"steps": [
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "store"
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"capture": "store"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "friends"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "chatWith",
+						"is": "f1"
+					}
+				},
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#couch-tab-store"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": false
+					}
+				}
+			]
 		}
 	]
 }
