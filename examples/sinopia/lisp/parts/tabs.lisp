@@ -594,8 +594,9 @@
        :with {:icon layout-grid :title ~(t "ribbon.slideSorter") :on ~(= state.view "sorter") :width 46}
        :onClick [{:set state.view :to sorter}])
      (node#b-notes-page :use rbBig
-       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :width 46 :enabled false}
-       :tooltip ~(t "ribbon.theNotesPageViewIsn"))
+       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :on ~(= state.view "notesPage") :width 46}
+       :tooltip ~(t "notes.theSlideOverItsNotes")
+       :onClick [{:set state.view :to notesPage}])
      (node#b-reading :use rbBig
        :with {:icon book-open :title ~(t "ribbon.readingView") :width 50}
        :onClick ~(handler readingView state.current))))

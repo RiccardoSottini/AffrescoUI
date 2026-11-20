@@ -974,6 +974,30 @@
 			]
 		},
 		{
+			"name": "sinopia-notes-page",
+			"note": "View > Notes Page shows the slide over its notes on a page, its arrows go through the slides, its notes are edited in place, and Normal goes back",
+			"steps": [
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-notes-page" },
+				{ "expect": { "state": "view", "is": "notesPage" } },
+				{ "expect": { "node": "#notes-page", "exists": true } },
+				{ "expect": { "node": "#centre", "exists": false } },
+				{ "expect": { "node": "#notes-page-where", "text": "Slide 1 of 7" } },
+				{ "click": "#notes-page-next" },
+				{ "expect": { "state": "current", "is": 1 } },
+				{ "expect": { "node": "#notes-page-number", "text": "2" } },
+				{ "click": "#notes-page-notes" },
+				{ "key": "mod+a" },
+				{ "type": "Start with the pilot." },
+				{ "expect": { "state": "deck.slides[1].notes", "is": "Start with the pilot." } },
+				{ "click": "#notes-page-previous" },
+				{ "expect": { "state": "current", "is": 0 } },
+				{ "click": "#b-normal" },
+				{ "expect": { "state": "view", "is": "normal" } },
+				{ "expect": { "node": "#notes-page", "exists": false } }
+			]
+		},
+		{
 			"name": "sinopia-launchers-and-gallery",
 			"note": "A group's launcher opens the format pane; a gallery's last arrow lists all its items (the shapes, the eight themes)",
 			"steps": [
