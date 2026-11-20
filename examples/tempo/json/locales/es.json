@@ -83,6 +83,8 @@
 			"command.soundPreset.about": "Da al ecualizador un preajuste (plano, refuerzo de graves, voz o agudos) y lo activa.",
 			"command.soundCrossfade": "Ajustar el fundido",
 			"command.soundCrossfade.about": "Fija cuántos segundos se solapan la canción que acaba y la siguiente; 0 lo desactiva.",
+			"command.clearQueue": "Vaciar la cola",
+			"command.clearQueue.about": "Vacía la cola: nada sigue a la canción que suena.",
 			"player.next": "Siguiente (→)",
 			"player.seek": "Posición en la canción",
 			"player.queue": "Cola (Cmd+U)",
