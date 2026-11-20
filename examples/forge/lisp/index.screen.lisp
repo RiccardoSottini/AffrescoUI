@@ -36,7 +36,7 @@
   :strings {:default en
             :locale ~settings.workbench.language
             :keep ["Forge" "AffrescoUI" "Forge Dark" "Forge Light" "Forge High Contrast"]}
-  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons code]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 28}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 22}
@@ -48,6 +48,7 @@
   (node#root :color @color.editor
     ~(workbench)
     (node :use forgeNotificationCentre)
+    (node :use forgeEditorMenu)
     (node :use forgePalette)
     (node :use forgeDebugOverlays)
     (node :use forgeLsp)

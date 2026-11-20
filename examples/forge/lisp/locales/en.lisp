@@ -153,6 +153,8 @@
                 :side-bar-empty-text "You have not yet opened a folder."
                 :side-bar-open "Open Folder"
                 :welcome-title "Forge"
+                :group-split.tip "Split Editor Right"
+                :group-more.tip "More Actions..."
                 :welcome-subtitle "A workbench made of live documents, written in Lisp: change any part of it while it runs."
                 :welcome-start "Start"
                 :welcome-new-file.label "New File..."

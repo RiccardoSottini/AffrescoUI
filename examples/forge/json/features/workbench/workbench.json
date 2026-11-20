@@ -6,6 +6,7 @@
 
 	"state": {
 		"closedTabs": [],
+		"editorMenu": { "open": false, "x": 0, "y": 0 },
 		"outline": [],
 		"outlineSymbols": "",
 		"settingsJson": "",
@@ -116,6 +117,16 @@
 			"do": [{ "forEach": "{{filter(state.groups[state.activeGroup].tabs, it.id != state.groups[state.activeGroup].active && !it.sticky)}}", "as": "tab",
 			          "do": [{ "run": "closeTab", "with": { "gi": "{{state.activeGroup}}", "id": "{{tab.id}}" } }] }] },
 
+		"openEditorMenu": [
+			{ "note": "gi: the group whose tab strip was right-clicked, or whose More Actions was clicked: the menu opens where the click was, inside the window" },
+			{ "set": "state.activeGroup", "to": "{{gi}}" },
+			{ "set": "state.editorMenu", "to": "{{ {open: true, x: min(event.x, window.width - 250), y: event.y} }}" }
+		],
+		"splitFromGroup": [
+			{ "note": "gi: the group whose Split Editor was clicked: its active editor, beside it" },
+			{ "set": "state.activeGroup", "to": "{{gi}}" },
+			{ "run": "splitEditor" }
+		],
 		"closeAllEditors": { "title": "Close All Editors", "category": "View",
 			"description": "Close every group's editors but the pinned ones.",
 			"enablement": "{{some(state.groups, !empty(it.tabs))}}",
@@ -185,6 +196,17 @@
 	},
 
 	"menus": {
+		"editorTab": {
+			"close": { "run": "closeEditor", "group": "1_close", "order": 1 },
+			"closeOthers": { "run": "closeOtherEditors", "group": "1_close", "order": 2 },
+			"closeToTheRight": { "run": "closeEditorsToTheRight", "group": "1_close", "order": 3 },
+			"closeAll": { "run": "closeAllEditors", "group": "1_close", "order": 4 },
+			"reopen": { "run": "reopenClosedEditor", "group": "2_reopen", "order": 1 },
+			"pin": { "run": "pinEditor", "group": "3_pin", "order": 1 },
+			"unpin": { "run": "unpinEditor", "group": "3_pin", "order": 2 },
+			"split": { "run": "splitEditor", "group": "4_split", "order": 1 },
+			"reveal": { "run": "explorerReveal", "group": "5_reveal", "order": 1 }
+		},
 		"file": {
 			"openRecent": { "run": "openRecent", "group": "1_open", "order": 3 },
 			"clearRecent": { "run": "clearRecent", "group": "1_open", "order": 4 },
@@ -212,6 +234,10 @@
 	},
 
 	"components": {
+		"forgeEditorMenu": {
+			"node": { "id": "editor-menu", "use": "contextMenu",
+			          "with": { "open": "state.editorMenu.open", "items": "{{menus.editorTab}}", "x": "{{state.editorMenu.x}}", "y": "{{state.editorMenu.y}}" } }
+		},
 		"forgeSecondarySideBar": {
 			"node": {
 				"type": "column", "id": "secondary-side-bar", "role": "complementary", "label": "Outline Bar", "width": 240,

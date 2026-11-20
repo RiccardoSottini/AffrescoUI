@@ -153,6 +153,8 @@
                 :side-bar-empty-text "Todavía no has abierto ninguna carpeta."
                 :side-bar-open "Abrir carpeta"
                 :welcome-title "Forge"
+                :group-split.tip "Dividir el editor a la derecha"
+                :group-more.tip "Más acciones..."
                 :welcome-subtitle "Un banco de trabajo hecho de documentos vivos, escrito en Lisp: cambia cualquier parte mientras funciona."
                 :welcome-start "Empezar"
                 :welcome-new-file.label "Nuevo archivo..."

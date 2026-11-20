@@ -448,7 +448,7 @@
 				"id": "editor-groups",
 				"bind": "state.layout.groupSizes",
 				"minSize": 160,
-				"sashSize": 4,
+				"sashSize": 1,
 				"sashColor": "@color.border",
 				"sashActiveColor": "@color.accent",
 				"children": [
@@ -467,43 +467,55 @@
 						},
 						"children": [
 							{
-								"type": "tabs",
-								"id": "group-tabs",
-								"when": "{{!empty(g.tabs)}}",
-								"width": "100%",
-								"height": 34,
-								"bind": "state.groups[gi].active",
-								"color": "@color.tabs",
-								"textColor": "@color.muted",
-								"activeTextColor": "@color.text",
-								"activeBackground": "@color.tabActive",
-								"accentEdge": "bottom",
-								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-								"tabs": "{{map(g.tabs, merge(it, {italic: it.preview == true, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky, icon: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).icon, iconColor: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).color}))}}",
-								"onClose": {
-									"run": "closeTab",
-									"with": {
-										"gi": "{{gi}}",
-										"id": "{{event.id}}"
-									}
-								},
-								"drag": {},
-								"onDrop": {
-									"run": "moveTabToGroup",
-									"with": {
-										"id": "{{event.data.id}}",
-										"to": "{{gi}}",
-										"at": "{{event.index}}"
-									}
-								},
-								"onMove": {
-									"run": "reorderTab",
-									"with": {
-										"gi": "{{gi}}",
-										"from": "{{event.from}}",
-										"to": "{{event.to}}"
-									}
-								}
+								"type": "row", "id": "group-head", "when": "{{!empty(g.tabs)}}", "width": "100%", "height": 34, "color": "@color.tabs", "alignItems": "center",
+								"children": [
+									{
+										"type": "tabs",
+										"id": "group-tabs",
+										"grow": 1,
+										"height": 34,
+										"bind": "state.groups[gi].active",
+										"color": "@color.tabs",
+										"textColor": "@color.muted",
+										"activeTextColor": "@color.text",
+										"activeBackground": "@color.tabActive",
+										"accentEdge": "bottom",
+										"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
+										"tabs": "{{map(g.tabs, merge(it, {italic: it.preview == true, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky, icon: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).icon, iconColor: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).color}))}}",
+										"onClose": {
+											"run": "closeTab",
+											"with": {
+												"gi": "{{gi}}",
+												"id": "{{event.id}}"
+											}
+										},
+										"drag": {},
+										"onDrop": {
+											"run": "moveTabToGroup",
+											"with": {
+												"id": "{{event.data.id}}",
+												"to": "{{gi}}",
+												"at": "{{event.index}}"
+											}
+										},
+										"onMove": {
+											"run": "reorderTab",
+											"with": {
+												"gi": "{{gi}}",
+												"from": "{{event.from}}",
+												"to": "{{event.to}}"
+											}
+										},
+										"onContextMenu": { "run": "openEditorMenu", "with": { "gi": "{{gi}}" } }
+									},
+									{ "type": "label", "id": "group-split", "role": "button", "label": "Split Editor Right", "icon": "columns-2", "width": 26, "height": 26,
+									  "align": "center", "radius": 6, "cursor": "hand", "textColor": "@color.muted", "tooltip": "Split Editor Right",
+									  "hover": { "color": "@color.hover", "textColor": "@color.text" }, "onClick": { "run": "splitFromGroup", "with": { "gi": "{{gi}}" } } },
+									{ "type": "label", "id": "group-more", "role": "button", "label": "More Actions...", "icon": "ellipsis", "width": 26, "height": 26,
+									  "align": "center", "radius": 6, "cursor": "hand", "textColor": "@color.muted", "tooltip": "More Actions...",
+									  "hover": { "color": "@color.hover", "textColor": "@color.text" }, "onClick": { "run": "openEditorMenu", "with": { "gi": "{{gi}}" } } },
+									{ "id": "group-head-end", "width": 6 }
+								]
 							},
 							{
 								"when": "{{settings.breadcrumbs.enabled && some(state.docs, it.id == g.active && it.kind == 'file')}}",

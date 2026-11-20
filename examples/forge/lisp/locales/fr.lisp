@@ -153,6 +153,8 @@
                 :side-bar-empty-text "Vous n'avez pas encore ouvert de dossier."
                 :side-bar-open "Ouvrir un dossier"
                 :welcome-title "Forge"
+                :group-split.tip "Fractionner l'éditeur à droite"
+                :group-more.tip "Plus d'actions..."
                 :welcome-subtitle "Un espace de travail fait de documents vivants, écrit en Lisp : changez-en chaque partie pendant qu'il tourne."
                 :welcome-start "Démarrer"
                 :welcome-new-file.label "Nouveau fichier..."

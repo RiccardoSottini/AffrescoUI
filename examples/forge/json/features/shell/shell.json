@@ -343,7 +343,8 @@
 								{ "width": 2 },
 								{ "type": "label", "icon": "file", "textColor": "@color.muted", "fitText": true },
 								{ "type": "label", "id": "{{'welcome-recent-' + fi + '-name'}}", "text": "{{file.title}}", "textColor": "@color.accent", "fitText": true, "height": 20 },
-								{ "type": "label", "text": "{{file.detail ?? ''}}", "textColor": "@color.muted", "grow": 1, "height": 20 }
+								{ "type": "label", "text": "{{file.detail ?? ''}}", "textColor": "@color.muted", "fitText": true },
+								{ "grow": 1 }
 							  ] }
 						] },
 						{ "type": "column", "id": "welcome-right", "grow": 1, "fitContent": "height", "gap": 4, "children": [

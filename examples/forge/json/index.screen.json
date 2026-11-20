@@ -11,7 +11,7 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons", "code"] },
 		"title": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 28 },
 		"icons": { "file": "../../shared/fonts/Lucide.ttf", "size": 13 },
 		"iconsLarge": { "file": "../../shared/fonts/Lucide.ttf", "size": 22 },
@@ -107,6 +107,7 @@
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },
 			{ "use": "forgeNotificationCentre" },
+			{ "use": "forgeEditorMenu" },
 			{ "use": "forgePalette" },
 			{ "use": "forgeDebugOverlays" },
 			{ "use": "forgeLsp" },

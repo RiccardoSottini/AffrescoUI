@@ -11,12 +11,12 @@
   {}
   `(split#editor-groups :bind state.layout.groupSizes
      :minSize 160
-     :sashSize 4
+     :sashSize 1
      :sashColor @color.border
      :sashActiveColor @color.accent
      ~(repeat [g state.groups :index gi]
        `(column#group :color @color.editor :onClick ~(handler focus-group gi)
-          ~(group-tabs g gi)
+          ~(group-head g gi)
           (node :when ~(and settings.breadcrumbs.enabled
                             (some #(and (= (:id %) g.active) (= (:kind %) :file)) state.docs))
             :use forgeBreadcrumbs
@@ -25,10 +25,38 @@
           ~(repeat [d (filter #(>= % 0) [(indexOf computed.docIds g.active)]) :key d]
             (group-body gi d))))))
 
+(defview group-head "A group's head, once it has tabs: the tabs, then Split Editor and the editor's menu." [g gi]
+  `(row#group-head :when ~(not (empty? g.tabs)) :width "100%" :height 34 :color @color.tabs :alignItems center
+     ~(group-tabs g gi)
+     (label#group-split :role button
+       :label ~(t "group-split.tip")
+       :icon columns-2
+       :width 26
+       :height 26
+       :align center
+       :radius 6
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "group-split.tip")
+       :hover {:color @color.hover :textColor @color.text}
+       :onClick ~(handler split-from-group gi))
+     (label#group-more :role button
+       :label ~(t "group-more.tip")
+       :icon ellipsis
+       :width 26
+       :height 26
+       :align center
+       :radius 6
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "group-more.tip")
+       :hover {:color @color.hover :textColor @color.text}
+       :onClick ~(handler open-editor-menu gi))
+     (node#group-head-end :width 6)))
+
 (defview group-tabs "A group's tabs: a dirty file's has a marker, the preview's is in italics, each its file's icon."
   [g gi]
-  `(tabs#group-tabs :when ~(not (empty? g.tabs))
-     :width "100%"
+  `(tabs#group-tabs :grow 1
      :height 34
      :bind "state.groups[gi].active"
      :color @color.tabs
@@ -47,7 +75,13 @@
      :onClose {:run close-tab :with {:gi ~gi :id ~event.id}}
      :drag {}
      :onDrop {:run move-tab-to-group :with {:id ~event.data.id :to ~gi :at ~event.index}}
-     :onMove {:run reorder-tab :with {:gi ~gi :from ~event.from :to ~event.to}}))
+     :onMove {:run reorder-tab :with {:gi ~gi :from ~event.from :to ~event.to}}
+     :onContextMenu ~(handler open-editor-menu gi)))
+
+(defcomponent forgeEditorMenu "The editor's menu, from a tab strip's right click or its More Actions button."
+  {}
+  `(node#editor-menu :use contextMenu
+     :with {:open state.editorMenu.open :items ~menus.editorTab :x ~state.editorMenu.x :y ~state.editorMenu.y}))
 
 (defmacro tab-icon
   ;; A macro, not a function: what it writes stays an expression, worked out at its speed.

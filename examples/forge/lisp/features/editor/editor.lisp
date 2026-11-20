@@ -97,6 +97,18 @@
 (defn focus-group "A click in an editor group makes it the active one." [gi]
   (set "state.activeGroup" gi))
 
+(defstate editorMenu {:open false :x 0 :y 0})
+
+(defn open-editor-menu
+  "The editor's menu, opened where the click was (kept inside the window), for the group `gi`'s active editor."
+  [gi]
+  (focus-group gi)
+  (set "state.editorMenu" {:open true :x (min event.x (- window.width 250)) :y event.y}))
+
+(defn split-from-group "Split Editor, from a group's head: that group's active editor, beside it." [gi]
+  (focus-group gi)
+  (splitEditor))
+
 (defn close-tab
   "Closes a tab of a group (a file's is remembered for Reopen Closed Editor); a group left empty closes too, unless it
 is the last."

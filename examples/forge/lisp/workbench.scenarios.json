@@ -594,6 +594,57 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-workbench-editor-menu",
+			"note": "A group's head: More Actions opens the editor's menu inside the window; Split Editor Right splits the group",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#group-more"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "editorMenu.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#group-split"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[1].active",
+						"is": "src/main.cpp"
+					}
+				}
+			]
 		}
 	]
 }

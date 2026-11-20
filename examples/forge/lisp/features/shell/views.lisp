@@ -365,7 +365,8 @@ the walkthrough and the keys on the right."
      (node :width 2)
      (label :icon file :textColor @color.muted :fitText true)
      (label :id ~(str "welcome-recent-" fi "-name") :text ~file.title :textColor @color.accent :fitText true :height 20)
-     (label :text ~(or-else file.detail "") :textColor @color.muted :grow 1 :height 20)))
+     (label :text ~(or-else file.detail "") :textColor @color.muted :fitText true)
+     (node :grow 1)))
 
 ;;; The status bar
 

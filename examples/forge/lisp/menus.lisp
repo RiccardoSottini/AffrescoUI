@@ -80,6 +80,17 @@
 (defmenu help "The Help menu: About Forge."
   {:keybindings {:run openKeybindings :group "1_help" :order 1} :about {:run about :group "2_about" :order 1}})
 
+(defmenu editorTab "The editor's menu, over the tab strip: close, reopen, pin, split, reveal."
+  {:close {:run closeEditor :group "1_close" :order 1}
+   :closeOthers {:run closeOtherEditors :group "1_close" :order 2}
+   :closeToTheRight {:run closeEditorsToTheRight :group "1_close" :order 3}
+   :closeAll {:run closeAllEditors :group "1_close" :order 4}
+   :reopen {:run reopenClosedEditor :group "2_reopen" :order 1}
+   :pin {:run pinEditor :group "3_pin" :order 1}
+   :unpin {:run unpinEditor :group "3_pin" :order 2}
+   :split {:run splitEditor :group "4_split" :order 1}
+   :reveal {:run explorerReveal :group "5_reveal" :order 1}})
+
 (defmenu explorer "The explorer's right-click menu: new, rename, delete, copy and paste, reveal."
   {:newFile {:run explorerNewFile :group "1_new" :order 1}
    :newFolder {:run explorerNewFolder :group "1_new" :order 2}
