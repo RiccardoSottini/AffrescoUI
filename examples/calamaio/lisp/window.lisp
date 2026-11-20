@@ -67,18 +67,32 @@
      :keys ~(editor-keys w)))
 
 (defview editor-keys
-  "The keys a window's editor leaves to Calamaio: a listing's RET, g and q, and an argument's digits." [w]
-  (merge `{:enter {:when ~(and (= state.sel w) (or (= b.mode "dired") (= b.mode "buffer-menu")) (not state.is.on))
-                   :do listing-visit}
-           :g {:when ~(and (= state.sel w) (or (= b.mode "dired") (= b.mode "buffer-menu")) (not state.is.on))
-               :do listing-revert}
-           :q {:when ~(and (= state.sel w) (= b.readOnly true) (not= b.kind "splash") (not= b.mode "messages")
-                           (not state.is.on) (not state.qr.on))
-               :do quit-window}}
-         (zipmap (map str (range 10))
-                 ; style: keep, #(...) can't give a map
-                 (map (fn [d] `{:when ~(and (some? state.arg) state.argDigits) :do digit-argument :with {:d ~d}})
-                      (range 10)))))
+  "The keys a window's editor leaves to Calamaio: a listing's RET, g and q, a folder's d, u, x, R, C and +, an
+  argument's digits, and every key while Calamaio reads them itself (a register's name, a character after C-u, a
+  keyboard macro): those go to register-key or editor-key, the named keys too when their own binding doesn't apply."
+  [w]
+  (let [reading `[{:when ~(and (= state.sel w) state.regread.on) :do register-key}
+                  {:when ~(and (= state.sel w) computed.readsKeys) :do editor-key}]
+        with-reading #(vector (first reading) % (second reading))
+        listing `{:when ~(and (= state.sel w) (or (= b.mode "dired") (= b.mode "buffer-menu")) (not state.is.on))}
+        dired `{:when ~(and (= state.sel w) (= b.mode "dired") (not state.is.on))}]
+    (merge (update-vals {:enter (assoc listing :do "listing-visit")
+                         :g (assoc listing :do "listing-revert")
+                         :d (assoc dired :do "dired-flag-file-deletion")
+                         :u (assoc dired :do "dired-unmark")
+                         :x (assoc dired :do "dired-do-flagged-delete")
+                         "shift+r" (assoc dired :do "dired-do-rename")
+                         "shift+c" (assoc dired :do "dired-do-copy")
+                         "shift+equal" (assoc dired :do "dired-create-directory")
+                         :q `{:when ~(and (= state.sel w) (= b.readOnly true) (not= b.kind "splash")
+                                         (not= b.mode "messages") (not state.is.on) (not state.qr.on))
+                              :do quit-window}}
+                        with-reading)
+           {"*" reading}
+           (zipmap (map str (range 10)) (map #(with-reading (digit-binding %)) (range 10))))))
+
+(defview digit-binding "A digit's key in a window: adds the digit to an argument typed as digits (M-5 2)." [d]
+  `{:when ~(and (some? state.arg) state.argDigits) :do digit-argument :with {:d ~d}})
 
 (defcomputed findRequest
   "What the selected window's editor finds: the search's text, or the replace's, with the request that moves it."
@@ -120,7 +134,8 @@
        :textColor ~(if on "@mlFg" "@mliFg")
        :tooltip ~(t "modeLine.readOnlyTip"))
      (label :fitText true :textColor ~(if on "@mlFg" "@mliFg")
-       :text ~(str (get-in state.modes [b.mode :title]) (if (get settings "visual-line-mode") (t "modeLine.wrap") "")))
+       :text ~(str (get-in state.modes [b.mode :title]) (if (get settings "visual-line-mode") (t "modeLine.wrap") "")
+                   (if (and on state.kmacro.on) (t "modeLine.defining") "")))
      (node :grow 1 :height 1 :color transparent)
      (label :fitText true :textColor ~(if on "@mlFg" "@mliFg")
        :text ~(t "modeLine.position"

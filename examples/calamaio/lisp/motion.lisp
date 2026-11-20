@@ -90,6 +90,20 @@
   []
   (move "pagedown"))
 
+(defstate recenter {:at nil :step 0} "Where the last C-l left point, and where it put its line: 0 middle, 1 top, 2 bottom.")
+
+(defcommand recenter-top-bottom
+  "Scrolls point's line to the middle of the window; again at once, to the top, then to the bottom."
+  :title ~(t "command.recenter-top-bottom") :category ~(t "category.motion")
+  :description ~(t "command.recenter-top-bottom.about")
+  []
+  (set "state.arg" nil)
+  (when computed.text
+    (let [here (assoc (point) :win state.sel)
+          step (if (= here state.recenter.at) (mod (inc state.recenter.step) 3) 0)]
+      (edit (get ["scrollCaretToCenter" "scrollCaretToTop" "scrollCaretToBottom"] step) :in computed.ed)
+      (set "state.recenter" {:at here :step step}))))
+
 (defcommand scroll-down-command "Shows the previous screenful of text."
   :title ~(t "command.scroll-down-command") :category ~(t "category.motion")
   :description ~(t "command.scroll-down-command.about")
@@ -122,6 +136,9 @@
   []
   (deactivate-mark)
   (set "state.arg" nil)
+  (set "state.keyseq" "")
+  (set "state.regread.on" false)
+  (when state.kmacro.on (set "state.kmacro" (merge state.kmacro {:on false :keys []})))
   (when state.mb.open (minibuffer-close))
   (set "state.echo" (t "echo.quit")))
 

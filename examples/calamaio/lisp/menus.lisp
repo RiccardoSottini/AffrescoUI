@@ -40,7 +40,10 @@
    :downcase {:run downcase-region :group "5_region" :order 2}
    :capitalize {:run capitalize-region :group "5_region" :order 3}
    :sort {:run sort-lines :group "5_region" :order 4}
-   :comment {:run comment-line :group "5_region" :order 5}})
+   :comment {:run comment-line :group "5_region" :order 5}
+   :killRect {:run kill-rectangle :group "6_rect" :order 1}
+   :yankRect {:run yank-rectangle :group "6_rect" :order 2}
+   :stringRect {:run string-rectangle :group "6_rect" :order 3}})
 
 (defmenu options "The Options menu: the minor modes, the frame's bars, the theme and what happens at start."
   {:lines {:run display-line-numbers-mode :group "1_modes" :order 1}
@@ -54,7 +57,9 @@
 
 (defmenu tools "The Tools menu."
   {:command {:run execute-extended-command :group "1_run"}
-   :buffers {:run list-buffers :group "1_run" :order 2}})
+   :buffers {:run list-buffers :group "1_run" :order 2}
+   :macroStart {:run kmacro-start-macro :group "2_macro" :order 1}
+   :macroEnd {:run kmacro-end-or-call-macro :group "2_macro" :order 2}})
 
 (defmenu help "The Help menu: the guides, the describe commands and the messages."
   {:tutorial {:run help-with-tutorial :group "1_start" :order 1}
