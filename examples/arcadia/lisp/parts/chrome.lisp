@@ -133,7 +133,9 @@
      :items [{:title ~(t "menu.viewLibrary") :run showLibrary}
              {:title ~(t "menu.activate") :run openCode :with {:kind activate}}
              {:title ~(t "menu.redeem") :run openCode :with {:kind redeem}}
-             {:title ~(t "menu.addOther") :run openAddGame}]))
+             {:title ~(t "menu.addOther") :run openAddGame}
+             {:separator true}
+             {:title ~(t "coll.new") :run newCollection}]))
 
 (defview help-menu "The Help menu: support, privacy, the system's details and About." []
   `(node :name help
