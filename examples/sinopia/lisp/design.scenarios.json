@@ -128,6 +128,19 @@
 				{ "expect": { "state": "drop.open", "is": true } },
 				{ "capture": "list" }
 			]
+		},
+		{
+			"name": "sinopia-search-every-command",
+			"note": "The search box finds the ribbon's menu items too, beside the named commands: an icon of Insert > Icons runs from there",
+			"steps": [
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "heart" },
+				{ "key": "enter" },
+				{ "expect": { "state": "drop.id", "is": "search" } },
+				{ "click": { "role": "menuitem", "name": "Heart" } },
+				{ "expect": { "state": "deck.slides[0].objects[2].icon", "is": "heart" } }
+			]
 		}
 	]
 }

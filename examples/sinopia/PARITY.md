@@ -16,7 +16,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Shell | A contextual tab for the selected shape | missing | done | shape-format-tab (Shape Format: insert shapes, quick styles, arrange, size) |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
-| Shell | Search ("tell me what you want to do") that runs commands | missing | partial | search-commands (33 commands by name, and the text in the slides) |
+| Shell | Search ("tell me what you want to do") that runs commands | missing | done | search-commands (the named commands, and the text in the slides), search-every-command (the ribbon menus' items too) |
 | Shell | File view (new, open, save, export) | missing | done | new-and-recent-decks (a new deck from a theme, recent decks), save-and-open, export-pdf |
 | Shell | Key hints (Alt shows a key on every command) | missing | missing | |
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
@@ -137,7 +137,7 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 79 | 22 | 20 | 121 |
+| Now | 80 | 21 | 20 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
 
@@ -171,7 +171,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P2 | Always: locales | Library: string tables per locale in expressions; then JSON for every label |
 | P2 | Always: keyboard access, and names, roles and focus order | JSON: names on the remaining nodes and an audit of the focus order; key hints below |
 | P3 | Shell: key hints (Alt shows a key on every command) | Library: an event for Alt pressed and released alone; then JSON badges on the tabs and buttons |
-| P3 | Shell: search that runs commands (the rest of the commands) | JSON: the commands listed from the menus as well as the 33 named ones |
 | P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |

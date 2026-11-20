@@ -435,7 +435,7 @@
   (if (= (str/trim state.search) "")
       []
       (concat (slice (filter #(str/includes? (str/lower-case (:title %)) (str/lower-case (str/trim state.search)))
-                             computed.commands)
+                             computed.searchCommands)
                      0
                      10)
               [{:separator true}
