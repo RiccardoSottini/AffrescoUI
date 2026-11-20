@@ -138,8 +138,13 @@
 		"swatches": ["#000000", "#ffffff", "#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#6366f1",
 		             "#a855f7", "#ec4899", "#78716c", "#9ca3af", "#374151", "#7c2d12", "#14532d"],
 		"guides": { "vertical": [], "horizontal": [] },
+		"guideDrag": { "axis": "", "at": 0, "moved": false },
 		"view": { "rulers": true, "guides": true },
 		"panels": { "colour": "colour", "properties": "properties", "layers": "layers" },
+		"collapsed": { "colour": false, "properties": false, "layers": false },
+		"groupHeights": { "colour": 158, "properties": 236 },
+		"workspace": "standard",
+		"workspaces": [],
 		"popout": { "history": false, "navigator": false },
 		"flyout": {},
 		"docName": "Untitled 1",
@@ -157,7 +162,7 @@
 			{ "title": "HD, 1920 × 1080", "width": 1920, "height": 1080 }, { "title": "4K UHD, 3840 × 2160", "width": 3840, "height": 2160 },
 			{ "title": "A4 at 300 ppi, 2480 × 3508", "width": 2480, "height": 3508 }, { "title": "Icon, 512 × 512", "width": 512, "height": 512 }
 		],
-		"transform": { "open": false, "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 },
+		"transform": { "open": false, "target": "layer", "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 },
 		"resize": { "open": false, "width": 0, "height": 0, "linked": true },
 		"canvasSize": { "open": false, "width": 0, "height": 0, "anchor": "center" },
 		"rename": { "open": false, "name": "" },
@@ -190,7 +195,7 @@
 		"about": false
 	},
 
-	"persist": ["state.theme", "state.view"],
+	"persist": ["state.theme", "state.view", "state.workspaces"],
 
 	"onLoad": [{ "set": "state.assistant.size", "to": 28 }, { "set": "state.assistant.inset", "to": 10 }, { "run": "drawSample" }],
 
@@ -207,7 +212,7 @@
 				] },
 				{ "id": "workspace-foot", "style": "clear", "width": 1, "height": 0 }
 			] },
-			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
+			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search commands, tools and layers', items: computed.searchItems}]}}" } },
 			{ "use": "temperaFilterDialog" },
 			{ "use": "temperaNewDialog" },
 			{ "use": "temperaTransformDialog" },

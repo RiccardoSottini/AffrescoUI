@@ -42,19 +42,42 @@
      :accentColor @accent
      :onClose closeDocument))
 
-(defview guides "The guides over the image, upright and level, where they are in the image." []
-  [(repeat [g state.guides.vertical]
+(defview guides
+  "The guides over the image, upright and level, where they are in the image: each drags, and dragged back onto its
+  ruler it goes. The guide being dragged out of a ruler shows too."
+  []
+  [(repeat [g state.guides.vertical :index i]
      `(node#guide-v :when ~state.view.guides
-        :x ~(+ (/ computed.canvasWidth 2) (* (- g state.doc.view.x) computed.px))
-        :width 1
+        :x ~(-> g (- state.doc.view.x) (* computed.px) (+ (/ computed.canvasWidth 2) -3))
+        :width 7
         :anchors {:top 0 :bottom 0}
-        :color @guide))
-   (repeat [g state.guides.horizontal]
+        :style clear
+        :cursor resize-horizontal
+        :onPress ~(handler guide-pressed g)
+        :onDrag ~(handler guide-moved "vertical" i)
+        :onRelease ~(handler guide-let-go "vertical" i)
+        (node :x 3 :width 1 :anchors {:top 0 :bottom 0} :color @guide)))
+   (repeat [g state.guides.horizontal :index i]
      `(node#guide-h :when ~state.view.guides
-        :y ~(+ (/ computed.canvasHeight 2) (* (- g state.doc.view.y) computed.px))
-        :height 1
+        :y ~(-> g (- state.doc.view.y) (* computed.px) (+ (/ computed.canvasHeight 2) -3))
+        :height 7
         :anchors {:left 0 :right 0}
-        :color @guide))])
+        :style clear
+        :cursor resize-vertical
+        :onPress ~(handler guide-pressed g)
+        :onDrag ~(handler guide-moved "horizontal" i)
+        :onRelease ~(handler guide-let-go "horizontal" i)
+        (node :y 3 :height 1 :anchors {:left 0 :right 0} :color @guide)))
+   `(node#guide-new-v :when ~(= state.guideDrag.axis "vertical")
+      :x ~(+ (/ computed.canvasWidth 2) (* (- state.guideDrag.at state.doc.view.x) computed.px))
+      :width 1
+      :anchors {:top 0 :bottom 0}
+      :color @guide)
+   `(node#guide-new-h :when ~(= state.guideDrag.axis "horizontal")
+      :y ~(+ (/ computed.canvasHeight 2) (* (- state.guideDrag.at state.doc.view.y) computed.px))
+      :height 1
+      :anchors {:left 0 :right 0}
+      :color @guide)])
 
 ;;; The rulers
 
@@ -67,6 +90,9 @@
        :color @ruler
        :cursor hand
        :tooltip ~(t "canvas.rulerAcross.tip")
+       :onPress ~(handler guide-pressed 0)
+       :onDrag ~(handler guide-out "horizontal")
+       :onRelease guide-dropped
        :onClick guide-across
        ~(repeat [tick computed.rulerMinorX]
          `(node :x ~(+ (/ computed.canvasWidth 2) (* (- tick state.doc.view.x) computed.px)) :y 12 :width 1 :height 4
@@ -90,6 +116,9 @@
      :color @ruler
      :cursor hand
      :tooltip ~(t "canvas.rulerDown.tip")
+     :onPress ~(handler guide-pressed 0)
+     :onDrag ~(handler guide-out "vertical")
+     :onRelease guide-dropped
      :onClick guide-down
      ~(repeat [tick computed.rulerMinorY]
        `(node :y ~(+ (/ computed.canvasHeight 2) (* (- tick state.doc.view.y) computed.px)) :x 12 :width 4 :height 1

@@ -43,7 +43,7 @@
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 17}}
   :permissions {:allow [studio] :ask [agent] :reviewers [studio user]}
-  :persist [state.theme state.view]
+  :persist [state.theme state.view state.workspaces]
   :theme ~state.theme
   (node#root :color @background
     (column#workspace :fill true :gap 6

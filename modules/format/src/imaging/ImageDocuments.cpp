@@ -391,6 +391,17 @@ void settle(ImageDocument& image) {
 	image.path.clear();
 }
 
+void deselectKeeping(ImageDocument& image) {
+	imaging::Document& document = image.canvas->document();
+	if(!document.hasSelection()) return;
+	const imaging::Image& selection = document.selection();
+	image.lastSelection.clear();
+	for(const imaging::TileKey& key : selection.writtenTiles())
+		if(auto tile = selection.tile(key))
+			image.lastSelection.emplace(std::pair{key.column, key.row}, std::move(tile));
+	imaging::deselect(document);
+}
+
 std::shared_ptr<ImageDocuments> makeImageDocuments() { return std::make_shared<ImageDocuments>(); }
 
 } // namespace affresco::format::editing

@@ -1202,7 +1202,7 @@ click, context menu, drag, drop and scroll) also get the modifier keys held: `ev
 | Handler | When |
 |---|---|
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; `event.data` is the item under the pointer that a drag would carry, as a tab's `{ "id", "index" }` or a list row's `{ "id", "ids" }`, when there is one). |
-| `onPress`, `onRelease` | Left button down, up. |
+| `onPress`, `onRelease` | Left button down, up (the release reaches the node pressed wherever it is let go: `event.inside` says whether over it; a click needs it over). |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
@@ -1486,7 +1486,7 @@ The operations, and the keys of `with` each reads:
 | `deleteMask` | `id` | Deletes a layer's mask. |
 | `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
-| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
+| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the last selection again, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
@@ -1498,6 +1498,7 @@ The operations, and the keys of `with` each reads:
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
@@ -1530,8 +1531,9 @@ The operations, and the keys of `with` each reads:
 | `pathToShape` | — | Makes a shape layer of the active path. |
 <!-- end generated -->
 
-Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
-and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
+Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `reselect`: the selection
+the last `none` or marquee click took away, `invert`, `rectangle` and `ellipse` from `from` to `to`, `polygon` through
+`points`, `wand` at `x`, `y`, `colorRange` of `color` within
 `fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
 its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
 layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes

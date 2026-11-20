@@ -373,14 +373,14 @@
 					{ "grow": 1, "height": 1, "style": "clear" },
 					{ "type": "row", "id": "options-end", "width": 112, "height": 30, "alignItems": "center", "justify": "end", "gap": 4,
 					  "children": [
-						{ "id": "search", "use": "tIcon", "with": { "icon": "search", "tip": "Search the commands (Cmd+F)", "run": "showSearch" } },
+						{ "id": "search", "use": "tIcon", "with": { "icon": "search", "tip": "Search commands, tools and layers (Cmd+F)", "run": "showSearch" } },
 						{ "type": "row", "id": "workspace-switcher", "role": "button", "label": "Workspace", "tooltip": "Choose a workspace", "width": 40, "height": 22,
 						  "alignItems": "center", "gap": 2, "radius": "@kit.radius", "cursor": "hand", "hover": { "color": "@hover" }, "onClick": { "toggle": "state.workspaceMenu" },
 						  "children": [
 							{ "type": "label", "icon": "layout-panel-left", "textColor": "@text", "width": 22, "height": 20, "align": "center" },
 							{ "type": "label", "icon": "chevron-down", "font": "small", "textColor": "@muted", "fitText": true },
 							{ "use": "tMenu", "with": { "open": "state.workspaceMenu", "placement": "below-end", "width": 200,
-							  "items": [{ "title": "Standard", "checked": true, "run": "resetWorkspace" }, { "separator": true }, { "title": "Reset the Workspace", "run": "resetWorkspace" }] } }
+							  "items": "{{concat([{title: 'Standard', checked: state.workspace == 'standard', run: 'chooseWorkspace', with: {args: {name: 'standard'}}}, {title: 'Painting', checked: state.workspace == 'painting', run: 'chooseWorkspace', with: {args: {name: 'painting'}}}], map(state.workspaces, {title: it.name, checked: state.workspace == it.name, run: 'chooseWorkspace', with: {args: {name: it.name}}}), [{separator: true}, {title: 'Save Workspace', run: 'saveWorkspace'}, {title: 'Delete Workspace', run: 'deleteWorkspace', enabled: some(state.workspaces, it.name == state.workspace)}, {title: 'Reset the Workspace', run: 'resetWorkspace'}])}}" } }
 						  ] },
 						{ "width": 6, "height": 1, "style": "clear" }
 					  ] }
@@ -461,9 +461,12 @@
 					  "children": [
 						{ "id": "ruler-corner", "width": 16, "height": 16, "color": "@ruler" },
 						{ "id": "ruler-top", "label": "Horizontal ruler", "grow": 1, "height": 16, "color": "@ruler", "cursor": "hand",
-						  "tooltip": "Click to add a vertical guide",
-						  "onClick": { "run": "addGuide", "with": { "args": { "axis": "vertical",
-						    "at": "{{state.doc.view.x + (event.left - event.width / 2) / computed.px}}" } } },
+						  "tooltip": "Click to add a vertical guide; drag down for a horizontal one",
+						  "onPress": { "run": "guidePressed", "with": { "args": { "at": 0 } } },
+						  "onDrag": { "run": "guideOut", "with": { "args": { "axis": "horizontal" } } },
+						  "onRelease": { "run": "guideDropped" },
+						  "onClick": { "if": "{{!state.guideDrag.moved}}", "then": [{ "run": "addGuide", "with": { "args": { "axis": "vertical",
+						    "at": "{{state.doc.view.x + (event.left - event.width / 2) / computed.px}}" } } }] },
 						  "children": [
 							{ "repeat": { "for": "t", "in": "computed.rulerMinorX" }, "x": "{{computed.canvasWidth / 2 + (t - state.doc.view.x) * computed.px}}",
 							  "y": 12, "width": 1, "height": 4, "color": "@muted" },
@@ -476,9 +479,12 @@
 					{ "type": "row", "id": "canvas-row", "width": "100%", "grow": 1,
 					  "children": [
 						{ "id": "ruler-left", "label": "Vertical ruler", "when": "{{state.view.rulers}}", "width": 16, "height": "100%", "color": "@ruler",
-						  "cursor": "hand", "tooltip": "Click to add a horizontal guide",
-						  "onClick": { "run": "addGuide", "with": { "args": { "axis": "horizontal",
-						    "at": "{{state.doc.view.y + (event.top - event.height / 2) / computed.px}}" } } },
+						  "cursor": "hand", "tooltip": "Click to add a horizontal guide; drag right for a vertical one",
+						  "onPress": { "run": "guidePressed", "with": { "args": { "at": 0 } } },
+						  "onDrag": { "run": "guideOut", "with": { "args": { "axis": "vertical" } } },
+						  "onRelease": { "run": "guideDropped" },
+						  "onClick": { "if": "{{!state.guideDrag.moved}}", "then": [{ "run": "addGuide", "with": { "args": { "axis": "horizontal",
+						    "at": "{{state.doc.view.y + (event.top - event.height / 2) / computed.px}}" } } }] },
 						  "children": [
 							{ "repeat": { "for": "t", "in": "computed.rulerMinorY" }, "y": "{{computed.canvasHeight / 2 + (t - state.doc.view.y) * computed.px}}",
 							  "x": 12, "width": 4, "height": 1, "color": "@muted" },
@@ -490,11 +496,25 @@
 						{ "id": "canvas-frame", "style": "clear", "grow": 1, "height": "100%",
 						  "children": [
 							{ "type": "raster", "id": "canvas", "label": "Image", "image": "doc", "fill": true, "checker": true },
-							{ "id": "guide-v", "when": "{{state.view.guides}}", "repeat": { "for": "g", "in": "state.guides.vertical" },
-							  "x": "{{computed.canvasWidth / 2 + (g - state.doc.view.x) * computed.px}}", "width": 1,
+							{ "id": "guide-v", "when": "{{state.view.guides}}", "repeat": { "for": "g", "in": "state.guides.vertical", "index": "i" },
+							  "x": "{{computed.canvasWidth / 2 + (g - state.doc.view.x) * computed.px - 3}}", "width": 7,
+							  "anchors": { "top": 0, "bottom": 0 }, "style": "clear", "cursor": "resize-horizontal",
+							  "onPress": { "run": "guidePressed", "with": { "args": { "at": "{{g}}" } } },
+							  "onDrag": { "run": "guideMoved", "with": { "args": { "axis": "vertical", "index": "{{i}}" } } },
+							  "onRelease": { "run": "guideLetGo", "with": { "args": { "axis": "vertical", "index": "{{i}}" } } },
+							  "children": [{ "x": 3, "width": 1, "anchors": { "top": 0, "bottom": 0 }, "color": "@guide" }] },
+							{ "id": "guide-h", "when": "{{state.view.guides}}", "repeat": { "for": "g", "in": "state.guides.horizontal", "index": "i" },
+							  "y": "{{computed.canvasHeight / 2 + (g - state.doc.view.y) * computed.px - 3}}", "height": 7,
+							  "anchors": { "left": 0, "right": 0 }, "style": "clear", "cursor": "resize-vertical",
+							  "onPress": { "run": "guidePressed", "with": { "args": { "at": "{{g}}" } } },
+							  "onDrag": { "run": "guideMoved", "with": { "args": { "axis": "horizontal", "index": "{{i}}" } } },
+							  "onRelease": { "run": "guideLetGo", "with": { "args": { "axis": "horizontal", "index": "{{i}}" } } },
+							  "children": [{ "y": 3, "height": 1, "anchors": { "left": 0, "right": 0 }, "color": "@guide" }] },
+							{ "id": "guide-new-v", "when": "{{state.guideDrag.axis == 'vertical'}}",
+							  "x": "{{computed.canvasWidth / 2 + (state.guideDrag.at - state.doc.view.x) * computed.px}}", "width": 1,
 							  "anchors": { "top": 0, "bottom": 0 }, "color": "@guide" },
-							{ "id": "guide-h", "when": "{{state.view.guides}}", "repeat": { "for": "g", "in": "state.guides.horizontal" },
-							  "y": "{{computed.canvasHeight / 2 + (g - state.doc.view.y) * computed.px}}", "height": 1,
+							{ "id": "guide-new-h", "when": "{{state.guideDrag.axis == 'horizontal'}}",
+							  "y": "{{computed.canvasHeight / 2 + (state.guideDrag.at - state.doc.view.y) * computed.px}}", "height": 1,
 							  "anchors": { "left": 0, "right": 0 }, "color": "@guide" }
 						  ] }
 					  ] },

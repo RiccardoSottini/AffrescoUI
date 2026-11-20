@@ -17,6 +17,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 6 (keys, Shift and Alt, Auto-Select) | 30 | 24 | 10 |
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
 | 8 (type, shapes and paths) | 34 | 24 | 5 |
+| 9 (guides, selection transform, dock, workspaces, search) | 37 | 21 | 5 |
 
 ## Workspace
 
@@ -27,11 +28,11 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Tools bar on the left, one column, grouped with flyouts (long press) | done | Groups open on a right click (no long press); tools not built yet show disabled |
 | Foreground/background swatches with swap and reset, quick mask button | done | |
 | Document tabs: name, layer, zoom, mode ("Untitled 1 — Layer 1 · 100% · RGB/8") | partial | One document at a time: its × and Cmd+W ask before losing changes, then leave an empty Untitled document |
-| Rulers and guides | partial | Zero at the image's corner, minor ticks, click to add a guide; no dragging guides out of the rulers |
+| Rulers and guides | done | Zero at the image's corner, minor ticks; a click adds a guide, a drag out of a ruler makes one where it is let go (level from the top ruler, upright from the side one); a guide drags, and dragged back onto its ruler it goes |
 | Dark grey pasteboard, checkerboard for transparency | done | |
 | Status bar: zoom field and document size | done | One information item at a time, chosen from its › menu |
-| Search (commands), workspace switcher, screen modes | partial | Searches the commands only; one workspace; standard and full screen with menu bar |
-| Panels docked right in tabbed groups, collapsible to icons | partial | Rounded groups with pill tabs and an icon strip (History, Navigator); groups can't be dragged, resized or collapsed |
+| Search (commands), workspace switcher, screen modes | done | Searches the commands, the tools and the layers; Standard and Painting workspaces, Save Workspace keeps the dock's tabs, folds, heights and pop-outs (kept between runs), Delete and Reset; also in Window > Workspace; standard and full screen with menu bar |
+| Panels docked right in tabbed groups, collapsible to icons | partial | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it) and the sash under the first two drags their height; groups can't be dragged to another place |
 | Light and dark interface, locales, keyboard focus, accessible names | partial | Keep and extend every round |
 
 ## Panels
@@ -63,7 +64,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | done | Shift, Alt or both at the press add, subtract or intersect (marquee, lasso, polygon, wand); during a drag Shift keeps a square and Alt draws from the centre |
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | partial | No quick selection |
-| Select all, deselect, inverse, feather, transform selection | partial | No transform selection |
+| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection moves, scales, flips and turns the outline (a dialog, not on-canvas handles); Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
 | Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
 | Crop with overlay grid and aspect presets | partial | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the ratios crop the largest centred part, but don't hold a drag to that shape |
@@ -119,9 +120,7 @@ general feature the image step or a node needs first.
 | Pen: add, delete and convert anchors in a path's middle; Type > Create Work Path | P2 | Library: anchor editing in the pen gesture; glyph outlines as paths (the font's outlines through FreeType) |
 | Character: font family, tracking, kerning; type on a path | P3 | Library: more `LayerContent` text keys, a document font list |
 | Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
-| Rulers: drag a guide out of a ruler | P2 | Library: a drag from the ruler that publishes a guide position (the raster node's rulers); then JSON |
-| Panels: drag, resize, collapse groups | P2 | Library: dockable panel groups in the kit (general, every app with panels) |
-| Search beyond the commands; saved workspaces | P3 | JSON: search layers and help too; keep panel layouts in state |
+| Panels: drag a group to another place | P3 | JSON: an order for the groups (a grid row per group), and a drop on a group's tabs |
 | Light and dark interface, locales, focus, names | P2 | JSON: a light token set, and keep each new control named and focusable |
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
@@ -133,7 +132,7 @@ general feature the image step or a node needs first.
 | Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
 | Info panel (pointer position, colour under it) | P2 | Library: the raster node publishing the pointer's document position and the composite colour there |
 | Quick selection | P2 | Library: an edge-aware brush selection |
-| Transform Selection; Select > Reselect | P2 | Library: `transformBox` on the selection mask, and keeping the last selection |
+| Transform Selection: on-canvas handles | P2 | Library: the transform handles of Free Transform, on the selection's outline |
 | Crop ratios that hold a drag to their shape | P2 | Library: a ratio option on the crop drag, next to the Shift square in `stretchBox` |
 | Gradient: Reverse, Dither, Transparency checks | P2 | Library: those three flags on the gradient fill |
 | Healing brush and patch (Healing Tool) | P2 | Library: a texture-matching brush and patch |

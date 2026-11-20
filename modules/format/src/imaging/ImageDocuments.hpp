@@ -183,6 +183,7 @@ struct ImageDocument {
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
 	std::shared_ptr<const imaging::Image> clipboard;       ///< What copy and cut kept, the image's size then.
+	imaging::Coverage lastSelection;                       ///< The selection the last deselect took away (reselect).
 	std::vector<int> histogram;                            ///< What histogram last counted, by brightness.
 	std::uint64_t thumbnailRevision = ~std::uint64_t{0};   ///< The document revision the thumbnails show.
 	std::uint64_t thumbnailGeneration = ~std::uint64_t{0}; ///< The document the thumbnails show.
@@ -443,6 +444,10 @@ void crop(ImageDocument& image, int x, int y, int width, int height);
 /// @brief Ends a stroke or a filter preview in progress, before another edit.
 /// @param image The image.
 void settle(ImageDocument& image);
+
+/// @brief Selects nothing, one step, keeping the selection there was for reselect (select's "reselect").
+/// @param image The image.
+void deselectKeeping(ImageDocument& image);
 
 /// @brief A selection mode by its name.
 /// @param name "replace", "add", "subtract" or "intersect".
