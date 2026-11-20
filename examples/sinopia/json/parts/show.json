@@ -209,18 +209,21 @@
 							"box": "{{{ x: o.x ?? ph.x ?? 0, y: o.y ?? ph.y ?? 0, w: o.w ?? ph.w ?? 100, h: o.h ?? ph.h ?? 100 }}}",
 							"effect": "{{a.kind == 'emphasis' ? (r > 0 && r < reps ? a.effect : 'none') : a.kind == 'path' ? (r > 0 ? a.effect : 'none') : q < 1 ? a.effect ?? 'appear' : v < 1 ? 'fade' : 'none'}}",
 							"away": "{{1 - q}}",
-							"side": "{{a.direction ?? 'bottom'}}"
+							"side": "{{a.direction ?? (a.effect == 'wipe' ? 'left' : 'bottom')}}",
+							"clip": "{{effect != 'wipe' ? [0, 0, 960, 540] : side == 'right' ? [box.x + box.w * (1 - q), 0, 960 - box.x - box.w * (1 - q), 540] : side == 'top' ? [0, 0, 960, box.y + box.h * q] : side == 'bottom' ? [0, box.y + box.h * (1 - q), 960, 540 - box.y - box.h * (1 - q)] : [0, 0, box.x + box.w * q, 540]}}"
 						}, "when": "{{v > 0}}", "color": "transparent",
-						"x": 0, "y": 0, "width": "{{effect == 'wipe' ? box.x + box.w * q : 960}}", "height": 540,
+						"x": "{{clip[0]}}", "y": "{{clip[1]}}", "width": "{{clip[2]}}", "height": "{{clip[3]}}",
 						"translate": "{{effect == 'fly' ? (side == 'left' ? [away * (0 - box.x - box.w - 20), 0] : side == 'right' ? [away * (980 - box.x), 0] : side == 'top' ? [0, away * (0 - box.y - box.h - 20)] : [0, away * (560 - box.y)]) : a.kind == 'path' ? (effect == 'pathRight' ? [240 * p, 0] : effect == 'pathDown' ? [0, 160 * p] : effect == 'pathArc' ? [240 * p, -120 * sin(pi() * p)] : effect == 'pathCircle' ? [80 * sin(2 * pi() * p), 80 * (1 - cos(2 * pi() * p))] : [0, 0]) : g != null ? [(1 - moved) * (g.x + g.w / 2 - box.x - box.w / 2), (1 - moved) * (g.y + g.h / 2 - box.y - box.h / 2)] : [0, 0]}}",
 						"scale": "{{effect == 'zoom' ? max(q, 0.01) : effect == 'pulse' ? 1 + 0.15 * sin(pi() * p) : g != null ? [moved + (1 - moved) * g.w / max(box.w, 1), moved + (1 - moved) * g.h / max(box.h, 1)] : 1}}",
 						"rotate": "{{effect == 'spin' ? 360 * p : effect == 'teeter' ? 8 * sin(4 * pi() * p) : 0}}",
 						"transformOrigin": "{{[(box.x + box.w / 2) / 9.6, (box.y + box.h / 2) / 5.4]}}",
 						"children": [
-							{ "use": "slideObject", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "layout": "{{layout}}", "edit": false } },
-							{ "id": "{{prefix + 'veil-' + o.id}}", "when": "{{effect == 'fade'}}", "x": "{{box.x - 4}}", "y": "{{box.y - 4}}", "width": "{{box.w + 8}}", "height": "{{box.h + 8}}",
-							  "rotate": "{{o.rotate ?? 0}}",
-							  "color": "{{gradientColor({ stops: [{ at: 0, color: ground }, { at: 1, color: ground + '00' }] }, v)}}" }
+							{ "x": "{{0 - clip[0]}}", "y": "{{0 - clip[1]}}", "width": 960, "height": 540, "color": "transparent", "children": [
+								{ "use": "slideObject", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "layout": "{{layout}}", "edit": false } },
+								{ "id": "{{prefix + 'veil-' + o.id}}", "when": "{{effect == 'fade'}}", "x": "{{box.x - 4}}", "y": "{{box.y - 4}}", "width": "{{box.w + 8}}", "height": "{{box.h + 8}}",
+								  "rotate": "{{o.rotate ?? 0}}",
+								  "color": "{{gradientColor({ stops: [{ at: 0, color: ground }, { at: 1, color: ground + '00' }] }, v)}}" }
+							] }
 						]
 					}
 				]

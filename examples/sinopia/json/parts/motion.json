@@ -101,7 +101,7 @@
 				"run": "changeAnimation",
 				"with": {
 					"props": {
-						"direction": "{{map(computed.flySides, it[0])[(indexOf(map(computed.flySides, it[0]), computed.animation.direction ?? 'bottom') + 1) % 4]}}"
+						"direction": "{{map(computed.flySides, it[0])[(indexOf(map(computed.flySides, it[0]), computed.animation.direction ?? (computed.animation.effect == 'wipe' ? 'left' : 'bottom')) + 1) % 4]}}"
 					}
 				}
 			}
@@ -624,12 +624,12 @@
 						"type": "label",
 						"id": "motion-side",
 						"height": 22,
-						"style": "{{a.effect == 'fly' ? 'rbButton' : 'rbButtonOff'}}",
+						"style": "{{a.effect == 'fly' || a.effect == 'wipe' ? 'rbButton' : 'rbButtonOff'}}",
 						"padding": 2,
 						"fitText": true,
-						"runs": "{{[{ icon: (find(computed.flySides, it[0] == (a.direction ?? 'bottom')) ?? computed.flySides[0])[1], size: 14 }, { text: ' From ' + (a.direction ?? 'bottom'), size: 12 }]}}",
-						"tooltip": "The side a fly build comes from, or leaves to",
-						"disabled": "{{a.effect != 'fly'}}",
+						"runs": "{{[{ icon: (find(computed.flySides, it[0] == (a.direction ?? (a.effect == 'wipe' ? 'left' : 'bottom'))) ?? computed.flySides[0])[1], size: 14 }, { text: ' From ' + (a.direction ?? (a.effect == 'wipe' ? 'left' : 'bottom')), size: 12 }]}}",
+						"tooltip": "The side a fly or wipe build comes from, or leaves to",
+						"disabled": "{{a.effect != 'fly' && a.effect != 'wipe'}}",
 						"onClick": "nextFlySide"
 					}
 				]

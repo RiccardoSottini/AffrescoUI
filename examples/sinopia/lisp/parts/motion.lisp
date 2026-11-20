@@ -112,6 +112,22 @@
       "pathCircle" [(* 80 (sin turn)) (* 80 drop)]
       [0 0])))
 
+(defn wipe-clip
+  "The part of the slide a wiping object shows, as [x y width height]: the band from the side it wipes from, the part
+  `q` of the way across the object; the whole slide for other effects."
+  [effect side box q]
+  (if (= effect :wipe)
+    (case side
+      "right" (let [x (+ box.x (* box.w (- 1 q)))] [x 0 (- 960 x) 540])
+      "top" [0 0 960 (+ box.y (* box.h q))]
+      "bottom" (let [y (+ box.y (* box.h (- 1 q)))] [0 y 960 (- 540 y)])
+      [0 0 (+ box.x (* box.w q)) 540])
+    [0 0 960 540]))
+
+(defn build-side "The side a build flies or wipes from: its own, else the bottom for a fly and the left for a wipe."
+  [a]
+  (or-else (:direction a) (if (= (:effect a) "wipe") "left" "bottom")))
+
 (defn fly-offset "Where a flying object is, the part `away` of the way off the slide, by the side it flies from."
   [side box away]
   (case side
@@ -280,15 +296,14 @@
          :tooltip ~(t "motion.moreRepeats")
          :onClick ~(handler animation-repeat-by 1)))
      (label#motion-side :height 22
-       :style ~(if (= a.effect "fly") "rbButton" "rbButtonOff")
+       :style ~(if (#{"fly" "wipe"} a.effect) "rbButton" "rbButtonOff")
        :padding 2
        :fitText true
-       :runs ~[{:icon (second (or-else (find #(= (first %) (or-else a.direction "bottom")) computed.flySides)
-                                        computed.flySides.0))
+       :runs ~[{:icon (second (or-else (find #(= (first %) (build-side a)) computed.flySides) computed.flySides.0))
                 :size 14}
-               {:text (t "motion.flySide" {:side (or-else a.direction "bottom")}) :size 12}]
+               {:text (t "motion.flySide" {:side (build-side a)}) :size 12}]
        :tooltip ~(t "motion.theSideItFlies")
-       :disabled ~(not= a.effect "fly")
+       :disabled ~(not (#{"fly" "wipe"} a.effect))
        :onClick next-fly-side)))
 
 ;;; What the buttons do
@@ -318,7 +333,7 @@
 
 (defn next-fly-side "Turns the side the selected objects fly from, or to, to the next: bottom, left, top, right." []
   (let [sides (map first computed.flySides)
-        at (indexOf sides (or-else computed.animation.direction "bottom"))]
+        at (indexOf sides (build-side computed.animation))]
     (change-animation {:direction (get sides (mod (inc at) 4))})))
 
 (defn change-build "Merges properties into one build of the slide, by its id." [id props]

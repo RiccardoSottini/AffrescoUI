@@ -376,13 +376,14 @@
                           :else "none")
            :away ~(- 1 q)
            :wave ~(sin (* 3.14159 p))
-           :swing ~(sin (* 12.566 p))}
+           :swing ~(sin (* 12.566 p))
+           :clip ~(wipe-clip effect (build-side a) box q)}
      :when ~(pos? v)
      :color transparent
-     :x 0
-     :y 0
-     :width ~(if (= effect :wipe) (+ box.x (* box.w q)) 960)
-     :height 540
+     :x ~clip.0
+     :y ~clip.1
+     :width ~clip.2
+     :height ~clip.3
      :translate ~(cond (= effect :fly) (fly-offset (or-else a.direction "bottom") box away)
                        (= a.kind :path) (path-offset effect p)
                        (some? g) (glide-offset g box moved)
@@ -393,15 +394,16 @@
                    :else 1)
      :rotate ~(case effect :spin (* 360 p) :teeter (* 8 swing) 0)
      :transformOrigin ~[(/ (+ box.x (/ box.w 2)) 9.6) (/ (+ box.y (/ box.h 2)) 5.4)]
-     (node :use slideObject :with {:o ~o :prefix ~prefix :layout ~layout :edit false})
-     (node :id ~(str prefix "veil-" o.id)
-       :when ~(= effect :fade)
-       :x ~(- box.x 4)
-       :y ~(- box.y 4)
-       :width ~(+ box.w 8)
-       :height ~(+ box.h 8)
-       :rotate ~(or-else o.rotate 0)
-       :color ~(gradientColor {:stops [{:at 0 :color ground} {:at 1 :color (str ground "00")}]} v))))
+     (node :x ~(- clip.0) :y ~(- clip.1) :width 960 :height 540 :color transparent
+       (node :use slideObject :with {:o ~o :prefix ~prefix :layout ~layout :edit false})
+       (node :id ~(str prefix "veil-" o.id)
+         :when ~(= effect :fade)
+         :x ~(- box.x 4)
+         :y ~(- box.y 4)
+         :width ~(+ box.w 8)
+         :height ~(+ box.h 8)
+         :rotate ~(or-else o.rotate 0)
+         :color ~(gradientColor {:stops [{:at 0 :color ground} {:at 1 :color (str ground "00")}]} v)))))
 
 (defview rehearsal "The rehearsal's bar over the show: Next, Pause, this slide's time and the total." []
   `(row#rehearsal :when ~state.show.rehearsing
