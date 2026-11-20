@@ -269,7 +269,21 @@
 		"assistant.warning": {
 			"light": "#fef3c7",
 			"dark": "#3b2e0a"
-		}
+		},
+		"kit.surface": "@color.surface",
+		"kit.text": "@color.text",
+		"kit.body": "@color.muted",
+		"kit.dim": "@color.muted",
+		"kit.border": "@color.border",
+		"kit.primary": "@color.accent",
+		"kit.onPrimary": "@color.accentText",
+		"kit.secondary": "@color.hover",
+		"kit.onSecondary": "@color.text",
+		"kit.accent": "@color.accent",
+		"kit.focus": "@color.accent",
+		"kit.backdrop": "@color.backdrop",
+		"kit.radius": 8,
+		"kit.cardRadius": 16
 	},
 	"colors": {
 		"accent": "#6366f1",
@@ -7073,7 +7087,7 @@
 						"anchors": {
 							"left": 176,
 							"right": 20,
-							"top": 90
+							"top": 84
 						}
 					},
 					{
@@ -7136,7 +7150,7 @@
 						"anchors": {
 							"left": 20,
 							"right": 20,
-							"top": 232
+							"top": 222
 						}
 					},
 					{

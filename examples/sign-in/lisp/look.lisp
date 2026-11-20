@@ -7,7 +7,9 @@
 
 ;;; Colours
 
-(deftokens tokens "The palette, light and dark: the page, the card, the fields, the accent and the avatars."
+(deftokens tokens
+  "The palette, light and dark: the page, the card, the fields, the accent and the avatars; the built-in dialogs take it
+  too, through the kit's tokens."
   {:radius.card 16
    :radius.field 10
    :color.background {:light "#eef2ff" :dark "#0b1020"}
@@ -62,7 +64,21 @@
    :assistant.dot @color.muted
    :assistant.success {:light "#16a34a" :dark "#4ade80"}
    :assistant.danger @color.error
-   :assistant.warning {:light "#fef3c7" :dark "#3b2e0a"}})
+   :assistant.warning {:light "#fef3c7" :dark "#3b2e0a"}
+   :kit.surface @color.surface
+   :kit.text @color.text
+   :kit.body @color.muted
+   :kit.dim @color.muted
+   :kit.border @color.border
+   :kit.primary @color.accent
+   :kit.onPrimary @color.accentText
+   :kit.secondary @color.hover
+   :kit.onSecondary @color.text
+   :kit.accent @color.accent
+   :kit.focus @color.accent
+   :kit.backdrop @color.backdrop
+   :kit.radius 8
+   :kit.cardRadius 16})
 
 (defpart colors "The accent's plain colours, for what takes no token."
   :colors {:accent "#6366f1" :accentHover "#7477f3" :fieldFocused "#ffffff"})
