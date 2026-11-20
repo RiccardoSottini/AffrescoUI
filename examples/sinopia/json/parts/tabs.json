@@ -131,7 +131,7 @@
 					{ "id": "g-ins-illustrations", "use": "rbGroup", "with": { "title": "Illustrations" }, "children": [
 						{ "id": "b-ins-shapes", "use": "rbBig", "with": { "icon": "shapes", "title": "Shapes", "menu": true, "width": 48 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-shapes" } } },
 						{ "id": "b-ins-icons", "use": "rbBig", "with": { "icon": "face-slightly-smiling", "title": "Icons", "menu": true, "width": 44 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-icons" } } },
-						{ "id": "b-ins-chart", "use": "rbBig", "with": { "icon": "chart-column-stacked", "title": "Chart", "width": 44, "enabled": false }, "tooltip": "Inserting a chart isn't available yet" }
+						{ "id": "b-ins-chart", "use": "rbBig", "with": { "icon": "chart-column-stacked", "title": "Chart", "menu": true, "width": 44 }, "tooltip": "Insert a chart: columns, bars, a line or a pie, from a table of data", "onClick": { "run": "openDrop", "with": { "id": "b-ins-chart" } } }
 					] },
 					{ "id": "g-ins-links", "use": "rbGroup", "with": { "title": "Links" }, "children": [
 						{ "id": "b-ins-link", "use": "rbBig", "with": { "icon": "link", "title": "Link", "menu": true, "width": 44, "enabled": "{{some(computed.selected, contains(['text', 'shape'], it.kind ?? 'text'))}}" },

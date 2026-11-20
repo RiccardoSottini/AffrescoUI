@@ -1584,6 +1584,165 @@
 				{ "expect": { "state": "find.open", "is": true } },
 				{ "expect": { "state": "find.text", "is": "harbour" } }
 			]
+		},
+		{
+			"name": "sinopia-insert-a-chart",
+			"note": "Insert > Chart puts a chart of sample data on the slide; its menu then draws it as bars, a line or a pie, and a double click edits its data as a table",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Column"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].kind",
+						"is": "chart"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].chart",
+						"is": "column"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-bar-3-2",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-legend-1-t",
+						"text": "Series 2"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-cat-0",
+						"text": "Category 1"
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Line"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-line-2",
+						"exists": true
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Pie"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].chart",
+						"is": "pie"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-slice-3",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-bar-0-0",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-legend-3-t",
+						"text": "Category 4"
+					}
+				},
+				{
+					"click": "#o40-chart"
+				},
+				{
+					"click": "#o40-chart"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": "o40"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-c0-1-t",
+						"text": "Series 1"
+					}
+				},
+				{
+					"click": "#o40-c1-1"
+				},
+				{
+					"click": "#o40-c1-1"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#cell-o40"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": "9"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].cells[1][1]",
+						"is": "4.39"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-slice-0",
+						"exists": true
+					}
+				}
+			]
 		}
 	]
 }

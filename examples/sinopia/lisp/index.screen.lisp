@@ -13,6 +13,9 @@
             "locales/design.en.lisp"
             "locales/design.es.lisp"
             "locales/design.fr.lisp"
+            "locales/insert.en.lisp"
+            "locales/insert.es.lisp"
+            "locales/insert.fr.lisp"
             sinopia.parts.window
             sinopia.parts.keys
             sinopia.parts.themes
@@ -22,6 +25,7 @@
             sinopia.parts.edit
             sinopia.parts.arrange
             sinopia.parts.content
+            sinopia.parts.chart
             sinopia.parts.ribbon
             sinopia.parts.tabs
             sinopia.parts.show

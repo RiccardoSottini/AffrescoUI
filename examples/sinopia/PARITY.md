@@ -70,7 +70,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Content | Crop a picture | missing | missing | |
 | Content | Tables | missing | done | insert-a-table (Insert > Table's size grid; a double click edits a cell, Tab and Shift+Tab move, Tab in the last cell adds a row) |
 | Content | Table styles | missing | done | insert-a-table (an accent of the theme for the selected table, under Insert > Table) |
-| Content | Charts (column, bar, line, pie) | missing | missing | |
+| Content | Charts (column, bar, line, pie) | missing | done | insert-a-chart (Insert > Chart: sample data drawn as columns, bars, a line or a pie with a legend and a value axis; a double click edits the data as a table) |
 | Content | Icons | missing | done | insert-tab |
 | Content | Links (to a slide of the deck, to a web address) | missing | partial | link-to-a-slide (to a slide, followed by a click in the show; no web addresses) |
 | Content | Text box and styled text effects | partial | done | add-a-text-box, insert-tab |
@@ -155,7 +155,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P1 | Text: justified text | Library: justified wrapping in labels |
 | P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
 | P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
-| P2 | Content: charts (Insert > Chart) | JSON: a chart object drawn as shapes from a small data table |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
 | P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
 | P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |

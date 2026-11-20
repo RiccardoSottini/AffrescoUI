@@ -67,8 +67,9 @@
      ~(object-shape)
      ~(object-icon)
      ~(object-ink)
-     (node :use slideTable :when ~(= o.kind :table) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
+     (node :use slideTable :when ~(or (= o.kind :table) (and (= o.kind :chart) editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
      (node :use slidePicture :when ~(= o.kind :picture) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
+     (node :use slideChart :when ~(and (= o.kind :chart) (not editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
      ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))
@@ -206,7 +207,7 @@
   "The editor over an object whose text is edited, its first line where the text's is."
   [o]
   `(editor :id ~(str "edit-" o.id)
-     :when ~editing
+     :when ~(and editing (not (contains? #{:table :chart} o.kind)))
      :autofocus true
      :wrap true
      :caret "state.caret"
