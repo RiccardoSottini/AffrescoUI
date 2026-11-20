@@ -65,6 +65,7 @@ namespace {
 	gizmo.active = gizmoAxisNamed(textOf(value, "axis")).value_or(GizmoAxis::None);
 	gizmo.pixels = std::clamp(numberOr(value, "pixels", gizmo.pixels), 10.0f, 400.0f);
 	if(const auto pivot = value.find("pivot"); pivot != value.end()) gizmo.pivot = pointFromJson(*pivot);
+	gizmo.individual = flagOr(value, "individual", false);
 	return gizmo;
 }
 

@@ -9,7 +9,7 @@
 
 (defstate theme dark "dark or light.")
 
-(defstate workspace "Layout" "The workspace shown, by its title.")
+(defstate workspace "Stage" "The workspace shown, by its name.")
 
 (defstate menuBar {} "Which of the top bar's menus is open.")
 
@@ -89,7 +89,7 @@
 
 (defstate cursor [0 0 0] "The 3D cursor's place.")
 
-(defstate pivot median "What objects turn and scale about: median, bounds, cursor or active.")
+(defstate pivot median "What objects turn and scale about: median, bounds, cursor, active, or each its own origin (individual).")
 
 (defstate orientation global "The transform's axes: global, local, normal or cursor.")
 
@@ -134,7 +134,8 @@
 
 (defstate world {:color "#3a3f47"} "The world's colour.")
 
-(defstate render {:exposure 1} "The render's exposure.")
+(defstate render {:exposure 1 :resolution [1920 1080] :fps 24}
+  "The render's exposure, its resolution (the render window frames the image at its shape) and its frame rate.")
 
 (defstate xray false "Whether X-Ray is on.")
 
@@ -180,7 +181,12 @@
    :surfaceWorld true
    :restrictions true
    :dataPanel true
-   :surfaceMaterial true}
+   :surfaceMaterial true
+   :relations true
+   :dataMore true
+   :materialSettings true
+   :display true
+   :format true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")
