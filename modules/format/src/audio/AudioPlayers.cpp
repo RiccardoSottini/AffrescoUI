@@ -65,6 +65,28 @@ double numberIn(const json& value, const std::string& at, double low, double hig
 	return value.get<double>();
 }
 
+/// @brief The bands of an "eq" operation's "to": a list of {frequency, gain, q}.
+/// @param value The list.
+/// @param at Its place.
+/// @return The bands.
+/// @throws DocumentError If it isn't such a list, or a value is out of its range.
+std::vector<audio::EqualizerBand> equalizerOf(const json& value, const std::string& at) {
+	if(!value.is_array() || value.size() > audio::maxEqualizerBands)
+		fail(at, "expected a list of at most " + std::to_string(audio::maxEqualizerBands) +
+		             " bands, each {frequency, gain, q}");
+	std::vector<audio::EqualizerBand> bands;
+	for(std::size_t i = 0; i < value.size(); ++i) {
+		const json& band = value[i];
+		const std::string place = at + "[" + std::to_string(i) + "]";
+		if(!band.is_object() || !band.contains("frequency") || !band.contains("gain"))
+			fail(place, "expected a band {frequency, gain, q}");
+		bands.push_back({static_cast<float>(numberIn(band["frequency"], place + ".frequency", 20, 20000)),
+		                 static_cast<float>(numberIn(band["gain"], place + ".gain", -24, 24)),
+		                 static_cast<float>(band.contains("q") ? numberIn(band["q"], place + ".q", 0.1, 10) : 1.0)});
+	}
+	return bands;
+}
+
 } // namespace
 
 /// @brief The players, the sources the host named, and the folders files may come from.
@@ -83,6 +105,7 @@ struct AudioPlayers::Impl {
 		float pan = 0;                                ///< Its balance.
 		float rate = 1;                               ///< Its playback rate.
 		bool loop = false;                            ///< Whether it starts again at its end.
+		std::vector<audio::EqualizerBand> equalizer;  ///< Its equaliser's bands ("eq").
 		float level = 0;                              ///< Its peak over the last block.
 		std::vector<float> spectrum;                  ///< Its "bands", if it has them (see audio::spectrum).
 		std::size_t underruns = 0;                    ///< How often its stream ran dry.
@@ -400,6 +423,7 @@ struct AudioPlayers::Impl {
 			drop(player);
 			return error;
 		}
+		player.voice->setEqualizer(player.equalizer);
 		player.generation = voiceGeneration;
 		player.duration = player.voice->duration();
 		return std::nullopt;
@@ -463,6 +487,9 @@ struct AudioPlayers::Impl {
 		} else if(operation == "rate") {
 			player.rate = static_cast<float>(numberIn(to, where + ".to", 0.25, 4));
 			if(player.voice) player.voice->setRate(player.rate);
+		} else if(operation == "eq") {
+			player.equalizer = equalizerOf(to, where + ".to");
+			if(player.voice) player.voice->setEqualizer(player.equalizer);
 		} else if(operation == "loop") {
 			player.loop = expect::boolean(to, where + ".to");
 			if(player.voice) player.voice->setLoop(player.loop);

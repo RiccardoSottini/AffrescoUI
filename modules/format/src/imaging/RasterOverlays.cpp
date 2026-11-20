@@ -6,6 +6,7 @@
 
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/VectorPath.hpp"
+#include "affresco/imaging/Shapes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -67,6 +68,7 @@ void RasterView::paint(Painter& painter) const {
 	const Gesture gesture = shown->settings.gesture;
 	if(shown->press.down && !shown->press.pan && gesture == Gesture::crop) paintCrop(painter, *shown);
 	paintOutline(painter, *shown);
+	paintPaths(painter, *shown);
 	if(hovered_ && !shown->spaceHeld && !shown->press.pan &&
 	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone))
 		paintBrush(painter, *shown);
@@ -102,11 +104,14 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 	const editing::Press& press = image.press;
 	const Gesture gesture = image.settings.gesture;
 	VectorPath::Contour contour;
-	if(press.down && !press.pan && (gesture == Gesture::selectRectangle || gesture == Gesture::selectEllipse)) {
+	const bool ellipse = gesture == Gesture::selectEllipse ||
+	                     (gesture == Gesture::shape && image.settings.vector.shape == imaging::ShapeKind::ellipse);
+	if(press.down && !press.pan &&
+	   (gesture == Gesture::selectRectangle || gesture == Gesture::selectEllipse || gesture == Gesture::shape)) {
 		const Rect box =
 		    between(toWindow(image, press.boxFrom.x, press.boxFrom.y), toWindow(image, press.boxTo.x, press.boxTo.y));
 		contour.closed = true;
-		if(gesture == Gesture::selectRectangle) {
+		if(!ellipse) {
 			for(const Vec2 corner : {Vec2{box.left, box.top}, Vec2{box.right, box.top}, Vec2{box.right, box.bottom},
 			                         Vec2{box.left, box.bottom}})
 				addPoint(contour, corner);
@@ -123,6 +128,60 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 		if(gesture == Gesture::polygonLasso && hovered_) addPoint(contour, pointer_); // the edge being placed
 	}
 	strokeOutline(painter, contour, look_.overlay);
+}
+
+void RasterView::paintPaths(Painter& painter, const editing::ImageDocument& image) const {
+	using editing::Gesture;
+	const imaging::Document& document = image.canvas->document();
+	const imaging::Structure& structure = document.structure();
+	const Gesture gesture = image.settings.gesture;
+	const bool vectorTool = gesture == Gesture::text || gesture == Gesture::shape || gesture == Gesture::pen ||
+	                        gesture == Gesture::pathSelect || gesture == Gesture::move;
+	if(const imaging::Layer* layer = document.activeLayer();
+	   vectorTool && layer != nullptr && layer->content.kind != imaging::ContentKind::none && !image.press.down) {
+		const auto box = editing::contentBounds(image, layer->content);
+		VectorPath::Contour contour;
+		contour.closed = true;
+		for(const auto& [x, y] : {std::pair{box[0], box[1]}, {box[2], box[1]}, {box[2], box[3]}, {box[0], box[3]}})
+			addPoint(contour, toWindow(image, x, y));
+		strokeOutline(painter, contour, look_.overlay);
+	}
+	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size()) return;
+	const imaging::VectorPath& path = structure.paths[static_cast<std::size_t>(structure.activePath)];
+	VectorPath::Contour contour;
+	contour.closed = path.closed;
+	for(const imaging::Point& point : imaging::flattenPath(path.points, path.closed))
+		addPoint(contour, toWindow(image, point.x, point.y));
+	if(!path.closed && !path.points.empty() && hovered_ && gesture == Gesture::pen && !image.press.down)
+		addPoint(contour, pointer_); // the segment the next anchor would add
+	if(contour.points.size() >= 2) {
+		const std::span<const VectorPath::Contour> contours(&contour, 1);
+		std::vector<MeshVertex> mesh;
+		StrokeStyle style;
+		style.width = 1.5f;
+		appendStroke(contours, style, mesh);
+		painter.fillMesh(mesh, {}, look_.overlay);
+	}
+	constexpr float anchorSide = 7.0f;
+	for(std::size_t index = 0; index < path.points.size(); ++index) {
+		const imaging::PathPoint& point = path.points[index];
+		const Vec2 at = toWindow(image, point.anchor.x, point.anchor.y);
+		if(index + 1 == path.points.size() || static_cast<int>(index) == image.pathAnchor)
+			for(const imaging::VectorPoint handle : {point.in, point.out}) {
+				if(handle == point.anchor) continue;
+				const Vec2 end = toWindow(image, handle.x, handle.y);
+				VectorPath::Contour arm;
+				addPoint(arm, at);
+				addPoint(arm, end);
+				strokeOutline(painter, arm, look_.overlay);
+				painter.fillRoundedRect({end.x - 3.0f, end.y - 3.0f, end.x + 3.0f, end.y + 3.0f}, CornerRadii::all(3.0f),
+				                        look_.overlay);
+			}
+		const Rect square{std::round(at.x - anchorSide / 2.0f), std::round(at.y - anchorSide / 2.0f),
+		                  std::round(at.x + anchorSide / 2.0f), std::round(at.y + anchorSide / 2.0f)};
+		painter.fillRect(square, index + 1 == path.points.size() ? look_.overlay : Color{1, 1, 1, 1});
+		painter.strokeRoundedRect(square, {}, 1.0f, underline);
+	}
 }
 
 void RasterView::paintBrush(Painter& painter, const editing::ImageDocument& image) const {

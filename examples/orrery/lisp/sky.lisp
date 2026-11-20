@@ -441,9 +441,10 @@
        :fillColor ~computed.groundColor
        :stroke "#6e6347"
        :strokeWidth 1)
-     ~(repeat [b (bodies-up) :key b.id] (sky-body b))
      ~(repeat [b (if state.skyLayers.labels (bodies-up) []) :key b.id] (sky-label b))
      ~(cardinal-points)
+     (panel#sky-night :when ~(= state.theme :night) :fill true :color @nightFilter)
+     ~(repeat [b (bodies-up) :key b.id] (sky-body b))
      ~(sky-bar)
      ~(sky-place)))
 
@@ -516,11 +517,11 @@
      :with {:items ~computed.skyBar
             :width 272
             :label ~(t "sky.layers")
-            :color "#0b1514d8"
+            :color @hud
             :textColor @onSky
             :dimColor @onSkyMuted
-            :highlight "#1f3331"
-            :checkedColor "#24514b"}))
+            :highlight @raised
+            :checkedColor @hudChecked}))
 
 (defview sky-place "Where you stand, the field of view and the day, over the sky's toolbar." []
   `(label#sky-place :anchors {:right 8 :bottom 40}

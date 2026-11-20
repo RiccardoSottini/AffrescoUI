@@ -118,7 +118,7 @@
 				{ "expect": { "state": "playingList", "is": -1 } },
 				{ "expect": { "state": "playingTrack", "is": 2 } },
 				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers  ·  Kerning Club" } },
-				{ "expect": { "node": "#queueFrom", "text": "from All songs" } },
+				{ "expect": { "node": "#queueFromName", "text": "All songs" } },
 				{ "key": "right" },
 				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers  ·  Pixel Choir" } }
 			]
@@ -208,8 +208,8 @@
 				{ "expect": { "state": "page", "is": "search" } },
 				{ "wait": 100 },
 				{ "expect": { "node": "#searchField", "property": "focused", "is": true } },
-				{ "type": "rivers" },
-				{ "expect": { "state": "search", "is": "rivers" } },
+				{ "type": "golden rivers" },
+				{ "expect": { "state": "search", "is": "golden rivers" } },
 				{ "expect": { "node": "#searchTable", "exists": true } },
 				{ "key": "down" },
 				{ "wait": 50 },
@@ -217,6 +217,22 @@
 				{ "key": "down", "note": "picks the first result" },
 				{ "key": "enter" },
 				{ "expect": { "state": "playingList", "is": -1 } }
+			]
+		},
+		{
+			"name": "search-finds-playlist-songs",
+			"note": "The search finds the playlists' songs too, before the library's: Enter on the first plays it from its playlist",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "wait": 100 },
+				{ "type": "glyph atlas" },
+				{ "expect": { "node": "#searchTable", "exists": true } },
+				{ "key": "down" },
+				{ "wait": 50 },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "state": "playingList", "is": 0 } },
+				{ "expect": { "state": "playingTrack", "is": 3 } }
 			]
 		},
 		{
@@ -231,6 +247,28 @@
 				{ "expect": { "node": "#queueNote", "text": "Glyph Atlas moved to place 2" } },
 				{ "key": "alt+up" },
 				{ "expect": { "state": "queue[0]", "is": "0:3" } }
+			]
+		},
+		{
+			"name": "queue-remove-and-clear",
+			"note": "Delete takes the picked song out of the queue, says so and picks the next; the clear button empties the queue and hides itself",
+			"steps": [
+				{ "click": [1100, 344], "note": "the first song up next" },
+				{ "expect": { "state": "queuePick", "is": "0:3" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "queue[0]", "is": "0:4" } },
+				{ "expect": { "state": "queuePick", "is": "0:4" } },
+				{ "expect": { "node": "#queueNote", "text": "Glyph Atlas left the queue" } },
+				{ "key": "shift+f10", "note": "the menu of the song now picked, Sixteen Bytes" },
+				{ "expect": { "state": "songMenu.open", "is": true } },
+				{ "expect": { "state": "songMenu.track", "is": 4 } },
+				{ "expect": { "state": "queue[0]", "is": "0:4" } },
+				{ "click": { "role": "menuitem", "name": "Remove from the queue" }, "note": "a song up next: its menu takes it out" },
+				{ "expect": { "state": "queue[0]", "is": "0:5" } },
+				{ "click": "#clearQueue" },
+				{ "expect": { "state": "queue", "is": [] } },
+				{ "expect": { "node": "#clearQueue", "exists": false } },
+				{ "expect": { "node": "#queueEmpty", "exists": true } }
 			]
 		},
 		{
@@ -460,15 +498,15 @@
 		},
 		{
 			"name": "a-song-menu",
-			"note": "A song's menu: play next and add to the queue for any song, like; Shift+F10 opens it on the library's selected row, and a library song joins the queue of a mix",
+			"note": "A song's menu: play next and add to (or take out of) the queue for any song, like; Shift+F10 opens it on the library's selected row, and a library song joins the queue of a mix",
 			"steps": [
 				{ "revision": { "type": "revision", "message": "The menu of the eighth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 7 } } } },
 				{ "click": { "role": "menuitem", "name": "Play next" } },
 				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:4", "0:5", "0:6", "0:8"] } },
 				{ "expect": { "state": "songMenu.open", "is": false } },
 				{ "revision": { "type": "revision", "message": "The menu of the fifth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 4 } } } },
-				{ "click": { "role": "menuitem", "name": "Add to the queue" } },
-				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:5", "0:6", "0:8", "0:4"] } },
+				{ "click": { "role": "menuitem", "name": "Remove from the queue" }, "note": "the fifth song is up next, so its menu takes it out" },
+				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:5", "0:6", "0:8"] } },
 				{ "key": "mod+l" },
 				{ "click": "#libraryTable" },
 				{ "key": "shift+f10" },
@@ -479,7 +517,7 @@
 				{ "revision": { "type": "revision", "message": "The menu of a library song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": -1, "track": 5 } } } },
 				{ "click": { "role": "menuitem", "name": "Play next" } },
 				{ "expect": { "state": "queue[0]", "is": "-1:5" } },
-				{ "expect": { "state": "queue.length", "is": 7 } },
+				{ "expect": { "state": "queue.length", "is": 6 } },
 				{ "key": "mod+4" },
 				{ "expect": { "node": "#likedCount", "text": "1 song" } }
 			]
@@ -596,7 +634,23 @@
 				{ "command": "songLike", "with": { "title": "Golden Rivers", "artist": "Nora Vale" }, "as": "agent" },
 				{ "expect": { "state": "liked", "is": ["-1:4"] } },
 				{ "expect": { "state": "page", "is": "search" } },
-				{ "expect": { "state": "search", "is": "Golden Rivers" } }
+				{ "expect": { "state": "search", "is": "Golden Rivers" } },
+				{ "command": "songPlay", "with": { "title": "Glyph Atlas" }, "as": "agent", "note": "a playlist's song, by its title" },
+				{ "expect": { "state": "playingList", "is": 0 } },
+				{ "expect": { "state": "playingTrack", "is": 3 } }
+			]
+		},
+		{
+			"name": "an-agent-shapes-the-sound",
+			"note": "An agent sets the equaliser's preset and the crossfade by commands; no run rule allows them, so the person is asked first",
+			"steps": [
+				{ "command": "soundPreset", "with": { "preset": "vocal" }, "verdict": "ask" },
+				{ "command": "soundPreset", "with": { "preset": "vocal" }, "as": "studio" },
+				{ "expect": { "state": "eq.points[2][1]", "is": 0.7 } },
+				{ "expect": { "state": "eqOn", "is": true } },
+				{ "command": "soundCrossfade", "with": { "seconds": 4 }, "as": "studio" },
+				{ "key": "mod+6" },
+				{ "expect": { "node": "#crossfadeValue", "text": "4 seconds" } }
 			]
 		}
 	]

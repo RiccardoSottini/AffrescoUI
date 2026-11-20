@@ -74,38 +74,43 @@
                      {:name "window" :title (t "menubar.window") :items menus.window}
                      {:name "help" :title (t "menubar.help") :items menus.help}]}))
 
-(defview workspace-tabs "The workspaces, as tabs." []
-  `(row#workspaces :height 24
+(defview workspace-tabs "The workspaces, as a segmented control: an icon and a name each." []
+  `(row#workspaces :height 26
      :alignItems center
-     :gap 0
+     :gap 2
      :color @header
-     :radius 7
+     :radius 13
      :role tablist
      :label ~(t "topbar.workspaces")
      :arrows horizontal
      :fitContent width
-     {:width 2 :height 1 :color transparent}
+     {:width 1 :height 1 :color transparent}
      ~(repeat [w computed.workspaces] (workspace-tab w))
-     {:width 2 :height 1 :color transparent}))
+     {:width 1 :height 1 :color transparent}))
 
-(defview workspace-tab "A workspace's tab: chosen, or greyed with what it needs in its tooltip." [w]
-  `(node :id ~(str "workspace-" w.id)
-     :height 20
-     :width ~(+ (* (count w.title) 6) 18)
-     :radius 5
+(defview workspace-tab "A workspace's tab: its icon and name, filled with the accent when chosen." [w]
+  `(row :id ~(str "workspace-" w.id)
+     :height 22
+     :width ~(+ (* (count w.title) 6.5) 34)
+     :radius 11
      :role tab
      :focusable true
      :label ~w.title
-     :disabled ~(some? w.needs)
-     :tooltip ~(if (some? w.needs) (t "topbar.needs" {:title w.title :needs w.needs}) "")
+     :alignItems center
+     :gap 5
      :selected ~(= state.workspace w.name)
-     :color ~(if (= state.workspace w.name) "@widget" "transparent")
-     :hover {:color ~(cond (= state.workspace w.name) "@widget" (some? w.needs) "transparent" :else "@view")}
+     :color ~(if (= state.workspace w.name) "@kit.accent" "transparent")
+     :hover {:color ~(if (= state.workspace w.name) "@kit.accent" "@view")}
      :onClick ~(handler set-workspace w.id w.name)
-     (label :text ~w.title
-       :textColor ~(cond (= state.workspace w.name) "@active" (some? w.needs) "@faint" :else "@dim")
-       :align center
-       :fill true)))
+     {:width 5 :height 1 :color transparent}
+     (label :font iconsSmall
+       :icon ~w.icon
+       :text ""
+       :textColor ~(if (= state.workspace w.name) "#ffffff" "@dim")
+       :width 14
+       :height 20
+       :align center)
+     (label :text ~w.title :textColor ~(if (= state.workspace w.name) "#ffffff" "@text") :fitText true :height 20)))
 
 (defview scene-picker "The scene's picker (one scene for now), then its name, typed in place: two nodes." []
   [`(node#scene-picker

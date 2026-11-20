@@ -35,6 +35,7 @@
 			"properties": { "role": { "type": "string", "minLength": 1 }, "name": { "type": "string" } }
 		},
 		"nth": { "type": "integer", "minimum": 0 },
+		"mods": { "type": "string", "pattern": "^(shift|ctrl|alt|cmd|mod|capslock)(\\+(shift|ctrl|alt|cmd|mod|capslock))*$" },
 		"scenario": {
 			"type": "object",
 			"required": ["name", "steps"],
@@ -53,10 +54,10 @@
 				{ "$ref": "#/$defs/pointer" },
 				{ "type": "object", "required": ["drag", "to"], "additionalProperties": false, "properties": {
 					"drag": { "$ref": "#/$defs/target" }, "to": { "$ref": "#/$defs/target" }, "nth": { "$ref": "#/$defs/nth" },
-					"toNth": { "$ref": "#/$defs/nth" }, "moves": { "type": "integer", "minimum": 1, "maximum": 100 }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
+					"toNth": { "$ref": "#/$defs/nth" }, "moves": { "type": "integer", "minimum": 1, "maximum": 100 }, "mods": { "$ref": "#/$defs/mods" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["scroll"], "additionalProperties": false, "properties": {
 					"scroll": { "$ref": "#/$defs/target" }, "dx": { "type": "number" }, "dy": { "type": "number" },
-					"nth": { "$ref": "#/$defs/nth" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
+					"nth": { "$ref": "#/$defs/nth" }, "mods": { "$ref": "#/$defs/mods" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["type"], "additionalProperties": false, "properties": {
 					"type": { "type": "string", "maxLength": 100000 }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["key"], "additionalProperties": false, "properties": {
@@ -99,7 +100,7 @@
 			"description": "move, click, rightClick, press or release: one of them, with a target.",
 			"type": "object",
 			"minProperties": 1,
-			"maxProperties": 4,
+			"maxProperties": 5,
 			"additionalProperties": false,
 			"properties": {
 				"move": { "$ref": "#/$defs/target" },
@@ -108,6 +109,7 @@
 				"press": { "$ref": "#/$defs/target" },
 				"release": { "$ref": "#/$defs/target" },
 				"nth": { "$ref": "#/$defs/nth" },
+				"mods": { "$ref": "#/$defs/mods" },
 				"note": { "type": "string" },
 				"error": { "$ref": "#/$defs/stepError" }
 			},
@@ -125,7 +127,7 @@
 				  "properties": {
 					"node": { "oneOf": [{ "type": "string", "pattern": "^#.+" }, { "$ref": "#/$defs/byRole" }] }, "nth": { "$ref": "#/$defs/nth" },
 					"exists": { "type": "boolean" }, "text": { "type": "string" },
-					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY", "role", "name", "description", "scrollMarks"] },
+					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY", "role", "name", "description", "scrollMarks", "disabled"] },
 					"is": true, "note": { "type": "string" } },
 				  "oneOf": [{ "required": ["exists"] }, { "required": ["text"] }, { "required": ["property", "is"] }] },
 				{ "type": "object", "required": ["image"], "additionalProperties": false, "properties": {

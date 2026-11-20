@@ -12,7 +12,8 @@ std::span<const ImageOperation> imageOperations() {
 	static const std::vector<ImageOperation> operations = [] {
 		std::vector<ImageOperation> all;
 		for(auto group :
-		    {fileOperations(), layerOperations(), editOperations(), transformOperations(), viewOperations()})
+		    {fileOperations(), layerOperations(), editOperations(), transformOperations(), viewOperations(),
+		      vectorOperations()})
 			std::ranges::move(group, std::back_inserter(all));
 		return all;
 	}();

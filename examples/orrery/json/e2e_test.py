@@ -29,7 +29,7 @@ SCREEN = os.path.join(HERE, "index.screen.json")
 ADAPTER = os.path.join(HERE, "orrery-sorter.adapter.json")
 FEATURE = os.path.join(ROOT, "examples", "sinopia", "json", "features", "slide-sorter")
 SCENARIOS = [os.path.join(HERE, name) for name in
-             ("index.scenarios.json", "controls.scenarios.json", "bodies-strip.scenarios.json")]
+             ("index.scenarios.json", "controls.scenarios.json", "tour-strip.scenarios.json")]
 
 
 def connect(path, timeout=20.0):

@@ -84,12 +84,14 @@
          :onClick ~(handler newSlide "content")))
      (node#g-ins-tables :use rbGroup :with {:title ~(t "ribbon.tables")}
        (node#b-ins-table :use rbBig
-         :with {:icon table :title ~(t "ribbon.table") :width 46 :enabled false}
-         :tooltip ~(t "ribbon.insertingATableIsnT")))
+         :with {:icon table :title ~(t "ribbon.table") :menu true :width 46}
+         :tooltip ~(t "table.insertTip")
+         :onClick open-table-grid))
      (node#g-ins-images :use rbGroup :with {:title ~(t "ribbon.images")}
        (node#b-ins-pictures :use rbBig
-         :with {:icon image :title ~(t "ribbon.pictures") :width 52 :enabled false}
-         :tooltip ~(t "ribbon.insertingPicturesIsnTAvailable"))
+         :with {:icon image :title ~(t "ribbon.pictures") :width 52}
+         :tooltip ~(t "picture.insertTip")
+         :onClick insert-picture)
        (node#b-ins-album :use rbBig
          :with {:icon images :title ~(t "ribbon.photoAlbum") :width 50 :enabled false}
          :tooltip ~(t "ribbon.aPhotoAlbumIsnT")))
@@ -692,8 +694,19 @@
 (defn toggle-at "Turns a setting of the state on or off, by its path." [at]
   (toggle at))
 
-(defn set-align "Aligns the selected text: left, center, right or justify." [align]
-  (setObjects {:align align}))
+(defn set-align
+  "Aligns the selected text: left, center, right or justify; while a text is edited, the caret's paragraph only."
+  [align]
+  (if-some [o (find #(= (:id %) state.editing) computed.objects)]
+    (let [at (dec (or-else state.caret.line 1))
+          aligns (or-else (:aligns o) [])
+          text (or-else (:text o) "")
+          lines (count (str/split text "\n"))
+          aligned (vec (for [i (range lines)]
+                         (if (= i at) align (get aligns i))))]
+      (commit)
+      (set-objects (map #(if (= (:id %) (:id o)) (assoc % :aligns aligned) %) computed.objects)))
+    (setObjects {:align align :aligns nil})))
 
 (defn toggle-numbering "Numbers the selected text's lines, or stops numbering them." []
   (setObjects (if (some? computed.first.numbering) {:numbering nil} {:bullets true :numbering "1."})))

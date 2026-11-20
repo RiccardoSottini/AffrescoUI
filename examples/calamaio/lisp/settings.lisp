@@ -34,6 +34,9 @@
              :show-paren-mode
              (boolean :default true
                :title ~(t "setting.show-paren-mode") :description ~(t "setting.show-paren-mode.about"))
+             :electric-pair-mode
+             (boolean :default false
+               :title ~(t "setting.electric-pair-mode") :description ~(t "setting.electric-pair-mode.about"))
              :display-fill-column-indicator-mode
              (boolean :default false
                :title ~(t "setting.display-fill-column-indicator-mode")

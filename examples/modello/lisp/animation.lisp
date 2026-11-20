@@ -1,7 +1,7 @@
 ;;; animation.lisp --- keyframes, playback and markers
 ;;;
 ;;; A node keeps its keyframes, `{frame, translation, rotationDegrees, scale}` sorted by frame; between two of them it
-;;; is posed by easing from one to the other. The timeline plays at 24 frames a second (`tick`, from #playback).
+;;; is posed by easing from one to the other. The timeline plays at the output's frame rate (`tick`, from #playback).
 
 (ns modello.animation)
 
@@ -50,7 +50,7 @@
     (set "state.last" (t "command.clearKeyframes"))))
 
 (defn frame-at "The frame at a time in seconds." [time]
-  (inc (round (* time 24))))
+  (inc (round (* time computed.fps))))
 
 (defn move-keyframe "A keyframe dragged on the timeline: the selected objects' keys at its frame move to the new one." []
   (let [from (frame-at event.from)
@@ -158,7 +158,7 @@
   :title ~(t "command.frameCurrent") :description ~(t "command.frameCurrent.about")
   :category ~(t "category.view") []
   (dismiss)
-  (set "state.timelineOffset" (round-to (- (/ (dec state.frame) 24) 4) 1000)))
+  (set "state.timelineOffset" (round-to (- (/ (dec state.frame) computed.fps) 4) 1000)))
 
 ;;; Markers
 

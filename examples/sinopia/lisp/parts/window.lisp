@@ -109,7 +109,8 @@
 
 (defn view-changed "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
   (guides-dragged view)
-  (set "state.board" view)
+  (let [selection (with-groups (or-else view.selection []))]
+    (set "state.board" (assoc view :selection selection)))
   (when (and (some? state.editing) (not (contains (or-else view.selection []) state.editing)))
     (set "state.editing" nil))
   (when (or (> (abs (- view.camera.zoom computed.fitCamera.zoom)) 0.0001)
@@ -404,7 +405,7 @@
        :fitText true
        :height 16
        :textColor ~(if (= i state.current) "@brandLine" "@rbMuted")
-       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current) :strike ~(or-else s.hidden false)}])
      (label :id ~(str "thumb-" s.id "-star")
        :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :width 14 :height 16 :align center :textColor @rbMuted
@@ -450,7 +451,7 @@
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}
           :onContextMenu ~(handler object-menu o.id event.x event.y)
-          :onDoubleClick ~(handler edit-text o.id)))))
+          :onDoubleClick ~(handler edit-object o.id event.left event.top event.width event.height)))))
 
 (defview notes-pane "The speaker notes of the slide shown, edited in place." []
   `(node#notes-pane :height 76 :color @notes :when ~state.notes

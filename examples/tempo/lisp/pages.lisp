@@ -40,10 +40,22 @@
                            (get-in data.playlists [it.list :tracks it.track :time])])}))
        computed.likedSongs))
 
-(defcomputed searchRows "The library's songs whose title and artist the search matches, loosely."
+(defn playlist-rows "A playlist's songs as rows of a table, each by its key (list:track): no number, then title, artist, album and time." [at playlist]
+  (map-indexed (fn [track song] {:id (key-of at track) :cells ["" song.title song.artist song.album song.time]})
+               playlist.tracks))
+
+(defn every-playlist-row "Every playlist's songs as rows of a table (playlist-rows), one list." [playlists]
+  (apply concat (map-indexed playlist-rows playlists)))
+
+(defcomputed playlistSongs "Every playlist's songs as rows of a table."
+  (every-playlist-row data.playlists))
+
+(defcomputed searchRows "The songs whose title and artist the search matches, loosely: the playlists' songs, then the library's, each by its key (list:track)."
   (if (or (not= state.page :search) (= (str/trim state.search) ""))
     []
-    (filter #(some? (fuzzy (str/trim state.search) (str (get (:cells %) 1) " " (get (:cells %) 2)))) computed.library)))
+    (concat (filter #(some? (fuzzy (str/trim state.search) (str (get (:cells %) 1) " " (get (:cells %) 2)))) computed.playlistSongs)
+            (map #(assoc % :id (str "-1:" (:id %)))
+                 (filter #(some? (fuzzy (str/trim state.search) (str (get (:cells %) 1) " " (get (:cells %) 2)))) computed.library)))))
 
 ;;; Tables of songs
 
@@ -253,4 +265,4 @@
      :selectedBackground @accentSoft
      :accentColor @accent
      :onOpen play-from-search
-     :onContextMenu ~(handler open-pick-menu state.searchPick)))
+     :onContextMenu search-menu))

@@ -133,7 +133,9 @@
 							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me && state.boardId == state.boards[0].id}}" },
 								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{state.boards[0].id}}" } }, { "set": "state.owner", "to": "" }] },
 							{ "id": "navCycles", "use": "navItem", "with": { "icon": "timer", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
-							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects'}}" }, "padding": 26, "onClick": "goToProjects" }
+							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects' && (state.projectOpen >= 0 || state.projectLayout != 'roadmap')}}" }, "padding": 26,
+								"onClick": [{ "set": "state.projectLayout", "to": "list" }, { "run": "goToProjects" }] },
+							{ "id": "navRoadmap", "use": "navItem", "with": { "icon": "chart-gantt", "text": "{{t('nav.roadmap')}}", "active": "{{state.page == 'projects' && state.projectOpen < 0 && state.projectLayout == 'roadmap'}}" }, "padding": 26, "onClick": "showRoadmap" }
 						]
 					},
 					{ "id": "navHelp", "style": "topButton", "text": "", "icon": "circle-help", "anchors": { "left": 12, "bottom": 12 }, "height": 28, "width": 28, "padding": 0, "align": "center",

@@ -31,22 +31,30 @@
    {:tab "render" :key "colorManagement" :title (t "panel.colorManagement") :words "exposure" :needs ""}
    {:tab "render" :key "sampling" :title (t "panel.sampling") :words "samples" :needs (t "panel.sampling.needs")}
    {:tab "output" :key "frameRange" :title (t "panel.frameRange") :words "frame start end" :needs ""}
-   {:tab "output" :key "format" :title (t "panel.format") :words "resolution frame rate" :needs (t "panel.format.needs")}
+   {:tab "output" :key "format" :title (t "panel.format") :words "resolution frame rate fps" :needs ""}
    {:tab "scene" :key "scenePanel" :title (t "panel.scene") :words "name camera" :needs ""}
    {:tab "scene" :key "units" :title (t "panel.units") :words "length metres" :needs (t "panel.units.needs")}
    {:tab "world" :key "surfaceWorld" :title (t "panel.surface") :words "color colour background" :needs ""}
    {:tab "collection" :key "restrictions" :title (t "panel.restrictions") :words "selectable visible render" :needs ""}
    {:tab "object" :key "transform" :title (t "transform.title") :words "location rotation scale" :needs ""}
    {:tab "object" :key "visibility" :title (t "panel.visibility") :words "selectable show viewports renders" :needs ""}
-   {:tab "object" :key "relations" :title (t "panel.relations") :words "parent" :needs (t "panel.relations.needs")}
+   {:tab "object" :key "relations" :title (t "panel.relations") :words "parent" :needs ""}
    {:tab "object" :key "collections" :title (t "panel.collections") :words "link" :needs (t "panel.collections.needs")}
    {:tab "object" :key "delta" :title (t "panel.delta") :words "delta" :needs (t "panel.delta.needs")}
    {:tab "object" :key "instancing" :title (t "panel.instancing") :words "" :needs (t "panel.instancing.needs")}
    {:tab "object" :key "motionPaths" :title (t "panel.motionPaths") :words "" :needs (t "panel.motionPaths.needs")}
-   {:tab "object" :key "display" :title (t "panel.display") :words "bounds wire" :needs (t "panel.display.needs")}
+   {:tab "object"
+    :key "display"
+    :title (t "panel.display")
+    :words "bounds wire solid display"
+    :needs (if (= computed.activeNode.kind :mesh) "" (t "panel.display.needs"))}
    {:tab "object" :key "lineArt" :title (t "panel.lineArt") :words "" :needs (t "panel.lineArt.needs")}
    {:tab "object" :key "custom" :title (t "panel.custom") :words "" :needs (t "panel.custom.needs")}
-   {:tab "material" :key "materialSettings" :title (t "panel.materialSettings") :words "blend shadow" :needs (t "panel.materialSettings.needs")}
+   {:tab "material"
+    :key "materialSettings"
+    :title (t "panel.materialSettings")
+    :words "blend alpha opacity transparent"
+    :needs (if (< computed.activeMaterialIndex 0) (t "panel.surfaceMaterial.needs") "")}
    {:tab "data"
     :key "dataPanel"
     :title (case computed.activeNode.kind
@@ -64,7 +72,7 @@
              (t "panel.normals"))
     :words ""
     :needs (case computed.activeNode.kind
-             :light (t "panel.shadow.needs")
+             :light ""
              :camera (t "panel.depthOfField.needs")
              (t "panel.normals.needs"))}
    {:tab "material"
@@ -158,9 +166,12 @@
      ~(object-name)
      (node :when ~(contains computed.propShown "transform") :use transformPanel)
      ~(visibility-panel)
+     ~(relations-panel)
+     ~(display-panel)
      ~(active-tool-panel)
      ~(color-management-panel)
      ~(frame-range-panel)
+     ~(format-panel)
      ~(scene-panel)
      (node
        :when ~(contains computed.propShown "surfaceWorld")
@@ -171,11 +182,13 @@
          :with {:label ~(t "properties.color") :value ~state.world.color :target world :key pickWorld}))
      ~(restrictions-panel)
      ~(data-panel)
+     ~(shadow-panel)
      ~(material-slot)
      ~(surface-panel)
+     ~(material-settings-panel)
      ~(repeat [p (filter #(and (not= (:needs %) "")
                                (contains computed.propShown (:key %))
-                               (not (#{:dataPanel :surfaceMaterial} (:key %))))
+                               (not (#{:dataPanel :surfaceMaterial :materialSettings} (:key %))))
                          computed.propPanels)]
         `(node :use panelHeader :with {:title ~p.title :key ~p.key :needs ~p.needs}))
      (label#properties-empty :when ~(empty? computed.propShown)
@@ -184,8 +197,9 @@
        :textColor @dim
        :text ~(if (not= (or-else state.propertiesFilter "") "") (t "properties.noMatch") (t "properties.noObject")))))
 
-(defview properties-context "What the panels are about: the active collection, or the active object." []
-  `(row#properties-context :width "100%" :height 22 :alignItems center :gap 4 :color transparent
+(defview properties-context "What the panels are about: the active collection, or the active object (the Object tab names it in its field)." []
+  `(row#properties-context :when ~(not (and (= state.propTab :object) (some? computed.activeNode)))
+     :width "100%" :height 22 :alignItems center :gap 4 :color transparent
      (label :font iconsSmall
        :icon ~(if (= state.propTab :collection) "package-open" "square")
        :text ""
@@ -282,6 +296,42 @@
               :last true
               :text ~state.end})))
 
+(defview format-panel "The Output tab's format: the resolution, which shapes the render, and the frame rate the timeline plays at." []
+  `(node :when ~(contains computed.propShown "format") :use propPanel :with {:key format :body 80}
+     (node :use numberField
+       :with {:label ~(t "properties.resolutionX")
+              :key whole
+              :path "render.resolution[0]"
+              :value ~(or-else state.render.resolution.0 1920)
+              :step 4
+              :min 16
+              :max 16384
+              :first true
+              :last true
+              :text ~(t "unit.px" {:value (or-else state.render.resolution.0 1920)})})
+     (node :use numberField
+       :with {:label ~(t "properties.resolutionY")
+              :key whole
+              :path "render.resolution[1]"
+              :value ~(or-else state.render.resolution.1 1080)
+              :step 4
+              :min 16
+              :max 16384
+              :first true
+              :last true
+              :text ~(t "unit.px" {:value (or-else state.render.resolution.1 1080)})})
+     (node :use numberField
+       :with {:label ~(t "properties.frameRate")
+              :key whole
+              :path "render.fps"
+              :value ~computed.fps
+              :step 1
+              :min 1
+              :max 120
+              :first true
+              :last true
+              :text ~(t "unit.fps" {:value computed.fps})})))
+
 (defview scene-panel "The Scene tab: the scene's name, and its camera." []
   `(node :when ~(contains computed.propShown "scenePanel") :use propPanel :with {:key scenePanel :body 56}
      (node :height 20 :width "100%" :color transparent
@@ -318,6 +368,34 @@
               :checked ~(not= computed.activeCollectionData.render false)
               :run toggle-collection
               :with {:id ~computed.activeCollectionData.id :key render}})))
+
+(defview display-panel "The Object tab's Viewport Display: the mesh drawn solid, as its edges, or as the box around it." []
+  `(node :when ~(and (contains computed.propShown "display") (= computed.activeNode.kind :mesh))
+     :use propPanel
+     :with {:key display :body 32}
+     (node :height 20 :width "100%" :color transparent
+       ~(caption "properties.displayAs")
+       (row
+         :anchors {:left "41%" :right 22 :top 0 :bottom 0}
+         :gap 1
+         :color transparent
+         :role radiogroup
+         :label ~(t "properties.displayAs")
+         ~(repeat [mode ["solid" "wire" "bounds"]] (display-button mode))))))
+
+(defview display-button "One way the viewport draws the active mesh; the ends round the row's corners." [mode]
+  `(node :id ~(str "display-" mode)
+     :grow 1
+     :height 20
+     :role radio
+     :focusable true
+     :label ~(t (str "display." mode))
+     :selected ~(= (or-else computed.activeNode.display "solid") mode)
+     :color ~(if (= (or-else computed.activeNode.display "solid") mode) "@sel" "@widget")
+     :hover {:color @widgetHover}
+     :radius ~(case mode :solid {:topLeft 4 :bottomLeft 4} :bounds {:topRight 4 :bottomRight 4} 0)
+     :onClick ~(handler set-display mode)
+     (label :text ~(t (str "display." mode)) :textColor @text :align center :fill true)))
 
 ;;; The Data tab
 
@@ -393,6 +471,18 @@
      :onClick ~(handler set-light "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
 
+(defview shadow-panel "A light's shadow: whether it casts one (the material shading draws one light's shadow)." []
+  `(node
+     :when ~(and (contains computed.propShown "dataMore") (= computed.activeNode.kind :light))
+     :use propPanel
+     :with {:key dataMore :body 32}
+     (node :use checkRow
+       :with {:id prop-cast-shadow
+              :label ~(t "properties.castShadow")
+              :checked ~(true? computed.activeNode.light.castsShadow)
+              :run set-light
+              :with {:key castsShadow :value ~(not (true? computed.activeNode.light.castsShadow))}})))
+
 ;;; The Material tab
 
 (defview material-slot "The active mesh's material: browse the materials, its name, a new one, unlink it." []
@@ -462,3 +552,42 @@
               :first true
               :last true
               :text ~(fixed (material-value :roughness 0.5) 3)})))
+
+(defview material-settings-panel "The material's settings: how its alpha is used (opaque, clipped or blended), and its alpha." []
+  `(node
+     :when ~(and (contains computed.propShown "materialSettings") (>= computed.activeMaterialIndex 0))
+     :use propPanel
+     :with {:key materialSettings :body 56}
+     (node :height 20 :width "100%" :color transparent
+       ~(caption "properties.blendMode")
+       (row
+         :anchors {:left "41%" :right 22 :top 0 :bottom 0}
+         :gap 1
+         :color transparent
+         :role radiogroup
+         :label ~(t "properties.blendMode")
+         ~(repeat [mode ["opaque" "mask" "blend"]] (blend-mode-button mode))))
+     (node :use numberField
+       :with {:label ~(t "properties.alpha")
+              :path ~(str "scene.materials[" computed.activeMaterialIndex "].baseColor[3]")
+              :value ~(get (material-value :baseColor [0.8 0.8 0.8 1]) 3)
+              :step 0.005
+              :min 0
+              :max 1
+              :first true
+              :last true
+              :text ~(fixed (get (material-value :baseColor [0.8 0.8 0.8 1]) 3) 3)})))
+
+(defview blend-mode-button "One way a material uses its alpha; the ends round the row's corners." [mode]
+  `(node :id ~(str "blend-mode-" mode)
+     :grow 1
+     :height 20
+     :role radio
+     :focusable true
+     :label ~(t (str "blendMode." mode))
+     :selected ~(= (material-value :alphaMode "opaque") mode)
+     :color ~(if (= (material-value :alphaMode "opaque") mode) "@sel" "@widget")
+     :hover {:color @widgetHover}
+     :radius ~(case mode :opaque {:topLeft 4 :bottomLeft 4} :blend {:topRight 4 :bottomRight 4} 0)
+     :onClick ~(handler set-material "alphaMode" mode)
+     (label :text ~(t (str "blendMode." mode)) :textColor @text :align center :fill true)))

@@ -243,7 +243,7 @@
        :align center
        :fitText false)))
 
-(defview speaker-transport "The speaker's previous (no queue here), play or pause, and next." []
+(defview speaker-transport "The speaker's previous track, play or pause, and next track." []
   `(row#infoTransport :when ~(= computed.infoDevice.id "speaker")
      :anchors {:left 0 :right 0 :top 198}
      :height 44
@@ -252,28 +252,22 @@
      :role toolbar
      :arrows horizontal
      :label ~computed.infoName
-     (node :use iconBtn
+     (node#infoPrevious :use iconBtn
        :with {:icon skip-back :tip info.previous}
-       :tooltip ~(t "info.queueEmpty")
        :color transparent
-       :hover {:color transparent}
-       :textColor @off
-       :cursor arrow
-       :disabled true)
+       :hover {:color @raised}
+       :onClick previousTrack)
      (node#infoPlay :use iconBtn
        :with {:icon ~(if computed.infoDevice.on "pause" "play")
               :tip ~(if computed.infoDevice.on "info.pause" "info.play")}
        :color @accentSoft
        :textColor @accent
        :onClick ~(handler device-call state.info.index))
-     (node :use iconBtn
+     (node#infoNext :use iconBtn
        :with {:icon skip-forward :tip info.next}
-       :tooltip ~(t "info.queueEmpty")
        :color transparent
-       :hover {:color transparent}
-       :textColor @off
-       :cursor arrow
-       :disabled true)))
+       :hover {:color @raised}
+       :onClick nextTrack)))
 
 (defview speaker-volume "The speaker's volume: a slider with no look of its own, over the bar that draws it." []
   `(node#infoVolume :when ~(= computed.infoDevice.id "speaker")
@@ -330,13 +324,22 @@
 
 (defview device-details "A device: its icon, its controls, its facts and its last changes." []
   `(node#infoDeviceBody :use infoBody :with {:kind device}
+     (label#infoTrack :when ~(= computed.infoDevice.id "speaker")
+       :font small
+       :textColor @muted
+       :text ~(str computed.track.title "  ·  " computed.track.artist)
+       :anchors {:left 24 :right 24 :top 112}
+       :height 18
+       :align center
+       :live polite)
      (label#infoDeviceIcon :font title
        :icon ~(if computed.infoDevice.on computed.infoDevice.icon computed.infoDevice.iconOff)
        :text ""
-       :anchors {:left 164 :top ~(if (= computed.infoDevice.id "speaker") 120 128)}
-       :width 72
-       :height 72
-       :radius 36
+       :anchors {:left ~(if (= computed.infoDevice.id "speaker") 170 164)
+                 :top ~(if (= computed.infoDevice.id "speaker") 134 128)}
+       :width ~(if (= computed.infoDevice.id "speaker") 60 72)
+       :height ~(if (= computed.infoDevice.id "speaker") 60 72)
+       :radius ~(if (= computed.infoDevice.id "speaker") 30 36)
        :align center
        :textColor ~(if computed.infoDevice.on "@accent" "@muted")
        :color ~(if computed.infoDevice.on "@accentSoft" "@raised"))

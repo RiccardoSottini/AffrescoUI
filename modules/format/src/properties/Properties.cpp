@@ -338,6 +338,7 @@ void Properties::resetWidget(Panel& panel, const Record& record) {
 		label->setTextColor(colors::black);
 		label->setPadding(0.0f);
 		label->setAlignment(Align::Start, Align::Start);
+		label->setJustify(false);
 		label->setWrap(false);
 		label->setFitToText(false);
 	}

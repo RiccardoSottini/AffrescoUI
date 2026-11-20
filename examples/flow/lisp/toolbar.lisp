@@ -222,7 +222,7 @@
   `(node#displayMenu :overlay {:placement below-end :open state.displayOpen :dismiss outside}
      :y 4
      :width 280
-     :height 288
+     :height 308
      :radius @radius.card
      :shadow {:y 6 :blur 16 :color "#0000002e"}
      :borderWidth 1
@@ -232,8 +232,8 @@
      ~(views)
      (node#displayGrouping :style caption :text ~(t "display.grouping") :anchors {:left 12 :top 100})
      ~(groupings)
-     (node#displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 134})
-     (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 154} :height 24 :role radiogroup :arrows horizontal
+     (node#displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 154})
+     (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 174} :height 24 :role radiogroup :arrows horizontal
        ~(repeat [o ["manual" "priority" "due"]]
          `(node#ordering :style displayPill
             :role radio
@@ -242,8 +242,8 @@
             :borderColor ~(if (= state.order o) "@color.accent" "@color.border")
             :textColor ~(if (= state.order o) "@color.text" "@color.muted")
             :onClick ~(handler order-by o))))
-     (node#displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 192})
-     (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 212} :height 76
+     (node#displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 212})
+     (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 232} :height 76
        ~(repeat [prop ["id" "priority" "label" "due" "estimate" "assignee"]]
          `(node#displayProp :style displayPill
             :role switch
@@ -256,7 +256,7 @@
             :onClick ~(handler toggle-property prop))))))
 
 (defview groupings "The Display menu's grouping choices." []
-  `(row#groupings :gap 4 :anchors {:left 120 :right 12 :top 96} :height 24 :role radiogroup :arrows horizontal
+  `(row#groupings :gap 4 :anchors {:left 12 :right 12 :top 120} :height 24 :role radiogroup :arrows horizontal
      ~(repeat [g ["status" "assignee"]]
        `(node#grouping :let {:on ~(= state.swimlanes (= g "assignee"))}
           :style displayPill

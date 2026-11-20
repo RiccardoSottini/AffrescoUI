@@ -203,9 +203,17 @@
        :padding 26
        :onClick goToCycles)
      (node#navProjects :use navItem
-       :with {:icon box :text ~(t "nav.projects") :active ~(= state.page :projects)}
+       :with {:icon box
+              :text ~(t "nav.projects")
+              :active ~(and (= state.page :projects) (or (>= state.projectOpen 0) (not= state.projectLayout :roadmap)))}
        :padding 26
-       :onClick goToProjects)))
+       :onClick [{:set state.projectLayout :to list} ~(handler goToProjects)])
+     (node#navRoadmap :use navItem
+       :with {:icon chart-gantt
+              :text ~(t "nav.roadmap")
+              :active ~(and (= state.page :projects) (neg? state.projectOpen) (= state.projectLayout :roadmap))}
+       :padding 26
+       :onClick showRoadmap)))
 
 (defview nav-issues "The sidebar's Issues row, which shows the board." []
   `(node#navIssues :use navItem

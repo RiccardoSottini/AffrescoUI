@@ -15,7 +15,7 @@
 (defview create-form "The form: the name, what to start from, the description, the features, and Create." []
   `(node#createForm :anchors {:left 36}
      :width ~(min 820 (- window.width computed.sideWidth 72))
-     :height 980
+     :height ~(+ 980 computed.belowTiles)
      :color transparent
      :keys {"mod+enter" create-app}
      (label#createTitle :font title
@@ -31,17 +31,17 @@
      (node#createFromLabel :style sectionTitle :text ~(t "create.from") :anchors {:left 0 :right 0 :top 236})
      (node#createFromHint :style hint :text ~(t "create.fromHint") :anchors {:left 0 :right 0 :top 262})
      ~(start-tiles)
-     (node#createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top 566})
-     (node#createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top 592})
+     (node#createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top ~(+ 566 computed.belowTiles)})
+     (node#createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top ~(+ 592 computed.belowTiles)})
      ~(description-field)
      (label#createDescribePlaceholder :when ~(= state.create.describe "")
        :text ~(t "create.describePlaceholder")
        :textColor @c.dim
-       :anchors {:left 12 :right 12 :top 626}
+       :anchors {:left 12 :right 12 :top ~(+ 626 computed.belowTiles)}
        :height 20
        :disabled true)
-     (node#createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top 738})
-     (node#createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top 764})
+     (node#createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top ~(+ 738 computed.belowTiles)})
+     (node#createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top ~(+ 764 computed.belowTiles)})
      ~(feature-chips)
      ~(create-summary)
      ~(create-button)
@@ -75,10 +75,9 @@
 
 (defview start-tiles "What the new app starts from: a blank app, or an example." []
   `(grid#createFrom :anchors {:left 0 :right 0 :top 290}
-     :height 252
-     :columns ~(-> (- window.width computed.sideWidth 72) (min 820) (+ 12) (/ 150) floor (min 5) (max 2))
+     :height ~computed.tilesHeight
+     :columns ~computed.tileColumns
      :gap 12
-     :scroll vertical
      :role radiogroup
      :label ~(t "create.from")
      :arrows horizontal
@@ -126,13 +125,13 @@
      :caretColor @c.accent
      :lineColor transparent
      :selectionColor @c.accentSoft
-     :anchors {:left 0 :right 0 :top 618}
+     :anchors {:left 0 :right 0 :top ~(+ 618 computed.belowTiles)}
      :height 96))
 
 (defview feature-chips "The features of other apps, a chip each." []
   `(row#createFeatures :wrap true
      :gap 8
-     :anchors {:left 0 :right 0 :top 792}
+     :anchors {:left 0 :right 0 :top ~(+ 792 computed.belowTiles)}
      :height 80
      :role group
      :label ~(t "create.features")
@@ -167,7 +166,7 @@
      :wrap true
      :text ~(t "create.summary"
                {:name (if (= (trim state.create.name) "") "…" (trim state.create.name)) :from computed.fromName})
-     :anchors {:left 0 :right 240 :top 900}
+     :anchors {:left 0 :right 240 :top ~(+ 900 computed.belowTiles)}
      :height 36))
 
 (defview create-button "Create, which says so while the app is being made." []
@@ -175,7 +174,7 @@
      :icon ~(if state.create.busy "refresh-cw" "rocket")
      :text ~(if state.create.busy (t "create.busy") (t "create.submit"))
      :disabled ~state.create.busy
-     :anchors {:right 0 :top 894}
+     :anchors {:right 0 :top ~(+ 894 computed.belowTiles)}
      :width 200
      :height 44
      :onClick create-app))
@@ -191,5 +190,5 @@
      :color @c.dangerSoft
      :radius 8
      :padding 8
-     :anchors {:left 0 :right 0 :top 946}
+     :anchors {:left 0 :right 0 :top ~(+ 946 computed.belowTiles)}
      :height 32))

@@ -507,7 +507,7 @@
 		"mod+right": "moveRight",
 		"mod+left": "moveLeft",
 		"mod+enter": "openIssue",
-		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "when": "{{length(state.marked) > 0}}", "do": "clearMarks" }, { "do": "clearFilters" }]
+		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "when": "{{state.page == 'projects' && state.projectOpen >= 0 && !context.textInputFocus}}", "do": "closeProjectPage" }, { "when": "{{length(state.marked) > 0}}", "do": "clearMarks" }, { "do": "clearFilters" }]
 	},
 
 	"root": {
@@ -750,7 +750,7 @@
 								"overlay": { "placement": "below-end", "open": "state.displayOpen", "dismiss": "outside" },
 								"y": 4,
 								"width": 280,
-								"height": 288,
+								"height": 308,
 								"radius": "@radius.card",
 								"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 								"borderWidth": 1,
@@ -774,20 +774,20 @@
 										]
 									},
 									{ "id": "displayGrouping", "style": "caption", "text": "{{t('display.grouping')}}", "anchors": { "left": 12, "top": 100 } },
-									{ "type": "row", "id": "groupings", "gap": 4, "anchors": { "left": 120, "right": 12, "top": 96 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+									{ "type": "row", "id": "groupings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 120 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
 										{ "id": "grouping", "repeat": { "for": "g", "in": "['status', 'assignee']" }, "let": { "on": "{{state.swimlanes == (g == 'assignee')}}" }, "style": "displayPill", "role": "radio",
 											"text": "{{t('prop.' + g)}}", "selected": "{{on}}", "disabled": "{{state.view != 'board'}}", "borderColor": "{{on ? '@color.accent' : '@color.border'}}",
 											"textColor": "{{on && state.view == 'board' ? '@color.text' : '@color.muted'}}", "tooltip": "{{g == 'assignee' ? t('view.lanes') : ''}}",
 											"onClick": [{ "if": "{{!on}}", "then": [{ "run": "toggleSwimlanes" }] }] }
 									] },
-									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 134 } },
-									{ "type": "row", "id": "orderings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 154 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 154 } },
+									{ "type": "row", "id": "orderings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 174 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
 										{ "id": "ordering", "repeat": { "for": "o", "in": "['manual', 'priority', 'due']" }, "style": "displayPill", "role": "radio", "text": "{{t('order.' + o)}}",
 											"selected": "{{state.order == o}}", "borderColor": "{{state.order == o ? '@color.accent' : '@color.border'}}",
 											"textColor": "{{state.order == o ? '@color.text' : '@color.muted'}}", "onClick": { "set": "state.order", "to": "{{o}}" } }
 									] },
-									{ "id": "displayProperties", "style": "caption", "text": "{{t('display.properties')}}", "anchors": { "left": 12, "top": 192 } },
-									{ "type": "row", "id": "displayProps", "wrap": true, "gap": 4, "anchors": { "left": 12, "right": 12, "top": 212 }, "height": 76, "children": [
+									{ "id": "displayProperties", "style": "caption", "text": "{{t('display.properties')}}", "anchors": { "left": 12, "top": 212 } },
+									{ "type": "row", "id": "displayProps", "wrap": true, "gap": 4, "anchors": { "left": 12, "right": 12, "top": 232 }, "height": 76, "children": [
 										{ "id": "displayProp", "repeat": { "for": "prop", "in": "['id', 'priority', 'label', 'due', 'estimate', 'assignee']" }, "style": "displayPill", "role": "switch",
 											"let": { "on": "{{!contains(state.hidden, prop)}}" }, "text": "{{t('prop.' + prop)}}", "selected": "{{on}}",
 											"color": "{{on ? '@color.chipHover' : 'transparent'}}", "borderColor": "{{on ? '@color.chipHover' : '@color.border'}}",
@@ -1006,7 +1006,8 @@
 				"id": "statusBar",
 				"use": "statusBar",
 				"anchors": { "left": 220, "right": 0, "bottom": 0 },
-				"with": { "height": 32, "color": "@color.surface", "textColor": "@color.muted", "highlight": "@color.chipHover", "items": [
+				"visible": "{{settings.window.statusBar}}",
+				"with": { "height": "{{settings.window.statusBar ? 32 : 0}}", "color": "@color.surface", "textColor": "@color.muted", "highlight": "@color.chipHover", "items": [
 					{ "text": "{{t('status.revision', { number: revision.number, author: revision.author, message: revision.message })}}" },
 					{ "text": "{{window.width}} × {{window.height}}", "side": "end" }
 				] }

@@ -10,12 +10,17 @@
      (node#label-now-playing :style caption :text ~(t "queue.now") :anchors {:left 20 :top 22})
      (image#queueCover
        :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 12
        :anchors {:left 20 :top 48}
        :width 96
        :height 96)
-     (node#queueFrom :style caption :text ~(t "queue.from" {:name computed.playingName}) :anchors {:left 132 :top 54})
+     (node#queueFrom :style caption :text ~(t "queue.from") :anchors {:left 132 :top 66})
+     (label#queueFromName
+       :text ~computed.playingName
+       :textColor @text
+       :anchors {:left 132 :right 20 :top 84}
+       :height 20)
      (label#queueTitle
        :text ~computed.track.title
        :font heading
@@ -32,7 +37,19 @@
        :text ~(str computed.elapsedText " / " computed.track.time)
        :anchors {:left 20 :top 270})
      (node#label-up-next :style caption :text ~(t "queue.upNext") :anchors {:left 20 :top 304})
-     (node#queueNote :style caption :live polite :text ~state.queueNote :anchors {:right 20 :top 304})
+     (node#queueNote :style caption :live polite :text ~state.queueNote :anchors {:right 56 :top 304})
+     (node#clearQueue :style control
+       :when ~(seq computed.upNext)
+       :icon list-x
+       :font small
+       :width 28
+       :height 28
+       :radius 14
+       :color @surface
+       :anchors {:right 16 :top 296}
+       :label ~(t "queue.clear")
+       :tooltip ~(t "queue.clear")
+       :onClick clearQueue)
      ~(up-next)
      (node#queueEmpty
        :when ~(empty? computed.upNext)
@@ -72,4 +89,5 @@
      :drag {}
      :onDrop drop-queued
      :onOpen jump-to
-     :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1)}))
+     :onContextMenu queue-menu
+     :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1) :delete unqueue :backspace unqueue}))

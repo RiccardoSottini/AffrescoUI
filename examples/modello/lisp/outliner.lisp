@@ -5,7 +5,8 @@
 
 ;;; The rows
 
-(defcomputed objectRows "The scene's objects, by name." (sort-by :name state.scene.nodes))
+(defcomputed objectRows "The scene's objects, by name, each parent followed by its children, a level deeper."
+  (sort-by :outlinePath (map #(outline-row %) state.scene.nodes)))
 
 (defcomputed outlinerRows "The objects listed: those the search, the filter and Only Selected let through."
   (filter (fn [it]
@@ -107,7 +108,7 @@
               :onSelect collection})
      (node :when ~(some? item.node)
        :use outlinerRow
-       :with {:depth ~computed.outlinerDepth
+       :with {:depth ~(+ computed.outlinerDepth (or-else n.outlineDepth 0))
               :name ~n.name
               :icon ~(get computed.kindIcons n.kind)
               :iconColor @object
@@ -120,7 +121,7 @@
 (defview object-data-rows "An open object's mesh and material, a level deeper: two rows." []
   [`(node :when ~(and (some? item.node) (true? (get state.outlinerOpen n.id)))
       :use outlinerRow
-      :with {:depth ~(inc computed.outlinerDepth)
+      :with {:depth ~(+ computed.outlinerDepth (or-else n.outlineDepth 0) 1)
              :key ~(str n.id "-data")
              :name ~(let [mesh (or-else n.mesh "")] (str (str/upper-case (slice mesh 0 1)) (slice mesh 1)))
              :icon triangle
@@ -128,7 +129,7 @@
              :onSelect data})
    `(node :when ~(and (true? (get state.outlinerOpen n.id)) (some? n.material))
       :use outlinerRow
-      :with {:depth ~(inc computed.outlinerDepth)
+      :with {:depth ~(+ computed.outlinerDepth (or-else n.outlineDepth 0) 1)
              :key ~(str n.id "-material")
              :name ~(or-else (:name (find #(= (:id %) n.material) state.scene.materials)) n.material)
              :icon circle

@@ -72,7 +72,7 @@
 (defview playlist-cover "The playlist's cover, on the right of the header." []
   `(image#cover
      :file ~computed.list.cover
-     :fit cover
+     :fit cover :color @button
      :radius 24
      :anchors {:right 40 :top 48}
      :width 168
@@ -169,7 +169,7 @@
   `(node#libraryHeader :anchors {:left 0 :right 0 :top 0} :height 132 :color @surface
      (image#libraryCover
        :file ~state.libraryInfo.cover
-       :fit cover
+       :fit cover :color @button
        :radius 6
        :anchors {:left 32 :top 24}
        :width 84
