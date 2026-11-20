@@ -19,7 +19,7 @@
   :title ~(t "setting.blindsMs") :description ~(t "setting.blindsMs.about"))
 
 (defcustom energy.dailyBudget
-  12 "The energy a day should stay under, in kWh, shown on the Energy page."
+  30 "The energy a day should stay under, in kWh, shown on the Energy page."
   :type integer :minimum 5 :maximum 60
   :title ~(t "setting.dailyBudget") :description ~(t "setting.dailyBudget.about"))
 
