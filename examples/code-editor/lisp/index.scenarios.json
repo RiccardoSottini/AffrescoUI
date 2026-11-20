@@ -767,6 +767,23 @@
 				{ "expect": { "state": "caret.line", "is": 18 } },
 				{ "expect": { "state": "files[0].text.length", "is": 485, "note": "main.cpp, a new line and the loop, its body indented by four spaces" } }
 			]
+		},
+		{
+			"name": "hot-exit-keeps-unsaved-text",
+			"note": "An unsaved change is kept by its file's index for the state file; at the next start it comes back, still unsaved",
+			"steps": [
+				{ "click": "#editor" },
+				{ "type": "x" },
+				{ "wait": 50 },
+				{ "expect": { "state": "unsaved['0'].length", "is": 438 } },
+				{ "action": "prepare", "note": "as the next start does, with the state file loaded" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].dirty", "is": true } },
+				{ "expect": { "state": "files[0].text.length", "is": 438 } },
+				{ "key": "mod+s" },
+				{ "wait": 50 },
+				{ "expect": { "state": "unsaved", "is": {} } }
+			]
 		}
 	]
 }

@@ -1,6 +1,6 @@
 # Quaderno, a code editor
 
-A desktop text editor: a side bar with open files and folders, tabs, a minimap, the Quick Switcher (files, symbols, lines, also scoped to a file), Find Symbol in Project, Find in Files with a results buffer, a command palette, a console and a status bar; context menus on the tabs and the text, a theme picker (dark, light, the system's), Distraction Free, and its settings and key bindings as JSON files. The `code-editor` template: an app with no C++ of its own, which the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
+A desktop text editor: a side bar with open files and folders, tabs, a minimap, the Quick Switcher (files, symbols, lines, also scoped to a file), Find Symbol in Project, Find in Files with a results buffer, a command palette, a console and a status bar; context menus on the tabs and the text, a theme picker (dark, light, the system's), split editors, snippets, an indentation picker, hot exit, Distraction Free, and its settings and key bindings as JSON files. The `code-editor` template: an app with no C++ of its own, which the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
 
 **Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour: tabs that open, close
 and ask before losing a change, a console, Settings that apply, and some thirty editing commands that differ only by name.
@@ -27,7 +27,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## How it holds together
 
-- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its program or its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. Nothing persists.
+- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its program or its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. Hot exit: the unsaved text, the open tabs, the split and the view settings persist (`persist`), so quitting asks nothing and loses nothing.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document and its program on its UI thread.
 - **Extension points:** files are entries of `state`; menus and commands are `menus` and `actions`.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

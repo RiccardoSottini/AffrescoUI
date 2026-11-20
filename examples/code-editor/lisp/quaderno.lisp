@@ -196,12 +196,32 @@
   (find-problems))
 
 (defn prepare
-  "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems."
+  "Generates the large file once (5,000 lines), saves every file as it is, gives back the text the last run left unsaved,
+  then finds the symbols and the problems."
   []
-  (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
-  (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
+  (let [kept state.unsaved]
+    (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
+    (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
+    (restore-unsaved kept))
   (set "state.symbolIndex" (map (constantly []) state.files))
   (index-all))
+
+;;; Hot exit: the unsaved text outlives a restart
+
+(defn keep-unsaved "Keeps each unsaved file's text by its index, which the state file holds across a restart." []
+  (let [now (into {} (for [[f file] (map-indexed vector state.files) :when (:dirty file)] [(str f) (:text file)]))]
+    (when (not= now state.unsaved) (set "state.unsaved" now))))
+
+(defn restore-unsaved "Gives the files the text the last run left unsaved, and keeps the tabs to files that are there." [kept]
+  (let [files (count state.files)
+        tabs (filterv #(< % files) state.tabs)
+        fallback (or-else (first tabs) -1)]
+    (doseq [[k text] kept :let [f (parse-long (name k))] :when (and (some? f) (< f files))]
+      (set (place f "text") text)
+      (set (place f "dirty") true))
+    (set "state.tabs" tabs)
+    (when (>= state.active files) (set "state.active" fallback))
+    (when (>= state.split files) (set "state.split" -1))))
 
 ;;; File commands
 

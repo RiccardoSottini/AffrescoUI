@@ -35,10 +35,10 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Text | Line operations (duplicate, move, delete) | done | also join, sort, reverse, unique, transpose |
 | Text | Case conversion | done | |
 | Text | Word wrap toggle | done | |
-| Text | Hot exit | missing | |
+| Text | Hot exit | done | unsaved text, the tabs, the split and the view settings are kept across a restart (the state file); a new untitled file isn't |
 | Settings | Settings as JSON | done | File, Settings opens Settings.json (theme, wordWrap, ruler, minimap, sideBar); saving applies it, a broken file is refused with a line in the console |
 | Settings | Key bindings as JSON | partial | File, Key Bindings opens the shortcuts as a read-only JSON file; rebinding isn't available |
 | Settings | Theme selector with live preview | done | Cmd+K Cmd+T: Dark, Light and System, previewed as the arrows move; the title bar's switch flips light and dark |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 30 done, 3 partial, 1 missing.
+Counts: 31 done, 3 partial, 0 missing.

@@ -18,6 +18,8 @@
 
 	"theme": "{{computed.theme}}",
 
+	"persist": ["state.unsaved", "state.tabs", "state.active", "state.split", "state.layout", "state.theme", "state.wrap", "state.ruler", "state.minimap", "state.sidebarOpen"],
+
 	"fonts": {
 		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
 		"small": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "code"] },
@@ -62,6 +64,7 @@
 		"layout": "row",
 		"splitSizes": [],
 		"indentPick": { "open": false, "query": "" },
+		"unsaved": {},
 		"snippets": {
 			"C++": [{ "prefix": "class", "text": "class Name {\npublic:\n\tName();\n\nprivate:\n};" }, { "prefix": "for", "text": "for(std::size_t i = 0; i < count; ++i) {\n\t\n}" }, { "prefix": "if", "text": "if(condition) {\n\t\n}" }, { "prefix": "include", "text": "#include <header>" }, { "prefix": "main", "text": "int main(int argc, char** argv) {\n\treturn 0;\n}" }, { "prefix": "namespace", "text": "namespace name {\n\n} // namespace name" }],
 			"CMake": [{ "prefix": "executable", "text": "add_executable(name main.cpp)" }, { "prefix": "library", "text": "add_library(name STATIC source.cpp)" }, { "prefix": "link", "text": "target_link_libraries(name PRIVATE dependency)" }],
@@ -315,7 +318,11 @@
 	"onLoad": "prepare",
 
 	"watch": {
-		"state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }]
+		"state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }],
+		"state.files": [
+			{ "note": "Hot exit: each unsaved file's text by its index, which the state file keeps across a restart" },
+			{ "set": "state.unsaved", "to": "{{fromEntries(map(filter(range(length(state.files)), state.files[it].dirty), { key: text(it), value: state.files[it].text }))}}" }
+		]
 	},
 
 	"actions": {
@@ -326,9 +333,20 @@
 				"to": "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"
 			},
 			{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "set": "state.files[f].saved", "to": "{{state.files[f].text}}" }] },
+			{ "run": "restoreUnsaved", "with": { "kept": "{{state.unsaved}}" } },
 			{ "set": "state.symbolIndex", "to": "{{map(state.files, [])}}" },
 			{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "run": "indexFile", "with": { "file": "{{f}}" } }] },
 			{ "run": "findProblems" }
+		],
+		"restoreUnsaved": [
+			{ "note": "with: kept; hot exit: gives the files the text the last run left unsaved, and keeps the tabs to files that are there" },
+			{ "forEach": "{{filter(entries(kept), number(it.key) != null && number(it.key) < length(state.files))}}", "as": "entry", "do": [
+				{ "set": "state.files[number(entry.key)].text", "to": "{{entry.value}}" },
+				{ "set": "state.files[number(entry.key)].dirty", "to": true }
+			] },
+			{ "set": "state.tabs", "to": "{{filter(state.tabs, it < length(state.files))}}" },
+			{ "if": "{{state.active >= length(state.files)}}", "then": [{ "set": "state.active", "to": "{{state.tabs[0] ?? -1}}" }] },
+			{ "if": "{{state.split >= length(state.files)}}", "then": [{ "set": "state.split", "to": -1 }] }
 		],
 		"findProblems": [
 			{ "note": "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table" },

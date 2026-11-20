@@ -168,6 +168,9 @@
             {:prefix "if" :text "if [ -f \"$file\" ]; then\n\techo found\nfi"}]}
   "The snippets per language: the prefix typed before the caret, and the text it becomes.")
 
+(defstate unsaved {}
+  "Hot exit: each unsaved file's text by its index, kept in the state file so quitting loses nothing.")
+
 (defstate snippetPick {:open false :query ""} "The snippet picker: open, and its text.")
 
 (defstate snippetInsert nil
