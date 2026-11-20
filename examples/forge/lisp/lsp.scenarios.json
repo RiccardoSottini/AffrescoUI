@@ -762,6 +762,125 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-problems-sorted-and-filtered",
+			"note": "Problems lists errors before warnings, and its filter keeps the rows whose message or file has the text typed",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"path": "src/main.cpp",
+							"diagnostics": [
+								{
+									"severity": "warning",
+									"message": "unused variable 'x'",
+									"source": "fake",
+									"code": "",
+									"line": 3,
+									"column": 4,
+									"endLine": 3,
+									"endColumn": 8
+								},
+								{
+									"severity": "error",
+									"message": "FIXME left in the code",
+									"source": "fake",
+									"code": "",
+									"line": 2,
+									"column": 4,
+									"endLine": 2,
+									"endColumn": 8
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"action": "showProblems"
+				},
+				{
+					"expect": {
+						"state": "problems.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"node": "#problems-filter",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#problems-shown",
+						"property": "text",
+						"is": ""
+					}
+				},
+				{
+					"click": "#problems-filter"
+				},
+				{
+					"type": "unused"
+				},
+				{
+					"expect": {
+						"state": "problemsFilter",
+						"is": "unused"
+					}
+				},
+				{
+					"expect": {
+						"node": "#problems-shown",
+						"property": "text",
+						"is": "1 of 2"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"expect": {
+						"state": "problemsFilter",
+						"is": ""
+					}
+				},
+				{
+					"type": "main.cpp"
+				},
+				{
+					"expect": {
+						"node": "#problems-shown",
+						"property": "text",
+						"is": "2 of 2"
+					}
+				}
+			]
 		}
 	]
 }

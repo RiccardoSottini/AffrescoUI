@@ -15,13 +15,28 @@
 
 (defcomputed warnings (count (filter #(= (:severity %) "warning") state.problems)))
 
-(defcomputed problemRows
-  (map-indexed (fn [index it]
-                   {:id index
-                    :icon (case it.severity :error "circle-x" :warning "alert-triangle" "info")
-                    :iconColor (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
-                    :cells [it.message it.label it.line]})
-                 state.problems))
+(defstate problemsFilter "")
+
+(defn severity-rank "Where a severity sorts: errors first, then warnings, then the rest." [severity]
+  (case severity :error 0 :warning 1 2))
+
+(defn problem-matches "Whether a problem's message or file has the filter's text (`query`, lower case)." [query it]
+  (let [text (str/lower-case (str it.message " " it.file))]
+    (or (empty? query) (str/includes? text query))))
+
+(defn problem-row "A problem's row (`it`, its place in the list as `index`): its severity's icon, message, file and line." [it]
+  {:id it.index
+   :icon (case it.severity :error "circle-x" :warning "alert-triangle" "info")
+   :iconColor (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
+   :cells [it.message it.label it.line]})
+
+(defn problem-rows "The problems (`problems`) the filter (`filter-text`) keeps, errors first, each a row." [problems filter-text]
+  (let [query (str/lower-case (str/trim filter-text))
+        numbered (map-indexed (fn [index it] (assoc it :index index)) problems)
+        kept (filter #(problem-matches query %) numbered)]
+    (map problem-row (sort-by #(severity-rank (:severity %)) kept))))
+
+(defcomputed problemRows (problem-rows state.problems state.problemsFilter))
 
 (defn go-to-problem "A row of Problems, opened: its file shown at its line." []
   (let [{:keys [file label line]} (get state.problems (number event.id))]

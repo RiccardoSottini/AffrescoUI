@@ -240,7 +240,7 @@
      :role option
      :label ~(str f.title ". " f.description)
      :width "100%"
-     :height 48
+     :height 56
      :alignItems center
      :gap 8
      :focusable true
@@ -251,20 +251,25 @@
      (label :id ~(str "feature-icon-" f.name)
        :icon ~(cond (not f.installed) "download" f.enabled "circle-check" :else "circle-pause")
        :width 32
-       :height 48
+       :height 56
        :align center
        :textColor ~(if (and f.installed f.enabled) "@color.accent" "@color.muted"))
      ~(feature-text f)
      (node :id ~(str "feature-end-" f.name) :width 8)))
 
 (defview feature-text "A feature's title and release, over its description." [f]
-  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 40
+  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 48
      (label :id ~(str "feature-title-" f.name)
        :width "100%"
        :height 20
        :textColor @color.text
        :text ~(+ f.title (if (empty? f.release) "" (str "  " f.release))))
-     (label :id ~(str "feature-description-" f.name) :width "100%" :height 20 :textColor @color.muted :text ~f.description)))
+     (label :id ~(str "feature-description-" f.name)
+       :width "100%"
+       :height 26
+       :wrap true
+       :textColor @color.muted
+       :text ~f.description)))
 
 (defview features-detail "The feature chosen: its title, its description, and Install, Enable or Disable." []
   `(column#features-detail :when ~(some? computed.featureCurrent) :width "100%" :gap 4

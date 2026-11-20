@@ -42,6 +42,8 @@
                 :panel-clear-output.tip "Effacer la sortie"
                 :panel-close.tip "Masquer le panneau (Cmd+J)"
                 :problems-empty "Aucun problème trouvé pour l'instant dans les fichiers ouverts."
+                :problems-filter.placeholder "Filtrer par texte ou fichier"
+                :problems-shown "{shown} sur {all}"
                 :problems.label "Problèmes"
                 :problems.message "Message"
                 :problems.file "Fichier"

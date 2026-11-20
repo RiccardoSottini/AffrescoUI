@@ -42,6 +42,8 @@
                 :panel-clear-output.tip "Clear Output"
                 :panel-close.tip "Hide Panel (Cmd+J)"
                 :problems-empty "No problems found in the open files so far."
+                :problems-filter.placeholder "Filter by text or file"
+                :problems-shown "{shown} of {all}"
                 :problems.label "Problems"
                 :problems.message "Message"
                 :problems.file "File"
