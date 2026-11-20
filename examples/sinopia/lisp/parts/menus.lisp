@@ -45,8 +45,7 @@
   [{:title (t "ribbon.paste")
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
+    :run "pasteObjects"}
    {:title (t "menu.keepTextOnly") :icon "type" :run "pasteText" :enabled (pos? (count state.clip))}
    {:title (t "menu.duplicate")
     :icon "copy-plus"
@@ -99,8 +98,7 @@
    {:title (t "ribbon.paste")
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
+    :run "pasteObjects"}
    {:separator true}
    {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
    {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
@@ -115,8 +113,7 @@
   [{:title (t "ribbon.paste")
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
+    :run "pasteObjects"}
    {:separator true}
    {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "resetSlide"}
    {:title (t "menu.formatBackground") :icon "paint-bucket" :run "formatBackground"}])

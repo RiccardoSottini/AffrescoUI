@@ -62,6 +62,7 @@ be a deck before it replaces the one on screen, as a change undo takes back.
 | [`edit.lisp`](lisp/parts/edit.lisp) | The other edits, each one undoable: objects, text, themes, transitions and builds |
 | [`arrange.lisp`](lisp/parts/arrange.lisp) | Groups (selected as one), and rotating and flipping the selection |
 | [`content.lisp`](lisp/parts/content.lisp) | Tables (the size grid, the banded cells, the cell editor and its Tab) and pictures |
+| [`clipboard.lisp`](lisp/parts/clipboard.lisp) | Cut, copy and paste with other apps: the objects' text to the system clipboard, another app's text back as a text box |
 | [`chart.lisp`](lisp/parts/chart.lisp) | Charts: columns, bars, a line or a pie drawn from a table of data, the legend and the value axis |
 | [`ribbon.lisp`](lisp/parts/ribbon.lisp), [`tabs.lisp`](lisp/parts/tabs.lisp) | The ribbon's buttons, galleries and groups, and its tabs |
 | [`show.lisp`](lisp/parts/show.lisp) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |

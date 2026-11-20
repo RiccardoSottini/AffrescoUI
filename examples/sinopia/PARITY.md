@@ -86,7 +86,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Tools | Find | missing | done | find-and-replace |
 | Tools | Replace | missing | done | find-and-replace |
 | Tools | Undo and redo | done | done | delete-and-undo |
-| Tools | Cut, copy and paste | partial | partial | duplicate-an-object, paste-menu (no other apps' clipboard) |
+| Tools | Cut, copy and paste | partial | done | duplicate-an-object, paste-menu, clipboard-with-other-apps (the objects' text goes to the system clipboard; another app's text pastes as a text box; pictures from other apps don't yet) |
 | Ink | Draw with a pen and a highlighter (colours, widths) | missing | done | ink |
 | Ink | Eraser and Clear Ink | missing | done | ink |
 | Ink | Ink to shape and ink replay | missing | done | ink-to-shape-and-replay (closed strokes to rectangles and ellipses) |
@@ -150,7 +150,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 
 | Priority | Row or control | What it needs |
 |---|---|---|
-| P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
+| P2 | Tools: paste a picture from another app | Library: a step that reads the system clipboard's image |
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: justified text | Library: justified wrapping in labels |
 | P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |

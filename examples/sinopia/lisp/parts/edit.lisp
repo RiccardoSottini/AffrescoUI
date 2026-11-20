@@ -233,9 +233,10 @@
     (set "state.board.selection" (->> computed.selected (filter :locked) (map :id)))))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn copyObjects "Copies the selected objects." []
+(defn copyObjects "Copies the selected objects, and their text to the system clipboard." []
   (when (seq computed.selected)
-    (set "state.clip" computed.selected)))
+    (set "state.clip" computed.selected)
+    (copy-to-system computed.selected)))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn cutObjects "Copies the selected objects, then deletes them." []
@@ -243,8 +244,10 @@
   (deleteObjects))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn pasteObjects "Pastes the copied objects onto the slide, a little down and right, with new ids, and selects them."
-  []
+(defn pasteObjects "Pastes what the system clipboard holds: the objects copied here, or another app's text." []
+  (paste "text" :into "state.pasted" :onDone pasted-text :onError paste-clip))
+
+(defn paste-clip "Pastes the copied objects onto the slide, a little down and right, with new ids, and selects them." []
   (when (seq state.clip)
     (commit)
     (let [next state.deck.next]
@@ -262,8 +265,9 @@
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn duplicateObjects "Pastes a copy of the selected objects." []
-  (copyObjects)
-  (pasteObjects))
+  (when (seq computed.selected)
+    (set "state.clip" computed.selected)
+    (paste-clip)))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn selectAll "Selects every object of the slide." []

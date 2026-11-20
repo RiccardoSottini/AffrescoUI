@@ -22,6 +22,7 @@
             sinopia.parts.geometry
             sinopia.parts.slide
             sinopia.parts.sample-deck
+            sinopia.parts.clipboard
             sinopia.parts.edit
             sinopia.parts.arrange
             sinopia.parts.content

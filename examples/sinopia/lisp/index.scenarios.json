@@ -1830,6 +1830,69 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sinopia-clipboard-with-other-apps",
+			"note": "Copy puts the selected objects' text on the system clipboard too; Paste brings back Sinopia's own objects, and another app's text (here the notes' text, copied in the notes) as a text box",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#notes"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+c"
+				},
+				{
+					"click": "#o13"
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].kind",
+						"is": "text"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].text",
+						"is": "Each phase has one owner. Building starts once the permits are in."
+					}
+				},
+				{
+					"click": "#o12"
+				},
+				{
+					"key": "mod+c"
+				},
+				{
+					"expect": {
+						"state": "clipText",
+						"is": "Review\nJune"
+					}
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[8].kind",
+						"is": "shape"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[8].text",
+						"is": "Review\nJune"
+					}
+				}
+			]
 		}
 	]
 }
