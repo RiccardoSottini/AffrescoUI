@@ -194,10 +194,10 @@
 					  "children": [
 						{ "id": "command-centre-start", "width": 6 },
 						{ "type": "label", "id": "command-centre-icon", "icon": "search", "textColor": "@color.muted", "fitText": true },
-						{ "type": "label", "id": "command-centre-text", "text": "{{'Search ' + computed.folderName}}", "textColor": "@color.muted",
+						{ "type": "label", "id": "command-centre-text", "text": "{{empty(state.folder.root) ? 'Search' : 'Search ' + computed.folderName}}", "textColor": "@color.muted",
 						  "fitText": true, "height": 20 },
 						{ "id": "command-centre-end", "grow": 1 },
-						{ "type": "label", "id": "command-centre-hint", "text": "Cmd+P", "textColor": "@color.muted", "fitText": true, "height": 18, "padding": 6,
+						{ "type": "label", "id": "command-centre-hint", "text": "{{(find(commands, it.name == 'quickOpen') ?? {}).keyLabel ?? ''}}", "textColor": "@color.muted", "fitText": true, "height": 18, "padding": 6,
 						  "radius": 4, "borderWidth": 1, "borderColor": "@color.border" },
 						{ "id": "command-centre-hint-end", "width": 4 }
 					  ] },

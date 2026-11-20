@@ -74,12 +74,14 @@
      :onClick quickOpen
      (node#command-centre-start :width 6)
      (label#command-centre-icon :icon search :textColor @color.muted :fitText true)
-     (label#command-centre-text :text ~(t "command-centre.text" {:folder computed.folderName})
+     (label#command-centre-text :text ~(if (empty? state.folder.root)
+                                         (t "command-centre.search")
+                                         (t "command-centre.text" {:folder computed.folderName}))
        :textColor @color.muted
        :fitText true
        :height 20)
      (node#command-centre-end :grow 1)
-     (label#command-centre-hint :text ~(t "command-centre-hint")
+     (label#command-centre-hint :text ~(key-label "quickOpen")
        :textColor @color.muted
        :fitText true
        :height 18
