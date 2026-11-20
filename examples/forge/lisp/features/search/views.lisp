@@ -134,6 +134,34 @@
        :textColor @color.muted
        :grow 1
        :height 22)
+     (label#search-collapse-all :when ~(some? state.search.result)
+       :role button
+       :label ~(t "command.searchCollapseAll")
+       :icon list-collapse
+       :font icons
+       :width 22
+       :height 22
+       :align center
+       :cursor hand
+       :radius 3
+       :tooltip ~(t "command.searchCollapseAll")
+       :textColor @color.text
+       :hover {:color @color.hover}
+       :onClick searchCollapseAll)
+     (label#search-clear :when ~(some? state.search.result)
+       :role button
+       :label ~(t "command.searchClear")
+       :icon list-x
+       :font icons
+       :width 22
+       :height 22
+       :align center
+       :cursor hand
+       :radius 3
+       :tooltip ~(t "command.searchClear")
+       :textColor @color.text
+       :hover {:color @color.hover}
+       :onClick searchClear)
      (label#search-open-editor :when ~(some? state.search.result)
        :role button
        :label ~(t "search-open-editor.label")
