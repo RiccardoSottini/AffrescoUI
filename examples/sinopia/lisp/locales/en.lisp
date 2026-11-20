@@ -55,6 +55,8 @@
                 :bar.presentFromTheStartF5 "Present from the start (F5)"
                 :bar.hideTheCommandsCtrlF1 "Hide the commands (Ctrl+F1)"
                 :bar.showTheCommandsCtrlF1 "Show the commands (Ctrl+F1)"
+                :bar.pinTheRibbon "Keep the ribbon open (Ctrl+F1)"
+                :bar.ribbon "Ribbon"
                 :bar.present2 " Present"
                 :bar.presentFromThisSlideShift "Present from this slide (Shift+F5)"
                 :bar.slides "Slides"

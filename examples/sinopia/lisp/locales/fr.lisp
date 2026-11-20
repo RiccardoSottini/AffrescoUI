@@ -55,6 +55,8 @@
                 :bar.presentFromTheStartF5 "Présenter depuis le début (F5)"
                 :bar.hideTheCommandsCtrlF1 "Masquer les commandes (Ctrl+F1)"
                 :bar.showTheCommandsCtrlF1 "Afficher les commandes (Ctrl+F1)"
+                :bar.pinTheRibbon "Garder le ruban ouvert (Ctrl+F1)"
+                :bar.ribbon "Ruban"
                 :bar.present2 " Présenter"
                 :bar.presentFromThisSlideShift "Présenter à partir de cette diapositive (Maj+F5)"
                 :bar.slides "Diapositives"

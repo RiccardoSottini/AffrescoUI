@@ -420,6 +420,10 @@
     :keyLabel "Ctrl+O"}
    {:title (t "menu.exportToPdf") :icon "file-down" :run "runSearched" :with {:action "exportPdf" :args {}}}
    {:title (t "menu.exportSlideAsPicture") :icon "image" :run "runSearched" :with {:action "exportPng" :args {}}}
+   {:title (t "menu.exportEverySlideAsPictures")
+    :icon "images"
+    :run "runSearched"
+    :with {:action "exportPngs" :args {}}}
    {:title (t "menu.darkMode") :icon "moon" :run "runSearched" :with {:action "toggleTheme" :args {}}}
    {:title (t "menu.undo")
     :icon "undo-2"

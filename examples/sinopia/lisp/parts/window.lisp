@@ -153,9 +153,10 @@
 
 ;;; What a click does
 
-(defn show-tab "Shows a tab of the ribbon, and the ribbon if it was hidden." [tab]
+(defn show-tab "Shows a tab of the ribbon; a collapsed ribbon shows over the slide until a click elsewhere." [tab]
   (set "state.tab" tab)
-  (set "state.ribbon" true))
+  (when-not state.ribbon
+    (set "state.ribbonPeek" true)))
 
 (defn choose-slide "Shows a slide chosen in a list of slides, which keeps the keys." [index list]
   (pick-slide index)
@@ -215,9 +216,11 @@
 
 (defview tab-title "A tab's title in the command bar: `tab` is the repeat's tab." [tab]
   `(label :id ~(str "tab-" tab.id "-label")
-     :style ~(if (and (= state.tab tab.id) state.ribbon) "tabOn" "tab")
+     :style ~(if (and (= state.tab tab.id) (or state.ribbon state.ribbonPeek)) "tabOn" "tab")
      :selected ~(= state.tab tab.id)
-     :textColor ~(cond (and (= state.tab tab.id) state.ribbon) "@onBrand" tab.contextual "@brandLine" :else "@rbInk")
+     :textColor ~(cond (and (= state.tab tab.id) (or state.ribbon state.ribbonPeek)) "@onBrand"
+                       tab.contextual "@brandLine"
+                       :else "@rbInk")
      :runs [{:text ~tab.title :size 12 :bold ~(or-else tab.contextual false)}]
      :onClick ~(handler show-tab tab.id)))
 
@@ -259,7 +262,7 @@
   `(label#ribbon-collapse :style barIcon
      :runs [{:icon ~(if state.ribbon "panel-top-close" "panel-top-open") :size 16}]
      :tooltip ~(if state.ribbon (t "bar.hideTheCommandsCtrlF1") (t "bar.showTheCommandsCtrlF1"))
-     :onClick [{:toggle state.ribbon}]))
+     :onClick toggle-ribbon))
 
 (defview present-button "Present, from the slide shown." []
   `(label#present-button :style pillButton
@@ -271,20 +274,23 @@
 
 (defview ribbon "The ribbon: the commands of the tab chosen." []
   `(node#ribbon :height 100 :color @rb :when ~state.ribbon
-     (node#ribbon-body :y 2 :anchors {:left 8 :right 8} :height 92 :color transparent
-       (node :use tabHome :when ~(= state.tab "home"))
-       (node :use tabInsert :when ~(= state.tab "insert"))
-       (node :use tabDesign :when ~(= state.tab "design"))
-       (node :use tabTransitions :when ~(= state.tab "transitions"))
-       (node :use tabView :when ~(= state.tab "view"))
-       (node :use tabFile :when ~(= state.tab "file"))
-       (node :use tabMotion :when ~(= state.tab "animations"))
-       (node :use tabPresent :when ~(= state.tab "slideShow"))
-       (node :use tabInk :when ~(= state.tab "draw"))
-       (node :use tabRecord :when ~(= state.tab "record"))
-       (node :use tabCheck :when ~(= state.tab "review"))
-       (node :use tabHelp :when ~(= state.tab "help"))
-       (node :use tabShapeFormat :when ~(= state.tab "shapeFormat")))))
+     ~(ribbon-tabs)))
+
+(defview ribbon-tabs "The commands of the tab chosen, in the pinned ribbon or over the slide." []
+  `(node#ribbon-body :y 2 :anchors {:left 8 :right 8} :height 92 :color transparent
+     (node :use tabHome :when ~(= state.tab "home"))
+     (node :use tabInsert :when ~(= state.tab "insert"))
+     (node :use tabDesign :when ~(= state.tab "design"))
+     (node :use tabTransitions :when ~(= state.tab "transitions"))
+     (node :use tabView :when ~(= state.tab "view"))
+     (node :use tabFile :when ~(= state.tab "file"))
+     (node :use tabMotion :when ~(= state.tab "animations"))
+     (node :use tabPresent :when ~(= state.tab "slideShow"))
+     (node :use tabInk :when ~(= state.tab "draw"))
+     (node :use tabRecord :when ~(= state.tab "record"))
+     (node :use tabCheck :when ~(= state.tab "review"))
+     (node :use tabHelp :when ~(= state.tab "help"))
+     (node :use tabShapeFormat :when ~(= state.tab "shapeFormat"))))
 
 ;;; The work area
 

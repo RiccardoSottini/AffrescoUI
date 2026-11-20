@@ -294,7 +294,8 @@
 					] },
 					{ "id": "g-export", "use": "rbGroup", "with": { "title": "Export" }, "children": [
 						{ "id": "b-export-pdf", "use": "rbBig", "with": { "icon": "file-text", "title": "PDF", "width": 46 }, "tooltip": "Every slide shown, a page each", "onClick": "exportPdf" },
-						{ "id": "b-export-png", "use": "rbBig", "with": { "icon": "file-image", "title": "Picture", "width": 50 }, "tooltip": "This slide as a PNG picture", "onClick": "exportPng" }
+						{ "id": "b-export-png", "use": "rbBig", "with": { "icon": "file-image", "title": "Picture", "width": 50 }, "tooltip": "This slide as a PNG picture", "onClick": "exportPng" },
+						{ "id": "b-export-pngs", "use": "rbBig", "with": { "icon": "images", "title": "All Slides", "width": 50 }, "tooltip": "Every slide shown, a PNG picture each", "onClick": "exportPngs" }
 					] },
 					{ "use": "fileRecent" },
 					{ "id": "g-file-info", "use": "rbGroup", "with": { "title": "Last" }, "children": [

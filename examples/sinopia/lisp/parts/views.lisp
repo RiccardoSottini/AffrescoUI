@@ -362,10 +362,13 @@
 (defn not-exported "Says why nothing was exported." [error]
   (fileStatus (t "file.notExported" {:why error.message})))
 
+(defn shown-pages "The ids of the pages of the slides the show would show, in its order." []
+  (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder))
+
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
   (export "pdf"
-          :pages (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder)
+          :pages (shown-pages)
           :size [720 405]
           :title computed.deckName
           :onDone pdf-exported
@@ -378,6 +381,18 @@
           :scale 2
           :name (str computed.deckName " " (inc state.current))
           :onDone png-exported
+          :onError not-exported))
+
+(defn pictures-exported "Says the pictures were exported, how many, and the first one's name." [result]
+  (fileStatus (t "file.exportedPictures" {:name result.name :pages result.pages})))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn exportPngs "Exports every slide the show would show as a PNG picture, numbered, at twice its size." []
+  (export "png"
+          :pages (shown-pages)
+          :scale 2
+          :name computed.deckName
+          :onDone pictures-exported
           :onError not-exported))
 
 ;;; The look

@@ -9,7 +9,7 @@
 
 (defkey "alt+q" {:when ~(not state.show.on) :do [{:focus "#search"}]})
 
-(defkey "mod+f1" {:when ~(not state.show.on) :do [{:toggle state.ribbon}]})
+(defkey "mod+f1" {:when ~(not state.show.on) :do toggle-ribbon})
 
 (defkey "mod+z" {:when ~(not context.textInputFocus) :do undo})
 

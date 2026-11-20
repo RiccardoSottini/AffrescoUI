@@ -124,9 +124,14 @@
       [0 0 (+ box.x (* box.w q)) 540])
     [0 0 960 540]))
 
+(defn side-icon "The arrow of a side a build flies or wipes from." [side]
+  (let [found (find #(= (first %) side) computed.flySides)]
+    (second (or-else found computed.flySides.0))))
+
 (defn build-side "The side a build flies or wipes from: its own, else the bottom for a fly and the left for a wipe."
   [a]
-  (or-else (:direction a) (if (= (:effect a) "wipe") "left" "bottom")))
+  (let [wipe? (= (:effect a) "wipe")]
+    (or-else (:direction a) (if wipe? "left" "bottom"))))
 
 (defn fly-offset "Where a flying object is, the part `away` of the way off the slide, by the side it flies from."
   [side box away]
@@ -299,8 +304,7 @@
        :style ~(if (#{"fly" "wipe"} a.effect) "rbButton" "rbButtonOff")
        :padding 2
        :fitText true
-       :runs ~[{:icon (second (or-else (find #(= (first %) (build-side a)) computed.flySides) computed.flySides.0))
-                :size 14}
+       :runs ~[{:icon (side-icon (build-side a)) :size 14}
                {:text (t "motion.flySide" {:side (build-side a)}) :size 12}]
        :tooltip ~(t "motion.theSideItFlies")
        :disabled ~(not (#{"fly" "wipe"} a.effect))

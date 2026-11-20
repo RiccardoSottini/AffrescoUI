@@ -52,6 +52,11 @@
 			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name + '.'}}" }],
 			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
 		],
+		"exportPngs": [
+			{ "export": "png", "pages": "{{map(computed.showOrder, 'page-' + state.deck.slides[it].id)}}", "scale": 2, "name": "{{computed.deckName}}",
+			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.pages + ' pictures, from ' + result.name + '.'}}" }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
+		],
 		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }],
 		"setBackground": [
 			{ "run": "commit" },

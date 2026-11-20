@@ -240,7 +240,11 @@
        (node#b-export-png :use rbBig
          :with {:icon file-image :title ~(t "ribbon.picture") :width 50}
          :tooltip ~(t "ribbon.thisSlideAsAPng")
-         :onClick exportPng))
+         :onClick exportPng)
+       (node#b-export-pngs :use rbBig
+         :with {:icon images :title ~(t "ribbon.allSlides") :width 50}
+         :tooltip ~(t "ribbon.everySlideShownAPng")
+         :onClick exportPngs))
      ~(g-file-recent)
      (node#g-file-info :use rbGroup :with {:title ~(t "ribbon.last")}
        (label#file-status :width 220
