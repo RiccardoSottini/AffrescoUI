@@ -4,20 +4,20 @@ Sinopia is a presentation editor. This matrix lists what a daily user of such an
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
 *Start* is Sinopia as a C++ app; *Now* is Sinopia as a folder of JSON that the stock host runs,
 with its slide show, presenter view, audience window and files on library capabilities (the `windows` section,
-`saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](lisp/index.scenarios.json)
-(without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
+`saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](lisp/index.scenarios.json) or
+[`design.scenarios.json`](lisp/design.scenarios.json) (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
 | Area | Feature | Start | Now | Evidence |
 |---|---|---|---|---|
 | Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Record, Check, View, Help) | missing | done | first-frame, insert-tab, design-tab, ink, rehearse-timings, check-and-comments |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
-| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list) |
+| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list), shape-format-tab (quick styles) |
 | Shell | Collapse and pin the ribbon | missing | partial | sections-and-ribbon (Ctrl+F1 and the bar's button; a tab brings it back pinned, not over the slide) |
-| Shell | A contextual tab for the selected shape | missing | missing | |
+| Shell | A contextual tab for the selected shape | missing | done | shape-format-tab (Shape Format: insert shapes, quick styles, arrange, size) |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
 | Shell | Search ("tell me what you want to do") that runs commands | missing | partial | search-commands (33 commands by name, and the text in the slides) |
-| Shell | File view (new, open, save, export) | missing | partial | save-and-open, export-pdf |
+| Shell | File view (new, open, save, export) | missing | done | new-and-recent-decks (a new deck from a theme, recent decks), save-and-open, export-pdf |
 | Shell | Key hints (Alt shows a key on every command) | missing | missing | |
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
 | Slides | New slide with a layout, duplicate, delete | done | done | new-duplicate-delete-slide |
@@ -29,7 +29,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Canvas | Placeholders ("Click to add title", "Click to add text") | missing | done | edit-text-in-place |
 | Canvas | Zoom and fit to window | partial | done | first-frame, resized |
 | Canvas | Notes pane under the slide | partial | done | first-frame, notes-hidden, speaker-notes |
-| Canvas | Rulers, gridlines and guides (View) | partial | partial | |
+| Canvas | Rulers, gridlines and guides (View) | partial | done | rulers-grid-and-guides (gridlines over the slide, centre guides, guides dragged out of the rulers; objects snap to them) |
 | Status bar | Slide x of y | missing | done | slide-4 |
 | Status bar | Language | missing | done | first-frame |
 | Status bar | Notes and comments toggles | missing | done | speaker-notes, notes-hidden, check-and-comments |
@@ -44,17 +44,17 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
 | Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
 | Text | Edit text in place (double-click, caret, selection) | missing | done | edit-text-in-place (double click or F2; the text is edited plain and its formatting shows again when the edit ends) |
-| Text | Vertical anchor and autofit | missing | partial | paragraph-menus (anchor and text direction; no autofit) |
-| Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | partial | add-a-shape, first-frame |
-| Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line, colour-grids (no gradient) |
-| Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line, colour-grids |
+| Text | Vertical anchor and autofit | missing | done | paragraph-menus (anchor and text direction), format-gradient-dash-and-text-box (shrink text on overflow, resize shape to fit) |
+| Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | done | add-a-shape, first-frame, more-shape-presets |
+| Shapes | Shape fill (solid, gradient, none) | partial | done | format-fill-and-line, colour-grids, format-gradient-dash-and-text-box |
+| Shapes | Shape outline (colour, weight, dashes) | partial | done | format-fill-and-line, colour-grids, format-gradient-dash-and-text-box |
 | Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
 | Shapes | Quick styles | missing | done | colour-grids |
 | Shapes | Text inside shapes | missing | done | edit-text-in-place |
-| Format pane | Fill and line | partial | partial | format-fill-and-line |
+| Format pane | Fill and line | partial | done | format-fill-and-line, format-gradient-dash-and-text-box (gradients, dashes) |
 | Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
-| Format pane | Size and position (with lock aspect ratio) | partial | partial | format-size-and-rotation |
-| Format pane | Text box options (anchor, margins, wrap) | missing | missing | |
+| Format pane | Size and position (with lock aspect ratio) | partial | done | format-size-and-rotation, format-gradient-dash-and-text-box, shape-format-tab |
+| Format pane | Text box options (anchor, margins, wrap) | missing | done | format-gradient-dash-and-text-box (margins, wrap, autofit) |
 | Arrange | Move and resize with handles | done | partial | selected |
 | Arrange | Smart guides (centres and edges) | missing | partial | |
 | Arrange | Distance indicators (equal gaps) | missing | missing | |
@@ -77,7 +77,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Design | Slide master view | missing | missing | |
 | Design | Themes | missing | partial | design-tab |
 | Design | Variants | missing | partial | design-tab |
-| Design | Theme colours | missing | partial | theme-colors-and-fonts (another theme's colours; no colours of the deck's own) |
+| Design | Theme colours | missing | done | theme-colors-and-fonts (another theme's colours), own-theme-colours (hex codes of the deck's own) |
 | Design | Theme fonts | missing | partial | theme-colors-and-fonts (the titles' and the text's, from the two fonts the app ships) |
 | Design | Slide size (16:9, 4:3) | partial | missing | |
 | Design | Format background | missing | done | background-and-reading-view |
@@ -137,7 +137,7 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 68 | 31 | 22 | 121 |
+| Now | 79 | 22 | 20 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
 
@@ -156,13 +156,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |
 | P1 | Slides: hide slide (the crossed-out number) | JSON: a strike through the number in the slide list |
-| P2 | Shell: a contextual tab for the selected shape | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
-| P2 | Shell: File view (new deck, recent decks) | JSON: New from the themes; library: a list of recently opened files |
-| P2 | Canvas: rulers, gridlines and guides | JSON: rulers along the canvas, a drawn grid, guides dragged from the rulers that objects snap to |
-| P2 | Text: autofit (shrink text on overflow) | Library: the measured height of a text in expressions; then JSON |
-| P2 | Shapes and format pane: gradient fills, dashed outlines | Library: gradient fills and dashed strokes on path nodes; then the fill and outline grids |
-| P2 | Format pane: size and position (scale in percent, lock the proportions) | JSON: scale fields and a lock that resizing honours |
-| P2 | Format pane: text box options (margins, wrap) | JSON: margins and wrap in the pane, and the slide's text layout honouring them |
 | P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
 | P2 | Arrange: a rotate handle, and flip | JSON: the handle on the canvas; library: mirrored drawing of path nodes |
 | P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
@@ -181,14 +174,12 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Shell: search that runs commands (the rest of the commands) | JSON: the commands listed from the menus as well as the 33 named ones |
 | P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
-| P3 | Shapes: the whole gallery (all stars, callouts and arrows) | Lisp: more presets in `parts/geometry.lisp` |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
 | P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
 | P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
 | P3 | Content: table styles | After tables; JSON |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
-| P3 | Design: theme colours of one's own | JSON: a hex field for each of the ten slots |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |
 | P3 | Ink: ink to shape (Ink > Ink to Shape) and replay (Ink > Ink Replay) | JSON: replay by animating each stroke's points; ink to shape by fitting a stroke to a preset |
 | P3 | Transitions: fade through black | JSON: an effect option of fade |
