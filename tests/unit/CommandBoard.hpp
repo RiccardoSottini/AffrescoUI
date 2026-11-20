@@ -17,7 +17,7 @@
 
 #include <chrono>
 #include <condition_variable>
-#include <cstdio>
+#include <fstream>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -115,10 +115,9 @@ struct Folder {
 
 /// @brief Writes a text file. @param path Where. @param text What.
 inline void writeText(const std::filesystem::path& path, const std::string& text) {
-	std::FILE* file = std::fopen(path.string().c_str(), "wb");
-	REQUIRE(file != nullptr);
-	std::fputs(text.c_str(), file);
-	std::fclose(file);
+	std::ofstream file(path, std::ios::binary);
+	REQUIRE(file.is_open());
+	file << text;
 }
 
 /// The time a question must be shown before a press says yes to it, in milliseconds, and a little more.
