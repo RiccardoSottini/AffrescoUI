@@ -4,6 +4,8 @@
 
 #include "ImageDocuments.hpp"
 
+#include "affresco/imaging/Shapes.hpp"
+
 #include <affresco/imaging/Composite.hpp>
 
 #include <algorithm>
@@ -260,6 +262,10 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::zoom:
 		zoomAt(image, at, image.press.right ? 0.5 : 2.0);
 		return true;
+	case Gesture::text:
+	case Gesture::pen:
+	case Gesture::pathSelect:
+		return pressVector(image, at);
 	default:
 		return false;
 	}
@@ -285,6 +291,9 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 		return true;
 	case Gesture::sample:
 		return pickColour(image, at);
+	case Gesture::pen:
+	case Gesture::pathSelect:
+		return dragVector(image, at);
 	default:
 		return false;
 	}
@@ -377,6 +386,8 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::crop:
 		cropToDrag(image);
 		return true;
+	case Gesture::shape:
+		return releaseVector(image, at);
 	default:
 		return false;
 	}
@@ -523,6 +534,17 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy) {
 	const imaging::Image& image = *document.image(target);
 	const auto before = tilesOf(image);
 	const int columns = image.columns(), rows = image.rows();
+	if(layer->content.kind != imaging::ContentKind::none) { // its content moves with its pixels, as one step
+		auto moved = std::make_shared<imaging::Image>(image.width(), image.height(), image.format(), image.limits());
+		for(const auto& [place, tile] : before)
+			copyPlaced(*tile,
+			           {place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns, rows},
+			           [&](int column, int row) -> imaging::Tile& { return moved->writableTile(column, row); });
+		document.setContent(layer->id, "Move",
+		                    imaging::movedContent(layer->content, static_cast<float>(dx), static_cast<float>(dy)),
+		                    std::move(moved));
+		return;
+	}
 	const auto destinationOf = [&](int column, int row) -> imaging::Tile& {
 		return document.editTile(target, column, row);
 	};

@@ -5,6 +5,7 @@
 #include "ProjectJson.hpp"
 
 #include "affresco/imaging/Project.hpp"
+#include "affresco/imaging/Shapes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -170,6 +171,7 @@ json layerSettingsToJson(const Layer& layer) {
 	    {"clipped", layer.clipped},
 	    {"maskEnabled", layer.maskEnabled}};
 	if(layer.kind == LayerKind::adjustment) value["adjustment"] = adjustmentToJson(layer.adjustment);
+	if(layer.content.kind != ContentKind::none) value["content"] = contentToJson(layer.content);
 	return value;
 }
 
@@ -191,6 +193,7 @@ void readLayerSettings(const json& value, Layer& layer) {
 	layer.clipped = booleanIn(value, "clipped", false);
 	layer.maskEnabled = booleanIn(value, "maskEnabled", true);
 	if(layer.kind == LayerKind::adjustment) layer.adjustment = adjustmentFromJson(value.value("adjustment", json()));
+	if(layer.kind == LayerKind::pixel && value.contains("content")) readContent(value["content"], layer.content);
 }
 
 } // namespace project
