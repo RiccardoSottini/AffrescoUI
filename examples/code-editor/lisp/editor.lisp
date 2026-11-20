@@ -69,7 +69,7 @@
      :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
      :minimap false
      :indentGuides ~(not (get-in state.files [open :scratch]))
-     :brackets true :bracketStyle underline
+     :brackets true :bracketStyle underline :foldMarkers true
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap
      :bind "state.files[open].text"
@@ -120,7 +120,7 @@
      :minimap ~state.minimap :minimapStyle bars :minimapWidth 44 :minimapViewport always
      :matchStyle outline
      :indentGuides ~(not (get-in state.files [open :scratch]))
-     :brackets true :bracketStyle underline
+     :brackets true :bracketStyle underline :foldMarkers true
      :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap

@@ -10,6 +10,7 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace affresco {
 namespace {
@@ -101,6 +102,28 @@ void paintGutterMark(Painter& painter, const Font& font, const EditorDecoration&
 /// @return true if it is.
 constexpr bool drawnRow(std::size_t row, std::size_t first, std::size_t last) noexcept {
 	return row >= first && row < last;
+}
+
+/// @brief Draws a small chevron, 8 units wide, as two strokes.
+/// @param painter The painter.
+/// @param centre Its centre, in window units.
+/// @param right true points it right (a folded line), false down (a line that folds).
+/// @param color Its colour.
+void paintChevron(Painter& painter, Vec2 centre, bool right, Color color) {
+	constexpr float half = 3.0f, depth = 1.75f, width = 0.75f; // half its span, half its depth, half a stroke
+	const auto point = [&](float along, float across) {
+		return right ? Vec2{centre.x + across, centre.y + along} : Vec2{centre.x + along, centre.y + across};
+	};
+	const Vec2 ends[2] = {point(-half, -depth), point(half, -depth)}, tip = point(0.0f, depth);
+	std::vector<MeshVertex> quads;
+	for(const Vec2 end : ends) {
+		const float dx = tip.x - end.x, dy = tip.y - end.y, length = std::hypot(dx, dy);
+		const Vec2 normal{-dy / length * width, dx / length * width};
+		for(const Vec2 at : {Vec2{end.x + normal.x, end.y + normal.y}, Vec2{tip.x + normal.x, tip.y + normal.y},
+		                     Vec2{tip.x - normal.x, tip.y - normal.y}, Vec2{end.x - normal.x, end.y - normal.y}})
+			quads.push_back({at, 1.0f});
+	}
+	painter.fillMesh(quads, {}, color);
 }
 
 } // namespace
@@ -283,8 +306,16 @@ void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& l
 			painter.drawText(font, label_, {x, top + layout.baseline},
 			                 span.line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
 		}
+		const bool folded = viewActive() && nextShown(span.line) > span.line + 1;
+		if(foldMarkers_) {
+			// A chevron: down beside a line that folds, right beside a folded one
+			if(folded || foldable(span.line))
+				paintChevron(painter, {box.left + layout.gutter - 13.0f, top + layout.lineHeight / 2.0f}, folded,
+				             folded ? activeLineNumberColor_ : lineNumberColor_);
+			continue;
+		}
 		// A folded line's marker: a short bar where the gutter ends
-		if(viewActive() && nextShown(span.line) > span.line + 1) {
+		if(folded) {
 			const float x = box.left + layout.gutter - 14.0f;
 			painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
 			                        activeLineNumberColor_);

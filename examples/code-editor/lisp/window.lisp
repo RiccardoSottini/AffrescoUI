@@ -66,11 +66,14 @@
        :tooltip ~(t "bar.showOrHideThePanel")
        :onClick togglePanel)
      (node#statusText :style statusItem
-       :text main
+       :text ~state.branch
        :icon git-branch
-       :textColor @faint
+       :textColor @muted
+       :hover {:textColor @text}
        :anchors {:left 36}
-       :tooltip ~(t "bar.branchSwitchingBranchesIsnT"))
+       :cursor hand
+       :tooltip ~(t "command.switchBranch")
+       :onClick switchBranch)
      ~(status-problems)
      ~(status-size)
      (node#statusIndent :style statusItem
@@ -291,3 +294,15 @@
             :field @input
             :providers [{:items ~computed.snippetItems :run insert-snippet
                          :placeholder ~(t "ui.selectASnippet")}]}))
+
+(defview branch-pick "The branch picker: the sample project's branches, the current one marked." []
+  `(node#branchPick :when ~state.branchPick.open
+     :use quickPick
+     :with {:name branchPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.branches :run set-branch :placeholder ~(t "ui.selectABranch")}]}))

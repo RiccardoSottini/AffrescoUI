@@ -70,11 +70,28 @@
         (set (place file "dirty") false)))))
 
 ; style: keep, named in tests/unit/checker.cpp, tools/affrescoui/check.py
-(defn saveFile "Saves a file; the Settings file applies its values instead." [file]
-  (if (:settings (file-at file))
-    (apply-settings file)
+(defn saveFile "Saves a file; the Settings and Key Bindings files apply their values instead." [file]
+  (case (:settings (file-at file))
+    "settings" (apply-settings file)
+    "keys" (apply-keys file)
     (do (set (place file "saved") (:text (file-at file)))
         (set (place file "dirty") false))))
+
+(defn binding? "Whether a value is a key binding: keys and a command, both text." [it]
+  (and (= (type it) "object") (string? (:keys it)) (string? (:command it))))
+
+(defn apply-keys
+  "Saves the Key Bindings file and makes its bindings the person's own; a broken one stays unsaved, with an error in
+  the console."
+  [file]
+  (let [values (parseJsonc (:text (file-at file)))]
+    (if (not= (type values) "array")
+      (do (push "state.terminal" {:t (t "cmd.keyBindingsJsonNotValid") :c :error})
+          (set "state.panelOpen" true)
+          (set "state.panelTab" :terminal))
+      (do (set "state.userKeys" (filterv binding? values))
+          (set (place file "saved") (:text (file-at file)))
+          (set (place file "dirty") false)))))
 
 (defn save-and-close "Saves the file being closed, then closes it." []
   (saveFile state.closing.file)
@@ -95,13 +112,15 @@
   (let [at (indexOf state.tabs file)]
     (close-saved (drop (inc at) state.tabs))))
 
-(defn open-virtual "Opens the file of that name outside the project, made with the text the first time."
-  [name text readOnly]
+(defn open-virtual
+  "Opens the file of that name outside the project, made with the text the first time; saving it applies it, as `kind`
+  says: settings or keys."
+  [name text kind]
   (let [found (fn [] (find #(and (= (:name (file-at %)) name) (nil? (:folder (file-at %))))
                            (range (count state.files))))]
     (when (nil? (found))
       (push "state.files" {:name name :folder nil :language "JSON" :dirty false :text text :saved text
-                           :readOnly readOnly :settings (not readOnly)}))
+                           :settings kind}))
     (open (found))))
 
 (defn pick-tree-row "A file row opens the file, a folder row opens or closes the folder." []
@@ -272,14 +291,14 @@
 (defcommand openSettings "Opens the settings, as a JSON file."
   :description ~(t "command.openSettings.about") :title ~(t "command.openSettings")
   :category ~(t "category.preferences") :icon settings []
-  (open-virtual "Settings.json" computed.settingsText false))
+  (open-virtual "Settings.json" computed.settingsText "settings"))
 
-(defcommand openKeyBindings "Opens the key bindings, as a JSON file to read."
+(defcommand openKeyBindings "Opens the key bindings, as a JSON file: the person's own, which saving applies."
   :description ~(t "command.openKeyBindings.about") :title ~(t "command.openKeyBindings")
   :category ~(t "category.preferences")
   :icon keyboard
   []
-  (open-virtual "Key Bindings.json" computed.keysText true))
+  (open-virtual "Key Bindings.json" computed.keysText "keys"))
 
 ;;; Find
 
@@ -759,3 +778,13 @@
     (set "state.snippetInsert" {:text item.text
                                 :before (if (str/ends-with? before item.title) (count item.title) 0)
                                 :request state.snippetRequest})))
+
+;;; Branches
+
+(defcommand switchBranch "Opens the branch picker."
+  :description ~(t "command.switchBranch.about") :title ~(t "command.switchBranch") :category ~(t "category.tools")
+  :icon git-branch []
+  (set "state.branchPick" {:open true :query ""}))
+
+(defn set-branch "Switches to a row of the branch picker." [item]
+  (set "state.branch" item.title))

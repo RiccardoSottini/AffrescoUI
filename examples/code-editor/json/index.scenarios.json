@@ -670,15 +670,23 @@
 		},
 		{
 			"name": "key-bindings-file",
-			"note": "Key Bindings opens the shortcuts as a read-only JSON file",
+			"note": "Key Bindings opens the shortcuts as JSON: the built-in ones as comments, then the person's own, which saving applies",
 			"steps": [
 				{ "action": "openKeyBindings" },
 				{ "wait": 50 },
 				{ "expect": { "state": "files[7].name", "is": "Key Bindings.json" } },
-				{ "expect": { "state": "files[7].readOnly", "is": true } },
 				{ "click": "#editor" },
-				{ "type": "x" },
-				{ "expect": { "state": "files[7].dirty", "is": false } }
+				{ "key": "mod+end" },
+				{ "key": "up" },
+				{ "key": "up", "note": "the empty line inside the list" },
+				{ "type": "{ \"keys\": \"ctrl+alt+t\", \"command\": \"toggleTheme\"" },
+				{ "key": "mod+s" },
+				{ "wait": 50 },
+				{ "expect": { "state": "userKeys", "is": [{ "keys": "ctrl+alt+t", "command": "toggleTheme" }] } },
+				{ "expect": { "state": "files[7].dirty", "is": false } },
+				{ "key": "ctrl+alt+t" },
+				{ "wait": 50 },
+				{ "expect": { "state": "theme", "is": "light", "note": "the person's own binding ran" } }
 			]
 		},
 		{
@@ -783,6 +791,35 @@
 				{ "key": "mod+s" },
 				{ "wait": 50 },
 				{ "expect": { "state": "unsaved", "is": {} } }
+			]
+		},
+		{
+			"name": "switch-branch-from-the-status-bar",
+			"note": "The status bar's branch opens the picker; choosing develop shows it there",
+			"steps": [
+				{ "expect": { "node": "#statusText", "text": "main" } },
+				{ "click": "#statusText" },
+				{ "wait": 50 },
+				{ "expect": { "state": "branchPick.open", "is": true } },
+				{ "type": "develop" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "branch", "is": "develop" } },
+				{ "expect": { "node": "#statusText", "text": "develop" } }
+			]
+		},
+		{
+			"name": "fold-from-the-gutter",
+			"note": "The gutter's fold marker beside int main() folds its body; another click unfolds it",
+			"steps": [
+				{ "click": [273, 154], "note": "the marker beside line 5" },
+				{ "click": [600, 154], "note": "the text of line 5" },
+				{ "key": "down" },
+				{ "expect": { "state": "caret.line", "is": 14, "note": "lines 6 to 13 are folded under it" } },
+				{ "click": [273, 154] },
+				{ "click": [600, 154] },
+				{ "key": "down" },
+				{ "expect": { "state": "caret.line", "is": 6, "note": "unfolded" } }
 			]
 		}
 	]

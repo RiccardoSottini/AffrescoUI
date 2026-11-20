@@ -229,4 +229,9 @@
                 :status.problems "{errors, plural, one {# error} other {# errores}}, {warnings, plural, one {# advertencia} other {# advertencias}}"
                 :command.insertSnippet "Insertar fragmento…"
                 :command.insertSnippet.about "Inserta un fragmento del lenguaje del archivo en el cursor; un prefijo recién escrito se convierte en su fragmento."
-                :ui.selectASnippet "Selecciona un fragmento: su prefijo, escrito antes del cursor, se reemplaza"}}}
+                :ui.selectASnippet "Selecciona un fragmento: su prefijo, escrito antes del cursor, se reemplaza"
+                :command.switchBranch "Cambiar de rama…"
+                :command.switchBranch.about "Elige la rama que muestra la barra de estado."
+                :ui.selectABranch "Selecciona una rama"
+                :keys.header "// Atajos de Quaderno: añade los tuyos a la lista del final y guarda (Cmd+S) para aplicarlos.\n// \"keys\" como en la lista de abajo (mod es cmd en macOS, ctrl en otros; dos pulsaciones para un acorde, separadas).\n// \"command\" es el nombre de un comando. Los atajos incorporados:\n"
+                :cmd.keyBindingsJsonNotValid "Key Bindings.json: no es una lista de atajos, no se aplicó nada"}}}

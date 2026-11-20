@@ -42,7 +42,9 @@
                 :reviewers [studio]
                 :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
   :persist [state.unsaved state.tabs state.active state.split state.layout state.theme state.wrap state.ruler
-            state.minimap state.sidebarOpen]
+            state.minimap state.sidebarOpen state.branch
+            state.userKeys]
+  :keyBindings state.userKeys
   :theme ~computed.theme
   (node#panel-root :color @background
     ~(title-bar)
@@ -68,4 +70,5 @@
     ~(theme-pick)
     ~(syntax-pick)
     ~(indent-pick)
-    ~(snippet-pick)))
+    ~(snippet-pick)
+    ~(branch-pick)))

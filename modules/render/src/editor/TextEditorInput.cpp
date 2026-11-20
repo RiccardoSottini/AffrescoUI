@@ -222,6 +222,11 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 		addCursor({at, at});
 		return;
 	}
+	// With fold markers, a click on one folds or unfolds its line
+	const float markerLeft = frame().left + gutterWidth() - 20.0f;
+	if(foldMarkers_ && event.position.x >= markerLeft && event.position.x < markerLeft + 16.0f &&
+	   (unfold(at.line) || fold(at.line)))
+		return;
 	if(event.position.x < frame().left + gutterWidth() - 8.0f && unfold(at.line)) return;
 	if(event.position.x < frame().left + gutterWidth() && !onGutterClicked.empty())
 		return onGutterClicked(at.line, event.mods);

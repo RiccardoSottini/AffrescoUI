@@ -168,6 +168,14 @@
             {:prefix "if" :text "if [ -f \"$file\" ]; then\n\techo found\nfi"}]}
   "The snippets per language: the prefix typed before the caret, and the text it becomes.")
 
+(defstate branch main "The sample project's branch, which the status bar shows.")
+
+(defstate branches [main develop sensor-calibration] "The sample project's branches.")
+
+(defstate branchPick {:open false :query ""} "The branch picker: open, and its text.")
+
+(defstate userKeys [] "The person's own key bindings, from the Key Bindings file: keys and a command each.")
+
 (defstate unsaved {}
   "Hot exit: each unsaved file's text by its index, kept in the state file so quitting loses nothing.")
 

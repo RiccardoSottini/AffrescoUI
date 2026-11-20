@@ -229,4 +229,9 @@
                 :status.problems "{errors, plural, one {# erreur} other {# erreurs}}, {warnings, plural, one {# avertissement} other {# avertissements}}"
                 :command.insertSnippet "Insérer un extrait…"
                 :command.insertSnippet.about "Insère un extrait du langage du fichier au curseur ; un préfixe tout juste tapé devient son extrait."
-                :ui.selectASnippet "Choisissez un extrait : son préfixe, tapé avant le curseur, est remplacé"}}}
+                :ui.selectASnippet "Choisissez un extrait : son préfixe, tapé avant le curseur, est remplacé"
+                :command.switchBranch "Changer de branche…"
+                :command.switchBranch.about "Choisit la branche que montre la barre d’état."
+                :ui.selectABranch "Choisissez une branche"
+                :keys.header "// Raccourcis de Quaderno : ajoutez les vôtres à la liste de la fin, puis enregistrez (Cmd+S) pour les appliquer.\n// \"keys\" comme dans la liste ci-dessous (mod est cmd sur macOS, ctrl ailleurs ; deux appuis pour un accord, séparés).\n// \"command\" est le nom d’une commande. Les raccourcis intégrés :\n"
+                :cmd.keyBindingsJsonNotValid "Key Bindings.json : pas une liste de raccourcis, rien n’a été appliqué"}}}

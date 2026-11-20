@@ -18,7 +18,9 @@
 
 	"theme": "{{computed.theme}}",
 
-	"persist": ["state.unsaved", "state.tabs", "state.active", "state.split", "state.layout", "state.theme", "state.wrap", "state.ruler", "state.minimap", "state.sidebarOpen"],
+	"persist": ["state.unsaved", "state.tabs", "state.active", "state.split", "state.layout", "state.theme", "state.wrap", "state.ruler", "state.minimap", "state.sidebarOpen", "state.branch", "state.userKeys"],
+
+	"keyBindings": "state.userKeys",
 
 	"fonts": {
 		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
@@ -65,6 +67,10 @@
 		"splitSizes": [],
 		"indentPick": { "open": false, "query": "" },
 		"unsaved": {},
+		"userKeys": [],
+		"branch": "main",
+		"branches": ["main", "develop", "sensor-calibration"],
+		"branchPick": { "open": false, "query": "" },
 		"snippets": {
 			"C++": [{ "prefix": "class", "text": "class Name {\npublic:\n\tName();\n\nprivate:\n};" }, { "prefix": "for", "text": "for(std::size_t i = 0; i < count; ++i) {\n\t\n}" }, { "prefix": "if", "text": "if(condition) {\n\t\n}" }, { "prefix": "include", "text": "#include <header>" }, { "prefix": "main", "text": "int main(int argc, char** argv) {\n\treturn 0;\n}" }, { "prefix": "namespace", "text": "namespace name {\n\n} // namespace name" }],
 			"CMake": [{ "prefix": "executable", "text": "add_executable(name main.cpp)" }, { "prefix": "library", "text": "add_library(name STATIC source.cpp)" }, { "prefix": "link", "text": "target_link_libraries(name PRIVATE dependency)" }],
@@ -183,9 +189,10 @@
 		"theme": "{{state.themePick.open ? (computed.themes[state.themePick.index ?? 0] ?? computed.themes[0]).theme : state.theme == 'system' ? window.colorScheme : state.theme}}",
 		"syntaxes": "{{[{ title: 'Plain Text', language: '', grammar: 'plain.txt' }, { title: 'C++', language: 'C++', grammar: 'cpp' }, { title: 'CMake', language: 'CMake', grammar: 'CMakeLists.txt' }, { title: 'JavaScript', language: 'JavaScript', grammar: 'javascript' }, { title: 'JSON', language: 'JSON', grammar: 'json' }, { title: 'Markdown', language: 'Markdown', grammar: 'markdown' }, { title: 'Python', language: 'Python', grammar: 'python' }, { title: 'Shell', language: 'Shell', grammar: 'script.sh' }, { title: 'TypeScript', language: 'TypeScript', grammar: 'typescript' }]}}",
 		"settingsText": "{{'{\\n\\t// Quaderno settings: save this file (Cmd+S) to apply them.\\n\\t// theme: \"dark\", \"light\" or \"system\"\\n\\t\"theme\": ' + json(state.theme) + ',\\n\\t\"wordWrap\": ' + json(state.wrap) + ',\\n\\t\"ruler\": ' + json(state.ruler) + ',\\n\\t\"minimap\": ' + json(state.minimap) + ',\\n\\t\"sideBar\": ' + json(state.sidebarOpen) + '\\n}\\n'}}",
-		"keysText": "{{'// Quaderno key bindings (read only): the keys section of the screen\\n[\\n' + join(map(filter(commands, it.key), '\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), ',\\n') + '\\n]\\n'}}",
+		"keysText": "{{'// Quaderno key bindings: add yours to the list at the end, then save (Cmd+S) to apply them.\\n// \"keys\" as in the list below (mod is cmd on macOS, ctrl elsewhere; two presses for a chord, apart).\\n// \"command\" is a command’s name. The built-in bindings:\\n' + join(map(filter(commands, it.key), '//\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), '\\n') + '\\n[\\n' + join(map(state.userKeys, '\\t{ \"keys\": ' + json(it.keys) + ', \"command\": ' + json(it.command) + ' }'), ',\\n') + '\\n]\\n'}}",
 		"indentations": "{{map([2, 4, 8], { title: 'Spaces: ' + it, size: it, detail: it == (computed.file.tabSize ?? 4) ? 'Current' : '' })}}",
 		"snippetItems": "{{map(state.snippets[computed.file.language ?? ''] ?? [], { title: it.prefix, detail: split(it.text, '\\n')[0], text: it.text })}}",
+		"branches": "{{map(state.branches, { title: it, detail: it == state.branch ? 'Current' : '' })}}",
 		"findSummary": "{{empty(state.findBar.text) ? '' : computed.findMatches == 0 ? 'No results' : plural(computed.findMatches, 'match', 'matches')}}"
 	},
 
@@ -385,8 +392,9 @@
 			}
 		],
 		"saveFile": [
-			{ "note": "with: file; the Settings file applies its values instead" },
-			{ "if": "{{state.files[file].settings}}", "then": [{ "run": "applySettings", "with": { "file": "{{file}}" } }, { "stop": true }] },
+			{ "note": "with: file; the Settings and Key Bindings files apply their values instead" },
+			{ "if": "{{state.files[file].settings == 'settings'}}", "then": [{ "run": "applySettings", "with": { "file": "{{file}}" } }, { "stop": true }] },
+			{ "if": "{{state.files[file].settings == 'keys'}}", "then": [{ "run": "applyKeys", "with": { "file": "{{file}}" } }, { "stop": true }] },
 			{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
 			{ "set": "state.files[file].dirty", "to": false }
 		],
@@ -673,15 +681,15 @@
 			{ "set": "state.files[state.active].grammar", "to": "{{item.grammar}}" }
 		],
 		"openVirtual": [
-			{ "note": "with: name, text, readOnly; opens the file of that name outside the project, made with the text the first time" },
+			{ "note": "with: name, text, kind; opens the file of that name outside the project, made with the text the first time; saving it applies it, as kind says: settings or keys" },
 			{ "if": "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null) == null}}",
-				"then": [{ "push": "state.files", "value": { "name": "{{name}}", "folder": null, "language": "JSON", "dirty": false, "text": "{{text}}", "saved": "{{text}}", "readOnly": "{{readOnly}}", "settings": "{{!readOnly}}" } }] },
+				"then": [{ "push": "state.files", "value": { "name": "{{name}}", "folder": null, "language": "JSON", "dirty": false, "text": "{{text}}", "saved": "{{text}}", "settings": "{{kind}}" } }] },
 			{ "run": "open", "with": { "file": "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null)}}" } }
 		],
 		"openSettings": { "title": "Settings", "category": "Preferences", "icon": "settings",
-			"do": [{ "run": "openVirtual", "with": { "name": "Settings.json", "text": "{{computed.settingsText}}", "readOnly": false } }] },
+			"do": [{ "run": "openVirtual", "with": { "name": "Settings.json", "text": "{{computed.settingsText}}", "kind": "settings" } }] },
 		"openKeyBindings": { "title": "Key Bindings", "category": "Preferences", "icon": "keyboard",
-			"do": [{ "run": "openVirtual", "with": { "name": "Key Bindings.json", "text": "{{computed.keysText}}", "readOnly": true } }] },
+			"do": [{ "run": "openVirtual", "with": { "name": "Key Bindings.json", "text": "{{computed.keysText}}", "kind": "keys" } }] },
 		"applySettings": [
 			{ "note": "with: file, the Settings file; a valid file is saved and its values applied, a broken one stays unsaved with an error in the console" },
 			{ "forEach": "{{[parseJsonc(state.files[file].text)]}}", "as": "values", "do": [
@@ -693,6 +701,17 @@
 				{ "set": "state.ruler", "to": "{{values.ruler ?? state.ruler}}" },
 				{ "set": "state.minimap", "to": "{{values.minimap ?? state.minimap}}" },
 				{ "set": "state.sidebarOpen", "to": "{{values.sideBar ?? state.sidebarOpen}}" },
+				{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
+				{ "set": "state.files[file].dirty", "to": false }
+			] }
+		],
+		"applyKeys": [
+			{ "note": "with: file, the Key Bindings file; a list is saved and its bindings become the person's own, anything else stays unsaved with an error in the console" },
+			{ "forEach": "{{[parseJsonc(state.files[file].text)]}}", "as": "values", "do": [
+				{ "if": "{{type(values) != 'array'}}", "then": [
+					{ "push": "state.terminal", "value": { "t": "Key Bindings.json: not a list of bindings, nothing applied", "c": "error" } },
+					{ "set": "state.panelOpen", "to": true }, { "set": "state.panelTab", "to": "terminal" }, { "stop": true }] },
+				{ "set": "state.userKeys", "to": "{{filter(values, type(it) == 'object' && type(it.keys) == 'string' && type(it.command) == 'string')}}" },
 				{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
 				{ "set": "state.files[file].dirty", "to": false }
 			] }
@@ -739,6 +758,10 @@
 			{ "set": "state.snippetRequest", "to": "{{state.snippetRequest + 1}}" },
 			{ "set": "state.snippetInsert", "to": { "text": "{{item.text}}", "before": "{{length(before) >= length(item.title) && slice(before, length(before) - length(item.title)) == item.title ? length(item.title) : 0}}", "request": "{{state.snippetRequest}}" } }
 		],
+		"switchBranch": { "title": "Switch Branch…", "category": "Tools", "icon": "git-branch",
+			"description": "Picks the branch the status bar shows.",
+			"do": [{ "set": "state.branchPick", "to": { "open": true, "query": "" } }] },
+		"setBranch": [{ "note": "with: item, a row of computed.branches" }, { "set": "state.branch", "to": "{{item.title}}" }],
 		"setIndentation": [{ "note": "with: item, a row of computed.indentations" }, { "set": "state.files[state.active].tabSize", "to": "{{item.size}}" }]
 	},
 
@@ -993,6 +1016,7 @@
 										"indentGuides": "{{!state.files[open].scratch}}",
 										"brackets": true,
 										"bracketStyle": "underline",
+										"foldMarkers": true,
 										"tabSize": "{{state.files[open].tabSize ?? 4}}",
 										"rulers": "{{state.ruler ? [80] : []}}",
 										"wrap": "{{state.wrap}}",
@@ -1075,6 +1099,7 @@
 										"indentGuides": "{{!state.files[open].scratch}}",
 										"brackets": true,
 										"bracketStyle": "underline",
+										"foldMarkers": true,
 										"tabSize": "{{state.files[open].tabSize ?? 4}}",
 										"rulers": "{{state.ruler ? [80] : []}}",
 										"wrap": "{{state.wrap}}",
@@ -1280,11 +1305,14 @@
 					{
 						"id": "statusText",
 						"style": "statusItem",
-						"text": "main",
+						"text": "{{state.branch}}",
 						"icon": "git-branch",
-						"textColor": "@faint",
+						"textColor": "@muted",
+						"hover": { "textColor": "@text" },
 						"anchors": { "left": 36 },
-						"tooltip": "Branch: switching branches isn't available yet"
+						"cursor": "hand",
+						"tooltip": "Switch Branch…",
+						"onClick": "switchBranch"
 					},
 					{
 						"id": "statusProblems",
@@ -1522,6 +1550,21 @@
 					"highlight": "@rowSelected",
 					"field": "@input",
 					"providers": [{ "items": "{{computed.snippetItems}}", "run": "insertSnippetItem", "placeholder": "Select a snippet: its prefix, typed before the caret, is replaced" }]
+				}
+			},
+			{
+				"id": "branchPick",
+				"when": "{{state.branchPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"name": "branchPick",
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@rowSelected",
+					"field": "@input",
+					"providers": [{ "items": "{{computed.branches}}", "run": "setBranch", "placeholder": "Select a branch" }]
 				}
 			}
 		]

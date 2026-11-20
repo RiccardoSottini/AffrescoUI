@@ -200,10 +200,14 @@
        "\n}\n"))
 
 (defcomputed keysText "The key bindings as a JSON file."
-  (str "// Quaderno key bindings (read only): the keys section of the screen\n[\n"
+  (str (t "keys.header")
        (->> commands
             (filter :key)
-            (map #(str "\t{ \"keys\": " (json (:key %)) ", \"command\": " (json (:name %)) " }"))
+            (map #(str "//\t{ \"keys\": " (json (:key %)) ", \"command\": " (json (:name %)) " }"))
+            (join "\n"))
+       "\n[\n"
+       (->> state.userKeys
+            (map #(str "\t{ \"keys\": " (json (:keys %)) ", \"command\": " (json (:command %)) " }"))
             (join ",\n"))
        "\n]\n"))
 
@@ -218,3 +222,7 @@
        (or-else (get state.snippets computed.language) [])))
 
 (defcomputed language "The shown file's language, empty for plain text." (or-else (:language computed.file) ""))
+
+(defcomputed branches "The branch picker's rows: each branch, the current one marked."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:title it :detail (if (= it state.branch) (t "ui.current") "")}) state.branches))

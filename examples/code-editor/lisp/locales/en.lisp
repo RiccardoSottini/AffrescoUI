@@ -229,4 +229,9 @@
                 :status.problems "{errors, plural, one {# error} other {# errors}}, {warnings, plural, one {# warning} other {# warnings}}"
                 :command.insertSnippet "Insert Snippet…"
                 :command.insertSnippet.about "Inserts a snippet of the file’s language at the caret; a prefix just typed becomes its snippet."
-                :ui.selectASnippet "Select a snippet: its prefix, typed before the caret, is replaced"}}}
+                :ui.selectASnippet "Select a snippet: its prefix, typed before the caret, is replaced"
+                :command.switchBranch "Switch Branch…"
+                :command.switchBranch.about "Picks the branch the status bar shows."
+                :ui.selectABranch "Select a branch"
+                :keys.header "// Quaderno key bindings: add yours to the list at the end, then save (Cmd+S) to apply them.\n// \"keys\" as in the list below (mod is cmd on macOS, ctrl elsewhere; two presses for a chord, apart).\n// \"command\" is a command’s name. The built-in bindings:\n"
+                :cmd.keyBindingsJsonNotValid "Key Bindings.json: not a list of bindings, nothing applied"}}}

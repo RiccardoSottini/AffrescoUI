@@ -14,6 +14,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -501,4 +502,27 @@ TEST_CASE("text pattern: expansion, errors and the limits that stop runaway patt
 	const auto stopped = runaway.find(std::string(64, 'a') + "b");
 	CHECK_FALSE(stopped.match);
 	CHECK(stopped.exceeded);
+}
+
+TEST_CASE("editor view: with fold markers, a click on a line's marker folds it, and another unfolds it") {
+	ViewWindow test("def f():\n    one\n    two\nafter");
+	test.editor.setLineNumbers(true);
+	test.window->render();
+	// The gutter of three digits (TextEditor::gutterWidth()); the marker sits 13 units before its end
+	const float gutter = std::round(16.0f + 3.0f * test.editor.font()->glyph(U'0').advance + 20.0f);
+	const float marker = test.editor.frame().left + gutter - 13.0f;
+	const float firstLine = test.editor.frame().top + 12.0f; // inside the first line, under its 6 units of padding
+	const auto click = [&] {
+		for(const Action action : {Action::Press, Action::Release})
+			test.window->routeMouseButton({affresco::MouseButton::Left, action, {}, {marker, firstLine}});
+	};
+	click();
+	CHECK(test.editor.folds().empty()); // without markers, a click on the gutter folds nothing
+	test.editor.setFoldMarkers(true);
+	click();
+	REQUIRE(test.editor.folds().size() == 1);
+	CHECK(test.editor.folds()[0] == FoldRange{0, 2});
+	test.clock.advance(1000.0); // not a double click
+	click();
+	CHECK(test.editor.folds().empty());
 }

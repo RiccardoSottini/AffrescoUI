@@ -186,6 +186,30 @@ Panel* findMnemonic(Reconciler& reconciler, const Panel& scope, Panel& panel, ch
 	return nullptr;
 }
 
+/// @brief The person's own key bindings: the list at the state path the document's "keyBindings" names.
+/// @param engine The engine, which evaluates the path.
+/// @param document The document.
+/// @return The list; empty without "keyBindings", or when it holds no list (an error is reported).
+json personBindings(Engine& engine, const json& document) {
+	if(!document.contains("keyBindings") || !document["keyBindings"].is_string()) return json::array();
+	try {
+		json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
+		                                         *noVariables(), json::object(), "keyBindings");
+		return bindings.is_array() ? bindings : json::array();
+	} catch(const DocumentError& error) {
+		engine.report(error.what());
+		return json::array();
+	}
+}
+
+/// @brief Tells whether an item of the person's key bindings is one: keys and a command, both text.
+/// @param binding The item.
+/// @return true if it is.
+bool isPersonBinding(const json& binding) {
+	return binding.is_object() && binding.contains("keys") && binding["keys"].is_string() &&
+	       binding.contains("command") && binding["command"].is_string();
+}
+
 } // namespace
 
 bool Events::resolve(Panel* from, const KeyEvent& event) {
@@ -236,7 +260,14 @@ bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
 
 bool Events::runDocumentKeys(const std::string& press, bool& waits) {
 	const json& document = engine_.versions.document();
-	if(!document.contains("keys") || !document["keys"].is_object() || !engine_.window) return false;
+	if(!engine_.window) return false;
+	// The person's own bindings ("keyBindings") first, so one can rebind a key the screen's "keys" name
+	for(const json& binding : personBindings(engine_, document)) {
+		if(!isPersonBinding(binding) || normalizeChord(binding["keys"].get<std::string>()) != press) continue;
+		if(runBinding({{"do", binding["command"]}}, engine_.window->root(), *noVariables(), press, "keyBindings"))
+			return true;
+	}
+	if(!document.contains("keys") || !document["keys"].is_object()) return false;
 	waits = waits || startsChord(document["keys"], press + " ", true);
 	// NOLINTNEXTLINE(readability-use-anyofallof): runs the bindings until one handles the press
 	for(const auto& [written, handler] : document["keys"].items()) {
