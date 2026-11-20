@@ -46,7 +46,10 @@
 
 (defcomputed logPeriods "The logbook's period menu: one item a period, the chosen one checked."
   (map (fn [p]
-         {:title (t (str "log.p." p)) :icon (if (= p state.logPeriod) "check" "") :run "pick-log-period" :with {:period p}})
+         {:title (t (str "log.p." p))
+          :icon (if (= p state.logPeriod) "check" "")
+          :run "pick-log-period"
+          :with {:period p}})
        ["today" "yesterday" "twoDays" "week"]))
 
 (defcomputed logShown "The events whose name, or whose automation's, holds the search."
@@ -178,7 +181,10 @@
 
 (defcomputed histDays "History's day menu: today and the six days before it, the shown one checked."
   (map (fn [d]
-         {:title (get computed.dayList d) :icon (if (= d state.histDay) "check" "") :run "pick-hist-day" :with {:day d}})
+         {:title (get computed.dayList d)
+          :icon (if (= d state.histDay) "check" "")
+          :run "pick-hist-day"
+          :with {:day d}})
        (range 7)))
 
 (defcomponent historyPage "History: its bar, the period, each thing's day of on and off, and the temperature."
@@ -186,7 +192,8 @@
   `(node :dir auto :color transparent
      ~(page-bar "histBar" "page.history" "histRange" "state.histRangeOpen" state.histRangeOpen computed.histDays)
      (row#histFilters :anchors {:left 24 :right 24 :top 72} :height 48 :gap 16
-       ~(period-field "histPeriod" computed.histPeriodName "state.histPeriodOpen" state.histPeriodOpen computed.histDays)
+       ~(period-field "histPeriod" computed.histPeriodName "state.histPeriodOpen" state.histPeriodOpen
+                      computed.histDays)
        ~(entity-button))
      (node#histTimeline :style card
        :anchors {:left 24 :right 24 :top 136}
@@ -305,7 +312,8 @@
        :onClick {:toggle ~openPath}
        (node :use popMenu :with {:open ~openPath :width 220 :items ~items}))))
 
-(defview period-field "The period shown, in a field that opens a menu of the periods kept." [id text openPath isOpen items]
+(defview period-field "The period shown, in a field that opens a menu of the periods kept."
+  [id text openPath isOpen items]
   `(label :id ~id
      :icon calendar
      :text ~text
@@ -325,5 +333,6 @@
      :label ~text
      :isOpen ~isOpen
      :onClick {:toggle ~openPath}
-     (label :icon chevron-down :text "" :textColor @muted :anchors {:right 12 :top 12} :width 24 :height 24 :align center)
+     (label :icon chevron-down :text "" :textColor @muted :anchors {:right 12 :top 12} :width 24 :height 24
+       :align center)
      (node :use popMenu :with {:open ~openPath :width 280 :items ~items})))

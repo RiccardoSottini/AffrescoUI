@@ -297,9 +297,18 @@
      :label ~(t "sources.title")
      (row#sourcesHead :height 28 :gap 8 :alignItems center
        (label#label-source :font small :textColor @muted :text ~(t "sources.source") :height 18 :grow 1 :align start)
-       (label#label-source-energy :font small :textColor @muted :text ~(t "sources.energy") :width 72 :height 18
+       (label#label-source-energy :font small
+         :textColor @muted
+         :text ~(t "sources.energy")
+         :width ~(if computed.compact 52 72)
+         :height 18
          :align end)
-       (label#label-source-cost :font small :textColor @muted :text ~(t "sources.cost") :width 60 :height 18
+       (label#label-source-cost :when ~(not computed.compact)
+         :font small
+         :textColor @muted
+         :text ~(t "sources.cost")
+         :width 60
+         :height 18
          :align end))
      ~(repeat [s computed.sources]
        `(column#source :height 41 :alignItems stretch
@@ -307,8 +316,9 @@
           (row#sourceRow :height 40 :gap 8 :alignItems center
             (node#sourceSwatch :width 12 :height 12 :radius 3 :color ~s.color)
             (label#sourceName :textColor @text :text ~(t (str "sources." s.id)) :height 20 :grow 1 :align start)
-            (label#sourceKwh :textColor @text :text ~s.kwh :width 72 :height 20 :align end)
-            (label#sourceCost :textColor @text :text ~s.cost :width 60 :height 20 :align end))))
+            (label#sourceKwh :textColor @text :text ~s.kwh :width ~(if computed.compact 52 72) :height 20 :align end)
+            (label#sourceCost :when ~(not computed.compact) :textColor @text :text ~s.cost :width 60 :height 20
+              :align end))))
      (node#sourcesLine :height 1 :color @divider)
      (row#sourcesTotal :height 40 :gap 8 :alignItems center
        (label#label-total-cost :font heading :textColor @text :text ~(t "sources.total") :height 22 :grow 1
@@ -320,7 +330,8 @@
 (defview balance-card "How much of the home the sun ran, and today's use against the daily budget." []
   `(node#gaugesCard :style card :anchors {:top 0 :bottom 0} :grow 1 :basis 0
      (node#label-balance :style cardTitle :text ~(t "gauge.title"))
-     (row#gauges :anchors {:left 8 :right 8 :top 64} :height 150 :justify space-evenly
+     ~(balance-rows)
+     (row#gauges :when ~(not computed.compact) :anchors {:left 8 :right 8 :top 64} :height 150 :justify space-evenly
        (node#selfUseGauge :use energyGauge
          :with {:share ~computed.selfUse :color @solar :caption ~(t "gauge.selfUse")}
          :width 140)
@@ -351,6 +362,30 @@
          :align end
          :textColor ~(if (> (number computed.dayTotal) settings.energy.dailyBudget) "@warm" "@text")
          :tooltip ~computed.budgetText))))
+
+(defview balance-rows "In a small window, the two shares as rows of words and figures instead of gauges." []
+  `(column#balanceRows :when ~computed.compact
+     :anchors {:left 24 :right 24 :top 60}
+     :height 82
+     :alignItems stretch
+     :role list
+     ~(repeat [it [{:caption (t "gauge.selfUse") :share computed.selfUse :color "@solar"}
+                   {:caption (t "gauge.selfSufficiency") :share computed.selfSufficiency :color "@accent"}]]
+       `(row#balanceRow :height 41
+          :gap 8
+          :alignItems center
+          :role listitem
+          :label ~(str it.caption ": " (round (* it.share 100)) "%")
+          (node :width 12 :height 12 :radius 3 :color ~it.color)
+          (label :font small
+            :textColor @text
+            :text ~it.caption
+            :height 32
+            :grow 1
+            :wrap true
+            :align {:horizontal start :vertical center})
+          (label :font heading :textColor @text :text ~(str (round (* it.share 100)) "%") :width 52 :height 22
+            :align end)))))
 
 (defcomponent energyGauge "A half-circle gauge: share (0 to 1) of the arc in colour, the percentage, and the caption."
   {:share 0 :color @accent :caption ""}

@@ -274,16 +274,16 @@
 										"children": [
 											{ "type": "row", "id": "sourcesHead", "height": 28, "gap": 8, "alignItems": "center", "children": [
 												{ "type": "label", "id": "label-source", "font": "small", "textColor": "@muted", "text": "{{t('sources.source')}}", "height": 18, "grow": 1, "align": "start" },
-												{ "type": "label", "id": "label-source-energy", "font": "small", "textColor": "@muted", "text": "{{t('sources.energy')}}", "width": 72, "height": 18, "align": "end" },
-												{ "type": "label", "id": "label-source-cost", "font": "small", "textColor": "@muted", "text": "{{t('sources.cost')}}", "width": 60, "height": 18, "align": "end" }
+												{ "type": "label", "id": "label-source-energy", "font": "small", "textColor": "@muted", "text": "{{t('sources.energy')}}", "width": "{{computed.compact ? 52 : 72}}", "height": 18, "align": "end" },
+												{ "type": "label", "id": "label-source-cost", "when": "{{!computed.compact}}", "font": "small", "textColor": "@muted", "text": "{{t('sources.cost')}}", "width": 60, "height": 18, "align": "end" }
 											] },
 											{ "type": "column", "id": "source", "repeat": { "for": "s", "in": "computed.sources" }, "height": 41, "alignItems": "stretch", "children": [
 												{ "id": "sourceLine", "height": 1, "color": "@divider" },
 												{ "type": "row", "id": "sourceRow", "height": 40, "gap": 8, "alignItems": "center", "children": [
 												{ "id": "sourceSwatch", "width": 12, "height": 12, "radius": 3, "color": "{{s.color}}" },
 												{ "type": "label", "id": "sourceName", "textColor": "@text", "text": "{{t('sources.' + s.id)}}", "height": 20, "grow": 1, "align": "start" },
-												{ "type": "label", "id": "sourceKwh", "textColor": "@text", "text": "{{s.kwh}}", "width": 72, "height": 20, "align": "end" },
-												{ "type": "label", "id": "sourceCost", "textColor": "@text", "text": "{{s.cost}}", "width": 60, "height": 20, "align": "end" }
+												{ "type": "label", "id": "sourceKwh", "textColor": "@text", "text": "{{s.kwh}}", "width": "{{computed.compact ? 52 : 72}}", "height": 20, "align": "end" },
+												{ "type": "label", "id": "sourceCost", "when": "{{!computed.compact}}", "textColor": "@text", "text": "{{s.cost}}", "width": 60, "height": 20, "align": "end" }
 												] }
 											] },
 											{ "id": "sourcesLine", "height": 1, "color": "@divider" },
@@ -304,8 +304,21 @@
 								"children": [
 									{ "id": "label-balance", "style": "cardTitle", "text": "{{t('gauge.title')}}" },
 									{
+										"type": "column", "id": "balanceRows", "when": "{{computed.compact}}", "anchors": { "left": 24, "right": 24, "top": 60 }, "height": 82, "alignItems": "stretch", "role": "list",
+										"children": [{
+											"type": "row", "id": "balanceRow", "repeat": { "for": "it", "in": "{{[{ caption: t('gauge.selfUse'), share: computed.selfUse, color: '@solar' }, { caption: t('gauge.selfSufficiency'), share: computed.selfSufficiency, color: '@accent' }]}}" },
+											"height": 41, "gap": 8, "alignItems": "center", "role": "listitem", "label": "{{it.caption}}: {{round(it.share * 100)}}%",
+											"children": [
+												{ "width": 12, "height": 12, "radius": 3, "color": "{{it.color}}" },
+												{ "type": "label", "font": "small", "textColor": "@text", "text": "{{it.caption}}", "height": 32, "grow": 1, "wrap": true, "align": { "horizontal": "start", "vertical": "center" } },
+												{ "type": "label", "font": "heading", "textColor": "@text", "text": "{{round(it.share * 100)}}%", "width": 52, "height": 22, "align": "end" }
+											]
+										}]
+									},
+									{
 										"type": "row",
 										"id": "gauges",
+										"when": "{{!computed.compact}}",
 										"anchors": { "left": 8, "right": 8, "top": 64 },
 										"height": 150,
 										"justify": "space-evenly",

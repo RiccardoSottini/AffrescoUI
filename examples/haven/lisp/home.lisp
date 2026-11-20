@@ -225,7 +225,8 @@
      ~(edit-frame "editSecurity" "security" 'computed.cardTitle.security
                   {:top "#label-security.top - 6" :bottom "#alarmTile.bottom + 10"})))
 
-(defview card-heading "The heading of a group of cards, moved in while the cards are being arranged." [id title top shown]
+(defview card-heading "The heading of a group of cards, moved in while the cards are being arranged."
+  [id title top shown]
   `(label :id ~id
      :when ~shown
      :font heading

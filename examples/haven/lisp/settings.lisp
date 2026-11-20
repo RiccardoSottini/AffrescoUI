@@ -77,19 +77,28 @@
 (defcomputed connections "The ways the devices are connected." ["Zigbee" "Wi-Fi"])
 
 (defcomputed deviceFilters "The filters menu: every device, each room, each connection; the chosen one checked."
-  (concat [{:title (t "dev.filterAll") :icon (if (= state.devFilter "") "check" "") :run "pick-device-filter" :with {:filter ""}}
+  (concat [{:title (t "dev.filterAll")
+            :icon (if (= state.devFilter "") "check" "")
+            :run "pick-device-filter"
+            :with {:filter ""}}
            {:separator true}]
           (map (fn [room]
-                 {:title room.name :icon (if (= state.devFilter room.name) "check" "") :run "pick-device-filter" :with {:filter room.name}})
+                 {:title room.name
+                  :icon (if (= state.devFilter room.name) "check" "")
+                  :run "pick-device-filter"
+                  :with {:filter room.name}})
                state.rooms)
           [{:separator true}]
           (map (fn [via]
                  {:title via :icon (if (= state.devFilter via) "check" "") :run "pick-device-filter" :with {:filter via}})
                computed.connections)))
 
-(defcomputed deviceRows "The devices table's rows: those in the room or on the connection chosen, whose name holds the search."
+(defcomputed deviceRows
+  "The devices table's rows: those in the room or on the connection chosen, whose name holds the search."
   (filter #(and (str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
-                (or (= state.devFilter "") (= (get-in % [:cells 3]) state.devFilter) (= (get-in % [:cells 4]) state.devFilter)))
+                (or (= state.devFilter "")
+                    (= (get-in % [:cells 3]) state.devFilter)
+                    (= (get-in % [:cells 4]) state.devFilter)))
           (map (fn [it]
                  {:id it.id
                   :cells [it.name
@@ -301,7 +310,8 @@
      :tooltip ~(t "dev.filtersTip")
      :isOpen ~state.devFilterOpen
      :onClick {:toggle state.devFilterOpen}
-     (node#devFilterMenu :use popMenu :with {:open state.devFilterOpen :width 220 :placement below :items ~computed.deviceFilters})))
+     (node#devFilterMenu :use popMenu
+       :with {:open state.devFilterOpen :width 220 :placement below :items ~computed.deviceFilters})))
 
 (defview device-search "The search over the devices or the rooms." []
   `(node#devSearchBox :when ~(= state.settingsView :devices)
