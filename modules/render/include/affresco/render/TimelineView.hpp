@@ -93,6 +93,7 @@ enum class TimeFormat {
 	Frames,   ///< Frame numbers: 0, 15, 30.
 	Seconds,  ///< Seconds: 0s, 0.5s, 1s.
 	Timecode, ///< Hours, minutes, seconds and frames: 00:00:01:00.
+	None,     ///< No labels, only the ticks: markers can name the times (a roadmap's months).
 };
 
 /// @brief A keyframe's or a clip's place: its track and its index in the track's keyframes or clips.
@@ -271,6 +272,9 @@ public:
 	/// @brief Sets whether drags snap.
 	/// @param snap true to snap (the default).
 	void setSnap(bool snap);
+	/// @brief Sets whether the tracks show their mute and lock buttons (and M and L toggle them).
+	/// @param shown true to show them (the default); false for a timeline whose tracks are never muted or locked.
+	void setTrackButtons(bool shown);
 	/// @brief Sets the sizes of the parts.
 	/// @param headerWidth The width of the headers' column.
 	/// @param trackHeight The height of a row.
@@ -393,6 +397,7 @@ private:
 	TimelineCamera camera_;                                  ///< See camera().
 	TimeFormat format_ = TimeFormat::Frames;                 ///< See setTimeFormat().
 	bool snap_ = true;                                       ///< See setSnap().
+	bool trackButtons_ = true;                               ///< See setTrackButtons().
 	float headerWidth_ = 160.0f;                             ///< See setSizes().
 	float trackHeight_ = 28.0f;                              ///< See setSizes().
 	Color headerColor_ = Color::hex(0x2b2e36);               ///< See setColors().

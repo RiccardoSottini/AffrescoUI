@@ -31,7 +31,13 @@
                               :lead (string)
                               :target (date)
                               :progress (number :minimum 0 :maximum 1 :default 0)
-                              :issues (integer :minimum 0 :default 0)}}
+                              :issues (integer :minimum 0 :default 0)
+                              :start (date)
+                              :summary (string :maxLength 2000)
+                              :milestones (list :maxItems 64
+                                                :of (object :fields {:name (string) :target (date) :done (boolean)}))
+                              :updates (list :maxItems 500
+                                             :of (object :fields {:who (string) :health (string) :when (date) :text (string)}))}}
           :inbox {:version 1
                   :title "Inbox"
                   :note "Notifications about issues: who did what to which (ref)."
