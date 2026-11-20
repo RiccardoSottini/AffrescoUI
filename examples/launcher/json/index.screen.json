@@ -160,15 +160,15 @@
 		"go": [{ "note": "with: page" }, { "set": "state.page", "to": "{{page}}" }],
 		"showKind": [{ "note": "with: kind (all, mine, or an example's category)" }, { "set": "state.kind", "to": "{{kind}}" }],
 		"toast": [
-			{ "note": "with: message, error" },
-			{ "push": "state.toasts", "value": { "message": "{{message}}", "color": "{{error ? '@c.danger' : '@c.accent'}}" } },
+			{ "note": "with: message, failed" },
+			{ "push": "state.toasts", "value": { "message": "{{message}}", "color": "{{failed ? '@c.danger' : '@c.accent'}}" } },
 			{ "debounce": 4000, "do": [{ "set": "state.toasts", "to": [] }] }
 		],
 
 		"launcher.refresh": [
 			{ "note": "Reads the apps folder again. Each read is numbered (mineRun): one started later makes an earlier one, still reading, stop, so two never fill the list together" },
 			{ "increment": "state.mineRun" },
-			{ "run": "listMine", "with": { "run": "{{state.mineRun}}" } },
+			{ "run": "listMine", "with": { "pass": "{{state.mineRun}}" } },
 			{ "run": "listCatalogue" }
 		],
 		"listCatalogue": [
@@ -199,17 +199,17 @@
 			{ "run": "reviewEntry", "with": { "summary": "{{event.summary ?? {}}}", "why": "{{event.error ?? ''}}", "listed": "{{event.listed ?? {}}}", "id": "{{event.id ?? ''}}", "release": "{{event.release ?? ''}}", "description": "{{event.description ?? ''}}" } }
 		],
 		"listMine": [
-			{ "note": "with: run" },
+			{ "note": "with: pass" },
 			{ "invoke": "apps.list", "with": { "path": "." },
 			  "onDone": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "set": "state.mineScan", "to": "{{filter(result.entries, it.kind == 'folder' && it.name != 'shared' && slice(it.name, 0, 1) != '.')}}" },
 				{ "set": "state.mineNext", "to": [] },
 				{ "set": "state.mineError", "to": "" },
-				{ "run": "loadMine", "with": { "i": 0, "run": "{{run}}" } }
+				{ "run": "loadMine", "with": { "i": 0, "pass": "{{pass}}" } }
 			  ],
 			  "onError": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "set": "state.mineError", "to": "{{error.message}}" },
 				{ "set": "state.mineLoaded", "to": true }
 			  ] }
@@ -221,65 +221,67 @@
 			{ "set": "state.mineLoaded", "to": true }
 		],
 		"loadMine": [
-			{ "note": "with: i, run. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy), or a lisp folder (a copy of an example written as a program: loadMineProgram). Each call's answer runs the next action by name, so a long list nests no deeper than it must where calls are answered at once" },
-			{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+			{ "note": "with: i, pass. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy), or a lisp folder (a copy of an example written as a program: loadMineProgram). Each call's answer runs the next action by name, so a long list nests no deeper than it must where calls are answered at once" },
+			{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 			{ "if": "{{i >= length(state.mineScan)}}", "then": [
 				{ "set": "state.mine", "to": "{{sort(state.mineNext, it.modified, 'desc')}}" },
 				{ "set": "state.mineLoaded", "to": true },
 				{ "stop": true }
 			] },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineCopy'}}",
-			               "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineCopy": [
-			{ "note": "with: i, run" },
+			{ "note": "with: i, pass" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/json/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineProgram'}}",
-			               "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineProgram": [
-			{ "note": "with: i, run. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out" },
+			{ "note": "with: i, pass. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/lisp/app.lisp'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMine'}}",
-			               "with": { "i": "{{result.exists == true && result.kind == 'file' ? i : i + 1}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }
 		],
 
 		"readMine": [
-			{ "note": "with: i, sub, modified, run. The name is the window title of a JSON app's screen, or a program's name in its app.lisp" },
+			{ "note": "with: i, sub, modified, pass. The name is the window title of a JSON app's screen, or a program's name in its app.lisp" },
 			{ "invoke": "apps.read", "with": { "path": "{{state.mineScan[i].name + sub + (sub == '/lisp' ? '/app.lisp' : '/index.screen.json')}}" },
 			  "onDone": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "push": "state.mineNext", "value": { "id": "{{state.mineScan[i].name}}", "sub": "{{sub}}", "name": "{{(sub == '/lisp' ? formKeyword(result.text, 'name') : (parseJson(result.text) ?? {}).window.title) ?? state.mineScan[i].name}}", "modified": "{{modified}}" } },
-				{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }
+				{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }
 			  ],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }
 		],
 		"listNew": [
 			{ "note": "with: id, sub, title. Shows an app just made at the top of the list at once, before the folder is read again (launcher.refresh, a moment later: after the calls that made it have ended, so what reads the folder doesn't nest in them)" },
 			{ "set": "state.mine", "to": "{{concat([{id: id, sub: sub, name: title, modified: now()}], filter(state.mine, it.id != id))}}" }
 		],
+		"openApp": [
+			{ "note": "with: app. The person's own, or an example" },
+			{ "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } }],
+			  "else": [{ "run": "openExample", "with": { "app": "{{app}}" } }] }
+		],
 		"openExample": [
 			{ "note": "with: app" },
 			{ "invoke": "launch.run",
 			  "with": { "arguments": "{{app.program == 'host' ? ['affrescoui_launcher', 'examples:' + app.folder + '/' + (app.notation ?? state.notation)] : [app.program]}}" },
-			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: app.name})}}", "error": false } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: app.name, why: error.message})}}", "error": true } }] }
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: app.name})}}", "failed": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: app.name, why: error.message})}}", "failed": true } }] }
 		],
 		"openMine": [
-			{ "note": "with: id, name, ask (empty for none)" },
+			{ "note": "with: id, name, firstRequest (what its assistant is asked once it opens; empty for none)" },
 			{ "invoke": "launch.run",
-			  "with": { "arguments": "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub == '/lisp' ? '/lisp' : ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json')], ask != '' ? ['--ask', ask] : [])}}" },
-			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: name})}}", "error": false } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: name, why: error.message})}}", "error": true } }] }
+			  "with": { "arguments": "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub == '/lisp' ? '/lisp' : ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json')], firstRequest != '' ? ['--ask', firstRequest] : [])}}" },
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: name})}}", "failed": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: name, why: error.message})}}", "failed": true } }] }
 		],
 		"revealMine": [
 			{ "note": "with: id ('' for the apps folder itself)" },
 			{ "invoke": "launch.run", "with": { "arguments": ["reveal", "{{'apps:' + id}}"] },
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"askDelete": [
 			{ "note": "with: id, name" },
@@ -289,10 +291,10 @@
 		"deleteMine": [
 			{ "invoke": "apps.delete", "with": { "path": "{{state.confirm.id}}" },
 			  "onDone": [
-				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "error": false } },
+				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "failed": false } },
 				{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 			  ],
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"duplicateMine": [
 			{ "note": "with: id, name. The copy's folder is the first free <id>-copy, <id>-copy-2, ..." },
@@ -302,68 +304,68 @@
 		"copyMine": [
 			{ "note": "with: id, name, to" },
 			{ "invoke": "apps.copy", "with": { "path": "{{id}}", "to": "{{to}}" },
-			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "ask": "", "then": "copied" } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "firstRequest": "", "then": "copied" } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"copied": [
 			{ "run": "listNew", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}" } },
-			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "error": false } },
+			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "failed": false } },
 			{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 		],
 		"retitle": [
 			{ "note": "with: id, sub (where the app's files are in its folder: '', '/json' or '/lisp'), title, then (an action, run with the same variables). Sets the window title of its index.screen.json, as text, so the file keeps its layout; a program's through its keywords (retitleProgram)" },
-			{ "if": "{{sub == '/lisp'}}", "then": [{ "run": "retitleProgram", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }, { "stop": true }] },
+			{ "if": "{{sub == '/lisp'}}", "then": [{ "run": "retitleProgram", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }, { "stop": true }] },
 			{ "invoke": "apps.read", "with": { "path": "{{id + sub + '/index.screen.json'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + sub + '/index.screen.json'}}",
 				            "text": "{{(parseJson(result.text) ?? {}).window.title == null ? result.text : join(split(result.text, json((parseJson(result.text) ?? {}).window.title)), json(title))}}" },
-				  "onDone": [{ "run": "reidentify", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "reidentify", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"retitleProgram": [
-			{ "note": "with: id, title, ask, then. A program copied into a lisp folder: the :window :title of the entry its app.lisp names is set, by a keyword edit that keeps every other character, then its app.lisp's :id and :name" },
+			{ "note": "with: id, title, firstRequest, then. A program copied into a lisp folder: the :window :title of the entry its app.lisp names is set, by a keyword edit that keeps every other character, then its app.lisp's :id and :name" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/app.lisp'}}" },
-			  "onDone": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "{{formKeyword(result.text, 'entry') ?? 'index.screen.lisp'}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+			  "onDone": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "{{formKeyword(result.text, 'entry') ?? 'index.screen.lisp'}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"retitleEntry": [
-			{ "note": "with: id, entry, title, ask, then. The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as index.screen.lisp, so a copy never writes outside itself" },
+			{ "note": "with: id, entry, title, firstRequest, then. The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as index.screen.lisp, so a copy never writes outside itself" },
 			{ "if": "{{type(entry) != 'string' || entry == '' || slice(entry, 0, 1) == '.' || contains(entry, '/') || contains(entry, '\\\\') || contains(entry, ':')}}",
-			  "then": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "index.screen.lisp", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }, { "stop": true }] },
+			  "then": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "index.screen.lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }, { "stop": true }] },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/' + entry}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + '/lisp/' + entry}}", "text": "{{setFormKeyword(result.text, ['window', 'title'], title) ?? result.text}}" },
-				  "onDone": [{ "run": "reidentifyProgram", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "reidentifyProgram", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"reidentifyProgram": [
-			{ "note": "with: id, title, ask, then. Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json" },
+			{ "note": "with: id, title, firstRequest, then. Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/app.lisp'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + '/lisp/app.lisp'}}", "text": "{{setFormKeyword(setFormKeyword(result.text, 'id', id) ?? result.text, 'name', title) ?? result.text}}" },
-				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onDone": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"reidentify": [
-			{ "note": "with: id, sub, title, ask, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from" },
+			{ "note": "with: id, sub, title, firstRequest, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + sub + '/app.json'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + sub + '/app.json'}}",
 				            "text": "{{join(split(join(split(result.text, '\"id\": ' + json((parseJson(result.text) ?? {}).id)), '\"id\": ' + json(id)), '\"name\": ' + json((parseJson(result.text) ?? {}).name)), '\"name\": ' + json(title))}}" },
-				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onDone": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
-			  "onError": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}" } }] }
+			  "onError": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }] }
 		],
 
 		"startFrom": [
@@ -377,48 +379,52 @@
 			{ "set": "state.create.features", "to": "{{contains(state.create.features, id) ? filter(state.create.features, it != id) : concat(state.create.features, [id])}}" }
 		],
 		"resetCreate": [
-			{ "set": "state.create", "to": { "name": "", "from": "blank", "describe": "", "features": [], "tried": false, "busy": false, "error": "" } }
+			{ "note": "field by field: a value with a key named as a step (error) would read as one to the run rules" },
+			{ "set": "state.create.name", "to": "" }, { "set": "state.create.from", "to": "blank" }, { "set": "state.create.describe", "to": "" },
+			{ "set": "state.create.features", "to": [] }, { "set": "state.create.tried", "to": false }, { "set": "state.create.busy", "to": false },
+			{ "set": "state.create.error", "to": "" }
 		],
 		"createApp": [
 			{ "set": "state.create.tried", "to": true },
 			{ "set": "state.create.error", "to": "" },
 			{ "if": "{{computed.createError != '' || state.create.busy}}", "then": [{ "focus": "#createName" }, { "stop": true }] },
 			{ "set": "state.create.busy", "to": true },
-			{ "run": "{{state.create.from == 'blank' ? 'createBlank' : 'createCopy'}}",
-			  "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "ask": "{{computed.askText}}",
-			            "folder": "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}",
-			            "sub": "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}", "then": "createShared" } }
+			{ "if": "{{state.create.from == 'blank'}}",
+			  "then": [{ "run": "createBlank", "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "firstRequest": "{{computed.askText}}", "then": "createShared" } }],
+			  "else": [{ "run": "createCopy", "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "firstRequest": "{{computed.askText}}",
+			            "exampleFolder": "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}",
+			            "sub": "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}", "then": "createShared" } }] }
 		],
 		"createBlank": [
-			{ "note": "with: id, title, ask, then. A folder, and the blank starter in it" },
+			{ "note": "with: id, title, firstRequest, then. A folder, and the blank starter in it" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
 			  "onDone": [
 				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "launcher/json/starters/blank.screen.json", "to": "{{id + '/index.screen.json'}}" },
-				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createCopy": [
-			{ "note": "with: id, title, ask, folder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there" },
+			{ "note": "with: id, title, firstRequest, exampleFolder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
 			  "onDone": [
-				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
-				  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
-				                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
-				                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }] }],
+				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
+				  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
+				                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
+				                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createShared": [
-			{ "note": "with: id, title, ask. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
+			{ "note": "with: id, title, firstRequest. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
 			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}" },
 			  "onDone": [
 				{ "run": "listNew", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}" } },
 				{ "run": "resetCreate" },
 				{ "set": "state.page", "to": "mine" },
-				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "ask": "{{ask}}" } },
+				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "firstRequest": "{{firstRequest}}" } },
 				{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
@@ -430,22 +436,44 @@
 			{ "if": "{{keep != true && id != ''}}", "then": [{ "invoke": "apps.delete", "with": { "path": "{{id}}" }, "onError": [] }] }
 		],
 
-		"exportMine": [{"note": "with: id, name. Asks the packages service for a package of an app, to show what it holds before it is saved"}, {"set": "state.exporting", "to": {"open": false, "id": "{{id}}", "name": "{{name}}", "description": "", "author": "", "summary": {}, "leftOut": {}, "busy": true}}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{id}}", "name": "{{name}}"}, "onDone": [{"if": "{{id == state.exporting.id}}", "then": [{"set": "state.exporting.summary", "to": "{{result.summary}}"}, {"set": "state.exporting.leftOut", "to": "{{result.leftOut}}"}, {"set": "state.exporting.busy", "to": false}, {"set": "state.exporting.open", "to": true}]}], "onError": [{"set": "state.exporting.busy", "to": false}, {"run": "toast", "with": {"message": "{{error.message}}", "error": true}}]}],
+		"exportMine": [{"note": "with: id, name. Asks the packages service for a package of an app, to show what it holds before it is saved"}, {"set": "state.exporting", "to": {"open": false, "id": "{{id}}", "name": "{{name}}", "description": "", "author": "", "summary": {}, "leftOut": {}, "busy": true}}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{id}}", "name": "{{name}}"}, "onDone": [{"if": "{{id == state.exporting.id}}", "then": [{"set": "state.exporting.summary", "to": "{{result.summary}}"}, {"set": "state.exporting.leftOut", "to": "{{result.leftOut}}"}, {"set": "state.exporting.busy", "to": false}, {"set": "state.exporting.open", "to": true}]}], "onError": [{"set": "state.exporting.busy", "to": false}, {"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
 		"launcher.export": [{"note": "Opens the export dialog on an export's answer as the event gives it ({id, name, summary, leftOut}): scenarios play the service's answer with it"}, {"set": "state.exporting", "to": {"open": true, "id": "{{event.id}}", "name": "{{event.name}}", "description": "", "author": "", "summary": "{{event.summary}}", "leftOut": "{{event.leftOut ?? {}}}", "busy": false}}],
-		"exportSave": [{"note": "Makes the package again with the name, description and author given, then asks where to save it; a note names the file saved, by its name only"}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{state.exporting.id}}", "name": "{{trim(state.exporting.name)}}", "description": "{{trim(state.exporting.description)}}", "author": "{{trim(state.exporting.author)}}"}, "onDone": [{"saveFile": "{{result.package}}", "name": "{{state.exporting.id + '.affresco.json'}}", "onDone": [{"run": "toast", "with": {"message": "{{t('toast.exported', {file: result.name})}}", "error": false}}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "error": true}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "error": true}}]}],
-		"installFromFile": [{"note": "Asks for a file someone gave, then asks the packages service what installing it would do"}, {"openFile": "state.install.package", "extensions": ["json"], "onDone": [{"invoke": "packages.inspect", "with": {"package": "{{state.install.package}}"}, "onDone": [{"run": "review", "with": {"summary": "{{result.summary}}", "why": ""}}], "onError": [{"run": "review", "with": {"summary": {}, "why": "{{error.message}}"}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "error": true}}]}],
+		"exportSave": [{"note": "Makes the package again with the name, description and author given, then asks where to save it; a note names the file saved, by its name only"}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{state.exporting.id}}", "name": "{{trim(state.exporting.name)}}", "description": "{{trim(state.exporting.description)}}", "author": "{{trim(state.exporting.author)}}"}, "onDone": [{"saveFile": "{{result.package}}", "name": "{{state.exporting.id + '.affresco.json'}}", "onDone": [{"run": "toast", "with": {"message": "{{t('toast.exported', {file: result.name})}}", "failed": false}}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
+		"installFromFile": [{"note": "Asks for a file someone gave, then asks the packages service what installing it would do"}, {"openFile": "state.install.package", "extensions": ["json"], "onDone": [{"invoke": "packages.inspect", "with": {"package": "{{state.install.package}}"}, "onDone": [{"run": "review", "with": {"summary": "{{result.summary}}", "why": ""}}], "onError": [{"run": "review", "with": {"summary": {}, "why": "{{error.message}}"}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
 		"review": [{"note": "with: summary, why. Shows the review: what installing the file would do, or why it can't be installed"}, {"set": "state.install.summary", "to": "{{summary}}"}, {"set": "state.install.error", "to": "{{why}}"}, {"set": "state.install.name", "to": "{{summary.name ?? ''}}"}, {"set": "state.install.tried", "to": false}, {"set": "state.install.busy", "to": false}, {"set": "state.install.entry", "to": {}}, {"set": "state.install.listed", "to": {}}, {"run": "go", "with": {"page": "install"}}],
 		"launcher.review": [{"note": "Shows the review of a file as the event gives it ({summary, package?, error?}): scenarios play the service's answer with it"}, {"set": "state.install.package", "to": "{{event.package ?? {}}}"}, {"run": "review", "with": {"summary": "{{event.summary ?? {}}}", "why": "{{event.error ?? ''}}"}}],
-		"installApp": [{"note": "Installs the file as a new app, if it can be and its name is right: its changes wait in it as a proposal. The shared files are brought as for a new app, then it is listed first and opened"}, {"set": "state.install.tried", "to": true}, {"if": "{{computed.installable && computed.installError == '' && !state.install.busy}}", "then": [{"set": "state.install.busy", "to": true}, {"if": "{{(state.install.entry.catalogue ?? '') != ''}}", "then": [{"invoke": "packages.install", "with": {"catalogue": "{{state.install.entry.catalogue}}", "release": "{{state.install.entry.release}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "error": true}}]}], "else": [{"invoke": "packages.install", "with": {"package": "{{state.install.package}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "error": true}}]}]}]}],
+		"installApp": [{"note": "Installs the file as a new app, if it can be and its name is right: its changes wait in it as a proposal. The shared files are brought as for a new app, then it is listed first and opened"}, {"set": "state.install.tried", "to": true}, {"if": "{{computed.installable && computed.installError == '' && !state.install.busy}}", "then": [{"set": "state.install.busy", "to": true}, {"if": "{{(state.install.entry.catalogue ?? '') != ''}}", "then": [{"invoke": "packages.install", "with": {"catalogue": "{{state.install.entry.catalogue}}", "release": "{{state.install.entry.release}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "failed": true}}]}], "else": [{"invoke": "packages.install", "with": {"package": "{{state.install.package}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "failed": true}}]}]}]}],
 		"installShared": [{"note": "with: id, sub, title, proposal. The shared files brought up to date, then the new app listed first and opened"}, {"invoke": "apps.copy", "with": {"from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}"}, "onDone": [{"run": "installReady", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "proposal": "{{proposal}}"}}], "onError": [{"run": "installReady", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "proposal": "{{proposal}}"}}]}],
-		"installReady": [{"note": "with: id, sub, title, proposal"}, {"set": "state.install.busy", "to": false}, {"run": "listNew", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}"}}, {"set": "state.page", "to": "mine"}, {"run": "openMine", "with": {"id": "{{id}}", "name": "{{title}}", "ask": ""}}, {"run": "toast", "with": {"message": "{{t(proposal ? 'toast.installedProposal' : 'toast.installed', {name: title})}}", "error": false}}, {"after": 1, "do": [{"run": "launcher.refresh"}]}],
+		"installReady": [{"note": "with: id, sub, title, proposal"}, {"set": "state.install.busy", "to": false}, {"run": "listNew", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}"}}, {"set": "state.page", "to": "mine"}, {"run": "openMine", "with": {"id": "{{id}}", "name": "{{title}}", "firstRequest": ""}}, {"run": "toast", "with": {"message": "{{t(proposal ? 'toast.installedProposal' : 'toast.installed', {name: title})}}", "failed": false}}, {"after": 1, "do": [{"run": "launcher.refresh"}]}],
 		"cancelInstall": [{"note": "Leaves the review, for the page it came from: nothing is installed"}, {"set": "state.page", "to": "{{(state.install.entry.catalogue ?? '') != '' ? 'catalogue' : 'mine'}}"}, {"set": "state.install", "to": {"package": {}, "summary": {}, "error": "", "name": "", "tried": false, "busy": false, "entry": {}, "listed": {}}}],
 		"showApps": { "title": "{{t('nav.apps')}}", "category": "view", "icon": "layout-grid", "do": [{ "run": "go", "with": { "page": "apps" } }] },
 		"showMine": { "title": "{{t('nav.mine')}}", "category": "view", "icon": "folder-heart", "do": [{ "run": "go", "with": { "page": "mine" } }] },
 		"showCreate": { "title": "{{t('nav.create')}}", "category": "view", "icon": "circle-plus", "do": [{ "run": "go", "with": { "page": "create" } }, { "focus": "#createName" }] },
 		"showCatalogue": { "title": "{{t('nav.catalogue')}}", "category": "view", "icon": "library", "do": [{ "if": "{{state.catalogue.available}}", "then": [{ "run": "go", "with": { "page": "catalogue" } }] }] },
 		"showSettings": { "title": "{{t('nav.settings')}}", "category": "view", "icon": "settings", "do": [{ "run": "go", "with": { "page": "settings" } }] },
-		"findApp": { "title": "{{t('apps.search')}}", "category": "view", "icon": "search", "do": [{ "run": "go", "with": { "page": "apps" } }, { "focus": "#appSearch" }] }
+		"findApp": { "title": "{{t('apps.search')}}", "category": "view", "icon": "search", "do": [{ "run": "go", "with": { "page": "apps" } }, { "focus": "#appSearch" }] },
+		"appOpen": { "title": "{{t('command.appOpen')}}", "description": "{{t('command.appOpen.about')}}", "category": "apps", "icon": "app-window",
+			"arguments": { "name": { "type": "string", "description": "The app's name, like Flow or Reading list" } },
+			"do": [
+				{ "note": "the app of the cards with that name or folder, ignoring case; none, and a note says so" },
+				{ "if": "{{find(computed.everyApp, lower(it.name) == lower(trim(name)) || lower('' + it.id) == lower(trim(name))) == null}}",
+				  "then": [{ "run": "toast", "with": { "message": "{{t('toast.noSuchApp', {name: name})}}", "failed": true } }, { "stop": true }] },
+				{ "run": "openApp", "with": { "app": "{{find(computed.everyApp, lower(it.name) == lower(trim(name)) || lower('' + it.id) == lower(trim(name)))}}" } }
+			] },
+		"appCreate": { "title": "{{t('command.appCreate')}}", "description": "{{t('command.appCreate.about')}}", "category": "apps", "icon": "circle-plus",
+			"arguments": { "name": { "type": "string", "description": "The new app's name, like My budget" },
+			               "from": { "type": ["string", "null"], "description": "The example it starts from, like Flow; a blank app when left out" },
+			               "describe": { "type": ["string", "null"], "description": "What its assistant is asked to build first, in the person's words" } },
+			"do": [
+				{ "note": "fills in the Create page and makes the app, as Create would: a name it refuses stays there, said" },
+				{ "run": "resetCreate" },
+				{ "set": "state.create.name", "to": "{{'' + name}}" },
+				{ "set": "state.create.from", "to": "{{(find(state.examples, lower(it.name) == lower(trim(from ?? '')) || it.id == lower(trim(from ?? ''))) ?? {id: 'blank'}).id}}" },
+				{ "set": "state.create.describe", "to": "{{describe ?? ''}}" },
+				{ "run": "go", "with": { "page": "create" } },
+				{ "note": "after the update, so the name's checks and folder are worked out from the name just set" },
+				{ "after": 1, "do": [{ "run": "createApp" }] }
+			] }
 	},
 
 	"keys": {
@@ -532,7 +560,7 @@
 				"label": "{{app.mine ? t('mine.openLabel', {name: app.name}) : t('apps.openLabel', {name: app.name, tagline: t('tagline.' + app.id)})}}",
 				"hover": { "borderColor": "@c.accent", "shadow": { "y": 8, "blur": 22, "color": "@c.shadow" } },
 				"focused": { "borderColor": "@c.accent", "borderWidth": 2 },
-				"onClick": { "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } }],
+				"onClick": { "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } }],
 				             "else": [{ "run": "openExample", "with": { "app": "{{app}}" } }] },
 				"children": [
 					{ "id": "cardCoverFrame", "anchors": { "left": 10, "right": 10, "top": 10 }, "height": 156, "radius": 10, "color": "@c.raised",
@@ -566,7 +594,7 @@
 				"style": "card", "height": 76, "anchors": { "left": 0, "right": 0 }, "focusable": true, "role": "button", "cursor": "hand",
 				"label": "{{t('mine.openLabel', {name: app.name})}}",
 				"hover": { "borderColor": "@c.accent" }, "focused": { "borderColor": "@c.accent", "borderWidth": 2 },
-				"onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } },
+				"onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } },
 				"keys": { "delete": { "run": "askDelete", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
 				"children": [
 					{ "type": "label", "id": "mineInitial", "text": "{{upper(slice(app.name, 0, 1))}}", "font": "initial", "align": "center",
@@ -580,7 +608,7 @@
 					{ "type": "row", "id": "mineActions", "gap": 4, "anchors": { "right": 14, "top": 21 }, "height": 34, "width": 248, "justify": "end",
 					  "children": [
 						{ "id": "mineOpen", "style": "primary", "text": "{{t('mine.open')}}", "width": 74, "height": 34,
-						  "onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } } },
+						  "onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } } },
 						{ "id": "mineExport", "style": "iconButton", "icon": "package", "tooltip": "{{t('mine.export')}}", "label": "{{t('mine.exportLabel', {name: app.name})}}",
 						  "onClick": { "run": "exportMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
 						{ "id": "mineDuplicate", "style": "iconButton", "icon": "copy", "tooltip": "{{t('mine.duplicate')}}", "label": "{{t('mine.duplicateLabel', {name: app.name})}}",

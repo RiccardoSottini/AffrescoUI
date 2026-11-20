@@ -84,6 +84,15 @@
 			]
 		},
 		{
+			"name": "commands-open-and-create",
+			"note": "An agent, or the studio, can open and create apps, as the person would: each run starts a program, so the person says yes to it first",
+			"steps": [
+				{ "command": "appOpen", "with": { "name": "flow" }, "verdict": "person" },
+				{ "command": "appCreate", "with": { "name": "Notes", "from": null, "describe": null }, "verdict": "person" },
+				{ "command": "appOpen", "with": { "name": "Reading list" }, "as": "studio", "verdict": "person" }
+			]
+		},
+		{
 			"name": "create-validation",
 			"steps": [
 				{ "key": "mod+n" },

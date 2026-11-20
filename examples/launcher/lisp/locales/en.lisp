@@ -207,4 +207,10 @@
                 :command.showCreate.about "Shows the Create page, its name field focused."
                 :command.showCatalogue.about "Shows the versions and features the catalogue lists."
                 :command.showSettings.about "Shows the settings."
-                :command.findApp.about "Shows the Apps page, its search focused."}}}
+                :command.findApp.about "Shows the Apps page, its search focused."
+                :category.apps "Apps"
+                :command.appOpen "Open an app"
+                :command.appOpen.about "Opens an app by its name."
+                :command.appCreate "Create an app"
+                :command.appCreate.about "Makes a new app, blank or from an example, and opens it."
+                :toast.noSuchApp "There is no app named “{name}”."}}}

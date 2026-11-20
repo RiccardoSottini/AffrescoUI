@@ -207,4 +207,10 @@
                 :command.showCreate.about "Muestra la página Crear, con el campo del nombre activo."
                 :command.showCatalogue.about "Muestra las versiones y funciones que lista el catálogo."
                 :command.showSettings.about "Muestra los ajustes."
-                :command.findApp.about "Muestra la página Apps, con la búsqueda activa."}}}
+                :command.findApp.about "Muestra la página Apps, con la búsqueda activa."
+                :category.apps "Apps"
+                :command.appOpen "Abrir una app"
+                :command.appOpen.about "Abre una app por su nombre."
+                :command.appCreate "Crear una app"
+                :command.appCreate.about "Crea una app nueva, en blanco o a partir de un ejemplo, y la abre."
+                :toast.noSuchApp "No hay ninguna app llamada «{name}»."}}}
