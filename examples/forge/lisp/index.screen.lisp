@@ -42,7 +42,7 @@
           :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 22}
           :iconsRail {:file "../../shared/fonts/Lucide.ttf" :size 19}
           :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 13 :fallback [icons]}}
-  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent]
+  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent state.walkthrough]
   :permissions {:allow [studio] :ask ["agent(/actions)"] :reviewers [studio]}
   :theme ~state.theme
   (node#root :color @color.editor

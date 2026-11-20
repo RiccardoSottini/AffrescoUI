@@ -192,9 +192,15 @@
 (defview side-bar-empty "The explorer with no folder open: a button to open one." []
   `(column#side-bar-empty :when ~(and (= state.sideView "explorer") (empty? state.folder.root))
      :width "100%"
+     :fitContent height
      :alignItems center
      :gap 4
-     (label#side-bar-empty-text :text ~(t "side-bar-empty-text") :textColor @color.text :width "100%" :padding 12 :wrap true)
+     (label#side-bar-empty-text :text ~(t "side-bar-empty-text")
+       :textColor @color.text
+       :width "100%"
+       :height 40
+       :padding 12
+       :wrap true)
      (label#side-bar-open :text ~(t "side-bar-open")
        :width 200
        :height 28
@@ -208,72 +214,158 @@
 
 ;;; The welcome page
 
-(defcomponent forgeWelcome "The welcome page, when no file is open: its column in the middle."
+(defcomponent forgeWelcome
+  "The welcome page, when no file is open: its title, then two columns in the middle, Start and Recent on the left,
+the walkthrough and the keys on the right."
   {}
-  `(row#welcome :width "100%" :grow 1 :color @color.editor
+  `(row#welcome :width "100%" :grow 1 :color @color.editor :scroll vertical
      (node#welcome-margin :grow 1)
      ~(welcome-body)
      (node#welcome-end :grow 1)))
 
-(defview welcome-body "The welcome page's column: its title, its quick actions and the recent files." []
-  `(column#welcome-body :width 400 :height "100%" :gap 8
-     (node#welcome-top :height 96)
+(defview welcome-body "The welcome page's column: its title and what Forge is, above the two columns." []
+  `(column#welcome-body :width 760 :fitContent height :gap 6
+     (node#welcome-top :height 40)
      (node#welcome-mark :width 36 :height 4 :radius 2 :color @color.accent)
      (label#welcome-title :text ~(t "welcome-title") :font title :textColor @color.text :fitText true)
      (label#welcome-subtitle :text ~(t "welcome-subtitle") :textColor @color.muted :fitText true)
-     (node#welcome-gap :height 12)
-     (label#welcome-start :text ~(t "welcome-start") :textColor @color.muted :fitText true)
-     ~(welcome-action "welcome-open" "folder-open" "openFolder")
-     ~(welcome-action "welcome-files" "file-search" "quickOpen")
-     ~(welcome-action "welcome-commands" "command" "showCommands")
-     ~(welcome-action "welcome-theme" "palette" "pickTheme")
-     ~(welcome-action "welcome-settings" "settings" "openSettings")
-     (node#welcome-recent-gap :when ~(not (empty? computed.welcomeRecent)) :height 12)
-     (label#welcome-recent :when ~(not (empty? computed.welcomeRecent))
-       :text ~(t "welcome-recent")
+     (node#welcome-gap :height 22)
+     (row#welcome-columns :width "100%" :fitContent height :gap 48
+       ~(welcome-left)
+       ~(welcome-right))
+     (node#welcome-bottom :height 32)))
+
+(defview welcome-left "Start, a button for each way in; then Recent, the files opened in this folder." []
+  `(column#welcome-left :width 330 :fitContent height :gap 2
+     ~(welcome-heading "welcome-start")
+     (node#welcome-new-file :when ~(not (empty? state.folder.root)) :use forgeWelcomeAction
+       :with {:key welcome-new-file :icon file-plus :command explorerNewFile}
+       :onClick explorerNewFile)
+     (node#welcome-open :use forgeWelcomeAction :with {:key welcome-open :icon folder-open :command openFolder} :onClick openFolder)
+     (node#welcome-clone :use forgeWelcomeAction
+       :with {:key welcome-clone :icon git-branch :command cloneRepository}
+       :onClick cloneRepository)
+     (node#welcome-files :use forgeWelcomeAction :with {:key welcome-files :icon file-search :command quickOpen} :onClick quickOpen)
+     (node#welcome-commands :use forgeWelcomeAction
+       :with {:key welcome-commands :icon command :command showCommands}
+       :onClick showCommands)
+     (node#welcome-recent-gap :height 18)
+     (label#welcome-recent :text ~(t "welcome-recent") :textColor @color.text :fitText true :height 24)
+     (label#welcome-recent-none :when ~(empty? computed.welcomeRecent)
+       :text ~(t "welcome-recent-none")
        :textColor @color.muted
-       :fitText true)
+       :width "100%"
+       :height 36
+       :wrap true)
      ~(repeat [file computed.welcomeRecent :index fi :key file.id]
        (welcome-recent-file file fi))))
 
-(defview welcome-action "A quick action of the welcome page: a button with an icon, which runs a command." [id icon run]
-  `(label :id ~id
-     :role button
-     :label ~(t (str id ".label"))
-     :icon ~icon
-     :text ~(t id)
+(defview welcome-right "The walkthrough, four steps checked as they are done; then the keys a daily user needs." []
+  `(column#welcome-right :grow 1 :fitContent height :gap 4
+     ~(welcome-heading "welcome-walkthrough")
+     (node#welcome-step-theme :use forgeWelcomeStep
+       :with {:key welcome-step-theme :icon palette :done ~state.walkthrough.theme}
+       :onClick welcome-step-theme)
+     (node#welcome-step-folder :use forgeWelcomeStep
+       :with {:key welcome-step-folder :icon folder-open :done ~(not (empty? state.folder.root))}
+       :onClick openFolder)
+     (node#welcome-step-live :use forgeWelcomeStep
+       :with {:key welcome-step-live :icon sparkles :done ~state.walkthrough.live}
+       :onClick welcome-step-live)
+     (node#welcome-step-keys :use forgeWelcomeStep
+       :with {:key welcome-step-keys :icon keyboard :done ~state.walkthrough.keys}
+       :onClick welcome-step-keys)
+     (node#welcome-keys-gap :height 12)
+     ~(welcome-heading "welcome-keys")
+     ~(repeat [k computed.welcomeKeys :index ki :key k.name]
+       (welcome-key k ki))))
+
+(defview welcome-heading "A heading of the welcome page's columns." [id]
+  `(label :id ~id :text ~(t id) :textColor @color.text :fitText true :height 24))
+
+(defcomponent forgeWelcomeAction "A way in: a link with its icon, which runs `command`, its key on the right."
+  {:key "" :icon "" :command ""}
+  `(row :role button
+     :label ~(t (str key ".label"))
      :width "100%"
-     :height 38
-     :padding 12
-     :radius 9
+     :height 30
+     :radius 6
+     :alignItems center
+     :gap 8
+     :focusable true
+     :cursor hand
+     :tooltip ~(t (str key ".tip"))
+     :hover {:color @color.hover}
+     :focused {:color @color.hover}
+     (node :width 2)
+     (label :icon ~icon :textColor @color.accent :fitText true)
+     (label :text ~(t (str key ".label")) :textColor @color.accent :grow 1 :height 20)
+     (label :text ~(key-label command) :font code :textColor @color.muted :fitText true :height 20)
+     (node :width 6)))
+
+(defcomponent forgeWelcomeStep "A walkthrough step: a check once `done`, its title and what it does; a click does it."
+  {:key "" :icon "" :done false}
+  `(row :role button
+     :label ~(t (str key ".title"))
+     :selected ~done
+     :width "100%"
+     :height 48
+     :radius 8
      :color @color.widget
      :borderWidth 1
      :borderColor @color.border
-     :textColor @color.text
+     :gap 10
      :focusable true
      :cursor hand
-     :tooltip ~(t (str id ".tip"))
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick ~run))
+     (node :width 2)
+     (label :icon ~(if done "check-circle" icon)
+       :textColor ~(if done "@color.accent" "@color.muted")
+       :width 18
+       :height 48
+       :align center)
+     (column :grow 1 :height 48 :gap 0
+       (node :height 6)
+       (label :text ~(t (str key ".title")) :textColor @color.text :width "100%" :height 18)
+       (label :text ~(t (str key ".text")) :textColor @color.muted :width "100%" :height 18))
+     (node :width 8)))
 
-(defview welcome-recent-file "A recent file on the welcome page: a link that opens it." [file fi]
-  `(label :id ~(str "welcome-recent-" fi)
+(defview welcome-key "A key of the welcome page: what it does, and the key, from the command it runs." [k ki]
+  `(row :id ~(str "welcome-key-" ki)
+     :width "100%"
+     :height 24
+     :alignItems center
+     (label :text ~k.title :textColor @color.muted :grow 1 :height 24 :align "start center")
+     (label :text ~k.key
+       :font code
+       :textColor @color.text
+       :fitText true
+       :height 20
+       :padding 6
+       :radius 4
+       :borderWidth 1
+       :borderColor @color.border)))
+
+(defview welcome-recent-file "A recent file on the welcome page: a link that opens it, its folder beside it." [file fi]
+  `(row :id ~(str "welcome-recent-" fi)
      :role link
      :label ~(t "welcome-recent.open" {:file file.id})
-     :icon file
-     :text ~file.title
      :width "100%"
      :height 26
-     :padding 6
      :radius 6
-     :textColor @color.accent
+     :alignItems center
+     :gap 8
      :focusable true
      :cursor hand
      :tooltip ~file.id
      :hover {:color @color.hover}
      :focused {:color @color.hover}
-     :onClick ~(handler open-path file.id file.title)))
+     :onClick ~(handler open-path file.id file.title)
+     (node :width 2)
+     (label :icon file :textColor @color.muted :fitText true)
+     (label :id ~(str "welcome-recent-" fi "-name") :text ~file.title :textColor @color.accent :fitText true :height 20)
+     (label :text ~(or-else file.detail "") :textColor @color.muted :grow 1 :height 20)))
 
 ;;; The status bar
 

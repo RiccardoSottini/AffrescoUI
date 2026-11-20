@@ -27,7 +27,8 @@
 
 (defview group-tabs "A group's tabs: a dirty file's has a marker, the preview's is in italics, each its file's icon."
   [g gi]
-  `(tabs#group-tabs :width "100%"
+  `(tabs#group-tabs :when ~(not (empty? g.tabs))
+     :width "100%"
      :height 34
      :bind "state.groups[gi].active"
      :color @color.tabs

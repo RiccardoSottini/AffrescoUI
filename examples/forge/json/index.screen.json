@@ -71,7 +71,7 @@
 		]
 	},
 
-	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme", "state.quickPick.recent"],
+	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme", "state.quickPick.recent", "state.walkthrough"],
 
 	"onLoad": [
 		{ "set": "state.folder.root", "to": "{{services.files.folder ?? ''}}" },

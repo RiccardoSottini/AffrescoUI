@@ -106,7 +106,9 @@
 					  "placeholder": "Choose a task to run" },
 					{ "prefix": "indent ", "items": "{{computed.indentItems}}", "placeholder": "Select the spaces per indentation level" },
 					{ "prefix": "eol ", "items": "{{computed.eolItems}}", "placeholder": "Select the end of line sequence" },
-					{ "prefix": "language ", "items": "{{computed.languageItems}}", "placeholder": "Select a language mode" }
+					{ "prefix": "language ", "items": "{{computed.languageItems}}", "placeholder": "Select a language mode" },
+					{ "prefix": "clone ", "items": "{{computed.cloneItems}}", "run": "clonePicked",
+					  "placeholder": "Type the repository's address, then press Enter" }
 				] } }
 		},
 		"forgeSettingsPage": {

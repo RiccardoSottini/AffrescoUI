@@ -25,7 +25,8 @@
                         {:prefix "task " :items ~state.tasks.items :run task-start :placeholder ~(t "palette.chooseATask")}
                         {:prefix "indent " :items ~computed.indentItems :placeholder ~(t "palette.selectTheSpaces")}
                         {:prefix "eol " :items ~computed.eolItems :placeholder ~(t "palette.selectTheEnd")}
-                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}]}))
+                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}
+                        {:prefix "clone " :items ~computed.cloneItems :run clone-picked :placeholder ~(t "palette.cloneAddress")}]}))
 
 ;;; The settings page
 

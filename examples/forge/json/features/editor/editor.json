@@ -459,6 +459,7 @@
 							{
 								"type": "tabs",
 								"id": "group-tabs",
+								"when": "{{!empty(g.tabs)}}",
 								"width": "100%",
 								"height": 34,
 								"bind": "state.groups[gi].active",
