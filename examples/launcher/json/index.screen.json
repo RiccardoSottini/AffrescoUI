@@ -702,6 +702,7 @@
 					{ "id": "sideNew", "style": "primary", "icon": "plus", "text": "{{computed.wide ? t('nav.newApp') : ''}}", "font": "{{computed.wide ? 'strong' : 'bigIcons'}}",
 					  "label": "{{t('nav.newApp')}}", "tooltip": "{{computed.wide ? '' : t('nav.newApp')}}",
 					  "anchors": { "left": 12, "right": 12, "bottom": 20 }, "height": 42,
+					  "transition": {}, "note": "no colour transition: folding the sidebar left it transparent, its icon on nothing",
 					  "onClick": "showCreate" },
 					{ "type": "label", "id": "sideNote", "when": "{{computed.wide}}", "font": "small", "textColor": "@c.dim", "wrap": true,
 					  "text": "{{t('brand.note')}}", "anchors": { "left": 20, "right": 16, "bottom": 74 }, "height": 52 }

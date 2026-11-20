@@ -93,6 +93,16 @@
 			]
 		},
 		{
+			"name": "narrow-sidebar",
+			"note": "Folded to its icons, the sidebar keeps New app a filled button",
+			"steps": [
+				{ "resize": [800, 600] },
+				{ "wait": 200 },
+				{ "expect": { "node": "#sideNew", "property": "color", "is": "#5b4fe0" } },
+				{ "expect": { "node": "#sideNew", "property": "width", "is": 48 } }
+			]
+		},
+		{
 			"name": "create-validation",
 			"steps": [
 				{ "key": "mod+n" },
