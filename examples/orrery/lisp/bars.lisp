@@ -17,6 +17,8 @@
    :deleteBookmark {:run deleteBookmark :group "4_places" :order 2}
    :eclipses {:run openEclipses :group "4_places" :order 3}
    :tour {:run playTour :group "4_places" :order 4}
+   :north {:run goNorth :group "5_where" :order 1}
+   :south {:run goSouth :group "5_where" :order 2}
    :find {:run findObject :group "1_go" :order 5}
    :renderOptions {:run openRender :group "2_show" :order 7}
    :theme {:run toggleTheme :group "2_show" :order 8}

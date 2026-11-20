@@ -51,3 +51,7 @@
 (defkey "n" toggleNight)
 
 (defkey "mod+f" findObject)
+
+(defkey "shift+up" goNorth)
+
+(defkey "shift+down" goSouth)

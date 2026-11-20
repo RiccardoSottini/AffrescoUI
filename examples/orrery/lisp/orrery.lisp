@@ -436,6 +436,17 @@
   []
   (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
+(defn move-latitude "Moves where the sky is seen from by some degrees north (south when negative), up to 85°." [degrees]
+  (set "state.sky.latitude" (clamp (+ state.sky.latitude degrees) -85 85)))
+
+(defcommand goNorth "Stands 5° further north, under a sky that turns lower round the pole star's place."
+  :title ~(t "command.goNorth") :description ~(t "command.goNorth.about") :icon "arrow-up" []
+  (move-latitude 5))
+
+(defcommand goSouth "Stands 5° further south."
+  :title ~(t "command.goSouth") :description ~(t "command.goSouth.about") :icon "arrow-down" []
+  (move-latitude -5))
+
 ;;; The search
 
 (defcommand findObject "Opens the search: a body to fly to, an event to go to, or a day after @."

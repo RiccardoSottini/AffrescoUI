@@ -1891,6 +1891,32 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "location-moves",
+			"steps": [
+				{
+					"key": "shift+up"
+				},
+				{
+					"expect": {
+						"state": "sky.latitude",
+						"is": 50
+					}
+				},
+				{
+					"action": "goSouth"
+				},
+				{
+					"action": "goSouth"
+				},
+				{
+					"expect": {
+						"state": "sky.latitude",
+						"is": 40
+					}
+				}
+			]
 		}
 	]
 }
