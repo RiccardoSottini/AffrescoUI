@@ -64,6 +64,14 @@
 						"property": "name",
 						"is": "Thu 15 Oct: on target"
 					}
+				},
+				{
+					"expect": {
+						"node": "#stat-overview-streak",
+						"property": "name",
+						"is": "Streak: 7",
+						"note": "Meditate's current streak: done the seven days up to today"
+					}
 				}
 			]
 		},

@@ -168,8 +168,9 @@
        :icon archive
        :height 20)))
 
-(defview overview-stats "The overview: the score now, this month's and this year's change, and the total." []
-  `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :justify space-around :alignItems center
+(defview overview-stats "The overview: the score now, this month's and this year's change, the current streak and the
+  total." []
+  `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :gap 8 :justify space-around :alignItems center
      (node#ring-overview-stats :use ring
        :with {:value ~computed.stats.score :color ~computed.col :size 48 :stroke 2.5})
      (node#stat-overview-stats :use stat
@@ -182,6 +183,8 @@
        :with {:value ~(str (if (neg? computed.stats.year) "−" "+") (formatPercent (abs computed.stats.year)))
               :caption ~(t "stat.year")
               :color ~computed.col})
+     (node#stat-overview-streak :use stat
+       :with {:value ~(formatNumber computed.currentStreak 0 0) :caption ~(t "stat.streak") :color ~computed.col})
      (node#stat-overview-stats-4 :use stat
        :with {:value ~(formatNumber computed.stats.total 0 1) :caption ~(t "stat.total") :color ~computed.col})))
 

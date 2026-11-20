@@ -518,6 +518,7 @@
 		"historyMax": "{{max(concat([1], computed.historyVals))}}",
 		"stats": "{{computed.n == 0 ? {score: 0, month: 0, year: 0, total: 0} : {score: computed.s[computed.n - 1].s, month: computed.s[computed.n - 1].s - (computed.n > 30 ? computed.s[computed.n - 31].s : 0), year: computed.s[computed.n - 1].s - (computed.n > 365 ? computed.s[computed.n - 366].s : 0), total: computed.p[computed.n - 1]}}}",
 		"weeks": "{{computed.sel >= 0 ? clamp(ceil((daysBetween(computed.h.from, computed.weekStart) + 1) / 7) + 1, 1, floor((computed.cardWidth - 65) / 25)) : 0}}",
+		"currentStreak": "{{computed.n == 0 ? 0 : max(computed.runs[computed.n - 1].len, computed.n > 1 ? computed.runs[computed.n - 2].len : 0)}}",
 		"runs": "{{scan(computed.r, computed.v[index] == -1 ? acc : it.r >= 1 ? {len: acc.len + 1, start: acc.len > 0 ? acc.start : index} : {len: 0, start: index + 1}, {len: 0, start: 0})}}",
 		"streaks": "{{sort(slice(sort(map(filter(range(computed.n), computed.runs[it].len > 0 && (it == computed.n - 1 || computed.runs[it + 1].len == 0)), {len: computed.runs[it].len, from: computed.dates[computed.runs[it].start], to: computed.dates[it]}), -it.len), 0, 6), it.to, 'desc')}}",
 		"streakMax": "{{max(concat([1], map(computed.streaks, it.len)))}}",
@@ -830,7 +831,7 @@
 			}
 		},
 		"stat": {
-			"note": "One number of the overview with its caption under it.",
+			"note": "One number of the overview with its caption under it, sharing the row's width with the others.",
 			"params": {
 				"value": "",
 				"caption": "",
@@ -838,7 +839,8 @@
 			},
 			"node": {
 				"id": "panel-stat",
-				"width": 120,
+				"width": 56,
+				"grow": 1,
 				"height": 56,
 				"color": "transparent",
 				"role": "text",
@@ -2939,6 +2941,7 @@
 													"top": 44
 												},
 												"height": 56,
+												"gap": 8,
 												"justify": "space-around",
 												"alignItems": "center",
 												"children": [
@@ -2976,6 +2979,15 @@
 														"with": {
 															"value": "{{(computed.stats.year < 0 ? '−' : '+') + formatPercent(abs(computed.stats.year))}}",
 															"caption": "{{t('stat.year')}}",
+															"color": "{{computed.col}}"
+														}
+													},
+													{
+														"id": "stat-overview-streak",
+														"use": "stat",
+														"with": {
+															"value": "{{formatNumber(computed.currentStreak, 0, 0)}}",
+															"caption": "{{t('stat.streak')}}",
 															"color": "{{computed.col}}"
 														}
 													},

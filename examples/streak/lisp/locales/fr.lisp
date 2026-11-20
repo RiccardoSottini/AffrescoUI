@@ -44,6 +44,7 @@
                 :stat.month "Mois"
                 :stat.year "Année"
                 :stat.total "Total"
+                :stat.streak "Série"
                 :period "Période"
                 :period.day "Jour"
                 :period.week "Semaine"

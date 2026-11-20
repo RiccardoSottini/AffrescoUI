@@ -68,9 +68,9 @@
        :fitText true)
      {:slot true}))
 
-(defcomponent stat "One number of the overview with its caption under it."
+(defcomponent stat "One number of the overview with its caption under it, sharing the row's width with the others."
   {:value "" :caption "" :color @c.text}
-  `(node#panel-stat :width 120 :height 56 :color transparent :role text :label ~(str caption ": " value)
+  `(node#panel-stat :width 56 :grow 1 :height 56 :color transparent :role text :label ~(str caption ": " value)
      (label#label-value :text ~value
        :font title
        :textColor ~color

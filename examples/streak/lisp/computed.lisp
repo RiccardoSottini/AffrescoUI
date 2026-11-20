@@ -308,6 +308,15 @@
                 :else {:len 0 :start (inc index)}))
         {:len 0 :start 0}))
 
+(defcomputed currentStreak "The selected habit's current streak: its run of days done up to today, or up to yesterday
+  while today is still open."
+  (if (zero? computed.n)
+      0
+      (max (get-in computed.runs [(dec computed.n) :len])
+           (if (> computed.n 1)
+               (get-in computed.runs [(- computed.n 2) :len])
+               0))))
+
 (defcomputed streaks "The longest streaks, at most ten, in order of their ends."
   (sort-by :to
            >

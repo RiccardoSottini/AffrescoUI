@@ -39,7 +39,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 |---|---|---|
 | The detail bar with a stripe and title in the habit's colour, back, edit, more | done | |
 | Question, frequency and reminder line | done | |
-| At a glance: strength ring, strength, month and year change, total | done | |
+| At a glance: strength ring, strength, month and year change, the current streak, total (sharing the card's width, so nothing is cut in a narrow window) | done | |
 | Target card for measurable habits (today, week, month, quarter, year) | done | |
 | Score chart with a period (day to year) | done | |
 | History bars with a period | done | |
