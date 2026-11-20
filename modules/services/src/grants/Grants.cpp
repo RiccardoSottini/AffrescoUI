@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -90,6 +91,17 @@ std::filesystem::path loginShell() {
 #endif
 }
 
+std::vector<std::string> stdioArguments(std::string_view name) {
+	// Servers whose standard streams are only one of their transports, so they are told which to use
+	static constexpr std::string_view stdio[] = {"pyright-langserver",         "basedpyright-langserver",
+	                                             "typescript-language-server", "vscode-json-language-server",
+	                                             "vscode-css-language-server", "vscode-html-language-server",
+	                                             "yaml-language-server"};
+	if(name == "bash-language-server") return {"start"};
+	if(std::ranges::find(stdio, name) != std::end(stdio)) return {"--stdio"};
+	return {};
+}
+
 std::optional<std::string> grantProgram(ServiceRegistry& services, std::string_view spec) {
 	if(spec.size() > longestSpec) return "a program grant is at most 4 KiB";
 	const std::size_t equals = spec.find('=');
@@ -107,7 +119,7 @@ std::optional<std::string> grantProgram(ServiceRegistry& services, std::string_v
 		const std::filesystem::path program = findProgram(name);
 		if(program.empty()) return "no program '" + name + "' on the PATH";
 		if(name == "git") services.allowProcess(name, program, gitOptions(), std::nullopt, gitShaper());
-		else services.allowProcess(name, program);
+		else services.allowProcess(name, program, stdioArguments(name));
 		return std::nullopt;
 	}
 	std::vector<std::string> arguments = words(spec.substr(equals + 1));

@@ -88,6 +88,16 @@
 (defn start-search-failed "Says why the search failed, unless it was cancelled." [error]
   (when (not= error.code "cancelled") (set "state.search.result" nil) (set "state.search.error" error.message)))
 
+(defn search-hit-row
+  "A match's row of the results (`number`: its place in hits): its line, trimmed, the match in it highlighted."
+  [number match]
+  (let [prefix (str match.line ": ")
+        lead (- (count match.text) (count (str/triml match.text)))
+        start (- (or-else match.first match.at) lead)]
+    {:id (str "hit:" number)
+     :label (str prefix (str/trim match.text))
+     :marks [[(+ (count prefix) (max 0 start)) (or-else match.count match.length)]]}))
+
 (defn search-found
   "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
   [found]
@@ -105,8 +115,7 @@
                                                 ")")
                                     :icon "file"
                                     :children (map-indexed (fn [index match]
-                                                             {:id (str "hit:" (+ (count hits) index))
-                                                              :label (str match.line ": " (str/trim match.text))})
+                                                             (search-hit-row (+ (count hits) index) match))
                                                            matches)}])
                     :hits (concat hits
                                   ; style: keep, #(...) can't give a map
@@ -119,6 +128,22 @@
   :title ~(t "command.cancelSearch") :description ~(t "command.cancelSearch") :category ~(t "category.search")
   :icon "close" :enablement ~state.search.busy []
   (cancel "forge-search"))
+
+(defcommand searchCollapseAll "Collapse every file of the results, or open them all again when they are."
+  :title ~(t "command.searchCollapseAll") :category ~(t "category.search") :icon "list-collapse"
+  :description ~(t "command.searchCollapseAll.about") :enablement ~(some? state.search.result) []
+  (set "state.search.collapsed" (if (empty? state.search.collapsed) (map :id state.search.result.tree) [])))
+
+(defcommand searchClear "Clear the query and the results, cancelling a search running."
+  :title ~(t "command.searchClear") :category ~(t "category.search") :icon "list-x"
+  :description ~(t "command.searchClear.about") :enablement ~(or (some? state.search.result) (seq state.search.query)) []
+  (cancel "forge-search")
+  (set "state.search.query" "")
+  (set "state.search.result" nil)
+  (set "state.search.ran" nil)
+  (set "state.search.error" "")
+  (set "state.search.collapsed" [])
+  (focus "#search-query"))
 
 (defkey "mod+shift+f" findInFiles)
 

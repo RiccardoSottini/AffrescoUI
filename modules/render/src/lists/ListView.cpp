@@ -447,8 +447,22 @@ void ListView::paintOverlay(Painter& painter, const Font& font) const {
 void ListView::paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const {
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
 	const Vec2 origin{area.left + padding(), baseline};
-	const float shift = paintIcon(painter, font, model_->item(itemAt(row)), origin, color);
+	const ListItem& item = model_->item(itemAt(row));
+	const float shift = paintIcon(painter, font, item, origin, color);
+	paintMarks(painter, font, item, shownText(row, 0), origin.x + shift, area);
 	painter.drawText(font, shownText(row, 0), {origin.x + shift, baseline}, color);
+}
+
+void ListView::paintMarks(Painter& painter, const Font& font, const ListItem& item, std::u32string_view label,
+                          float left, const Rect& area) const {
+	const float inset = std::round((area.height() - font.lineHeight()) / 2.0f);
+	for(const auto& [first, count] : item.marks) {
+		if(first >= label.size() || count == 0) continue;
+		const float start = left + font.measure(label.substr(0, first));
+		const float end = start + font.measure(label.substr(first, count));
+		painter.fillRect({std::round(start), area.top + inset, std::round(end), area.bottom - inset},
+		                 accent_.withAlpha(0.35f));
+	}
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header

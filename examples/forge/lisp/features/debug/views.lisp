@@ -178,16 +178,16 @@
        :onClick debug-remove-watch)))
 
 (defview debug-watch-input "The expression to watch: Enter adds it." []
-  `(textarea#debug-watch-input :when ~(not (contains state.debug.collapsed "watch"))
-     :width "100%"
-     :height 24
-     :padding 5
-     :color @color.input
-     :textColor @color.text
-     :placeholderColor @color.muted
-     :bind state.debug.watchDraft
-     :placeholder ~(t "debug-watch-input.placeholder")
-     :onSubmit debug-add-watch))
+  `(node#debug-watch-row :when ~(not (contains state.debug.collapsed "watch")) :use forgeInset :height 24
+     (textarea#debug-watch-input :grow 1
+       :height 24
+       :padding 5
+       :color @color.input
+       :textColor @color.text
+       :placeholderColor @color.muted
+       :bind state.debug.watchDraft
+       :placeholder ~(t "debug-watch-input.placeholder")
+       :onSubmit debug-add-watch)))
 
 (defview debug-watches "The watches, each its value in the frame shown." []
   `(list#debug-watches :when ~(not (contains state.debug.collapsed "watch"))

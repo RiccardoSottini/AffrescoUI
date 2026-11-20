@@ -13,6 +13,26 @@
        :padding 12
        :text ~(t "problems-empty")
        :textColor @color.text)
+     (row#problems-filter-row :when ~(and (= state.panelTab :problems) (not (empty? state.problems)))
+       :width "100%"
+       :height 32
+       :alignItems center
+       (node#problems-filter-start :width 12)
+       (textarea#problems-filter :width 300
+         :height 24
+         :padding 5
+         :color @color.input
+         :textColor @color.text
+         :placeholderColor @color.muted
+         :bind state.problemsFilter
+         :placeholder ~(t "problems-filter.placeholder"))
+       (label#problems-shown :grow 1
+         :height 24
+         :padding 8
+         :textColor @color.muted
+         :text ~(if (empty? (str/trim state.problemsFilter))
+                  ""
+                  (t "problems-shown" {:shown (count computed.problemRows) :all (count state.problems)}))))
      (table#problems :when ~(and (= state.panelTab :problems) (not (empty? state.problems)))
        :label ~(t "problems.label")
        :width "100%"
