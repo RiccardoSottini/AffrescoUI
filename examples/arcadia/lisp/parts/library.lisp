@@ -58,14 +58,21 @@
     (sort-by #(or-else (:lastPlayed %) 0) > (listed))
     (sort-by #(str/lower-case (:title %)) (listed))))
 
-(defcomputed collected "Every game id some collection holds."
-  (str/split (join "," (map #(join "," (:games %)) state.collections)) ","))
+(defcomputed collected "Every game id some collection of picked games holds."
+  (flatten (map :games (remove :rule state.collections))))
 
-(defcomputed sections "The list's sections: the favourites, the collections, and the games in none of them."
+(defn rule-games "The ids of the owned games a dynamic collection's rule lets in." [rule]
+  (let [field (:field rule)
+        value (:value rule)]
+    (map :id (filter #(= (get % field) value) computed.owned))))
+
+(defcomputed sections
+  "The list's sections: the favourites, the collections (a dynamic one with the games its rule lets in), and the games
+  in none of them."
   (concat [{:id "favourites"
             :title (t "lib.favourites")
             :ids (map :id (filter :favourite computed.owned))}]
-          state.collections
+          (map #(if (some? (:rule %)) (assoc % :ids (rule-games (:rule %))) %) state.collections)
           [{:id "uncategorised"
             :title (t "lib.uncategorised")
             :ids (map :id (filter #(and (not (:favourite %)) (not (contains computed.collected (:id %))))
@@ -195,6 +202,11 @@
        :textColor ~(if state.recentFirst "@color.accent" "@color.muted")
        :selected ~state.recentFirst
        :onClick {:toggle state.recentFirst})
+     (node#library-new-collection :style iconButton
+       :icon folder-plus
+       :tooltip ~(t "coll.new")
+       :label ~(t "coll.new")
+       :onClick newCollection)
      (node#library-ready :style iconButton
        :icon circle-play
        :tooltip ~(t "lib.readyOnly")

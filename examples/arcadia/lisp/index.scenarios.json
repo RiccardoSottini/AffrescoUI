@@ -547,6 +547,138 @@
 					"capture": "fr"
 				}
 			]
+		},
+		{
+			"name": "collections",
+			"steps": [
+				{
+					"click": "#library-new-collection"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"node": "#coll-error",
+						"text": "Give the collection a name."
+					}
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"type": "Weekend"
+				},
+				{
+					"click": "#coll-check-driftwood"
+				},
+				{
+					"click": "#coll-check-ember"
+				},
+				{
+					"capture": "new-collection"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-mine-1",
+						"text": "WEEKEND (2)"
+					}
+				},
+				{
+					"expect": {
+						"node": "#row-mine-1-driftwood",
+						"exists": true
+					}
+				},
+				{
+					"click": "#library-new-collection"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"type": "Ready"
+				},
+				{
+					"click": "#coll-kind-dynamic"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"node": "#coll-error",
+						"text": "Choose a rule for the collection."
+					}
+				},
+				{
+					"click": "#coll-rule-installed"
+				},
+				{
+					"capture": "dynamic-collection"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[3].rule.field",
+						"is": "installed"
+					}
+				},
+				{
+					"expect": {
+						"node": "#row-mine-2-starfall",
+						"exists": true
+					}
+				},
+				{
+					"command": "deleteCollection",
+					"with": {
+						"id": "mine-1"
+					},
+					"as": "studio"
+				},
+				{
+					"expect": {
+						"node": "#section-mine-1",
+						"exists": false
+					}
+				}
+			]
 		}
 	]
 }

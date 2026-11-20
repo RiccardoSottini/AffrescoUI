@@ -15,6 +15,7 @@
             arcadia.parts.places
             arcadia.parts.chrome
             arcadia.parts.library
+            arcadia.parts.collections
             arcadia.parts.game
             arcadia.parts.store
             arcadia.parts.store-game
@@ -60,6 +61,7 @@
       ~(pages)
       (node#bottom-bar :use bottomBar))
     (node#settings-dialog :use settingsDialog)
+    (node#collection-dialog :use collectionDialog)
     (node :use gameMenu)
     (node#properties-dialog :use propertiesDialog)
     (node#uninstall-dialog :use uninstallDialog)
