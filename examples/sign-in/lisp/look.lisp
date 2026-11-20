@@ -7,7 +7,9 @@
 
 ;;; Colours
 
-(deftokens tokens "The palette, light and dark: the page, the card, the fields, the accent and the avatars."
+(deftokens tokens
+  "The palette, light and dark: the page, the card, the fields, the accent and the avatars; the built-in dialogs take it
+  too, through the kit's tokens."
   {:radius.card 16
    :radius.field 10
    :color.background {:light "#eef2ff" :dark "#0b1020"}
@@ -34,6 +36,8 @@
    :color.fair {:light "#f59e0b" :dark "#fbbf24"}
    :color.good {:light "#6366f1" :dark "#818cf8"}
    :color.strong {:light "#16a34a" :dark "#4ade80"}
+   :color.success {:light "#16a34a" :dark "#4ade80"}
+   :color.successSoft {:light "#dcfce7" :dark "#14532d80"}
    :color.shadow {:light "#0f172a1f" :dark "#00000066"}
    :color.backdrop {:light "#0f172a66" :dark "#000000a0"}
    :color.toast {:light "#0f172a" :dark "#e2e8f0"}
@@ -60,7 +64,21 @@
    :assistant.dot @color.muted
    :assistant.success {:light "#16a34a" :dark "#4ade80"}
    :assistant.danger @color.error
-   :assistant.warning {:light "#fef3c7" :dark "#3b2e0a"}})
+   :assistant.warning {:light "#fef3c7" :dark "#3b2e0a"}
+   :kit.surface @color.surface
+   :kit.text @color.text
+   :kit.body @color.muted
+   :kit.dim @color.muted
+   :kit.border @color.border
+   :kit.primary @color.accent
+   :kit.onPrimary @color.accentText
+   :kit.secondary @color.hover
+   :kit.onSecondary @color.text
+   :kit.accent @color.accent
+   :kit.focus @color.accent
+   :kit.backdrop @color.backdrop
+   :kit.radius 8
+   :kit.cardRadius 16})
 
 (defpart colors "The accent's plain colours, for what takes no token."
   :colors {:accent "#6366f1" :accentHover "#7477f3" :fieldFocused "#ffffff"})
@@ -70,14 +88,22 @@
 (defstyle caption "A line of muted text under a title."
   (label :height 20 :textColor @color.muted :anchors {:left 0 :right 10}))
 
-(defstyle fieldLabel "A field's name, over it."
-  (label :font small :height 18 :color transparent :textColor @color.text :anchors {:left 0 :right 10}))
+(defstyle fieldLabel "A field's name, over it: closer to its field than to what is above."
+  (label :font small
+    :height 24
+    :align "start end"
+    :color transparent
+    :textColor @color.text
+    :anchors {:left 0 :right 10}))
 
 (defstyle title "A screen's title, large."
   (label :font title :height 34 :textColor @color.text :anchors {:left 0 :right 10}))
 
 (defstyle hint "A small muted line: a hint, a time, a count."
   (label :font small :height 18 :textColor @color.muted :anchors {:left 0 :right 10}))
+
+(defstyle subheading "A heading inside a section of the account page: a group of rows."
+  (label :font strong :height 22 :color transparent :textColor @color.text :anchors {:left 0 :right 10}))
 
 (defstyle heading "A section's heading on the account page."
   (label :font heading :height 28 :textColor @color.text :role heading :anchors {:left 0 :right 10}))
@@ -128,8 +154,9 @@
 
 ;;; Buttons and links
 
-(defstyle primary "The main button of a form: the accent, full width."
-  (label :height 46
+(defstyle primary "The main button of a form: the accent, full width, its words strong."
+  (label :font strong
+    :height 46
     :anchors {:left 0 :right 10}
     :align center
     :radius @radius.field
@@ -145,6 +172,7 @@
 
 (defstyle secondary "Another way to go on: outlined, full width."
   {:style primary
+   :font default
    :color transparent
    :textColor @color.text
    :borderWidth 1
@@ -222,6 +250,9 @@
     :fitContent height
     :scroll vertical))
 
+(defstyle cardFlat "A form's card on a narrow window: no frame, the page itself is the card."
+  {:style card :radius 0 :borderWidth 0 :color transparent :shadow {:color "#00000000"}})
+
 (defstyle form "A card's column of fields and buttons."
   (column :fitContent height :gap 8 :anchors {:left 36 :right 26}))
 
@@ -236,6 +267,21 @@
     :color @color.accent
     :textColor @color.accentText
     :shadow {:y 6 :blur 16 :color @color.glow}))
+
+(defstyle doneRing "The success screen's soft ring around its tick."
+  (node :width 84 :height 84 :radius 42 :color @color.successSoft))
+
+(defstyle doneBadge "The success screen's tick, on the success colour in the middle of its ring."
+  (label :font hero
+    :text ""
+    :width 60
+    :height 60
+    :radius 30
+    :anchors {:left 12 :top 12}
+    :align center
+    :color @color.success
+    :textColor @color.accentText
+    :shadow {:y 6 :blur 16 :color @color.successSoft}))
 
 (defstyle spacer "Some room between a form's parts." {:height 6 :anchors {:left 0 :right 10} :color transparent})
 

@@ -9,7 +9,7 @@
 
 (defview create-card "The create-account screen: its card, centred, scrolling when the window is short." []
   `(node#panel-create-account :style screen
-     (node#panel-card :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#panel-card :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#panel-card-top :height 36 :color transparent)
        ~(create-form)
        (node#panel-card-end :height 36 :color transparent))))

@@ -93,7 +93,7 @@
    `(node#label-key :when ~(= state.setup.step "scan")
       :style fieldLabel
       :text ~(t "orEnterKey")
-      :anchors {:left 176 :right 20 :top 90})
+      :anchors {:left 176 :right 20 :top 84})
    `(label#setupKey :when ~(= state.setup.step "scan")
       :font mono
       :dir ltr
@@ -118,7 +118,7 @@
    `(node#label-setup-code :when ~(= state.setup.step "scan")
       :style fieldLabel
       :text ~(t "code")
-      :anchors {:left 20 :right 20 :top 232})
+      :anchors {:left 20 :right 20 :top 222})
    (setup-code)])
 
 (defview qr-code "The QR code an authenticator app scans, dark on white in either theme." []
