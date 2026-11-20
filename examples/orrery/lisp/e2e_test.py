@@ -191,7 +191,7 @@ def main():
         png = base64.b64decode(picture["data"])
         assert picture["type"] == "image" and png.startswith(b"\x89PNG"), picture.get("type")
         text = mcp.tool("run_scenarios", {"file": strip, "proposal": proposal})[0]["text"]
-        assert "FAILED" not in text and "1 passed" in text, text
+        assert "FAILED" not in text and " 0 failed" in text and " 0 passed" not in text, text
 
         # 5. The person approves it, as a studio peer
         studio_stream.write((json.dumps({"type": "accept", "proposal": proposal,
