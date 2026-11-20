@@ -2,6 +2,7 @@
 /// @brief The imaging module's vector content: paths flattened, strokes, shape layers drawn, and a layer's content and
 /// pixels changed and undone together.
 
+#include "affresco/core/Json.hpp"
 #include "affresco/imaging/Document.hpp"
 #include "affresco/imaging/Shapes.hpp"
 
