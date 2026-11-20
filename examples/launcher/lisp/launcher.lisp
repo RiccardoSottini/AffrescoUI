@@ -27,6 +27,9 @@
 
 (defn go "Shows a page." [page] (set "state.page" page))
 
+(defn show-kind "Shows the apps of a category on the Apps page: all, the person's own, or an example's category." [kind]
+  (set "state.kind" kind))
+
 (defn clear-toasts "Takes the notes away." [] (set "state.toasts" []))
 
 (defn toast "A note at the bottom for a few seconds, in red when it is an error." [message error]
@@ -60,6 +63,51 @@
   :title ~(t "apps.search") :description ~(t "command.findApp.about") :category ~(t "category.view") :icon "search" []
   (go :apps)
   (focus "#appSearch"))
+
+;;; What an agent can do with the apps, as the person would
+
+(defn app-named? "Whether an app has that name or folder, in lower case." [app wanted]
+  (contains? #{(-> app :name str/lower-case) (-> app :id str str/lower-case)} wanted))
+
+(defn named-app "The app of the cards with that name or folder, ignoring case, or nil." [name]
+  (let [wanted (-> name str str/trim str/lower-case)]
+    (find #(app-named? % wanted) computed.everyApp)))
+
+(defn open-named "Opens the app of that name, or says there is none." [name]
+  (if-some [app (named-app name)]
+    (open-app app)
+    (toast (t "toast.noSuchApp" {:name name}) true)))
+
+(defcommand appOpen "Opens an app by its name: an example, or one of the person's own."
+  :title ~(t "command.appOpen") :description ~(t "command.appOpen.about") :category ~(t "category.apps")
+  :icon "app-window"
+  :arguments {:name {:type string :description "The app's name, like Flow or Reading list"}}
+  [name]
+  (open-named name))
+
+(defn create-named "Fills in the Create page and makes the app, as Create would: a name it refuses stays there, said."
+  [name from describe]
+  (let [example (named-app (or from ""))
+        start (if (or (nil? example) (:mine example)) "blank" (:id example))]
+    (set "state.create" {:name (str name)
+                         :from start
+                         :describe (str (or describe ""))
+                         :features []
+                         :tried false
+                         :busy false
+                         :error ""})
+    (go :create)
+    ; after the update, so the name's checks and folder are worked out from the name just set
+    (after 1 create-app)))
+
+(defcommand appCreate "Makes a new app and opens it: blank, or a copy of an example, its assistant asked first for a description."
+  :title ~(t "command.appCreate") :description ~(t "command.appCreate.about") :category ~(t "category.apps")
+  :icon "circle-plus"
+  :arguments {:name {:type string :description "The new app's name, like My budget"}
+              :from {:type [string null] :description "The example it starts from, like Flow; a blank app when left out"}
+              :describe {:type [string null] :description "What its assistant is asked to build first, in the person's words"}}
+  [name from describe]
+  (create-named name from describe))
 
 ;;; Reading the apps folder
 

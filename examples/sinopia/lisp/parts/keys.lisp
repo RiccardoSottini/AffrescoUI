@@ -29,19 +29,31 @@
 
 (defkey "mod+a" {:when ~(not context.textInputFocus) :do selectAll})
 
+(defkey "mod+g" {:when ~(not context.textInputFocus) :do group-objects})
+
+(defkey "mod+shift+g" {:when ~(not context.textInputFocus) :do ungroup-objects})
+
 (defkey "mod+b" {:when ~(not context.textInputFocus) :do toggle-text :with {:key bold}})
 
 (defkey "mod+i" {:when ~(not context.textInputFocus) :do toggle-text :with {:key italic}})
 
 (defkey "mod+u" {:when ~(not context.textInputFocus) :do toggle-text :with {:key underline}})
 
-(defkey "mod+l" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align left}}})
+(defkey "mod+l"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align left}}
+   {:when ~(some? state.editing) :do set-align :with {:align left}}])
 
-(defkey "mod+e" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align center}}})
+(defkey "mod+e"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align center}}
+   {:when ~(some? state.editing) :do set-align :with {:align center}}])
 
-(defkey "mod+r" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align right}}})
+(defkey "mod+r"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align right}}
+   {:when ~(some? state.editing) :do set-align :with {:align right}}])
 
-(defkey "mod+j" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align justify}}})
+(defkey "mod+j"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align justify}}
+   {:when ~(some? state.editing) :do set-align :with {:align justify}}])
 
 (defkey "mod+shift+." {:when ~(not context.textInputFocus) :do grow-text :with {:by 1}})
 

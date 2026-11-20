@@ -6,7 +6,7 @@
 			"fields": {
 				"day": {
 					"type": "enum",
-					"values": ["today", "yesterday"]
+					"values": ["today", "yesterday", "ago2", "ago3", "ago4", "ago5", "ago6"]
 				},
 				"time": {
 					"type": "string",

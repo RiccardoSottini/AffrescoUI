@@ -95,7 +95,7 @@
          :isOpen ~state.change.open
          :onClick open-change))
     (two-step-box)
-    `(node#label-passkeys :style fieldLabel :text ~(t "passkeys") :role heading)
+    `(node#label-passkeys :style subheading :text ~(t "passkeys") :role heading)
     `(node#passkeysCaption :style hint :text ~(t "passkeysCaption"))
     (repeat [passkey state.myPasskeys :key passkey.id]
       (passkey-row passkey))
@@ -137,22 +137,32 @@
      (node#twoStepBox-end :height 4 :color transparent)))
 
 (defview two-step-switch "Two-step on or off: turning it on sets it up first, turning it off asks the password." []
-  `(row#row-two-step :height 36 :gap 12 :alignItems center :anchors {:left 12 :right 12}
-     (toggle#twoStep :width 44
-       :height 24
-       :role switch
-       :focusable true
-       :label ~(t "twoStep")
-       :description ~(t "twoStepState" {:on state.user.twoStep})
-       :checked ~state.user.twoStep
-       :activeColor @color.accent
-       :trackColor @color.border
-       :onChange ~(handler set-two-step event.value)
-       :keys {:space ~(handler set-two-step (not state.user.twoStep))
-              :enter ~(handler set-two-step (not state.user.twoStep))})
-     (column#column-two-step :grow 1 :height 36
-       (node#label-two-step-name :style fieldLabel :text ~(t "twoStep"))
-       (node#label-two-step-state :style hint :text ~(t "twoStepState" {:on state.user.twoStep})))))
+  `(row#row-two-step :height 52 :gap 12 :alignItems center :anchors {:left 12 :right 12}
+     (node#two-step-icon :style itemIcon :icon shield-check)
+     (column#column-two-step :style itemText
+       (node#label-two-step-name :style itemTitle :text ~(t "twoStep"))
+       (node#label-two-step-state :style itemHint :text ~(t "twoStepState" {:on state.user.twoStep})))
+     ~(two-step-toggle)))
+
+(defview two-step-toggle "Two-step's switch: a pill, the accent while on, its knob sliding to the side it is at." []
+  `(node#twoStep :width 44
+     :height 24
+     :radius 12
+     :color ~(if state.user.twoStep "@color.accent" "@color.border")
+     :cursor hand
+     :role switch
+     :focusable true
+     :label ~(t "twoStep")
+     :description ~(t "twoStepState" {:on state.user.twoStep})
+     :selected ~state.user.twoStep
+     :transition {:color 120}
+     :onClick ~(handler set-two-step (not state.user.twoStep))
+     (node#twoStep-knob :width 18
+       :height 18
+       :radius 9
+       :color "#ffffff"
+       :anchors {:left ~(if state.user.twoStep 23 3) :top 3}
+       :shadow {:y 1 :blur 3 :color @color.shadow})))
 
 (defview trusted-device "A device two-step remembers, for how long, and a way to forget it." [device]
   `(row#row-trusted :when ~state.user.twoStep :height 18 :gap 12 :alignItems center :anchors {:left 12 :right 12}

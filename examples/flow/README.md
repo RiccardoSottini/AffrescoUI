@@ -1,6 +1,6 @@
 # Flow, an issue tracker
 
-Boards in the sidebar, an inbox, sprints and projects, a grouped list, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: an app with no C++ of its own, which the stock host runs.
+Boards in the sidebar, an inbox, sprints, projects with their own pages (milestones and updates) and a roadmap, a grouped list, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: an app with no C++ of its own, which the stock host runs.
 
 ```sh
 ./build/affrescoui_launcher examples/flow/lisp/index.screen.lisp
@@ -20,7 +20,7 @@ the handlers name them.
 | `lisp/flow.lisp` | The program: every function and command (cards, undo, filters, the timeline, marking, the inbox) |
 | `lisp/board.lisp` | The board's settings, state and keys, the timeline's watch, presence from the host's channel |
 | `lisp/drawer.lisp` | The card drawer, included: notes, due date, labels, assignees, checklist, comments, attachments |
-| `lisp/issue.lisp`, `lisp/pages.lisp`, `lisp/select.lisp` | The issue page; the inbox, sprints and projects; marking several cards |
+| `lisp/issue.lisp`, `lisp/pages.lisp`, `lisp/select.lisp` | The issue page; the inbox, sprints, projects with each one's page and the roadmap; marking several cards |
 | `lisp/list.lisp`, `lisp/sidebar.lisp`, `lisp/views.lisp` | The list view; the sidebar; the insights, swimlanes, the timeline, the settings |
 | `lisp/locales/` | Its text, one file per language: English, Spanish and French |
 | `lisp/index.policy.lisp` | Its approval rules' example revisions (`affrescoui policy test`) |
@@ -34,10 +34,10 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 - **Screen documents in parts:** `include` of the board logic, the drawer and the views; components with `use` and `with`.
 - **State and expressions:** computed values, `watch`, `fuzzy` search, date functions (`dateMs`, `formatDate`, `daysBetween`, `addDays`).
-- **Widgets:** tabs, a virtualised table with sorting and resizable columns, the `timeline` (clips dragged to change dates or owner), the `calendar` date picker, a line chart, rich-text runs with links, the markdown `editor`, checkboxes, tooltips, toasts.
+- **Widgets:** tabs, a virtualised table with sorting and resizable columns, the `timeline` (clips dragged to change dates or owner; the roadmap's without track buttons or frame numbers), the `calendar` date picker, a line chart, rich-text runs with links, the markdown `editor`, checkboxes, tooltips, toasts.
 - **Drag and drop** between columns and swimlanes, and the same moves by keyboard (Alt+arrows, Cmd+arrows, the card menu).
 - **Commands:** titled actions in the command palette (Cmd+Shift+P), go to a card (Cmd+P), shortcuts, `enablement`, a context menu.
-- **Commands as tools:** an agent uses the board through typed commands (`cardMove`, `cardAssign`, `cardPriority`, `cardAdd`), listed and run by the MCP server's `list_commands` and `run_command`; `permissions.run` lets the first three run at once and makes `cardAdd` ask. A card that isn't there, or a column or a member by a name that isn't, changes nothing and the notice says so. The scenario `an-agent-uses-the-board` and the policy cases check them.
+- **Commands as tools:** an agent uses the board through typed commands (`cardMove`, `cardAssign`, `cardPriority`, `cardAdd`, `projectUpdate`), listed and run by the MCP server's `list_commands` and `run_command`; `permissions.run` lets the first three run at once and makes `cardAdd` and `projectUpdate` ask. A card that isn't there, or a column or a member by a name that isn't, changes nothing and the notice says so. The scenario `an-agent-uses-the-board` and the policy cases check them.
 - **Overlays:** the members popover, the modal date picker and settings sheet, the edit dialog.
 - **Settings** that persist (`settings` with a schema): language, work-in-progress warnings, first day of the week.
 - **Themes and locales:** light and dark tokens; English, Spanish and French string tables with plurals.

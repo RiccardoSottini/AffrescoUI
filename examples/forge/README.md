@@ -16,7 +16,8 @@ a button to; its size and its signed catalogue make it a move of its own.
 `app.json` asks for what Forge uses, and the host asks the person before granting any of it: the folder to work in
 (`workspace`, read and written), the programs its services run (the login shell, sh for the debugger's
 terminal, git, clangd, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
-and the assistant. Without the folder it shows the welcome page. The layout, the theme and the settings are kept in
+and the assistant. With no file open it shows the welcome page: Start (New File, Open Folder, Clone Git Repository, Go
+to File, Run a Command), the folder's recent files, a walkthrough and the daily keys. The layout, the theme and the settings are kept in
 `--data DIR`.
 
 ## How it is built
@@ -39,7 +40,7 @@ its own folder, `features/<name>/`: its JSON and its scenarios.
 | `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly by the `gitStatus` and `gitBranches` expression functions, and `diffLines` compares a file with HEAD |
 | `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 | `editing` | The find and replace bar (`mod+f`, `mod+alt+f`): plain, whole word, case-sensitive or a regular expression, in the file or in the selection (`alt+l`), with the match count; word wrap (`alt+z`), bracket matching and indentation guides as settings; `editing.scenarios.json` |
-| `workbench` | The secondary side bar with the outline (`mod+alt+b`), breadcrumbs, the minimap, the inline or side-by-side diff, Open Recent (`ctrl+r`), pinned tabs, moving an editor between groups, and settings and keybindings as JSON; `workbench.scenarios.json`, `layout.scenarios.json` |
+| `workbench` | The secondary side bar with the outline (`mod+alt+b`), breadcrumbs, the minimap, the inline or side-by-side diff, Open Recent (`ctrl+r`), pinned tabs, moving an editor between groups, Next and Previous Editor (`mod+alt+right`, `mod+alt+left`), Close Editors to the Right, Close All Editors (`mod+k mod+w`), Reopen Closed Editor, the editor's menu (More Actions, or a right click on the tabs), and settings and keybindings as JSON; `workbench.scenarios.json`, `layout.scenarios.json` |
 
 Forge has no natives: everything outside the screen goes through the library's services, and each one's root is the
 folder the person chose, so nothing reaches outside it. A save writes a file beside the old one, then renames it over it.

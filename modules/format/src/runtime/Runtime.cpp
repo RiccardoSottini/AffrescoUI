@@ -8,6 +8,8 @@
 #include "ProgramConsole.hpp"
 #include "Reference.hpp"
 
+#include <chrono>
+
 namespace affresco::format {
 
 namespace {
@@ -19,6 +21,10 @@ struct ComposedHolder {
 	explicit ComposedHolder(VersionControl& versions) : composed(versions) {}
 	ComposedVersions composed; ///< The document with its features merged in (Composition.hpp).
 };
+
+/// @brief How long createWindow() waits at most for the images the first screen asks for, so its first frame shows
+/// them; a slower one arrives a frame later, as images do after it.
+constexpr std::chrono::milliseconds firstFrameImageWait{400};
 
 } // namespace
 
@@ -107,6 +113,7 @@ Window& Runtime::createWindow(Application& app) {
 	impl_->serviceCalls.setExecutor(&app);      // and of services
 	impl_->otherWindows.setApplication(&app);   // the "windows" section opens its windows in it
 	build(window);
+	(void)impl_->document.images().finishPending(firstFrameImageWait); // the first frame shows the screen's images
 	return window;
 }
 

@@ -19,13 +19,17 @@
   :title ~(t "setting.blindsMs") :description ~(t "setting.blindsMs.about"))
 
 (defcustom energy.dailyBudget
-  12 "The energy a day should stay under, in kWh, shown on the Energy page."
+  30 "The energy a day should stay under, in kWh, shown on the Energy page."
   :type integer :minimum 5 :maximum 60
   :title ~(t "setting.dailyBudget") :description ~(t "setting.dailyBudget.about"))
 
 (defcustom devices.notify
   true "Show a note in the corner when a device has answered."
   :type boolean :title ~(t "setting.notify") :description ~(t "setting.notify.about"))
+
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
 
 (defcustom ui.language
   "en" "English, Spanish or French."
@@ -42,6 +46,10 @@
 (defstate devTab devices "The tab of the devices and controls.")
 
 (defstate devQuery "" "The text the devices' and rooms' tables are filtered by.")
+
+(defstate devFilter "" "What the devices' tables are narrowed to: empty for all, a room's name, or a connection.")
+
+(defstate devFilterOpen false "Whether the menu of the devices' filters is open.")
 
 (defstate settingsGroups
   [{:id home
@@ -70,8 +78,31 @@
 (defcomputed deviceMakers "Each device's maker, the room it is in, and how it is connected."
   {:door ["Keystead" 0 "Zigbee"] :vacuum ["Tidyworks" 1 "Wi-Fi"] :speaker ["Aurelle" 0 "Wi-Fi"]})
 
-(defcomputed deviceRows "The devices table's rows, those whose name holds the search."
-  (filter #(str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+(defcomputed connections "The ways the devices are connected." ["Zigbee" "Wi-Fi"])
+
+(defcomputed deviceFilters "The filters menu: every device, each room, each connection; the chosen one checked."
+  (concat [{:title (t "dev.filterAll")
+            :icon (if (= state.devFilter "") "check" "")
+            :run "pick-device-filter"
+            :with {:filter ""}}
+           {:separator true}]
+          (map (fn [room]
+                 {:title room.name
+                  :icon (if (= state.devFilter room.name) "check" "")
+                  :run "pick-device-filter"
+                  :with {:filter room.name}})
+               state.rooms)
+          [{:separator true}]
+          (map (fn [via]
+                 {:title via :icon (if (= state.devFilter via) "check" "") :run "pick-device-filter" :with {:filter via}})
+               computed.connections)))
+
+(defcomputed deviceRows
+  "The devices table's rows: those in the room or on the connection chosen, whose name holds the search."
+  (filter #(and (str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+                (or (= state.devFilter "")
+                    (= (get-in % [:cells 3]) state.devFilter)
+                    (= (get-in % [:cells 4]) state.devFilter)))
           (map (fn [it]
                  {:id it.id
                   :cells [it.name
@@ -88,8 +119,12 @@
    {:id "area" :title (t "table.area") :width (floor (* computed.tableWidth 0.18))}
    {:id "via" :title (t "table.integration") :width (floor (* computed.tableWidth 0.18))}])
 
-(defcomputed roomEntityRows "The rooms table's rows: each room's lights and climate, those whose name holds the search."
-  (filter #(str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+(defcomputed roomEntityRows
+  "The rooms table's rows: each room's lights and climate, the room chosen (or all), those whose name holds the search."
+  (filter #(and (str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+                (or (= state.devFilter "")
+                    (contains computed.connections state.devFilter)
+                    (= (get-in % [:cells 0]) state.devFilter)))
           (map-indexed (fn [index it]
                          {:id (str "r" index)
                           :cells [it.name
@@ -258,27 +293,33 @@
      :height 1
      :color @divider))
 
-(defview device-filters "The filters button, not there yet." []
+(defview device-filters "The filters button: it opens a menu that narrows the tables to a room or a connection." []
   `(node#devFilters :when ~(= state.settingsView :devices)
      :style button
      :icon filter
-     :text ~(t "dev.filters")
-     :color transparent
-     :hover {:color transparent}
-     :textColor @muted
+     :text ~(if (= state.devFilter "") (t "dev.filters") state.devFilter)
+     :color ~(if (= state.devFilter "") "transparent" "@accentSoft")
+     :hover {:color @cardHover}
+     :textColor ~(if (= state.devFilter "") "@text" "@accent")
      :borderWidth 1
-     :borderColor @border
+     :borderColor ~(if (= state.devFilter "") "@border" "@accent")
      :anchors {:left 24 :top ~(+ computed.devTop 16)}
-     :width 112
+     :width 136
      :height 40
      :radius 8
-     :tooltip ~(t "dev.filtersSoon")
-     :cursor arrow
-     :disabled true))
+     :cursor hand
+     :focusable true
+     :role button
+     :label ~(t "dev.filters")
+     :tooltip ~(t "dev.filtersTip")
+     :isOpen ~state.devFilterOpen
+     :onClick {:toggle state.devFilterOpen}
+     (node#devFilterMenu :use popMenu
+       :with {:open state.devFilterOpen :width 220 :placement below :items ~computed.deviceFilters})))
 
 (defview device-search "The search over the devices or the rooms." []
   `(node#devSearchBox :when ~(= state.settingsView :devices)
-     :anchors {:left 148 :right 24 :top ~(+ computed.devTop 16)}
+     :anchors {:left 172 :right 24 :top ~(+ computed.devTop 16)}
      :height 40
      :radius 8
      :color @card

@@ -52,7 +52,7 @@
        :textColor ~(or-else computed.palette.dark2 computed.palette.dark1)
        :runs [{:text ~(-> (map :id state.deck.slides) (indexOf slide.id) inc text) :size 12}])))
 
-(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink or text, at its place."
+(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink, a table, a picture or text, at its place."
   {:o nil :prefix "" :layout nil :edit false}
   `(node :id ~(str prefix o.id)
      :let ~(object-measures)
@@ -67,6 +67,8 @@
      ~(object-shape)
      ~(object-icon)
      ~(object-ink)
+     (node :use slideTable :when ~(= o.kind :table) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
+     (node :use slidePicture :when ~(= o.kind :picture) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
      ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))
@@ -173,6 +175,7 @@
      :when ~editing
      :autofocus true
      :wrap true
+     :caret "state.caret"
      :bind ~(str "state.deck.slides["
                  state.current
                  "].objects["
@@ -230,7 +233,7 @@
      :fitText {:maxWidth ~(max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
                                   (if (and bullets (not prompt)) mark 0))
                                1)}
-     :align {:horizontal ~(case align :center "center" :right "end" "start")}
+     :align {:horizontal ~(case pa :center "center" :right "end" "start")}
      :runs [{:text ~(if (= (str/trim line) "") " " (str/trim line))
              :size ~pt
              :bold ~(or-else o.bold p.bold false)
@@ -249,7 +252,9 @@
   `(row :id ~(str prefix o.id "-p" n)
      :fitContent true
      :overflow visible
-     :let {:line ~(get lines n)
+     :alignSelf ~(case pa :center "center" :right "end" "start")
+     :let {:pa ~(if prompt align (or-else (get o.aligns n) align))
+           :line ~(get lines n)
            :level ~(get levels n)
            :pt ~(max (if bullets (- size (* 4 (min (get levels n) 2))) size) 6)
            :lead ~(if bullets (* 36 (get levels n)) 0)

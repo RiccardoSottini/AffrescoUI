@@ -11,7 +11,7 @@
 
 (defstate gameMenu {:open false :x 0 :y 0})
 
-(defstate properties {:open false :tab general :verify "" :browse false})
+(defstate properties {:open false :tab general :verify ""})
 
 (defcomputed manageDrive "The name of the drive the game being managed is installed on."
   (t (str "storage." (or-else computed.manageGame.drive "main"))))
@@ -27,6 +27,8 @@
      {:name "settings.cfg" :icon "file" :gb 0.0001}]))
 
 (defstate uninstall {:open false})
+
+(defstate filesShown false)
 
 (defcomputed manageGame "The game being managed." (find #(= (:id %) state.manage) data.games))
 
@@ -235,7 +237,7 @@
                 :done (t "properties.verified")
                 "")
        :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))
-     (column#properties-files :when ~state.properties.browse
+     (column#properties-files :when ~state.filesShown
        :anchors {:left 0 :right 0 :top 176 :bottom 0}
        :scroll vertical
        :role list
@@ -245,8 +247,10 @@
 (defview file-actions "Browsing the files, checking them, and moving the game to the other drive." []
   `(row :anchors {:left 0 :right 0 :top 108} :height 36 :gap 8 :alignItems center
      (node#properties-browse :use quietButton
-       :with {:title ~(t "properties.browse") :icon folder-open :on ~state.properties.browse}
-       :onClick {:toggle state.properties.browse})
+       :with {:title ~(t (if state.filesShown "properties.hideFiles" "properties.browse"))
+              :icon folder-open
+              :on ~state.filesShown}
+       :onClick toggle-files)
      (node#properties-verify :use quietButton
        :with {:title ~(t "properties.verify") :icon shield-check}
        :disabled ~(= state.properties.verify "running")

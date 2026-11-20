@@ -52,10 +52,12 @@
 					{ "type": "path", "id": "{{prefix + o.id + '-ink'}}", "when": "{{o.kind == 'ink'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}",
 					  "d": "{{o.d ?? ''}}", "viewBox": "{{'0 0 ' + (o.vw ?? box.w) + ' ' + (o.vh ?? box.h)}}", "fit": "fill",
 					  "stroke": "{{o.color ?? '#1f2933'}}", "strokeWidth": "{{o.width ?? 3}}", "strokeCap": "round", "strokeJoin": "round" },
+					{ "use": "slideTable", "when": "{{o.kind == 'table'}}", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "w": "{{box.w}}", "h": "{{box.h}}", "edit": "{{edit}}" } },
+					{ "use": "slidePicture", "when": "{{o.kind == 'picture'}}", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "w": "{{box.w}}", "h": "{{box.h}}" } },
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
-						"type": "editor", "id": "{{'edit-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
+						"type": "editor", "id": "{{'edit-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true, "caret": "state.caret",
 						"bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].text'}}",
 						"note": "The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor",
 						"let": {
@@ -92,7 +94,9 @@
 									{
 										"type": "row",
 										"id": "{{prefix + o.id + '-p' + n}}", "repeat": { "for": "n", "in": "{{filter(range(length(lines)), column[it] == k)}}" }, "fitContent": true, "overflow": "visible",
+										"alignSelf": "{{pa == 'center' ? 'center' : pa == 'right' ? 'end' : 'start'}}",
 										"let": {
+											"pa": "{{(prompt ? null : (o.aligns ?? [])[n]) ?? align}}",
 											"line": "{{lines[n]}}",
 											"level": "{{levels[n]}}",
 											"pt": "{{max(bullets ? size - 4 * min(levels[n], 2) : size, 6)}}",
@@ -106,7 +110,7 @@
 											  "runs": "{{[numbering != null ? { text: (numbering == 'A.' ? slice('ABCDEFGHIJKLMNOPQRSTUVWXYZ', (ordinal - 1) % 26, (ordinal - 1) % 26 + 1) : numbering == 'a)' ? slice('abcdefghijklmnopqrstuvwxyz', (ordinal - 1) % 26, (ordinal - 1) % 26 + 1) : numbering == 'I.' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'][ordinal - 1] ?? text(ordinal) : text(ordinal)) + (numbering == '1)' || numbering == 'a)' ? ')' : '.'), size: pt, color: ink, font: o.font ?? 'default' } : o.bulletIcon != null ? { icon: o.bulletIcon, size: pt * 0.75, color: ink } : { text: '•', size: pt, color: ink }]}}" },
 											{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-t'}}", "wrap": true,
 											  "fitText": { "maxWidth": "{{max(((turned ? frame.h : frame.w) - size * (cols - 1)) / cols - lead - (bullets && !prompt ? mark : 0), 1)}}" },
-											  "align": { "horizontal": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}" },
+											  "align": { "horizontal": "{{pa == 'center' ? 'center' : pa == 'right' ? 'end' : 'start'}}" },
 											  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}", "font": "{{o.font ?? (contains(['title', 'ctrTitle'], o.ph ?? '') ? computed.headingFont : computed.bodyFont)}}",
 											             "italic": "{{o.italic ?? false}}", "color": "{{prompt ? computed.palette['dark1.2'] : ink}}",
 											             "underline": "{{!prompt && ((o.underline ?? false) || o.link != null)}}", "strike": "{{!prompt && (o.strike ?? false)}}",

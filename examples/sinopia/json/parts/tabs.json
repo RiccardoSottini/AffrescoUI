@@ -67,7 +67,7 @@
 							{ "id": "r-para-2", "use": "rbRow", "children": [
 								{ "id": "{{'b-align-' + a[0]}}",
 								  "repeat": { "for": "a", "in": "{{[['left', 'align-left', 'Align Left (Ctrl+L)'], ['center', 'align-center', 'Center (Ctrl+E)'], ['right', 'align-right', 'Align Right (Ctrl+R)'], ['justify', 'align-justify', 'Justify (Ctrl+J)']]}}" }, "use": "rbSmall", "with": { "icon": "{{a[1]}}", "on": "{{computed.first != null && (computed.first.align ?? computed.firstPlaceholder.align ?? 'left') == a[0]}}" },
-								  "tooltip": "{{a[2]}}", "onClick": { "run": "setObjects", "with": { "props": "{{ {align: a[0]} }}" } } },
+								  "tooltip": "{{a[2]}}", "onClick": { "run": "setAlign", "with": { "align": "{{a[0]}}" } } },
 								{ "id": "b-direction", "use": "rbSmall", "with": { "icon": "arrow-down-up", "menu": true }, "tooltip": "Text Direction", "onClick": { "run": "openDrop", "with": { "id": "b-direction" } } },
 								{ "id": "b-anchor", "use": "rbSmall", "with": { "icon": "align-vertical-justify-center", "menu": true }, "tooltip": "Align Text",
 								  "onClick": { "run": "openDrop", "with": { "id": "b-anchor" } } },
@@ -122,10 +122,10 @@
 						{ "id": "b-ins-new-slide", "use": "rbBig", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 }, "onClick": { "run": "newSlide", "with": { "layout": "content" } } }
 					] },
 					{ "id": "g-ins-tables", "use": "rbGroup", "with": { "title": "Tables" }, "children": [
-						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "width": 46, "enabled": false }, "tooltip": "Inserting a table isn't available yet" }
+						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "menu": true, "width": 46 }, "tooltip": "Insert a table: pick its size in the grid", "onClick": "openTableGrid" }
 					] },
 					{ "id": "g-ins-images", "use": "rbGroup", "with": { "title": "Images" }, "children": [
-						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52, "enabled": false }, "tooltip": "Inserting pictures isn't available yet" },
+						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52 }, "tooltip": "Insert a PNG or JPEG picture from a file", "onClick": "insertPicture" },
 						{ "id": "b-ins-album", "use": "rbBig", "with": { "icon": "images", "title": "Photo\nAlbum", "width": 50, "enabled": false }, "tooltip": "A photo album isn't available yet" }
 					] },
 					{ "id": "g-ins-illustrations", "use": "rbGroup", "with": { "title": "Illustrations" }, "children": [

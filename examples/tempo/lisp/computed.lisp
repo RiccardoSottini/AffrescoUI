@@ -24,8 +24,15 @@
        :sound (get-in computed.library [state.playingTrack :sound])}
       (get computed.playing.tracks state.playingTrack)))
 
-(defcomputed sound "The sound the song playing plays: its own, or the beat."
-  (or-else computed.track.sound "beat"))
+(defcomputed sound "The sound the song playing plays: its own, or the beat on the deck playing."
+  (or-else computed.track.sound (if (= state.soundOn "beat2") "beat2" "beat")))
+
+(defcomputed eqBands "The equaliser's bands as the sound takes them: each band's frequency and gain (flat when off)."
+  (map (fn [band]
+         {:frequency band.frequency
+          :gain (if state.eqOn (-> (curve state.eq band.at) (- 0.5) (* 24)) 0)
+          :q 1.1})
+       state.bands))
 
 (defcomputed loudness "How loud the sound plays, from 0 to 1."
   (if state.muted 0 (/ state.volume 100)))
@@ -94,10 +101,12 @@
                       (number (get (str/split (or-else it.time "0:0") ":") 1)))))
             60)))
 
-(defcomputed songMenuItems "The song menu: play, play next, add to the queue or a playlist, like, remove."
+(defcomputed songMenuItems "The song menu: play, play next, add to (or take out of) the queue, add to a playlist, like, remove."
   (concat [{:title (t "song.play") :run "play" :with {:list state.songMenu.list :track state.songMenu.track}}
            {:title (t "song.playNext") :run "playNext" :with {:key computed.songMenuKey}}
-           {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}}
+           (if (contains state.queue computed.songMenuKey)
+             {:title (t "song.unqueue") :run "removeFromQueue" :with {:key computed.songMenuKey}}
+             {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}})
            {:separator true}
            {:title (t "song.addToPlaylist")
             :submenu (concat (map-indexed (fn [index it]

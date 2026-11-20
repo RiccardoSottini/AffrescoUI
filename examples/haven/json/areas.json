@@ -64,7 +64,7 @@
 												"label": "{{room.name}}",
 												"onClick": [{ "run": "pickRoom", "with": { "id": "{{'r' + r}}" } }, { "set": "state.page", "to": "home" }],
 												"children": [
-													{ "type": "image", "file": "{{room.image}}", "fit": "cover", "radius": 12, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 56 } },
+													{ "type": "image", "file": "{{room.image}}", "fit": "cover", "radius": 12, "color": "{{room.tint}}", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 56 } },
 													{ "type": "label", "text": "{{room.name}}", "font": "heading", "textColor": "@text", "anchors": { "left": 16, "top": "{{computed.areaHeight - 50}}" }, "fitText": true },
 													{ "type": "label", "font": "small", "textColor": "@muted", "icon": "thermometer",
 														"text": " {{room.temp}}°  ·  {{room.humidity}}%  ·  {{t('summary.lights', { on: lit, total: length(room.lights) })}}",

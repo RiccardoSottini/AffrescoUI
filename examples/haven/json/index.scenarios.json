@@ -371,6 +371,110 @@
 			]
 		},
 		{
+			"name": "energy-days",
+			"note": "The energy page steps through today and the six days before it, or picks one from its menu; the figures follow the day",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "expect": { "node": "#energyDay", "text": "Today" } },
+				{ "click": "#energyPrev" },
+				{ "expect": { "state": "energyDay", "is": 1 } },
+				{ "expect": { "node": "#energyDay", "text": "Yesterday" } },
+				{ "expect": { "node": "#todayFigure", "text": "26.2 kWh" } },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "click": "#energyPrev" },
+				{ "expect": { "state": "energyDay", "is": 6 } },
+				{ "expect": { "node": "#energyDay", "text": "6 days ago" } },
+				{ "click": "#energyNext" },
+				{ "expect": { "state": "energyDay", "is": 5 } },
+				{ "click": "#energyPick" },
+				{ "click": { "role": "menuitem", "name": "Today" } },
+				{ "expect": { "state": "energyDay", "is": 0 } },
+				{ "expect": { "state": "energyPickOpen", "is": false } }
+			]
+		},
+		{
+			"name": "log-and-history-periods",
+			"note": "The activity log shows a period of the last seven days, from its field or its bar's calendar; history shows today or a day before, its temperature that day's",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "expect": { "node": "#logPeriod", "property": "name", "is": "Yesterday – Today" } },
+				{ "expect": { "node": "#logDay", "nth": 1, "property": "name", "is": "Yesterday" } },
+				{ "click": "#logPeriod" },
+				{ "click": { "role": "menuitem", "name": "Last 7 days" } },
+				{ "expect": { "state": "logPeriod", "is": "week" } },
+				{ "expect": { "node": "#logDay", "nth": 6, "property": "name", "is": "6 days ago" } },
+				{ "expect": { "node": "#logRow", "nth": 18, "property": "name", "is": "Ceiling: turned off, 08:10" } },
+				{ "click": "#logRange" },
+				{ "click": { "role": "menuitem", "name": "Yesterday" } },
+				{ "expect": { "node": "#logDay", "nth": 0, "property": "name", "is": "Yesterday" } },
+				{ "expect": { "node": "#logRow", "nth": 0, "property": "name", "is": "Good night: triggered, 23:00" } },
+				{ "key": "mod+6" },
+				{ "expect": { "node": "#histPeriod", "property": "name", "is": "Today, 00:00 – now" } },
+				{ "click": "#histPeriod" },
+				{ "click": { "role": "menuitem", "name": "2 days ago" } },
+				{ "expect": { "state": "histDay", "is": 2 } },
+				{ "expect": { "node": "#histPeriod", "property": "name", "is": "2 days ago, 00:00 – 24:00" } },
+				{ "click": "#histRange" },
+				{ "click": { "role": "menuitem", "name": "Today" } },
+				{ "expect": { "state": "histDay", "is": 0 } }
+			]
+		},
+		{
+			"name": "device-filters",
+			"note": "The devices' Filters menu narrows the tables to a room or a connection, and All shows everything again",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "Kitchen" } },
+				{ "expect": { "state": "devFilter", "is": "Kitchen" } },
+				{ "expect": { "state": "devFilterOpen", "is": false } },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "Zigbee" } },
+				{ "expect": { "state": "devFilter", "is": "Zigbee" } },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "All devices and rooms" } },
+				{ "expect": { "state": "devFilter", "is": "" } }
+			]
+		},
+		{
+			"name": "speaker-queue",
+			"note": "The speaker's dialog names its track; previous and next step through the queue, wrapping",
+			"steps": [
+				{ "click": "#deviceName", "nth": 2 },
+				{ "expect": { "node": "#infoTrack", "text": "Paper Lanterns  ·  The Quiet Rooms" } },
+				{ "click": "#infoNext" },
+				{ "expect": { "state": "media.track", "is": 1 } },
+				{ "expect": { "node": "#infoTrack", "text": "Slow Tide  ·  Marisol Grey" } },
+				{ "click": "#infoPrevious" },
+				{ "click": "#infoPrevious" },
+				{ "expect": { "state": "media.track", "is": 3 } }
+			]
+		},
+		{
+			"name": "hide-and-add-cards",
+			"note": "While arranging, a card's eye button takes it off the dashboard; Add card lists the cards taken off and puts one back",
+			"steps": [
+				{ "click": "#dashMore" },
+				{ "click": { "role": "menuitem", "name": "Arrange cards" } },
+				{ "expect": { "node": "#editAddCard", "property": "tooltip", "is": "Every card is already on this dashboard" } },
+				{ "click": "#editHide", "nth": 1 },
+				{ "expect": { "state": "hiddenCards", "is": ["scenes"] } },
+				{ "expect": { "state": "editing", "is": true } },
+				{ "expect": { "state": "cardEdit.open", "is": false } },
+				{ "click": "#editHide", "nth": 3 },
+				{ "expect": { "state": "hiddenCards", "is": ["scenes", "cover"] } },
+				{ "click": "#editAddCard" },
+				{ "click": { "role": "menuitem", "name": "Scenes" } },
+				{ "expect": { "state": "hiddenCards", "is": ["cover"] } },
+				{ "expect": { "state": "addCardOpen", "is": false } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [
@@ -378,7 +482,7 @@
 				{ "click": "#energyNext" },
 				{ "expect": { "node": "#energyDay", "text": "Today" } },
 				{ "expect": { "state": "toast.open", "is": false } },
-				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "This demo keeps only today" } },
+				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "The page keeps today and the six days before it" } },
 				{ "key": "mod+comma" },
 				{ "click": "#settingsRow", "nth": 0 },
 				{ "click": "#devAdd" },

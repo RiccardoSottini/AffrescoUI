@@ -435,6 +435,7 @@
      :isOpen ~state.issueTagOpen
      :onClick {:toggle state.issueTagOpen}
      :runs [{:text "●" :font symbols :size 10 :color ~(str "@" computed.card.tag)}
+            " "
             ~(t (str "tag." computed.card.tag))]
      (node#tagPicker :style pickMenu
        :overlay {:placement below :open state.issueTagOpen :dismiss outside :modal true}

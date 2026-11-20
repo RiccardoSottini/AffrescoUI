@@ -30,10 +30,10 @@ was at the start of this work; **Now** is the current state.
 | Game page | Gear (properties), info and favourite buttons | missing | done |
 | Game page | Section tabs: Store Page, DLC, Player hub, Discussions, Guides, Support | missing | done |
 | Game page | Activity feed with a "say something" box and friend posts | partial | done |
-| Game page | Friends who play, achievements panel, screenshots, notes, DLC, controller info | partial | partial |
+| Game page | Friends who play, achievements panel, screenshots, notes, DLC, controller info | partial | done |
 | Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | done |
 | Game page | Uninstall with a confirmation | done | done |
-| Store | Store sub-navigation (For you, Fresh, Categories, Rewards, News, Experiments) and search | missing | partial |
+| Store | Store sub-navigation (For you, Fresh, Categories, Rewards, News, Experiments) and search | missing | done |
 | Store | Spotlight carousel: big tile, screenshots that change on hover, price, tags | partial | done |
 | Store | Special offers with discount badges and old/new prices | missing | done |
 | Store | Browse by category tiles | missing | done |
@@ -52,7 +52,7 @@ was at the start of this work; **Now** is the current state.
 | Settings | Interface: language, start page, theme-like options | partial | done |
 | Settings | Downloads: region, bandwidth limit, schedule, clear cache | partial | done |
 | Settings | Storage manager: drives with usage bars by game, move and uninstall | missing | done |
-| Community | Community hub page: activity, screenshots, discussions | missing | partial |
+| Community | Community hub page: activity, screenshots, discussions | missing | done |
 | Profile | Profile page: avatar, level, showcase, recent activity | missing | done |
 | TV mode | Big-screen mode entry and its home | missing | done |
 | Keyboard | Every action reachable by keyboard, focus visible, shortcuts | partial | done |
@@ -69,15 +69,18 @@ Counts after round 4 (a look of its own, and every client control works): done 4
 (merged, compact): about 80,000, estimated from the compact document's size (282,485 bytes, against 236,426 before
 this round; the client's controls, the player hub and their strings in three languages).
 
+Round 5 (store bar, player hub, game page panels): the store bar's Rewards (a points shop that purchases fill) and
+Experiments (a discovery queue, hiding owned games) work and the bar lights the page shown; the player hub has a
+Screenshots tab, a screenshot opens big, and a post opens on its thread with replies, a helpful vote and a reply box;
+the game page shows your own screenshots (F12 while playing, a viewer that steps and deletes) and the controller's
+layout per game; properties browse the installed files. Three partial rows are done.
+
 ## Left for later
 
 Each partial row and each disabled control, with what it needs and a priority: P1 daily, P2 occasional, P3 rare.
 
 | What | Needs | Priority |
 | --- | --- | --- |
-| Community hub: opening a post and replying | JSON only: a post page and a replies model | P2 |
-| Game page panels: own screenshots and full controller info | JSON only: a screenshots model and a controller panel | P3 |
-| Properties: a compatibility tab | Nothing to choose with invented games that never run | P3 |
+| Properties: a compatibility tab | Nothing to choose with invented games | P3 |
 | TV mode: Settings inside couch mode | JSON only: a couch settings row | P3 |
-| Store bar: Rewards and Experiments (disabled, with a tooltip) | JSON only: a points shop and an experiments page | P3 |
 | Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |

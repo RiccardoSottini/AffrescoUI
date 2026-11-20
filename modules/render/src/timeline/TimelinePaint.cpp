@@ -51,6 +51,7 @@ struct Scene {
 	std::optional<TimelineItem> trimmed;  ///< The clip whose edge is being dragged.
 	bool trimStart;                       ///< Whether that edge is the start.
 	double trimTime;                      ///< Where that edge is.
+	bool buttons;                         ///< Whether the headers show their mute and lock buttons.
 
 	/// @brief Where a time is on screen.
 	/// @param time In seconds.
@@ -119,7 +120,7 @@ void paintTicks(const Scene& scene, TimeFormat format, float width) {
 		if(at > last) break;
 		const float x = scene.x(at);
 		scene.painter.fillRect({x, f.top + rulerHeight - 12.0f, x + 1.0f, f.top + rulerHeight}, tick);
-		if(scene.font)
+		if(scene.font && format != TimeFormat::None)
 			scene.painter.drawText(*scene.font, codepointsOf(formatTime(at, scene.model.fps, format)),
 			                       {x + 3.0f, f.top + scene.font->ascent() + 2.0f}, scene.colors.text);
 	}
@@ -199,7 +200,7 @@ void paintHeader(const Scene& scene, const RowBox& box, bool hasHeader) {
 		scene.painter.drawText(*scene.font, codepointsOf(track.label.empty() ? track.id : track.label),
 		                       {indent + chevronWidth, centredBaseline(*scene.font, box.middle)},
 		                       track.muted ? scene.colors.text.withAlpha(0.5f) : scene.colors.text);
-	paintButtons(scene, box, track);
+	if(scene.buttons) paintButtons(scene, box, track);
 }
 
 /// @brief Draws a track's clips, but not the dragged ones, which paintOver draws where they go.
@@ -219,8 +220,8 @@ void paintClips(const Scene& scene, const RowBox& box) {
 		const float x0 = std::max(scene.x(start), scene.laneLeft), x1 = std::min(scene.x(end), f.right);
 		if(x1 < scene.laneLeft || x0 > f.right || x1 <= x0) continue;
 		const Rect area{x0, box.top + 3.0f, x1, box.bottom - 3.0f};
-		scene.painter.fillRoundedRect(area, CornerRadii::all(4.0f),
-		                              clip.color.value_or(scene.colors.clip).withAlpha(fade));
+		const Color fill = clip.color.value_or(scene.colors.clip);
+		scene.painter.fillRoundedRect(area, CornerRadii::all(4.0f), fill.withAlpha(fill.a * fade));
 		if(selected) scene.painter.strokeRoundedRect(area, CornerRadii::all(4.0f), 2.0f, scene.colors.accent);
 		if(!scene.font) continue;
 		const std::u32string label = codepointsOf(clip.label.empty() ? clip.id : clip.label);
@@ -375,7 +376,8 @@ void TimelineView::paint(Painter& painter) const {
 	                  dragDelta_,
 	                  trimming ? std::optional{pressedItem_} : std::nullopt,
 	                  drag_ == Drag::Start,
-	                  trimTime_};
+	                  trimTime_,
+	                  trackButtons_};
 	paintRuler(scene);
 	paintTicks(scene, format_, resolvedSize().x - lanes);
 	const auto& children = this->children();

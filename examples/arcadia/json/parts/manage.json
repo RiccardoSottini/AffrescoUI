@@ -13,12 +13,12 @@
 		"properties": {
 			"open": false,
 			"tab": "general",
-			"verify": "",
-			"browse": false
+			"verify": ""
 		},
 		"uninstall": {
 			"open": false
-		}
+		},
+		"filesShown": false
 	},
 	"computed": {
 		"manageGame": "{{find(data.games, it.id == state.manage)}}",
@@ -59,8 +59,7 @@
 					"to": {
 						"open": true,
 						"tab": "{{tab ?? 'general'}}",
-						"verify": "",
-						"browse": false
+						"verify": ""
 					}
 				}
 			]
@@ -656,18 +655,17 @@
 												},
 												"height": 36,
 												"gap": 8,
-												"alignItems": "center",
 												"children": [
 													{
 														"id": "properties-browse",
 														"use": "quietButton",
 														"with": {
-															"title": "{{t('properties.browse')}}",
+															"title": "{{t(state.filesShown ? 'properties.hideFiles' : 'properties.browse')}}",
 															"icon": "folder-open",
-															"on": "{{state.properties.browse}}"
+															"on": "{{state.filesShown}}"
 														},
 														"onClick": {
-															"toggle": "state.properties.browse"
+															"toggle": "state.filesShown"
 														}
 													},
 													{
@@ -710,7 +708,8 @@
 															}
 														}
 													}
-												]
+												],
+												"alignItems": "center"
 											},
 											{
 												"type": "label",
@@ -729,7 +728,7 @@
 											{
 												"type": "column",
 												"id": "properties-files",
-												"when": "{{state.properties.browse}}",
+												"when": "{{state.filesShown}}",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -738,7 +737,7 @@
 												},
 												"scroll": "vertical",
 												"role": "list",
-												"label": "{{t('properties.browse')}}",
+												"label": "{{t('properties.folder')}}",
 												"children": [
 													{
 														"type": "row",

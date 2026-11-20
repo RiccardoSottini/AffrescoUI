@@ -59,6 +59,7 @@ std::array<float, 4> numbers(const json& value, std::size_t count, std::string_v
 
 const std::array<const char*, 3> lightTypes{"directional", "point", "spot"}; ///< By LightType.
 const std::array<const char*, 3> alphaModes{"opaque", "mask", "blend"};      ///< By AlphaMode.
+const std::array<const char*, 3> displays{"solid", "wire", "bounds"};        ///< By Display.
 
 /// @brief An enumerator by name. @param names The names, by value. @param name The name. @param where Names it.
 /// @return The index. @throws DocumentError If unknown.
@@ -119,6 +120,8 @@ Node nodeFromJson(const json& value, const std::string& where) {
 	if(value.contains("camera") && !value["camera"].is_null())
 		node.camera = lensFromJson(value["camera"], where + ".camera");
 	node.visible = flag(value, "visible", true, where);
+	if(value.contains("display") && !value["display"].is_null())
+		node.display = static_cast<Display>(named(displays, text(value, "display", where), where + ".display"));
 	return node;
 }
 
@@ -198,6 +201,7 @@ json toJson(const Node& node) {
 	value["scale"] = toJson(node.transform.scale);
 	if(!node.mesh.empty()) value["mesh"] = node.mesh;
 	if(!node.material.empty()) value["material"] = node.material;
+	if(node.display != Display::Solid) value["display"] = displays[static_cast<std::size_t>(node.display)];
 	if(node.light) {
 		const Light& light = *node.light;
 		value["light"] = {{"type", lightTypes[static_cast<std::size_t>(light.type)]},

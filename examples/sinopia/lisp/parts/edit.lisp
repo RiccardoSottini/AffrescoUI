@@ -101,6 +101,18 @@
                 ["middle" "align-center-horizontal"]
                 ["bottom" "align-end-horizontal"]])
           [{:separator true}]
+          [{:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "group-objects" :enabled computed.canGroup}
+           {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroup-objects"
+            :enabled computed.canUngroup}]
+          [{:separator true}]
+          (map (fn [it]
+                 {:title (t (str "arrange." it.0)) :icon it.1 :run it.2 :with it.3
+                  :enabled (pos? (count computed.selected))})
+               [["rotateRight" "rotate-cw" "rotate-objects" {:by 90}]
+                ["rotateLeft" "rotate-ccw" "rotate-objects" {:by -90}]
+                ["flipVertical" "flip-vertical-2" "flip-objects" {:axis "flipV"}]
+                ["flipHorizontal" "flip-horizontal-2" "flip-objects" {:axis "flipH"}]])
+          [{:separator true}]
           (map (fn [it]
                  {:title (t (str "distribute." it.0)) :icon it.1 :run "distribute" :with {:axis it.0}
                   :enabled (> (count computed.selected) 1)})
@@ -242,7 +254,8 @@
                                                  :id (str "o" (+ next index))
                                                  :x (+ (or-else (:x it) 0) 18)
                                                  :y (+ (or-else (:y it) 0) 18)
-                                                 :ph nil))
+                                                 :ph nil
+                                                 :group (some-> (:group it) (str "-" next))))
                                         state.clip)))
       (set "state.board.selection" (map #(str "o" (+ next %)) (range (count state.clip)))))
     (increment "state.deck.next" :by (count state.clip))))

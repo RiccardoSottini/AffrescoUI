@@ -6,7 +6,7 @@
 {:format affrescoui-feature
  :version 2
  :name slideSorter
- :release "2.0.0"
+ :release "2.1.0"
  :title "Slide sorter"
  :description "Sinopia's slide sorter as a part other apps install, written as a program: thumbnails of an ordered list of pages, drag to reorder, click to select, and a button that duplicates the selected page."
  :license "Apache-2.0"
@@ -16,6 +16,9 @@
                  :item {:id string :name string :image image}
                  :description "The pages in order, each with an id, a name and an image the host renders."}
          :current (string :kind state :optional true :description "The id of the selected page.")
+         :title (string :kind state
+                  :optional true
+                  :description "What the strip is called, before the count: Pages when the app doesn't say.")
          :reorder {:kind action
                    :arguments {:id string :onto string}
                    :description "Page id takes the place of page onto."}

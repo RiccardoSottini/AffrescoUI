@@ -131,6 +131,9 @@
 (defstate reset {:email "" :code "" :password "" :confirm "" :submitted false :error "" :left 0}
   "The new-password screen; its code lasts left seconds.")
 
+(defstate done {:email "" :kind "" :name "" :team false}
+  "The success screen: which flow finished (reset, deleted or created), for which email and, new, which name.")
+
 ;;; The account page
 
 (defstate section profile "The account's section shown."

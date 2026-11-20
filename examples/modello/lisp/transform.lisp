@@ -145,14 +145,16 @@
       {:translation (map-indexed (fn [i v] (if (locked? b "translation" i) v (round-to (+ v (get values i)) 10000)))
                                  (:translation b))})))
 
+(defn scale-centre "What Adjust Last scales an object of the last operation about: its own origin, or their middle." [b]
+  (if (= state.pivot :individual) (:translation b) computed.lastCentre))
+
 (defn adjust-last "A field of the Adjust Last Operation panel: one amount of the last operation, done again from before it."
   [axis value]
   (when-some [_ state.lastOp.values]
     (set (str "state.lastOp.values[" axis "]") (rounded value))
-    (let [op state.lastOp
-          centre computed.lastCentre]
+    (let [op state.lastOp]
       (change-nodes #(some? (by-id (:base op) (:id %)))
-                    #(let [b (by-id (:base op) (:id %))] (merge b (adjusted op centre b)))))
+                    #(let [b (by-id (:base op) (:id %))] (merge b (adjusted op (scale-centre b) b)))))
     (autoKey)))
 
 ;;; Clearing

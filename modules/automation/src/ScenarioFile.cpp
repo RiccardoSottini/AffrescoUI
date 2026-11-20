@@ -149,14 +149,25 @@ void checkExpectation(const json& expect, const std::string& place) {
 	}
 }
 
+/// @brief Checks the modifier keys a pointer step holds, if it names some: "shift", "alt+shift".
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If they are malformed.
+void checkModifiers(const json& step, const std::string& place) {
+	if(!step.contains("mods")) return;
+	if(!step["mods"].is_string() || !detail::parseModifiers(step["mods"].get<std::string>()))
+		fail(place + ".mods", R"(expected modifier keys joined by '+': shift, ctrl, alt, cmd, mod ("alt+shift"))");
+}
+
 /// @brief Checks a pointer step: move, click, press or release, with a target.
 /// @param step The step.
 /// @param kind Its kind.
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkPointer(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "nth", "note"}, place);
+	onlyKeys(step, {kind, "nth", "mods", "note"}, place);
 	checkTarget(step[std::string(kind)], place + "." + std::string(kind));
+	checkModifiers(step, place);
 }
 
 /// @brief Checks a drag: from a target to another, in a number of moves.
@@ -164,8 +175,9 @@ void checkPointer(const json& step, std::string_view kind, const std::string& pl
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkDrag(const json& step, const std::string& place) {
-	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "note"}, place);
+	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "mods", "note"}, place);
 	checkTarget(step["drag"], place + ".drag");
+	checkModifiers(step, place);
 	if(!step.contains("to")) fail(place, R"("drag" needs "to": where to drop)");
 	checkTarget(step["to"], place + ".to");
 	if(step.contains("toNth") && (!step["toNth"].is_number_integer() || step["toNth"].get<long long>() < 0 ||
@@ -181,8 +193,9 @@ void checkDrag(const json& step, const std::string& place) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkScroll(const json& step, const std::string& place) {
-	onlyKeys(step, {"scroll", "dx", "dy", "nth", "note"}, place);
+	onlyKeys(step, {"scroll", "dx", "dy", "nth", "mods", "note"}, place);
 	checkTarget(step["scroll"], place + ".scroll");
+	checkModifiers(step, place);
 	for(const char* axis : {"dx", "dy"})
 		if(step.contains(axis) && !step[axis].is_number()) fail(place + "." + axis, "expected a number");
 }
