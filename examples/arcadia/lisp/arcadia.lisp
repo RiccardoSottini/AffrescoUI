@@ -722,10 +722,13 @@
   :title ~(t "command.setWishSort") :description ~(t "command.setWishSort.about") :category ~(t "category.store")
   [by] (set "state.wishSort" by))
 
-(defcommand purchase "Pays from the wallet: the games join the library, not installed, and leave the wishlist."
+(defcommand purchase
+  "Pays from the wallet: the games join the library, not installed, and leave the wishlist; each euro earns 100 points."
   :title ~(t "command.purchase") :description ~(t "command.purchase.about") :category ~(t "category.store")
   :icon "credit-card" :enablement ~(and (pos? (count state.cart)) (<= computed.cartTotal state.user.wallet))
   []
+  (let [earned (round (* computed.cartTotal 100))]
+    (set "state.points" (+ state.points earned)))
   (update-record "games" :id state.cart :fields {:owned true})
   (set "state.user.wallet" (-> state.user.wallet (- computed.cartTotal) (* 100) round (/ 100)))
   (set "state.wishlist" (remove #(has state.cart %) state.wishlist))
@@ -742,6 +745,8 @@
   (case item
     :categories (toggle "state.storeCatsOpen")
     :news (do (libraryHome) (after 50 reveal-node "#news-header"))
+    :points (showRewards)
+    :labs (showExperiments)
     (do (storeHome)
         (when (= item :noteworthy)
           (set "state.storeList" :new)
@@ -781,3 +786,54 @@
 
 (defn wish-down "Moves the wishlist's game at rank i down one, unless it is last." [i]
   (when (< i (dec (count state.wishlist))) (wishMove i (inc i))))
+
+;;; Rewards and experiments
+
+(defcommand showRewards "Opens the store's Rewards: the points shop."
+  :title ~(t "command.showRewards") :description ~(t "command.showRewards.about") :category ~(t "category.store")
+  :icon "star"
+  []
+  (leave-dialogs)
+  (go :store :points nil))
+
+(defcommand redeemReward "Spends points on a reward, which becomes the person's."
+  :title ~(t "command.redeemReward") :description ~(t "command.redeemReward.about") :category ~(t "category.store")
+  [id]
+  (let [item (find #(= (:id %) id) state.rewardItems)]
+    (when (and (some? item) (not (has state.rewardsOwned id)) (>= state.points (:cost item)))
+      (set "state.points" (- state.points (:cost item)))
+      (push "state.rewardsOwned" id)
+      (notify (t "rewards.redeemed" {:name (t (str "rewards.item." id))})))))
+
+(defn show-reward-kind "Shows the rewards of one kind, or all of them." [kind] (set "state.rewardKind" kind))
+
+(defcommand showExperiments "Opens the store's Experiments: ideas to try and turn off."
+  :title ~(t "command.showExperiments") :description ~(t "command.showExperiments.about")
+  :category ~(t "category.store") :icon "flask-conical"
+  []
+  (leave-dialogs)
+  (go :store :labs nil))
+
+(defcommand toggleDiscoveryQueue "Starts the discovery queue from its first game, or stops it."
+  :title ~(t "command.toggleDiscoveryQueue") :description ~(t "command.toggleDiscoveryQueue.about")
+  :category ~(t "category.store")
+  []
+  (set "state.labsAt" 0)
+  (toggle "state.labsQueue"))
+
+(defcommand nextQueueGame "Shows the discovery queue's next game."
+  :title ~(t "command.nextQueueGame") :description ~(t "command.nextQueueGame.about") :category ~(t "category.store")
+  :enablement ~(some? computed.labsGame)
+  []
+  (set "state.labsAt" (inc state.labsAt)))
+
+(defcommand skipQueueGame "Passes on a game of the discovery queue: it leaves the queue for good."
+  :title ~(t "command.skipQueueGame") :description ~(t "command.skipQueueGame.about") :category ~(t "category.store")
+  [id]
+  (push "state.labsSkipped" id))
+
+(defcommand toggleHideOwned "Hides the games the person owns from the store's lists, or shows them again."
+  :title ~(t "command.toggleHideOwned") :description ~(t "command.toggleHideOwned.about")
+  :category ~(t "category.store")
+  []
+  (toggle "state.labsHideOwned"))

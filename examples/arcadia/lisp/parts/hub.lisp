@@ -315,18 +315,20 @@
      :onClick ~(handler voteHubPost p.id)))
 
 (defview hub-shot-picture "A screenshot's picture, which opens it big: a card of the screenshots tab, or a shelf's." [sh n card]
-  `(image :id ~(str "hub-shot-" n)
-     :file ~(str "../assets/art/" (or-else g.art g.id) "/" sh.file ".svg")
-     :width ~(if card computed.hubCardWidth computed.hubThumbWidth)
-     :height ~(if card computed.hubCardHeight computed.hubThumbHeight)
-     :radius 8
-     :fit cover
-     :focusable true
-     :role button
-     :label ~(t sh.key)
-     :cursor hand
-     :hover {:borderWidth 2 :borderColor @color.accent}
-     :onClick ~(handler openHubShot n)))
+  (let [w (if card 'computed.hubCardWidth 'computed.hubThumbWidth)
+        h (if card 'computed.hubCardHeight 'computed.hubThumbHeight)]
+    `(image :id ~(str (if card "hub-shot-" "hub-thumb-") n)
+       :file ~(str "../assets/art/" (or-else g.art g.id) "/" sh.file ".svg")
+       :width ~w
+       :height ~h
+       :radius 8
+       :fit cover
+       :focusable true
+       :role button
+       :label ~(t sh.key)
+       :cursor hand
+       :hover {:borderWidth 2 :borderColor @color.accent}
+       :onClick ~(handler openHubShot n))))
 
 (defview hub-shots-shelf "On the hub's own tab: four screenshots in a row, under a heading with a link to them all." []
   `(column#hub-shots-shelf :when ~(and (hub-browsing) (= state.hubTab "hub"))

@@ -892,15 +892,15 @@
 								"children": [
 									{
 										"type": "image",
-										"id": "hub-shot-{{n}}",
+										"id": "hub-thumb-{{n}}",
 										"repeat": {
 											"for": "sh",
 											"in": "state.hubShots",
 											"index": "n"
 										},
 										"file": "../assets/art/{{(g.art ?? g.id)}}/{{sh.file}}.svg",
-										"width": "{{(false ? computed.hubCardWidth : computed.hubThumbWidth)}}",
-										"height": "{{(false ? computed.hubCardHeight : computed.hubThumbHeight)}}",
+										"width": "{{computed.hubThumbWidth}}",
+										"height": "{{computed.hubThumbHeight}}",
 										"radius": 8,
 										"fit": "cover",
 										"focusable": true,
@@ -955,8 +955,8 @@
 										"type": "image",
 										"id": "hub-shot-{{n}}",
 										"file": "../assets/art/{{(g.art ?? g.id)}}/{{sh.file}}.svg",
-										"width": "{{(true ? computed.hubCardWidth : computed.hubThumbWidth)}}",
-										"height": "{{(true ? computed.hubCardHeight : computed.hubThumbHeight)}}",
+										"width": "{{computed.hubCardWidth}}",
+										"height": "{{computed.hubCardHeight}}",
 										"radius": 8,
 										"fit": "cover",
 										"focusable": true,

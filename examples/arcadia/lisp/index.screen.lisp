@@ -16,6 +16,7 @@
             arcadia.parts.chrome
             arcadia.parts.library
             arcadia.parts.game
+            arcadia.parts.rewards
             arcadia.parts.store
             arcadia.parts.store-game
             arcadia.parts.cart

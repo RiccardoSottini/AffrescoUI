@@ -250,6 +250,31 @@
 			]
 		},
 		{
+			"name": "rewards-and-experiments",
+			"steps": [
+				{ "action": "storeHome" },
+				{ "expect": { "node": "#store-bar", "property": "shown", "is": true } },
+				{ "click": "#store-bar-points" },
+				{ "expect": { "node": "#store-rewards-page", "property": "shown", "is": true } },
+				{ "click": "#redeem-ember-frame" },
+				{ "expect": { "state": "points", "is": 3320 } },
+				{ "expect": { "state": "rewardsOwned", "is": ["gem-badge", "ember-frame"] } },
+				{ "click": "#reward-kind-sticker" },
+				{ "click": "#store-bar-labs" },
+				{ "expect": { "node": "#store-labs-page", "property": "shown", "is": true } },
+				{ "click": "#labs-queue-toggle" },
+				{ "expect": { "state": "labsQueue", "is": true } },
+				{ "capture": "discovery-queue" },
+				{ "click": "#labs-queue-next" },
+				{ "expect": { "state": "labsAt", "is": 1 } },
+				{ "click": "#labs-queue-skip" },
+				{ "click": "#labs-queue-wish" },
+				{ "scroll": "#store-labs-page", "dy": -5 },
+				{ "click": "#labs-hide-owned-toggle" },
+				{ "expect": { "state": "labsHideOwned", "is": true } }
+			]
+		},
+		{
 			"name": "game-links",
 			"steps": [
 				{ "click": "#row-favourites-starfall" },
@@ -320,9 +345,8 @@
 				{ "scroll": [700, 400], "dy": 40 },
 				{ "click": "#store-bar-noteworthy" },
 				{ "expect": { "state": "storeList", "is": "new" } },
-				{ "expect": { "node": "#store-bar-points", "property": "tooltip", "is": "Coming in a later version" } },
 				{ "click": "#store-bar-points" },
-				{ "expect": { "node": "#store-home", "property": "shown", "is": true } },
+				{ "expect": { "node": "#store-rewards-page", "property": "shown", "is": true } },
 				{ "click": "#store-bar-news" },
 				{ "expect": { "node": "#library-home", "property": "shown", "is": true } },
 				{ "action": "showStore" },
