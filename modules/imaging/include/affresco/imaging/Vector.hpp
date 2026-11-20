@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -78,6 +79,8 @@ struct LayerContent {
 	bool bold = false;                 ///< text: thickened.
 	bool italic = false;               ///< text: slanted.
 	TextAlign align = TextAlign::left; ///< text: how its lines line up.
+	float tracking = 0.0f;             ///< text: space added after each character, in thousandths of the size.
+	std::map<std::string, float> kerning; ///< text: space added between two characters (the key, UTF-8), as tracking.
 	// both: text's origin is its first line's top at the alignment edge; a shape's box is from origin to corner
 	VectorPoint origin; ///< Where it is.
 	VectorPoint corner; ///< shape: the box's opposite corner.
@@ -99,6 +102,8 @@ struct LayerContent {
 inline constexpr std::size_t maxPathPoints = 4096;
 /// @brief The most paths a document keeps.
 inline constexpr std::size_t maxPaths = 256;
+/// @brief The most pairs a type layer's kerning holds.
+inline constexpr std::size_t maxKerningPairs = 256;
 /// @brief The most bytes of a type layer's text.
 inline constexpr std::size_t maxTextBytes = 16384;
 

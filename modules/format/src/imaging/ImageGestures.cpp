@@ -186,6 +186,54 @@ bool clickWand(imaging::Document& document, const ToolSettings& settings, imagin
 	return true;
 }
 
+/// @brief Adds a point to the quick-selection stroke, a quarter of the brush from the last one at least.
+/// @param image The image.
+/// @param at Where.
+void addQuickPoint(ImageDocument& image, Point at) {
+	std::vector<Point>& path = image.path;
+	const float step = std::max(1.0f, image.settings.tip.size / 4.0f);
+	if(!path.empty() && std::hypot(at.x - path.back().x, at.y - path.back().y) < step) return;
+	if(path.size() < image.limits.polygonPoints) path.push_back(at);
+}
+
+/// @brief Selects what the quick-selection stroke found, in the press's mode, and clears the stroke.
+/// @param image The image.
+void closeQuickSelection(ImageDocument& image) {
+	imaging::Document& document = image.canvas->document();
+	std::vector<Point> path = std::move(image.path);
+	image.path.clear();
+	if(path.empty()) return;
+	imaging::select(document, "Quick Selection",
+	                imaging::quickCoverage(document, path, image.settings.tip.size / 2.0f, image.settings.sample),
+	                image.press.mode);
+}
+
+/// @brief The selection's bounds as a box, left, top, right, bottom (all zero without a selection).
+/// @param document The document.
+[[nodiscard]] std::array<float, 4> selectionBox(const imaging::Document& document) {
+	const auto [x, y, width, height] = imaging::selectionBounds(document);
+	return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width), static_cast<float>(y + height)};
+}
+
+/// @brief selection-box's press: picks the handle of the selection's box pressed on, or inside it to move it.
+/// @param image The image; its message says why when there is no selection.
+/// @param at Where.
+/// @return Whether the screen should hear of it.
+bool pressSelectionBox(ImageDocument& image, Point at) {
+	const imaging::Document& document = image.canvas->document();
+	image.boxHandle = -1;
+	if(!document.hasSelection()) {
+		image.message = "Select something to transform";
+		return true;
+	}
+	image.boxBefore = selectionBox(document);
+	image.boxNow = image.boxBefore;
+	constexpr float handleReach = 6.0f; // window units around a handle
+	image.boxHandle =
+	    boxHandleAt(image.boxBefore, at, handleReach / static_cast<float>(std::max(image.view.zoom, 1e-6)));
+	return image.boxHandle >= 0;
+}
+
 /// @brief Fills with the paint bucket from the pixel clicked.
 /// @param image The image; its message says why when nothing can be filled.
 /// @param at Where, in document pixels.
@@ -252,6 +300,12 @@ bool pressTool(ImageDocument& image, Point at) {
 		return addCorner(image, at);
 	case Gesture::magicWand:
 		return clickWand(image.canvas->document(), image.settings, image.press.mode, at);
+	case Gesture::quickSelect:
+		image.path.clear();
+		addQuickPoint(image, at);
+		return true;
+	case Gesture::selectionBox:
+		return pressSelectionBox(image, at);
 	case Gesture::move:
 		return image.settings.autoSelect && pickLayer(image.canvas->document(), at);
 	case Gesture::fill:
@@ -286,6 +340,14 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::lasso:
 		if(image.path.size() < image.limits.polygonPoints) image.path.push_back(at);
 		return false;
+	case Gesture::quickSelect:
+		addQuickPoint(image, at);
+		return true;
+	case Gesture::selectionBox:
+		if(image.boxHandle < 0) return false;
+		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x,
+		                          at.y - image.press.start.y);
+		return true;
 	case Gesture::pan:
 		panView(image, event);
 		return true;
@@ -374,6 +436,15 @@ bool releaseTool(ImageDocument& image, Point at) {
 		return true;
 	case Gesture::lasso:
 		closeLasso(image);
+		return true;
+	case Gesture::quickSelect:
+		closeQuickSelection(image);
+		return true;
+	case Gesture::selectionBox:
+		if(image.boxHandle < 0) return false;
+		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
+		image.boxHandle = -1;
+		transformSelectionTo(image, image.boxBefore, image.boxNow);
 		return true;
 	case Gesture::gradient:
 		drawGradient(image, at);

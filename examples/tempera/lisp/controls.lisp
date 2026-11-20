@@ -180,3 +180,24 @@
      :onClick ~(handler toggle-open open)
      (label :icon chevron-down :font small :textColor @muted :anchors {:right 3 :top 5} :fitText true)
      (node :use tMenu :with {:open ~open :width 200 :items ~items :close ~(if inDialog open "")})))
+
+;;; Colours
+
+(defview colour-pop "Beside a colour's chip: a picker with its fields, open at state.pop.<target>, the colour it sets."
+  [id target value]
+  `(node :overlay {:placement right :open ~(str "state.pop." target) :dismiss outside :flip true}
+     :width 236
+     :height 268
+     :color @panel
+     :radius @kit.cardRadius
+     :borderWidth 1
+     :borderColor @border
+     :shadow {:y 3 :blur 10 :color "#00000060"}
+     (colorPicker :id ~(str id "-picker")
+       :label ~(t "colour.picker")
+       :anchors {:left 8 :right 8 :top 8 :bottom 8}
+       :value ~value
+       :alpha false
+       :textColor @text
+       :accentColor @accent
+       :onChange ~(handler pick-colour target event.value))))

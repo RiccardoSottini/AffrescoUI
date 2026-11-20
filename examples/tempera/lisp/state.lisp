@@ -59,7 +59,7 @@
    [{:id marquee :name marquee :icon box-select :key "M"}
     {:id ellipse :name ellipse :icon circle-dashed :key "Shift+M"}]
    [{:id lasso :name lasso :icon lasso :key "L"} {:id polygon :name polygon :icon pentagon :key "Shift+L"}]
-   [{:id wand :name wand :icon wand :key "W"}]
+   [{:id quick-select :name quickSelect :icon wand-sparkles :key "Shift+W"} {:id wand :name wand :icon wand :key "W"}]
    [{:id crop :name crop :icon crop :key "C"}]
    []
    [{:id eyedropper :name eyedropper :icon pipette :key "I"}]
@@ -83,6 +83,9 @@
    [{:id hand :name hand :icon hand :key "H"}]
    [{:id zoom :name zoom :icon zoom-in :key "Z"}]]
   "The tools bar's groups, top to bottom (an empty group is a gap): a tool with no id isn't available yet.")
+
+(defstate modeTools {:transform-selection {:id transform-selection :name transformSelection :icon scan}}
+  "Tools chosen by a command, not on the tools bar: Select > Transform Selection's handles.")
 
 (defstate brushHardness 80 "The brush's hardness, kept while the pencil (always hard) is chosen.")
 
@@ -235,6 +238,11 @@
 (defstate paintModeMenu false "The painting modes are shown.")
 
 (defstate fillSourceMenu false "The fill sources are shown.")
+
+(defstate typeFontMenu false "The Character section's font families are shown.")
+
+(defstate typeFonts [{:id "default" :title "Roboto"} {:id "symbols" :title "JetBrains Mono"}]
+  "The font families a type layer can use: the screen's font names, and what the Character section calls them.")
 
 (defstate statusMenu false "The status bar's choices are shown.")
 

@@ -23,6 +23,7 @@
      ~(fill-options)
      ~(gradient-options)
      ~(crop-options)
+     ~(selection-box-options)
      ~(type-options)
      ~(shape-options)
      ~(path-options)
@@ -70,7 +71,8 @@
      (node :style sep)
      (node#option-type-colour :role button :label ~(t "option.typeColour") :tooltip ~(t "option.typeColour.tip")
        :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
-       :cursor hand :onClick ~(handler set-vector {:fill state.doc.foreground}))
+       :cursor hand :onClick ~(handler toggle-open "state.pop.vectorFill")
+       ~(colour-pop "option-shape-fill" "vectorFill" 'state.doc.foreground))
      (label :style dim :text ~(t "option.typeHint") :fitText true)))
 
 (defview shape-options "A shape tool's options: the fill (the foreground), the stroke, its width, and the corners." []
@@ -82,7 +84,8 @@
      (node :style dim :text ~(str (t "option.shapeStroke") ":"))
      (node#option-shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
        :width 22 :height 22 :radius @kit.radius :color ~state.doc.vector.stroke :borderWidth 1 :borderColor @border
-       :cursor hand :onClick ~(handler set-vector {:stroke state.doc.background}))
+       :cursor hand :onClick ~(handler toggle-open "state.pop.vectorStroke")
+       ~(colour-pop "option-shape-stroke" "vectorStroke" 'state.doc.vector.stroke))
      (node#option-stroke-width :use tField
        :with {:title "" :key strokeWidth :value ~state.doc.vector.strokeWidth :low 0 :high 200 :unit " px"
               :width 48 :pop false :run set-vector :tip ~(t "option.strokeWidth")})
@@ -222,8 +225,11 @@
                       {:id "subtract" :icon "copy-minus" :title (t "selectionMode.subtract")}
                       {:id "intersect" :icon "copy-x" :title (t "selectionMode.intersect")}]})
      (node :style sep)
+     (node#option-quick-size :use tField
+       :when ~(= state.doc.tool "quick-select")
+       :with {:title ~(t "option.size") :key size :value ~state.doc.options.size :high 500 :unit " px" :width 40})
      (node#option-wand-tolerance :use tField
-       :when ~(= state.doc.tool "wand")
+       :when ~(contains ["wand" "quick-select"] state.doc.tool)
        :with {:title ~(t "option.tolerance") :key tolerance :value ~state.doc.options.tolerance :high 255 :unit ""
               :pop false :width 36})
      (node#option-anti-alias :use tCheck :with {:title ~(t "option.antiAlias") :checked true :off true})
@@ -231,7 +237,7 @@
        :when ~(= state.doc.tool "wand")
        :with {:title ~(t "option.contiguous") :key contiguous :checked ~state.doc.options.contiguous})
      (node#option-wand-all :use tCheck
-       :when ~(= state.doc.tool "wand")
+       :when ~(contains ["wand" "quick-select"] state.doc.tool)
        :with {:title ~(t "option.sampleAllLayers") :key allLayers :checked ~state.doc.options.allLayers})
      (node#option-feather :use tButton
        :with {:title ~(t "option.feather") :tip ~(t "option.feather.tip") :run featherSelection
@@ -295,6 +301,17 @@
      (node#gradient-reverse :use tCheck :with {:title ~(t "option.reverse") :checked false :off true})
      (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :checked false :off true})
      (node#gradient-transparency :use tCheck :with {:title ~(t "option.transparency") :checked true :off true})))
+
+(defview selection-box-options "Transform Selection's handles: what a drag does, the numbers, and Done." []
+  `(row#options-selection-box :when ~(= state.doc.tool "transform-selection") :alignItems center :gap 8 :height 30
+     :grow 100
+     (node :style dim :text ~(t "option.selectionBox.hint") :fitText true)
+     (node#option-selection-box-numbers :use tButton
+       :with {:title ~(t "option.selectionBox.numbers") :tip ~(t "command.showTransformSelection.about")
+              :run showTransformSelection :off ~(not state.doc.selection)})
+     (node#option-selection-box-done :use tButton
+       :with {:title ~(t "option.selectionBox.done") :tip ~(t "option.selectionBox.done.tip") :run setTool
+              :args {:tool "marquee"}})))
 
 (defview crop-options "The crop tool's ratios: the selection's box, or a centred box of a ratio." []
   `(node#option-crop :use tPicker

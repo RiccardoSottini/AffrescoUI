@@ -69,6 +69,16 @@ void paintCoverage(Image& image, const Coverage& coverage, const Pixel& colour);
 [[nodiscard]] std::shared_ptr<Image> renderText(const LayerContent& content, const Font& font, int width, int height,
                                                 PixelFormat format, const Limits& limits);
 
+/// @brief A type layer's text as paths: each contour of each glyph a closed path of cubic segments, placed where
+/// renderText() draws it (the font's own outlines, without its synthetic bold or italic).
+/// @param content The content (kind text).
+/// @param font The font, in the content's style (scaled as renderText() does).
+/// @param name The paths' name.
+/// @return The paths; empty when the text draws nothing.
+/// @throws DocumentError past maxPaths contours, or past maxPathPoints anchors in one.
+[[nodiscard]] std::vector<VectorPath> textOutlines(const LayerContent& content, const Font& font,
+                                                   const std::string& name);
+
 /// @brief The box a type layer's text takes, laid out with a font: {left, top, right, bottom}.
 /// @param content The content (kind text).
 /// @param font The font, in the content's style (scaled as renderText() does).

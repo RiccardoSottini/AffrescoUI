@@ -213,6 +213,37 @@ Coverage wandCoverage(const Document& document, int x, int y, const SampleOption
 	               [&](const Pixel& pixel) { return difference(pixel, seed) <= tolerance ? 1.0f : 0.0f; });
 }
 
+Coverage quickCoverage(const Document& document, std::span<const Point> points, float radius,
+                       const SampleOptions& options) {
+	Marks marks(document.limits());
+	Sampler sampler(document, sampledImage(document, options.allLayers));
+	const auto tolerance = static_cast<float>(std::clamp(options.tolerance, 0, 255)) + 0.5f;
+	const float reach = std::max(radius, 0.5f);
+	for(const Point& point : points) {
+		const int x = static_cast<int>(std::floor(point.x)), y = static_cast<int>(std::floor(point.y));
+		if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) continue;
+		const Pixel seed = sampler.at(x, y);
+		const auto like = [&](int px, int py) {
+			const float dx = static_cast<float>(px) + 0.5f - point.x, dy = static_cast<float>(py) + 0.5f - point.y;
+			return px >= 0 && py >= 0 && px < document.width() && py < document.height() &&
+			       dx * dx + dy * dy <= reach * reach && !marks.marked(px, py) &&
+			       difference(sampler.at(px, py), seed) <= tolerance;
+		};
+		std::vector<std::pair<int, int>> stack{{x, y}};
+		while(!stack.empty()) {
+			auto [px, py] = stack.back();
+			stack.pop_back();
+			if(!like(px, py)) continue;
+			int left = px, right = px;
+			while(like(left - 1, py)) --left;
+			while(like(right + 1, py)) ++right;
+			for(int fill = left; fill <= right; ++fill) marks.mark(fill, py);
+			for(const int next : {py - 1, py + 1}) pushSeeds(stack, left, right, next, like);
+		}
+	}
+	return std::move(marks).coverage();
+}
+
 Coverage colorRangeCoverage(const Document& document, const Pixel& colour, int fuzziness, bool allLayers) {
 	Sampler sampler(document, sampledImage(document, allLayers));
 	const auto fuzz = static_cast<float>(std::clamp(fuzziness, 1, 255));

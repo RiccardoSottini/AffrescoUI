@@ -42,6 +42,11 @@
 		"addText": [{ "image": "addText", "with": "{{args}}" }],
 		"addShape": [{ "image": "addShape", "with": "{{args}}" }],
 		"editContent": [{ "image": "editContent", "with": "{{args}}" }],
+		"setKerning": [{ "image": "editContent", "with": { "kerning": "{{merge(computed.activeLayer.content.kerning ?? {}, fromEntries([{key: computed.typePair, value: args.kerning}]))}}" } }],
+		"pickColour": [{ "if": "{{contains(['fill', 'stroke'], args.target)}}", "then": [{ "image": "editContent", "with": "{{fromEntries([{key: args.target, value: args.value}])}}" }],
+			"else": [{ "if": "{{args.target == 'vectorFill'}}", "then": [{ "image": "setOptions", "with": { "foreground": "{{args.value}}" } }, { "run": "setVector", "with": { "args": { "fill": "{{args.value}}" } } }],
+				"else": [{ "if": "{{args.target == 'vectorStroke'}}", "then": [{ "run": "setVector", "with": { "args": { "stroke": "{{args.value}}" } } }],
+					"else": [{ "image": "setOptions", "with": "{{fromEntries([{key: args.target, value: args.value}])}}" }] }] }] }],
 		"setVector": [{ "image": "setOptions", "with": { "vector": "{{args}}" } },
 			{ "if": "{{computed.activeLayer.kind == (state.doc.gesture == 'text' ? 'text' : 'shape')}}", "then": [{ "image": "editContent", "with": "{{args}}" }] }],
 		"selectPath": [{ "image": "selectPath", "with": "{{args}}" }],
@@ -241,6 +246,9 @@
 		"newTypeLayer": { "title": "New Type Layer", "category": "Type", "icon": "type",
 			"description": "Adds a type layer in the foreground colour, to edit in the Properties panel.",
 			"do": [{ "image": "addText", "with": { "text": "Your text", "x": "{{round(state.doc.width / 3)}}", "y": "{{round(state.doc.height / 3)}}" } }] },
+		"createWorkPath": { "title": "Create Work Path", "category": "Type", "icon": "spline",
+			"description": "Adds the outlines of the active type layer's text as paths, one for each outline of each letter.",
+			"enablement": "{{computed.activeLayer.kind == 'text'}}", "do": [{ "image": "textToPath" }] },
 		"newWorkPath": { "title": "New Path", "category": "Paths", "icon": "pen-tool",
 			"description": "Adds an empty path and chooses the Pen to draw it.",
 			"do": [{ "image": "newPath" }, { "run": "setTool", "with": { "args": { "tool": "pen" } } }] },
@@ -282,6 +290,9 @@
 			"do": [{ "run": "select", "with": { "args": { "kind": "none" } } }] },
 		"reselect": { "title": "Reselect", "category": "Select", "icon": "rotate-ccw-square", "enablement": "{{!state.doc.selection}}",
 			"do": [{ "run": "select", "with": { "args": { "kind": "reselect" } } }] },
+		"transformSelectionHandles": { "title": "Handles on the selection's box", "category": "Select", "icon": "scan", "enablement": "{{state.doc.selection}}",
+			"description": "Puts handles on the selection's box: a drag on one scales the outline, inside moves it.",
+			"do": [{ "run": "setTool", "with": { "args": { "tool": "transform-selection" } } }] },
 		"showTransformSelection": { "title": "Transform Selection...", "category": "Select", "icon": "scan", "enablement": "{{state.doc.selection}}",
 			"do": [{ "set": "state.transform", "to": { "open": true, "target": "selection", "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 } }] },
 		"invertSelection": { "title": "Inverse", "category": "Select", "icon": "contrast",
@@ -398,6 +409,7 @@
 		"l": { "do": "setTool", "with": { "args": { "tool": "lasso" } } },
 		"shift+l": { "do": "setTool", "with": { "args": { "tool": "polygon" } } },
 		"w": { "do": "setTool", "with": { "args": { "tool": "wand" } } },
+		"shift+w": { "do": "setTool", "with": { "args": { "tool": "quick-select" } } },
 		"c": { "do": "setTool", "with": { "args": { "tool": "crop" } } },
 		"b": { "do": "setTool", "with": { "args": { "tool": "brush" } } },
 		"shift+b": { "do": "setTool", "with": { "args": { "tool": "pencil" } } },
@@ -617,7 +629,7 @@
 		"type": {
 			"new": { "run": "newTypeLayer", "group": "0_new" },
 			"panels": { "run": "showPanel", "with": { "args": { "slot": "properties", "id": "properties" } }, "title": "Panels", "group": "1_panels" },
-			"workPath": { "run": "unavailable", "title": "Create Work Path", "group": "2_convert", "order": 1 },
+			"workPath": { "run": "createWorkPath", "title": "Create Work Path", "group": "2_convert", "order": 1 },
 			"rasterize": { "run": "rasterizeLayer", "title": "Rasterize Type Layer", "group": "2_convert", "order": 2 }
 		},
 		"select": {
@@ -627,7 +639,7 @@
 			"inverse": { "run": "invertSelection", "group": "1_select", "order": 4 },
 			"colorRange": { "run": "colorRange", "title": "Colour Range...", "group": "2_range" },
 			"feather": { "run": "featherSelection", "title": "Feather 8 px", "group": "3_modify", "order": 1 },
-			"transform": { "run": "showTransformSelection", "title": "Transform Selection", "group": "3_modify", "order": 2 },
+			"transform": { "run": "transformSelectionHandles", "title": "Transform Selection", "group": "3_modify", "order": 2 },
 			"quickMask": { "run": "toggleQuickMask", "title": "Edit in Quick Mask Mode", "group": "4_mask" }
 		},
 		"filter": {

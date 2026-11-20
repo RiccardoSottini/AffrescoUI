@@ -19,6 +19,8 @@
                          :lasso {:gesture lasso}
                          :polygon {:gesture polygon-lasso}
                          :wand {:gesture magic-wand}
+                         :quick-select {:gesture quick-select}
+                         :transform-selection {:gesture selection-box}
                          :crop {:gesture crop}
                          :brush {:gesture paint}
                          :pencil {:gesture paint :hardness 100}

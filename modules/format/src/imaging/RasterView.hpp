@@ -131,6 +131,10 @@ private:
 	/// @param painter The painter.
 	/// @param image The image shown.
 	void paintPaths(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws the box around the selection and its eight handles, as the drag makes it (selection-box).
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const;
 
 	std::weak_ptr<editing::ImageDocuments> images_; ///< The runtime's images.
 	std::string name_;                              ///< See imageName().

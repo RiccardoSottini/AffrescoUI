@@ -9,6 +9,11 @@
 
 (defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
 
+(defcomputed typePair "The active type layer's last two characters, where typing goes on: the pair Kerning spaces."
+  (let [text (str computed.activeLayer.content.text)
+        n (count text)]
+    (if (< n 2) "" (subs text (- n 2)))))
+
 (defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
   (->> (indexOf (map :id state.doc.layers) state.doc.active) inc (slice state.doc.layers)))
 
@@ -78,11 +83,11 @@
 
 ;;; The tool
 
-(defcomputed tool "The current tool, from the tools bar's groups."
+(defcomputed tool "The current tool, from the tools bar's groups, or a tool a command chose (state.modeTools)."
   (or-else (find #(= (:id %) state.doc.tool)
                  ; style: keep, #(...) can't hold another #(...)
                  (or-else (find (fn [group] (some #(= (:id %) state.doc.tool) group)) state.tools) []))
-           {}))
+           (or-else (get state.modeTools state.doc.tool) {})))
 
 (defcomputed toolTitle "The current tool's name, as its tooltip says it." (t (str "tool." computed.tool.name)))
 
@@ -99,7 +104,7 @@
 
 (defcomputed vectorTool "The tool makes type or shapes." (contains ["text" "shape"] state.doc.gesture))
 
-(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand"] state.doc.tool))
+(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand" "quick-select"] state.doc.tool))
 
 ;;; The canvas and its rulers
 

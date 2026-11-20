@@ -69,8 +69,10 @@ void RasterView::paint(Painter& painter) const {
 	if(shown->press.down && !shown->press.pan && gesture == Gesture::crop) paintCrop(painter, *shown);
 	paintOutline(painter, *shown);
 	paintPaths(painter, *shown);
+	if(gesture == Gesture::selectionBox) paintSelectionBox(painter, *shown);
 	if(hovered_ && !shown->spaceHeld && !shown->press.pan &&
-	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone))
+	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone ||
+	    gesture == Gesture::quickSelect))
 		paintBrush(painter, *shown);
 }
 
@@ -123,7 +125,8 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 				                   centre.y + static_cast<float>(std::sin(angle)) * box.height() / 2.0f});
 			}
 		}
-	} else if(!image.path.empty() && (gesture == Gesture::lasso || gesture == Gesture::polygonLasso)) {
+	} else if(!image.path.empty() &&
+	          (gesture == Gesture::lasso || gesture == Gesture::polygonLasso || gesture == Gesture::quickSelect)) {
 		for(const imaging::Point& point : image.path) addPoint(contour, toWindow(image, point.x, point.y));
 		if(gesture == Gesture::polygonLasso && hovered_) addPoint(contour, pointer_); // the edge being placed
 	}
@@ -180,6 +183,34 @@ void RasterView::paintPaths(Painter& painter, const editing::ImageDocument& imag
 		const Rect square{std::round(at.x - anchorSide / 2.0f), std::round(at.y - anchorSide / 2.0f),
 		                  std::round(at.x + anchorSide / 2.0f), std::round(at.y + anchorSide / 2.0f)};
 		painter.fillRect(square, index + 1 == path.points.size() ? look_.overlay : Color{1, 1, 1, 1});
+		painter.strokeRoundedRect(square, {}, 1.0f, underline);
+	}
+}
+
+void RasterView::paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const {
+	std::array<float, 4> box = image.boxNow;
+	if(!image.press.down || image.boxHandle < 0) {
+		const imaging::Document& document = image.canvas->document();
+		if(!document.hasSelection()) return;
+		const auto [x, y, width, height] = imaging::selectionBounds(document);
+		box = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width),
+		       static_cast<float>(y + height)};
+	}
+	const Rect frame = between(toWindow(image, box[0], box[1]), toWindow(image, box[2], box[3]));
+	VectorPath::Contour contour;
+	contour.closed = true;
+	for(const Vec2 corner : {Vec2{frame.left, frame.top}, Vec2{frame.right, frame.top}, Vec2{frame.right, frame.bottom},
+	                         Vec2{frame.left, frame.bottom}})
+		addPoint(contour, corner);
+	strokeOutline(painter, contour, look_.overlay);
+	constexpr float side = 7.0f; // a handle's square, in window units
+	const float middleX = (frame.left + frame.right) / 2.0f, middleY = (frame.top + frame.bottom) / 2.0f;
+	for(const Vec2 handle : {Vec2{frame.left, frame.top}, Vec2{middleX, frame.top}, Vec2{frame.right, frame.top},
+	                         Vec2{frame.right, middleY}, Vec2{frame.right, frame.bottom}, Vec2{middleX, frame.bottom},
+	                         Vec2{frame.left, frame.bottom}, Vec2{frame.left, middleY}}) {
+		const Rect square{std::round(handle.x - side / 2.0f), std::round(handle.y - side / 2.0f),
+		                  std::round(handle.x + side / 2.0f), std::round(handle.y + side / 2.0f)};
+		painter.fillRect(square, Color{1.0f, 1.0f, 1.0f, 1.0f});
 		painter.strokeRoundedRect(square, {}, 1.0f, underline);
 	}
 }

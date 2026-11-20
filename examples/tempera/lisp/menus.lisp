@@ -166,11 +166,11 @@
 
 ;;; Text, Select and Filter
 
-(defmenu type "The Type menu: a new type layer, its Character panel, and rasterizing it."
+(defmenu type "The Type menu: a new type layer, its Character panel, its outlines as paths, and rasterizing it."
   {:new {:run newTypeLayer :group "0_new"}
    :panels {:run show-panel :with {:args {:slot properties :id properties}} :title ~(t "menu.type.panels")
             :group "1_panels"}
-   :workPath {:run unavailable :title ~(t "menu.type.workPath") :group "2_convert" :order 1}
+   :workPath {:run createWorkPath :title ~(t "menu.type.workPath") :group "2_convert" :order 1}
    :rasterize {:run rasterizeLayer :title ~(t "menu.type.rasterize") :group "2_convert" :order 2}})
 
 (defmenu select "The Select menu."
@@ -180,7 +180,7 @@
    :inverse {:run invertSelection :group "1_select" :order 4}
    :colorRange {:run colorRange :title ~(t "menu.select.colorRange") :group "2_range"}
    :feather {:run featherSelection :title ~(t "menu.select.feather") :group "3_modify" :order 1}
-   :transform {:run showTransformSelection :title ~(t "menu.select.transform") :group "3_modify" :order 2}
+   :transform {:run transformSelectionHandles :title ~(t "menu.select.transform") :group "3_modify" :order 2}
    :quickMask {:run toggleQuickMask :title ~(t "menu.select.quickMask") :group "4_mask"}})
 
 (defmenu filter "The Filter menu: its kinds of filter."

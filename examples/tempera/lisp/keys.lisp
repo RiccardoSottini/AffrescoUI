@@ -18,6 +18,7 @@
 (defkey "shift+l" {:do setTool :with {:args {:tool polygon}}})
 
 (defkey "w" {:do setTool :with {:args {:tool wand}}})
+(defkey "shift+w" {:do setTool :with {:args {:tool quick-select}}})
 
 (defkey "c" {:do setTool :with {:args {:tool crop}}})
 

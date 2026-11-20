@@ -844,6 +844,45 @@ void clear(ImageDocument& image, const json&, Window*) {
 
 } // namespace
 
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to) {
+	const float width = from[2] - from[0], height = from[3] - from[1];
+	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f) return;
+	if(from == to) return;
+	transformSelection(image,
+	                   json{{"x", (to[0] + to[2] - from[0] - from[2]) / 2.0f},
+	                        {"y", (to[1] + to[3] - from[1] - from[3]) / 2.0f},
+	                        {"scaleX", (to[2] - to[0]) / width * 100.0f},
+	                        {"scaleY", (to[3] - to[1]) / height * 100.0f}},
+	                   nullptr);
+}
+
+int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept {
+	const float middleX = (box[0] + box[2]) / 2.0f, middleY = (box[1] + box[3]) / 2.0f;
+	const std::array<imaging::Point, 8> handles{{{box[0], box[1]},
+	                                            {middleX, box[1]},
+	                                            {box[2], box[1]},
+	                                            {box[2], middleY},
+	                                            {box[2], box[3]},
+	                                            {middleX, box[3]},
+	                                            {box[0], box[3]},
+	                                            {box[0], middleY}}};
+	for(std::size_t index = 0; index < handles.size(); ++index)
+		if(std::abs(handles[index].x - at.x) <= reach && std::abs(handles[index].y - at.y) <= reach)
+			return static_cast<int>(index);
+	return at.x >= box[0] && at.x <= box[2] && at.y >= box[1] && at.y <= box[3] ? 8 : -1;
+}
+
+std::array<float, 4> draggedBox(std::array<float, 4> box, int handle, float dx, float dy) noexcept {
+	if(handle == 8) return {box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy};
+	const bool left = handle == 0 || handle == 6 || handle == 7, right = handle >= 2 && handle <= 4;
+	const bool top = handle <= 2, bottom = handle >= 4 && handle <= 6;
+	if(left) box[0] = std::min(box[0] + dx, box[2] - 1.0f);
+	if(right) box[2] = std::max(box[2] + dx, box[0] + 1.0f);
+	if(top) box[1] = std::min(box[1] + dy, box[3] - 1.0f);
+	if(bottom) box[3] = std::max(box[3] + dy, box[1] + 1.0f);
+	return box;
+}
+
 std::vector<ImageOperation> transformOperations() {
 	return {
 	    {"canvasSize",

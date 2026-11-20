@@ -5615,6 +5615,723 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-quick-selection",
+			"note": "The Quick Selection brush selects like colours under its strokes, stopping at edges; Shift adds, Alt subtracts",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "shift+w"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "quick-select"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.gesture",
+						"is": "quick-select"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"size": 40
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 40
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 160,
+									"y": 110,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 220,
+									"y": 120,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 260,
+									"y": 130,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Quick Selection"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 600,
+									"y": 400,
+									"pressure": 1,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 620,
+									"y": 400,
+									"pressure": 1,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Quick Selection"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "deselect",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-pen-anchor-editing",
+			"note": "The Pen adds an anchor on a segment, deletes one pressed on, and Alt converts smooth and corner anchors",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "pen"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 300,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 300,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].anchors",
+						"is": 3
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].anchors",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[4].label",
+						"is": "Add Anchor Point"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 101,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 101,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].anchors",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[5].label",
+						"is": "Delete Anchor Point"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 100,
+									"pressure": 1,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 340,
+									"y": 100,
+									"pressure": 1,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 360,
+									"y": 100,
+									"pressure": 1,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[6].label",
+						"is": "Convert Point"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].anchors",
+						"is": 3
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 100,
+									"pressure": 1,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"pressure": 1,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[7].label",
+						"is": "Convert Point"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "undo",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[6].label",
+						"is": "Convert Point"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-type-spacing-and-outlines",
+			"note": "A type layer's font family, tracking and kerning edit in Properties, and Type > Create Work Path makes its outlines paths",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "type"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 200,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 200,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "edit-content",
+						"args": {
+							"text": "AV"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.text",
+						"is": "AV"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "edit-content",
+						"args": {
+							"tracking": 100
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.tracking",
+						"is": 100
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "set-kerning",
+						"args": {
+							"kerning": -80
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.kerning.AV",
+						"is": -80
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "edit-content",
+						"args": {
+							"font": "symbols"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].content.font",
+						"is": "symbols"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "createWorkPath",
+						"args": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].name",
+						"is": "AV"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[0].closed",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.paths[1].name",
+						"is": "AV"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-colour-pickers",
+			"note": "The colour chips open a picker beside them, and Escape closes it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#foreground-colour"
+				},
+				{
+					"expect": {
+						"state": "pop.foreground",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "pop.foreground",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-selection-handles",
+			"note": "Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 100,
+								"y": 100
+							},
+							"to": {
+								"x": 300,
+								"y": 200
+							}
+						}
+					}
+				},
+				{
+					"action": "transformSelectionHandles"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "transform-selection"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.gesture",
+						"is": "selection-box"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 350,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 400,
+									"y": 150,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Transform Selection"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							99,
+							100,
+							302,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 210,
+									"y": 160,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 220,
+									"y": 170,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Transform Selection"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							119,
+							120,
+							302,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 900,
+									"y": 700,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 920,
+									"y": 700,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 4
+					}
+				},
+				{
+					"click": "#option-selection-box-done"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "marquee"
+					}
+				}
+			]
 		}
 	]
 }

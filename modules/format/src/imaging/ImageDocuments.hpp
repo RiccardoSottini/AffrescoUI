@@ -58,6 +58,8 @@ enum class Gesture : std::uint8_t {
 	shape,            ///< Draws a shape layer from the press to the release (the tool's "vector" options).
 	pen,              ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
 	pathSelect,       ///< Drags the active path, or the anchor pressed on.
+	quickSelect,      ///< Selects like colours under a brush dragged over them, stopping at edges.
+	selectionBox,     ///< Moves the selection's outline, or scales it by a handle of the box around it.
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
@@ -178,7 +180,7 @@ struct ImageDocument {
 	std::optional<imaging::Point> cloneOffset;                     ///< clone: from the point painted to the one copied.
 	float pressure = 1.0f;                                 ///< The pen's pressure of the event played (a mouse's is 1).
 	bool spaceHeld = false;                                ///< The space bar is held: a press pans the view.
-	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso: the points so far.
+	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso, quick-select: the points so far.
 	imaging::SelectionMode pathMode{};                     ///< polygon-lasso: the mode of the press that began it.
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
@@ -193,6 +195,10 @@ struct ImageDocument {
 	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
+	/// selection-box: the handle pressed (0 to 7 clockwise from the top left corner, 8 inside to move), or -1.
+	int boxHandle = -1;
+	std::array<float, 4> boxBefore{}; ///< selection-box: the selection's bounds at the press, left, top, right, bottom.
+	std::array<float, 4> boxNow{};    ///< selection-box: the box as the drag makes it.
 };
 
 /// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.
@@ -396,6 +402,26 @@ void typeText(ImageDocument& image, std::string_view added);
 /// @param dy Down.
 /// @throws DocumentError If the active layer can't be moved.
 void moveActiveLayer(imaging::Document& document, int dx, int dy);
+
+/// @brief Moves and scales the selection's outline from the box around it to another, as one step.
+/// @param image The image.
+/// @param from The box it is in, left, top, right, bottom.
+/// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @throws DocumentError If there is no selection.
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to);
+
+/// @brief The handle of a selection box under a point: 0 to 7 clockwise from the top left corner, 8 inside, or -1.
+/// @param box The box, left, top, right, bottom, in document pixels.
+/// @param at The point.
+/// @param reach How near a handle the point must be, in document pixels.
+[[nodiscard]] int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept;
+
+/// @brief The box a handle's drag makes: the handle follows the pointer, the opposite side stays (inside moves it).
+/// @param box The box at the press.
+/// @param handle The handle (boxHandleAt()).
+/// @param dx How far the pointer moved across.
+/// @param dy How far it moved down.
+[[nodiscard]] std::array<float, 4> draggedBox(std::array<float, 4> box, int handle, float dx, float dy) noexcept;
 
 /// @brief Crops the document to a rectangle; the history starts again, since a crop changes the size.
 /// @param image The image.

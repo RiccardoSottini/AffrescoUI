@@ -433,6 +433,12 @@
   []
   (add-text {:text (t "type.sample") :x (round (/ state.doc.width 3)) :y (round (/ state.doc.height 3))}))
 
+(defcommand createWorkPath "Adds the outlines of the active type layer's text as paths, to fill, stroke or edit."
+  :title ~(t "command.createWorkPath") :description ~(t "command.createWorkPath.about") :category ~(t "category.type")
+  :icon "spline" :enablement ~(= computed.activeLayer.kind "text")
+  []
+  (text-to-path {}))
+
 (defcommand newWorkPath "Adds an empty path for the pen to draw, and chooses the pen."
   :title ~(t "command.newWorkPath") :description ~(t "command.newWorkPath.about") :category ~(t "category.paths")
   :icon "pen-tool"
@@ -508,6 +514,12 @@
   :icon "rotate-ccw-square" :enablement ~(not state.doc.selection)
   []
   (select {:kind "reselect"}))
+
+(defcommand transformSelectionHandles "Puts handles on the selection's box: drag one to scale, inside to move."
+  :title ~(t "command.transformSelectionHandles") :description ~(t "command.transformSelectionHandles.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (setTool {:tool "transform-selection"}))
 
 (defcommand showTransformSelection "Opens the transform dialog on the selection: moves, scales and turns its outline."
   :title ~(t "command.showTransformSelection") :description ~(t "command.showTransformSelection.about")

@@ -49,8 +49,12 @@ Scenarios drive it through the `pointer` action, in document pixels.
 Type and shape layers are the library's too: each keeps what it is drawn from (its text, size and style; its outline,
 fill and stroke), shown in the snapshot's layer rows as `content`, and is drawn again whenever that changes, so it stays
 sharp and editable until Layer > Rasterize makes it pixels. The Type tool types on the canvas into the layer it adds or
-clicks, and Properties edits it too. The pen's paths are the document's (`doc.paths`), drawn over the canvas while one
-is chosen in the Paths panel, and filled, stroked, selected or made a shape layer from there or the options bar.
+clicks, and Properties edits it too: its font family, size, style, tracking, and the kerning of the pair where typing
+goes on. The pen's paths are the document's (`doc.paths`), drawn over the canvas while one is chosen in the Paths
+panel, and filled, stroked, selected or made a shape layer from there or the options bar. The Pen adds an anchor on a
+segment, deletes the one pressed on, and Alt converts a smooth anchor to a corner (a drag pulls a corner's handles);
+Type > Create Work Path makes a type layer's letters paths. Select > Transform Selection puts handles on the
+selection's box (the `selection-box` gesture), and every colour chip opens a picker beside it.
 
 ## Agents
 
@@ -64,7 +68,7 @@ a new image (the scenario `tempera-opens-an-agents-picture`).
 
 | Keys | Command |
 | --- | --- |
-| V M ⇧M L ⇧L W C B ⇧B E S G ⇧G I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, crop, brush, pencil, eraser, clone, gradient, fill, eyedropper, hand, zoom |
+| V M ⇧M L ⇧L W ⇧W C B ⇧B E S G ⇧G I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, quick selection, crop, brush, pencil, eraser, clone, gradient, fill, eyedropper, hand, zoom |
 | T P A U ⇧U | Tools: type, pen, path selection, rectangle, ellipse (shapes) |
 | D, X, Q, F | Default colours, swap them, quick mask, screen mode |
 | `[` `]` (or `,` `.`) | Smaller or larger brush |
