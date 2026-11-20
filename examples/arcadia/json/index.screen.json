@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#f5a524", "width": 2, "offset": 1 }
 	},
 
-	"include": ["locales/en.json", "locales/es.json", "locales/fr.json", "parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "parts/rewards.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["locales/en.json", "locales/es.json", "locales/fr.json", "parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "parts/game-panels.json", "parts/rewards.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -298,6 +298,7 @@
 			{ "id": "add-game-dialog", "use": "addGameDialog" },
 			{ "id": "backup-dialog", "use": "backupDialog" },
 			{ "id": "note-dialog", "use": "noteDialog" },
+			{ "id": "shot-viewer", "use": "shotViewer" },
 			{ "id": "info-dialog", "use": "infoDialog" },
 			{ "use": "clientToast" },
 			{ "use": "couchMode" },

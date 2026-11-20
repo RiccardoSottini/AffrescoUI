@@ -837,3 +837,38 @@
   :category ~(t "category.store")
   []
   (toggle "state.labsHideOwned"))
+
+;;; Your screenshots and the controller
+
+(defcommand takeScreenshot "Takes a screenshot of the game running, kept with the game's screenshots."
+  :title ~(t "command.takeScreenshot") :description ~(t "command.takeScreenshot.about") :category ~(t "category.game")
+  :icon "camera" :enablement ~(some? state.running)
+  []
+  (when-some [game state.running]
+    (push "state.shots" {:id (now) :game game :file (get ["shot1" "shot2" "shot3" "hero"] (mod (count state.shots) 4))})
+    (notify (t "shots.saved"))))
+
+(defcommand openShot "Opens one of a game's screenshots in the viewer, by its place, newest first."
+  :title ~(t "command.openShot") :description ~(t "command.openShot.about") :category ~(t "category.game")
+  [game n]
+  (set "state.shotView" {:open true :game game :at n}))
+
+(defn step-shot "Shows the viewer's screenshot before (-1) or after (1) the one shown, round the ends." [by]
+  (let [n (count computed.viewShots)]
+    (set "state.shotView.at" (mod (+ state.shotView.at by n) n))))
+
+(defcommand deleteShot "Deletes the screenshot the viewer shows; the viewer closes with the last one."
+  :title ~(t "command.deleteShot") :description ~(t "command.deleteShot.about") :category ~(t "category.game")
+  :icon "trash-2" :enablement ~(some? computed.viewShot)
+  []
+  (let [gone computed.viewShot.id
+        left (dec (count computed.viewShots))
+        last (max 0 (dec left))]
+    (set "state.shots" (remove #(= (:id %) gone) state.shots))
+    (set "state.shotView.at" (min state.shotView.at last))
+    (when (zero? left) (set "state.shotView.open" false))))
+
+(defcommand setPadLayout "Chooses a game's controller layout: default, southpaw or classic."
+  :title ~(t "command.setPadLayout") :description ~(t "command.setPadLayout.about") :category ~(t "category.game")
+  [id layout]
+  (set (str "state.padLayouts." id) layout))

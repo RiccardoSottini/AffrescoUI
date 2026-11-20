@@ -518,7 +518,28 @@
 			"labs.queue.skip": "Not interested",
 			"labs.queue.next": "Next",
 			"labs.hideOwned": "Hide games I own",
-			"labs.hideOwned.about": "The store's lists and offers leave out the games already in your library."
+			"labs.hideOwned.about": "The store's lists and offers leave out the games already in your library.",
+			"shots.title": "Your screenshots",
+			"shots.count": "{n, plural, one {# screenshot} other {# screenshots}} · F12 takes one while playing",
+			"shots.none": "No screenshots yet. Press F12 while the game is running to take one.",
+			"shots.open": "Open the screenshot",
+			"shots.viewerTitle": "Your screenshot of {game}",
+			"shots.of": "{n} of {total}",
+			"shots.delete": "Delete",
+			"shots.saved": "Screenshot saved.",
+			"pad.layout.default": "Default",
+			"pad.layout.southpaw": "Southpaw",
+			"pad.layout.classic": "Classic",
+			"pad.move": "Move",
+			"pad.look": "Look around",
+			"pad.jump": "Jump",
+			"pad.interact": "Use",
+			"pad.leftStick": "Left stick",
+			"pad.rightStick": "Right stick",
+			"pad.bottom": "Bottom button",
+			"pad.left": "Left button",
+			"pad.right": "Right button",
+			"pad.top": "Top button"
 		}
 	}
 }

@@ -518,7 +518,28 @@
 			"labs.queue.skip": "No me interesa",
 			"labs.queue.next": "Siguiente",
 			"labs.hideOwned": "Ocultar los juegos que tengo",
-			"labs.hideOwned.about": "Las listas y ofertas de la tienda omiten los juegos que ya están en tu biblioteca."
+			"labs.hideOwned.about": "Las listas y ofertas de la tienda omiten los juegos que ya están en tu biblioteca.",
+			"shots.title": "Tus capturas",
+			"shots.count": "{n, plural, one {# captura} other {# capturas}} · F12 hace una mientras juegas",
+			"shots.none": "Aún no hay capturas. Pulsa F12 con el juego en marcha para hacer una.",
+			"shots.open": "Abrir la captura",
+			"shots.viewerTitle": "Tu captura de {game}",
+			"shots.of": "{n} de {total}",
+			"shots.delete": "Eliminar",
+			"shots.saved": "Captura guardada.",
+			"pad.layout.default": "Predeterminada",
+			"pad.layout.southpaw": "Zurda",
+			"pad.layout.classic": "Clásica",
+			"pad.move": "Moverse",
+			"pad.look": "Mirar",
+			"pad.jump": "Saltar",
+			"pad.interact": "Usar",
+			"pad.leftStick": "Stick izquierdo",
+			"pad.rightStick": "Stick derecho",
+			"pad.bottom": "Botón inferior",
+			"pad.left": "Botón izquierdo",
+			"pad.right": "Botón derecho",
+			"pad.top": "Botón superior"
 		}
 	}
 }
