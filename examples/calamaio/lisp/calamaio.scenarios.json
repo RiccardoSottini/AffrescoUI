@@ -3208,6 +3208,131 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "recenter",
+			"note": "C-l scrolls point's line to the middle of the window, then to the top, then to the bottom when pressed again at once; a drag of the scroll bar scrolls.",
+			"steps": [
+				{
+					"key": "ctrl+h"
+				},
+				{
+					"key": "t"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "ctrl+u"
+				},
+				{
+					"key": "2"
+				},
+				{
+					"key": "0"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.line",
+						"is": 21
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 6
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 21
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 1
+					}
+				},
+				{
+					"key": "ctrl+l"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "recenter.step",
+						"is": 0
+					}
+				},
+				{
+					"key": "alt+shift+comma"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"drag": "#sbw1",
+					"to": [
+						949,
+						500
+					],
+					"moves": 4
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "win.w1.view.first",
+						"is": 12
+					}
+				}
+			]
 		}
 	]
 }
