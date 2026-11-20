@@ -41,11 +41,13 @@ hold a game, a swap of two places and a game by its id are one function each (`h
 
 - **The client's own controls** (`parts/client.lisp`, `parts/hub.lisp`, their commands in `arcadia.lisp`): every menu item, bar button and link does
   something, and `controls.scenarios.json` proves each one. A Settings window (`mod+,`) with Interface, Downloads
-  (a bandwidth limit, downloading while playing, clearing the cache), Storage (usage by game, uninstall) and Account
-  pages; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
+  (a download region, a bandwidth limit, a schedule that keeps downloads to 1:00 to 7:00 UTC, downloading while
+  playing, clearing the cache), Storage (two drives, usage by game, moving a game between them, uninstall) and Account
+  pages; a game's properties with its installed files to browse, its drive, and a move to the other drive; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
   from this computer; backup and restore through the file dialogs; offline mode; signing out and in; a couch mode in
-  full screen, driven by the arrow keys; a game's player hub with discussions and guides; notes on a game; filters and
-  collapsing collections in the library; votes on reviews. The store bar's Rewards and Experiments are disabled with
+  full screen with rows of your games, the store's and your friends, driven by the arrow keys or a gamepad; a game's player hub with discussions and guides; notes on a game; filters and
+  collapsing collections in the library, and new ones (`parts/collections.lisp`): games picked by hand, or dynamic,
+  filled by a rule (installed, never played, favourites, a genre); votes on reviews. The store bar's Rewards and Experiments are disabled with
   a tooltip, as is Exit (a document can't close the window it runs in).
 - **The look**: aubergine and charcoal with an amber accent, a centred segmented navigation, flat pill bars, rounded
   cover tiles and a round mint play button, all through tokens.

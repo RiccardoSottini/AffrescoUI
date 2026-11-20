@@ -22,7 +22,7 @@ was at the start of this work; **Now** is the current state.
 | Library | Home: Jump back in shelf grouped by time (big tile for the latest) | missing | done |
 | Library | Home: collections shown as shelves of cover tiles | partial | done |
 | Library | Home: All Games grid with sort (alphabetical, hours played, last played) | partial | done |
-| Library | Collections: manual and dynamic (filtered) ones, create a collection | partial | partial |
+| Library | Collections: manual and dynamic (filtered) ones, create a collection | partial | done |
 | Library | Right-click a game: Play/Install, Add to Favourites, Manage, Properties, Uninstall | partial | done |
 | Game page | Hero art with the game's logo over it | missing | done |
 | Game page | PLAY (mint) / INSTALL (amber) / UPDATE / RUNNING button with a drop-down | partial | done |
@@ -31,7 +31,7 @@ was at the start of this work; **Now** is the current state.
 | Game page | Section tabs: Store Page, DLC, Player hub, Discussions, Guides, Support | missing | done |
 | Game page | Activity feed with a "say something" box and friend posts | partial | done |
 | Game page | Friends who play, achievements panel, screenshots, notes, DLC, controller info | partial | partial |
-| Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | partial |
+| Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | done |
 | Game page | Uninstall with a confirmation | done | done |
 | Store | Store sub-navigation (For you, Fresh, Categories, Rewards, News, Experiments) and search | missing | partial |
 | Store | Spotlight carousel: big tile, screenshots that change on hover, price, tags | partial | done |
@@ -50,12 +50,12 @@ was at the start of this work; **Now** is the current state.
 | Friends | Chat: message bubbles, timestamps, game invites, typing | missing | done |
 | Settings | Settings window with a category list | partial | done |
 | Settings | Interface: language, start page, theme-like options | partial | done |
-| Settings | Downloads: region, bandwidth limit, schedule, clear cache | partial | partial |
-| Settings | Storage manager: drives with usage bars by game, move and uninstall | missing | partial |
+| Settings | Downloads: region, bandwidth limit, schedule, clear cache | partial | done |
+| Settings | Storage manager: drives with usage bars by game, move and uninstall | missing | done |
 | Community | Community hub page: activity, screenshots, discussions | missing | partial |
 | Profile | Profile page: avatar, level, showcase, recent activity | missing | done |
-| TV mode | Big-screen mode entry and its home | missing | partial |
-| Keyboard | Every action reachable by keyboard, focus visible, shortcuts | partial | partial |
+| TV mode | Big-screen mode entry and its home | missing | done |
+| Keyboard | Every action reachable by keyboard, focus visible, shortcuts | partial | done |
 | Locales | English, Spanish and French | done | done |
 | Assistant | The shared assistant chat (bottom-right bubble) | missing | done |
 
@@ -75,13 +75,9 @@ Each partial row and each disabled control, with what it needs and a priority: P
 
 | What | Needs | Priority |
 | --- | --- | --- |
-| Collections: creating one, and dynamic (filtered) ones | JSON only: a collections model, a "New collection" dialog and a filter per collection | P2 |
-| Downloads settings: download region and a schedule | JSON only: two settings and the queue honouring the schedule window | P2 |
 | Community hub: opening a post and replying | JSON only: a post page and a replies model | P2 |
-| Keyboard: gamepad buttons in couch mode and the library | General library feature: gamepad button names in `keys` | P2 |
 | Game page panels: own screenshots and full controller info | JSON only: a screenshots model and a controller panel | P3 |
-| Properties: browsing installed files; a compatibility tab | JSON only for the files list; compatibility has nothing to choose with invented games | P3 |
-| Storage: a second drive and moving a game to it | JSON only: drives in the data and a move action | P3 |
-| TV mode: the store, friends and settings inside couch mode | JSON only: more couch pages | P3 |
+| Properties: a compatibility tab | Nothing to choose with invented games that never run | P3 |
+| TV mode: Settings inside couch mode | JSON only: a couch settings row | P3 |
 | Store bar: Rewards and Experiments (disabled, with a tooltip) | JSON only: a points shop and an experiments page | P3 |
 | Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |
