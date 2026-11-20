@@ -18,6 +18,8 @@
 
 (defstate theme dark)
 
+(defstate dayTheme dark "The theme the night mode goes back to.")
+
 (defstate selected earth)
 
 (defstate camera {:tx 0 :tz 0 :yaw 0.4 :pitch 0.75 :distance 15})

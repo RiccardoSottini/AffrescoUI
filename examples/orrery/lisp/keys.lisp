@@ -47,3 +47,5 @@
 (defkey "minus" brighter)
 
 (defkey "m" toggleMarker)
+
+(defkey "n" toggleNight)

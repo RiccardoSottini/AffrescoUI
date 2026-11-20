@@ -1746,6 +1746,60 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "night-mode",
+			"steps": [
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "night"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-night",
+						"exists": true
+					}
+				},
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 12.3
+					}
+				},
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"key": "n"
+				},
+				{
+					"key": "n"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				}
+			]
 		}
 	]
 }

@@ -436,6 +436,15 @@
   []
   (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
+(defcommand toggleNight "Turns the night mode on, everything in dim red to keep the eyes used to the dark, or back off."
+  :title ~(t "command.toggleNight")
+  :description ~(t "command.toggleNight.about")
+  :icon "eye"
+  []
+  (if (= state.theme :night)
+    (set "state.theme" state.dayTheme)
+    (do (set "state.dayTheme" state.theme) (set "state.theme" :night))))
+
 (defcommand openRender "Opens the options of what the 3D view draws."
   :title ~(t "command.openRender")
   :description ~(t "command.openRender.about")

@@ -37,6 +37,8 @@
                 :command.toggleGlow.about "Shows or hides the glow around the Sun."
                 :command.toggleTheme "Light theme"
                 :command.toggleTheme.about "Switches between the dark and the light theme."
+                :command.toggleNight "Night mode"
+                :command.toggleNight.about "Dims everything to red, to keep the eyes used to the dark, or turns it back."
                 :command.openRender "Render options"
                 :command.openRender.about "Opens the options of what the 3D view draws."
                 :command.zoomIn "Narrow the field of view"

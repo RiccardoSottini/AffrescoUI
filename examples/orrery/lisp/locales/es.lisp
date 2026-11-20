@@ -37,6 +37,8 @@
                 :command.toggleGlow.about "Muestra u oculta el resplandor alrededor del Sol."
                 :command.toggleTheme "Tema claro"
                 :command.toggleTheme.about "Cambia entre el tema oscuro y el claro."
+                :command.toggleNight "Modo nocturno"
+                :command.toggleNight.about "Atenúa todo en rojo para no perder la adaptación a la oscuridad, o lo devuelve."
                 :command.openRender "Opciones de renderizado"
                 :command.openRender.about "Abre las opciones de lo que dibuja la vista 3D."
                 :command.zoomIn "Estrechar el campo de visión"

@@ -37,6 +37,8 @@
                 :command.toggleGlow.about "Affiche ou masque le halo autour du Soleil."
                 :command.toggleTheme "Thème clair"
                 :command.toggleTheme.about "Bascule entre le thème sombre et le thème clair."
+                :command.toggleNight "Mode nuit"
+                :command.toggleNight.about "Passe tout en rouge atténué pour garder les yeux habitués au noir, ou revient."
                 :command.openRender "Options de rendu"
                 :command.openRender.about "Ouvre les options de ce que dessine la vue 3D."
                 :command.zoomIn "Réduire le champ de vision"

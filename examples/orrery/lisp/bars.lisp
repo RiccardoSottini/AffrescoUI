@@ -19,6 +19,7 @@
    :tour {:run playTour :group "4_places" :order 4}
    :renderOptions {:run openRender :group "2_show" :order 7}
    :theme {:run toggleTheme :group "2_show" :order 8}
+   :night {:run toggleNight :group "2_show" :order 9}
    :stars {:run toggleStars :group "2_show" :order 4}
    :shading {:run toggleShading :group "2_show" :order 5}
    :glow {:run toggleGlow :group "2_show" :order 6}
@@ -40,6 +41,7 @@
          (merge it
                 {:checked (case it.run
                             :toggleTheme (= state.theme :light)
+                            :toggleNight (= state.theme :night)
                             :toggleOrbits state.showOrbits
                             :toggleLabels state.showLabels
                             :toggleBrowser state.showBrowser
