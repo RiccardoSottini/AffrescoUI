@@ -99,14 +99,14 @@
        (label#format-title :grow 1
          :height 22
          :textColor @rbInk
-         :runs [{:text ~(if (some? 'o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
+         :runs [{:text ~(if (some? o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
        (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close")
          :onClick [{:set state.formatPane :to false}]))
      ~(format-background)
      ~(format-object)))
 
 (defview format-background "The slide's background colour, when nothing is selected." []
-  `(column#format-slide :when ~(nil? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-slide :when ~(nil? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-background-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches
        :with {:prefix format-background
@@ -118,15 +118,18 @@
        :fitText true
        :padding 4
        :runs [{:icon rotate-ccw :size 13} {:text ~(t "view.theThemeSBackground") :size 12}]
-       :onClick ~(handler setBackground nil))))
+       :onClick ~(handler setBackground nil))
+     ~(format-own-colors)))
 
 (defview format-object "The selected objects' fill, line, effects, size and place, lock and alt text." []
-  `(column#format-object :when ~(some? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-object :when ~(some? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-fill-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches :with {:prefix format-fill :chosen ~(or-else o.fill "none") :run setObjects :key fill})
+     ~(format-gradient)
      (label#format-line-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.line") :size 12}])
      (node :use swatches :with {:prefix format-line :chosen ~(or-else o.line "none") :run setObjects :key line})
      ~(stepper "format-line-width" "view.width" 'o.lineWidth 1 " pt" "lineWidth" 0.5 0 50)
+     ~(format-dash)
      (label#format-effects-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.effects") :size 12}])
      ~(format-effects)
      (label#format-size-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.sizeAndPlace") :size 12}])
@@ -135,7 +138,9 @@
      ~(stepper "format-x" "view.left" 'box.x 0 "" "x" 10 -2000 4000)
      ~(stepper "format-y" "menu.top" 'box.y 0 "" "y" 10 -2000 4000)
      ~(stepper "format-rotate" "view.rotation" 'o.rotate 0 "°" "rotate" 15 -360 360)
+     ~(format-ratio)
      ~(format-lock)
+     ~(format-text-box)
      (label#format-alt-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.altText") :size 12}])
      ~(format-alt)))
 (defview stepper "A stepper of the format pane: a number of the selection, `value` or else `fallback`, titled by a key."
@@ -296,8 +301,8 @@
 
 ;;; What the format pane and the views do
 
-(defn set-property "Sets one property of the selected objects." [key value]
-  (setObjects (assoc {} key value)))
+(defn set-property "Sets one property of the selected objects; with the proportions locked a size sets both." [key value]
+  (setObjects (sized key value)))
 
 (defn pick-swatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
   (if (= run "setBackground") (setBackground slot) (set-property key slot)))
@@ -315,7 +320,8 @@
 (defn fileStatus "Says what the last save, open or export did, on the File tab." [text]
   (set "state.fileStatus" text))
 
-(defn saved "Says the deck was saved." [result]
+(defn saved "Says the deck was saved, and keeps it among the recent ones." [result]
+  (remember-deck result.name)
   (fileStatus (t "file.saved" {:name result.name})))
 
 (defn not-saved "Says why the deck wasn't saved." [error]
@@ -342,6 +348,7 @@
         (set "state.deck" state.opened)
         (set "state.current" 0)
         (set "state.board.selection" [])
+        (remember-deck name)
         (fileStatus (t "file.opened" {:name name})))
     (fileStatus (t "file.notADeck" {:name name})))
   (set "state.opened" nil))

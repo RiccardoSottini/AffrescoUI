@@ -24,7 +24,11 @@
     :snip1Rect {:poly [[[0 0] [1 0 -0.1667 0] [1 0 0 0.1667] [1 1] [0 1]]]}
     :snip2SameRect {:poly [[[0 0 0.1667 0] [1 0 -0.1667 0] [1 0 0 0.1667] [1 1] [0 1] [0 0 0 0.1667]]]}
     :snip2DiagRect {:poly [[[0 0] [1 0 -0.1667 0] [1 0 0 0.1667] [1 1] [0 1 0.1667 0] [0 1 0 -0.1667]]]}
-    :stadium {:round 0.5}})
+    :stadium {:round 0.5}
+    :round1Rect {:d "M0 0H83A17 17 0 0 1 100 17V100H0Z"}
+    :round2SameRect {:d "M17 0H83A17 17 0 0 1 100 17V100H0V17A17 17 0 0 1 17 0Z"}
+    :round2DiagRect {:d "M17 0H100V83A17 17 0 0 1 83 100H0V17A17 17 0 0 1 17 0Z"}
+    :snipRoundRect {:d "M17 0H83L100 17V100H0V17A17 17 0 0 1 17 0Z"}})
 
 (def basic-shapes "The basic shapes."
   '{:ellipse {:ellipse true :text [0.146 0.146 0.146 0.146]}
@@ -125,7 +129,9 @@
     :leftBracket {:d "M100 0Q0 0 0 15V85Q0 100 100 100" :open true}
     :rightBracket {:d "M0 0Q100 0 100 15V85Q100 100 0 100" :open true}
     :leftBrace {:d "M100 0Q50 0 50 10V40Q50 50 0 50Q50 50 50 60V90Q50 100 100 100" :open true}
-    :rightBrace {:d "M0 0Q50 0 50 10V40Q50 50 100 50Q50 50 50 60V90Q50 100 0 100" :open true}})
+    :rightBrace {:d "M0 0Q50 0 50 10V40Q50 50 100 50Q50 50 50 60V90Q50 100 0 100" :open true}
+    :plaque {:d "M17 0H83A17 17 0 0 0 100 17V83A17 17 0 0 0 83 100H17A17 17 0 0 0 0 83V17A17 17 0 0 0 17 0Z"
+             :text [0.1 0.1 0.1 0.1]}})
 
 (def arrows-shapes "The block arrows."
   '{:rightArrow {:poly [[[0 0.25] [1 0.25 -0.5 0] [1 0 -0.5 0] [1 0.5] [1 1 -0.5 0] [1 0.75 -0.5 0] [0 0.75]]]
@@ -212,7 +218,21 @@
     :uturnArrow {:d "M0 100V40A40 40 0 0 1 80 40V55H100L70 85L40 55H60V40A20 20 0 0 0 20 40V100Z"}
     :bentArrow {:d "M0 100V50A35 35 0 0 1 35 15H75V0L100 25L75 50V35H35A15 15 0 0 0 20 50V100Z"}
     :circularArrow {:d "M8 60A42 42 0 1 1 92 60H100L84 80L68 60H76A26 26 0 1 0 24 60Z"}
-    :curvedRightArrow {:d "M0 50C0 20 40 5 75 5V0L100 20L75 40V35C45 35 20 45 20 70V100H0Z"}})
+    :curvedRightArrow {:d "M0 50C0 20 40 5 75 5V0L100 20L75 40V35C45 35 20 45 20 70V100H0Z"}
+    :bentUpArrow {:poly [[[0 0.75] [0.6 0.75] [0.6 0.25] [0.45 0.25] [0.725 0] [1 0.25] [0.85 0.25] [0.85 1] [0 1]]]
+                  :text [0 0.75 0.15 0]}
+    :rightArrowCallout {:poly [[[0 0] [0.6 0] [0.6 0.35] [0.8 0.35] [0.8 0.2] [1 0.5] [0.8 0.8] [0.8 0.65] [0.6 0.65]
+                                [0.6 1] [0 1]]]
+                        :text [0 0 0.4 0]}
+    :leftArrowCallout {:poly [[[0 0.5] [0.2 0.2] [0.2 0.35] [0.4 0.35] [0.4 0] [1 0] [1 1] [0.4 1] [0.4 0.65]
+                               [0.2 0.65] [0.2 0.8]]]
+                       :text [0.4 0 0 0]}
+    :upArrowCallout {:poly [[[0 0.4] [0.35 0.4] [0.35 0.2] [0.2 0.2] [0.5 0] [0.8 0.2] [0.65 0.2] [0.65 0.4] [1 0.4]
+                             [1 1] [0 1]]]
+                     :text [0 0.4 0 0]}
+    :downArrowCallout {:poly [[[0 0] [1 0] [1 0.6] [0.65 0.6] [0.65 0.8] [0.8 0.8] [0.5 1] [0.2 0.8] [0.35 0.8]
+                               [0.35 0.6] [0 0.6]]]
+                       :text [0 0 0 0.4]}})
 
 (def equation-shapes "The equation shapes."
   '{:mathPlus {:poly [[[0.12 0.5 0 -0.12]
@@ -294,7 +314,12 @@
     :flowChartDelay {:d "M0 0H50A50 50 0 0 1 50 100H0Z" :text [0 0.146 0.146 0.146]}
     :flowChartMagneticDisk {:d "M0 12C0 -4 100 -4 100 12V88C100 104 0 104 0 88ZM0 12C0 28 100 28 100 12"
                             :text [0 0.25 0 0.1]}
-    :flowChartDisplay {:d "M0 50L17 0H83A17 50 0 0 1 83 100H17Z" :text [0.17 0 0.17 0]}})
+    :flowChartDisplay {:d "M0 50L17 0H83A17 50 0 0 1 83 100H17Z" :text [0.17 0 0.17 0]}
+    :flowChartOr {:d "M0 50A50 50 0 1 1 100 50A50 50 0 1 1 0 50ZM50 0V100M0 50H100" :text [0.146 0.146 0.146 0.146]}
+    :flowChartOfflineStorage {:d "M0 0H100L50 100ZM37 75H63" :text [0.25 0 0.25 0.4]}
+    :flowChartMagneticTape {:d "M50 100A50 50 0 1 1 85.4 85.4H100V100Z" :text [0.146 0.146 0.146 0.146]}
+    :flowChartMagneticDrum {:d "M15 0H85A15 50 0 0 1 85 100H15A15 50 0 0 1 15 0ZM85 0A15 50 0 0 0 85 100"
+                            :text [0.15 0 0.3 0]}})
 
 (def stars-shapes "Stars, waves, ribbons and scrolls."
   '{:star4 {:sides 4 :inner 0.25 :text [0.25 0.25 0.25 0.25]}
@@ -347,7 +372,11 @@
     :verticalScroll {:d "M10 10A8 8 0 0 1 18 2H92A8 8 0 0 1 92 18H82V90A8 8 0 0 1 74 98H8A8 8 0 0 1 8 82H18V18Z"
                      :text [0.18 0.18 0.18 0.18]}
     :horizontalScroll {:d "M2 18A8 8 0 0 1 10 10H90V8A8 8 0 0 1 98 8V82A8 8 0 0 1 90 90H18V92A8 8 0 0 1 2 92Z"
-                       :text [0.1 0.18 0.1 0.18]}})
+                       :text [0.1 0.18 0.1 0.18]}
+    :irregularSeal2 {:poly [[[0.45 0] [0.55 0.22] [0.75 0.05] [0.72 0.3] [1 0.25] [0.82 0.45] [1 0.62] [0.75 0.65]
+                             [0.85 0.95] [0.6 0.78] [0.45 1] [0.38 0.78] [0.12 0.9] [0.22 0.65] [0 0.55] [0.18 0.42]
+                             [0.02 0.2] [0.3 0.27]]]
+                     :text [0.25 0.3 0.25 0.3]}})
 
 (def callouts-shapes "The callouts."
   '{:wedgeRectCallout {:poly [[[0 0] [1 0] [1 1] [0.4167 1] [0.2917 1.125] [0.1667 1] [0 1]]] :pad 0.13}
@@ -367,7 +396,9 @@
 
 (defcomputed shapeGallery "The shape gallery's sections, each with its shapes."
   '[{:id lines :shapes [line lineArrow lineDoubleArrow lineDot]}
-   {:id rectangles :shapes [rect roundRect snip1Rect snip2SameRect snip2DiagRect stadium]}
+   {:id rectangles
+    :shapes [rect roundRect snip1Rect snip2SameRect snip2DiagRect stadium round1Rect round2SameRect round2DiagRect
+             snipRoundRect]}
    {:id basic
     :shapes [ellipse
              triangle
@@ -408,7 +439,8 @@
              leftBracket
              rightBracket
              leftBrace
-             rightBrace]}
+             rightBrace
+             plaque]}
    {:id arrows
     :shapes [rightArrow
              leftArrow
@@ -424,7 +456,12 @@
              uturnArrow
              bentArrow
              circularArrow
-             curvedRightArrow]}
+             curvedRightArrow
+             bentUpArrow
+             rightArrowCallout
+             leftArrowCallout
+             upArrowCallout
+             downArrowCallout]}
    {:id equation :shapes [mathPlus mathMinus mathEqual mathMultiply mathDivide mathNotEqual]}
    {:id flowchart
     :shapes [flowChartProcess
@@ -451,7 +488,11 @@
              flowChartOnlineStorage
              flowChartDelay
              flowChartMagneticDisk
-             flowChartDisplay]}
+             flowChartDisplay
+             flowChartOr
+             flowChartOfflineStorage
+             flowChartMagneticTape
+             flowChartMagneticDrum]}
    {:id stars
     :shapes [star4
              star5
@@ -468,7 +509,8 @@
              doubleWave
              ribbon2
              verticalScroll
-             horizontalScroll]}
+             horizontalScroll
+             irregularSeal2]}
    {:id callouts
     :shapes [wedgeRectCallout wedgeRoundRectCallout wedgeEllipseCallout cloudCallout borderCallout1]}])
 

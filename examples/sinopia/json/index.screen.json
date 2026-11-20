@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/format.json", "parts/shape-format.json", "parts/canvas.json", "parts/file.json", "parts/design.json", "parts/search.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -52,7 +52,7 @@
 		"board": { "camera": { "x": 0, "y": 0, "zoom": 1 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } }
 	},
 
-	"persist": ["state.deck", "state.theme", "state.presenterView"],
+	"persist": ["state.deck", "state.theme", "state.presenterView", "state.recentDecks"],
 
 	"computed": {
 		"tabs": [
@@ -65,7 +65,7 @@
 		"canvasHeight": "{{max(window.height - 45 - (state.ribbon ? 100 : 0) - 27 - (state.notes ? 77 : 0), 100)}}",
 		"fitZoom": "{{min((computed.canvasWidth - 56) / 960, (computed.canvasHeight - 40) / 540)}}",
 		"fitCamera": "{{ {x: 480 - computed.canvasWidth / (2 * computed.fitZoom), y: 270 - computed.canvasHeight / (2 * computed.fitZoom), zoom: computed.fitZoom} }}",
-		"view": "{{state.fit ? merge(state.board, {camera: computed.fitCamera}) : state.board}}",
+		"view": "{{merge(state.fit ? merge(state.board, {camera: computed.fitCamera}) : state.board, {guides: computed.guidesShown})}}",
 		"zoom": "{{computed.view.camera.zoom}}",
 		"slideTitle": "{{trim(split(find(computed.objects, it.ph == 'title' || it.ph == 'ctrTitle').text ?? '', '\n')[0])}}",
 		"sectionFirsts": "{{map(state.deck.sections ?? [], it.first)}}",
@@ -81,6 +81,7 @@
 			{ "set": "state.fit", "to": false }
 		],
 		"viewChanged": [
+			{ "if": "{{!state.guides && length(view.guides.vertical ?? []) + length(view.guides.horizontal ?? []) > 0}}", "then": [{ "set": "state.guides", "to": true }] },
 			{ "set": "state.board", "to": "{{view}}" },
 			{ "if": "{{length(computed.touchedGroups) > 0}}", "then": [{ "set": "state.board.selection", "to": "{{computed.groupedSelection}}" }] },
 			{ "if": "{{state.editing != null && !contains(view.selection ?? [], state.editing)}}", "then": [{ "set": "state.editing", "to": null }] },
@@ -137,8 +138,9 @@
 					{ "id": "command-divider", "width": 1, "height": 20, "color": "@rbLine" },
 					{ "id": "command-pad-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label",
-					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{computed.tabs}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
-					  "runs": [{ "text": "{{t.title}}", "size": 12 }],
+					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{concat(computed.tabs, computed.contextTabs)}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
+					  "textColor": "{{state.tab == t.id && state.ribbon ? '@onBrand' : t.contextual ? '@brandLine' : '@rbInk'}}",
+					  "runs": [{ "text": "{{t.title}}", "size": 12, "bold": "{{t.contextual ?? false}}" }],
 					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbon", "to": true }] },
 					{ "id": "command-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "textarea", "id": "search", "width": 200, "height": 28, "padding": 6, "radius": 14, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
@@ -177,7 +179,8 @@
 						{ "use": "tabInk", "when": "{{state.tab == 'draw'}}" },
 						{ "use": "tabRecord", "when": "{{state.tab == 'record'}}" },
 						{ "use": "tabCheck", "when": "{{state.tab == 'review'}}" },
-						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" }
+						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" },
+						{ "use": "tabShapeFormat", "when": "{{state.tab == 'shapeFormat'}}" }
 					  ] }
 				]
 			},
@@ -269,6 +272,7 @@
 									"children": [
 										{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
 										  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
+										{ "use": "gridLines" },
 										{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
 										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
 										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },

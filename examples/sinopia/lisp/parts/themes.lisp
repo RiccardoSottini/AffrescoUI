@@ -251,12 +251,12 @@
 (defcomputed theme "The deck's theme."
   (or-else (find #(= (:id %) state.deck.theme) computed.themes) computed.themes.0))
 
-(defcomputed colors "The deck's colours: its theme's, its variant's, or another theme's."
+(defcomputed colors "The deck's colours: its theme's, its variant's, another theme's, or its own."
   (merge computed.theme.colors
          (or-else (get computed.theme.variants (or-else state.deck.variant 0)) {})
-         (if-some [id state.deck.colors]
-             (:colors (or-else (find #(= (:id %) id) computed.themes) {:colors {}}))
-             {})))
+         (cond (nil? state.deck.colors) {}
+               (= state.deck.colors "own") (or-else state.deck.ownColors {})
+               :else (:colors (or-else (find #(= (:id %) state.deck.colors) computed.themes) {:colors {}})))))
 
 (defcomputed headingFont "The titles' font." (or-else (:heading (or-else state.deck.fonts {})) "default"))
 

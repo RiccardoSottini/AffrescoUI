@@ -287,6 +287,7 @@
 			"node": {
 				"type": "row", "id": "tab-file", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
+					{ "use": "fileNew" },
 					{ "id": "g-file", "use": "rbGroup", "with": { "title": "Deck" }, "children": [
 						{ "id": "b-open", "use": "rbBig", "with": { "icon": "folder-open", "title": "Open", "width": 46 }, "tooltip": "Open a deck (Ctrl+O)", "onClick": "openDeck" },
 						{ "id": "b-save", "use": "rbBig", "with": { "icon": "save", "title": "Save", "width": 46 }, "tooltip": "Save the deck (Ctrl+S)", "onClick": "saveDeck" }
@@ -295,6 +296,7 @@
 						{ "id": "b-export-pdf", "use": "rbBig", "with": { "icon": "file-text", "title": "PDF", "width": 46 }, "tooltip": "Every slide shown, a page each", "onClick": "exportPdf" },
 						{ "id": "b-export-png", "use": "rbBig", "with": { "icon": "file-image", "title": "Picture", "width": 50 }, "tooltip": "This slide as a PNG picture", "onClick": "exportPng" }
 					] },
+					{ "use": "fileRecent" },
 					{ "id": "g-file-info", "use": "rbGroup", "with": { "title": "Last" }, "children": [
 						{ "type": "label", "id": "file-status", "width": 220, "height": 72, "wrap": true, "padding": 4, "textColor": "@rbMuted",
 						  "runs": [{ "text": "{{state.fileStatus == '' ? 'Nothing saved or exported yet.' : state.fileStatus}}", "size": 12 }] }
@@ -359,7 +361,7 @@
 			"note": "A checkbox bound to the state path at, and its title, which toggles it too.",
 			"node": {
 				"type": "row", "height": 22, "gap": 6, "alignItems": "center", "color": "transparent", "children": [
-					{ "type": "checkbox", "id": "{{prefix + '-box'}}", "width": 14, "height": 14, "bind": "{{at}}", "label": "{{title}}" },
+					{ "type": "checkbox", "id": "{{prefix + '-box'}}", "width": 14, "height": 14, "bind": "{{at}}", "label": "{{title}}", "activeColor": "@brand", "trackColor": "@rbFieldLine", "knobColor": "@rbFieldBg" },
 					{ "type": "label", "id": "{{prefix + '-caption'}}", "fitText": true, "height": 20, "cursor": "hand", "textColor": "@rbInk",
 					  "runs": [{ "text": "{{title}}", "size": 12 }], "onClick": [{ "toggle": "{{at}}" }] }
 				]
