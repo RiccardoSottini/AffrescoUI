@@ -206,9 +206,9 @@
   [{:title (t "mode.object") :icon "box" :checked (= state.mode :object) :run "setMode" :with {:mode "object"}}
    {:title (t "mode.edit") :icon "pen-tool" :enabled false :keyLabel (t "menu.notYet")}])
 
-(defcomputed orientationItems "The transform orientations; Gimbal and View are to come."
+(defcomputed orientationItems "The transform orientations; Gimbal is to come."
   (map (fn [it]
-         (if (contains ["gimbal" "view"] it)
+         (if (= it "gimbal")
            {:title (t (str "orientation." it)) :enabled false :keyLabel (t "menu.notYet")}
            {:title (t (str "orientation." it))
             :checked (= state.orientation it)
@@ -284,13 +284,11 @@
 
 ;;; Editors and workspaces
 
-(defcomputed editorTypes "The editors an area can show; the image and text editors are to come."
+(defcomputed editorTypes "The editors an area can show."
   (map (fn [it]
          {:id it.0
           :title (t (str "editor." it.0))
-          :icon it.1
-          :enabled (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0)
-          :keyLabel (if (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0) "" (t "menu.notYet"))})
+          :icon it.1})
        [["viewport" "axis-3-d"]
         ["image" "image"]
         ["shader" "git-fork"]

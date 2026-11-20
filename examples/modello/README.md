@@ -13,7 +13,8 @@ The tools that follow the pointer, the editors and what reaches outside (opening
 parts. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone.
 
 Its layout and keys follow the conventions of desktop 3D modellers, so a daily user of such a modeller finds what they expect where they
-expect it: the top bar with its menus and workspace tabs, the 3D viewport with its header, toolbar, navigation gizmo
+expect it: the top bar with its menus and its own five workspaces (Stage, Shape, Surface, Motion and Shot, each a preset
+of the areas), the 3D viewport with its header, toolbar, navigation gizmo
 and sidebar, the outliner, the properties editor, the timeline and the status bar. `PARITY.md` lists what is there and
 what isn't yet.
 
@@ -25,7 +26,7 @@ and review cover the scene and the workspace alike.
 |---|---|
 | `lisp/index.screen.lisp` | The window, fonts, colours (dark and light), the state and the areas |
 | `lisp/state.lisp`, `lisp/scene.lisp` | What it keeps while it runs, and what it works out from its scene |
-| `lisp/modello.lisp`, `lisp/transform.lisp`, `lisp/animation.lisp`, `lisp/collections.lisp`, `lisp/materials.lisp`, `lisp/files.lisp`, `lisp/navigation.lisp` | The program: undo and redo, the edits of the selected objects, transforms, keyframes, collections, materials, files and the view |
+| `lisp/modello.lisp`, `lisp/transform.lisp`, `lisp/animation.lisp`, `lisp/collections.lisp`, `lisp/relations.lisp`, `lisp/materials.lisp`, `lisp/files.lisp`, `lisp/navigation.lisp` | The program: undo and redo, the edits of the selected objects, transforms, keyframes, collections, parenting, materials, files and the view |
 | `lisp/keys.lisp`, `lisp/menus.lisp` | The keys and the menus |
 | `lisp/viewport.lisp`, `lisp/sidebar.lisp` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
 | `lisp/bars.lisp`, `lisp/outliner.lisp`, `lisp/properties.lisp`, `lisp/timeline.lisp`, `lisp/dialogs.lisp`, `lisp/widgets.lisp` | The top bar, outliner, properties editor, timeline, status bar, dialogs and the widgets they share |
@@ -44,6 +45,7 @@ and review cover the scene and the workspace alike.
 | Middle drag, Shift+middle drag, wheel; Shift+right click | Orbit, pan, zoom; place the 3D cursor |
 | `mod+z`, `mod+shift+z`, `n`, `t`, `i`, Space | Undo, redo, sidebar, toolbar, keyframe, play |
 | `mod+n`, `mod+o`, `mod+s` | A new scene, open one, save it (JSON, in a file you pick) |
+| `ctrl+p`, `alt+p` | Parent the selection to the active object, clear the parent (each keeps its place) |
 
 ## Samples
 

@@ -4049,8 +4049,12 @@
 									"space": {
 										"enum": [
 											"world",
-											"local"
+											"local",
+											"view"
 										]
+									},
+									"individual": {
+										"type": "boolean"
 									},
 									"pixels": {
 										"type": "number",

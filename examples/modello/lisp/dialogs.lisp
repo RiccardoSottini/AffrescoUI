@@ -51,3 +51,59 @@
   `(node#search :when ~state.quickPick.open
      :use quickPick
      :with {:width 460 :rows 12 :rowHeight 22 :providers [{:items ~computed.searchItems :placeholder ~(t "search.placeholder")}]}))
+
+;;; The image and text editors, which an area can show
+
+(defview editor-header "An editor's header: its type's button (its menu open at the state path open), and its title." [editor icon title open]
+  `(row :anchors {:left 0 :right 0 :top 0}
+     :height 26
+     :color @header
+     :radius {:topLeft 8 :topRight 8}
+     :alignItems center
+     :gap 2
+     (node :use gap)
+     (node :id ~(str "editor-type-" editor)
+       :use hButton
+       :with {:icon ~icon
+              :chevron true
+              :width 38
+              :tooltip ~(t "header.editorType")
+              :open ~open
+              :items ~(editor-choices editor)})
+     (node :use gap :with {:width 6})
+     (label :text ~title :textColor @dim :fitText true :height 20)))
+
+(defcomponent imageArea "The image editor: the scene through its camera, as F12 renders it, kept up to date." {}
+  `(node#image-area :color @region :radius 8
+     ~(editor-header "image" "image" (t "image.title") "state.open.editorImage")
+     (scene#image-view :anchors {:left 0 :right 0 :top 26 :bottom 0}
+       :when ~(some? computed.cameraNode)
+       :scene ~computed.renderScene
+       :view ~{:camera computed.cameraView :selection []}
+       :up z
+       :extras false
+       :shading material
+       :lighting scene
+       :exposure ~state.render.exposure
+       :grid false
+       :axes false
+       :background ~state.world.color
+       :controls {:orbit none :pan none :select none :zoom false :selects false}
+       :label ~(t "render.label" {:camera (or-else computed.cameraNode.name (t "render.theCamera"))})
+       :role img)
+     (label#image-empty :when ~(nil? computed.cameraNode)
+       :anchors {:left 0 :right 0 :top 26 :bottom 0}
+       :text ~(t "image.noCamera")
+       :textColor @dim
+       :align center)))
+
+(defcomponent textArea "The text editor: the scene's notes, saved with it." {}
+  `(node#text-area :color @region :radius 8
+     ~(editor-header "text" "file-text" (t "text.title") "state.open.editorText")
+     (editor#notes :anchors {:left 0 :right 0 :top 26 :bottom 0}
+       :bind state.scene.notes
+       :lineNumbers true
+       :wrap true
+       :color @region
+       :textColor @text
+       :label ~(t "text.title"))))
