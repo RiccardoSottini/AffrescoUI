@@ -343,7 +343,7 @@
           :state.time sync-scene
           :state.selected sync-scene
           :state.bodies sync-scene}
-  :onLoad sync-scene)
+  :onLoad [{:run sync-scene} {:set state.assistant.floor :to 24}])
 
 ;;; What the views show
 

@@ -957,13 +957,15 @@ The parts of a conversation with an assistant (see Asking the agents) are built-
   unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
   action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
   left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
-  badge).
+  badge; `size` is its diameter, 56 by default, its icon scaled with it).
 
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
 `kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
-like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system). The sizes include a type scale
+(`kit.fontCaption` to `kit.fontDisplay`, 13 pixels for body text at 1x) and one icon size, `kit.iconSize`, for a font's
+`size` and an icon font's (`"fonts": { "default": { "file": "...", "size": "@kit.fontBody" } }`).
 
 <!-- generated: kitTokens -->
 | Token | Dark | Light | For |
@@ -992,6 +994,14 @@ like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
 | `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
 | `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
 | `kit.borderWidth` | 1 | 1 | Borders. |
+| `kit.fontCaption` | 11 | 11 | The type scale: captions, badges and shortcut hints. |
+| `kit.fontSmall` | 12 | 12 | The type scale: secondary text, status bars and metadata. |
+| `kit.fontBody` | 13 | 13 | The type scale: body text, controls and lists (a font's `size`). |
+| `kit.fontSubheading` | 15 | 15 | The type scale: a group's or a card's heading. |
+| `kit.fontHeading` | 18 | 18 | The type scale: a panel's or a dialog's heading. |
+| `kit.fontTitle` | 24 | 24 | The type scale: a page's title. |
+| `kit.fontDisplay` | 32 | 32 | The type scale: large figures and hero text. |
+| `kit.iconSize` | 16 | 16 | Icons in bars, buttons, lists and menus: one size per row. |
 <!-- end generated -->
 
 ## Values, expressions and state

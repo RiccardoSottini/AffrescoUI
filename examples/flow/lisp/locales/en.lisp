@@ -330,6 +330,8 @@
                 :window.title "Flow: an AffrescoUI template"
                 :settings.language "Language"
                 :settings.language.about "English, Spanish or French."
+                :settings.developerStatusBar "Developer status bar"
+                :settings.developerStatusBar.about "Show the revision on screen and the window's size in a bar at the bottom of the window."
                 :settings.wipWarnings "Warn over a column's limit"
                 :settings.wipWarnings.about "Show a notice when a move puts a column over its work-in-progress limit."
                 :settings.weekStart "First day of the week"

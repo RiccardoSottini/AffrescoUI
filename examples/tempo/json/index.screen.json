@@ -79,6 +79,7 @@
 			"title": "Crossfade",
 			"description": "How many seconds the end of a song overlaps the start of the next; 0 for none."
 		},
+		"window.statusBar": { "type": "boolean", "default": false, "title": "Developer status bar", "description": "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers." },
 		"ui.language": {
 			"type": "string",
 			"enum": ["en", "es", "fr"],
@@ -1285,7 +1286,7 @@
 			},
 			{
 				"id": "statusBar",
-				"when": "{{!state.mini}}",
+				"when": "{{!state.mini && settings.window.statusBar}}",
 				"anchors": { "left": 0, "right": 0, "bottom": 0 },
 				"height": 32,
 				"color": "@sidebar",

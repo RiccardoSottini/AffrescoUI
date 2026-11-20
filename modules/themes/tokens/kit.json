@@ -1,5 +1,5 @@
 {
-	"note": "The kit's design tokens: the colours and sizes every built-in component takes by default, which a document changes by defining tokens of the same names. A colour has a dark value (the base) and a light one; the light ones apply once a document names a token of the kit itself, chosen by its theme.",
+	"note": "The kit's design tokens: the colours, sizes, type scale and icon size every built-in component takes by default, which a document changes by defining tokens of the same names. A colour has a dark value (the base) and a light one; the light ones apply once a document names a token of the kit itself, chosen by its theme.",
 	"tokens": {
 		"kit.background": {"dark": "#1e1e1e", "light": "#ffffff", "about": "Pages and the settings page."},
 		"kit.surface": {"dark": "#252526", "light": "#ffffff", "about": "Menus, dialogs, toasts, cards and popovers."},
@@ -24,6 +24,14 @@
 		"kit.success": {"dark": "#89d185", "light": "#1a7f37", "about": "Success."},
 		"kit.radius": {"value": 4, "about": "The corners of menus, buttons and fields."},
 		"kit.cardRadius": {"value": 6, "about": "The corners of dialogs, toasts, cards and popovers."},
-		"kit.borderWidth": {"value": 1, "about": "Borders."}
+		"kit.borderWidth": {"value": 1, "about": "Borders."},
+		"kit.fontCaption": {"value": 11, "about": "The type scale: captions, badges and shortcut hints."},
+		"kit.fontSmall": {"value": 12, "about": "The type scale: secondary text, status bars and metadata."},
+		"kit.fontBody": {"value": 13, "about": "The type scale: body text, controls and lists (a font's `size`)."},
+		"kit.fontSubheading": {"value": 15, "about": "The type scale: a group's or a card's heading."},
+		"kit.fontHeading": {"value": 18, "about": "The type scale: a panel's or a dialog's heading."},
+		"kit.fontTitle": {"value": 24, "about": "The type scale: a page's title."},
+		"kit.fontDisplay": {"value": 32, "about": "The type scale: large figures and hero text."},
+		"kit.iconSize": {"value": 16, "about": "Icons in bars, buttons, lists and menus: one size per row."}
 	}
 }

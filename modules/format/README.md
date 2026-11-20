@@ -267,7 +267,8 @@ deferred work, timers and animations run through the window (`Window::defer`, `s
 destroyed it cancels its timers, its deferred tasks check that it is still alive, and it disconnects every signal it
 connected (the window's and its panels'), so a window can outlive its screen. Image files are decoded on the
 `ImageCache`'s worker thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an
-`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits
+`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `createWindow(app)` waits
+for the images the first screen asks for (at most 400 ms), so its first frame shows them; `waitForImages` waits
 for the worker and shows what it decoded. `onAsyncCall` functions run on a pool of 2 to 4 threads
 (`src/calls/AsyncCalls.*`), which share only a call's cancellation and its latest report with the main thread; every
 result comes back through the `Executor`, and destroying the runtime joins them.

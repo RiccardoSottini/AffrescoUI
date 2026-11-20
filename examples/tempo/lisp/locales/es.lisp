@@ -184,5 +184,7 @@
                 :settings.crossfade.about "Cuántos segundos se solapa el final de una canción con el inicio de la siguiente; 0 para ninguno."
                 :settings.language "Idioma"
                 :settings.language.about "Inglés, español o francés."
+                :settings.developerStatusBar "Barra de estado para desarrolladores"
+                :settings.developerStatusBar.about "Mostrar la revisión en pantalla y el tamaño de la ventana en una barra al pie de la ventana."
                 :sound.band "{label}  {gain} dB"
                 :status.revision "Revisión {number}  ·  {author}: {message}"}}}
