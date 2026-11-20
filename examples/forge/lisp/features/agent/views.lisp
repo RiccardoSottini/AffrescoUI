@@ -209,14 +209,15 @@
          :tooltip ~(t "features-refresh.tip")
          :hover {:textColor @color.text}
          :onClick featuresRefresh))
-     (textarea#features-filter :width "100%"
-       :height 26
-       :padding 6
-       :color @color.input
-       :textColor @color.text
-       :placeholderColor @color.muted
-       :bind state.features.filter
-       :placeholder ~(t "features-filter.placeholder"))
+     (node#features-filter-row :use forgeInset :height 26
+       (textarea#features-filter :grow 1
+         :height 26
+         :padding 6
+         :color @color.input
+         :textColor @color.text
+         :placeholderColor @color.muted
+         :bind state.features.filter
+         :placeholder ~(t "features-filter.placeholder")))
      (label#features-error :when ~(not (empty? state.features.error))
        :icon circle-x
        :wrap true
