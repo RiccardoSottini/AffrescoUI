@@ -172,7 +172,7 @@
                  segs)))
 
 (defcomputed histTimeline "Each thing's spells of on and off on the day history shows."
-  (map (fn [e] (merge e {:segs (day-segs (:segs e) state.histDay)})) data.timeline))
+  (map #(merge % {:segs (day-segs (:segs %) state.histDay)}) data.timeline))
 
 (defcomputed histTitle "The timeline's title: today's activity, or a day before's."
   (if (= state.histDay 0) (t "hist.timeline") (t "hist.timelineOn" {:day (get computed.dayList state.histDay)})))
