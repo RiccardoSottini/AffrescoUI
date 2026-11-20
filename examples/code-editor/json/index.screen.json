@@ -708,7 +708,7 @@
 		"applyKeys": [
 			{ "note": "with: file, the Key Bindings file; a list is saved and its bindings become the person's own, anything else stays unsaved with an error in the console" },
 			{ "forEach": "{{[parseJsonc(state.files[file].text)]}}", "as": "values", "do": [
-				{ "if": "{{type(values) != 'array'}}", "then": [
+				{ "if": "{{type(values) != 'list'}}", "then": [
 					{ "push": "state.terminal", "value": { "t": "Key Bindings.json: not a list of bindings, nothing applied", "c": "error" } },
 					{ "set": "state.panelOpen", "to": true }, { "set": "state.panelTab", "to": "terminal" }, { "stop": true }] },
 				{ "set": "state.userKeys", "to": "{{filter(values, type(it) == 'object' && type(it.keys) == 'string' && type(it.command) == 'string')}}" },

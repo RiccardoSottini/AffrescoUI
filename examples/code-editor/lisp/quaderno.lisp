@@ -85,7 +85,7 @@
   the console."
   [file]
   (let [values (parseJsonc (:text (file-at file)))]
-    (if (not= (type values) "array")
+    (if (not= (type values) "list")
       (do (push "state.terminal" {:t (t "cmd.keyBindingsJsonNotValid") :c :error})
           (set "state.panelOpen" true)
           (set "state.panelTab" :terminal))
