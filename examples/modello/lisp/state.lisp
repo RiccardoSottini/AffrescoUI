@@ -134,7 +134,8 @@
 
 (defstate world {:color "#3a3f47"} "The world's colour.")
 
-(defstate render {:exposure 1} "The render's exposure.")
+(defstate render {:exposure 1 :resolution [1920 1080] :fps 24}
+  "The render's exposure, its resolution (the render window frames the image at its shape) and its frame rate.")
 
 (defstate xray false "Whether X-Ray is on.")
 
@@ -184,7 +185,8 @@
    :relations true
    :dataMore true
    :materialSettings true
-   :display true}
+   :display true
+   :format true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")

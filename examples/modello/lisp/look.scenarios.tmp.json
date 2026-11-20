@@ -1,0 +1,1 @@
+{"format": "affrescoui-scenarios", "version": 1, "screen": "index.screen.lisp", "scenarios": [{"name": "look", "steps": [{"click": "#workspace-motion"}, {"wait": 50}, {"capture": "motion"}, {"click": "#workspace-surface"}, {"wait": 50}, {"capture": "surface"}, {"click": "#workspace-shot"}, {"wait": 50}, {"capture": "shot"}]}]}

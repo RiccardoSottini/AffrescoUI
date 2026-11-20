@@ -31,7 +31,7 @@
    {:tab "render" :key "colorManagement" :title (t "panel.colorManagement") :words "exposure" :needs ""}
    {:tab "render" :key "sampling" :title (t "panel.sampling") :words "samples" :needs (t "panel.sampling.needs")}
    {:tab "output" :key "frameRange" :title (t "panel.frameRange") :words "frame start end" :needs ""}
-   {:tab "output" :key "format" :title (t "panel.format") :words "resolution frame rate" :needs (t "panel.format.needs")}
+   {:tab "output" :key "format" :title (t "panel.format") :words "resolution frame rate fps" :needs ""}
    {:tab "scene" :key "scenePanel" :title (t "panel.scene") :words "name camera" :needs ""}
    {:tab "scene" :key "units" :title (t "panel.units") :words "length metres" :needs (t "panel.units.needs")}
    {:tab "world" :key "surfaceWorld" :title (t "panel.surface") :words "color colour background" :needs ""}
@@ -171,6 +171,7 @@
      ~(active-tool-panel)
      ~(color-management-panel)
      ~(frame-range-panel)
+     ~(format-panel)
      ~(scene-panel)
      (node
        :when ~(contains computed.propShown "surfaceWorld")
@@ -294,6 +295,42 @@
               :first true
               :last true
               :text ~state.end})))
+
+(defview format-panel "The Output tab's format: the resolution, which shapes the render, and the frame rate the timeline plays at." []
+  `(node :when ~(contains computed.propShown "format") :use propPanel :with {:key format :body 80}
+     (node :use numberField
+       :with {:label ~(t "properties.resolutionX")
+              :key whole
+              :path "render.resolution[0]"
+              :value ~(or-else state.render.resolution.0 1920)
+              :step 4
+              :min 16
+              :max 16384
+              :first true
+              :last true
+              :text ~(t "unit.px" {:value (or-else state.render.resolution.0 1920)})})
+     (node :use numberField
+       :with {:label ~(t "properties.resolutionY")
+              :key whole
+              :path "render.resolution[1]"
+              :value ~(or-else state.render.resolution.1 1080)
+              :step 4
+              :min 16
+              :max 16384
+              :first true
+              :last true
+              :text ~(t "unit.px" {:value (or-else state.render.resolution.1 1080)})})
+     (node :use numberField
+       :with {:label ~(t "properties.frameRate")
+              :key whole
+              :path "render.fps"
+              :value ~computed.fps
+              :step 1
+              :min 1
+              :max 120
+              :first true
+              :last true
+              :text ~(t "unit.fps" {:value computed.fps})})))
 
 (defview scene-panel "The Scene tab: the scene's name, and its camera." []
   `(node :when ~(contains computed.propShown "scenePanel") :use propPanel :with {:key scenePanel :body 56}

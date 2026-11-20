@@ -816,6 +816,21 @@
 			]
 		},
 		{
+			"name": "modello-output-format",
+			"note": "The Output tab's Format panel: the frame rate (Right steps it by ten; the timeline and the playback follow it) and the resolution, whose shape the render window takes",
+			"steps": [
+				{ "click": "#prop-tab-output" },
+				{ "expect": { "node": "#field-render-fps", "exists": true } },
+				{ "click": "#field-render-fps" },
+				{ "key": "right" },
+				{ "expect": { "state": "render.fps", "is": 34 } },
+				{ "expect": { "node": "#timeline", "exists": true } },
+				{ "click": "#field-render-resolution-1" },
+				{ "key": "right" },
+				{ "expect": { "state": "render.resolution", "is": [1920, 1120] } }
+			]
+		},
+		{
 			"name": "modello-window-keys",
 			"note": "Ctrl+Page Down and Ctrl+Page Up (and the Window menu) step through the workspaces Modello has, wrapping around",
 			"steps": [

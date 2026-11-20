@@ -434,7 +434,7 @@
 			]
 		},
 		"moveKeyframe": [
-			{ "set": "state.tmp", "to": "{{ { from: round(event.from * 24) + 1, to: round(event.time * 24) + 1 } }}" },
+			{ "set": "state.tmp", "to": "{{ { from: round(event.from * computed.fps) + 1, to: round(event.time * computed.fps) + 1 } }}" },
 			{ "if": "{{state.tmp.from == state.tmp.to || contains(computed.keyFrames, state.tmp.to) || !contains(computed.keyFrames, state.tmp.from)}}", "then": [{ "stop": true }] },
 			{ "if": "{{state.keyDragAt != state.tmp.from}}", "then": [{ "run": "snapshot" }] },
 			{ "set": "state.keyDragAt", "to": "{{state.tmp.to}}" },
@@ -497,7 +497,7 @@
 			"title": "Jump to Next Marker", "category": "Marker", "enablement": "{{some(state.markers, it.frame > state.frame)}}",
 			"do": [{ "dismiss": true }, { "if": "{{some(state.markers, it.frame > state.frame)}}", "then": [{ "run": "setFrame", "with": { "args": { "value": "{{min(map(filter(state.markers, it.frame > state.frame), it.frame))}}" } } }] }]
 		},
-		"frameCurrent": { "title": "Go to Current Frame", "category": "View", "do": [{ "dismiss": true }, { "set": "state.timelineOffset", "to": "{{round(((state.frame - 1) / 24 - 4) * 1000) / 1000}}" }] },
+		"frameCurrent": { "title": "Go to Current Frame", "category": "View", "do": [{ "dismiss": true }, { "set": "state.timelineOffset", "to": "{{round(((state.frame - 1) / computed.fps - 4) * 1000) / 1000}}" }] },
 		"reparent": [
 			{ "if": "{{indexOf(map(state.scene.nodes, it.id), args.id) >= 0 && args.parent != args.id && (computed.parentOf[args.id] ?? '') != (args.parent ?? '') && (args.parent == null || !contains(computed.ancestors[args.parent] ?? [], args.id))}}", "then": [
 				{ "set": "state.tmpOrigins", "to": "{{[computed.origins[args.id], args.parent == null ? [0, 0, 0] : computed.origins[args.parent]]}}" },
