@@ -15,7 +15,7 @@
 
 (defcomputed commandItems
   (map (fn [it]
-           {:title (+ (if it.category (str it.category ": ") "") it.title)
+           {:title (if (or (empty? it.category) (= it.category it.title)) it.title (str it.category ": " it.title))
             :detail (or-else it.keyLabel "")
             :run it.name})
          (filter :enabled commands)))

@@ -218,7 +218,7 @@
   "The welcome page, when no file is open: its title, then two columns in the middle, Start and Recent on the left,
 the walkthrough and the keys on the right."
   {}
-  `(row#welcome :width "100%" :grow 1 :color @color.editor :scroll vertical
+  `(row#welcome :width "100%" :grow 1 :color @color.editor :scroll both
      (node#welcome-margin :grow 1)
      ~(welcome-body)
      (node#welcome-end :grow 1)))

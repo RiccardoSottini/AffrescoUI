@@ -12,7 +12,7 @@
 	},
 
 	"computed": {
-		"commandItems": "{{map(filter(commands, it.enabled), {title: (it.category ? it.category + ': ' : '') + it.title, detail: it.keyLabel ?? '', run: it.name})}}",
+		"commandItems": "{{map(filter(commands, it.enabled), {title: (it.category && it.category != it.title ? it.category + ': ' : '') + it.title, detail: it.keyLabel ?? '', run: it.name})}}",
 		"indentItems": "{{map([2, 4, 8], {title: 'Spaces: ' + text(it), detail: it == (settings.editor.tabSize ?? 4) ? 'Current' : '', run: 'setTabSize', with: {spaces: it}})}}",
 		"eolItems": "{{map(['LF', 'CRLF'], {title: it, detail: it == (computed.activeDoc.eol ?? 'LF') ? 'Current' : '', run: 'setEol', with: {eol: it}})}}",
 		"languageItems": "{{map(concat(filter(values(state.languages), indexOf(values(state.languages), it) == index), ['Plain Text']), {title: it, detail: (it == 'Plain Text' ? '' : it) == (computed.activeDoc.language ?? '') ? 'Current' : '', run: 'setLanguage', with: {language: it == 'Plain Text' ? '' : it}})}}",

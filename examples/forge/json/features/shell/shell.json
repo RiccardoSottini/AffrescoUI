@@ -302,7 +302,7 @@
 		},
 		"forgeWelcome": {
 			"node": {
-				"type": "row", "id": "welcome", "width": "100%", "grow": 1, "color": "@color.editor", "scroll": "vertical",
+				"type": "row", "id": "welcome", "width": "100%", "grow": 1, "color": "@color.editor", "scroll": "both",
 				"children": [
 					{ "id": "welcome-margin", "grow": 1 },
 					{ "type": "column", "id": "welcome-body", "width": 760, "fitContent": "height", "gap": 6, "children": [
