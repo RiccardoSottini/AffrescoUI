@@ -34,7 +34,9 @@ inline const Shape single = true; ///< Text, a number or a boolean.
 
 /// @brief What an editor's "viewport" writes.
 /// @return Its keys, each always there.
-[[nodiscard]] inline Shape viewShape() { return {{"first", true}, {"last", true}, {"rows", true}, {"lines", true}, {"rowHeight", true}}; }
+[[nodiscard]] inline Shape viewShape() {
+	return {{"first", true}, {"last", true}, {"rows", true}, {"lines", true}, {"rowHeight", true}};
+}
 
 inline constexpr std::size_t maxVisits = 1000000; ///< Nodes, steps and values a check visits before giving up.
 /// Shape nodes a check copies before giving up: a step that writes the state into the state doubles what it may

@@ -273,7 +273,7 @@ public:
 	/// @brief The commands runCommand() knows, by name: selections (goTo is selectRange()), line operations, case
 	/// conversion, transpose, toggleComment, the edit commands (undo, redo, cut, copy, paste, selectAll,
 	/// indentLines, outdentLines, unfoldAll), and scrolling the caret's row to the middle, the top or the bottom of
-	/// the view (scrollCaretToCenter, scrollCaretToTop, scrollCaretToBottom).
+	/// the view (recenter, recenterTop, recenterBottom).
 	[[nodiscard]] static const std::vector<std::string_view>& commandNames();
 	/// @brief Runs a command, as one undo step (ignored when it edits and the text is read-only).
 	/// @param name One of commandNames().
