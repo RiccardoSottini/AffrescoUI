@@ -101,4 +101,6 @@
      :tooltip ~(if computed.wide "" (t "nav.newApp"))
      :anchors {:left 12 :right 12 :bottom 20}
      :height 42
+     ; no colour transition: folding the sidebar left it transparent, its icon on nothing
+     :transition {}
      :onClick showCreate))
