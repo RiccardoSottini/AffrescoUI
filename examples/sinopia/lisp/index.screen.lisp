@@ -10,6 +10,9 @@
   (:require "locales/en.lisp"
             "locales/es.lisp"
             "locales/fr.lisp"
+            "locales/design.en.lisp"
+            "locales/design.es.lisp"
+            "locales/design.fr.lisp"
             sinopia.parts.window
             sinopia.parts.keys
             sinopia.parts.themes
@@ -21,6 +24,7 @@
             sinopia.parts.tabs
             sinopia.parts.show
             sinopia.parts.views
+            sinopia.parts.format
             sinopia.parts.menus
             sinopia.parts.review
             "../../shared/addons/assistant/assistant.lisp"

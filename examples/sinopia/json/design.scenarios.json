@@ -1,0 +1,40 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Sinopia's checks of the shell, the design, the shapes, the format pane and the canvas: affrescoui test design.scenarios.json.",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "sinopia-format-gradient-dash-and-text-box",
+			"note": "The format pane gives the selected shape a gradient and a dashed line, keeps its proportions, and sets its text box's margins, wrap and autofit",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "click": "#format-gradient-down" },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient.angle", "is": 90 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient.to", "is": "light1" } },
+				{ "click": "#format-dash-dash" },
+				{ "expect": { "state": "deck.slides[3].objects[1].dash", "is": "dash" } },
+				{ "capture": "gradient-dash" },
+				{ "click": "#format-ratio" },
+				{ "expect": { "state": "deck.slides[3].objects[1].lockRatio", "is": true } },
+				{ "click": "#format-w-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].w", "is": 220 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].h", "is": 94.3 } },
+				{ "scroll": [1140, 500], "dy": -20 },
+				{ "click": "#format-margin-x-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].marginX", "is": 9 } },
+				{ "click": "#format-wrap" },
+				{ "expect": { "state": "deck.slides[3].objects[1].wrap", "is": false } },
+				{ "click": "#format-autofit-shrink" },
+				{ "expect": { "state": "deck.slides[3].objects[1].autofit", "is": "shrink" } },
+				{ "scroll": [1140, 500], "dy": 20 },
+				{ "click": "#format-gradient-none" },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient", "is": null } }
+			]
+		}
+	]
+}

@@ -124,9 +124,11 @@
   `(column#format-object :when ~(some? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-fill-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches :with {:prefix format-fill :chosen ~(or-else o.fill "none") :run setObjects :key fill})
+     ~(format-gradient)
      (label#format-line-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.line") :size 12}])
      (node :use swatches :with {:prefix format-line :chosen ~(or-else o.line "none") :run setObjects :key line})
      ~(stepper "format-line-width" "view.width" 'o.lineWidth 1 " pt" "lineWidth" 0.5 0 50)
+     ~(format-dash)
      (label#format-effects-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.effects") :size 12}])
      ~(format-effects)
      (label#format-size-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.sizeAndPlace") :size 12}])
@@ -135,7 +137,9 @@
      ~(stepper "format-x" "view.left" 'box.x 0 "" "x" 10 -2000 4000)
      ~(stepper "format-y" "menu.top" 'box.y 0 "" "y" 10 -2000 4000)
      ~(stepper "format-rotate" "view.rotation" 'o.rotate 0 "°" "rotate" 15 -360 360)
+     ~(format-ratio)
      ~(format-lock)
+     ~(format-text-box)
      (label#format-alt-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.altText") :size 12}])
      ~(format-alt)))
 (defview stepper "A stepper of the format pane: a number of the selection, `value` or else `fallback`, titled by a key."
@@ -296,8 +300,8 @@
 
 ;;; What the format pane and the views do
 
-(defn set-property "Sets one property of the selected objects." [key value]
-  (setObjects (assoc {} key value)))
+(defn set-property "Sets one property of the selected objects; with the proportions locked a size sets both." [key value]
+  (setObjects (sized key value)))
 
 (defn pick-swatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
   (if (= run "setBackground") (setBackground slot) (set-property key slot)))

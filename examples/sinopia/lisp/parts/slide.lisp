@@ -71,17 +71,42 @@
      ~(text-editor o)
      ~(object-text o prefix)))
 
+;; The text's height is measured as the slide's text is laid out: half the size a letter, 1.2 the size a line, so a
+;; text shrunk by a factor k takes about k squared of its height
+(defn text-fit
+  "The size a shrinking text box gives its text, and the height a resizing one takes: its text, size and spacing, its
+  drawn box, its shape's text inset and its margins."
+  [text pt spacing drawn inset mx my]
+  (let [across (- 1 inset.0 inset.2)
+        down (- 1 inset.1 inset.3)
+        width (max (- (* drawn.w across) (* 2 mx)) 20)
+        room (max (- (* drawn.h down) (* 2 my)) 1)
+        line-height (* 1.2 pt (or-else spacing 1))
+        lengths (map #(max (count (str/trim %)) 1) (str/split (or-else text "") "\n"))
+        need (reduce + 0 (map #(* line-height
+                             (ceil (/ (* % 0.5 pt) width)))
+                         lengths))
+        fraction (sqrt (/ room (max need 1)))]
+    {:size (if (> need room)
+             (max 6 (floor (* pt fraction)))
+             pt)
+     :h (/ (+ need (* 2 my)) (max down 0.1))}))
+
 (defview object-measures "What object `o` is drawn from: its placeholder `p`, its box, its text and colour."
   []
   `{:p ~(or-else (find #(= (:ph %) o.ph) layout.ph) {})
-    :box ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
-    :shape ~(or (contains? #{:shape :line} o.kind)
-                (not= (or-else o.fill :none) :none)
-                (not= (or-else o.line :none) :none))
+    :drawn ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
+    :mx ~(or-else o.marginX 7.2)
+    :my ~(or-else o.marginY 3.6)
     :inset ~(if (= o.kind :shape)
                 (or-else (get-in computed.shapes [(or-else o.shape "rect") :text]) [0 0 0 0])
                 [0 0 0 0])
-    :size ~(or-else o.size p.size 18)
+    :fit ~(text-fit o.text (or-else o.size p.size 18) o.spacing drawn inset mx my)
+    :box ~(if (= o.autofit "resize") (assoc drawn :h fit.h) drawn)
+    :shape ~(or (contains? #{:shape :line} o.kind)
+                (not= (or-else o.fill :none) :none)
+                (not= (or-else o.line :none) :none))
+    :size ~(if (= o.autofit "shrink") fit.size (or-else o.size p.size 18))
     :empty ~(= (str/trim (or-else o.text "")) "")
     :editing ~(and edit (= state.editing o.id))
     :prompt ~(and edit empty (some? o.ph) (not editing))
@@ -92,10 +117,10 @@
     :align ~(or-else o.align p.align (if (= o.kind :shape) "center" "left"))
     :ink ~(or-else (get computed.palette (or-else o.color p.color (if (= o.kind :shape) "light1" "dark1")))
                    o.color)
-    :frame ~{:x (+ (* box.w inset.0) 7.2)
-             :y (+ (* box.h inset.1) 3.6)
-             :w (max (- (* box.w (- (- 1 inset.0) inset.2)) 14.4) 1)
-             :h (max (- (* box.h (- (- 1 inset.1) inset.3)) 7.2) 1)}})
+    :frame ~{:x (+ (* box.w inset.0) mx)
+             :y (+ (* box.h inset.1) my)
+             :w (max (- (* box.w (- (- 1 inset.0) inset.2)) (* 2 mx)) 1)
+             :h (max (- (* box.h (- (- 1 inset.1) inset.3)) (* 2 my)) 1)}})
 
 (defview object-shape "Object `o`'s shape or line, or the fill and line a text box has." []
   `(node :use shapePath
@@ -226,10 +251,10 @@
 
 (defview paragraph-text "Paragraph `n`'s text, wrapped to the box less its mark." [o prefix n]
   `(label :id ~(str prefix o.id "-p" n "-t")
-     :wrap true
-     :fitText {:maxWidth ~(max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
+     :wrap ~(or-else o.wrap true)
+     :fitText {:maxWidth ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
                                   (if (and bullets (not prompt)) mark 0))
-                               1)}
+                               1))}
      :align {:horizontal ~(case align :center "center" :right "end" "start")}
      :runs [{:text ~(if (= (str/trim line) "") " " (str/trim line))
              :size ~pt
