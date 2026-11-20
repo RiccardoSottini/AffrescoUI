@@ -11,7 +11,17 @@
 
 (defstate gameMenu {:open false :x 0 :y 0})
 
-(defstate properties {:open false :tab general :verify ""})
+(defstate properties {:open false :tab general :verify "" :browse false})
+
+(defcomputed gameFiles
+  "The files in the game's folder, the largest first: its packs, the program and its settings, each with its share of
+  the game's size, in GB."
+  (let [size (or-else computed.manageGame.sizeGb 0)]
+    [{:name "content.pak" :icon "package" :gb (* size 0.78)}
+     {:name "textures.pak" :icon "image" :gb (* size 0.15)}
+     {:name "audio.pak" :icon "music" :gb (* size 0.06)}
+     {:name (str computed.manageGame.id ".bin") :icon "cpu" :gb (* size 0.009)}
+     {:name "settings.cfg" :icon "file" :gb 0.0001}]))
 
 (defstate uninstall {:open false})
 
@@ -64,7 +74,7 @@
   `(node :use dialog
      :with {:open state.properties.open
             :width 640
-            :height 400
+            :height 460
             :title ~(t "properties.title" {:game (or-else computed.manageGame.title "")})
             :color @color.panel
             :textColor @color.text
@@ -192,7 +202,10 @@
          :color @color.accent))
      (label :grow 1 :height 22 :text ~(t (str "properties.updates." way)) :textColor @color.text)))
 
-(defview files-page "The installed files page: the size, the folder, and checking the files." []
+(defview files-page
+  "The installed files page: the size, the drive and folder, browsing the files, checking them, and moving the game to the
+  other drive."
+  []
   `(node :when ~(= state.properties.tab "files") :fill true :color transparent
      ~(caps-title "properties.size" 0)
      (label#properties-size :text ~(t "properties.sizeValue"
@@ -201,27 +214,57 @@
        :font default
        :anchors {:left 0 :right 0 :top 24}
        :height 22)
-     ~(caps-title "properties.folder" 60)
-     (label#properties-folder :text ~(t "properties.folderPath" {:game computed.manageGame.title})
+     ~(caps-title "properties.folder" 56)
+     (label#properties-folder :runs [{:text ~(str (t (str "storage." (or-else computed.manageGame.drive "main"))) "  ›  ")
+                                      :color @color.muted}
+                                     {:text ~(t "properties.folderPath" {:game computed.manageGame.title})}]
        :textColor @color.text
        :font small
-       :anchors {:left 0 :right 0 :top 84}
+       :anchors {:left 0 :right 0 :top 78}
        :height 22)
-     (node#properties-verify :use quietButton
-       :anchors {:left 0 :top 128}
-       :height 32
-       :with {:title ~(t "properties.verify") :icon shield-check}
-       :disabled ~(= state.properties.verify "running")
-       :onClick verify-files)
+     ~(file-actions)
      (label#properties-verify-result :live polite
        :font small
-       :anchors {:left 0 :right 0 :top 168}
+       :anchors {:left 0 :right 0 :top 152}
        :height 20
        :text ~(case state.properties.verify
                 :running (t "properties.verifying")
                 :done (t "properties.verified")
                 "")
-       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))))
+       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))
+     (column#properties-files :when ~state.properties.browse
+       :anchors {:left 0 :right 0 :top 176 :bottom 0}
+       :scroll vertical
+       :role list
+       :label ~(t "properties.browse")
+       ~(repeat [f computed.gameFiles :key f.name] (file-row f)))))
+
+(defview file-actions "Browsing the files, checking them, and moving the game to the other drive." []
+  `(row :anchors {:left 0 :right 0 :top 108} :height 36 :gap 8 :alignItems center
+     (node#properties-browse :use quietButton
+       :with {:title ~(t "properties.browse") :icon folder-open :on ~state.properties.browse}
+       :onClick {:toggle state.properties.browse})
+     (node#properties-verify :use quietButton
+       :with {:title ~(t "properties.verify") :icon shield-check}
+       :disabled ~(= state.properties.verify "running")
+       :onClick verify-files)
+     (node#properties-move :use quietButton
+       :with {:title ~(t "properties.move") :icon hard-drive}
+       :disabled ~(= computed.manageGame.status "running")
+       :tooltip ~(t (if (= computed.manageGame.status "running") "storage.moveRunning" "storage.moveAbout"))
+       :onClick ~(handler moveGame computed.manageGame.id))))
+
+(defview file-row "A file of the game's folder: its kind as an icon, its name and its size." [f]
+  `(row :id ~(str "properties-file-" (slug f.name)) :anchors {:left 0 :right 0} :height 26 :gap 10 :alignItems center
+     :role listitem
+     :label ~f.name
+     (label :icon ~f.icon :text "" :fitText true :textColor @color.muted)
+     (label :grow 1 :height 18 :font small :text ~f.name :textColor @color.text)
+     (label :font small
+       :fitText true
+       :text ~(if (< f.gb 0.01) (t "properties.tiny") (t "properties.sizeValue" {:size (formatNumber f.gb 1 2)}))
+       :textColor @color.muted)
+     (panel :width 8 :height 1 :color transparent)))
 
 (defview extras-page "The extra content page: none yet." []
   `(node :when ~(= state.properties.tab "dlc") :fill true :color transparent

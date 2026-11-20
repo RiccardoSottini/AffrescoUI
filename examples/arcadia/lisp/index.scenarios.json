@@ -467,7 +467,29 @@
 					"wait": 1700
 				},
 				{
+					"click": "#properties-browse"
+				},
+				{
+					"expect": {
+						"node": "#properties-file-content-pak",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
 					"capture": "files"
+				},
+				{
+					"click": "#properties-move"
+				},
+				{
+					"expect": {
+						"node": "#properties-folder",
+						"text": "Game drive  ›  Arcadia/games/Starfall Odyssey"
+					}
+				},
+				{
+					"click": "#properties-move"
 				},
 				{
 					"key": "escape"

@@ -597,7 +597,7 @@
   :category ~(t "category.game") :icon "settings"
   [id tab]
   (set "state.manage" id)
-  (set "state.properties" {:open true :tab (otherwise tab "general") :verify ""}))
+  (set "state.properties" {:open true :tab (otherwise tab "general") :verify "" :browse false}))
 
 (defcommand askUninstall "Asks before a game's files are removed."
   :title ~(t "command.askUninstall") :description ~(t "command.askUninstall.about") :category ~(t "category.game")
