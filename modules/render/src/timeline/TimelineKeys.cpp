@@ -226,7 +226,7 @@ void TimelineView::keyEvent(const KeyEvent& event) {
 			toggleExpanded(track);
 			break;
 		case KeyAction::Flag:
-			toggleFlag(track, command.lock);
+			if(trackButtons_) toggleFlag(track, command.lock);
 			break;
 		case KeyAction::Clear:
 			select({});
