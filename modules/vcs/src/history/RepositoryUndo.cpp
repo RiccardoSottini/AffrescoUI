@@ -172,13 +172,12 @@ json Repository::undoRevision(const json& revision, std::string_view author, con
 	if(work.plan.outcome == "choose") throw DocumentError(openConflicts(work, describe(target)));
 	// The revision lands next, as a rule: its check needn't work the same undo out again (checkUndo())
 	const bool readsState = !target.stateUndo.is_null() && !target.stateUndo.empty();
-	WorkedUndo& worked = workedUndo_.emplace();
-	worked.head = work.plan.head;
-	worked.of = target.id;
-	worked.dropped = work.dropped;
-	worked.then = work.then;
-	worked.patch = work.patch;
-	if(readsState) worked.state = committedState();
+	workedUndo_ = WorkedUndo{.head = work.plan.head,
+	                         .of = target.id,
+	                         .dropped = work.dropped,
+	                         .then = work.then,
+	                         .patch = work.patch,
+	                         .state = readsState ? committedState() : json()};
 	return {{"author", std::string(author)},
 	        {"message", undoMessage(work, options)},
 	        {"parent", work.plan.head},

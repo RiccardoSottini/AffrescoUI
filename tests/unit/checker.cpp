@@ -534,7 +534,8 @@ void checkWide(const std::vector<WideCase>& cases) {
 		const auto found = affresco::format::check(document, document.value("state", json::object()));
 		REQUIRE(found);
 		CHECK(found->empty());
-		const double growth = affresco::test::growthOfFour(
+		const double growth = affresco::test::growthBelow(
+		    8.0,
 		    [&row](std::size_t count) {
 			    const json sized = wideDocument(row, static_cast<int>(count));
 			    const json state = sized.value("state", json::object());

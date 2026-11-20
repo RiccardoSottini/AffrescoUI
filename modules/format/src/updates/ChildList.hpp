@@ -131,24 +131,10 @@ private:
 	/// @return true if the document has overlays (the root's children then follow no list alone).
 	bool addOverlays(const Record& record, std::optional<std::vector<Item>>& items) const;
 
-	/// @brief What one update does to one element of the children (partial()).
-	struct EntryPlan {
-		bool shape = false;                       ///< Its list itself was written.
-		std::vector<std::size_t> inside{};        ///< The rows a change lies inside (by number, repeats allowed).
-		std::size_t at = 0;                       ///< The first row inserted or removed.
-		std::size_t inserted = 0;                 ///< How many rows are inserted at `at`.
-		std::size_t removed = 0;                  ///< How many rows are removed at `at`.
-		std::vector<ListRow> rows{};              ///< The rows inserted, or built again (inside), built already.
-		std::vector<std::optional<Item>> items{}; ///< Their instances (std::nullopt: "when" doesn't hold).
-		std::vector<std::size_t> numbers{};       ///< Their numbers.
-		ReadSet reads{};                          ///< What building them read.
-	};
+	/// @brief What one update does to one element of the children (partial()); defined where Item is complete.
+	struct EntryPlan;
 	/// @brief What one update does to a panel's children (partial()).
-	struct Plan {
-		std::vector<EntryPlan> entries{}; ///< One per element.
-		StateChanges others{};            ///< The changes for the panels below: all but the lists that changed shape.
-		bool shapes = false;              ///< A list changes shape.
-	};
+	struct Plan;
 
 	/// @brief Builds every child again, keeping each panel a child with the same key (or place) and type had.
 	/// @param node The node.
