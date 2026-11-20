@@ -93,6 +93,32 @@ TEST_CASE("keys: a press names a key and its modifiers, and types what a US keyb
 	CHECK(normalizeChord("  ctrl  s ") == "ctrl+s"); // a press of modifiers only takes the next word as its key
 	CHECK(normalizeChord("x shift ctrl") == "x ctrl+shift+");
 	CHECK(normalizeChord("a b+") == "a");
+	CHECK(normalizeChord("Alt") == "alt"); // Alt pressed and released alone
+	CHECK(normalizeChord("option") == "alt");
+}
+
+TEST_CASE("keys: \"alt\" runs when Alt is pressed and released alone, not when it held another key or a modifier") {
+	const Typed typed(R"({"hint": [{"increment": "state.n", "by": 1}]})", R"({"alt": "hint"})");
+	affresco::Window& window = *typed.window;
+	const auto send = [&window](affresco::Key key, affresco::Action action, int mods) {
+		affresco::KeyEvent event{key, 0, action, {}};
+		event.mods.bits = mods;
+		window.routeKey(event);
+		window.render();
+	};
+	send(affresco::Key::LeftAlt, affresco::Action::Press, 0x4);
+	send(affresco::Key::LeftAlt, affresco::Action::Release, 0);
+	CHECK(typed.state("n") == 1);
+	send(affresco::Key::LeftAlt, affresco::Action::Press, 0x4); // Alt+X: a shortcut, not Alt alone
+	send(affresco::Key::X, affresco::Action::Press, 0x4);
+	send(affresco::Key::X, affresco::Action::Release, 0x4);
+	send(affresco::Key::LeftAlt, affresco::Action::Release, 0);
+	CHECK(typed.state("n") == 1);
+	send(affresco::Key::LeftShift, affresco::Action::Press, 0x1); // Shift held: not Alt alone
+	send(affresco::Key::LeftAlt, affresco::Action::Press, 0x5);
+	send(affresco::Key::LeftAlt, affresco::Action::Release, 0x1);
+	send(affresco::Key::LeftShift, affresco::Action::Release, 0);
+	CHECK(typed.state("n") == 1);
 }
 
 TEST_CASE("keys: press types into the focused editor, \"times\" over, and a binding doesn't hear it") {

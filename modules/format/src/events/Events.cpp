@@ -78,6 +78,7 @@ void Events::connect(Window& window) {
 	});
 	// A press outside an open overlay that closes on it
 	windowHooks_.button = window.onMouseButton.connect([this](const MouseButtonEvent& event) {
+		altAlone_ = false; // Alt held for a click isn't Alt pressed alone
 		modifiers_ = event.mods;
 		if(event.action == affresco::Action::Press) dismissOverlays(&event.position);
 	});
