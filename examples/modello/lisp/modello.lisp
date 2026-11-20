@@ -274,6 +274,11 @@
     (snapshot)
     (set (str "state.scene.nodes[" computed.activeIndex "].light." key) value)))
 
+(defn set-display "How the viewport draws the active mesh: solid, wire or bounds; undoable." [mode]
+  (when (and (>= computed.activeIndex 0) (not= (or-else computed.activeNode.display "solid") mode))
+    (snapshot)
+    (set (str "state.scene.nodes[" computed.activeIndex "].display") mode)))
+
 ;;; The widgets (widgets.lisp)
 
 (defn press-button "A header button pressed: it opens its dropdown (the state open names), or runs its function." [open action with]

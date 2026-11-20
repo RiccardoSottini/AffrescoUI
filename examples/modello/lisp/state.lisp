@@ -183,7 +183,8 @@
    :surfaceMaterial true
    :relations true
    :dataMore true
-   :materialSettings true}
+   :materialSettings true
+   :display true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")

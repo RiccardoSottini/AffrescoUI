@@ -98,6 +98,9 @@ private:
 	static void setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow);
 	/// @brief Draws the meshes' edges. @param view The frame.
 	void drawWireframe(const FrameView& view);
+	/// @brief Draws the edges of the meshes whose nodes are displayed as wire, hidden behind surfaces.
+	/// @param view The frame.
+	void drawWired(const FrameView& view);
 	/// @brief Draws a mesh with one program's position attribute only. @param item It. @param program In use.
 	/// @param edges Its edges rather than its triangles.
 	void drawPlain(const DrawItem& item, const GlProgram& program, bool edges);

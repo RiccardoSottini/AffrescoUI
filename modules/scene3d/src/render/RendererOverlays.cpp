@@ -158,6 +158,26 @@ void addLightGlyph(Lines& lines, const FrameView& view, const Light& light, Vec3
 	}
 }
 
+/// @brief Adds the box around each mesh displayed as bounds: its own bounds, turned and placed as the node is.
+/// @param lines The list. @param view The frame.
+void addBounds(Lines& lines, const FrameView& view) {
+	for(const std::size_t index : view.inView) {
+		const DrawItem& item = view.items[index];
+		if(item.node->display != Display::Bounds || !item.data || item.data->bounds.empty()) continue;
+		const Vec3 lo = item.data->bounds.min;
+		const Vec3 hi = item.data->bounds.max;
+		std::array<Vec3, 8> corners{};
+		for(std::size_t k = 0; k < corners.size(); ++k)
+			corners[k] = item.world.transformPoint(
+			    {(k & 1) != 0 ? hi.x : lo.x, (k & 2) != 0 ? hi.y : lo.y, (k & 4) != 0 ? hi.z : lo.z});
+		const Vec3 o = view.settings.outline;
+		const Vec4 color = item.selected ? Vec4{o.x, o.y, o.z, 1.0f} : Vec4{0.62f, 0.63f, 0.66f, 0.85f};
+		for(std::size_t k = 0; k < corners.size(); ++k)
+			for(const std::size_t bit : {1U, 2U, 4U})
+				if((k & bit) == 0) lines.add(corners[k], corners[k | bit], color);
+	}
+}
+
 /// @brief Adds a marker for each light and camera: a cross, or a glyph (ViewportSettings::glyphs); none without
 /// ViewportSettings::extras.
 /// @param lines The list. @param view The frame.
@@ -288,6 +308,7 @@ void SceneRenderer::drawLines(const FrameView& view) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	Lines world;
+	addBounds(world, view);
 	addMarkers(world, view);
 	addCursor(world, view);
 	if(const auto gizmo = gizmoFor(view.scene, view.settings, static_cast<float>(view.height) / view.scale))

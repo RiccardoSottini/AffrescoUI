@@ -773,6 +773,22 @@
 			]
 		},
 		{
+			"name": "modello-viewport-display",
+			"note": "The Object tab's Viewport Display draws the cube as its edges, then as its bounding box; Ctrl+Z puts the edges back",
+			"steps": [
+				{ "click": "#display-wire" },
+				{ "expect": { "state": "scene.nodes[1].display", "is": "wire" } },
+				{ "wait": 30 },
+				{ "capture": "wire" },
+				{ "click": "#display-bounds" },
+				{ "expect": { "state": "scene.nodes[1].display", "is": "bounds" } },
+				{ "wait": 30 },
+				{ "capture": "bounds" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes[1].display", "is": "wire" } }
+			]
+		},
+		{
 			"name": "modello-window-keys",
 			"note": "Ctrl+Page Down and Ctrl+Page Up (and the Window menu) step through the workspaces Modello has, wrapping around",
 			"steps": [

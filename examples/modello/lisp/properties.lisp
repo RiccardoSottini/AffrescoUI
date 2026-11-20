@@ -43,7 +43,11 @@
    {:tab "object" :key "delta" :title (t "panel.delta") :words "delta" :needs (t "panel.delta.needs")}
    {:tab "object" :key "instancing" :title (t "panel.instancing") :words "" :needs (t "panel.instancing.needs")}
    {:tab "object" :key "motionPaths" :title (t "panel.motionPaths") :words "" :needs (t "panel.motionPaths.needs")}
-   {:tab "object" :key "display" :title (t "panel.display") :words "bounds wire" :needs (t "panel.display.needs")}
+   {:tab "object"
+    :key "display"
+    :title (t "panel.display")
+    :words "bounds wire solid display"
+    :needs (if (= computed.activeNode.kind :mesh) "" (t "panel.display.needs"))}
    {:tab "object" :key "lineArt" :title (t "panel.lineArt") :words "" :needs (t "panel.lineArt.needs")}
    {:tab "object" :key "custom" :title (t "panel.custom") :words "" :needs (t "panel.custom.needs")}
    {:tab "material"
@@ -163,6 +167,7 @@
      (node :when ~(contains computed.propShown "transform") :use transformPanel)
      ~(visibility-panel)
      ~(relations-panel)
+     ~(display-panel)
      ~(active-tool-panel)
      ~(color-management-panel)
      ~(frame-range-panel)
@@ -326,6 +331,34 @@
               :checked ~(not= computed.activeCollectionData.render false)
               :run toggle-collection
               :with {:id ~computed.activeCollectionData.id :key render}})))
+
+(defview display-panel "The Object tab's Viewport Display: the mesh drawn solid, as its edges, or as the box around it." []
+  `(node :when ~(and (contains computed.propShown "display") (= computed.activeNode.kind :mesh))
+     :use propPanel
+     :with {:key display :body 32}
+     (node :height 20 :width "100%" :color transparent
+       ~(caption "properties.displayAs")
+       (row
+         :anchors {:left "41%" :right 22 :top 0 :bottom 0}
+         :gap 1
+         :color transparent
+         :role radiogroup
+         :label ~(t "properties.displayAs")
+         ~(repeat [mode ["solid" "wire" "bounds"]] (display-button mode))))))
+
+(defview display-button "One way the viewport draws the active mesh; the ends round the row's corners." [mode]
+  `(node :id ~(str "display-" mode)
+     :grow 1
+     :height 20
+     :role radio
+     :focusable true
+     :label ~(t (str "display." mode))
+     :selected ~(= (or-else computed.activeNode.display "solid") mode)
+     :color ~(if (= (or-else computed.activeNode.display "solid") mode) "@sel" "@widget")
+     :hover {:color @widgetHover}
+     :radius ~(case mode :solid {:topLeft 4 :bottomLeft 4} :bounds {:topRight 4 :bottomRight 4} 0)
+     :onClick ~(handler set-display mode)
+     (label :text ~(t (str "display." mode)) :textColor @text :align center :fill true)))
 
 ;;; The Data tab
 

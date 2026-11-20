@@ -138,7 +138,7 @@
 		"propTab": "object",
 		"panels": { "transform": true, "activeTool": true, "viewPanel": true, "cursorPanel": true, "colorManagement": true,
 		            "frameRange": true, "scenePanel": true, "surfaceWorld": true, "restrictions": true, "dataPanel": true,
-		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true },
+		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true },
 		"sidebar": false,
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "items": null, "x": 0, "y": 0 },
