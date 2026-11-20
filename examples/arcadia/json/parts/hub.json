@@ -2,32 +2,227 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "A game's player hub: what players post about it, as discussions and guides, opened from the links under the game's banner. The posts are invented, the same for every game, with its name in them.",
-
+	"note": "A game's player hub: what players post about it, as discussions, guides and screenshots, opened from the links under the game's banner. The posts, their first replies and the screenshots are invented, the same for every game, with its name and pictures in them. A post opens on its thread: what it says, its replies, and a box to reply in. A screenshot opens big, with its caption, its vote and the way to the next one.",
 	"state": {
 		"hubTab": "hub",
 		"hubPosts": [
-			{ "kind": "discussions", "key": "hub.post.firstHours", "by": 0, "replies": 48, "votes": 112 },
-			{ "kind": "guides", "key": "hub.post.allEndings", "by": 3, "replies": 17, "votes": 640 },
-			{ "kind": "discussions", "key": "hub.post.controller", "by": 1, "replies": 9, "votes": 21 },
-			{ "kind": "guides", "key": "hub.post.beginner", "by": 5, "replies": 31, "votes": 288 },
-			{ "kind": "discussions", "key": "hub.post.coop", "by": 2, "replies": 73, "votes": 96 },
-			{ "kind": "guides", "key": "hub.post.secrets", "by": 4, "replies": 12, "votes": 154 }
-		]
+			{
+				"id": "firstHours",
+				"kind": "discussions",
+				"key": "hub.post.firstHours",
+				"by": 0,
+				"replies": 48,
+				"votes": 112
+			},
+			{
+				"id": "allEndings",
+				"kind": "guides",
+				"key": "hub.post.allEndings",
+				"by": 3,
+				"replies": 17,
+				"votes": 640
+			},
+			{
+				"id": "controller",
+				"kind": "discussions",
+				"key": "hub.post.controller",
+				"by": 1,
+				"replies": 9,
+				"votes": 21
+			},
+			{
+				"id": "beginner",
+				"kind": "guides",
+				"key": "hub.post.beginner",
+				"by": 5,
+				"replies": 31,
+				"votes": 288
+			},
+			{
+				"id": "coop",
+				"kind": "discussions",
+				"key": "hub.post.coop",
+				"by": 2,
+				"replies": 73,
+				"votes": 96
+			},
+			{
+				"id": "secrets",
+				"kind": "guides",
+				"key": "hub.post.secrets",
+				"by": 4,
+				"replies": 12,
+				"votes": 154
+			}
+		],
+		"hubShots": [
+			{
+				"id": "shot-1",
+				"file": "shot1",
+				"key": "hub.shot.0",
+				"by": 2,
+				"votes": 214
+			},
+			{
+				"id": "shot-2",
+				"file": "hero",
+				"key": "hub.shot.1",
+				"by": 4,
+				"votes": 389
+			},
+			{
+				"id": "shot-3",
+				"file": "shot2",
+				"key": "hub.shot.2",
+				"by": 0,
+				"votes": 57
+			},
+			{
+				"id": "shot-4",
+				"file": "shot3",
+				"key": "hub.shot.3",
+				"by": 5,
+				"votes": 131
+			}
+		],
+		"hubPost": null,
+		"hubShot": null,
+		"hubDraft": "",
+		"hubReplies": [],
+		"hubVoted": []
 	},
-
+	"computed": {
+		"hubOpen": "{{find(state.hubPosts, it.id == state.hubPost)}}",
+		"hubThread": "{{computed.hubOpen == null ? [] : concat(map([0, 1, 2], { by: (computed.hubOpen.by + it + 1) % length(data.friends), key: 'hub.reply.' + ((computed.hubOpen.by + it) % 4), mine: false }), map(filter(state.hubReplies, it.post == state.hubPost), { text: it.text, mine: true }))}}",
+		"hubWidth": "{{((nodes['hub-page'].width ?? 1008) - 64)}}",
+		"hubThumbWidth": "{{((computed.hubWidth - 36) / 4)}}",
+		"hubThumbHeight": "{{((computed.hubThumbWidth * 9) / 16)}}",
+		"hubCardWidth": "{{((computed.hubWidth - 12) / 2)}}",
+		"hubCardHeight": "{{((computed.hubCardWidth * 9) / 16)}}",
+		"hubBigHeight": "{{min(420, ((computed.hubWidth * 9) / 16))}}",
+		"hubBigWidth": "{{((computed.hubBigHeight * 16) / 9)}}",
+		"hubBigLeft": "{{((computed.hubWidth - computed.hubBigWidth) / 2)}}"
+	},
 	"actions": {
 		"openHub": {
 			"title": "Open the game's player hub",
 			"category": "Game",
 			"description": "section is hub (everything), discussions or guides.",
 			"do": [
-				{ "set": "state.hubTab", "to": "{{section ?? 'hub'}}" },
-				{ "run": "go", "with": { "tab": "library", "page": "hub", "id": "{{id}}" } }
+				{
+					"set": "state.hubTab",
+					"to": "{{section ?? 'hub'}}"
+				},
+				{
+					"set": "state.hubPost",
+					"to": null
+				},
+				{
+					"set": "state.hubShot",
+					"to": null
+				},
+				{
+					"run": "go",
+					"with": {
+						"tab": "library",
+						"page": "hub",
+						"id": "{{id}}"
+					}
+				}
+			]
+		},
+		"openHubPost": {
+			"title": "Open a post of the player hub",
+			"category": "Game",
+			"description": "Opens a post of the player hub on its thread: what it says, its replies, and a box to reply in.",
+			"do": [
+				{
+					"set": "state.hubDraft",
+					"to": ""
+				},
+				{
+					"set": "state.hubPost",
+					"to": "{{post}}"
+				}
+			]
+		},
+		"closeHubPost": {
+			"title": "Back to the hub's posts",
+			"category": "Game",
+			"description": "Goes back from a post's thread to the hub's list of posts.",
+			"enablement": "{{state.hubPost != null}}",
+			"do": [
+				{
+					"set": "state.hubPost",
+					"to": null
+				}
+			]
+		},
+		"replyToPost": {
+			"title": "Reply to the post",
+			"category": "Game",
+			"icon": "send",
+			"description": "Posts the reply written under the open post of the player hub.",
+			"enablement": "{{state.hubPost != null && trim(state.hubDraft) != ''}}",
+			"do": [
+				{
+					"if": "{{state.hubPost != null && trim(state.hubDraft) != ''}}",
+					"then": [
+						{
+							"push": "state.hubReplies",
+							"value": {
+								"post": "{{state.hubPost}}",
+								"text": "{{trim(state.hubDraft)}}"
+							}
+						},
+						{
+							"set": "state.hubDraft",
+							"to": ""
+						}
+					]
+				}
+			]
+		},
+		"openHubShot": {
+			"title": "Open a screenshot of the player hub",
+			"category": "Game",
+			"description": "Opens a screenshot of the player hub big, by its place, with its caption and its vote.",
+			"do": [
+				{
+					"set": "state.hubShot",
+					"to": "{{n}}"
+				}
+			]
+		},
+		"closeHubShot": {
+			"title": "Back to the hub's screenshots",
+			"category": "Game",
+			"description": "Goes back from an open screenshot to the hub's screenshots.",
+			"enablement": "{{state.hubShot != null}}",
+			"do": [
+				{
+					"set": "state.hubTab",
+					"to": "screenshots"
+				},
+				{
+					"set": "state.hubShot",
+					"to": null
+				}
+			]
+		},
+		"voteHubPost": {
+			"title": "Mark the post as helpful",
+			"category": "Game",
+			"icon": "thumbs-up",
+			"description": "Marks a post of the player hub as helpful, or takes the vote back.",
+			"do": [
+				{
+					"set": "state.hubVoted",
+					"to": "{{contains(state.hubVoted, post) ? filter(state.hubVoted, it != post) : concat(state.hubVoted, [post])}}"
+				}
 			]
 		}
 	},
-
 	"components": {
 		"hubPage": {
 			"note": "The hub of the game on the page: its name, the three sections and the posts of the one chosen.",
@@ -36,18 +231,23 @@
 				"type": "column",
 				"fill": true,
 				"scroll": "vertical",
-				"let": { "g": "{{computed.game}}" },
+				"let": {
+					"g": "{{computed.game}}"
+				},
 				"children": [
 					{
 						"type": "row",
 						"height": 84,
-						"anchors": { "left": 32, "right": 32 },
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
 						"gap": 16,
 						"alignItems": "center",
 						"children": [
 							{
 								"type": "image",
-								"file": "{{'../assets/art/' + (g.art ?? g.id) + '/cover.svg'}}",
+								"file": "../assets/art/{{(g.art ?? g.id)}}/cover.svg",
 								"width": 40,
 								"height": 60,
 								"radius": 6,
@@ -58,8 +258,28 @@
 								"grow": 1,
 								"height": 48,
 								"children": [
-									{ "type": "label", "font": "heading", "height": 26, "anchors": { "left": 0, "right": 0 }, "text": "{{g.title}}", "textColor": "@color.bright" },
-									{ "type": "label", "font": "small", "height": 18, "anchors": { "left": 0, "right": 0 }, "text": "{{t('hub.subtitle')}}", "textColor": "@color.muted" }
+									{
+										"type": "label",
+										"font": "heading",
+										"height": 26,
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"text": "{{g.title}}",
+										"textColor": "@color.bright"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"height": 18,
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"text": "{{t('hub.subtitle')}}",
+										"textColor": "@color.muted"
+									}
 								]
 							},
 							{
@@ -67,58 +287,801 @@
 								"style": "sectionLink",
 								"icon": "arrow-left",
 								"text": "{{t('hub.back')}}",
-								"onClick": { "run": "openGame", "with": { "id": "{{g.id}}" } }
+								"onClick": {
+									"run": "openGame",
+									"with": {
+										"id": "{{g.id}}"
+									}
+								}
 							}
 						]
 					},
 					{
 						"type": "row",
 						"id": "hub-tabs",
+						"when": "{{((state.hubPost == null) && (state.hubShot == null))}}",
 						"height": 40,
-						"anchors": { "left": 32, "right": 32 },
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
 						"gap": 6,
 						"alignItems": "center",
 						"role": "tablist",
 						"arrows": "horizontal",
 						"children": [
 							{
-								"id": "{{'hub-tab-' + s}}",
-								"repeat": { "for": "s", "in": "{{['hub', 'discussions', 'guides']}}" },
+								"id": "hub-tab-{{s}}",
+								"repeat": {
+									"for": "s",
+									"in": "{{['hub', 'discussions', 'guides', 'screenshots']}}"
+								},
 								"style": "pillButton",
 								"role": "tab",
-								"selected": "{{state.hubTab == s}}",
-								"color": "{{state.hubTab == s ? '@color.select' : 'transparent'}}",
-								"textColor": "{{state.hubTab == s ? '@color.bright' : '@color.text'}}",
-								"text": "{{t(s == 'hub' ? 'hub.all' : 'game.section.' + s)}}",
-								"onClick": { "set": "state.hubTab", "to": "{{s}}" }
+								"selected": "{{(state.hubTab == s)}}",
+								"color": "{{((state.hubTab == s) ? '@color.select' : 'transparent')}}",
+								"textColor": "{{((state.hubTab == s) ? '@color.bright' : '@color.text')}}",
+								"text": "{{t(((s == 'hub') ? 'hub.all' : ((s == 'screenshots') ? 'hub.screenshots' : ('game.section.' + s))))}}",
+								"onClick": {
+									"set": "state.hubTab",
+									"to": "{{s}}"
+								}
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "hub-thread",
+						"when": "{{(computed.hubOpen != null)}}",
+						"let": {
+							"p": "{{computed.hubOpen}}"
+						},
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
+						"height": "{{(40 + 196 + 18 + (length(computed.hubThread) * 80) + 72 + 48)}}",
+						"gap": 12,
+						"children": [
+							{
+								"type": "row",
+								"height": 40,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"alignItems": "center",
+								"children": [
+									{
+										"id": "hub-thread-back",
+										"style": "sectionLink",
+										"icon": "arrow-left",
+										"text": "{{t('hub.backToPosts')}}",
+										"onClick": {
+											"run": "closeHubPost"
+										}
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "hub-thread-post",
+								"let": {
+									"who": "{{data.friends[(p.by % length(data.friends))]}}"
+								},
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"height": 196,
+								"color": "@color.panel",
+								"radius": 10,
+								"gap": 8,
+								"children": [
+									{
+										"type": "panel",
+										"height": 6,
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"color": "transparent"
+									},
+									{
+										"type": "label",
+										"font": "caps",
+										"height": 18,
+										"anchors": {
+											"left": 20,
+											"right": 20
+										},
+										"icon": "{{((p.kind == 'guides') ? 'book-open' : 'messages-square')}}",
+										"text": "{{upper(t(('game.section.' + p.kind)))}}",
+										"textColor": "@color.accent"
+									},
+									{
+										"type": "label",
+										"id": "hub-thread-title",
+										"font": "heading",
+										"height": 26,
+										"anchors": {
+											"left": 20,
+											"right": 20
+										},
+										"text": "{{t(p.key, {'game': g.title})}}",
+										"textColor": "@color.bright"
+									},
+									{
+										"type": "row",
+										"height": 24,
+										"anchors": {
+											"left": 20,
+											"right": 20
+										},
+										"gap": 8,
+										"alignItems": "center",
+										"children": [
+											{
+												"use": "avatar",
+												"with": {
+													"avatar": "{{who.avatar}}",
+													"presence": "{{who.presence}}",
+													"size": 22
+												}
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"fitText": true,
+												"text": "{{t('hub.by', {'who': who.name})}}",
+												"textColor": "@color.muted"
+											}
+										]
+									},
+									{
+										"type": "label",
+										"font": "default",
+										"height": 40,
+										"anchors": {
+											"left": 20,
+											"right": 20
+										},
+										"wrap": true,
+										"text": "{{t(('hub.body.' + p.id), {'game': g.title})}}",
+										"textColor": "@color.text"
+									},
+									{
+										"type": "row",
+										"height": 28,
+										"anchors": {
+											"left": 20,
+											"right": 20
+										},
+										"gap": 8,
+										"alignItems": "center",
+										"children": [
+											{
+												"type": "label",
+												"id": "hub-vote",
+												"font": "small",
+												"fitText": true,
+												"padding": 10,
+												"height": 26,
+												"radius": 13,
+												"icon": "thumbs-up",
+												"text": "{{t('hub.helpful')}}  {{formatNumber((p.votes + length(filter(state.hubVoted, (it == p.id)))))}}",
+												"focusable": true,
+												"role": "button",
+												"cursor": "hand",
+												"selected": "{{contains(state.hubVoted, p.id)}}",
+												"color": "{{(contains(state.hubVoted, p.id) ? '@color.accent' : '@color.raised')}}",
+												"textColor": "{{(contains(state.hubVoted, p.id) ? '@color.onAccent' : '@color.text')}}",
+												"hover": {
+													"textColor": "@color.bright"
+												},
+												"onClick": {
+													"run": "voteHubPost",
+													"with": {
+														"post": "{{p.id}}"
+													}
+												}
+											}
+										]
+									}
+								]
+							},
+							{
+								"type": "label",
+								"font": "caps",
+								"height": 18,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"text": "{{upper(t('hub.replies', {'n': (p.replies + length(filter(state.hubReplies, (it.post == p.id))))}))}}",
+								"textColor": "@color.muted"
+							},
+							{
+								"type": "column",
+								"id": "hub-replies",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"height": "{{(length(computed.hubThread) * 80)}}",
+								"gap": 8,
+								"role": "list",
+								"label": "{{t('hub.replies', {'n': (p.replies + length(filter(state.hubReplies, (it.post == p.id))))})}}",
+								"children": [
+									{
+										"type": "row",
+										"repeat": {
+											"for": "r",
+											"in": "computed.hubThread"
+										},
+										"let": {
+											"who": "{{(r.mine ? null : data.friends[r.by])}}"
+										},
+										"role": "listitem",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 72,
+										"gap": 12,
+										"alignItems": "center",
+										"color": "{{(r.mine ? '@color.raised' : '@color.panel')}}",
+										"radius": 8,
+										"children": [
+											{
+												"type": "panel",
+												"width": 4,
+												"height": 1,
+												"color": "transparent"
+											},
+											{
+												"use": "avatar",
+												"with": {
+													"avatar": "{{(r.mine ? state.user.avatar : who.avatar)}}",
+													"presence": "{{(r.mine ? state.user.status : who.presence)}}",
+													"size": 36
+												}
+											},
+											{
+												"type": "column",
+												"grow": 1,
+												"height": 44,
+												"gap": 4,
+												"children": [
+													{
+														"type": "label",
+														"font": "strong",
+														"height": 20,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{(r.mine ? t('hub.you', {'name': state.user.name}) : who.name)}}",
+														"textColor": "{{(r.mine ? '@color.accent' : '@color.bright')}}"
+													},
+													{
+														"type": "label",
+														"font": "default",
+														"height": 20,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{(r.mine ? r.text : t(r.key, {'game': g.title}))}}",
+														"textColor": "@color.text"
+													}
+												]
+											},
+											{
+												"type": "panel",
+												"width": 4,
+												"height": 1,
+												"color": "transparent"
+											}
+										]
+									}
+								]
+							},
+							{
+								"type": "row",
+								"height": 72,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"gap": 10,
+								"alignItems": "center",
+								"children": [
+									{
+										"type": "textarea",
+										"id": "hub-reply-input",
+										"grow": 1,
+										"height": 38,
+										"padding": 12,
+										"bind": "state.hubDraft",
+										"radius": 6,
+										"color": "@color.field",
+										"borderWidth": 1,
+										"borderColor": "@color.border",
+										"placeholder": "{{t('hub.replyPlaceholder')}}",
+										"placeholderColor": "@color.dim",
+										"textColor": "@color.text",
+										"label": "{{t('hub.replyPlaceholder')}}",
+										"focused": {
+											"borderColor": "@color.accent"
+										},
+										"onSubmit": {
+											"run": "replyToPost"
+										}
+									},
+									{
+										"type": "label",
+										"id": "hub-reply-send",
+										"font": "strong",
+										"fitText": true,
+										"padding": 16,
+										"height": 38,
+										"radius": 6,
+										"icon": "send",
+										"text": "{{t('hub.reply')}}",
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"color": "{{((trim(state.hubDraft) == '') ? '@color.raised' : '@color.accent')}}",
+										"textColor": "{{((trim(state.hubDraft) == '') ? '@color.dim' : '@color.onAccent')}}",
+										"onClick": {
+											"run": "replyToPost"
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "hub-shot-view",
+						"when": "{{(state.hubShot != null)}}",
+						"let": {
+							"sh": "{{state.hubShots[state.hubShot]}}"
+						},
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
+						"height": "{{(40 + computed.hubBigHeight + 64)}}",
+						"gap": 8,
+						"children": [
+							{
+								"type": "row",
+								"height": 40,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"alignItems": "center",
+								"children": [
+									{
+										"id": "hub-shot-back",
+										"style": "sectionLink",
+										"icon": "arrow-left",
+										"text": "{{t('hub.backToShots')}}",
+										"onClick": {
+											"run": "closeHubShot"
+										}
+									},
+									{
+										"type": "panel",
+										"grow": 1,
+										"height": 1,
+										"color": "transparent"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"fitText": true,
+										"text": "{{t('hub.shotOf', {'n': (state.hubShot + 1), 'total': length(state.hubShots)})}}",
+										"textColor": "@color.muted"
+									}
+								]
+							},
+							{
+								"anchors": {
+									"left": "{{computed.hubBigLeft}}",
+									"right": "{{computed.hubBigLeft}}"
+								},
+								"height": "{{computed.hubBigHeight}}",
+								"children": [
+									{
+										"type": "image",
+										"id": "hub-shot-big",
+										"fill": true,
+										"file": "../assets/art/{{(g.art ?? g.id)}}/{{sh.file}}.svg",
+										"radius": 10,
+										"fit": "cover",
+										"label": "{{t(sh.key)}}"
+									},
+									{
+										"type": "label",
+										"id": "hub-shot-prev",
+										"icon": "chevron-left",
+										"text": "",
+										"font": "heading",
+										"width": 40,
+										"height": 40,
+										"radius": 20,
+										"align": "center",
+										"anchors": "{{merge({'left': 12}, {'top': ((computed.hubBigHeight / 2) - 20)})}}",
+										"color": "#00000080",
+										"textColor": "#ffffff",
+										"focusable": true,
+										"role": "button",
+										"label": "{{t('hub.shot.prev')}}",
+										"cursor": "hand",
+										"hover": {
+											"color": "#000000c0"
+										},
+										"onClick": {
+											"set": "state.hubShot",
+											"to": "{{(state.hubShot + -1 + length(state.hubShots)) % length(state.hubShots)}}"
+										}
+									},
+									{
+										"type": "label",
+										"id": "hub-shot-next",
+										"icon": "chevron-right",
+										"text": "",
+										"font": "heading",
+										"width": 40,
+										"height": 40,
+										"radius": 20,
+										"align": "center",
+										"anchors": "{{merge({'right': 12}, {'top': ((computed.hubBigHeight / 2) - 20)})}}",
+										"color": "#00000080",
+										"textColor": "#ffffff",
+										"focusable": true,
+										"role": "button",
+										"label": "{{t('hub.shot.next')}}",
+										"cursor": "hand",
+										"hover": {
+											"color": "#000000c0"
+										},
+										"onClick": {
+											"set": "state.hubShot",
+											"to": "{{(state.hubShot + 1 + length(state.hubShots)) % length(state.hubShots)}}"
+										}
+									}
+								]
+							},
+							{
+								"type": "row",
+								"let": {
+									"who": "{{data.friends[(sh.by % length(data.friends))]}}"
+								},
+								"height": 48,
+								"anchors": {
+									"left": "{{computed.hubBigLeft}}",
+									"right": "{{computed.hubBigLeft}}"
+								},
+								"gap": 10,
+								"alignItems": "center",
+								"children": [
+									{
+										"use": "avatar",
+										"with": {
+											"avatar": "{{who.avatar}}",
+											"presence": "{{who.presence}}",
+											"size": 32
+										}
+									},
+									{
+										"type": "column",
+										"grow": 1,
+										"height": 40,
+										"children": [
+											{
+												"type": "label",
+												"id": "hub-shot-caption",
+												"font": "heading",
+												"height": 22,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t(sh.key)}}",
+												"textColor": "@color.bright"
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"height": 18,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('hub.by', {'who': who.name})}}",
+												"textColor": "@color.muted"
+											}
+										]
+									},
+									{
+										"type": "label",
+										"id": "hub-shot-vote",
+										"font": "small",
+										"fitText": true,
+										"padding": 10,
+										"height": 26,
+										"radius": 13,
+										"icon": "thumbs-up",
+										"text": "{{t('hub.helpful')}}  {{formatNumber((sh.votes + length(filter(state.hubVoted, (it == sh.id)))))}}",
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"selected": "{{contains(state.hubVoted, sh.id)}}",
+										"color": "{{(contains(state.hubVoted, sh.id) ? '@color.accent' : '@color.raised')}}",
+										"textColor": "{{(contains(state.hubVoted, sh.id) ? '@color.onAccent' : '@color.text')}}",
+										"hover": {
+											"textColor": "@color.bright"
+										},
+										"onClick": {
+											"run": "voteHubPost",
+											"with": {
+												"post": "{{sh.id}}"
+											}
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "hub-shots-shelf",
+						"when": "{{(((state.hubPost == null) && (state.hubShot == null)) && (state.hubTab == 'hub'))}}",
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
+						"height": "{{(44 + computed.hubThumbHeight + 12)}}",
+						"children": [
+							{
+								"type": "row",
+								"height": 40,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"alignItems": "center",
+								"children": [
+									{
+										"type": "label",
+										"font": "caps",
+										"fitText": true,
+										"text": "{{upper(t('hub.screenshots'))}}",
+										"textColor": "@color.muted"
+									},
+									{
+										"type": "panel",
+										"grow": 1,
+										"height": 1,
+										"color": "transparent"
+									},
+									{
+										"id": "hub-shots-all",
+										"style": "sectionLink",
+										"text": "{{t('hub.seeAll')}}",
+										"onClick": {
+											"set": "state.hubTab",
+											"to": "screenshots"
+										}
+									}
+								]
+							},
+							{
+								"type": "row",
+								"height": "{{computed.hubThumbHeight}}",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"gap": 12,
+								"children": [
+									{
+										"type": "image",
+										"id": "hub-thumb-{{n}}",
+										"repeat": {
+											"for": "sh",
+											"in": "state.hubShots",
+											"index": "n"
+										},
+										"file": "../assets/art/{{(g.art ?? g.id)}}/{{sh.file}}.svg",
+										"width": "{{computed.hubThumbWidth}}",
+										"height": "{{computed.hubThumbHeight}}",
+										"radius": 8,
+										"fit": "cover",
+										"focusable": true,
+										"role": "button",
+										"label": "{{t(sh.key)}}",
+										"cursor": "hand",
+										"hover": {
+											"borderWidth": 2,
+											"borderColor": "@color.accent"
+										},
+										"onClick": {
+											"run": "openHubShot",
+											"with": {
+												"n": "{{n}}"
+											}
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "hub-shots-grid",
+						"when": "{{(((state.hubPost == null) && (state.hubShot == null)) && (state.hubTab == 'screenshots'))}}",
+						"wrap": true,
+						"gap": 12,
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
+						"height": "{{(ceil((length(state.hubShots) / 2)) * (computed.hubCardHeight + 64))}}",
+						"role": "list",
+						"label": "{{t('hub.screenshots')}}",
+						"children": [
+							{
+								"type": "column",
+								"repeat": {
+									"for": "sh",
+									"in": "state.hubShots",
+									"index": "n"
+								},
+								"let": {
+									"who": "{{data.friends[(sh.by % length(data.friends))]}}"
+								},
+								"role": "listitem",
+								"width": "{{computed.hubCardWidth}}",
+								"height": "{{(computed.hubCardHeight + 52)}}",
+								"gap": 6,
+								"children": [
+									{
+										"type": "image",
+										"id": "hub-shot-{{n}}",
+										"file": "../assets/art/{{(g.art ?? g.id)}}/{{sh.file}}.svg",
+										"width": "{{computed.hubCardWidth}}",
+										"height": "{{computed.hubCardHeight}}",
+										"radius": 8,
+										"fit": "cover",
+										"focusable": true,
+										"role": "button",
+										"label": "{{t(sh.key)}}",
+										"cursor": "hand",
+										"hover": {
+											"borderWidth": 2,
+											"borderColor": "@color.accent"
+										},
+										"onClick": {
+											"run": "openHubShot",
+											"with": {
+												"n": "{{n}}"
+											}
+										}
+									},
+									{
+										"type": "row",
+										"height": 40,
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"gap": 8,
+										"alignItems": "center",
+										"children": [
+											{
+												"type": "column",
+												"grow": 1,
+												"height": 40,
+												"children": [
+													{
+														"type": "label",
+														"font": "strong",
+														"height": 20,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{t(sh.key)}}",
+														"textColor": "@color.text"
+													},
+													{
+														"type": "label",
+														"font": "small",
+														"height": 18,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{t('hub.by', {'who': who.name})}}",
+														"textColor": "@color.muted"
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"fitText": true,
+												"icon": "thumbs-up",
+												"text": "{{formatNumber((sh.votes + length(filter(state.hubVoted, (it == sh.id)))))}}",
+												"textColor": "{{(contains(state.hubVoted, sh.id) ? '@color.accent' : '@color.muted')}}"
+											}
+										]
+									}
+								]
 							}
 						]
 					},
 					{
 						"type": "column",
 						"id": "hub-posts",
-						"anchors": { "left": 32, "right": 32 },
-						"height": "{{8 + count(state.hubPosts, state.hubTab == 'hub' || it.kind == state.hubTab) * 76}}",
+						"when": "{{(((state.hubPost == null) && (state.hubShot == null)) && (state.hubTab != 'screenshots'))}}",
+						"anchors": {
+							"left": 32,
+							"right": 32
+						},
+						"height": "{{(8 + (length(filter(state.hubPosts, ((state.hubTab == 'hub') || (it.kind == state.hubTab)))) * 76))}}",
 						"gap": 8,
 						"role": "list",
 						"label": "{{t('hub.subtitle')}}",
 						"children": [
 							{
 								"type": "row",
-								"repeat": { "for": "p", "in": "{{filter(state.hubPosts, state.hubTab == 'hub' || it.kind == state.hubTab)}}" },
-								"let": { "who": "{{data.friends[p.by % length(data.friends)]}}" },
+								"id": "hub-post-{{p.id}}",
+								"repeat": {
+									"for": "p",
+									"in": "{{filter(state.hubPosts, ((state.hubTab == 'hub') || (it.kind == state.hubTab)))}}"
+								},
+								"let": {
+									"who": "{{data.friends[(p.by % length(data.friends))]}}"
+								},
 								"role": "listitem",
-								"anchors": { "left": 0, "right": 0 },
+								"label": "{{t(p.key, {'game': g.title})}}",
+								"focusable": true,
+								"cursor": "hand",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
 								"height": 68,
 								"gap": 12,
 								"alignItems": "center",
 								"color": "@color.panel",
 								"radius": 8,
+								"hover": {
+									"color": "@color.raised"
+								},
+								"onClick": {
+									"run": "openHubPost",
+									"with": {
+										"post": "{{p.id}}"
+									}
+								},
 								"children": [
-									{ "type": "panel", "width": 2, "height": 1, "color": "transparent" },
+									{
+										"type": "panel",
+										"width": 2,
+										"height": 1,
+										"color": "transparent"
+									},
 									{
 										"type": "label",
-										"icon": "{{p.kind == 'guides' ? 'book-open' : 'messages-square'}}",
+										"icon": "{{((p.kind == 'guides') ? 'book-open' : 'messages-square')}}",
 										"text": "",
 										"fitText": true,
 										"textColor": "@color.accent"
@@ -128,8 +1091,28 @@
 										"grow": 1,
 										"height": 40,
 										"children": [
-											{ "type": "label", "font": "strong", "height": 22, "anchors": { "left": 0, "right": 0 }, "text": "{{t(p.key, { game: g.title })}}", "textColor": "@color.text" },
-											{ "type": "label", "font": "small", "height": 18, "anchors": { "left": 0, "right": 0 }, "text": "{{t('hub.by', { who: who.name })}}", "textColor": "@color.muted" }
+											{
+												"type": "label",
+												"font": "strong",
+												"height": 22,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t(p.key, {'game': g.title})}}",
+												"textColor": "@color.text"
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"height": 18,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('hub.by', {'who': who.name})}}",
+												"textColor": "@color.muted"
+											}
 										]
 									},
 									{
@@ -137,7 +1120,7 @@
 										"font": "small",
 										"fitText": true,
 										"icon": "thumbs-up",
-										"text": "{{formatNumber(p.votes)}}",
+										"text": "{{formatNumber((p.votes + length(filter(state.hubVoted, (it == p.id)))))}}",
 										"textColor": "@color.muted"
 									},
 									{
@@ -145,10 +1128,15 @@
 										"font": "small",
 										"fitText": true,
 										"icon": "message-circle",
-										"text": "{{formatNumber(p.replies)}}",
+										"text": "{{formatNumber((p.replies + length(filter(state.hubReplies, (it.post == p.id)))))}}",
 										"textColor": "@color.muted"
 									},
-									{ "type": "panel", "width": 2, "height": 1, "color": "transparent" }
+									{
+										"type": "panel",
+										"width": 2,
+										"height": 1,
+										"color": "transparent"
+									}
 								]
 							}
 						]
