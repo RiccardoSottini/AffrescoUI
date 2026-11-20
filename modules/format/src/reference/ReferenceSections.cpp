@@ -487,7 +487,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"edit", "",
 	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
 	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
-	 R"("word", "selection" or "line")",
+	 R"("word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over )"
+	 R"(that range; "scrollCaretToCenter", "scrollCaretToTop" and "scrollCaretToBottom" scroll the caret's row there)",
 	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},

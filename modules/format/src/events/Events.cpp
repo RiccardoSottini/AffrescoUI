@@ -174,7 +174,8 @@ Connection Events::hookView(Panel& panel) {
 			const json::json_pointer pointer =
 			    format::statePointer(*record->view, engine_.document.context(*record->locals, json::object()), where);
 			statePlace(engine_.versions.state(), pointer, where) =
-			    json{{"first", view.first}, {"last", view.last}, {"rows", view.rows}, {"lines", view.lines}};
+			    json{{"first", view.first}, {"last", view.last}, {"rows", view.rows}, {"lines", view.lines},
+			         {"rowHeight", view.rowHeight}};
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {

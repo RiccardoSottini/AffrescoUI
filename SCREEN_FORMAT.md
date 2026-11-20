@@ -268,7 +268,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
@@ -1352,7 +1352,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "scrollCaretToCenter", "scrollCaretToTop" and "scrollCaretToBottom" scroll the caret's row there |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
