@@ -34,6 +34,14 @@ bool isPaste(const KeyEvent& event) noexcept {
 	return event.key == Key::V && event.action != Action::Release && (event.mods.super() || event.mods.control());
 }
 
+/// @brief Whether a key event holds Command or Control, pressed or repeated.
+/// @param event The event.
+/// @param key The key.
+/// @return true for that key with Command or Control.
+bool isShortcut(const KeyEvent& event, Key key) noexcept {
+	return event.key == key && event.action != Action::Release && (event.mods.super() || event.mods.control());
+}
+
 /// @brief Clipboard text as one line: its line breaks and tabs become spaces.
 /// @param utf8 The text.
 /// @return The line.
@@ -54,7 +62,14 @@ TextArea::TextArea() {
 
 void TextArea::clear() noexcept {
 	text_.clear();
+	allSelected_ = false;
 	invalidate();
+}
+
+void TextArea::selectAll() {
+	if(text_.empty() || allSelected_) return;
+	allSelected_ = true;
+	invalidatePaint();
 }
 
 void TextArea::setPlaceholder(std::string_view utf8) {
@@ -86,11 +101,6 @@ bool TextArea::accepts(char32_t codepoint) const noexcept {
 
 bool TextArea::insert(std::u32string_view added) {
 	bool changed = false;
-	if(allSelected_ && !added.empty()) { // what is typed or pasted replaces the selected text
-		allSelected_ = false;
-		changed = !text_.empty();
-		text_.clear();
-	}
 	for(const char32_t codepoint : added) {
 		if(maxLength_ != 0 && text_.size() >= maxLength_) break;
 		if(!accepts(codepoint)) continue;
@@ -102,7 +112,9 @@ bool TextArea::insert(std::u32string_view added) {
 }
 
 bool TextArea::insertText(std::string_view utf8) {
-	if(!insert(detail::fromUtf8(utf8))) return false;
+	const bool replaced = allSelected_ && !text_.empty(); // typing replaces the selected text
+	if(replaced) clear();
+	if(!insert(detail::fromUtf8(utf8)) && !replaced) return false;
 	onTextChanged(text());
 	return true;
 }
@@ -125,38 +137,40 @@ void TextArea::reportKey() {
 	typedNow_ = false;
 }
 
+bool TextArea::selectionKey(const KeyEvent& event) {
+	const bool copy = isShortcut(event, Key::C) || isShortcut(event, Key::X);
+	if(copy && !secret_ && window()) window()->setClipboardText(text()); // a secret is never copied
+	const bool clears =
+	    (event.key == Key::Backspace || event.key == Key::Delete || isShortcut(event, Key::X) || isPaste(event)) &&
+	    !(secret_ && event.key == Key::X);
+	if(!clears) {
+		const bool moves = event.key == Key::Left || event.key == Key::Right || event.key == Key::Up ||
+		                   event.key == Key::Down || event.key == Key::Home || event.key == Key::End;
+		if(moves) { // a caret key leaves the selection; a letter's key comes before its character, which replaces it
+			allSelected_ = false;
+			invalidatePaint();
+		}
+		return copy;
+	}
+	text_.clear();
+	allSelected_ = false;
+	invalidate();
+	if(isPaste(event)) {
+		if(window()) insert(pastedLine(window()->clipboardText()));
+		onTextChanged(text());
+	} else {
+		reportKey();
+	}
+	return true;
+}
+
 void TextArea::keyEvent(const KeyEvent& event) {
 	if(secret_ && event.key == Key::C) return; // a secret is never copied
 	Label::keyEvent(event);                    // first: a binding that runs for the key keeps it from the text
 	if(event.action == Action::Release || (window() && window()->keyTaken())) return;
 
-	const bool command = event.mods.super() || event.mods.control();
-	if(command && event.key == Key::A) { // select all: the next typing, paste or deletion replaces the text
-		allSelected_ = !text_.empty();
-		invalidatePaint();
-		return;
-	}
-	if(allSelected_ && command && (event.key == Key::C || event.key == Key::X)) { // copy or cut the whole text
-		if(!secret_ && window()) window()->setClipboardText(text());
-		if(event.key == Key::C || secret_) return;
-	}
-	const bool deletes = event.key == Key::Backspace || event.key == Key::Delete ||
-	                     (allSelected_ && command && event.key == Key::X && !secret_);
-	if(allSelected_ && deletes) {
-		allSelected_ = false;
-		text_.clear();
-		invalidate();
-		reportKey();
-		return;
-	}
-	const bool modifierOnly = event.key == Key::LeftShift || event.key == Key::RightShift ||
-	                          event.key == Key::LeftControl || event.key == Key::RightControl ||
-	                          event.key == Key::LeftAlt || event.key == Key::RightAlt || event.key == Key::LeftSuper ||
-	                          event.key == Key::RightSuper;
-	if(allSelected_ && !modifierOnly && !isPaste(event)) { // any other key (an arrow) ends the selection
-		allSelected_ = false;
-		invalidatePaint();
-	}
+	if(isShortcut(event, Key::A)) return selectAll();
+	if(allSelected_ && selectionKey(event)) return;
 
 	if(event.key == Key::Backspace && !text_.empty()) {
 		text_.pop_back();
@@ -168,9 +182,26 @@ void TextArea::keyEvent(const KeyEvent& event) {
 }
 
 void TextArea::charEvent(const CharEvent& event) {
-	if(insert(std::u32string_view(&event.codepoint, 1))) reportKey();
+	if(allSelected_ && accepts(event.codepoint)) { // typing replaces the selected text
+		text_.clear();
+		allSelected_ = false;
+		invalidate();
+		insert(std::u32string_view(&event.codepoint, 1));
+		reportKey();
+	} else if(insert(std::u32string_view(&event.codepoint, 1))) {
+		reportKey();
+	}
 
 	Label::charEvent(event);
+}
+
+void TextArea::mouseButtonEvent(const MouseButtonEvent& event) {
+	if(allSelected_ && event.action == Action::Press) { // a click places the caret, leaving the selection
+		allSelected_ = false;
+		invalidatePaint();
+	}
+
+	Label::mouseButtonEvent(event);
 }
 
 void TextArea::focusEvent(bool focused) {
@@ -197,10 +228,10 @@ void TextArea::paint(Painter& painter) const {
 		const std::u32string shown = shownText();
 		const float width = f->measure(shown);
 		const float left = std::round(content.left + std::min(0.0f, content.width() - width - 2.0f));
-		if(allSelected_) // the label's default selection colour, behind the whole text
+		if(allSelected_ && hasFocus())
 			painter.fillRect({std::max(left, content.left), baseline - f->ascent(),
 			                  std::min(left + width, content.right), baseline - f->ascent() + f->lineHeight()},
-			                 Color::hex(0xb4d5fe));
+			                 selectionColor());
 		painter.drawText(*f, shown, {left, baseline}, textColor());
 	}
 

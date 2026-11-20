@@ -263,18 +263,12 @@
        :height 32
        :label "−"
        :onClick ~(handler step-times -1))
-     (label#label-text-edit-n :text
-                              ~(text state.edit.n)
-                              :textColor
-                              @c.text
-                              :width
-                              40
-                              :height
-                              20
-                              :align
-                              center
-                              :role
-                              status)
+     (label#label-text-edit-n :text ~(text state.edit.n)
+       :textColor @c.text
+       :width 40
+       :height 20
+       :align center
+       :role status)
      (node#freqMore
        :style iconButton
        :font iconsSmall
@@ -284,19 +278,68 @@
        :label "+"
        :onClick ~(handler step-times 1))))
 
+(defn clock-chip-keys "The size of an hour's or a minute's chip on the reminder's clock." []
+  [:width 34 :height 28 :padding 0 :fitText false :align :center])
+
+(defview hour-chip "An hour of the reminder's clock." [hour]
+  `(node#hourChip
+     :style ~(if (= computed.reminderHour hour) "chipOn" "chip")
+     :text ~(pad hour 2)
+     :label ~(str (t "edit.hour") " " (pad hour 2))
+     :selected ~(= computed.reminderHour hour)
+     :onClick ~(handler pick-time :hour hour)
+     ~@(clock-chip-keys)))
+
+(defview minute-chip "A minute of the reminder's clock." [minute]
+  `(node#minuteChip
+     :style ~(if (= computed.reminderMinute minute) "chipOn" "chip")
+     :text ~(pad minute 2)
+     :label ~(str (t "edit.minute") " " (pad minute 2))
+     :selected ~(= computed.reminderMinute minute)
+     :onClick ~(handler pick-time :minute minute)
+     ~@(clock-chip-keys)))
+
+(defview time-button "The reminder's time, and a clock of hours and minutes to pick it from when open." []
+  `(label#timeButton
+     :text ~state.edit.time
+     :icon clock-3
+     :textColor ~(if state.edit.reminderOn "@c.text" "@c.muted")
+     :width 84
+     :height 32
+     :padding 8
+     :radius 4
+     :color @c.card
+     :borderWidth 1
+     :borderColor ~(if state.timeOpen computed.accent "@c.divider")
+     :focusable true
+     :role button
+     :cursor hand
+     :label ~(str (t "edit.time") " " state.edit.time)
+     :tooltip ~(t "edit.time")
+     :isOpen ~state.timeOpen
+     :focused {:borderWidth 2 :borderColor ~computed.accent}
+     :onClick open-clock
+     (node#popover-time-button :use popover
+       :with {:open state.timeOpen
+              :anchor "#timeButton"
+              :title ~(t "edit.time")
+              :width 476
+              :height 172
+              :placement below}
+       (label#label-t-edit-hour :style caption :text ~(t "edit.hour") :anchors {:left 14 :top 38})
+       (grid#hours :columns 12 :gap 4 :anchors {:left 12 :right 12 :top 56} :height 60 :arrows both
+         ~(repeat [hour (range 24)]
+           (hour-chip hour)))
+       (label#label-t-edit-minute :style caption :text ~(t "edit.minute") :anchors {:left 14 :top 120})
+       (grid#minutes :columns 12 :gap 4 :anchors {:left 12 :right 12 :top 138} :height 28 :arrows both
+         ~(repeat [minute (range 0 60 5)]
+           (minute-chip minute))))))
+
 (defview row-edit-reminder "The reminder's time, if any." []
   `(row#row-edit-reminder :anchors {:left 0 :right 0 :top 20} :height 32 :gap 6 :alignItems center
      (node#reminderToggle :use switch
        :with {:on ~state.edit.reminderOn :path state.edit.reminderOn :label ~(t "edit.reminder")})
-     (node#timeField
-       :style field
-       :bind state.edit.time
-       :label ~(t "edit.reminder")
-       :width 72
-       :height 32
-       :padding 6
-       :disabled ~(not state.edit.reminderOn)
-       :placeholder "08:00")
+     ~(time-button)
      ~(repeat [wd computed.weekdays]
        `(node#dayChip
           :style ~(if (and (get state.edit.days wd) state.edit.reminderOn) "chipOn" "chip")
@@ -304,6 +347,5 @@
           :padding 6
           :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
           :selected ~(get state.edit.days wd)
-          :disabled ~(not state.edit.reminderOn)
-          :onClick {:toggle ~(str "state.edit.days[" wd "]")}))))
+          :onClick ~(handler tap-reminder-day wd)))))
 

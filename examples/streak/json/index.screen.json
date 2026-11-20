@@ -282,6 +282,9 @@
 	},
 	"state": {
 		"today": "2026-10-15",
+		"demoDay": "2026-10-15",
+		"demoStamp": 0,
+		"dayPinned": false,
 		"nextId": 1,
 		"selected": "meditate",
 		"page": "list",
@@ -333,6 +336,7 @@
 			"error": ""
 		},
 		"colorOpen": false,
+		"timeOpen": false,
 		"confirmDelete": false,
 		"picked": [],
 		"unpicked": [],
@@ -438,10 +442,19 @@
 		},
 		"today": {
 			"type": "string"
+		},
+		"demoDay": {
+			"type": "string"
+		},
+		"dayPinned": {
+			"type": "boolean"
 		}
 	},
+	"onLoad": "startUp",
 	"persist": [
 		"state.nextId",
+		"state.demoDay",
+		"state.demoStamp",
 		"state.selected",
 		"state.sort",
 		"state.hideCompleted",
@@ -460,6 +473,8 @@
 		"theme": "{{(state.theme == 'system' ? window.colorScheme : state.theme) == 'dark' ? (state.pureBlack ? 'black' : 'dark') : 'light'}}",
 		"pal": "{{computed.theme == 'light' ? ['#c8443a', '#d4602a', '#d9822b', '#cf921c', '#b49a16', '#8a9a1c', '#5c9e3a', '#2f8a55', '#17877a', '#1592a6', '#2a7fc0', '#3366b8', '#4a4fa8', '#7048b0', '#9446a8', '#c23d78', '#7a5a44', '#3a3a3a', '#7a7a7a', '#a8a8a8'] : ['#e88a80', '#f09a72', '#f5b56e', '#f5cc66', '#e8dc72', '#cfdc78', '#a8d888', '#86cfa0', '#6cc8bc', '#6ad0e0', '#7cc0f0', '#8aaaf0', '#9a9ef0', '#b39af0', '#cc94e0', '#f08ab4', '#b8977f', '#e2e2e2', '#a2a2a2', '#c2c2c2']}}",
 		"onColor": "{{computed.theme == 'light' ? '#ffffff' : '#1b1b1b'}}",
+		"reminderHour": "{{number(split(state.edit.time, ':')[0]) ?? 0}}",
+		"reminderMinute": "{{number(split(state.edit.time, ':')[1]) ?? 0}}",
 		"wide": "{{window.width >= 960}}",
 		"picking": "{{length(state.picked) > 0}}",
 		"pickedArchived": "{{every(data.ordered, !contains(state.picked, it.id) || it.archived)}}",
@@ -503,6 +518,7 @@
 		"historyMax": "{{max(concat([1], computed.historyVals))}}",
 		"stats": "{{computed.n == 0 ? {score: 0, month: 0, year: 0, total: 0} : {score: computed.s[computed.n - 1].s, month: computed.s[computed.n - 1].s - (computed.n > 30 ? computed.s[computed.n - 31].s : 0), year: computed.s[computed.n - 1].s - (computed.n > 365 ? computed.s[computed.n - 366].s : 0), total: computed.p[computed.n - 1]}}}",
 		"weeks": "{{computed.sel >= 0 ? clamp(ceil((daysBetween(computed.h.from, computed.weekStart) + 1) / 7) + 1, 1, floor((computed.cardWidth - 65) / 25)) : 0}}",
+		"currentStreak": "{{computed.n == 0 ? 0 : max(computed.runs[computed.n - 1].len, computed.n > 1 ? computed.runs[computed.n - 2].len : 0)}}",
 		"runs": "{{scan(computed.r, computed.v[index] == -1 ? acc : it.r >= 1 ? {len: acc.len + 1, start: acc.len > 0 ? acc.start : index} : {len: 0, start: index + 1}, {len: 0, start: 0})}}",
 		"streaks": "{{sort(slice(sort(map(filter(range(computed.n), computed.runs[it].len > 0 && (it == computed.n - 1 || computed.runs[it + 1].len == 0)), {len: computed.runs[it].len, from: computed.dates[computed.runs[it].start], to: computed.dates[it]}), -it.len), 0, 6), it.to, 'desc')}}",
 		"streakMax": "{{max(concat([1], map(computed.streaks, it.len)))}}",
@@ -816,7 +832,7 @@
 			}
 		},
 		"stat": {
-			"note": "One number of the overview with its caption under it.",
+			"note": "One number of the overview with its caption under it, sharing the row's width with the others.",
 			"params": {
 				"value": "",
 				"caption": "",
@@ -824,7 +840,8 @@
 			},
 			"node": {
 				"id": "panel-stat",
-				"width": 120,
+				"width": 56,
+				"grow": 1,
 				"height": 56,
 				"color": "transparent",
 				"role": "text",
@@ -1105,6 +1122,50 @@
 			{
 				"set": "state.sort",
 				"to": "{{by}}"
+			}
+		],
+		"openClock": [
+			{
+				"note": "Opens the reminder's clock, turning the reminder on"
+			},
+			{
+				"set": "state.edit.reminderOn",
+				"to": true
+			},
+			{
+				"set": "state.timeOpen",
+				"to": true
+			}
+		],
+		"tapReminderDay": [
+			{
+				"note": "A weekday chip of the reminder: toggles the day; while the reminder is off, turns it on with that day"
+			},
+			{
+				"set": "{{'state.edit.days[' + wd + ']'}}",
+				"to": "{{state.edit.reminderOn ? !state.edit.days[wd] : true}}"
+			},
+			{
+				"set": "state.edit.reminderOn",
+				"to": true
+			}
+		],
+		"pickTime": [
+			{
+				"note": "Sets the reminder's hour or minute, keeping the other; a minute closes the clock"
+			},
+			{
+				"set": "state.edit.time",
+				"to": "{{pad(part == 'hour' ? value : computed.reminderHour, 2) + ':' + pad(part == 'minute' ? value : computed.reminderMinute, 2)}}"
+			},
+			{
+				"if": "{{part == 'minute'}}",
+				"then": [
+					{
+						"set": "state.timeOpen",
+						"to": false
+					}
+				]
 			}
 		],
 		"setPeriod": [
@@ -1770,10 +1831,95 @@
 			"icon": "check",
 			"enablement": "{{computed.sel >= 0}}"
 		},
-		"tick": [
+		"startUp": [
+			{
+				"note": "As Streak opens: today's date, and the demo habits the person never changed moved so their last day is today (unless a scenario pinned the day first)"
+			},
+			{
+				"if": "{{state.dayPinned}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
 			{
 				"set": "state.today",
 				"to": "{{today()}}"
+			},
+			{
+				"if": "{{daysBetween(state.demoDay, state.today) > 0}}",
+				"then": [
+					{
+						"forEach": "data.ordered",
+						"as": "sh",
+						"do": [
+							{
+								"if": "{{state.demoStamp > 0 ? sh.updated <= state.demoStamp : sh.created == sh.updated && daysBetween(sh.from, '2026-10-15') >= 0}}",
+								"then": [
+									{
+										"update": "habits",
+										"id": "{{sh.id}}",
+										"fields": {
+											"from": "{{addDays(sh.from, daysBetween(state.demoDay, state.today))}}",
+											"notes": "{{fromEntries(map(entries(sh.notes ?? {}), {key: addDays(it.key, daysBetween(state.demoDay, state.today)), value: it.value}))}}"
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"set": "state.demoDay",
+						"to": "{{state.today}}"
+					},
+					{
+						"set": "state.demoStamp",
+						"to": "{{now()}}"
+					}
+				]
+			}
+		],
+		"pinSeedDay": [
+			{
+				"note": "Moves Streak back to the day its demo habits were written, and keeps it there: a fixed day for screenshots and tests"
+			},
+			{
+				"set": "state.dayPinned",
+				"to": true
+			},
+			{
+				"forEach": "data.ordered",
+				"as": "sh",
+				"do": [
+					{
+						"update": "habits",
+						"id": "{{sh.id}}",
+						"fields": {
+							"from": "{{addDays(sh.from, daysBetween(state.demoDay, '2026-10-15'))}}",
+							"notes": "{{fromEntries(map(entries(sh.notes ?? {}), {key: addDays(it.key, daysBetween(state.demoDay, '2026-10-15')), value: it.value}))}}"
+						}
+					}
+				]
+			},
+			{
+				"set": "state.today",
+				"to": "2026-10-15"
+			},
+			{
+				"set": "state.demoDay",
+				"to": "2026-10-15"
+			}
+		],
+		"tick": [
+			{
+				"if": "{{!state.dayPinned}}",
+				"then": [
+					{
+						"set": "state.today",
+						"to": "{{today()}}"
+					}
+				]
 			},
 			{
 				"if": "{{state.reminders}}",
@@ -2299,6 +2445,7 @@
 															"bottom": 0
 														},
 														"color": "transparent",
+														"radius": 14,
 														"cursor": "hand",
 														"hover": {
 															"color": "@c.hover"
@@ -2795,6 +2942,7 @@
 													"top": 44
 												},
 												"height": 56,
+												"gap": 8,
 												"justify": "space-around",
 												"alignItems": "center",
 												"children": [
@@ -2821,7 +2969,7 @@
 														"id": "stat-overview-stats-2",
 														"use": "stat",
 														"with": {
-															"value": "{{(computed.stats.month >= 0 ? '+' : '') + formatPercent(computed.stats.month)}}",
+															"value": "{{(computed.stats.month < 0 ? '−' : '+') + formatPercent(abs(computed.stats.month))}}",
 															"caption": "{{t('stat.month')}}",
 															"color": "{{computed.col}}"
 														}
@@ -2830,8 +2978,17 @@
 														"id": "stat-overview-stats-3",
 														"use": "stat",
 														"with": {
-															"value": "{{(computed.stats.year >= 0 ? '+' : '') + formatPercent(computed.stats.year)}}",
+															"value": "{{(computed.stats.year < 0 ? '−' : '+') + formatPercent(abs(computed.stats.year))}}",
 															"caption": "{{t('stat.year')}}",
+															"color": "{{computed.col}}"
+														}
+													},
+													{
+														"id": "stat-overview-streak",
+														"use": "stat",
+														"with": {
+															"value": "{{formatNumber(computed.currentStreak, 0, 0)}}",
+															"caption": "{{t('stat.streak')}}",
 															"color": "{{computed.col}}"
 														}
 													},
@@ -3534,9 +3691,9 @@
 																			"left": "50%",
 																			"top": 12
 																		},
-																		"translate": "{{[-(c == 0 ? 2 : 4 + c * 2), -(c == 0 ? 2 : 4 + c * 2)]}}",
-																		"width": "{{c == 0 ? 4 : 8 + c * 4}}",
-																		"height": "{{c == 0 ? 4 : 8 + c * 4}}",
+																		"translate": "{{[-(c == 0 ? 2 : 3 + c * 1.5), -(c == 0 ? 2 : 3 + c * 1.5)]}}",
+																		"width": "{{c == 0 ? 4 : 6 + c * 3}}",
+																		"height": "{{c == 0 ? 4 : 6 + c * 3}}",
 																		"radius": 20,
 																		"color": "{{c == 0 ? '@c.track' : computed.col + ['59', '80', 'a6', 'cc', 'f2'][min(c, 5) - 1]}}"
 																	}
@@ -4442,15 +4599,143 @@
 														}
 													},
 													{
-														"style": "field",
-														"id": "timeField",
-														"bind": "state.edit.time",
-														"label": "{{t('edit.reminder')}}",
-														"width": 72,
+														"type": "label",
+														"id": "timeButton",
+														"text": "{{state.edit.time}}",
+														"icon": "clock-3",
+														"textColor": "{{state.edit.reminderOn ? '@c.text' : '@c.muted'}}",
+														"width": 84,
 														"height": 32,
-														"padding": 6,
-														"disabled": "{{!state.edit.reminderOn}}",
-														"placeholder": "08:00"
+														"padding": 8,
+														"radius": 4,
+														"color": "@c.card",
+														"borderWidth": 1,
+														"borderColor": "{{state.timeOpen ? computed.accent : '@c.divider'}}",
+														"focusable": true,
+														"role": "button",
+														"cursor": "hand",
+														"label": "{{t('edit.time') + ' ' + state.edit.time}}",
+														"tooltip": "{{t('edit.time')}}",
+														"isOpen": "{{state.timeOpen}}",
+														"focused": {
+															"borderWidth": 2,
+															"borderColor": "{{computed.accent}}"
+														},
+														"onClick": "openClock",
+														"children": [
+															{
+																"id": "popover-time-button",
+																"use": "popover",
+																"with": {
+																	"open": "state.timeOpen",
+																	"anchor": "#timeButton",
+																	"title": "{{t('edit.time')}}",
+																	"width": 476,
+																	"height": 172,
+																	"placement": "below"
+																},
+																"children": [
+																	{
+																		"id": "label-t-edit-hour",
+																		"style": "caption",
+																		"type": "label",
+																		"text": "{{t('edit.hour')}}",
+																		"anchors": {
+																			"left": 14,
+																			"top": 38
+																		}
+																	},
+																	{
+																		"type": "grid",
+																		"id": "hours",
+																		"columns": 12,
+																		"gap": 4,
+																		"anchors": {
+																			"left": 12,
+																			"right": 12,
+																			"top": 56
+																		},
+																		"height": 60,
+																		"arrows": "both",
+																		"children": [
+																			{
+																				"type": "label",
+																				"id": "hourChip",
+																				"repeat": {
+																					"for": "hour",
+																					"in": "{{range(24)}}"
+																				},
+																				"style": "{{computed.reminderHour == hour ? 'chipOn' : 'chip'}}",
+																				"text": "{{pad(hour, 2)}}",
+																				"label": "{{t('edit.hour') + ' ' + pad(hour, 2)}}",
+																				"selected": "{{computed.reminderHour == hour}}",
+																				"onClick": {
+																					"run": "pickTime",
+																					"with": {
+																						"part": "hour",
+																						"value": "{{hour}}"
+																					}
+																				},
+																				"width": 34,
+																				"height": 28,
+																				"padding": 0,
+																				"fitText": false,
+																				"align": "center"
+																			}
+																		]
+																	},
+																	{
+																		"id": "label-t-edit-minute",
+																		"style": "caption",
+																		"type": "label",
+																		"text": "{{t('edit.minute')}}",
+																		"anchors": {
+																			"left": 14,
+																			"top": 120
+																		}
+																	},
+																	{
+																		"type": "grid",
+																		"id": "minutes",
+																		"columns": 12,
+																		"gap": 4,
+																		"anchors": {
+																			"left": 12,
+																			"right": 12,
+																			"top": 138
+																		},
+																		"height": 28,
+																		"arrows": "both",
+																		"children": [
+																			{
+																				"type": "label",
+																				"id": "minuteChip",
+																				"repeat": {
+																					"for": "minute",
+																					"in": "{{map(range(12), it * 5)}}"
+																				},
+																				"style": "{{computed.reminderMinute == minute ? 'chipOn' : 'chip'}}",
+																				"text": "{{pad(minute, 2)}}",
+																				"label": "{{t('edit.minute') + ' ' + pad(minute, 2)}}",
+																				"selected": "{{computed.reminderMinute == minute}}",
+																				"onClick": {
+																					"run": "pickTime",
+																					"with": {
+																						"part": "minute",
+																						"value": "{{minute}}"
+																					}
+																				},
+																				"width": 34,
+																				"height": 28,
+																				"padding": 0,
+																				"fitText": false,
+																				"align": "center"
+																			}
+																		]
+																	}
+																]
+															}
+														]
 													},
 													{
 														"id": "dayChip",
@@ -4463,9 +4748,11 @@
 														"padding": 6,
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
 														"selected": "{{state.edit.days[wd]}}",
-														"disabled": "{{!state.edit.reminderOn}}",
 														"onClick": {
-															"toggle": "{{'state.edit.days[' + wd + ']'}}"
+															"run": "tapReminderDay",
+															"with": {
+																"wd": "{{wd}}"
+															}
 														}
 													}
 												]

@@ -40,6 +40,15 @@ struct Built {
 		window->render();
 	}
 
+	/// @brief Presses a key in the focused panel, as the platform delivers it.
+	/// @param key The key.
+	/// @param mods The modifier keys held (GLFW_MOD_* bits).
+	void press(affresco::Key key, int mods = 0) {
+		window->routeKey({key, 0, affresco::Action::Press, affresco::Mods{mods}});
+		window->routeKey({key, 0, affresco::Action::Release, affresco::Mods{mods}});
+		window->render();
+	}
+
 	/// @brief Reads a state key.
 	/// @param key Its name.
 	/// @return Its value.
@@ -83,6 +92,29 @@ TEST_CASE("form: maxLength and accept limit what typing adds") {
 	Built built(fieldScreen(R"(, "maxLength": 4, "accept": "digits")"));
 	built.type("1a2b3c4d5");
 	CHECK(built.state("text") == "1234");
+}
+
+TEST_CASE("form: Cmd+A selects a field's text: typing replaces it, Backspace clears it, a caret key leaves it") {
+	constexpr int super = 0x0008;
+	Built built(fieldScreen(""));
+	built.type("draft");
+	auto* field = dynamic_cast<affresco::TextArea*>(built.screen.find("field"));
+	REQUIRE(field);
+	built.press(affresco::Key::A, super);
+	CHECK(field->allSelected());
+	built.press(affresco::Key::N); // a letter's key comes before its character, and keeps the selection
+	built.type("new");
+	CHECK(built.state("text") == "new");
+	CHECK_FALSE(field->allSelected());
+	built.press(affresco::Key::A, super);
+	built.press(affresco::Key::Backspace);
+	CHECK(built.state("text") == "");
+	built.type("kept");
+	built.press(affresco::Key::A, super);
+	built.press(affresco::Key::Left);
+	CHECK_FALSE(field->allSelected());
+	built.type("!");
+	CHECK(built.state("text") == "kept!");
 }
 
 TEST_CASE("form: a field that drops its keys goes back to the defaults") {

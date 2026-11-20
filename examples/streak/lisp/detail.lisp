@@ -168,20 +168,23 @@
        :icon archive
        :height 20)))
 
-(defview overview-stats "The overview: the score now, this month's and this year's change, and the total." []
-  `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :justify space-around :alignItems center
+(defview overview-stats "The overview: the score now, this month's and this year's change, the current streak and the
+  total." []
+  `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :gap 8 :justify space-around :alignItems center
      (node#ring-overview-stats :use ring
        :with {:value ~computed.stats.score :color ~computed.col :size 48 :stroke 2.5})
      (node#stat-overview-stats :use stat
        :with {:value ~(formatPercent computed.stats.score) :caption ~(t "stat.score") :color ~computed.col})
      (node#stat-overview-stats-2 :use stat
-       :with {:value ~(+ (if (>= computed.stats.month 0) "+" "") (formatPercent computed.stats.month))
+       :with {:value ~(str (if (neg? computed.stats.month) "−" "+") (formatPercent (abs computed.stats.month)))
               :caption ~(t "stat.month")
               :color ~computed.col})
      (node#stat-overview-stats-3 :use stat
-       :with {:value ~(+ (if (>= computed.stats.year 0) "+" "") (formatPercent computed.stats.year))
+       :with {:value ~(str (if (neg? computed.stats.year) "−" "+") (formatPercent (abs computed.stats.year)))
               :caption ~(t "stat.year")
               :color ~computed.col})
+     (node#stat-overview-streak :use stat
+       :with {:value ~(formatNumber computed.currentStreak 0 0) :caption ~(t "stat.streak") :color ~computed.col})
      (node#stat-overview-stats-4 :use stat
        :with {:value ~(formatNumber computed.stats.total 0 1) :caption ~(t "stat.total") :color ~computed.col})))
 
@@ -389,9 +392,9 @@
      :tooltip ~(text c)
      (node#panel-freq-dot
        :anchors {:left "50%" :top 12}
-       :translate ~[(- (if (zero? c) 2 (+ 4 (* c 2)))) (- (if (zero? c) 2 (+ 4 (* c 2))))]
-       :width ~(if (zero? c) 4 (+ 8 (* c 4)))
-       :height ~(if (zero? c) 4 (+ 8 (* c 4)))
+       :translate ~[(- (if (zero? c) 2 (+ 3 (* c 1.5)))) (- (if (zero? c) 2 (+ 3 (* c 1.5))))]
+       :width ~(if (zero? c) 4 (+ 6 (* c 3)))
+       :height ~(if (zero? c) 4 (+ 6 (* c 3)))
        :radius 20
        :color ~(if (zero? c) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (dec (min c 5))))))))
 

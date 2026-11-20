@@ -30,7 +30,8 @@ Laid out for the desktop: the list and the selected habit's detail side by side
   box checks it (done, skipped, cleared), a measurable box asks for the number, Shift+F10 opens the day's popup with a
   note. Sort by hand (drag to reorder), name, colour, score or status; hide completed, show archived.
 - **Habits**: yes or no, or measurable with a unit and a target at least or at most; daily, every N days, N a week or
-  N a month; a reminder at a time on chosen days, shown as a `toast` by an `every` timer.
+  N a month; a reminder at a time picked on a clock (an hour, then a minute in fives, in a `popover`) on chosen days,
+  shown as a `toast` by an `every` timer; opening the clock or tapping a day turns the reminder on.
 - **The detail**: at a glance, target, a strength chart and progress bars with a period, a calendar heatmap, longest runs,
   frequency dots by weekday and notes, all `computed` from the habit's entries.
 - **The edit dialog**: the built-in `dialog` with name, question, a 20-colour picker in a `popover`, frequency,
@@ -46,7 +47,11 @@ Laid out for the desktop: the list and the selected habit's detail side by side
   and a toast says so. The scenario `an-agent-uses-the-habits` and the policy cases check them.
 - **Themes and languages**: English, Español and Français through `strings` and `t()`, the body set to `dir: auto`.
 - **Layout**: one pane at a time below 960 window units, the list and the detail side by side above.
-- **Scenarios**: 29, one per workflow above.
+- **Demo habits that stay alive**: the seed habits were written up to 2026-10-15; as Streak opens (`onLoad`), those the
+  person never changed move so their last day is today, so the list, heatmap, streaks and charts never look stale. A
+  habit the person changed stays put. The scenarios and the rendering check run the `pin-seed-day` action first, which
+  moves them back to 2026-10-15 and keeps the day there, so their frames are the same every day.
+- **Scenarios**: 30, one per workflow above.
 
 ## How it holds together
 

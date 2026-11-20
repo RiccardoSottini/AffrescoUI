@@ -22,7 +22,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Hide completed, show archived | done | |
 | Drag to reorder | done | |
 | An empty list's message | done | |
-| Selecting several habits: a right click (or Shift+F10) on a row picks it, clicks add more; a bar archives or deletes them, Escape leaves | done | the bar has no colour change for the picked habits |
+| Selecting several habits: a right click (or Shift+F10) on a row picks it (tinted and outlined in its colour), clicks add more; a dark bar archives or deletes them, Escape leaves | done | |
 
 ## Habit types and frequencies
 
@@ -39,7 +39,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 |---|---|---|
 | The detail bar with a stripe and title in the habit's colour, back, edit, more | done | |
 | Question, frequency and reminder line | done | |
-| At a glance: strength ring, strength, month and year change, total | done | |
+| At a glance: strength ring, strength, month and year change, the current streak, total (sharing the card's width, so nothing is cut in a narrow window) | done | |
 | Target card for measurable habits (today, week, month, quarter, year) | done | |
 | Score chart with a period (day to year) | done | |
 | History bars with a period | done | |
@@ -47,6 +47,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Longest runs as bars | done | |
 | Frequency: dots per weekday and month | done | |
 | Notes of past days | done | |
+| Demo habits that end on the day the app opens: the heatmap, streaks and charts are never stale (habits the person changed stay put) | done | |
 
 ## Edit dialog
 
@@ -55,10 +56,10 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Name, question, notes | done | |
 | A 20-colour picker | done | |
 | Frequency and target | done | |
-| Reminder with a time and weekday chips | done | the time is a text field, not a clock picker |
+| Reminder with a time picked on a clock (hours, then minutes in fives) and weekday chips | done | |
 | Archive, delete (asks first), export CSV | done | CSV goes to the clipboard: a document can't write files |
 | A name is required | done | |
-| Cmd+A in a field | partial | P2: library — select-all and caret movement in the text field (general, every app gains) |
+| Cmd+A in a field: selects the text, typing replaces it, Backspace clears it, Cmd+C and Cmd+X copy and cut | done | the caret doesn't move inside the text yet (library) |
 
 ## Settings
 
@@ -85,6 +86,6 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 ## Counts
 
-- done: 44
-- partial: 1
+- done: 46
+- partial: 0
 - missing: 1
