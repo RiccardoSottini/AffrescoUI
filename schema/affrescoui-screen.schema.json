@@ -3416,6 +3416,18 @@
 						],
 						"description": "path: the inside as a gradient, { kind, angle, stops }"
 					},
+					"feather": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"stroke": {
 						"$ref": "#/$defs/v2/color"
 					},
