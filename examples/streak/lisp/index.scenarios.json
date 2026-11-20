@@ -773,6 +773,71 @@
 			]
 		},
 		{
+			"name": "the-clock-turns-the-reminder-on",
+			"note": "On a new habit the reminder is off; opening its clock or tapping a day turns it on",
+			"steps": [
+				{
+					"action": "pin-seed-day",
+					"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+				},
+				{
+					"key": "mod+n"
+				},
+				{
+					"expect": {
+						"state": "edit.reminderOn",
+						"is": false
+					}
+				},
+				{
+					"click": "#timeButton"
+				},
+				{
+					"expect": {
+						"state": "edit.reminderOn",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "radio",
+						"name": "Hour 21"
+					}
+				},
+				{
+					"click": {
+						"role": "radio",
+						"name": "Minute 15"
+					}
+				},
+				{
+					"expect": {
+						"state": "edit.time",
+						"is": "21:15"
+					}
+				},
+				{
+					"click": "#reminderToggle"
+				},
+				{
+					"expect": {
+						"state": "edit.reminderOn",
+						"is": false
+					}
+				},
+				{
+					"click": "#dayChip",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"state": "edit.reminderOn",
+						"is": true
+					}
+				}
+			]
+		},
+		{
 			"name": "archive-and-undo",
 			"note": "Archive hides the habit and offers to undo",
 			"steps": [

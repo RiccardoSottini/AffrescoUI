@@ -1121,6 +1121,32 @@
 				"to": "{{by}}"
 			}
 		],
+		"openClock": [
+			{
+				"note": "Opens the reminder's clock, turning the reminder on"
+			},
+			{
+				"set": "state.edit.reminderOn",
+				"to": true
+			},
+			{
+				"set": "state.timeOpen",
+				"to": true
+			}
+		],
+		"tapReminderDay": [
+			{
+				"note": "A weekday chip of the reminder: toggles the day; while the reminder is off, turns it on with that day"
+			},
+			{
+				"set": "{{'state.edit.days[' + wd + ']'}}",
+				"to": "{{state.edit.reminderOn ? !state.edit.days[wd] : true}}"
+			},
+			{
+				"set": "state.edit.reminderOn",
+				"to": true
+			}
+		],
 		"pickTime": [
 			{
 				"note": "Sets the reminder's hour or minute, keeping the other; a minute closes the clock"
@@ -4577,15 +4603,11 @@
 														"label": "{{t('edit.time') + ' ' + state.edit.time}}",
 														"tooltip": "{{t('edit.time')}}",
 														"isOpen": "{{state.timeOpen}}",
-														"disabled": "{{!state.edit.reminderOn}}",
 														"focused": {
 															"borderWidth": 2,
 															"borderColor": "{{computed.accent}}"
 														},
-														"onClick": {
-															"set": "state.timeOpen",
-															"to": true
-														},
+														"onClick": "openClock",
 														"children": [
 															{
 																"id": "popover-time-button",
@@ -4712,9 +4734,11 @@
 														"padding": 6,
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
 														"selected": "{{state.edit.days[wd]}}",
-														"disabled": "{{!state.edit.reminderOn}}",
 														"onClick": {
-															"toggle": "{{'state.edit.days[' + wd + ']'}}"
+															"run": "tapReminderDay",
+															"with": {
+																"wd": "{{wd}}"
+															}
 														}
 													}
 												]

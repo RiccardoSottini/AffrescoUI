@@ -548,6 +548,18 @@
 (defn click-row "A row clicked: picked or let go while picking, else shown in the detail." [h id]
   (if (truthy? computed.picking) (toggle-pick id) (select h)))
 
+(defn open-clock "Opens the reminder's clock, turning the reminder on." []
+  (set "state.edit.reminderOn" true)
+  (set "state.timeOpen" true))
+
+(defn tap-reminder-day "A weekday chip of the reminder: toggles the day; while the reminder is off, turns it on with
+  that day." [wd]
+  (let [path (str "state.edit.days[" wd "]")]
+    (if state.edit.reminderOn
+      (set path (not (get state.edit.days wd)))
+      (do (set "state.edit.reminderOn" true)
+          (set path true)))))
+
 (defn pick-time "Sets the reminder's hour or minute, keeping the other; a minute closes the clock." [part value]
   (let [hour (if (= part :hour) value computed.reminderHour)
         minute (if (= part :minute) value computed.reminderMinute)]

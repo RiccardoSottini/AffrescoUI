@@ -317,9 +317,8 @@
      :label ~(str (t "edit.time") " " state.edit.time)
      :tooltip ~(t "edit.time")
      :isOpen ~state.timeOpen
-     :disabled ~(not state.edit.reminderOn)
      :focused {:borderWidth 2 :borderColor ~computed.accent}
-     :onClick {:set state.timeOpen :to true}
+     :onClick open-clock
      (node#popover-time-button :use popover
        :with {:open state.timeOpen
               :anchor "#timeButton"
@@ -348,6 +347,5 @@
           :padding 6
           :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
           :selected ~(get state.edit.days wd)
-          :disabled ~(not state.edit.reminderOn)
-          :onClick {:toggle ~(str "state.edit.days[" wd "]")}))))
+          :onClick ~(handler tap-reminder-day wd)))))
 
