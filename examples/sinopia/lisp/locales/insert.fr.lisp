@@ -4,4 +4,6 @@
                 :chart.pie "Secteurs"
                 :chart.series "Série {n}"
                 :chart.category "Catégorie {n}"
-                :chart.insertTip "Insérer un graphique : histogramme, barres, courbes ou secteurs, à partir d'un tableau de données"}}}
+                :chart.insertTip "Insérer un graphique : histogramme, barres, courbes ou secteurs, à partir d'un tableau de données"
+                :pane.renameTip "Double-cliquez pour renommer"
+                :pane.renameObject "Nom de {name}"}}}

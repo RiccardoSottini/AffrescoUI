@@ -4,4 +4,6 @@
                 :chart.pie "Circular"
                 :chart.series "Serie {n}"
                 :chart.category "Categoría {n}"
-                :chart.insertTip "Insertar un gráfico: columnas, barras, líneas o circular, a partir de una tabla de datos"}}}
+                :chart.insertTip "Insertar un gráfico: columnas, barras, líneas o circular, a partir de una tabla de datos"
+                :pane.renameTip "Doble clic para cambiar el nombre"
+                :pane.renameObject "Nombre de {name}"}}}

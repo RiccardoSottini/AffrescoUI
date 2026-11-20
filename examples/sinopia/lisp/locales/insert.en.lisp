@@ -4,4 +4,6 @@
                 :chart.pie "Pie"
                 :chart.series "Series {n}"
                 :chart.category "Category {n}"
-                :chart.insertTip "Insert a chart: columns, bars, a line or a pie, from a table of data"}}}
+                :chart.insertTip "Insert a chart: columns, bars, a line or a pie, from a table of data"
+                :pane.renameTip "Double-click to rename"
+                :pane.renameObject "Name of {name}"}}}

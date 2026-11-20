@@ -64,7 +64,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Group and ungroup | missing | done | group-and-ungroup (Arrange, the context menu, Ctrl+G and Ctrl+Shift+G; a click on one member selects the group) |
 | Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | done | format-size-and-rotation, group-and-ungroup (Arrange: rotate 90° either way, flip either way; the canvas's handle turns one object) |
-| Arrange | Selection pane (names, show and hide) | missing | partial | selection-pane (Home > Select > Selection Pane; the names are given, not renamed) |
+| Arrange | Selection pane (names, show and hide) | missing | done | selection-pane (Home > Select > Selection Pane), rename-in-selection-pane (a double click renames) |
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | done | insert-a-picture (a PNG or JPEG, at most 640 by 400 in its proportions, kept in the deck so the saved file carries it) |
 | Content | Crop a picture | missing | missing | |
@@ -166,7 +166,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
 | P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
-| P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |

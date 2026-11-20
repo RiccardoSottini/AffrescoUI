@@ -1743,6 +1743,93 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sinopia-rename-in-selection-pane",
+			"note": "A double click on a name in the Selection Pane edits it: Enter (or a click elsewhere) keeps the new name, Escape leaves the old one, and undo takes a rename back",
+			"steps": [
+				{
+					"click": "#thumb-s2-row"
+				},
+				{
+					"click": "#b-select"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Selection Pane"
+					}
+				},
+				{
+					"wait": 100
+				},
+				{
+					"click": "#selection-o4-name"
+				},
+				{
+					"click": "#selection-o4-name"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "naming.id",
+						"is": "o4"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "Agenda"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[1].name",
+						"is": "Agenda"
+					}
+				},
+				{
+					"expect": {
+						"node": "#selection-o4-name",
+						"text": "  Agenda"
+					}
+				},
+				{
+					"click": "#selection-o3-name"
+				},
+				{
+					"click": "#selection-o3-name"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"type": "X"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#selection-o3-name",
+						"text": "  Title 1"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"node": "#selection-o4-name",
+						"text": "  Content 2"
+					}
+				}
+			]
 		}
 	]
 }
