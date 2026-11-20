@@ -329,7 +329,8 @@ TEST_CASE("update frame: the state file is written when a persisted place change
 	window->render();
 	REQUIRE(std::filesystem::exists(stateFile));
 	CHECK(json::parse(readFile(stateFile)) == json{{"/dirty", true}});
-	std::filesystem::remove_all(folder);
+	std::error_code ignored; // Windows keeps a file the screen still has open: the next run empties the folder first
+	std::filesystem::remove_all(folder, ignored);
 }
 
 TEST_CASE("update frame: the keybindings list changes when a panel's keys change, even to as many keys") {

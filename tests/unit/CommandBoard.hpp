@@ -94,9 +94,16 @@ constexpr const char* boardLisp = R"lisp(
   (label#title :text ~(str (count state.cards) " cards")))
 )lisp";
 
-/// @brief A folder of the test's own, emptied first and removed after.
+/// @brief A folder of the test's own, emptied first and removed after. Each board has its own: on Windows a file the
+/// last board's app had open can keep its folder for a moment after it is gone.
 struct Folder {
-	std::filesystem::path path = std::filesystem::temp_directory_path() / "affrescoui-command-e2e-test"; ///< It.
+	/// @brief The next board's number. @return It.
+	static int next() {
+		static int boards = 0;
+		return ++boards;
+	}
+	std::filesystem::path path =
+	    std::filesystem::temp_directory_path() / ("affrescoui-command-e2e-test-" + std::to_string(next())); ///< It.
 	/// @brief Makes it, with "work" inside.
 	Folder() {
 		std::filesystem::remove_all(path);
