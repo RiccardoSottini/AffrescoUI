@@ -21,6 +21,7 @@
             sinopia.parts.tabs
             sinopia.parts.show
             sinopia.parts.motion
+            sinopia.parts.ink
             sinopia.parts.views
             sinopia.parts.menus
             sinopia.parts.review

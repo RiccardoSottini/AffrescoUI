@@ -130,7 +130,7 @@
      :y 0
      :width ~box.w
      :height ~box.h
-     :d ~(or-else o.d "")
+     :d ~(if edit (replayed-path o) (or-else o.d ""))
      :viewBox ~(str "0 0 " (or-else o.vw box.w) " " (or-else o.vh box.h))
      :fit fill
      :stroke ~(or-else o.color "#1f2933")

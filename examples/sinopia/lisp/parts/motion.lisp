@@ -19,7 +19,7 @@
    :laser nil}
   "The presenter's tool (pen, laser or nil), the stroke being drawn, where the press was, and the laser's point.")
 
-(defcomputed showDissolve "Whether the transition dissolves the slide's objects: a glide, or a fade that fades smoothly."
+(defcomputed showDissolve "Whether the transition dissolves the slide's objects: a glide, or a smooth fade."
   (or (= computed.showKind :glide)
       (and (= computed.showKind :fade) (= computed.showSlide.transition.option "smoothly"))))
 
@@ -50,7 +50,8 @@
 ;;; Matching and moving
 
 (defn same-object?
-  "Whether two objects of two slides are one, for a glide: by name, else the same kind, text and shape, moved or resized."
+  "Whether two objects of two slides are one, for a glide: by name, else the same kind, text and shape, moved or
+  resized."
   [a b]
   (if (or (some? (:name a)) (some? (:name b)))
     (= (:name a) (:name b))
@@ -87,7 +88,8 @@
         dy (- (+ g.y (/ g.h 2)) box.y (/ box.h 2))]
     [(* away dx) (* away dy)]))
 
-(defn glide-scale "An object's scale from its size there to its size here, the part `moved` of the way done." [g box moved]
+(defn glide-scale "An object's scale from its size there to its size here, the part `moved` of the way done."
+  [g box moved]
   (let [away (- 1 moved)
         sx (/ g.w (max box.w 1))
         sy (/ g.h (max box.h 1))]

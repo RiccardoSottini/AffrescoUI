@@ -130,13 +130,7 @@
          :with {:icon brush-cleaning :title ~(t "pane.clearInk") :width 46 :enabled ~(pos? computed.slideInk)}
          :tooltip ~(t "pane.deleteEveryStrokeOnThis")
          :onClick clearInk))
-     (node#g-ink-convert :use rbGroup :with {:title ~(t "pane.convert")}
-       (node#b-ink-shape :use rbBig
-         :with {:icon shapes :title ~(t "pane.inkToShape") :width 46 :enabled false}
-         :tooltip ~(t "pane.turningInkIntoShapesIsn"))
-       (node#b-ink-replay :use rbBig
-         :with {:icon history :title ~(t "pane.inkReplay") :width 46 :enabled false}
-         :tooltip ~(t "pane.replayingInkIsnTAvailable")))))
+     ~(g-ink-convert)))
 
 (defcomponent inkLayer
   "Over the slide while a pen is chosen: a press, a drag and a release draw, or erase, in slide points."
@@ -611,7 +605,7 @@
   (when (and (not= state.inkTool :eraser) (> (count state.stroke) 1))
     (let [xs (map first state.stroke)
           ys (map second state.stroke)]
-      (add-ink (apply min xs) (apply min ys) (apply max xs) (apply max ys))))
+      (add-stroke (apply min xs) (apply min ys) (apply max xs) (apply max ys))))
   (set "state.stroke" []))
 
 (defn add-ink

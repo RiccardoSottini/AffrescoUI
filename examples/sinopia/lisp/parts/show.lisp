@@ -45,7 +45,7 @@
 
 (defcomputed showPhIds "Their names." (map :ph computed.showPh))
 
-(defcomputed showUnbuilt "The objects whose builds haven't come yet, or have gone (an emphasis leaves its object shown)."
+(defcomputed showUnbuilt "The objects whose builds haven't come yet, or have gone (an emphasis keeps its object)."
   (->> computed.showTimings
        (filter #(case (:kind %)
                   :exit (< (:step %) state.show.step)
