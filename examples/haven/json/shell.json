@@ -138,10 +138,10 @@
 		},
 
 		"popMenu": {
-			"note": "An overflow menu open at the state path: a raised, rounded list of items (title, icon, run and its with, or a separator) under its button",
-			"params": { "open": "", "items": [], "width": 200 },
+			"note": "An overflow menu open at the state path: a raised, rounded list of items (title, icon, run and its with, or a separator) under its button, lined up with its end (below-end) or its start (below)",
+			"params": { "open": "", "items": [], "width": 200, "placement": "below-end" },
 			"node": {
-				"overlay": { "placement": "below-end", "open": "{{open}}", "dismiss": "outside", "modal": true },
+				"overlay": { "placement": "{{placement}}", "open": "{{open}}", "dismiss": "outside", "modal": true },
 				"width": "{{width}}", "height": "{{16 + sum(items, it.separator == true ? 17 : 48)}}", "radius": 8,
 				"color": "@card", "shadow": { "y": 4, "blur": 16, "color": "#00000047" },
 				"children": [{ "type": "column", "fill": 8, "color": "transparent", "role": "menu", "arrows": "vertical", "children": [{

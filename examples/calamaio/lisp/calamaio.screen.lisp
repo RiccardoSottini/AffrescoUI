@@ -27,8 +27,12 @@
             calamaio.buffers
             calamaio.files
             calamaio.listings
+            calamaio.dired
             calamaio.help
+            calamaio.macros
+            calamaio.registers
             calamaio.options
+            calamaio.customize
             calamaio.guides
             calamaio.loop
             calamaio.keys

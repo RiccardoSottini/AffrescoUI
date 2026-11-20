@@ -161,4 +161,12 @@ struct Report {
 [[nodiscard]] Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                                        const std::filesystem::path& nowhere);
 
+/// @brief Builds a loaded screen in a headless window (no display, no OpenGL) at its "window" size, and lays out its
+/// first frame, as a host shows it: what only building rejects (a property a node's type doesn't have, a layout
+/// property on the root) throws. Other apps' types build as plain panels; no channel is started. `affrescoui check`
+/// runs it after loading.
+/// @param screen The screen, which is built and then dropped.
+/// @throws std::exception What building rejected.
+void buildHeadless(Screen screen);
+
 } // namespace affresco::automation

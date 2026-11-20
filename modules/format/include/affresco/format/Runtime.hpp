@@ -139,7 +139,8 @@ public:
 
 	/* Building */
 
-	/// @brief Creates a window from the "window" section, then builds the document into it.
+	/// @brief Creates a window from the "window" section, then builds the document into it. The image files the screen
+	/// asks for are decoded before it returns (within a short bound), so its first frame shows them.
 	/// @param app The application that owns the window.
 	/// @return The window.
 	/// @throws DocumentError If the document can't be built.

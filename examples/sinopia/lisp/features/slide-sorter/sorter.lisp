@@ -1,7 +1,7 @@
 ;;; sorter.lisp --- the slide sorter: thumbnails of an ordered list of pages, drag to reorder, click to select
 ;;;
 ;;; Written once, for Sinopia's slides, and installed into any app that offers its needs (feature.lisp): it reads
-;;; the app only as app.pages and app.current, and changes it only through the actions app.select, app.reorder and
+;;; the app only as app.pages, app.current and app.title, and changes it only through the actions app.select, app.reorder and
 ;;; app.duplicate. Its own state is the page picked last, the selection of an app that keeps none.
 
 ;;; Its state
@@ -42,11 +42,11 @@
 
 ; style: keep, a feature's names start with its id, as its composition requires
 (defview slideSorter-header
-  "The strip's header: how many pages there are, and the button that duplicates the selected one."
+  "The strip's header: what the app calls it (Pages unless it says) and how many pages there are, and the button that duplicates the selected one."
   []
   `(row#slideSorter-header :width "100%" :height 24 :gap 6 :alignItems center
      (label#slideSorter-title :grow 1 :height 24 :padding 6 :textColor @text
-       :text ~(str "Pages (" (count app.pages) ")"))
+       :text ~(str (or-else app.title "Pages") " (" (count app.pages) ")"))
      (label#slideSorter-duplicate :width 24 :height 24 :icon copy :cursor hand :tooltip "Duplicate page"
        :textColor @text :onClick ~(handler slideSorter.duplicate (slideSorter-selected app.current)))))
 

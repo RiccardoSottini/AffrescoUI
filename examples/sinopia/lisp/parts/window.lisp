@@ -89,7 +89,7 @@
    :zoom computed.fitZoom})
 
 (defcomputed view "The canvas's view: the board's, with the fitted camera while the slide is fitted."
-  (if state.fit (merge state.board {:camera computed.fitCamera}) state.board))
+  (merge (if state.fit (merge state.board {:camera computed.fitCamera}) state.board) {:guides computed.guidesShown}))
 
 (defcomputed zoom "The canvas's zoom." computed.view.camera.zoom)
 
@@ -108,7 +108,9 @@
   (set "state.fit" false))
 
 (defn view-changed "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
-  (set "state.board" view)
+  (guides-dragged view)
+  (let [selection (with-groups (or-else view.selection []))]
+    (set "state.board" (assoc view :selection selection)))
   (when (and (some? state.editing) (not (contains (or-else view.selection []) state.editing)))
     (set "state.editing" nil))
   (when (or (> (abs (- view.camera.zoom computed.fitCamera.zoom)) 0.0001)
@@ -183,7 +185,7 @@
      ~(doc-title)
      (node#command-divider :width 1 :height 20 :color @rbLine)
      (node#command-pad-2 :width 6 :height 1 :color transparent)
-     ~(repeat [tab computed.tabs :key tab.id]
+     ~(repeat [tab (concat computed.tabs computed.contextTabs) :key tab.id]
        (tab-title tab))
      (node#command-gap :grow 1 :height 1 :color transparent)
      ~(search)
@@ -215,7 +217,8 @@
   `(label :id ~(str "tab-" tab.id "-label")
      :style ~(if (and (= state.tab tab.id) state.ribbon) "tabOn" "tab")
      :selected ~(= state.tab tab.id)
-     :runs [{:text ~tab.title :size 12}]
+     :textColor ~(cond (and (= state.tab tab.id) state.ribbon) "@onBrand" tab.contextual "@brandLine" :else "@rbInk")
+     :runs [{:text ~tab.title :size 12 :bold ~(or-else tab.contextual false)}]
      :onClick ~(handler show-tab tab.id)))
 
 (defview search "The search box: commands whose names hold its text, and a search of the slides." []
@@ -280,7 +283,8 @@
        (node :use tabInk :when ~(= state.tab "draw"))
        (node :use tabRecord :when ~(= state.tab "record"))
        (node :use tabCheck :when ~(= state.tab "review"))
-       (node :use tabHelp :when ~(= state.tab "help")))))
+       (node :use tabHelp :when ~(= state.tab "help"))
+       (node :use tabShapeFormat :when ~(= state.tab "shapeFormat")))))
 
 ;;; The work area
 
@@ -291,6 +295,7 @@
      (node#thumbs-line :when ~(= state.view "normal") :width 1 :color @barLine)
      (node :use outlineView :when ~(= state.view "outline"))
      (node :use sorterView :when ~(= state.view "sorter"))
+     (node :use notesPageView :when ~(= state.view "notesPage"))
      ~(centre)
      (node :use formatPane :when ~(and state.formatPane (not= state.view "sorter")))
      (node :use sidePane :when ~(and (not state.formatPane) (some? state.sidePane) (not= state.view "sorter")))))
@@ -401,7 +406,7 @@
        :fitText true
        :height 16
        :textColor ~(if (= i state.current) "@brandLine" "@rbMuted")
-       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 11 :bold ~(= i state.current) :strike ~(or-else s.hidden false)}])
      (label :id ~(str "thumb-" s.id "-star")
        :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :width 14 :height 16 :align center :textColor @rbMuted
@@ -416,7 +421,7 @@
 ;;; The slide and its notes
 
 (defview centre "The slide on its canvas, the ink over it, and the speaker notes under it." []
-  `(column#centre :when ~(not= state.view "sorter") :grow 1 :color @work :alignItems stretch
+  `(column#centre :when ~(not (#{"sorter" "notesPage"} state.view)) :grow 1 :color @work :alignItems stretch
      (node#board-area :grow 1 :color @work
        ~(board)
        (node :use inkLayer :when ~(and (some? state.inkTool) (not state.show.on))))
@@ -442,11 +447,12 @@
      :onTransform ~(handler place-objects event.items)
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
        (node :use slideBackground :with {:slide ~computed.slide :prefix e-}))
+     ~(grid-lines)
      ~(repeat [o computed.objects :key o.id]
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}
           :onContextMenu ~(handler object-menu o.id event.x event.y)
-          :onDoubleClick ~(handler edit-text o.id)))))
+          :onDoubleClick ~(handler edit-object o.id event.left event.top event.width event.height)))))
 
 (defview notes-pane "The speaker notes of the slide shown, edited in place." []
   `(node#notes-pane :height 76 :color @notes :when ~state.notes

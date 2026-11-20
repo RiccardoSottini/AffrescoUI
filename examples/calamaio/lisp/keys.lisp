@@ -20,6 +20,7 @@
 (defkey "alt+shift+period" end-of-buffer)
 (defkey "ctrl+v" scroll-up-command)
 (defkey "alt+v" scroll-down-command)
+(defkey "ctrl+l" recenter-top-bottom)
 
 ;;; The mark, the argument and C-g
 
@@ -51,6 +52,21 @@
 (defkey "alt+semicolon" comment-line)
 (defkey "ctrl+t" transpose-chars)
 (defkey "ctrl+o" open-line)
+
+;;; Keyboard macros
+
+(defkey "f3" kmacro-start-macro)
+(defkey "f4" kmacro-end-or-call-macro)
+
+;;; Registers and rectangles
+
+(defkey "ctrl+x r s" copy-to-register)
+(defkey "ctrl+x r i" insert-register)
+(defkey "ctrl+x r space" point-to-register)
+(defkey "ctrl+x r j" jump-to-register)
+(defkey "ctrl+x r k" kill-rectangle)
+(defkey "ctrl+x r y" yank-rectangle)
+(defkey "ctrl+x r t" string-rectangle)
 
 ;;; The kill ring
 

@@ -230,9 +230,8 @@
 								"children": [
 									{ "type": "label", "icon": "{{step.icon}}", "text": "", "textColor": "@accent", "anchors": { "left": 16, "top": 0, "bottom": 0 }, "width": 24,
 											"align": "center" },
-									{ "type": "label", "text": "{{t('rule.' + step.key)}}", "textColor": "@text", "anchors": { "left": 48, "right": 96, "top": 0, "bottom": 0 },
+									{ "type": "label", "text": "{{t('rule.' + step.key)}}", "textColor": "@text", "anchors": { "left": 48, "right": 56, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
-									{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 56, "top": 12 }, "width": 24, "height": 24, "align": "center" },
 									{ "id": "autoStepMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "hover": { "color": "@raised" }, "textColor": "@muted",
 										"anchors": { "right": 8, "top": 4 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}: {{t('rule.' + step.key)}}", "tooltip": "{{t('auto.more')}}",
 										"isOpen": "{{state.stepMenu['s' + s] == true}}", "onClick": { "toggle": "{{'state.stepMenu.s' + s}}" },

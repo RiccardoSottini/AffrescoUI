@@ -94,7 +94,7 @@
 	"computed": {
 		"storeView": "{{state.storeQuery != '' ? 'results' : computed.here.page}}",
 		"price": "{{map(data.games, round(it.price * (100 - it.discount)) / 100)}}",
-		"storeGames": "{{filter(data.games, !it.local)}}",
+		"storeGames": "{{filter(data.games, !it.local && !(state.labsHideOwned && it.owned))}}",
 		"featured": "{{filter(data.games, contains(['aurora', 'glasswing', 'clockwork', 'rivermill', 'volt'], it.id))}}",
 		"feature": "{{computed.featured[state.storeFeature]}}",
 		"offers": "{{slice(sort(filter(computed.storeGames, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
@@ -106,7 +106,7 @@
 		"wishGames": "{{filter(data.games, contains(state.wishlist, it.id) && (state.wishQuery == '' || contains(lower(it.title), lower(state.wishQuery)) || some(it.tags, contains(lower(it), lower(state.wishQuery)))))}}",
 		"wishSorted": "{{state.wishSort == 'name' ? sort(computed.wishGames, it.title) : state.wishSort == 'price' ? sort(computed.wishGames, it.price * (100 - it.discount)) : state.wishSort == 'discount' ? sort(computed.wishGames, it.discount, 'desc') : sort(computed.wishGames, indexOf(state.wishlist, it.id))}}",
 		"storeWidth": "{{min(940, window.width - 32)}}",
-		"storeHeight": "{{86 + (computed.storeView == 'results' ? 110 + 74 * max(1, length(computed.results)) : computed.storeView == 'app' ? 1670 : computed.storeView == 'cart' ? 140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160) : computed.storeView == 'wishlist' ? 160 + max(1, length(computed.wishSorted)) * 128 : 1960)}}"
+		"storeHeight": "{{86 + (computed.storeView == 'results' ? 110 + 74 * max(1, length(computed.results)) : computed.storeView == 'app' ? 1670 : computed.storeView == 'cart' ? 140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160) : computed.storeView == 'wishlist' ? 160 + max(1, length(computed.wishSorted)) * 128 : computed.storeView == 'points' ? 150 + 254 * computed.rewardRows : computed.storeView == 'labs' ? 70 + 14 + (state.labsQueue ? 420 : 124) + 14 + 104 : 1960)}}"
 	},
 	"actions": {
 		"storeHome": {
@@ -221,8 +221,9 @@
 			"category": "Store",
 			"icon": "credit-card",
 			"enablement": "{{length(state.cart) > 0 && computed.cartTotal <= state.user.wallet}}",
-			"description": "Pays from the wallet: the games join the library, not installed, and leave the wishlist.",
+			"description": "Pays from the wallet: the games join the library, not installed, and leave the wishlist; each euro earns 100 points.",
 			"do": [
+				{ "set": "state.points", "to": "{{state.points + round(computed.cartTotal * 100)}}" },
 				{ "update": "games", "id": "{{state.cart}}", "fields": { "owned": true } },
 				{
 					"set": "state.user.wallet",
@@ -380,7 +381,7 @@
 						"height": 40,
 						"anchors": { "left": 0, "right": 0 },
 						"alignItems": "center",
-						"gap": 3,
+						"gap": 6,
 						"children": [
 							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
 							{
@@ -389,10 +390,11 @@
 								"font": "small",
 								"fitText": true,
 								"padding": 14,
+								"icon": "heart",
 								"text": "{{upper(t('store.wishlist'))}} ({{length(state.wishlist)}})",
 								"color": "@store.chip",
 								"textColor": "@store.text",
-								"radius": 2,
+								"radius": 20,
 								"focusable": true,
 								"role": "button",
 								"cursor": "hand",
@@ -406,8 +408,9 @@
 								"font": "small",
 								"fitText": true,
 								"padding": 14,
+								"icon": "shopping-cart",
 								"text": "{{upper(t('store.cart'))}} ({{length(state.cart)}})",
-								"radius": 2,
+								"radius": 20,
 								"color": "transparent",
 								"gradient": { "kind": "linear", "angle": 90, "stops": ["@store.cta", "@store.ctaEnd"] },
 								"textColor": "@store.onCta",
@@ -438,15 +441,15 @@
 									"for": "item",
 									"in": "{{['yours', 'noteworthy', 'categories', 'points', 'news', 'labs']}}"
 								},
-								"let": { "later": "{{contains(['points', 'labs'], item)}}" },
+								"let": { "here": "{{computed.here.tab == 'store' && computed.storeView == ({ yours: 'home', points: 'points', labs: 'labs' })[item]}}" },
 								"fitText": true,
 								"padding": 13,
 								"height": 30,
 								"radius": 15,
 								"text": "{{t('store.bar.' + item)}}",
-								"textColor": "{{later ? '@color.dim' : '@color.text'}}",
-								"disabled": "{{later}}",
-								"tooltip": "{{later ? t('store.later') : ''}}",
+								"color": "{{here ? '@color.select' : 'transparent'}}",
+								"textColor": "{{here ? '@color.bright' : '@color.text'}}",
+								"selected": "{{here}}",
 								"focusable": true,
 								"role": "button",
 								"cursor": "hand",
@@ -460,6 +463,9 @@
 											{
 												"if": "{{item == 'news'}}",
 												"then": [{ "run": "libraryHome" }, { "after": 50, "do": [{ "scrollTo": "#news-header" }] }],
+												"else": [{
+												"if": "{{item == 'points' || item == 'labs'}}",
+												"then": [{ "run": "{{item == 'points' ? 'showRewards' : 'showExperiments'}}" }],
 												"else": [
 													{ "run": "storeHome" },
 													{
@@ -467,6 +473,7 @@
 														"then": [{ "set": "state.storeList", "to": "new" }, { "after": 50, "do": [{ "scrollTo": "#store-tabs" }] }]
 													}
 												]
+												}]
 											}
 										]
 									}
@@ -2860,7 +2867,9 @@
 										"with": { "g": "{{computed.game}}" }
 									},
 									{ "when": "{{computed.storeView == 'cart'}}", "use": "storeCart" },
-									{ "when": "{{computed.storeView == 'wishlist'}}", "use": "storeWishlist" }
+									{ "when": "{{computed.storeView == 'wishlist'}}", "use": "storeWishlist" },
+									{ "when": "{{computed.storeView == 'points'}}", "use": "storeRewards" },
+									{ "when": "{{computed.storeView == 'labs'}}", "use": "storeLabs" }
 								]
 							}
 						]

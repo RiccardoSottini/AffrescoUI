@@ -1,0 +1,310 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The notes page: View > Notes Page shows the slide shown on a portrait page, its notes under it, edited in place. While the view is open, each slide is also drawn as such a page into its own image, 'notes-<id>', by the nodes 'notes-page-<id>': Export Notes Pages draws those nodes as a PDF, a page each.",
+	"actions": {
+		"exportNotesPages": [
+			{
+				"export": "pdf",
+				"pages": "{{map(state.deck.slides, 'notes-page-' + it.id)}}",
+				"size": [540, 720],
+				"title": "{{computed.deckName + ' notes'}}",
+				"onDone": [
+					{
+						"set": "state.fileStatus",
+						"to": "{{'Exported ' + result.name + ', ' + result.pages + ' pages.'}}"
+					}
+				],
+				"onError": [
+					{
+						"set": "state.fileStatus",
+						"to": "{{'Not exported: ' + error.message}}"
+					}
+				]
+			}
+		]
+	},
+	"components": {
+		"notesPageImage": {
+			"params": {
+				"s": null,
+				"n": 0
+			},
+			"note": "Slide s and its notes as a printed page: what Export Notes Pages draws.",
+			"node": {
+				"id": "{{'notes-page-' + s.id}}",
+				"snapshot": {
+					"image": "{{'notes-' + s.id}}",
+					"scale": 1
+				},
+				"x": 0,
+				"y": 0,
+				"width": 540,
+				"height": 720,
+				"color": "#ffffff",
+				"children": [
+					{
+						"id": "{{'notes-page-' + s.id + '-slide'}}",
+						"x": 30,
+						"y": 40,
+						"width": 960,
+						"height": 540,
+						"color": "transparent",
+						"scale": 0.5,
+						"transformOrigin": "topLeft",
+						"children": [
+							{
+								"use": "slidePage",
+								"with": {
+									"slide": "{{s}}",
+									"prefix": "{{'n' + s.id + '-'}}"
+								}
+							}
+						]
+					},
+					{
+						"id": "{{'notes-page-' + s.id + '-frame'}}",
+						"x": 30,
+						"y": 40,
+						"width": 480,
+						"height": 270,
+						"color": "transparent",
+						"borderWidth": 1,
+						"borderColor": "#b8c4c0"
+					},
+					{
+						"type": "label",
+						"id": "{{'notes-page-' + s.id + '-notes'}}",
+						"x": 40,
+						"y": 340,
+						"width": 460,
+						"height": 330,
+						"wrap": true,
+						"align": "start",
+						"runs": [
+							{
+								"text": "{{s.notes ?? ''}}",
+								"size": 13,
+								"color": "#1d2926"
+							}
+						]
+					},
+					{
+						"type": "label",
+						"id": "{{'notes-page-' + s.id + '-number'}}",
+						"x": 40,
+						"y": 684,
+						"width": 460,
+						"height": 18,
+						"align": "end",
+						"runs": [
+							{
+								"text": "{{'' + (n + 1)}}",
+								"size": 11,
+								"color": "#5a6a65"
+							}
+						]
+					}
+				]
+			}
+		},
+		"notesPageView": {
+			"params": {},
+			"note": "The notes page view: the slide shown over its notes, on a page, and its buttons.",
+			"node": {
+				"type": "column",
+				"id": "notes-page-view",
+				"grow": 1,
+				"color": "@work",
+				"alignItems": "center",
+				"gap": 12,
+				"scroll": "vertical",
+				"children": [
+					{
+						"id": "notes-page-top",
+						"height": 4,
+						"width": 1,
+						"color": "transparent"
+					},
+					{
+						"type": "row",
+						"id": "notes-page-bar",
+						"width": 540,
+						"height": 30,
+						"gap": 6,
+						"alignItems": "center",
+						"color": "transparent",
+						"children": [
+							{
+								"id": "notes-page-previous",
+								"use": "rbSmall",
+								"with": {
+									"icon": "chevron-left",
+									"enabled": "{{state.current > 0}}"
+								},
+								"tooltip": "Previous slide",
+								"onClick": {
+									"run": "pickSlide",
+									"with": {
+										"index": "{{state.current - 1}}"
+									}
+								}
+							},
+							{
+								"type": "label",
+								"id": "notes-page-where",
+								"fitText": true,
+								"height": 24,
+								"textColor": "@rbInk",
+								"runs": [
+									{
+										"text": "{{'Slide ' + (state.current + 1) + ' of ' + length(state.deck.slides)}}",
+										"size": 12
+									}
+								]
+							},
+							{
+								"id": "notes-page-next",
+								"use": "rbSmall",
+								"with": {
+									"icon": "chevron-right",
+									"enabled": "{{state.current < length(state.deck.slides) - 1}}"
+								},
+								"tooltip": "Next slide",
+								"onClick": {
+									"run": "pickSlide",
+									"with": {
+										"index": "{{state.current + 1}}"
+									}
+								}
+							},
+							{
+								"id": "notes-page-gap",
+								"grow": 1,
+								"height": 1,
+								"color": "transparent"
+							},
+							{
+								"type": "label",
+								"id": "notes-page-export",
+								"style": "rbButton",
+								"height": 26,
+								"padding": 6,
+								"fitText": true,
+								"runs": [
+									{
+										"icon": "file-text",
+										"size": 14
+									},
+									{
+										"text": "Export Notes Pages",
+										"size": 12
+									}
+								],
+								"tooltip": "Every slide with its notes, as a PDF of portrait pages",
+								"onClick": "exportNotesPages"
+							}
+						]
+					},
+					{
+						"id": "notes-page",
+						"width": 540,
+						"height": 720,
+						"color": "#ffffff",
+						"radius": 2,
+						"shadow": {
+							"y": 2,
+							"blur": 10,
+							"color": "#00000030"
+						},
+						"role": "document",
+						"label": "{{'Notes page ' + (state.current + 1)}}",
+						"children": [
+							{
+								"id": "notes-page-slide",
+								"x": 30,
+								"y": 40,
+								"width": 960,
+								"height": 540,
+								"color": "transparent",
+								"scale": 0.5,
+								"transformOrigin": "topLeft",
+								"children": [
+									{
+										"use": "slidePage",
+										"with": {
+											"slide": "{{computed.slide}}",
+											"prefix": "np-"
+										}
+									}
+								]
+							},
+							{
+								"id": "notes-page-frame",
+								"x": 30,
+								"y": 40,
+								"width": 480,
+								"height": 270,
+								"color": "transparent",
+								"borderWidth": 1,
+								"borderColor": "#b8c4c0"
+							},
+							{
+								"type": "label",
+								"id": "notes-page-placeholder",
+								"x": 40,
+								"y": 340,
+								"width": 460,
+								"height": 20,
+								"textColor": "#7a8884",
+								"runs": [
+									{
+										"text": "{{(computed.slide.notes ?? '') == '' ? 'Click to add notes' : ''}}",
+										"size": 13
+									}
+								]
+							},
+							{
+								"type": "editor",
+								"id": "notes-page-notes",
+								"x": 36,
+								"y": 336,
+								"width": 468,
+								"height": 330,
+								"color": "transparent",
+								"wrap": true,
+								"textColor": "#1d2926",
+								"lineColor": "transparent",
+								"label": "Notes",
+								"bind": "{{'state.deck.slides[' + state.current + '].notes'}}"
+							},
+							{
+								"type": "label",
+								"id": "notes-page-number",
+								"x": 40,
+								"y": 684,
+								"width": 460,
+								"height": 18,
+								"align": "end",
+								"runs": [
+									{
+										"text": "{{'' + (state.current + 1)}}",
+										"size": 11,
+										"color": "#5a6a65"
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "notes-page-bottom",
+						"height": 12,
+						"width": 1,
+						"color": "transparent"
+					}
+				]
+			}
+		}
+	}
+}

@@ -48,4 +48,9 @@
           :expect allow}
          {:name "an agent adding a card is asked: no run rule allows it"
           :run {:author "agent/claude-code" :command cardAdd :arguments {:title "Write the release notes"}}
+          :expect ask}
+         {:name "an agent posting a project update is asked: it speaks for the team"
+          :run {:author "agent/claude-code"
+                :command projectUpdate
+                :arguments {:project "Label palette" :health "at risk" :text "Two colours still fail contrast"}}
           :expect ask}]}

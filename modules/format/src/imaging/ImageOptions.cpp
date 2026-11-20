@@ -4,6 +4,8 @@
 
 #include "ImageDocuments.hpp"
 
+#include "affresco/imaging/Shapes.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -15,15 +17,17 @@ namespace affresco::format::editing {
 namespace {
 
 /// @brief The gestures' names, in Gesture's order.
-constexpr std::array<std::string_view, 15> gestureNameList{
+constexpr std::array<std::string_view, 19> gestureNameList{
     "move", "select-rectangle", "select-ellipse", "lasso",    "polygon-lasso", "magic-wand", "crop", "paint",
-    "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom"};
+    "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom", "text",
+    "shape", "pen",             "path-select"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
-constexpr std::array<std::string_view, 22> optionKeyList{
+constexpr std::array<std::string_view, 23> optionKeyList{
     "preset",     "size",        "sizeStep",   "hardness",       "spacing",  "opacity",    "flow",      "mode",
     "tolerance",  "contiguous",  "allLayers",  "fillOpacity",    "shape",    "gradientPreset", "gradient",
-    "foreground", "background",  "swap",       "reset",          "quickMask", "cloneSource", "autoSelect"};
+    "foreground", "background",  "swap",       "reset",          "quickMask", "cloneSource", "autoSelect",
+    "vector"};
 
 /// @brief A gradient argument: {stops: [{at, color}]} as a gradient editor gives it (or "position" for "at").
 /// @param value The value.
@@ -159,6 +163,7 @@ void chooseTool(ImageDocument& image, const std::string& name) {
 	const auto found = std::ranges::find(tools, name, &ImageTool::name);
 	if(found == tools.end()) throw DocumentError("Unknown tool " + name);
 	settle(image);
+	image.typing = false;
 	image.settings.tool = found->name;
 	image.settings.gesture = found->gesture;
 	setOptions(image.settings, image.cloneOffset, image.limits, found->settings);
@@ -170,6 +175,7 @@ void setOptions(ToolSettings& settings, std::optional<imaging::Point>& cloneOffs
 	setSampling(settings, arguments);
 	setGradient(settings, arguments);
 	setColours(settings, cloneOffset, arguments);
+	if(arguments.is_object() && arguments.contains("vector")) imaging::readContent(arguments["vector"], settings.vector);
 }
 
 } // namespace affresco::format::editing

@@ -1,0 +1,146 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Sinopia's checks of the shell, the design, the shapes, the format pane and the canvas: affrescoui test design.scenarios.json.",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "sinopia-format-gradient-dash-and-text-box",
+			"note": "The format pane gives the selected shape a gradient and a dashed line, keeps its proportions, and sets its text box's margins, wrap and autofit",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "click": "#format-gradient-down" },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient.angle", "is": 90 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient.to", "is": "light1" } },
+				{ "click": "#format-dash-dash" },
+				{ "expect": { "state": "deck.slides[3].objects[1].dash", "is": "dash" } },
+				{ "capture": "gradient-dash" },
+				{ "click": "#format-ratio" },
+				{ "expect": { "state": "deck.slides[3].objects[1].lockRatio", "is": true } },
+				{ "click": "#format-w-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].w", "is": 220 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].h", "is": 94.3 } },
+				{ "scroll": [1140, 500], "dy": -20 },
+				{ "click": "#format-margin-x-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].marginX", "is": 9 } },
+				{ "click": "#format-wrap" },
+				{ "expect": { "state": "deck.slides[3].objects[1].wrap", "is": false } },
+				{ "click": "#format-autofit-shrink" },
+				{ "expect": { "state": "deck.slides[3].objects[1].autofit", "is": "shrink" } },
+				{ "scroll": [1140, 500], "dy": 20 },
+				{ "click": "#format-gradient-none" },
+				{ "expect": { "state": "deck.slides[3].objects[1].gradient", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-shape-format-tab",
+			"note": "Selecting a shape shows the contextual Shape Format tab: its size steps keep the proportions when locked, its order buttons move the shape, and the tab goes when nothing is selected",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "expect": { "node": "#tab-shapeFormat-label", "exists": false } },
+				{ "click": "#o9" },
+				{ "click": "#tab-shapeFormat-label" },
+				{ "expect": { "state": "tab", "is": "shapeFormat" } },
+				{ "expect": { "node": "#sf-w-value", "text": "210.0 pt" } },
+				{ "capture": "tab" },
+				{ "click": "#b-sf-ratio" },
+				{ "click": "#sf-h-plus" },
+				{ "expect": { "state": "deck.slides[3].objects[1].h", "is": 100 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].w", "is": 233.3 } },
+				{ "click": "#sf-style-accent3" },
+				{ "expect": { "state": "deck.slides[3].objects[1].fill", "is": "accent3" } },
+				{ "click": "#b-sf-forward" },
+				{ "expect": { "state": "deck.slides[3].objects[2].id", "is": "o9" } },
+				{ "click": "#sf-effects" },
+				{ "expect": { "state": "drop.id", "is": "sf-effects" } },
+				{ "key": "escape" },
+				{ "click": "#tab-home-label" },
+				{ "key": "escape" },
+				{ "expect": { "node": "#tab-shapeFormat-label", "exists": false } }
+			]
+		},
+		{
+			"name": "sinopia-rulers-grid-and-guides",
+			"note": "View shows the rulers, the gridlines and the guides through the slide's centre, which the canvas snaps objects to",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#cb-ruler-caption" },
+				{ "click": "#cb-grid-caption" },
+				{ "click": "#cb-guides-caption" },
+				{ "expect": { "state": "guides", "is": true } },
+				{ "capture": "shown" },
+				{ "click": "#cb-guides-caption" },
+				{ "expect": { "state": "guides", "is": false } }
+			]
+		},
+		{
+			"name": "sinopia-new-and-recent-decks",
+			"note": "File starts a deck from a theme, as a change Undo takes back; a saved deck is listed under Recent and opens again from there",
+			"steps": [
+				{ "click": "#tab-file-label" },
+				{ "expect": { "node": "#file-recent-none", "exists": true } },
+				{ "choose": "deck.json" },
+				{ "key": "mod+s" },
+				{ "wait": 0 },
+				{ "expect": { "state": "recentDecks[0].name", "is": "deck.json" } },
+				{ "click": "#new-ember" },
+				{ "expect": { "state": "deck.theme", "is": "ember" } },
+				{ "expect": { "state": "deck.slides.length", "is": 1 } },
+				{ "capture": "new" },
+				{ "click": "#recent-0" },
+				{ "expect": { "state": "deck.slides.length", "is": 7 } },
+				{ "expect": { "state": "deck.title", "is": "Harbour Lights" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "sinopia-own-theme-colours",
+			"note": "The format pane on the background lists the theme colours; a hex code typed for one gives the deck its own colours, saved with it, and Reset puts the theme's back",
+			"steps": [
+				{ "action": "formatBackground" },
+				{ "expect": { "node": "#own-accent1-name", "exists": true } },
+				{ "click": "#own-accent1-hex" },
+				{ "type": "#7a1fa2" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.colors", "is": "own" } },
+				{ "expect": { "state": "deck.ownColors.accent1", "is": "#7a1fa2" } },
+				{ "capture": "own" },
+				{ "click": "#own-accent2-hex" },
+				{ "type": "nope" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.ownColors.accent2", "is": "#2bb3a7" } },
+				{ "click": "#format-own-reset" },
+				{ "expect": { "state": "deck.colors", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-more-shape-presets",
+			"note": "The whole shapes list opens from the gallery, with more presets: rounded and snipped corners, a plaque, arrow callouts, more flowchart symbols and a second explosion",
+			"steps": [
+				{ "click": "#gal-shapes-all" },
+				{ "expect": { "state": "drop.id", "is": "gal-shapes" } },
+				{ "expect": { "state": "drop.open", "is": true } },
+				{ "capture": "list" }
+			]
+		},
+		{
+			"name": "sinopia-search-every-command",
+			"note": "The search box finds the ribbon's menu items too, beside the named commands: an icon of Insert > Icons runs from there",
+			"steps": [
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "heart" },
+				{ "key": "enter" },
+				{ "expect": { "state": "drop.id", "is": "search" } },
+				{ "click": { "role": "menuitem", "name": "Heart" } },
+				{ "expect": { "state": "deck.slides[0].objects[2].icon", "is": "heart" } }
+			]
+		}
+	]
+}

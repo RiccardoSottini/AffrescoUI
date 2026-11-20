@@ -46,62 +46,105 @@
 	"tokens": {
 		"background": {
 			"light": "#ebf0ee",
-			"dark": "#0d1414"
+			"dark": "#0d1414",
+			"night": "#0a0303"
 		},
 		"panel": {
 			"light": "#f7faf9",
-			"dark": "#131c1c"
+			"dark": "#131c1c",
+			"night": "#120505"
 		},
 		"raised": {
 			"light": "#dfe8e5",
-			"dark": "#1b2827"
+			"dark": "#1b2827",
+			"night": "#1f0808"
 		},
 		"border": {
 			"light": "#c3d0cc",
-			"dark": "#263634"
+			"dark": "#263634",
+			"night": "#3a1010"
 		},
 		"text": {
 			"light": "#172120",
-			"dark": "#e3ecea"
+			"dark": "#e3ecea",
+			"night": "#e05a4a"
 		},
 		"muted": {
 			"light": "#536662",
-			"dark": "#8fa39f"
+			"dark": "#8fa39f",
+			"night": "#9a3a30"
 		},
 		"accent": {
 			"light": "#0f766e",
-			"dark": "#2dd4bf"
+			"dark": "#2dd4bf",
+			"night": "#ff4433"
 		},
 		"sky": {
 			"light": "#0b1213",
-			"dark": "#070b0c"
+			"dark": "#070b0c",
+			"night": "#050101"
 		},
 		"note": {
 			"light": "#fcd9b8",
-			"dark": "#fcd9b8"
+			"dark": "#fcd9b8",
+			"night": "#7a2a20"
 		},
 		"mark": {
 			"light": "#e11d74",
-			"dark": "#f472b6"
+			"dark": "#f472b6",
+			"night": "#c03020"
 		},
-		"onSky": "#e3ecea",
-		"onSkyMuted": "#93a8a3",
-		"hud": "#0b1514e6",
-		"hudBorder": "#2dd4bf38",
+		"onSky": {
+			"light": "#e3ecea",
+			"dark": "#e3ecea",
+			"night": "#e05a4a"
+		},
+		"onSkyMuted": {
+			"light": "#93a8a3",
+			"dark": "#93a8a3",
+			"night": "#9a3a30"
+		},
+		"hud": {
+			"light": "#0b1514e6",
+			"dark": "#0b1514e6",
+			"night": "#140404e6"
+		},
+		"hudBorder": {
+			"light": "#2dd4bf38",
+			"dark": "#2dd4bf38",
+			"night": "#ff443338"
+		},
 		"assistant.accent": "@accent",
 		"assistant.accentHover": {
 			"light": "#0d9488",
-			"dark": "#5eead4"
+			"dark": "#5eead4",
+			"night": "#ff6655"
 		},
 		"assistant.onAccent": {
 			"light": "#f2fffc",
-			"dark": "#04201c"
+			"dark": "#04201c",
+			"night": "#1a0404"
 		},
 		"assistant.surface": "@panel",
 		"assistant.raised": "@raised",
 		"assistant.border": "@border",
 		"assistant.text": "@text",
-		"assistant.dim": "@muted"
+		"assistant.dim": "@muted",
+		"hudChecked": {
+			"light": "#24514b",
+			"dark": "#24514b",
+			"night": "#4a1410"
+		},
+		"skyLabel": {
+			"light": "#b9c7c2",
+			"dark": "#b9c7c2",
+			"night": "#b04a3c"
+		},
+		"nightFilter": {
+			"light": "#00000000",
+			"dark": "#00000000",
+			"night": "#2a0000c4"
+		}
 	},
 	"permissions": {
 		"allow": ["studio"],
@@ -153,13 +196,75 @@
 			"arguments": {
 				"args": "object"
 			}
+		},
+		"tour.title": {
+			"type": "string",
+			"kind": "state",
+			"value": "{{'Tour of saved views'}}",
+			"description": "What the tour strip is called."
+		},
+		"tour.views": {
+			"type": "array",
+			"kind": "list",
+			"value": "{{computed.tourViews}}",
+			"description": "The saved views, the stops of the tour in its order: id, name and the thumbnail of the body each looks at.",
+			"item": {
+				"id": "string",
+				"name": "string",
+				"image": "image"
+			}
+		},
+		"tour.current": {
+			"type": "string",
+			"kind": "state",
+			"value": "{{state.bookmark}}",
+			"description": "The picked view's id."
+		},
+		"tour.go": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'goToView'}}",
+			"description": "Goes to saved view args.id and stops the tour.",
+			"arguments": {
+				"args": "object"
+			}
+		},
+		"tour.reorder": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'reorderView'}}",
+			"description": "Moves saved view args.id to the place of view args.onto: the tour order.",
+			"arguments": {
+				"args": "object"
+			}
+		},
+		"tour.copy": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'copyView'}}",
+			"description": "Adds a copy of saved view args.id after the others, and picks it.",
+			"arguments": {
+				"args": "object"
+			}
 		}
 	},
 	"points": {
 		"bodies.dock": {
 			"slot": "dock",
-			"receives": ["sky.bodies", "sky.selected", "bodies.reorder", "bodies.select", "bodies.clone"],
-			"description": "The strip under the timeline, across the window."
+			"receives": [
+				"sky.bodies",
+				"sky.selected",
+				"bodies.reorder",
+				"bodies.select",
+				"bodies.clone",
+				"tour.title",
+				"tour.views",
+				"tour.current",
+				"tour.go",
+				"tour.reorder",
+				"tour.copy"
+			],
+			"description": "The tour strip under the timeline, across the window: the saved views in order."
 		}
 	},
 	"state": {
@@ -784,6 +889,51 @@
 				"selected": "earth",
 				"time": 0,
 				"zoom": 1.1
+			},
+			{
+				"id": "inner",
+				"label": "Inner planets",
+				"camera": {
+					"tx": 0,
+					"tz": 0,
+					"yaw": 0,
+					"pitch": 1.45,
+					"distance": 9
+				},
+				"follow": "",
+				"selected": "venus",
+				"time": 60,
+				"zoom": 1
+			},
+			{
+				"id": "earth-moon",
+				"label": "Earth and Moon",
+				"camera": {
+					"tx": 0,
+					"tz": 0,
+					"yaw": 0.9,
+					"pitch": 0.35,
+					"distance": 2.4
+				},
+				"follow": "earth",
+				"selected": "moon",
+				"time": 120,
+				"zoom": 1
+			},
+			{
+				"id": "mars-close",
+				"label": "Mars at opposition",
+				"camera": {
+					"tx": 0,
+					"tz": 0,
+					"yaw": 2.2,
+					"pitch": 0.3,
+					"distance": 2.2
+				},
+				"follow": "mars",
+				"selected": "mars",
+				"time": 107,
+				"zoom": 1
 			}
 		],
 		"bookmark": "overview",
@@ -805,7 +955,15 @@
 		"markers": [],
 		"muted": [],
 		"locked": [],
-		"eclipse": ""
+		"eclipse": "",
+		"touring": false,
+		"tourClock": 0,
+		"tourStay": 80,
+		"dayTheme": "dark",
+		"quickPick": {
+			"open": false,
+			"query": ""
+		}
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -822,7 +980,7 @@
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
 		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
-		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: indexOf(state.locked, 'eclipse') >= 0, muted: indexOf(state.muted, 'eclipse') >= 0, clips: map(filter(computed.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: indexOf(state.locked, 'conjunction') >= 0, muted: indexOf(state.muted, 'conjunction') >= 0, clips: map(filter(computed.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#be185d'})}, {id: 'oppositions', label: 'Oppositions', locked: indexOf(state.locked, 'opposition') >= 0, muted: indexOf(state.muted, 'opposition') >= 0, clips: map(filter(computed.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
+		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: indexOf(state.locked, 'eclipse') >= 0, muted: indexOf(state.muted, 'eclipse') >= 0, clips: map(filter(computed.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: state.theme == 'night' ? '#8a2418' : '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: indexOf(state.locked, 'conjunction') >= 0, muted: indexOf(state.muted, 'conjunction') >= 0, clips: map(filter(computed.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: state.theme == 'night' ? '#8a2418' : '#be185d'})}, {id: 'oppositions', label: 'Oppositions', locked: indexOf(state.locked, 'opposition') >= 0, muted: indexOf(state.muted, 'opposition') >= 0, clips: map(filter(computed.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: state.theme == 'night' ? '#8a2418' : '#b45309'})}]}}",
 		"next": "{{find(computed.events, it.time > state.time + 0.5 && indexOf(state.muted, it.kind) < 0)}}",
 		"previous": "{{sort(filter(computed.events, it.time < state.time - 0.5 && indexOf(state.muted, it.kind) < 0), it.time, 'desc')[0]}}",
 		"goal": "{{state.speed < 0 ? computed.previous : computed.next}}",
@@ -847,7 +1005,7 @@
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm:ss', 'utc') + ' UTC'}}",
 		"realTime": "{{abs(abs(state.speed) * 1728000 - 1) < 0.01}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + (computed.realTime ? 'Real time' : formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster' + (abs(state.speed) < 0.0005 ? '' : ': ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second')) : 'Paused'}}",
-		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleTheme' ? state.theme == 'light' : it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
+		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleTheme' ? state.theme == 'light' : it.run == 'toggleNight' ? state.theme == 'night' : it.run == 'playTour' ? state.touring : it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
 		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {title: 'Real time', icon: 'timer', keyLabel: 'Shift+K', checked: state.playing && computed.realTime, run: 'realTime'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
 		"statusItems": "{{[{text: 'Day ' + round(state.time * 10) / 10, color: '@accent'}, {text: computed.goal ? (state.speed < 0 ? 'Previous: ' : 'Next: ') + computed.goal.label + ' on day ' + round(computed.goal.time) + ' (' + (state.speed < 0 ? round(state.time - computed.goal.time) + ' days ago)' : 'in ' + round(computed.goal.time - state.time) + ' days)') : 'No more events in this window'}, {side: 'end', text: computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}]}}",
 		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
@@ -872,10 +1030,16 @@
 		"starNodes": "{{state.showStars ? map(filter(computed.starVectors, it.mag <= state.limitMag), {id: 'star-' + index, translation: [computed.target.x + it.x * 300, it.y * 300, computed.target.z + it.z * 300], scale: [310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f], mesh: 'cube', material: 'star'}) : []}}",
 		"bodyNodes": "{{map(computed.projected, {id: '' + it.id, name: it.name, translation: [it.x, 0, it.z], scale: [max(it.size, 3 * it.depth / computed.view.f), max(it.size, 3 * it.depth / computed.view.f), max(it.size, 3 * it.depth / computed.view.f)], mesh: 'sphere', material: 'm-' + it.id, visible: it.depth > 0.3})}}",
 		"bodyMaterials": "{{map(state.bodies, it.parent == '' ? {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: state.showGlow ? [1.5, 0.85, 0.22] : [1.1, 0.65, 0.18], roughness: 1} : (state.showShading ? {id: 'm-' + it.id, baseColor: it.color, roughness: 0.9} : {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: [it.color[0] * 0.8, it.color[1] * 0.8, it.color[2] * 0.8], roughness: 1}))}}",
-		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.09, 0.07], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.18, 0.8, 0.7], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}])} }}",
+		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: state.theme == 'night' ? [0.93, 0, 0] : [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: map(concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.09, 0.07], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.18, 0.8, 0.7], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}]), state.theme != 'night' ? it : merge(it, {baseColor: concat([it.baseColor[0] * 0.3 + it.baseColor[1] * 0.6 + it.baseColor[2] * 0.1, 0, 0], slice(it.baseColor, 3))}, it.emissive ? {emissive: [it.emissive[0] * 0.3 + it.emissive[1] * 0.6 + it.emissive[2] * 0.1, 0, 0]} : {}))} }}",
 		"magText": "{{'Limiting magnitude: ' + fixed(state.limitMag, 1) + ' (' + length(filter(computed.stars, it.mag <= state.limitMag)) + ' stars)'}}",
 		"marks": "{{filter(computed.projected, indexOf(state.markers, it.id) >= 0 && it.depth > 0.3)}}",
-		"marked": "{{map(range(length(computed.marks) * 4), {id: computed.marks[floor(index / 4)].id + '-' + index % 4, x: index % 4 < 2 ? computed.marks[floor(index / 4)].px - 1 : (index % 4 == 2 ? computed.marks[floor(index / 4)].px - computed.marks[floor(index / 4)].r - 12 : computed.marks[floor(index / 4)].px + computed.marks[floor(index / 4)].r + 5), y: index % 4 == 0 ? computed.marks[floor(index / 4)].py - computed.marks[floor(index / 4)].r - 12 : (index % 4 == 1 ? computed.marks[floor(index / 4)].py + computed.marks[floor(index / 4)].r + 5 : computed.marks[floor(index / 4)].py - 1), w: index % 4 < 2 ? 2 : 7, h: index % 4 < 2 ? 7 : 2})}}"
+		"marked": "{{map(range(length(computed.marks) * 4), {id: computed.marks[floor(index / 4)].id + '-' + index % 4, x: index % 4 < 2 ? computed.marks[floor(index / 4)].px - 1 : (index % 4 == 2 ? computed.marks[floor(index / 4)].px - computed.marks[floor(index / 4)].r - 12 : computed.marks[floor(index / 4)].px + computed.marks[floor(index / 4)].r + 5), y: index % 4 == 0 ? computed.marks[floor(index / 4)].py - computed.marks[floor(index / 4)].r - 12 : (index % 4 == 1 ? computed.marks[floor(index / 4)].py + computed.marks[floor(index / 4)].r + 5 : computed.marks[floor(index / 4)].py - 1), w: index % 4 < 2 ? 2 : 7, h: index % 4 < 2 ? 7 : 2})}}",
+		"tourViews": "{{map(state.bookmarks, {id: it.id, name: it.label, image: 'body:' + (it.follow == '' ? 'sun' : it.follow)})}}",
+		"searchBodies": "{{map(state.bodies, {title: it.name, detail: 'Body', icon: 'circle', run: 'findBody', with: {id: it.id}})}}",
+		"searchEvents": "{{map(computed.events, {title: it.label, detail: 'Event, day ' + fixed(it.time, 1), icon: 'calendar', run: 'findEvent', with: {id: it.id}})}}",
+		"searchText": "{{trim(slice(state.quickPick.query, 1))}}",
+		"searchDayNumber": "{{isDate(computed.searchText) ? (dateMs(computed.searchText) - dateMs('2030-01-01')) / 86400000 : number(computed.searchText)}}",
+		"searchDay": "{{!empty(computed.searchText) && computed.searchDayNumber != null && computed.searchDayNumber >= 0 && computed.searchDayNumber <= state.duration ? [{title: 'Go to day ' + fixed(computed.searchDayNumber, 1), icon: 'calendar', run: 'findDay', with: {day: computed.searchDayNumber}}] : []}}"
 	},
 	"watch": {
 		"state.camera": [
@@ -917,7 +1081,8 @@
 	"onLoad": [
 		{
 			"run": "syncScene"
-		}
+		},
+		{ "set": "state.assistant.floor", "to": 24 }
 	],
 	"styles": {
 		"button": {
@@ -1016,6 +1181,32 @@
 			}
 		],
 		"tick": [
+			{
+				"if": "{{state.touring}}",
+				"then": [
+					{
+						"if": "{{state.tourClock >= state.tourStay}}",
+						"then": [
+							{
+								"run": "goToPlace",
+								"with": {
+									"id": "{{state.bookmarks[(indexOf(map(state.bookmarks, it.id), state.bookmark) + 1) % length(state.bookmarks)].id}}"
+								}
+							},
+							{
+								"set": "state.tourClock",
+								"to": 0
+							}
+						],
+						"else": [
+							{
+								"increment": "state.tourClock",
+								"by": 1
+							}
+						]
+					}
+				]
+			},
 			{
 				"if": "{{state.playing}}",
 				"then": [
@@ -1787,6 +1978,261 @@
 					]
 				}
 			]
+		},
+		"goToPlace": [
+			{
+				"if": "{{find(state.bookmarks, it.id == id)}}",
+				"then": [
+					{
+						"increment": "state.flights",
+						"by": 1
+					},
+					{
+						"animate": "state.fly",
+						"to": 0,
+						"ms": 1
+					},
+					{
+						"set": "state.camera.tx",
+						"to": "{{computed.target.x}}"
+					},
+					{
+						"set": "state.camera.tz",
+						"to": "{{computed.target.z}}"
+					},
+					{
+						"set": "state.follow",
+						"to": ""
+					},
+					{
+						"set": "state.flying",
+						"to": ""
+					},
+					{
+						"set": "state.fly",
+						"to": 0
+					},
+					{
+						"set": "state.bookmark",
+						"to": "{{id}}"
+					},
+					{
+						"set": "state.playing",
+						"to": false
+					},
+					{
+						"set": "state.selected",
+						"to": "{{find(state.bookmarks, it.id == id).selected}}"
+					},
+					{
+						"set": "state.camera",
+						"to": "{{find(state.bookmarks, it.id == id).camera}}"
+					},
+					{
+						"set": "state.time",
+						"to": "{{find(state.bookmarks, it.id == id).time ?? state.time}}"
+					},
+					{
+						"set": "state.zoom",
+						"to": "{{find(state.bookmarks, it.id == id).zoom ?? state.zoom}}"
+					},
+					{
+						"set": "state.follow",
+						"to": "{{find(state.bookmarks, it.id == id).follow}}"
+					},
+					{
+						"animate": "state.camera.distance",
+						"to": "{{state.camera.distance}}",
+						"ms": 1
+					}
+				]
+			}
+		],
+		"goToView": [
+			{
+				"set": "state.touring",
+				"to": false
+			},
+			{
+				"run": "goToPlace",
+				"with": {
+					"id": "{{args.id}}"
+				}
+			}
+		],
+		"reorderView": [
+			{
+				"if": "{{args.id != args.onto && find(state.bookmarks, it.id == args.id) && find(state.bookmarks, it.id == args.onto)}}",
+				"then": [
+					{
+						"set": "state.bookmarks",
+						"to": "{{concat(slice(filter(state.bookmarks, it.id != args.id), 0, indexOf(map(state.bookmarks, it.id), args.onto)), [find(state.bookmarks, it.id == args.id)], slice(filter(state.bookmarks, it.id != args.id), indexOf(map(state.bookmarks, it.id), args.onto)))}}"
+					}
+				]
+			}
+		],
+		"copyView": [
+			{
+				"if": "{{find(state.bookmarks, it.id == args.id)}}",
+				"then": [
+					{
+						"set": "state.bookmarks",
+						"to": "{{concat(state.bookmarks, [merge(find(state.bookmarks, it.id == args.id), {id: 'place-' + state.nextPlace, label: find(state.bookmarks, it.id == args.id).label + ' ' + state.nextPlace})])}}"
+					},
+					{
+						"set": "state.bookmark",
+						"to": "{{'place-' + state.nextPlace}}"
+					},
+					{
+						"increment": "state.nextPlace",
+						"by": 1
+					}
+				]
+			}
+		],
+		"playTour": {
+			"title": "Play the tour",
+			"description": "Plays the saved views one after another, a few seconds each, or stops the tour.",
+			"icon": "clapperboard",
+			"do": [
+				{
+					"if": "{{state.touring}}",
+					"then": [
+						{
+							"set": "state.touring",
+							"to": false
+						}
+					],
+					"else": [
+						{
+							"if": "{{length(state.bookmarks) > 0}}",
+							"then": [
+								{
+									"run": "goToPlace",
+									"with": {
+										"id": "{{find(state.bookmarks, it.id == state.bookmark) ? state.bookmark : state.bookmarks[0].id}}"
+									}
+								},
+								{
+									"set": "state.tourClock",
+									"to": 0
+								},
+								{
+									"set": "state.touring",
+									"to": true
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		"toggleNight": {
+			"title": "Night mode",
+			"description": "Dims everything to red, to keep the eyes used to the dark, or turns it back.",
+			"icon": "eye",
+			"do": [
+				{
+					"if": "{{state.theme == 'night'}}",
+					"then": [
+						{
+							"set": "state.theme",
+							"to": "{{state.dayTheme}}"
+						}
+					],
+					"else": [
+						{
+							"set": "state.dayTheme",
+							"to": "{{state.theme}}"
+						},
+						{
+							"set": "state.theme",
+							"to": "night"
+						}
+					]
+				}
+			]
+		},
+		"findObject": {
+			"title": "Find",
+			"description": "Finds a body to fly to, an event, or a day after @.",
+			"icon": "search",
+			"do": [
+				{
+					"set": "state.quickPick.query",
+					"to": ""
+				},
+				{
+					"set": "state.quickPick.open",
+					"to": true
+				}
+			]
+		},
+		"askDay": [
+			{
+				"set": "state.quickPick.query",
+				"to": "@"
+			},
+			{
+				"set": "state.quickPick.open",
+				"to": true
+			}
+		],
+		"findBody": [
+			{
+				"set": "state.selected",
+				"to": "{{id}}"
+			},
+			{
+				"run": "goTo"
+			}
+		],
+		"findEvent": [
+			{
+				"if": "{{find(computed.events, it.id == id)}}",
+				"then": [
+					{
+						"set": "state.playing",
+						"to": false
+					},
+					{
+						"set": "state.time",
+						"to": "{{find(computed.events, it.id == id).time}}"
+					}
+				]
+			}
+		],
+		"findDay": [
+			{
+				"set": "state.playing",
+				"to": false
+			},
+			{
+				"set": "state.time",
+				"to": "{{day}}"
+			}
+		],
+		"goNorth": {
+			"title": "Go 5° north",
+			"description": "Stands 5° further north: the sky from the ground turns, and the place under it says the latitude.",
+			"icon": "arrow-up",
+			"do": [
+				{
+					"set": "state.sky.latitude",
+					"to": "{{clamp(state.sky.latitude + 5, -85, 85)}}"
+				}
+			]
+		},
+		"goSouth": {
+			"title": "Go 5° south",
+			"description": "Stands 5° further south.",
+			"icon": "arrow-down",
+			"do": [
+				{
+					"set": "state.sky.latitude",
+					"to": "{{clamp(state.sky.latitude - 5, -85, 85)}}"
+				}
+			]
 		}
 	},
 	"keys": {
@@ -1811,7 +2257,11 @@
 		"mod+comma": "openRender",
 		"equal": "fainter",
 		"minus": "brighter",
-		"m": "toggleMarker"
+		"m": "toggleMarker",
+		"n": "toggleNight",
+		"mod+f": "findObject",
+		"shift+up": "goNorth",
+		"shift+down": "goSouth"
 	},
 	"root": {
 		"id": "root",
@@ -1904,7 +2354,7 @@
 										"scene": "{{computed.sceneGraph}}",
 										"grid": false,
 										"axes": false,
-										"background": "#070b0c",
+										"background": "@sky",
 										"outlineColor": "@accent",
 										"controls": {
 											"orbit": "none",
@@ -1953,7 +2403,7 @@
 										"fitText": true,
 										"font": "small",
 										"text": "{{b.name}}",
-										"textColor": "{{b.id == state.selected ? '@accent' : '#b9c7c2'}}",
+										"textColor": "{{b.id == state.selected ? '@accent' : '@skyLabel'}}",
 										"visible": "{{state.showLabels && b.depth > 0.3}}"
 									},
 									{
@@ -1982,6 +2432,13 @@
 													"blur": 14,
 													"color": "{{b.parent == '' ? '#ffc94d99' : '#00000000'}}"
 												}
+											},
+											{
+												"type": "panel",
+												"id": "{{'thumb-night-' + b.id}}",
+												"when": "{{state.theme == 'night'}}",
+												"fill": true,
+												"color": "@nightFilter"
 											}
 										]
 									},
@@ -2552,7 +3009,7 @@
 										"links": "{{computed.graphLinks}}",
 										"selectedIds": "{{[state.selected]}}",
 										"kindColors": {
-											"orbit": "#2dd4bf"
+											"orbit": "{{state.theme == 'night' ? '#ff4433' : '#2dd4bf'}}"
 										},
 										"nodeColor": "@raised",
 										"headerColor": "@border",
@@ -2724,15 +3181,39 @@
 						}
 					}
 				]
+			},
+			{
+				"id": "quickPick",
+				"use": "quickPick",
+				"with": {
+					"color": "@panel",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@raised",
+					"field": "@raised",
+					"providers": [
+						{
+							"items": "{{concat(computed.searchBodies, computed.searchEvents)}}",
+							"placeholder": "Find a body or an event, or type @ and a day"
+						},
+						{
+							"prefix": "@",
+							"items": "{{computed.searchDay}}",
+							"filter": false,
+							"placeholder": "A date such as 2030-06-15, or a day number"
+						}
+					]
+				}
 			}
 		]
 	},
 	"features": {
 		"slideSorter": {
-			"release": "1.0.0",
+			"release": "1.1.0",
 			"title": "Slide sorter",
 			"source": "app:sinopia",
-			"digest": "sha512:9kHJ4TytpjXMOg4IPjbNpIrBgsN4AodRwHOhIPKTExprjWpGlYyJRHVHxvqPpDfVjT7urDYkuSzYY7OEPqHUbQ",
+			"digest": "sha512:Ye2FJGX_3TxhLrl2Q3-2Gyo_xB4MCUNSK25PMyxcd3lhL8zH-tXm3TyuWJx86a-K62Imam5riamdI1mzsoZvfQ",
 			"publisher": null,
 			"enabled": true,
 			"order": 10,
@@ -2817,7 +3298,7 @@
 											"height": 24,
 											"padding": 6,
 											"textColor": "@text",
-											"text": "Pages ({{length(app.pages)}})"
+											"text": "{{app.title ?? 'Pages'}} ({{length(app.pages)}})"
 										},
 										{
 											"type": "label",
@@ -2922,6 +3403,12 @@
 					"optional": true,
 					"description": "The id of the selected page."
 				},
+				"title": {
+					"type": "string",
+					"kind": "state",
+					"optional": true,
+					"description": "What the strip is called, before the count: Pages when the app doesn't say."
+				},
 				"reorder": {
 					"kind": "action",
 					"arguments": {
@@ -2952,13 +3439,16 @@
 			},
 			"bindings": {
 				"pages": {
-					"value": "{{map(filter(app.sky.bodies, it.parent != ''), {id: it.id, name: it.name, image: it.thumbnail})}}"
+					"value": "{{app.tour.views}}"
 				},
 				"current": {
-					"export": "sky.selected"
+					"export": "tour.current"
+				},
+				"title": {
+					"export": "tour.title"
 				},
 				"reorder": {
-					"action": "bodies.reorder",
+					"action": "tour.reorder",
 					"with": {
 						"args": {
 							"id": "{{id}}",
@@ -2967,7 +3457,7 @@
 					}
 				},
 				"select": {
-					"action": "bodies.select",
+					"action": "tour.go",
 					"with": {
 						"args": {
 							"id": "{{id}}"
@@ -2975,7 +3465,7 @@
 					}
 				},
 				"duplicate": {
-					"action": "bodies.clone",
+					"action": "tour.copy",
 					"with": {
 						"args": {
 							"id": "{{id}}"
@@ -2990,13 +3480,13 @@
 				"format": "affrescoui-proof",
 				"version": 1,
 				"feature": "slideSorter",
-				"release": "1.0.0",
+				"release": "1.1.0",
 				"source": "app:sinopia",
 				"host": "app:orrery",
 				"base": "",
 				"adapter": {
-					"digest": "sha512:XRKpnO7AGnykUEjoBeWEhQ30LtfokmkdzNJ4Y5QavVXrt9OsZutr25eAovs7UCN-7_BuQEnKXVMlTD1IVr4vpw",
-					"note": "Sinopia's slide sorter in Orrery: every body but the Sun is a page, drawn from the thumbnail the screen draws for it, and the sorter's actions are the body actions Orrery's bodies dock receives."
+					"digest": "sha512:WHeTZcXViZfwqIbAolNsv2AX4icdugXJR4ijr7UFzxHy8GucUTj5Rf90ijq3dDbrQ26r2SxH4ZjAcJmYLw3RkQ",
+					"note": "Sinopia's slide sorter in Orrery, as the tour: every saved view is a page, drawn from the thumbnail of the body it looks at; picking one goes there, dragging one changes the tour's order and the copy button copies the picked view."
 				},
 				"bindings": [
 					{
@@ -3004,7 +3494,7 @@
 						"kind": "list",
 						"by": "adapter",
 						"to": {
-							"value": "{{map(filter(app.sky.bodies, it.parent != ''), {id: it.id, name: it.name, image: it.thumbnail})}}"
+							"value": "{{app.tour.views}}"
 						}
 					},
 					{
@@ -3012,7 +3502,15 @@
 						"kind": "state",
 						"by": "adapter",
 						"to": {
-							"export": "sky.selected"
+							"export": "tour.current"
+						}
+					},
+					{
+						"need": "title",
+						"kind": "state",
+						"by": "adapter",
+						"to": {
+							"export": "tour.title"
 						}
 					},
 					{
@@ -3020,7 +3518,7 @@
 						"kind": "action",
 						"by": "adapter",
 						"to": {
-							"action": "bodies.reorder",
+							"action": "tour.reorder",
 							"with": {
 								"args": {
 									"id": "{{id}}",
@@ -3034,7 +3532,7 @@
 						"kind": "action",
 						"by": "adapter",
 						"to": {
-							"action": "bodies.select",
+							"action": "tour.go",
 							"with": {
 								"args": {
 									"id": "{{id}}"
@@ -3047,7 +3545,7 @@
 						"kind": "action",
 						"by": "adapter",
 						"to": {
-							"action": "bodies.clone",
+							"action": "tour.copy",
 							"with": {
 								"args": {
 									"id": "{{id}}"
@@ -3154,11 +3652,252 @@
 						"name": "turn-and-zoom-the-view",
 						"passed": true,
 						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "overlays-show-the-selection-and-the-time",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "go-to-and-follow-the-selection",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "centre-the-selection",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "toggle-orbits-and-labels",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "time-stops-at-the-start",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "show-the-browser",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "narrow-and-widen-the-field",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "bookmark-and-return",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "bookmarks-keep-the-time-and-the-field",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "go-to-twice-lands-once",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "go-to-while-playing",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "reparent-onto-a-moon-but-not-into-a-loop",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "a-small-window-keeps-the-graph",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-lit-side-is-drawn",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "render-options-hide-the-stars",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-camera-follows-the-state",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "follow-switches-to-the-new-selection",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-wheel-wins-over-a-flight",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "a-place-stops-a-flight",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "m-marks-the-selected-body",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "keys-change-the-limiting-magnitude",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "muting-a-kind-of-event-skips-it",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "a-new-moon-orbits-close-and-goes-home",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-last-place-deleted",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-glow-toggles",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "an-eclipse-found-and-gone-to",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "an-unknown-eclipse-does-nothing",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-eclipse-finder-opens-from-the-menu",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-sky-chart-names-the-selected-body",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-sky-from-the-ground",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-sky-layers-toggle",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "an-eclipse-seen-from-the-ground",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "time-at-the-real-rate",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-light-theme",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "the-grid-names-its-azimuths",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "ask-the-assistant",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "night-mode",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "search-finds-a-body",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "search-goes-to-a-day",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "index.scenarios.json",
+						"name": "location-moves",
+						"passed": true,
+						"problem": ""
 					}
 				],
 				"passed": true,
 				"unmet": []
-			}
+			},
+			"installed": "sha256:42472d78d4c5ba7fcad155a2d7307cd6f002ef0e12b754ace860eaff4f166fa6"
 		}
 	},
 	"menus": {
@@ -3202,6 +3941,12 @@
 				"run": "openEclipses",
 				"group": "2_set",
 				"order": 2
+			},
+			"findDay": {
+				"run": "askDay",
+				"title": "Go to a day…",
+				"group": "2_set",
+				"order": 3
 			}
 		},
 		"view": {
@@ -3299,6 +4044,31 @@
 				"run": "brighter",
 				"group": "3_fov",
 				"order": 4
+			},
+			"tour": {
+				"run": "playTour",
+				"group": "4_places",
+				"order": 4
+			},
+			"night": {
+				"run": "toggleNight",
+				"group": "2_show",
+				"order": 9
+			},
+			"find": {
+				"run": "findObject",
+				"group": "1_go",
+				"order": 5
+			},
+			"north": {
+				"run": "goNorth",
+				"group": "5_where",
+				"order": 1
+			},
+			"south": {
+				"run": "goSouth",
+				"group": "5_where",
+				"order": 2
 			}
 		}
 	}

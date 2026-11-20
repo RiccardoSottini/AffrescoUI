@@ -144,6 +144,8 @@ void TimelineView::setTimeFormat(TimeFormat format) { setLook(format_, format); 
 
 void TimelineView::setSnap(bool snap) { snap_ = snap; }
 
+void TimelineView::setTrackButtons(bool shown) { setLook(trackButtons_, shown); }
+
 void TimelineView::setSizes(float headerWidth, float trackHeight) {
 	if(std::isnan(headerWidth) || std::isnan(trackHeight)) return;
 	headerWidth = std::clamp(headerWidth, 0.0f, 2000.0f);

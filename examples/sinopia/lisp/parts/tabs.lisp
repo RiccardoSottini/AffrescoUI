@@ -84,12 +84,14 @@
          :onClick ~(handler newSlide "content")))
      (node#g-ins-tables :use rbGroup :with {:title ~(t "ribbon.tables")}
        (node#b-ins-table :use rbBig
-         :with {:icon table :title ~(t "ribbon.table") :width 46 :enabled false}
-         :tooltip ~(t "ribbon.insertingATableIsnT")))
+         :with {:icon table :title ~(t "ribbon.table") :menu true :width 46}
+         :tooltip ~(t "table.insertTip")
+         :onClick open-table-grid))
      (node#g-ins-images :use rbGroup :with {:title ~(t "ribbon.images")}
        (node#b-ins-pictures :use rbBig
-         :with {:icon image :title ~(t "ribbon.pictures") :width 52 :enabled false}
-         :tooltip ~(t "ribbon.insertingPicturesIsnTAvailable"))
+         :with {:icon image :title ~(t "ribbon.pictures") :width 52}
+         :tooltip ~(t "picture.insertTip")
+         :onClick insert-picture)
        (node#b-ins-album :use rbBig
          :with {:icon images :title ~(t "ribbon.photoAlbum") :width 50 :enabled false}
          :tooltip ~(t "ribbon.aPhotoAlbumIsnT")))
@@ -220,6 +222,7 @@
 (defcomponent tabFile "The File tab: open and save the deck, export it, and what the last of those did."
   {}
   `(row#tab-file :fitContent width :height 92 :gap 4 :color transparent
+     ~(g-file-new)
      (node#g-file :use rbGroup :with {:title ~(t "ribbon.deck")}
        (node#b-open :use rbBig
          :with {:icon folder-open :title ~(t "ribbon.open") :width 46}
@@ -238,6 +241,7 @@
          :with {:icon file-image :title ~(t "ribbon.picture") :width 50}
          :tooltip ~(t "ribbon.thisSlideAsAPng")
          :onClick exportPng))
+     ~(g-file-recent)
      (node#g-file-info :use rbGroup :with {:title ~(t "ribbon.last")}
        (label#file-status :width 220
          :height 72
@@ -261,7 +265,8 @@
          :onClick previewSlide))
      ~(g-effects)
      (node#g-motion-timing :use rbGroup :with {:title ~(t "ribbon.timing")}
-       ~(motion-timing-col))
+       ~(motion-timing-col)
+       ~(motion-timing-more))
      (node#g-motion-advanced :use rbGroup :with {:title ~(t "ribbon.advanced")}
        (node#b-motion-pane :use rbBig
          :with {:icon list-ordered
@@ -274,7 +279,14 @@
 (defcomponent rbCheck "A checkbox bound to the state path at, and its title, which toggles it too."
   {:title "" :at "" :prefix ""}
   `(row :height 22 :gap 6 :alignItems center :color transparent
-     (checkbox :id ~(str prefix "-box") :width 14 :height 14 :bind ~at :label ~title)
+     (checkbox :id ~(str prefix "-box")
+       :width 14
+       :height 14
+       :bind ~at
+       :label ~title
+       :activeColor @brand
+       :trackColor @rbFieldLine
+       :knobColor @rbFieldBg)
      (label :id ~(str prefix "-caption")
        :fitText true
        :height 20
@@ -545,7 +557,9 @@
             :style ~(if (= (or-else computed.slide.transition.kind "none") k.0) "rbButtonOn" "rbButton")
             :runs ~[{:icon k.1 :size 24} {:text (str "\n" k.2) :size 11}]
             :onClick ~(handler set-transition-kind k.0))))
+     ~(fade-options)
      (node#b-effect-options :use rbBig
+       :when ~(not= computed.slide.transition.kind "fade")
        :with {:icon ~(get computed.directionIcons (or-else computed.slide.transition.direction "left"))
               :title ~(t "ribbon.fromSide" {:side (or-else computed.slide.transition.direction "left")})
               :width 52
@@ -591,27 +605,36 @@
        :with {:icon layout-grid :title ~(t "ribbon.slideSorter") :on ~(= state.view "sorter") :width 46}
        :onClick [{:set state.view :to sorter}])
      (node#b-notes-page :use rbBig
-       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :width 46 :enabled false}
-       :tooltip ~(t "ribbon.theNotesPageViewIsn"))
+       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :on ~(= state.view "notesPage") :width 46}
+       :tooltip ~(t "notes.theSlideOverItsNotes")
+       :onClick [{:set state.view :to notesPage}])
      (node#b-reading :use rbBig
        :with {:icon book-open :title ~(t "ribbon.readingView") :width 50}
        :onClick ~(handler readingView state.current))))
 
-(defview g-effects "The build effects for the selected objects, and As Exit." []
-  `(node#g-effects :use rbGroup :with {:title ~(if (= a.kind "exit") (t "ribbon.exit") (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 380}
-       ~(repeat [e computed.buildEffects]
+(defview g-effects "The build effects for the selected objects, the emphasis effects, and As Exit." []
+  `(node#g-effects :use rbGroup
+     :with {:title ~(case a.kind
+                      "exit" (t "ribbon.exit")
+                      "emphasis" (t "motion.emphasis")
+                      "path" (t "motion.motionPath")
+                      (t "ribbon.entrance"))}
+     (node#gal-effects :use rbGallery :with {:width 692}
+       ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 60
+            :width 50
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}
             :style ~(cond (not on) "rbButtonOff" (= (or-else a.effect "none") e.0) "rbButtonOn" :else "rbButton")
             :runs ~[{:icon e.1 :size 24} {:text (str "\n" e.2) :size 11}]
-            :onClick ~(handler set-animation e.0 (or-else a.kind "entrance") (or-else a.start "click")
-                                (or-else a.ms 500)))))
+            :onClick ~(handler choose-effect e.0))))
      (node#b-exit :use rbBig
-       :with {:icon log-out :title ~(t "ribbon.asExit") :on ~(= a.kind "exit") :enabled ~(some? a) :width 46}
+       :with {:icon log-out
+              :title ~(t "ribbon.asExit")
+              :on ~(= a.kind "exit")
+              :enabled ~(and (some? a) (contains? #{"entrance" "exit"} a.kind))
+              :width 46}
        :tooltip ~(t "ribbon.leaveTheSlideInsteadOf")
        :onClick toggle-exit)))
 
@@ -683,8 +706,19 @@
 (defn toggle-at "Turns a setting of the state on or off, by its path." [at]
   (toggle at))
 
-(defn set-align "Aligns the selected text: left, center, right or justify." [align]
-  (setObjects {:align align}))
+(defn set-align
+  "Aligns the selected text: left, center, right or justify; while a text is edited, the caret's paragraph only."
+  [align]
+  (if-some [o (find #(= (:id %) state.editing) computed.objects)]
+    (let [at (dec (or-else state.caret.line 1))
+          aligns (or-else (:aligns o) [])
+          text (or-else (:text o) "")
+          lines (count (str/split text "\n"))
+          aligned (vec (for [i (range lines)]
+                         (if (= i at) align (get aligns i))))]
+      (commit)
+      (set-objects (map #(if (= (:id %) (:id o)) (assoc % :aligns aligned) %) computed.objects)))
+    (setObjects {:align align :aligns nil})))
 
 (defn toggle-numbering "Numbers the selected text's lines, or stops numbering them." []
   (setObjects (if (some? computed.first.numbering) {:numbering nil} {:bullets true :numbering "1."})))

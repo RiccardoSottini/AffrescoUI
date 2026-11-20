@@ -43,10 +43,10 @@ constexpr std::array<std::pair<std::string_view, int>, 6> modifiers = {{
 }};
 
 /// @brief The properties `expect` reads from a node.
-constexpr std::array<std::string_view, 22> properties = {
-    "text",  "textColor", "color",   "borderColor", "borderWidth", "shown", "visible", "focused", "hovered",
-    "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY",
-    "role",  "name",      "description", "scrollMarks"};
+constexpr std::array<std::string_view, 23> properties = {
+    "text",    "textColor", "color",   "borderColor", "borderWidth", "shown",       "visible", "focused",
+    "hovered", "tooltip",   "checked", "value",       "x",           "y",           "width",   "height",
+    "scrollX", "scrollY",   "role",    "name",        "description", "scrollMarks", "disabled"};
 
 /// @brief Reads a function key.
 /// @param name "f1" to "f12".
@@ -128,6 +128,20 @@ std::optional<KeyPress> parseKey(std::string_view text) {
 	if(!key) return std::nullopt;
 	press.key = *key;
 	return press;
+}
+
+std::optional<Mods> parseModifiers(std::string_view text) {
+	Mods mods;
+	while(!text.empty()) {
+		const std::size_t plus = text.find('+');
+		const std::optional<int> bit = modifierBit(text.substr(0, plus));
+		if(!bit) return std::nullopt;
+		mods.bits |= *bit;
+		if(plus == std::string_view::npos) break;
+		text.remove_prefix(plus + 1);
+		if(text.empty()) return std::nullopt; // "shift+"
+	}
+	return mods;
 }
 
 std::string keyNames() {

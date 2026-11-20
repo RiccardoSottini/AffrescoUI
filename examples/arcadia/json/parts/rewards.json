@@ -1,0 +1,856 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The store bar's Rewards and Experiments pages. Rewards is a points shop: every euro spent in the store earns 100 points (purchase, in store.json), and the points buy profile items. Experiments holds ideas to try and turn off: a discovery queue that shows the store one game at a time, and a switch that hides the games the person owns from the store's lists. Every item is invented.",
+	"fonts": {
+		"rewardArt": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 44,
+			"fallback": [
+				"rewardIcons"
+			]
+		},
+		"rewardIcons": {
+			"file": "../../shared/fonts/Lucide.ttf",
+			"size": 44
+		}
+	},
+	"state": {
+		"points": 4820,
+		"rewardsOwned": [
+			"gem-badge"
+		],
+		"rewardKind": "all",
+		"rewardItems": [
+			{
+				"id": "ember-frame",
+				"kind": "frame",
+				"icon": "flame",
+				"cost": 1500,
+				"a": "#ff8a3d",
+				"b": "#7a1f3d"
+			},
+			{
+				"id": "crown-frame",
+				"kind": "frame",
+				"icon": "crown",
+				"cost": 3000,
+				"a": "#ffd36b",
+				"b": "#8a5a00"
+			},
+			{
+				"id": "nebula-bg",
+				"kind": "background",
+				"icon": "moon",
+				"cost": 2000,
+				"a": "#8a5aa8",
+				"b": "#140f18"
+			},
+			{
+				"id": "comet-bg",
+				"kind": "background",
+				"icon": "rocket",
+				"cost": 2500,
+				"a": "#2fbf98",
+				"b": "#1b3a5a"
+			},
+			{
+				"id": "gem-badge",
+				"kind": "badge",
+				"icon": "gem",
+				"cost": 800,
+				"a": "#7fc8ff",
+				"b": "#2a3a8a"
+			},
+			{
+				"id": "award-badge",
+				"kind": "badge",
+				"icon": "award",
+				"cost": 1200,
+				"a": "#f5a524",
+				"b": "#5a2a00"
+			},
+			{
+				"id": "party-sticker",
+				"kind": "sticker",
+				"icon": "party-popper",
+				"cost": 300,
+				"a": "#ffe36b",
+				"b": "#c97a1a"
+			},
+			{
+				"id": "tune-sticker",
+				"kind": "sticker",
+				"icon": "music",
+				"cost": 400,
+				"a": "#ff7fbf",
+				"b": "#5a1f6e"
+			}
+		],
+		"labsQueue": false,
+		"labsAt": 0,
+		"labsSkipped": [],
+		"labsHideOwned": false
+	},
+	"computed": {
+		"rewardsShown": "{{filter(state.rewardItems, ((state.rewardKind == 'all') || (it.kind == state.rewardKind)))}}",
+		"rewardRows": "{{ceil((length(computed.rewardsShown) / 4))}}",
+		"rewardWidth": "{{((computed.storeWidth - 42) / 4)}}",
+		"labsGames": "{{filter(computed.storeGames, !((it.owned || contains(state.labsSkipped, it.id))))}}",
+		"labsGame": "{{computed.labsGames[state.labsAt]}}"
+	},
+	"actions": {
+		"showRewards": {
+			"title": "Rewards",
+			"category": "Store",
+			"icon": "star",
+			"description": "Opens the store's Rewards: the points shop.",
+			"do": [
+				{
+					"set": "state.cartDialog",
+					"to": false
+				},
+				{
+					"set": "state.storeQuery",
+					"to": ""
+				},
+				{
+					"run": "go",
+					"with": {
+						"tab": "store",
+						"page": "points",
+						"id": null
+					}
+				}
+			]
+		},
+		"redeemReward": {
+			"title": "Redeem a reward",
+			"category": "Store",
+			"description": "Spends points on a reward, which becomes the person's.",
+			"do": [
+				{
+					"if": "{{find(state.rewardItems, it.id == id) != null && !contains(state.rewardsOwned, id) && state.points >= find(state.rewardItems, it.id == id).cost}}",
+					"then": [
+						{
+							"set": "state.points",
+							"to": "{{state.points - find(state.rewardItems, it.id == id).cost}}"
+						},
+						{
+							"push": "state.rewardsOwned",
+							"value": "{{id}}"
+						},
+						{
+							"run": "notify",
+							"with": {
+								"text": "{{t('rewards.redeemed', { name: t('rewards.item.' + id) })}}"
+							}
+						}
+					]
+				}
+			]
+		},
+		"showExperiments": {
+			"title": "Experiments",
+			"category": "Store",
+			"icon": "flask-conical",
+			"description": "Opens the store's Experiments: ideas to try and turn off.",
+			"do": [
+				{
+					"set": "state.cartDialog",
+					"to": false
+				},
+				{
+					"set": "state.storeQuery",
+					"to": ""
+				},
+				{
+					"run": "go",
+					"with": {
+						"tab": "store",
+						"page": "labs",
+						"id": null
+					}
+				}
+			]
+		},
+		"toggleDiscoveryQueue": {
+			"title": "Start or stop the discovery queue",
+			"category": "Store",
+			"description": "Starts the discovery queue from its first game, or stops it.",
+			"do": [
+				{
+					"set": "state.labsAt",
+					"to": 0
+				},
+				{
+					"toggle": "state.labsQueue"
+				}
+			]
+		},
+		"nextQueueGame": {
+			"title": "Next game in the queue",
+			"category": "Store",
+			"description": "Shows the discovery queue's next game.",
+			"enablement": "{{computed.labsGame != null}}",
+			"do": [
+				{
+					"set": "state.labsAt",
+					"to": "{{state.labsAt + 1}}"
+				}
+			]
+		},
+		"skipQueueGame": {
+			"title": "Not interested",
+			"category": "Store",
+			"description": "Passes on a game of the discovery queue: it leaves the queue for good.",
+			"do": [
+				{
+					"push": "state.labsSkipped",
+					"value": "{{id}}"
+				}
+			]
+		},
+		"toggleHideOwned": {
+			"title": "Hide or show games I own",
+			"category": "Store",
+			"description": "Hides the games the person owns from the store's lists, or shows them again.",
+			"do": [
+				{
+					"toggle": "state.labsHideOwned"
+				}
+			]
+		}
+	},
+	"components": {
+		"storeRewards": {
+			"note": "The Rewards page: the points the person has, how they are earned, the kinds of item, and the items to redeem.",
+			"params": {},
+			"node": {
+				"type": "column",
+				"id": "store-rewards-page",
+				"height": "{{(150 + (254 * computed.rewardRows))}}",
+				"anchors": {
+					"left": 0,
+					"right": 0
+				},
+				"children": [
+					{
+						"type": "row",
+						"height": 60,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"alignItems": "center",
+						"gap": 12,
+						"children": [
+							{
+								"type": "label",
+								"font": "title",
+								"grow": 1,
+								"height": 40,
+								"text": "{{upper(t('rewards.title'))}}",
+								"textColor": "@color.bright"
+							},
+							{
+								"type": "label",
+								"id": "rewards-points",
+								"font": "strong",
+								"fitText": true,
+								"padding": 14,
+								"height": 34,
+								"radius": 17,
+								"icon": "star",
+								"text": "{{t('rewards.points', {'n': state.points})}}",
+								"color": "@store.chip",
+								"textColor": "@store.chipText"
+							}
+						]
+					},
+					{
+						"type": "label",
+						"font": "small",
+						"height": 22,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"text": "{{t('rewards.earn')}}",
+						"textColor": "@color.muted"
+					},
+					{
+						"type": "row",
+						"id": "reward-kinds",
+						"height": 52,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"gap": 6,
+						"alignItems": "center",
+						"role": "tablist",
+						"arrows": "horizontal",
+						"children": [
+							{
+								"id": "reward-kind-{{k}}",
+								"repeat": {
+									"for": "k",
+									"in": "{{['all', 'frame', 'background', 'badge', 'sticker']}}"
+								},
+								"style": "pillButton",
+								"role": "tab",
+								"selected": "{{(state.rewardKind == k)}}",
+								"color": "{{((state.rewardKind == k) ? '@color.select' : 'transparent')}}",
+								"textColor": "{{((state.rewardKind == k) ? '@color.bright' : '@color.text')}}",
+								"text": "{{t(('rewards.kind.' + k))}}",
+								"onClick": {
+									"set": "state.rewardKind",
+									"to": "{{k}}"
+								}
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "rewards-grid",
+						"wrap": true,
+						"gap": 14,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"height": "{{(254 * computed.rewardRows)}}",
+						"role": "list",
+						"label": "{{t('rewards.title')}}",
+						"children": [
+							{
+								"type": "column",
+								"id": "reward-{{r.id}}",
+								"repeat": {
+									"for": "r",
+									"in": "computed.rewardsShown",
+									"key": "{{r.id}}"
+								},
+								"let": {
+									"mine": "{{contains(state.rewardsOwned, r.id)}}"
+								},
+								"role": "listitem",
+								"label": "{{t(('rewards.item.' + r.id))}}",
+								"width": "{{computed.rewardWidth}}",
+								"height": 240,
+								"color": "@store.card",
+								"radius": 6,
+								"gap": 8,
+								"children": [
+									{
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 130,
+										"radius": {
+											"topLeft": 6,
+											"topRight": 6
+										},
+										"gradient": {
+											"kind": "linear",
+											"angle": 135,
+											"stops": [
+												"{{r.a}}",
+												"{{r.b}}"
+											]
+										},
+										"children": [
+											{
+												"type": "label",
+												"font": "rewardArt",
+												"icon": "{{r.icon}}",
+												"text": "",
+												"fill": true,
+												"align": "center",
+												"textColor": "#ffffffe0"
+											}
+										]
+									},
+									{
+										"type": "label",
+										"font": "strong",
+										"height": 20,
+										"anchors": {
+											"left": 12,
+											"right": 12
+										},
+										"text": "{{t(('rewards.item.' + r.id))}}",
+										"textColor": "@store.text"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"height": 16,
+										"anchors": {
+											"left": 12,
+											"right": 12
+										},
+										"text": "{{t(('rewards.type.' + r.kind))}}",
+										"textColor": "@color.muted"
+									},
+									{
+										"type": "row",
+										"height": 44,
+										"anchors": {
+											"left": 12,
+											"right": 12
+										},
+										"alignItems": "center",
+										"gap": 8,
+										"children": [
+											{
+												"type": "label",
+												"font": "strong",
+												"fitText": true,
+												"icon": "star",
+												"text": "{{formatNumber(r.cost)}}",
+												"textColor": "@store.chipText"
+											},
+											{
+												"type": "panel",
+												"color": "transparent",
+												"grow": 1,
+												"height": 1
+											},
+											{
+												"type": "label",
+												"when": "{{mine}}",
+												"font": "small",
+												"fitText": true,
+												"padding": 12,
+												"height": 30,
+												"radius": 2,
+												"icon": "check",
+												"text": "{{t('rewards.owned')}}",
+												"color": "@color.raised",
+												"textColor": "@color.muted"
+											},
+											{
+												"when": "{{!(mine)}}",
+												"id": "redeem-{{r.id}}",
+												"use": "ctaButton",
+												"height": 30,
+												"with": {
+													"title": "{{t('rewards.redeem')}}",
+													"enabled": "{{(state.points >= r.cost)}}"
+												},
+												"tooltip": "{{((state.points < r.cost) ? t('rewards.short', {'n': (r.cost - state.points)}) : '')}}",
+												"onClick": {
+													"run": "redeemReward",
+													"with": {
+														"id": "{{r.id}}"
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"storeLabs": {
+			"note": "The Experiments page: ideas to try, each with what it does and the way to turn it on or off.",
+			"params": {},
+			"node": {
+				"type": "column",
+				"id": "store-labs-page",
+				"height": "{{(70 + 14 + (state.labsQueue ? 420 : 124) + 14 + 104)}}",
+				"anchors": {
+					"left": 0,
+					"right": 0
+				},
+				"gap": 14,
+				"children": [
+					{
+						"type": "column",
+						"height": 70,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"children": [
+							{
+								"type": "label",
+								"font": "title",
+								"height": 44,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"text": "{{upper(t('labs.title'))}}",
+								"textColor": "@color.bright"
+							},
+							{
+								"type": "label",
+								"font": "small",
+								"height": 22,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"text": "{{t('labs.about')}}",
+								"textColor": "@color.muted"
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "labs-queue",
+						"height": "{{(state.labsQueue ? 420 : 124)}}",
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"color": "@store.card",
+						"radius": 6,
+						"gap": 0,
+						"children": [
+							{
+								"type": "panel",
+								"height": 26,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"color": "transparent"
+							},
+							{
+								"type": "row",
+								"height": 72,
+								"anchors": {
+									"left": 20,
+									"right": 20
+								},
+								"gap": 14,
+								"alignItems": "center",
+								"children": [
+									{
+										"type": "label",
+										"font": "heading",
+										"icon": "compass",
+										"text": "",
+										"fitText": true,
+										"textColor": "@color.accent"
+									},
+									{
+										"type": "column",
+										"grow": 1,
+										"height": 44,
+										"children": [
+											{
+												"type": "label",
+												"font": "strong",
+												"height": 22,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('labs.queue')}}",
+												"textColor": "@store.text"
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"height": 20,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('labs.queue.about')}}",
+												"textColor": "@color.muted"
+											}
+										]
+									},
+									{
+										"id": "labs-queue-toggle",
+										"use": "quietButton",
+										"with": {
+											"title": "{{t((state.labsQueue ? 'labs.stop' : 'labs.start'))}}",
+											"icon": "{{(state.labsQueue ? 'square' : 'play')}}",
+											"on": "{{state.labsQueue}}"
+										},
+										"onClick": "toggleDiscoveryQueue"
+									}
+								]
+							},
+							{
+								"when": "{{state.labsQueue}}",
+								"anchors": {
+									"left": 20,
+									"right": 20
+								},
+								"height": 300,
+								"color": "transparent",
+								"children": [
+									{
+										"type": "row",
+										"when": "{{(computed.labsGame != null)}}",
+										"let": {
+											"g": "{{computed.labsGame}}"
+										},
+										"fill": true,
+										"gap": 20,
+										"children": [
+											{
+												"type": "image",
+												"id": "labs-queue-art",
+												"file": "../assets/art/{{g.id}}/hero.svg",
+												"width": 480,
+												"height": 270,
+												"radius": 4,
+												"fit": "cover",
+												"cursor": "hand",
+												"label": "{{g.title}}",
+												"onClick": {
+													"run": "openStore",
+													"with": {
+														"id": "{{g.id}}"
+													}
+												}
+											},
+											{
+												"type": "column",
+												"grow": 1,
+												"height": 270,
+												"gap": 8,
+												"children": [
+													{
+														"type": "label",
+														"font": "small",
+														"height": 18,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{t('labs.queue.of', {'n': (state.labsAt + 1), 'total': length(computed.labsGames)})}}",
+														"textColor": "@color.muted"
+													},
+													{
+														"type": "label",
+														"id": "labs-queue-title",
+														"font": "title",
+														"height": 34,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{g.title}}",
+														"textColor": "@color.bright"
+													},
+													{
+														"type": "label",
+														"font": "small",
+														"height": 18,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"text": "{{t(('genre.' + g.genre))}}",
+														"textColor": "@color.muted"
+													},
+													{
+														"type": "row",
+														"height": 24,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"gap": 4,
+														"children": [
+															{
+																"type": "label",
+																"repeat": {
+																	"for": "tag",
+																	"in": "{{slice(g.tags, 0, 3)}}"
+																},
+																"font": "small",
+																"text": "{{tag}}",
+																"fitText": true,
+																"padding": 7,
+																"radius": 2,
+																"color": "@store.chip",
+																"textColor": "@store.chipText"
+															}
+														]
+													},
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"width": 1
+													},
+													{
+														"use": "priceTag",
+														"with": {
+															"g": "{{g}}"
+														}
+													},
+													{
+														"type": "row",
+														"height": 36,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"gap": 6,
+														"alignItems": "center",
+														"children": [
+															{
+																"id": "labs-queue-wish",
+																"use": "quietButton",
+																"with": {
+																	"title": "{{t((contains(state.wishlist, g.id) ? 'store.onWishlist' : 'store.addWishlist'))}}",
+																	"icon": "heart",
+																	"on": "{{contains(state.wishlist, g.id)}}"
+																},
+																"onClick": {
+																	"run": "toggleWishlist",
+																	"with": {
+																		"id": "{{g.id}}"
+																	}
+																}
+															},
+															{
+																"id": "labs-queue-skip",
+																"use": "quietButton",
+																"with": {
+																	"title": "{{t('labs.queue.skip')}}",
+																	"icon": "thumbs-down"
+																},
+																"onClick": {
+																	"run": "skipQueueGame",
+																	"with": {
+																		"id": "{{g.id}}"
+																	}
+																}
+															},
+															{
+																"type": "panel",
+																"color": "transparent",
+																"grow": 1,
+																"height": 1
+															},
+															{
+																"id": "labs-queue-next",
+																"use": "ctaButton",
+																"with": {
+																	"title": "{{t('labs.queue.next')}}"
+																},
+																"onClick": "nextQueueGame"
+															}
+														]
+													}
+												]
+											}
+										]
+									},
+									{
+										"type": "label",
+										"id": "labs-queue-done",
+										"when": "{{(computed.labsGame == null)}}",
+										"fill": true,
+										"align": "center",
+										"text": "{{t('labs.queue.done')}}",
+										"textColor": "@color.muted"
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "labs-hide-owned",
+						"height": 104,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"color": "@store.card",
+						"radius": 6,
+						"children": [
+							{
+								"type": "panel",
+								"height": 16,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"color": "transparent"
+							},
+							{
+								"type": "row",
+								"height": 72,
+								"anchors": {
+									"left": 20,
+									"right": 20
+								},
+								"gap": 14,
+								"alignItems": "center",
+								"children": [
+									{
+										"type": "label",
+										"font": "heading",
+										"icon": "eye-off",
+										"text": "",
+										"fitText": true,
+										"textColor": "@color.accent"
+									},
+									{
+										"type": "column",
+										"grow": 1,
+										"height": 44,
+										"children": [
+											{
+												"type": "label",
+												"font": "strong",
+												"height": 22,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('labs.hideOwned')}}",
+												"textColor": "@store.text"
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"height": 20,
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"text": "{{t('labs.hideOwned.about')}}",
+												"textColor": "@color.muted"
+											}
+										]
+									},
+									{
+										"type": "toggle",
+										"id": "labs-hide-owned-toggle",
+										"width": 40,
+										"height": 22,
+										"label": "{{t('labs.hideOwned')}}",
+										"checked": "{{state.labsHideOwned}}",
+										"activeColor": "@color.accent",
+										"onChange": "toggleHideOwned"
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

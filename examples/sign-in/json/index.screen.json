@@ -27,9 +27,16 @@
 			"size": 13,
 			"fallback": ["iconsSmall", "arabicSmall"]
 		},
+		"strong": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 15,
+			"bold": true,
+			"fallback": ["icons", "arabic"]
+		},
 		"title": {
 			"file": "../../shared/fonts/Roboto-Regular.ttf",
 			"size": 26,
+			"bold": true,
 			"fallback": ["arabicTitle"]
 		},
 		"icons": {
@@ -44,6 +51,10 @@
 			"file": "../../shared/fonts/Lucide.ttf",
 			"size": 22
 		},
+		"hero": {
+			"file": "../../shared/fonts/Lucide.ttf",
+			"size": 30
+		},
 		"mono": {
 			"file": "../../shared/fonts/JetBrainsMono-Regular.ttf",
 			"size": 15
@@ -51,6 +62,7 @@
 		"heading": {
 			"file": "../../shared/fonts/Roboto-Regular.ttf",
 			"size": 19,
+			"bold": true,
 			"fallback": ["icons", "arabicHeading"]
 		},
 		"arabic": {
@@ -169,6 +181,14 @@
 			"light": "#16a34a",
 			"dark": "#4ade80"
 		},
+		"color.success": {
+			"light": "#16a34a",
+			"dark": "#4ade80"
+		},
+		"color.successSoft": {
+			"light": "#dcfce7",
+			"dark": "#14532d80"
+		},
 		"color.shadow": {
 			"light": "#0f172a1f",
 			"dark": "#00000066"
@@ -249,7 +269,21 @@
 		"assistant.warning": {
 			"light": "#fef3c7",
 			"dark": "#3b2e0a"
-		}
+		},
+		"kit.surface": "@color.surface",
+		"kit.text": "@color.text",
+		"kit.body": "@color.muted",
+		"kit.dim": "@color.muted",
+		"kit.border": "@color.border",
+		"kit.primary": "@color.accent",
+		"kit.onPrimary": "@color.accentText",
+		"kit.secondary": "@color.hover",
+		"kit.onSecondary": "@color.text",
+		"kit.accent": "@color.accent",
+		"kit.focus": "@color.accent",
+		"kit.backdrop": "@color.backdrop",
+		"kit.radius": 8,
+		"kit.cardRadius": 16
 	},
 	"colors": {
 		"accent": "#6366f1",
@@ -358,6 +392,12 @@
 			"submitted": false,
 			"error": "",
 			"left": 0
+		},
+		"done": {
+			"email": "",
+			"kind": "",
+			"name": "",
+			"team": false
 		},
 		"shortcutsOpen": false,
 		"forgot": {
@@ -543,6 +583,9 @@
 		"resetTime": "{{floor(max(0, state.reset.left) / 60) + ':' + pad(max(0, state.reset.left) % 60, 2, '0')}}",
 		"sections": "{{[{ name: 'profile', icon: 'user' }, { name: 'emails', icon: 'mail' }, { name: 'security', icon: 'shield-check' }, { name: 'devices', icon: 'monitor-smartphone' }, { name: 'connected', icon: 'link' }, { name: 'activity', icon: 'history' }, { name: 'data', icon: 'trash-2' }]}}",
 		"wide": "{{window.width >= 760}}",
+		"narrow": "{{window.width < 560}}",
+		"cardStyle": "{{window.width < 560 ? 'cardFlat' : 'card'}}",
+		"cardWidth": "{{window.width < 560 ? window.width : min(420, window.width - 32)}}",
 		"avatarColor": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatar' + state.user.avatar : '@color.accentSoft'}}",
 		"avatarText": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatarText' : '@color.accent'}}",
 		"passwordDays": "{{state.user.passwordDays ?? 0}}",
@@ -589,7 +632,8 @@
 		"fieldLabel": {
 			"type": "label",
 			"font": "small",
-			"height": 18,
+			"height": 24,
+			"align": "start end",
 			"color": "transparent",
 			"textColor": "@color.text",
 			"anchors": {
@@ -678,6 +722,7 @@
 		},
 		"primary": {
 			"type": "label",
+			"font": "strong",
 			"height": 46,
 			"anchors": {
 				"left": 0,
@@ -707,6 +752,7 @@
 		},
 		"secondary": {
 			"style": "primary",
+			"font": "default",
 			"color": "transparent",
 			"textColor": "@color.text",
 			"borderWidth": 1,
@@ -802,6 +848,15 @@
 			"fitContent": "height",
 			"scroll": "vertical"
 		},
+		"cardFlat": {
+			"style": "card",
+			"radius": 0,
+			"borderWidth": 0,
+			"color": "transparent",
+			"shadow": {
+				"color": "#00000000"
+			}
+		},
 		"form": {
 			"type": "column",
 			"fitContent": "height",
@@ -826,6 +881,32 @@
 				"y": 6,
 				"blur": 16,
 				"color": "@color.glow"
+			}
+		},
+		"doneRing": {
+			"width": 84,
+			"height": 84,
+			"radius": 42,
+			"color": "@color.successSoft"
+		},
+		"doneBadge": {
+			"type": "label",
+			"font": "hero",
+			"text": "",
+			"width": 60,
+			"height": 60,
+			"radius": 30,
+			"anchors": {
+				"left": 12,
+				"top": 12
+			},
+			"align": "center",
+			"color": "@color.success",
+			"textColor": "@color.accentText",
+			"shadow": {
+				"y": 6,
+				"blur": 16,
+				"color": "@color.successSoft"
 			}
 		},
 		"spacer": {
@@ -922,6 +1003,17 @@
 			"gap": 14,
 			"scroll": "none",
 			"fitContent": false
+		},
+		"subheading": {
+			"type": "label",
+			"font": "strong",
+			"height": 22,
+			"color": "transparent",
+			"textColor": "@color.text",
+			"anchors": {
+				"left": 0,
+				"right": 10
+			}
 		},
 		"heading": {
 			"type": "label",
@@ -2575,16 +2667,16 @@
 				"to": "password"
 			},
 			{
-				"navigate": "signInForm"
-			},
-			{
-				"focus": "#textarea-placeholder"
-			},
-			{
-				"run": "notify",
-				"with": {
-					"message": "{{t('passwordChanged')}}"
+				"set": "state.done",
+				"to": {
+					"email": "{{state.email}}",
+					"kind": "reset",
+					"name": "",
+					"team": false
 				}
+			},
+			{
+				"run": "showDone"
 			}
 		],
 		"saveProfile": [
@@ -3032,10 +3124,16 @@
 				"run": "enter"
 			},
 			{
-				"run": "notify",
-				"with": {
-					"message": "{{computed.inviteValid ? t('joinedTeam', { name: state.pending.name }) : t('welcome', { name: state.pending.name })}}"
+				"set": "state.done",
+				"to": {
+					"email": "{{state.pending.email}}",
+					"kind": "created",
+					"name": "{{state.pending.name}}",
+					"team": "{{computed.inviteValid}}"
 				}
+			},
+			{
+				"run": "showDone"
 			},
 			{
 				"set": "state.username",
@@ -4198,6 +4296,15 @@
 				"note": "The account, its trusted devices and its failed attempts go; nothing is written back"
 			},
 			{
+				"set": "state.done",
+				"to": {
+					"email": "{{state.user.email}}",
+					"kind": "deleted",
+					"name": "",
+					"team": false
+				}
+			},
+			{
 				"set": "state.accounts",
 				"to": "{{filter(state.accounts, lower(it.email) != lower(state.user.email))}}"
 			},
@@ -4217,9 +4324,61 @@
 				"run": "endSession"
 			},
 			{
-				"run": "notify",
-				"with": {
-					"message": "{{t('deleted')}}"
+				"run": "showDone"
+			}
+		],
+		"showDone": [
+			{
+				"note": "The success screen for the flow state.done names, its button focused"
+			},
+			{
+				"set": "state.toast.open",
+				"to": false
+			},
+			{
+				"navigate": "done"
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "#doneButton"
+					}
+				]
+			}
+		],
+		"leaveDone": [
+			{
+				"note": "The success screen's button: a new account's page, else the sign-in form at the step it was left on"
+			},
+			{
+				"if": "{{state.done.kind == 'created'}}",
+				"then": [
+					{
+						"navigate": "signedIn"
+					}
+				],
+				"else": [
+					{
+						"navigate": "signInForm"
+					},
+					{
+						"after": 0,
+						"do": [
+							{
+								"focus": "#textarea-placeholder"
+							}
+						]
+					}
+				]
+			},
+			{
+				"set": "state.done",
+				"to": {
+					"email": "",
+					"kind": "",
+					"name": "",
+					"team": false
 				}
 			}
 		]
@@ -4243,8 +4402,8 @@
 			"children": [
 				{
 					"id": "card",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-top",
@@ -4448,6 +4607,8 @@
 										{
 											"id": "label-password",
 											"style": "fieldLabel",
+											"height": 18,
+											"align": "start center",
 											"anchors": {},
 											"fitText": true,
 											"text": "{{t('password')}}"
@@ -4699,8 +4860,8 @@
 			"children": [
 				{
 					"id": "panel-card",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "panel-card-top",
@@ -5010,8 +5171,8 @@
 			"children": [
 				{
 					"id": "card-two-step",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-two-step-top",
@@ -5214,8 +5375,8 @@
 			"children": [
 				{
 					"id": "card-reset",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-reset-top",
@@ -5373,6 +5534,100 @@
 				"ms": 1000,
 				"do": "resetTick"
 			}
+		},
+		"done": {
+			"id": "panel-done",
+			"style": "screen",
+			"children": [
+				{
+					"id": "card-done",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
+					"children": [
+						{
+							"id": "card-done-top",
+							"height": 44,
+							"color": "transparent"
+						},
+						{
+							"id": "stack-done",
+							"style": "form",
+							"role": "status",
+							"live": "polite",
+							"label": "{{t('doneTitle', { kind: state.done.kind, name: state.done.name })}}",
+							"children": [
+								{
+									"type": "row",
+									"id": "row-done-badge",
+									"height": 84,
+									"justify": "center",
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "done-ring",
+											"style": "doneRing",
+											"children": [
+												{
+													"id": "done-badge",
+													"style": "doneBadge",
+													"icon": "{{state.done.kind == 'deleted' ? 'user-x' : state.done.kind == 'created' ? 'party-popper' : 'check'}}"
+												}
+											]
+										}
+									]
+								},
+								{
+									"id": "spacer-done",
+									"style": "spacer",
+									"height": 10
+								},
+								{
+									"id": "label-done-title",
+									"style": "title",
+									"align": "center",
+									"role": "heading",
+									"text": "{{t('doneTitle', { kind: state.done.kind, name: state.done.name })}}"
+								},
+								{
+									"id": "label-done-text",
+									"style": "caption",
+									"align": "center",
+									"wrap": true,
+									"height": 44,
+									"text": "{{t('doneText', { kind: state.done.kind, email: state.done.email, team: state.done.team })}}"
+								},
+								{
+									"id": "spacer-done-button",
+									"style": "spacer",
+									"height": 10
+								},
+								{
+									"id": "doneButton",
+									"style": "primary",
+									"icon": "{{state.done.kind == 'deleted' ? 'arrow-left' : state.done.kind == 'created' ? 'arrow-right' : 'log-in'}}",
+									"text": "{{t('doneButton', { kind: state.done.kind })}}",
+									"onClick": "leaveDone"
+								},
+								{
+									"id": "doneOther",
+									"when": "{{state.done.kind == 'deleted'}}",
+									"style": "link",
+									"text": "{{t('doneOther')}}",
+									"onClick": "toCreate"
+								}
+							]
+						},
+						{
+							"id": "card-done-end",
+							"height": 36,
+							"color": "transparent"
+						}
+					]
+				}
+			]
 		},
 		"signedIn": {
 			"id": "panel-signed-in",
@@ -5940,7 +6195,7 @@
 														{
 															"type": "row",
 															"id": "row-two-step",
-															"height": 36,
+															"height": 52,
 															"gap": 12,
 															"alignItems": "center",
 															"anchors": {
@@ -5949,53 +6204,64 @@
 															},
 															"children": [
 																{
-																	"type": "toggle",
-																	"id": "twoStep",
-																	"width": 44,
-																	"height": 24,
-																	"role": "switch",
-																	"focusable": true,
-																	"label": "{{t('twoStep')}}",
-																	"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
-																	"checked": "{{state.user.twoStep}}",
-																	"activeColor": "@color.accent",
-																	"trackColor": "@color.border",
-																	"onChange": {
-																		"run": "setTwoStep",
-																		"with": {
-																			"on": "{{event.value}}"
-																		}
-																	},
-																	"keys": {
-																		"space": {
-																			"run": "setTwoStep",
-																			"with": {
-																				"on": "{{!state.user.twoStep}}"
-																			}
-																		},
-																		"enter": {
-																			"run": "setTwoStep",
-																			"with": {
-																				"on": "{{!state.user.twoStep}}"
-																			}
-																		}
-																	}
+																	"id": "two-step-icon",
+																	"style": "itemIcon",
+																	"icon": "shield-check"
 																},
 																{
 																	"type": "column",
 																	"id": "column-two-step",
-																	"grow": 1,
-																	"height": 36,
 																	"children": [
 																		{
 																			"id": "label-two-step-name",
-																			"style": "fieldLabel",
+																			"style": "itemTitle",
 																			"text": "{{t('twoStep')}}"
 																		},
 																		{
 																			"id": "label-two-step-state",
-																			"style": "hint",
+																			"style": "itemHint",
 																			"text": "{{t('twoStepState', { on: state.user.twoStep })}}"
+																		}
+																	],
+																	"style": "itemText"
+																},
+																{
+																	"id": "twoStep",
+																	"width": 44,
+																	"height": 24,
+																	"radius": 12,
+																	"color": "{{state.user.twoStep ? '@color.accent' : '@color.border'}}",
+																	"cursor": "hand",
+																	"role": "switch",
+																	"focusable": true,
+																	"label": "{{t('twoStep')}}",
+																	"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
+																	"selected": "{{state.user.twoStep}}",
+																	"transition": {
+																		"color": 120
+																	},
+																	"onClick": {
+																		"run": "setTwoStep",
+																		"with": {
+																			"on": "{{!state.user.twoStep}}"
+																		}
+																	},
+																	"children": [
+																		{
+																			"id": "twoStep-knob",
+																			"width": 18,
+																			"height": 18,
+																			"radius": 9,
+																			"color": "#ffffff",
+																			"anchors": {
+																				"left": "{{state.user.twoStep ? 23 : 3}}",
+																				"top": 3
+																			},
+																			"shadow": {
+																				"y": 1,
+																				"blur": 3,
+																				"color": "@color.shadow"
+																			}
 																		}
 																	]
 																}
@@ -6098,7 +6364,7 @@
 												},
 												{
 													"id": "label-passkeys",
-													"style": "fieldLabel",
+													"style": "subheading",
 													"text": "{{t('passkeys')}}",
 													"role": "heading"
 												},
@@ -6495,10 +6761,11 @@
 	},
 	"root": {
 		"id": "panel-root",
-		"color": "@color.background",
+		"color": "{{computed.narrow ? '@color.surface' : '@color.background'}}",
 		"children": [
 			{
 				"id": "glow",
+				"when": "{{!computed.narrow}}",
 				"width": 520,
 				"height": 520,
 				"radius": 999,
@@ -6512,6 +6779,7 @@
 			},
 			{
 				"id": "glow-2",
+				"when": "{{!computed.narrow}}",
 				"width": 460,
 				"height": 460,
 				"radius": 999,
@@ -6819,7 +7087,7 @@
 						"anchors": {
 							"left": 176,
 							"right": 20,
-							"top": 90
+							"top": 84
 						}
 					},
 					{
@@ -6882,7 +7150,7 @@
 						"anchors": {
 							"left": 20,
 							"right": 20,
-							"top": 232
+							"top": 222
 						}
 					},
 					{

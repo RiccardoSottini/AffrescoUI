@@ -397,7 +397,8 @@
 (defn finishDelete "The account, its trusted devices and its failed attempts go; nothing is written back." []
   (set "state.accounts" (remove of-user? state.accounts))
   (set "state.trusted" (remove of-user? state.trusted))
-  (set "state.user.email" "")
-  (set "state.email" "")
-  (end-session)
-  (notify (t "deleted")))
+  (let [gone state.user.email]
+    (set "state.user.email" "")
+    (set "state.email" "")
+    (end-session)
+    (show-done {:kind "deleted" :email gone})))

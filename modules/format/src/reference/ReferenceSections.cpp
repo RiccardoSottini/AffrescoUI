@@ -18,7 +18,9 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
-	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
+	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and "
+	 "it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `\"fill\": true` "
+	 "(`affrescoui check` reports a container root).",
 	 "sections"},
     {"format", R"json({"const": "affrescoui-screen"})json", "`\"affrescoui-screen\"`, for tools.", "sections"},
     {"note", R"json({"type": "string"})json", "A comment.", "sections"},
@@ -491,7 +493,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"edit", "",
 	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
 	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
-	 R"("word", "selection" or "line")",
+	 R"("word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over )"
+	 R"(that range; "scrollCaretToCenter", "scrollCaretToTop" and "scrollCaretToBottom" scroll the caret's row there)",
 	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
@@ -510,6 +513,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"(`{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`))",
 	 "steps"},
     {"copy", "", R"(`{ "copy": "{{state.link}}" }`: to the clipboard)", "steps"},
+    {"paste", R"json({"const": "text"})json",
+	 R"(`{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step)",
+	 "steps"},
     {"lisp", "",
 	 R"(`{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too))",
 	 "steps"},
@@ -573,7 +579,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"image", "", R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
-		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+		"eq", "master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"

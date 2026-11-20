@@ -1,0 +1,52 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Theme colours of one's own: the format pane, with nothing selected, lists the ten theme colours with their hex codes; typing a code and Enter gives the deck that colour, as its own colours (state.deck.colors is then 'own', state.deck.ownColors the ten), saved with the deck. A theme, a variant or another theme's colours chosen after put the theme's back.",
+
+	"state": {
+		"colorDraft": {}
+	},
+
+	"computed": {
+		"ownColorsOn": "{{state.deck.colors == 'own'}}"
+	},
+
+	"actions": {
+		"setOwnColor": [
+			{ "note": "with: slot, whose typed hex code (#rrggbb) becomes one of the deck's own colours; a bad code is dropped" },
+			{ "if": "{{length(trim(state.colorDraft[slot] ?? '')) == 7 && slice(trim(state.colorDraft[slot] ?? ''), 0, 1) == '#'}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.ownColors", "to": "{{merge(computed.ownColorsOn ? state.deck.ownColors ?? computed.colors : computed.colors, fromEntries([{ key: slot, value: lower(trim(state.colorDraft[slot])) }]))}}" },
+				{ "set": "state.deck.colors", "to": "own" }
+			] },
+			{ "set": "state.colorDraft", "to": "{{fromEntries(filter(entries(state.colorDraft), it.key != slot))}}" }
+		]
+	},
+
+	"components": {
+		"formatOwnColors": {
+			"params": {},
+			"note": "The theme's ten colours, each with its hex code to type over; Reset puts the theme's back.",
+			"node": {
+				"type": "column", "id": "format-own-colors", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 3, "color": "transparent",
+				"children": [
+					{ "type": "row", "id": "format-own-head", "width": 236, "height": 18, "alignItems": "center", "color": "transparent", "children": [
+						{ "type": "label", "id": "format-own-title", "grow": 1, "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Theme colours", "size": 12 }] },
+						{ "type": "label", "id": "format-own-reset", "when": "{{computed.ownColorsOn}}", "height": 18, "fitText": true, "padding": 4, "style": "rbButton",
+						  "runs": [{ "icon": "rotate-ccw", "size": 11 }, { "text": " Reset", "size": 11 }], "tooltip": "The theme's own colours again",
+						  "onClick": { "run": "setColorSet", "with": { "id": null } } }
+					] },
+					{ "type": "row", "id": "{{'own-' + slot}}", "repeat": { "for": "slot", "in": "{{computed.slotNames}}", "key": "{{slot}}" }, "width": 236, "height": 22, "gap": 6, "alignItems": "center", "color": "transparent",
+					  "children": [
+						{ "id": "{{'own-' + slot + '-swatch'}}", "width": 18, "height": 18, "radius": 3, "color": "{{computed.palette[slot]}}", "borderWidth": 1, "borderColor": "@rbFieldLine" },
+						{ "type": "label", "id": "{{'own-' + slot + '-name'}}", "grow": 1, "height": 20, "textColor": "@rbInk", "runs": [{ "text": "{{computed.slotTitles[slot]}}", "size": 12 }] },
+						{ "type": "textarea", "id": "{{'own-' + slot + '-hex'}}", "width": 76, "height": 22, "padding": 4, "radius": 4, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+						  "textColor": "@rbInk", "bind": "{{'state.colorDraft.' + slot}}", "placeholder": "{{computed.colors[slot]}}", "placeholderColor": "@rbMuted",
+						  "label": "{{'Hex code for ' + computed.slotTitles[slot]}}", "onSubmit": { "run": "setOwnColor", "with": { "slot": "{{slot}}" } } }
+					  ] }
+				]
+			}
+		}
+	}
+}

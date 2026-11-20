@@ -425,6 +425,12 @@
   (set "state.editing" false)
   (set "state.cardEdit.open" false))
 
+(defn hide-card "Takes a card off the dashboard, by its key in state.cards; Add card puts it back." [card]
+  (set "state.hiddenCards" (conj state.hiddenCards card)))
+
+(defn add-card "Puts a card taken off the dashboard back, by its key in state.cards." [card]
+  (set "state.hiddenCards" (filter #(not= % card) state.hiddenCards)))
+
 (defn edit-card "Opens the editor of a card, by its key in state.cards." [card]
   (set "state.cardEdit" {:open true :id card :code false :draft (get state.cards card) :text "" :error ""}))
 
@@ -527,6 +533,20 @@
         (set "state.page" id))))
 
 (defn show-device-tab "Shows a tab of the devices and controls." [tab] (set "state.devTab" tab))
+
+(defn show-energy-day "Shows a day on the energy page: 0 is today, 6 the oldest kept." [day]
+  (set "state.energyDay" (clamp day 0 6)))
+
+(defn step-energy-day "Moves the energy page a day back (1) or forward (-1), within the days kept." [step]
+  (show-energy-day (+ state.energyDay step)))
+
+(defn pick-log-period "The logbook's period: today, yesterday, twoDays or week." [period]
+  (set "state.logPeriod" period))
+
+(defn pick-hist-day "The day history shows: 0 is today, 6 the oldest kept." [day] (set "state.histDay" (clamp day 0 6)))
+
+(defn pick-device-filter "Narrows the devices' tables to a room or a connection, or empty for all." [filter]
+  (set "state.devFilter" filter))
 
 (defn show-energy-view "What the energy page's week is by: day, device or room." [view] (set "state.energyView" view))
 

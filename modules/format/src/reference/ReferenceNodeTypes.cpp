@@ -22,8 +22,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"})json",
 	 R"(A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1.)", "editor"},
     {"viewport", R"json({"type": "string",
-		"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines } (lines from 1)"})json",
-	 R"(A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators.)",
+		"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines, rowHeight } (lines from 1)"})json",
+	 R"(A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars.)",
 	 "editor"},
     {"font", "", "Font and text colour.", "editor"},
     {"textColor", "", "", "editor"},
@@ -600,9 +600,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "marker), Home and End (the play range's ends) move it and run `onScrub`.",
 	 "timeline"},
     {"timeFormat",
-	 R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"` or `\"timecode\"` (`HH:MM:SS:FF`). Its ticks "
-	 "follow the zoom.",
+	 R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode", "none"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"`, `\"timecode\"` (`HH:MM:SS:FF`) or `\"none\"` "
+	 "(ticks only, for markers that name the times, as a roadmap's months). Its ticks follow the zoom.",
 	 "timeline"},
     {"playRange",
 	 R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
@@ -613,6 +613,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"snap", "flag",
 	 "Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the "
 	 "play range and the playhead. Alt held at the press leaves it off for that drag.",
+	 "timeline"},
+    {"trackButtons", "flag",
+	 "Whether each track shows its M and L buttons, and the M and L keys mute and lock it (the default); `false` for "
+	 "tracks that are never muted or locked, such as a roadmap's projects.",
 	 "timeline"},
     {"pixelsPerSecond",
 	 R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v2/dynamic"}],

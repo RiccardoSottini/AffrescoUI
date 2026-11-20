@@ -16,8 +16,13 @@
    :bookmark {:run addBookmark :group "4_places" :order 1}
    :deleteBookmark {:run deleteBookmark :group "4_places" :order 2}
    :eclipses {:run openEclipses :group "4_places" :order 3}
+   :tour {:run playTour :group "4_places" :order 4}
+   :north {:run goNorth :group "5_where" :order 1}
+   :south {:run goSouth :group "5_where" :order 2}
+   :find {:run findObject :group "1_go" :order 5}
    :renderOptions {:run openRender :group "2_show" :order 7}
    :theme {:run toggleTheme :group "2_show" :order 8}
+   :night {:run toggleNight :group "2_show" :order 9}
    :stars {:run toggleStars :group "2_show" :order 4}
    :shading {:run toggleShading :group "2_show" :order 5}
    :glow {:run toggleGlow :group "2_show" :order 6}
@@ -32,13 +37,15 @@
    :realTime {:run realTime :group "1_rate" :order 4}
    :reverse {:run reverse :title ~(t "time.reverseTime") :group "1_rate" :order 5}
    :now {:run day-zero :title ~(t "time.dayZero") :group "2_set" :order 1}
-   :eclipses {:run openEclipses :group "2_set" :order 2}})
+   :eclipses {:run openEclipses :group "2_set" :order 2}
+   :findDay {:run ask-day :title ~(t "time.goToDay") :group "2_set" :order 3}})
 
 (defcomputed viewMenu "The View menu's items, checked as they are on."
   (map (fn [it]
          (merge it
                 {:checked (case it.run
                             :toggleTheme (= state.theme :light)
+                            :toggleNight (= state.theme :night)
                             :toggleOrbits state.showOrbits
                             :toggleLabels state.showLabels
                             :toggleBrowser state.showBrowser
@@ -46,6 +53,7 @@
                             :toggleShading state.showShading
                             :toggleGlow state.showGlow
                             :toggleMarker (>= (indexOf state.markers state.selected) 0)
+                            :playTour state.touring
                             :follow (and (not= state.follow "") (some? state.follow))
                             false)}))
        menus.view))

@@ -27,5 +27,12 @@
                          :gradient {:gesture gradient}
                          :fill {:gesture fill}
                          :eyedropper {:gesture sample}
+                         :type {:gesture text :vector {:size 48}}
+                         :rectangle-shape {:gesture shape :vector {:shape rectangle}}
+                         :ellipse-shape {:gesture shape :vector {:shape ellipse}}
+                         :polygon-shape {:gesture shape :vector {:shape polygon}}
+                         :line-shape {:gesture shape :vector {:shape line}}
+                         :pen {:gesture pen}
+                         :path-select {:gesture path-select}
                          :hand {:gesture pan}
                          :zoom {:gesture zoom}}}})

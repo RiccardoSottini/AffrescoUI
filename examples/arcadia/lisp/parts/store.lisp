@@ -29,8 +29,9 @@
 (defcomputed price "Every game's price after its discount, in the order of the games."
   (map #(/ (round (* (:price %) (- 100 (:discount %)))) 100) data.games))
 
-(defcomputed storeGames "The games the store sells: every game but those added from this computer."
-  (remove :local data.games))
+(defcomputed storeGames
+  "The games the store sells: every game but those added from this computer, and those owned when the experiment hides them."
+  (remove #(or (:local %) (and state.labsHideOwned (:owned %))) data.games))
 
 (defcomputed featured "The games of the featured carousel."
   (filter #(contains? #{"aurora" "glasswing" "clockwork" "rivermill" "volt"} (:id %)) data.games))
@@ -86,6 +87,8 @@
        :app 1670
        :cart (+ 140 (cart-height))
        :wishlist (wishlist-height)
+       :points (rewards-height)
+       :labs (labs-height)
        1960)))
 
 ;;; The store's looks
@@ -224,7 +227,9 @@
            :use storeApp
            :with {:g ~computed.game})
          (node :when ~(= computed.storeView "cart") :use storeCart)
-         (node :when ~(= computed.storeView "wishlist") :use storeWishlist)))
+         (node :when ~(= computed.storeView "wishlist") :use storeWishlist)
+         (node :when ~(= computed.storeView "points") :use storeRewards)
+         (node :when ~(= computed.storeView "labs") :use storeLabs)))
      (node :use dialog
        :with {:open state.cartDialog
               :title ~(t "store.addedTitle")
@@ -255,15 +260,16 @@
      (panel :color transparent :height 10 :width 1)))
 
 (defview store-links "The wishlist and, when it holds a game, the cart, each with how many games it holds." []
-  `(row :height 40 :anchors {:left 0 :right 0} :alignItems center :gap 3
+  `(row :height 40 :anchors {:left 0 :right 0} :alignItems center :gap 6
      (panel :color transparent :grow 1 :height 1)
      (label#store-wishlist :font small
        :fitText true
        :padding 14
+       :icon heart
        :text ~(str (upper-case (t "store.wishlist")) " (" (count state.wishlist) ")")
        :color @store.chip
        :textColor @store.text
-       :radius 2
+       :radius 20
        :focusable true
        :role button
        :cursor hand
@@ -273,8 +279,9 @@
        :font small
        :fitText true
        :padding 14
+       :icon shopping-cart
        :text ~(str (upper-case (t "store.cart")) " (" (count state.cart) ")")
-       :radius 2
+       :radius 20
        :color transparent
        :gradient {:kind linear :angle 90 :stops [@store.cta @store.ctaEnd]}
        :textColor @store.onCta
@@ -284,18 +291,18 @@
        :hover {:textColor "#ffffff"}
        :onClick showCart)))
 
-(defview bar-link "A store bar link: Categories opens a menu of genres; Rewards and Experiments are for later."
+(defview bar-link "A store bar link, lit on its page: Categories opens a menu of genres, the others go to their page."
   [item]
   `(label :id ~(str "store-bar-" item)
-     :let {:later ~(contains ["points" "labs"] item)}
+     :let {:here ~(and (= computed.here.tab "store") (= computed.storeView (get {"yours" "home" "points" "points" "labs" "labs"} item)))}
      :fitText true
      :padding 13
      :height 30
      :radius 15
      :text ~(t (str "store.bar." item))
-     :textColor ~(if later "@color.dim" "@color.text")
-     :disabled ~later
-     :tooltip ~(if later (t "store.later") "")
+     :color ~(if here "@color.select" "transparent")
+     :textColor ~(if here "@color.bright" "@color.text")
+     :selected ~here
      :focusable true
      :role button
      :cursor hand

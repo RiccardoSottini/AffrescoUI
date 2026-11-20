@@ -30,10 +30,12 @@
        :font small
        :wrap true
        :text ~(t "mine.unavailable")
+       :icon info
+       :align "start center"
        :textColor @c.muted
        :color @c.raised
        :radius 10
-       :padding 10
+       :padding 12
        :anchors {:left 36 :right 36 :top 108}
        :height 40
        :role status)
