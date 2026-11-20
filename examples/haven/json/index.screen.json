@@ -140,6 +140,7 @@
 			{
 				"name": "Living room",
 				"image": "../assets/images/living-room.svg",
+				"tint": "#1e3a5f",
 				"temp": 21.5,
 				"target": 22,
 				"humidity": 44,
@@ -155,6 +156,7 @@
 			{
 				"name": "Kitchen",
 				"image": "../assets/images/kitchen.svg",
+				"tint": "#134e4a",
 				"temp": 20.5,
 				"target": 21,
 				"humidity": 51,
@@ -168,6 +170,7 @@
 			{
 				"name": "Bedroom",
 				"image": "../assets/images/bedroom.svg",
+				"tint": "#312e81",
 				"temp": 19,
 				"target": 18.5,
 				"humidity": 47,
@@ -182,6 +185,7 @@
 			{
 				"name": "Office",
 				"image": "../assets/images/office.svg",
+				"tint": "#1f2937",
 				"temp": 22,
 				"target": 22,
 				"humidity": 40,
@@ -222,7 +226,7 @@
 		"mode": {"type": "string"},
 		"modes": {"type": "array", "items": {"type": "string"}},
 		"scene": {"type": "string"},
-		"rooms": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "image": {"type": "string"}, "temp": {"type": "number"}, "target": {"type": "number"}, "humidity": {"type": "number"}, "blinds": {"type": "number"}, "kwh": {"type": "number"}, "lights": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "on": {"type": "boolean"}, "level": {"type": "number"}, "color": {"type": "string"}}}}}}},
+		"rooms": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "image": {"type": "string"}, "tint": {"type": "string"}, "temp": {"type": "number"}, "target": {"type": "number"}, "humidity": {"type": "number"}, "blinds": {"type": "number"}, "kwh": {"type": "number"}, "lights": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "on": {"type": "boolean"}, "level": {"type": "number"}, "color": {"type": "string"}}}}}}},
 		"devices": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "icon": {"type": "string"}, "iconOff": {"type": "string"}, "on": {"type": "boolean"}, "busy": {"type": "boolean"}, "progress": {"type": "number"}}}},
 		"toast": {"type": "object", "properties": {"open": {"type": "boolean"}, "message": {"type": "string"}}},
 		"scenes": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "key": {"type": "string"}, "action": {"type": "string"}, "icon": {"type": "string"}}}},
@@ -519,7 +523,7 @@
 								"color": "transparent",
 								"scroll": "vertical",
 								"children": [
-									{ "id": "areaCard", "when": "{{!computed.compact}}", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 120, "radius": 18, "color": "@card",
+									{ "id": "areaCard", "when": "{{!computed.compact}}", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 120, "radius": 18, "color": "{{computed.room.tint}}",
 										"role": "group", "label": "{{computed.room.name}}", "children": [
 										{ "type": "image", "id": "roomImage", "file": "{{computed.room.image}}", "fit": "cover", "radius": 18, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 }, "label": "{{computed.room.name}}" },
 										{ "id": "areaShade", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 44, "color": "#00000088", "radius": 18 },

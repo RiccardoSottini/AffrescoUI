@@ -235,7 +235,7 @@
      :anchors {:left 0 :right 0 :top 0}
      :height 120
      :radius 18
-     :color @card
+     :color ~computed.room.tint
      :role group
      :label ~computed.room.name
      (image#roomImage :file ~computed.room.image
