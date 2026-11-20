@@ -196,8 +196,10 @@
   (find-problems))
 
 (defn prepare
-  "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems."
+  "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems; the
+  assistant's launcher sits above the status bar."
   []
+  (set "state.assistant.floor" 24)
   (set (place 3 "text") (->> (range 5000) (map sensor-line) (str/join "\n")))
   (doseq [[f file] (map-indexed vector state.files)] (set (place f "saved") (:text file)))
   (set "state.symbolIndex" (map (constantly []) state.files))

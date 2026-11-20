@@ -917,7 +917,8 @@
 	"onLoad": [
 		{
 			"run": "syncScene"
-		}
+		},
+		{ "set": "state.assistant.floor", "to": 24 }
 	],
 	"styles": {
 		"button": {

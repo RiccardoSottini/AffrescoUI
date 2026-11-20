@@ -294,7 +294,8 @@
 
 	"actions": {
 		"prepare": [
-			{ "note": "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems" },
+			{ "note": "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems; the assistant's launcher sits above the status bar" },
+			{ "set": "state.assistant.floor", "to": 24 },
 			{
 				"set": "state.files[3].text",
 				"to": "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"
