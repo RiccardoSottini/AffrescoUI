@@ -274,10 +274,11 @@
 
 (defview ribbon "The ribbon: the commands of the tab chosen." []
   `(node#ribbon :height 100 :color @rb :when ~state.ribbon
-     ~(ribbon-tabs)))
+     ~(ribbon-tabs "ribbon-body")))
 
-(defview ribbon-tabs "The commands of the tab chosen, in the pinned ribbon or over the slide." []
-  `(node#ribbon-body :y 2 :anchors {:left 8 :right 8} :height 92 :color transparent
+(defview ribbon-tabs "The commands of the tab chosen, in the pinned ribbon or over the slide: `id` names their row."
+  [id]
+  `(node :id ~id :y 2 :anchors {:left 8 :right 8} :height 92 :color transparent
      (node :use tabHome :when ~(= state.tab "home"))
      (node :use tabInsert :when ~(= state.tab "insert"))
      (node :use tabDesign :when ~(= state.tab "design"))

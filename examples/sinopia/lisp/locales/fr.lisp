@@ -57,6 +57,7 @@
                 :bar.showTheCommandsCtrlF1 "Afficher les commandes (Ctrl+F1)"
                 :bar.pinTheRibbon "Garder le ruban ouvert (Ctrl+F1)"
                 :bar.ribbon "Ruban"
+                :bar.keyHints "Touches d'accès"
                 :bar.present2 " Présenter"
                 :bar.presentFromThisSlideShift "Présenter à partir de cette diapositive (Maj+F5)"
                 :bar.slides "Diapositives"

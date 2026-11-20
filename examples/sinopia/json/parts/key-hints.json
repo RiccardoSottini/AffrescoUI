@@ -1,0 +1,52 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Key hints: Alt pressed alone shows a letter on every tab and a digit on every quick command; that key then opens the tab or runs the command, and Alt, Escape or any other key hides them. The hints are a layer over the window that takes the keys while it is open (its \"*\"); each badge is placed under its command.",
+
+	"state": {
+		"keyHints": false
+	},
+
+	"computed": {
+		"tabKeys": { "file": "f", "home": "h", "insert": "n", "draw": "d", "design": "g", "transitions": "k", "animations": "a", "slideShow": "s", "record": "c", "review": "r", "view": "w", "help": "y", "shapeFormat": "j" },
+		"hintKeys": "{{concat(map(concat(computed.tabs, computed.contextTabs), { key: computed.tabKeys[it.id], target: '#tab-' + it.id + '-label', tab: it.id }), [{ key: '1', target: '#qat-undo' }, { key: '2', target: '#qat-redo' }, { key: '3', target: '#qat-save' }, { key: '4', target: '#qat-present' }])}}"
+	},
+
+	"keys": {
+		"alt": [{ "when": "{{!state.show.on}}", "do": [{ "toggle": "state.keyHints" }] }]
+	},
+
+	"components": {
+		"keyHintsLayer": {
+			"params": {},
+			"note": "The key hints: a badge under every tab and quick command, and the keys they take.",
+			"node": {
+				"id": "key-hints", "overlay": { "placement": "window" }, "x": 0, "y": 0, "width": 1, "height": 1, "color": "transparent",
+				"focusable": true, "autofocus": true, "label": "Key hints",
+				"keys": { "*": "keyHint" },
+				"children": [
+					{ "type": "label", "id": "{{'hint-' + h.key}}", "repeat": { "for": "h", "in": "{{computed.hintKeys}}", "key": "{{h.key}}" },
+					  "overlay": { "anchor": "{{h.target}}", "placement": "below" }, "width": 18, "height": 18, "radius": 4, "align": "center",
+					  "color": "@rbInk", "textColor": "@rb", "runs": [{ "text": "{{upper(h.key)}}", "size": 11, "bold": true }] }
+				]
+			}
+		}
+	},
+
+	"overlays": {
+		"zHints": { "use": "keyHintsLayer", "when": "{{state.keyHints}}" }
+	},
+
+	"actions": {
+		"keyHint": [
+			{ "set": "state.keyHints", "to": false },
+			{ "if": "{{find(computed.hintKeys, it.key == event.key).tab != null}}",
+			  "then": [{ "set": "state.tab", "to": "{{find(computed.hintKeys, it.key == event.key).tab}}" }, { "set": "state.ribbonPeek", "to": "{{!state.ribbon}}" }] },
+			{ "if": "{{event.key == '1'}}", "then": [{ "run": "undo" }] },
+			{ "if": "{{event.key == '2'}}", "then": [{ "run": "redo" }] },
+			{ "if": "{{event.key == '3'}}", "then": [{ "run": "saveDeck" }] },
+			{ "if": "{{event.key == '4'}}", "then": [{ "run": "present", "with": { "from": 0 } }] }
+		]
+	}
+}

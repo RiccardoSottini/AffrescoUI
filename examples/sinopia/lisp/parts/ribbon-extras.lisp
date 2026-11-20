@@ -19,7 +19,7 @@
      :shadow {:y 6 :blur 16 :color "#00000038"}
      :role toolbar
      :label ~(t "bar.ribbon")
-     ~(ribbon-tabs)
+     ~(ribbon-tabs "ribbon-peek-body")
      (label#ribbon-pin :style barIcon
        :anchors {:right 10 :bottom 2}
        :width 22

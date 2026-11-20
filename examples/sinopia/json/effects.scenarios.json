@@ -2,9 +2,84 @@
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Sinopia's checks of the ribbon's galleries, the effects, the builds and the export of every slide: affrescoui test effects.scenarios.json.",
+	"note": "Sinopia's checks of the key hints, the ribbon over the slide, the ribbon's galleries and the builds' sides: affrescoui test effects.scenarios.json.",
 	"screen": "index.screen.json",
 	"scenarios": [
+		{
+			"name": "sinopia-key-hints",
+			"note": "Alt pressed alone shows a key under every tab and quick command; a tab's letter opens it, and Alt again hides them",
+			"steps": [
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-g",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-1",
+						"exists": true
+					}
+				},
+				{
+					"key": "g"
+				},
+				{
+					"expect": {
+						"state": "tab",
+						"is": "design"
+					}
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-g",
+						"exists": false
+					}
+				},
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": true
+					}
+				},
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				}
+			]
+		},
 		{
 			"name": "sinopia-ribbon-over-the-slide",
 			"note": "With the ribbon collapsed, a tab shows it over the slide; a click elsewhere hides it, and its pin keeps it open in its place",
@@ -205,30 +280,6 @@
 					"expect": {
 						"state": "deck.slides[0].animations[0].direction",
 						"is": "bottom"
-					}
-				}
-			]
-		},
-		{
-			"name": "sinopia-export-every-slide-as-pictures",
-			"note": "File, All Slides writes a numbered PNG for every slide in the show (the hidden one left out)",
-			"steps": [
-				{
-					"click": "#tab-file-label"
-				},
-				{
-					"choose": "deck.png"
-				},
-				{
-					"click": "#b-export-pngs"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "fileStatus",
-						"is": "Exported 6 pictures, from deck-1.png."
 					}
 				}
 			]

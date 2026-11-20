@@ -15,9 +15,9 @@
 
 	"components": {
 		"ribbonTabs": {
-			"params": {},
-			"note": "The commands of the tab chosen, in the pinned ribbon or over the slide.",
-			"node": { "id": "ribbon-body", "y": 2, "anchors": { "left": 8, "right": 8 }, "height": 92, "color": "transparent",
+			"params": { "rowId": "ribbon-body" },
+			"note": "The commands of the tab chosen, in the pinned ribbon or over the slide: rowId names their row.",
+			"node": { "id": "{{rowId}}", "y": 2, "anchors": { "left": 8, "right": 8 }, "height": 92, "color": "transparent",
 				  "children": [
 					{ "use": "tabHome", "when": "{{state.tab == 'home'}}" },
 					{ "use": "tabInsert", "when": "{{state.tab == 'insert'}}" },
@@ -42,7 +42,7 @@
 				"anchors": { "left": 0, "right": 0, "top": 45 }, "height": 100, "color": "@rb",
 				"shadow": { "y": 6, "blur": 16, "color": "#00000038" }, "role": "toolbar", "label": "Ribbon",
 				"children": [
-					{ "use": "ribbonTabs" },
+					{ "use": "ribbonTabs", "with": { "rowId": "ribbon-peek-body" } },
 					{ "type": "label", "id": "ribbon-pin", "style": "barIcon", "anchors": { "right": 10, "bottom": 2 }, "width": 22, "height": 22,
 					  "runs": [{ "icon": "pin", "size": 13 }], "tooltip": "Keep the ribbon open (Ctrl+F1)", "onClick": "pinRibbon" }
 				]
