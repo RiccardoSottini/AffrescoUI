@@ -157,6 +157,17 @@
 				},
 				{
 					"expect": {
+						"image": "welcome-dark"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
 						"image": "signed-in-dark"
 					}
 				}

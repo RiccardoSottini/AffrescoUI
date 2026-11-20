@@ -435,6 +435,30 @@
 				},
 				{
 					"expect": {
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "Your Example ID jon@example.com is ready, and you're signed in on this device."
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": false
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
 						"state": "name",
 						"is": "Jon Doe"
 					}
@@ -1031,14 +1055,20 @@
 				},
 				{
 					"expect": {
-						"node": "#avatar",
-						"text": "J"
+						"node": "#label-done-title",
+						"text": "Welcome, jon snow"
 					}
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, jon snow"
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]
@@ -4707,8 +4737,26 @@
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, Jon Doe. You joined Example Team."
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "You joined Example Team. Your Example ID jon@example.com is ready, and you're signed in on this device."
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]
@@ -4827,14 +4875,20 @@
 				},
 				{
 					"expect": {
-						"node": "#avatar",
-						"text": "J"
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
 					}
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, Jon Doe"
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]

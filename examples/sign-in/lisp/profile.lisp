@@ -401,4 +401,4 @@
     (set "state.user.email" "")
     (set "state.email" "")
     (end-session)
-    (show-done "deleted" gone)))
+    (show-done {:kind "deleted" :email gone})))

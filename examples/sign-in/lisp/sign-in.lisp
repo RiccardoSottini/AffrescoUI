@@ -245,14 +245,13 @@
   (set "state.codeMode" "verify")
   (startTwoStep))
 
-(defn finish-verify "The email is verified: the account exists, and its session opens." []
+(defn finish-verify "The email is verified: the account exists, its session opens, and the success screen welcomes it."
+  []
   (set "state.accounts" (concat (remove #(same-email? (:email %) state.pending.email) state.accounts)
                                 [(merge state.pending {:password state.password})]))
   (set "state.codeMode" "twoStep")
   (enter)
-  (notify (if computed.inviteValid
-              (t "joinedTeam" {:name state.pending.name})
-              (t "welcome" {:name state.pending.name})))
+  (show-done {:kind "created" :email state.pending.email :name state.pending.name :team computed.inviteValid})
   (set "state.username" "")
   (set "state.usernameChecked" "")
   (set "state.terms" false)
@@ -414,7 +413,7 @@
   (set "state.submitted" false)
   (set "state.reset" {:email "" :code "" :password "" :confirm "" :submitted false :error "" :left 0})
   (set "state.step" "password")
-  (show-done "reset" state.email))
+  (show-done {:kind "reset" :email state.email}))
 
 ;;; The session
 
