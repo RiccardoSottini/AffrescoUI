@@ -184,8 +184,9 @@
        :textColor @dim
        :text ~(if (not= (or-else state.propertiesFilter "") "") (t "properties.noMatch") (t "properties.noObject")))))
 
-(defview properties-context "What the panels are about: the active collection, or the active object." []
-  `(row#properties-context :width "100%" :height 22 :alignItems center :gap 4 :color transparent
+(defview properties-context "What the panels are about: the active collection, or the active object (the Object tab names it in its field)." []
+  `(row#properties-context :when ~(not (and (= state.propTab :object) (some? computed.activeNode)))
+     :width "100%" :height 22 :alignItems center :gap 4 :color transparent
      (label :font iconsSmall
        :icon ~(if (= state.propTab :collection) "package-open" "square")
        :text ""

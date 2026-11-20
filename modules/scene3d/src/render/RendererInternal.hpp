@@ -103,7 +103,8 @@ private:
 	void drawPlain(const DrawItem& item, const GlProgram& program, bool edges);
 
 	// RendererOverlays.cpp
-	/// @brief Draws the floor grid and axes. @param view The frame.
+	/// @brief Draws the floor grid and axes as a backdrop, before the surfaces, which all cover it.
+	/// @param view The frame.
 	void drawGrid(const FrameView& view);
 	/// @brief Draws the selection's outline. @param frame The frame. @param view What it shows.
 	void drawOutline(SurfaceFrame& frame, const FrameView& view);

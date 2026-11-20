@@ -247,9 +247,9 @@ void SceneRenderer::render(SurfaceFrame& frame) {
 	glDepthMask(GL_TRUE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if(stats_.error.empty()) {
+		drawGrid(view); // first: the floor is a backdrop every surface covers, even below it
 		if(view.settings.shading == Shading::Wireframe) drawWireframe(view);
 		else drawSurfaces(view, shadow);
-		drawGrid(view);
 		drawOutline(frame, view);
 		glBindFramebuffer(GL_FRAMEBUFFER, frame.framebuffer);
 		glViewport(0, 0, frame.width, frame.height);

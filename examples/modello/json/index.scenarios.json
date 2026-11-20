@@ -288,7 +288,7 @@
 		},
 		{
 			"name": "modello-top-bar",
-			"note": "An editor's type menu swaps it with the area showing the chosen editor; the unbuilt editor types and workspaces are disabled; a workspace applies its preset (the timeline's size, the shading, the properties tab); the scene and view layer names can be edited, their pickers are disabled",
+			"note": "An editor's type menu swaps it with the area showing the chosen editor; the unbuilt editor types are disabled; Modello has its own five workspaces; a workspace applies its preset (the timeline's size, the shading, the properties tab); the scene and view layer names can be edited, their pickers are disabled",
 			"steps": [
 				{ "click": "#editor-type-timeline" },
 				{ "click": { "role": "menuitem", "name": "3D Viewport" } },
@@ -298,17 +298,16 @@
 				{ "click": { "role": "menuitem", "name": "Image Editor" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "areas.c", "is": "outliner" } },
-				{ "click": "#workspace-animation" },
-				{ "expect": { "state": "workspace", "is": "Animate" } },
+				{ "click": "#workspace-motion" },
+				{ "expect": { "state": "workspace", "is": "Motion" } },
 				{ "expect": { "state": "areas.a", "is": "viewport" } },
 				{ "expect": { "state": "sizes.left", "is": [520] } },
-				{ "click": "#workspace-shading" },
+				{ "click": "#workspace-surface" },
+				{ "expect": { "state": "workspace", "is": "Surface" } },
 				{ "expect": { "state": "shading", "is": "material" } },
 				{ "expect": { "state": "propTab", "is": "material" } },
-				{ "click": "#workspace-sculpting" },
-				{ "expect": { "state": "workspace", "is": "Materials" } },
-				{ "expect": { "node": "#workspace-sculpting", "property": "tooltip", "is": "Sculpt isn't available yet: it needs sculpting a mesh" } },
-				{ "click": "#workspace-layout" },
+				{ "expect": { "node": "#workspace-sculpting", "exists": false } },
+				{ "click": "#workspace-stage" },
 				{ "expect": { "state": "shading", "is": "solid" } },
 				{ "expect": { "state": "sizes.left", "is": [720] } },
 				{ "click": "#scene-name-field" },
@@ -629,10 +628,10 @@
 		},
 		{
 			"name": "modello-shader-editor",
-			"note": "The Materials workspace puts the Shader Editor under the viewport: the cube's material shows its output node; Add > Checker Texture and Add > Color add nodes; dragging from a node's output to an input links them, the picker in the sidebar sets the colour, and the viewport draws the cube red; Delete removes the hovered editor's selected node with its link, and Ctrl+Z puts both back",
+			"note": "The Surface workspace puts the Shader Editor under the viewport: the cube's material shows its output node; Add > Checker Texture and Add > Color add nodes; dragging from a node's output to an input links them, the picker in the sidebar sets the colour, and the viewport draws the cube red; Delete removes the hovered editor's selected node with its link, and Ctrl+Z puts both back",
 			"steps": [
 				{ "click": "#outliner-cube" },
-				{ "click": "#workspace-shading" },
+				{ "click": "#workspace-surface" },
 				{ "expect": { "state": "areas.b", "is": "shader" } },
 				{ "expect": { "node": "#shader-graph", "exists": true } },
 				{ "click": "#shader-add" },
@@ -696,7 +695,7 @@
 			"note": "The Material tab names the object's material: New adds Material.001 and gives it to the cube (the Shader Editor follows), the browse menu gives back the first, and unlink leaves the cube with none; each is one undo step",
 			"steps": [
 				{ "click": "#outliner-cube" },
-				{ "click": "#workspace-shading" },
+				{ "click": "#workspace-surface" },
 				{ "wait": 50 },
 				{ "expect": { "node": "#material-name", "text": "Material" } },
 				{ "click": "#material-new" },
@@ -720,22 +719,22 @@
 		},
 		{
 			"name": "modello-window-keys",
-			"note": "Ctrl+Page Down and Ctrl+Page Up (and the Window menu) step through the workspaces Modello has, skipping the unbuilt ones and wrapping around",
+			"note": "Ctrl+Page Down and Ctrl+Page Up (and the Window menu) step through the workspaces Modello has, wrapping around",
 			"steps": [
 				{ "key": "mod+pagedown" },
-				{ "expect": { "state": "workspace", "is": "Model" } },
+				{ "expect": { "state": "workspace", "is": "Shape" } },
 				{ "key": "mod+pagedown" },
-				{ "expect": { "state": "workspace", "is": "Materials" } },
+				{ "expect": { "state": "workspace", "is": "Surface" } },
 				{ "expect": { "state": "areas.b", "is": "shader" } },
 				{ "key": "mod+pageup" },
 				{ "key": "mod+pageup" },
-				{ "expect": { "state": "workspace", "is": "Layout" } },
+				{ "expect": { "state": "workspace", "is": "Stage" } },
 				{ "key": "mod+pageup" },
-				{ "expect": { "state": "workspace", "is": "Render" } },
+				{ "expect": { "state": "workspace", "is": "Shot" } },
 				{ "click": [230, 14] },
 				{ "wait": 30 },
 				{ "click": { "role": "menuitem", "name": "Next Workspace" } },
-				{ "expect": { "state": "workspace", "is": "Layout" } }
+				{ "expect": { "state": "workspace", "is": "Stage" } }
 			]
 		},
 		{

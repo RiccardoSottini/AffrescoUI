@@ -221,8 +221,7 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	const auto inverse = view.viewProjection.inverse();
 	if(!inverse) return;
 	const float distance = std::max(view.settings.camera.distance, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
+	glDisable(GL_DEPTH_TEST); // drawn before the surfaces and leaving no depth: they all cover it
 	glDepthMask(GL_FALSE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -240,7 +239,6 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	glBindVertexArray(emptyArray_);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LESS);
 	glDisable(GL_BLEND);
 }
 

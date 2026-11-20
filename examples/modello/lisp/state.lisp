@@ -9,7 +9,7 @@
 
 (defstate theme dark "dark or light.")
 
-(defstate workspace "Layout" "The workspace shown, by its title.")
+(defstate workspace "Stage" "The workspace shown, by its name.")
 
 (defstate menuBar {} "Which of the top bar's menus is open.")
 

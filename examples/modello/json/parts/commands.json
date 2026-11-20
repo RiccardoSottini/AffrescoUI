@@ -335,12 +335,12 @@
 		"setWorkspace": [
 			{ "dismiss": true },
 			{ "set": "state.workspace", "to": "{{args.title}}" },
-			{ "set": "state.areas", "to": { "a": "viewport", "b": "{{args.id == 'shading' ? 'shader' : 'timeline'}}", "c": "outliner", "d": "properties" } },
-			{ "set": "state.sizes.left", "to": "{{[args.id == 'animation' ? 520 : args.id == 'shading' ? 470 : args.id == 'modeling' ? 790 : 720]}}" },
-			{ "set": "state.shading", "to": "{{args.id == 'shading' ? 'material' : args.id == 'rendering' ? 'rendered' : 'solid'}}" },
+			{ "set": "state.areas", "to": { "a": "viewport", "b": "{{args.id == 'surface' ? 'shader' : 'timeline'}}", "c": "outliner", "d": "properties" } },
+			{ "set": "state.sizes.left", "to": "{{[args.id == 'motion' ? 520 : args.id == 'surface' ? 470 : args.id == 'shape' ? 790 : 720]}}" },
+			{ "set": "state.shading", "to": "{{args.id == 'surface' ? 'material' : args.id == 'shot' ? 'rendered' : 'solid'}}" },
 			{ "set": "state.xray", "to": false },
-			{ "set": "state.overlays", "to": "{{args.id != 'rendering'}}" },
-			{ "set": "state.propTab", "to": "{{args.id == 'shading' ? 'material' : args.id == 'rendering' ? 'render' : state.propTab}}" }
+			{ "set": "state.overlays", "to": "{{args.id != 'shot'}}" },
+			{ "set": "state.propTab", "to": "{{args.id == 'surface' ? 'material' : args.id == 'shot' ? 'render' : args.id == 'shape' ? 'data' : state.propTab}}" }
 		],
 		"toggleOverlay": [{ "toggle": "state.overlay[args.key]" }],
 		"toggleKind": [
@@ -560,12 +560,12 @@
 		},
 		"nextWorkspace": {
 			"title": "Next Workspace", "category": "Window", "icon": "arrow-right",
-			"do": [{ "set": "state.tmp", "to": "{{filter(computed.workspaces, it.needs == null)}}" },
+			"do": [{ "set": "state.tmp", "to": "{{computed.workspaces}}" },
 			       { "run": "setWorkspace", "with": { "args": "{{state.tmp[(indexOf(map(state.tmp, it.title), state.workspace) + 1) % length(state.tmp)]}}" } }]
 		},
 		"previousWorkspace": {
 			"title": "Previous Workspace", "category": "Window", "icon": "arrow-left",
-			"do": [{ "set": "state.tmp", "to": "{{filter(computed.workspaces, it.needs == null)}}" },
+			"do": [{ "set": "state.tmp", "to": "{{computed.workspaces}}" },
 			       { "run": "setWorkspace", "with": { "args": "{{state.tmp[(indexOf(map(state.tmp, it.title), state.workspace) + length(state.tmp) - 1) % length(state.tmp)]}}" } }]
 		},
 		"saveRender": {

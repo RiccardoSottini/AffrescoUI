@@ -298,18 +298,12 @@
         ["text" "file-text"]]))
 
 (defcomputed workspaces
-  "The top bar's workspaces: name is what state.workspace holds; a workspace with needs says what it waits for."
-  [{:id "layout" :name "Layout" :title (t "workspace.layout")}
-   {:id "modeling" :name "Model" :title (t "workspace.modeling")}
-   {:id "sculpting" :name "Sculpt" :title (t "workspace.sculpting") :needs (t "workspace.sculpting.needs")}
-   {:id "uv editing" :name "UV" :title (t "workspace.uv") :needs (t "workspace.uv.needs")}
-   {:id "texture paint" :name "Paint" :title (t "workspace.paint") :needs (t "workspace.paint.needs")}
-   {:id "shading" :name "Materials" :title (t "workspace.shading")}
-   {:id "animation" :name "Animate" :title (t "workspace.animation")}
-   {:id "rendering" :name "Render" :title (t "workspace.rendering")}
-   {:id "compositing" :name "Compose" :title (t "workspace.compositing") :needs (t "workspace.compositing.needs")}
-   {:id "geometry nodes" :name "Nodes" :title (t "workspace.nodes") :needs (t "workspace.nodes.needs")}
-   {:id "scripting" :name "Script" :title (t "workspace.scripting") :needs (t "workspace.scripting.needs")}])
+  "The top bar's workspaces, each a preset of the areas for one kind of work: name is what state.workspace holds."
+  [{:id "stage" :name "Stage" :icon "layout-dashboard" :title (t "workspace.stage")}
+   {:id "shape" :name "Shape" :icon "pen-tool" :title (t "workspace.shape")}
+   {:id "surface" :name "Surface" :icon "palette" :title (t "workspace.surface")}
+   {:id "motion" :name "Motion" :icon "film" :title (t "workspace.motion")}
+   {:id "shot" :name "Shot" :icon "aperture" :title (t "workspace.shot")}])
 
 ;;; The timeline's and the outliner's menus
 

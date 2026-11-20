@@ -70,7 +70,7 @@
 	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio", "user"] },
 	"state": {
 		"theme": "dark",
-		"workspace": "Layout",
+		"workspace": "Stage",
 		"mode": "object",
 		"tool": "select",
 		"menuBar": {},
