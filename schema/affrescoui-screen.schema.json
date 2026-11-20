@@ -3750,7 +3750,8 @@
 								"enum": [
 									"frames",
 									"seconds",
-									"timecode"
+									"timecode",
+									"none"
 								]
 							},
 							{
@@ -3784,6 +3785,9 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
+					},
+					"trackButtons": {
+						"$ref": "#/$defs/v2/flag"
 					},
 					"pixelsPerSecond": {
 						"anyOf": [
