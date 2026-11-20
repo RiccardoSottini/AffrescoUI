@@ -295,6 +295,7 @@
      (node#thumbs-line :when ~(= state.view "normal") :width 1 :color @barLine)
      (node :use outlineView :when ~(= state.view "outline"))
      (node :use sorterView :when ~(= state.view "sorter"))
+     (node :use notesPageView :when ~(= state.view "notesPage"))
      ~(centre)
      (node :use formatPane :when ~(and state.formatPane (not= state.view "sorter")))
      (node :use sidePane :when ~(and (not state.formatPane) (some? state.sidePane) (not= state.view "sorter")))))
@@ -420,7 +421,7 @@
 ;;; The slide and its notes
 
 (defview centre "The slide on its canvas, the ink over it, and the speaker notes under it." []
-  `(column#centre :when ~(not= state.view "sorter") :grow 1 :color @work :alignItems stretch
+  `(column#centre :when ~(not (#{"sorter" "notesPage"} state.view)) :grow 1 :color @work :alignItems stretch
      (node#board-area :grow 1 :color @work
        ~(board)
        (node :use inkLayer :when ~(and (some? state.inkTool) (not state.show.on))))

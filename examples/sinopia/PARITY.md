@@ -34,6 +34,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Status bar | Language | missing | done | first-frame |
 | Status bar | Notes and comments toggles | missing | done | speaker-notes, notes-hidden, check-and-comments |
 | Status bar | Views (normal, sorter, reading, slide show) | partial | done | sorter-view, outline-view, present-from-current, background-and-reading-view |
+| View | Notes page (the slide over its notes, edited in place; Export Notes Pages as a PDF) | missing | done | notes-page |
 | Status bar | Zoom slider, percentage and fit | missing | done | first-frame |
 | Text | Font, size, grow and shrink | missing | done | font-size-and-case (the two fonts the app ships) |
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
@@ -88,23 +89,23 @@ with its slide show, presenter view, audience window and files on library capabi
 | Tools | Cut, copy and paste | partial | partial | duplicate-an-object, paste-menu (no other apps' clipboard) |
 | Ink | Draw with a pen and a highlighter (colours, widths) | missing | done | ink |
 | Ink | Eraser and Clear Ink | missing | done | ink |
-| Ink | Ink to shape and ink replay | missing | missing | |
+| Ink | Ink to shape and ink replay | missing | done | ink-to-shape-and-replay (closed strokes to rectangles and ellipses) |
 | Review | Comments (add, write, resolve, delete, next and previous) | missing | done | check-and-comments |
 | Review | Accessibility check (titles, empty placeholders, alternative text) | missing | done | check-and-comments |
 | Review | Spelling | missing | missing | |
 | Help | Keyboard shortcuts | missing | done | check-and-comments |
-| Transitions | Fade | partial | partial | slide-transition |
+| Transitions | Fade | partial | done | slide-transition, glide-and-smooth-fade (through black or smoothly) |
 | Transitions | Push | partial | done | slide-transition |
 | Transitions | Wipe | partial | done | slide-transition |
-| Transitions | Glide (objects move to their places on the next slide) | missing | missing |  |
+| Transitions | Glide (objects move to their places on the next slide) | missing | done | glide-and-smooth-fade (matched by name, else the same object moved or resized) |
 | Transitions | Effect options, duration, apply to all | partial | done | slide-transition |
 | Transitions | Preview | missing | done | preview (in the window, from the slide before) |
 | Animations | Entrance effects | partial | done | add-an-animation |
-| Animations | Emphasis effects | missing | missing | |
-| Animations | Exit effects | missing | partial | add-an-animation |
-| Animations | Motion paths | missing | missing | |
+| Animations | Emphasis effects | missing | done | emphasis-and-timing (pulse, spin, teeter) |
+| Animations | Exit effects | missing | done | add-an-animation, emphasis-and-timing (fly to any side; wipe from the left only) |
+| Animations | Motion paths | missing | partial | emphasis-and-timing (four preset paths: right, down, arc, circle; no drawn paths) |
 | Animations | Animation pane | missing | done | animation-pane (the order, reorder, remove, select) |
-| Animations | Timing (on click, with, after; duration, delay) | missing | partial | add-an-animation |
+| Animations | Timing (on click, with, after; duration, delay) | missing | done | add-an-animation, emphasis-and-timing (delay and repeat on the Motion tab and in the Animation Pane) |
 | Animations | Preview | missing | done | preview (each build once the one before has played) |
 | Slide show | Full screen | missing | done | present-and-step |
 | Slide show | Advance by click and keys; back; go to slide by number | done | done | present-and-step, present-go-to-number |
@@ -118,8 +119,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Presenter view | Notes | partial | done | presenter-view |
 | Presenter view | Timer (pause, reset) and clock | partial | done | presenter-view |
 | Presenter view | Slide navigator | missing | done | presenter-view (See All Slides) |
-| Presenter view | Pen | missing | missing | |
-| Presenter view | Laser pointer | missing | missing | |
+| Presenter view | Pen | missing | done | presenter-pen-and-laser (strokes kept per slide while the show runs) |
+| Presenter view | Laser pointer | missing | done | presenter-pen-and-laser (while pressed and dragged) |
 | Presenter view | Audience window | partial | done | presenter-view |
 | Files | Export to PDF | done | done | export-pdf |
 | Files | Export slides as images | partial | partial |  |
@@ -137,9 +138,9 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 86 | 19 | 16 | 121 |
+| Now | 95 | 17 | 10 | 122 |
 
-The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
+The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, Insert > Link one and View > Notes Page one (all missing at the start), so *Now* counts 122 rows.
 
 ## Left for later
 
@@ -157,15 +158,11 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P2 | Content: charts (Insert > Chart) | JSON: a chart object drawn as shapes from a small data table |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
 | P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
-| P2 | Transitions: glide (objects move to their places) | JSON: objects matched by name across two slides, their boxes animated |
-| P2 | Animations: emphasis effects | JSON: pulse, spin and colour builds in the show's build template |
-| P2 | Animations: timing (delay, repeat) | JSON: delay and repeat controls on the Motion tab and in the Animation Pane |
-| P2 | Presenter view: pen | JSON: the ink layer over the show's slide, strokes kept per slide |
-| P2 | Presenter view: laser pointer | JSON: a dot that follows the pointer over the show's slide; library: pointer moves on an image node, if not there |
 | P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |
 | P2 | Always: locales | Library: string tables per locale in expressions; then JSON for every label |
 | P2 | Always: keyboard access, and names, roles and focus order | JSON: names on the remaining nodes and an audit of the focus order; key hints below |
 | P3 | Shell: key hints (Alt shows a key on every command) | Library: an event for Alt pressed and released alone; then JSON badges on the tabs and buttons |
+| P3 | Animations: wipe directions | JSON: the wipe band from the right, the top and the bottom |
 | P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
@@ -174,10 +171,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |
-| P3 | Ink: ink to shape (Ink > Ink to Shape) and replay (Ink > Ink Replay) | JSON: replay by animating each stroke's points; ink to shape by fitting a stroke to a preset |
-| P3 | Transitions: fade through black | JSON: an effect option of fade |
-| P3 | Animations: exit effects (directions) | JSON: the fly and wipe directions for exits |
-| P3 | Animations: motion paths | Library: a point along a path in expressions; then JSON |
+| P3 | Animations: motion paths drawn by hand (custom paths), and their line on the canvas | JSON: a path drawn on the slide as points, followed like an ink stroke |
 | P3 | Slide show: record and export to video (Record > Record, Record > Export to Video) | Library: audio and video capture and encoding |
 | P3 | Files: export every slide as an image at once | Library: an export of several PNG pages in one step |
 | P3 | Always: the assistant chat add-on | The kit add-on's placement (right-to-left, docking, the chat button's overlap); then JSON |
@@ -187,5 +181,4 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Insert: equation (Insert > Equation) | Library: math layout |
 | P3 | Insert: video and audio (Insert > Video, Insert > Audio) | Library: media playback nodes |
 | P3 | Insert: photo album (Insert > Photo Album) | After pictures; JSON: one slide per picture |
-| P3 | View: notes page (View > Notes Page) | JSON: a page with the slide and its notes, which export prints |
 | P3 | Help: feedback (Help > Feedback) | A place to send it; until then the button stays disabled |

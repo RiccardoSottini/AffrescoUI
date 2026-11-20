@@ -75,7 +75,8 @@
 (defkey "mod+h" {:when ~(not state.show.on) :do ~(handler openFind true)})
 
 (defkey "escape"
-  [{:when ~state.show.on :do show-end}
+  [{:when ~(and state.show.on (some? state.showPen.tool)) :do pen-tool :with {:tool nil}}
+   {:when ~state.show.on :do show-end}
    {:when ~(some? state.inkTool) :do inkTool :with {:tool nil}}
    {:when ~(some? state.editing) :do stop-editing}
    {:when ~(and (not context.textInputFocus)
