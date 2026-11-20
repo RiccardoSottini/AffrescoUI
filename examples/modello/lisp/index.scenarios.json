@@ -288,7 +288,7 @@
 		},
 		{
 			"name": "modello-top-bar",
-			"note": "An editor's type menu swaps it with the area showing the chosen editor; the unbuilt editor types are disabled; Modello has its own five workspaces; a workspace applies its preset (the timeline's size, the shading, the properties tab); the scene and view layer names can be edited, their pickers are disabled",
+			"note": "An editor's type menu swaps it with the area showing the chosen editor; the Image Editor shows the camera's render, the Text Editor the scene's notes; Modello has its own five workspaces; a workspace applies its preset (the timeline's size, the shading, the properties tab); the scene and view layer names can be edited, their pickers are disabled",
 			"steps": [
 				{ "click": "#editor-type-timeline" },
 				{ "click": { "role": "menuitem", "name": "3D Viewport" } },
@@ -296,7 +296,16 @@
 				{ "expect": { "node": "#viewport", "exists": true } },
 				{ "click": "#editor-type-outliner" },
 				{ "click": { "role": "menuitem", "name": "Image Editor" } },
-				{ "key": "escape" },
+				{ "expect": { "state": "areas.c", "is": "image" } },
+				{ "expect": { "node": "#image-view", "exists": true } },
+				{ "click": "#editor-type-image" },
+				{ "click": { "role": "menuitem", "name": "Text Editor" } },
+				{ "expect": { "state": "areas.c", "is": "text" } },
+				{ "click": "#notes" },
+				{ "type": "Key light from the left" },
+				{ "expect": { "state": "scene.notes", "is": "Key light from the left" } },
+				{ "click": "#editor-type-text" },
+				{ "click": { "role": "menuitem", "name": "Outliner" } },
 				{ "expect": { "state": "areas.c", "is": "outliner" } },
 				{ "click": "#workspace-motion" },
 				{ "expect": { "state": "workspace", "is": "Motion" } },
@@ -828,6 +837,19 @@
 				{ "click": "#field-render-resolution-1" },
 				{ "key": "right" },
 				{ "expect": { "state": "render.resolution", "is": [1920, 1120] } }
+			]
+		},
+		{
+			"name": "modello-view-orientation",
+			"note": "The View orientation: the gizmo and G with X lock to the camera's axes, so a move along X leaves the floor for the view's right",
+			"steps": [
+				{ "click": "#orientation" },
+				{ "click": { "role": "menuitem", "name": "View" } },
+				{ "expect": { "state": "orientation", "is": "view" } },
+				{ "click": "#tool-move" },
+				{ "wait": 30 },
+				{ "capture": "gizmo" },
+				{ "click": "#tool-select" }
 			]
 		},
 		{

@@ -6,7 +6,7 @@
 	"computed": {
 		"activeIndex": "{{indexOf(map(state.scene.nodes, it.id), state.active)}}",
 		"kindIcons": "{{ { mesh: 'triangle', camera: 'video', light: 'lightbulb', empty: 'axis-3-d' } }}",
-		"editorTypes": "{{map([['viewport', '3D Viewport', 'axis-3-d'], ['image', 'Image Editor', 'image'], ['shader', 'Shader Editor', 'git-fork'], ['timeline', 'Timeline', 'clock-3'], ['outliner', 'Outliner', 'list-tree'], ['properties', 'Properties', 'sliders-horizontal'], ['text', 'Text Editor', 'file-text']], { id: it[0], title: it[1], icon: it[2], enabled: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]), keyLabel: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]) ? '' : 'Not yet' })}}",
+		"editorTypes": "{{map([['viewport', '3D Viewport', 'axis-3-d'], ['image', 'Image Editor', 'image'], ['shader', 'Shader Editor', 'git-fork'], ['timeline', 'Timeline', 'clock-3'], ['outliner', 'Outliner', 'list-tree'], ['properties', 'Properties', 'sliders-horizontal'], ['text', 'Text Editor', 'file-text']], { id: it[0], title: it[1], icon: it[2] })}}",
 		"workspaces": "{{[{ id: 'stage', title: 'Stage', icon: 'layout-dashboard' }, { id: 'shape', title: 'Shape', icon: 'pen-tool' }, { id: 'surface', title: 'Surface', icon: 'palette' }, { id: 'motion', title: 'Motion', icon: 'film' }, { id: 'shot', title: 'Shot', icon: 'aperture' }]}}",
 		"objectRows": "{{sort(map(state.scene.nodes, merge(it, { outlinePath: ((computed.parentOf[computed.parentOf[computed.parentOf[it.id]]] != '' ? computed.nameOf[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]] + '/' : '') + (computed.parentOf[computed.parentOf[it.id]] != '' ? computed.nameOf[computed.parentOf[computed.parentOf[it.id]]] + '/' : '') + (computed.parentOf[it.id] != '' ? computed.nameOf[computed.parentOf[it.id]] + '/' : '') + it.name), outlineDepth: ((computed.parentOf[it.id] != '' ? 1 : 0) + (computed.parentOf[computed.parentOf[it.id]] != '' ? 1 : 0) + (computed.parentOf[computed.parentOf[computed.parentOf[it.id]]] != '' ? 1 : 0)) })), it.outlinePath)}}",
 		"parentOf": "{{fromEntries(concat([{ key: '', value: '' }], map(state.scene.nodes, { key: it.id, value: it.parent != null && it.parent != it.id && contains(map(state.scene.nodes, it.id), it.parent) ? it.parent : '' })))}}",
@@ -15,6 +15,7 @@
 		"origins": "{{fromEntries(map(state.scene.nodes, { key: it.id, value: [(computed.translationOf[it.id] ?? [0, 0, 0])[0] + (computed.translationOf[computed.parentOf[it.id]] ?? [0, 0, 0])[0] + (computed.translationOf[computed.parentOf[computed.parentOf[it.id]]] ?? [0, 0, 0])[0] + (computed.translationOf[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]] ?? [0, 0, 0])[0], (computed.translationOf[it.id] ?? [0, 0, 0])[1] + (computed.translationOf[computed.parentOf[it.id]] ?? [0, 0, 0])[1] + (computed.translationOf[computed.parentOf[computed.parentOf[it.id]]] ?? [0, 0, 0])[1] + (computed.translationOf[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]] ?? [0, 0, 0])[1], (computed.translationOf[it.id] ?? [0, 0, 0])[2] + (computed.translationOf[computed.parentOf[it.id]] ?? [0, 0, 0])[2] + (computed.translationOf[computed.parentOf[computed.parentOf[it.id]]] ?? [0, 0, 0])[2] + (computed.translationOf[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]] ?? [0, 0, 0])[2]] }))}}",
 		"ancestors": "{{fromEntries(map(state.scene.nodes, { key: it.id, value: filter([computed.parentOf[it.id], computed.parentOf[computed.parentOf[it.id]], computed.parentOf[computed.parentOf[computed.parentOf[it.id]]], computed.parentOf[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]]], it != '') }))}}",
 		"parentChoices": "{{filter(sort(state.scene.nodes, it.name), it.id != state.active && !contains(computed.ancestors[it.id] ?? [], state.active))}}",
+		"renderScene": "{{merge(state.scene, { nodes: map(state.scene.nodes, it.render == false || contains(computed.collectionsOff.render, it.collection ?? 'collection') ? merge(it, { visible: false }) : it) })}}",
 		"keyTracks": "{{flat(map(filter(state.scene.nodes, length(it.keyframes ?? []) > 0), [{ node: it.id, path: 'translation', times: map(it.keyframes, (it.frame - 1) / computed.fps), values: flat(map(it.keyframes, it.translation)) }, { node: it.id, path: 'rotation', times: map(it.keyframes, (it.frame - 1) / computed.fps), values: flat(map(it.keyframes, map([map(it.rotationDegrees, radians(it) / 2)], [sin(it[0]) * cos(it[1]) * cos(it[2]) - cos(it[0]) * sin(it[1]) * sin(it[2]), cos(it[0]) * sin(it[1]) * cos(it[2]) + sin(it[0]) * cos(it[1]) * sin(it[2]), cos(it[0]) * cos(it[1]) * sin(it[2]) - sin(it[0]) * sin(it[1]) * cos(it[2]), cos(it[0]) * cos(it[1]) * cos(it[2]) + sin(it[0]) * sin(it[1]) * sin(it[2])])[0])) }, { node: it.id, path: 'scale', times: map(it.keyframes, (it.frame - 1) / computed.fps), values: flat(map(it.keyframes, it.scale)) }]))}}",
 		"gltfClips": "{{length(computed.keyTracks) == 0 ? [] : [{ name: 'Action', tracks: computed.keyTracks }]}}",
 		"collections": "{{state.scene.collections ?? [{ id: 'collection', name: 'Collection' }]}}",
@@ -39,6 +40,33 @@
 		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
 	},
 	"components": {
+		"imageArea": { "node": { "id": "image-area", "color": "@region", "radius": 8, "children": [
+					{ "type": "row", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26, "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
+						{ "use": "gap" },
+						{ "id": "editor-type-image", "use": "hButton", "with": { "icon": "image", "chevron": true, "width": 38, "tooltip": "Editor Type", "open": "state.open.editorImage",
+						  "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'image', run: 'swapEditor', with: { args: { from: 'image', to: it.id } } }))}}" } },
+						{ "use": "gap", "with": { "width": 6 } },
+						{ "type": "label", "text": "The camera's render", "textColor": "@dim", "fitText": true, "height": 20 }
+					] },
+					{ "type": "scene", "id": "image-view", "when": "{{computed.cameraNode != null}}", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
+					  "scene": "{{computed.renderScene}}", "view": "{{ { camera: computed.cameraView, selection: [] } }}", "up": "z", "extras": false,
+					  "shading": "material", "lighting": "scene", "exposure": "{{state.render.exposure}}", "grid": false, "axes": false,
+					  "background": "{{state.world.color}}", "controls": { "orbit": "none", "pan": "none", "select": "none", "zoom": false, "selects": false },
+					  "label": "{{'Render of ' + (computed.cameraNode.name ?? 'the camera')}}", "role": "img" },
+					{ "type": "label", "id": "image-empty", "when": "{{computed.cameraNode == null}}", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
+					  "text": "Add a camera to see its render here", "textColor": "@dim", "align": "center" }
+				] } },
+		"textArea": { "node": { "id": "text-area", "color": "@region", "radius": 8, "children": [
+					{ "type": "row", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26, "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
+						{ "use": "gap" },
+						{ "id": "editor-type-text", "use": "hButton", "with": { "icon": "file-text", "chevron": true, "width": 38, "tooltip": "Editor Type", "open": "state.open.editorText",
+						  "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'text', run: 'swapEditor', with: { args: { from: 'text', to: it.id } } }))}}" } },
+						{ "use": "gap", "with": { "width": 6 } },
+						{ "type": "label", "text": "Notes, saved with the scene", "textColor": "@dim", "fitText": true, "height": 20 }
+					] },
+					{ "type": "editor", "id": "notes", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 }, "bind": "state.scene.notes",
+					  "lineNumbers": true, "wrap": true, "color": "@region", "textColor": "@text", "label": "Notes, saved with the scene" }
+				] } },
 		"searchField": {
 			"params": { "bind": "", "label": "" },
 			"node": {
@@ -227,7 +255,9 @@
 					{ "when": "{{state.areas[slot] == 'timeline'}}", "use": "timelineArea", "fill": true },
 					{ "when": "{{state.areas[slot] == 'outliner'}}", "use": "outlinerArea", "fill": true },
 					{ "when": "{{state.areas[slot] == 'properties'}}", "use": "propertiesArea", "fill": true },
-					{ "when": "{{state.areas[slot] == 'shader'}}", "use": "shaderArea", "fill": true }
+					{ "when": "{{state.areas[slot] == 'shader'}}", "use": "shaderArea", "fill": true },
+					{ "when": "{{state.areas[slot] == 'image'}}", "use": "imageArea", "fill": true },
+					{ "when": "{{state.areas[slot] == 'text'}}", "use": "textArea", "fill": true }
 				]
 			}
 		},

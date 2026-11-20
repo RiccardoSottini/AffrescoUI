@@ -33,7 +33,9 @@
      (node :when ~(= (get state.areas slot) :timeline) :use timelineArea :fill true)
      (node :when ~(= (get state.areas slot) :outliner) :use outlinerArea :fill true)
      (node :when ~(= (get state.areas slot) :properties) :use propertiesArea :fill true)
-     (node :when ~(= (get state.areas slot) :shader) :use shaderArea :fill true)))
+     (node :when ~(= (get state.areas slot) :shader) :use shaderArea :fill true)
+     (node :when ~(= (get state.areas slot) :image) :use imageArea :fill true)
+     (node :when ~(= (get state.areas slot) :text) :use textArea :fill true)))
 
 ;;; The top bar
 
@@ -161,14 +163,17 @@
 
 ;;; The render window
 
+(defcomputed renderScene "The scene as a render shows it: what isn't rendered hidden."
+  (merge state.scene
+         {:nodes (map (fn [it]
+                        (if (or (false? it.render) (contains computed.collectionsOff.render (or-else it.collection "collection")))
+                          (merge it {:visible false})
+                          it))
+                      state.scene.nodes)}))
+
 (defview render-image "The render: the scene through its camera, lit by its lights, without what isn't rendered." []
   `(scene#render-image :anchors {:left 20 :right 20 :top 44 :bottom 56}
-     :scene ~(merge state.scene
-                    {:nodes (map (fn [it]
-                                   (if (or (false? it.render) (contains computed.collectionsOff.render (or-else it.collection "collection")))
-                                     (merge it {:visible false})
-                                     it))
-                                 state.scene.nodes)})
+     :scene ~computed.renderScene
      :view ~{:camera computed.cameraView :selection []}
      :up z
      :extras false
