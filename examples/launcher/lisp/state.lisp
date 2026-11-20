@@ -144,6 +144,9 @@
                          (lower-case (trim state.query))))
           computed.inKind))
 
+(defcomputed countShown "Whether the Apps page has room to say how many apps it shows, beside the categories."
+  (> (- window.width computed.sideWidth) 860))
+
 (defcomputed welcomed "Whether the Apps page welcomes a newcomer: no app of their own yet, and no search or category."
   (and (empty? state.mine) (= (trim state.query) "") (= (str state.kind) "all")))
 

@@ -131,6 +131,7 @@
 		"everyApp": "{{concat(map(state.mine, {id: it.id, name: it.name, modified: it.modified, mine: true}), state.examples)}}",
 		"kinds": "{{concat(['all'], length(state.mine) == 0 ? [] : ['mine'], state.categories)}}",
 		"shown": "{{filter(computed.everyApp, (state.kind == 'all' || (state.kind == 'mine' ? it.mine == true : it.category == state.kind)) && (trim(state.query) == '' || contains(lower(it.name + ' ' + (it.mine ? it.id : t('tagline.' + it.id))), lower(trim(state.query)))))}}",
+		"countShown": "{{window.width - computed.sideWidth > 860}}",
 		"welcomed": "{{length(state.mine) == 0 && trim(state.query) == '' && state.kind == 'all'}}",
 		"gridHeight": "{{ceil(length(computed.shown) / computed.columns) * 252 + max(0, ceil(length(computed.shown) / computed.columns) - 1) * 20 + 32}}",
 		"tileColumns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
@@ -749,7 +750,7 @@
 									  ] },
 									{ "id": "kinds", "anchors": { "left": 36, "right": 48 }, "height": 58, "color": "transparent",
 									  "children": [
-										{ "type": "row", "id": "kindChips", "anchors": { "left": 0, "right": 120, "top": 0 }, "height": 40, "gap": 8,
+										{ "type": "row", "id": "kindChips", "anchors": { "left": 0, "right": "{{computed.countShown ? 120 : 0}}", "top": 0 }, "height": 40, "gap": 8, "scroll": "horizontal",
 										  "role": "radiogroup", "arrows": "horizontal", "label": "{{t('apps.kinds')}}",
 										  "children": [
 											{ "type": "label", "id": "kindChip", "repeat": { "for": "k", "in": "computed.kinds", "key": "{{k}}" },
@@ -761,7 +762,7 @@
 											  "hover": { "borderColor": "@c.accent" },
 											  "onClick": { "run": "showKind", "with": { "kind": "{{k}}" } } }
 										  ] },
-										{ "type": "label", "id": "appsCount", "font": "small", "textColor": "@c.dim", "align": "end center",
+										{ "type": "label", "id": "appsCount", "when": "{{computed.countShown}}", "font": "small", "textColor": "@c.dim", "align": "end center",
 										  "text": "{{t('apps.count', {n: length(computed.shown)})}}", "anchors": { "right": 0, "top": 0 }, "height": 34, "width": 120 }
 									  ] },
 									{

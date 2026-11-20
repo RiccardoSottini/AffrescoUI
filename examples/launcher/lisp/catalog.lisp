@@ -74,15 +74,17 @@
 
 (defview kind-chips "The categories, one chip each, the one shown filled; and how many apps are shown." []
   `(node#kinds :anchors {:left 36 :right 48} :height 58 :color transparent
-     (row#kindChips :anchors {:left 0 :right 120 :top 0}
+     (row#kindChips :anchors {:left 0 :right ~(if computed.countShown 120 0) :top 0}
        :height 40
        :gap 8
+       :scroll horizontal
        :role radiogroup
        :arrows horizontal
        :label ~(t "apps.kinds")
        ~(repeat [k computed.kinds :key k]
          (kind-chip k)))
-     (label#appsCount :font small
+     (label#appsCount :when ~computed.countShown
+       :font small
        :textColor @c.dim
        :align "end center"
        :text ~(t "apps.count" {:n (count computed.shown)})
