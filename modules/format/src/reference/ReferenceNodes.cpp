@@ -201,6 +201,14 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "The point `rotate`, `scale` and `skew` turn about: `\"center\"` (the default), an edge or a corner "
 	 "(`\"top\"`, `\"bottomRight\"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner).",
 	 "look"},
+    {"opacity", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "How opaque the node and its children are, drawn as one group like CSS opacity (0 to 1)"})json",
+	 "How opaque the node and its children are, from `0` to `1` (the default), like CSS `opacity`: the subtree is "
+	 "drawn into a texture and that drawn translucent, so overlapping children don't show through each other. Layout "
+	 "and clicks don't change (a node at `0` still takes them: add `disabled` or `visible`). Below 1 the children are "
+	 "clipped to the node, as with `cache`; a transformed node is drawn at full opacity. Bind it to the state and an "
+	 "`animate` step fades it.",
+	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "`arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`.", "look"},
@@ -324,7 +332,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"text", R"json({"description": "Text, or a {{binding}}"})json", "The text.", "label"},
     {"textColor", "color", "Default black.", "label"},
     {"font", R"json({"type": "string"})json", "Font name. Default: `default`.", "label"},
-    {"padding", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"padding", R"json({"anyOf": [{"type": "number"}, {"type": "array", "minItems": 2, "maxItems": 4,
+		"items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "label: pixels between the edges and the text; row, column, stack, grid: also [vertical, horizontal] or [top, right, bottom, left]"})json",
 	 "Pixels between the edges and the text.", "label"},
     {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"},
 		{"type": "string", "pattern": "^(start|center|end|justify) (start|center|end)$"},
@@ -378,9 +388,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
     {"letterSpacing",
 	 R"json({"anyOf": [{"type": "number", "minimum": -16, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's "
-	 "`letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's "
-	 "spacing.",
+	 "Extra pixels between the characters of plain text (a heading, small capitals, a spaced paragraph), as CSS's "
+	 "`letter-spacing`; negative tightens. Counted in `align`, `fitText`, `wrap` and justified lines; `runs` keep "
+	 "the font's spacing.",
 	 "label"},
 });
 

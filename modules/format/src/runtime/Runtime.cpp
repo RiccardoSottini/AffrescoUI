@@ -306,6 +306,8 @@ ProgramConsole& Runtime::console() noexcept { return impl_->console; }
 
 void Runtime::setFileOf(std::function<FileOf(std::string_view pointer)> fileOf) { impl_->fileOf = std::move(fileOf); }
 
+void Runtime::setWebOpener(std::function<bool(const std::string& url)> open) { impl_->openWebAddress = std::move(open); }
+
 json Runtime::catalog() const { return format::catalog(*impl_); }
 
 json Runtime::schema() const { return format::schema(*impl_); }

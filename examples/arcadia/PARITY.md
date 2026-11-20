@@ -83,4 +83,3 @@ Each partial row and each disabled control, with what it needs and a priority: P
 | --- | --- | --- |
 | Properties: a compatibility tab | Nothing to choose with invented games | P3 |
 | TV mode: Settings inside couch mode | JSON only: a couch settings row | P3 |
-| Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |

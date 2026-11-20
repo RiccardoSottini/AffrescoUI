@@ -197,7 +197,9 @@ Vec2 Stack::fittedSize(Vec2 size, Vec2 reference) {
 	}
 	if(children.size() > 1)
 		length += static_cast<float>(children.size() - 1) * (row ? columnGap_.value_or(gap_) : rowGap_.value_or(gap_));
-	const Vec2 content = row ? Vec2{length, thickness} : Vec2{thickness, length};
+	const Rect& inset = contentInset();
+	const Vec2 content = row ? Vec2{length + inset.left + inset.right, thickness + inset.top + inset.bottom}
+	                         : Vec2{thickness + inset.left + inset.right, length + inset.top + inset.bottom};
 	if(fitWidth_)
 		size.x = std::max(std::min(content.x, maximumOf(maxWidth(), reference.x)), minWidth().resolve(reference.x));
 	if(fitHeight_)
@@ -208,7 +210,7 @@ Vec2 Stack::fittedSize(Vec2 size, Vec2 reference) {
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const auto [start, end, crossStart, crossEnd] = flowEdges(row);
-	const Vec2 size = resolvedSize();
+	const Vec2 size = contentSize();
 	const ScratchLease lease;
 	auto& [children, items, placements] = *lease;
 	placed(*this, children);
@@ -335,7 +337,7 @@ std::size_t gridCells(const std::vector<Panel*>& children, std::size_t declared,
 
 void Grid::arrange() {
 	const std::vector<Panel*> children = placed(*this);
-	const Vec2 size = resolvedSize();
+	const Vec2 size = contentSize();
 	const float rowGap = rowGap_.value_or(gap_), columnGap = columnGap_.value_or(gap_);
 
 	std::vector<GridCell> cells;

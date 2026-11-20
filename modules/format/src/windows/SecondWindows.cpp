@@ -147,11 +147,27 @@ void SecondWindows::setFullscreen(const std::string& name, std::optional<bool> f
 }
 
 // A screen that fills the display can draw what looks like the system's own dialogs: only the person starts that
-bool SecondWindows::mayFill(const std::string& at) const {
+bool SecondWindows::personStarted() const {
 	const auto pressing = [](const Window* window) { return window && window->routingPress(); };
-	if(engine_.hostRunning > 0 || pressing(engine_.window) ||
-	   std::ranges::any_of(shown_, [&](const auto& item) { return pressing(item.second.window); }))
-		return true;
+	return engine_.hostRunning > 0 || pressing(engine_.window) ||
+	       std::ranges::any_of(shown_, [&](const auto& item) { return pressing(item.second.window); });
+}
+
+// Ending the app is the person's: a document's load, a timer or a peer's message can't close it under them
+void SecondWindows::closeMain(const std::string& at) {
+	if(!engine_.window) return;
+	if(!personStarted()) {
+		engine_.reportRefused("AffrescoUI screen: " + at + ": the window closes only from the person's own click or " +
+		                      "key, not from a load, a timer or a message");
+		return;
+	}
+	engine_.window->setFullscreen(false); // a display left filled by a hidden window would stay black
+	engine_.window->setShouldClose(true); // Application hides it; the declared windows follow it
+	changed();
+}
+
+bool SecondWindows::mayFill(const std::string& at) const {
+	if(personStarted()) return true;
 	engine_.reportRefused("AffrescoUI screen: " + at + ": a window fills the display only from the person's own " +
 	                      "click or key, not from a load, a timer or a message");
 	return false;

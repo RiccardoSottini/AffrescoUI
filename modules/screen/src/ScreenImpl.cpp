@@ -7,6 +7,7 @@
 #include "features/FeaturesService.hpp"
 
 #include "affresco/core/Log.hpp"
+#include "affresco/net/SignIn.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -44,6 +45,7 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		const std::string owner = sources.ownerOf(pointer);
 		return format::FileOf{detail::shownName(owner, entryFile, screenFolder), detail::sharedFile(owner, screenFolder)};
 	});
+	runtime.setWebOpener([](const std::string& url) { return net::openWebAddress(url); }); // after the person's yes
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});

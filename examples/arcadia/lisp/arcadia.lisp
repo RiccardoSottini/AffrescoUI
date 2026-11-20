@@ -116,6 +116,11 @@
   (notify (t "notice.checking"))
   (after 1200 up-to-date))
 
+(defcommand exitApp "Closes the client's window, which ends the app."
+  :title ~(t "command.exitApp") :description ~(t "command.exitApp.about") :category ~(t "category.arcadia")
+  []
+  (closeWindow "main"))
+
 (defcommand clearCache "Clears the download cache; installed games stay."
   :title ~(t "command.clearCache") :description ~(t "command.clearCache.about") :category ~(t "category.settings")
   []

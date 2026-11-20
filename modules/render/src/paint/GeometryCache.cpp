@@ -108,8 +108,8 @@ void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip, const Affin
 	geometry.subtreeShapes = geometry.subtreeColor = geometry.subtreeTransformed = false;
 	if(panel.shown_) refreshChildren(panel, geometry, moved);
 	// A cached subtree is drawn again into its texture when anything in it was recorded again or marked
-	if(panel.cached_ && (all_ || marked || changes_ != changesBefore)) ++geometry.subtreeVersion;
-	geometry.cached = panel.shown_ && panel.cached_;
+	if(panel.isComposited() && (all_ || marked || changes_ != changesBefore)) ++geometry.subtreeVersion;
+	geometry.cached = panel.shown_ && panel.isComposited();
 	panel.paintStale_ = panel.paintBelow_ = false;
 }
 

@@ -614,9 +614,18 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"from", "", "", ""},
     {"openWindow", "",
 	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
-	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 R"(`{ "closeWindow": "audience" }` closes it; `{ "closeWindow": "main" }` closes the screen's own window, which )"
+	 R"(ends the app (Quit, Exit): only from the person's own click or key, never from a load, a timer, a message or )"
+	 R"(a revision)",
 	 "steps"},
     {"closeWindow", "", "", "steps"},
+    {"openUrl", R"json({"anyOf": [{"type": "string", "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://", "maxLength": 2048},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "openUrl": "https://example.com/help" }`: opens an http:// or https:// web address in the person's browser, )"
+	 R"(only after asking them in a question the window draws itself (the whole address shown; Enter or Open says yes, )"
+	 R"(Escape or Cancel no). Nothing a screen runs can answer it, so a timer, a message or a revision's code never )"
+	 R"(opens one without the person's yes. Any other scheme is an error. A control step)",
+	 "steps"},
     {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
 	 R"(`"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the )"

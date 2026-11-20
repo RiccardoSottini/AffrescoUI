@@ -83,6 +83,10 @@ private:
 	/// @brief Builds the meshes for a size of the panel, unless they are built for it already.
 	/// @param size The panel's width and height.
 	void build(Vec2 size) const;
+	/// @brief The opacity the path is drawn with as a group, after build(): its most opaque colour when it is
+	/// translucent and nothing else is in the group, so overlapping parts of its mesh aren't darker; else 1.
+	/// @return From 0 to 1.
+	[[nodiscard]] float groupOpacity() const;
 	/// @brief How the path's coordinates map to the panel's, for a size.
 	/// @param size The panel's width and height.
 	/// @return The transform.

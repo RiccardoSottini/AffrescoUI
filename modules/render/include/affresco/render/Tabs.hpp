@@ -130,6 +130,11 @@ private:
 		float width = 0.0f;  ///< Its width.
 	};
 
+	/// @brief Gives each tab its element for assistive tools (role "tab", its label as the name, selected when active),
+	/// adding or removing elements to match the tabs.
+	void describeTabs();
+	/// @brief Puts each tab's element over its tab, as scrolled.
+	void placeElements();
 	/// @brief The font the labels use: setFont()'s, or the window's default.
 	[[nodiscard]] const Font* font() const noexcept;
 	/// @brief Whether a point is on a tab's close button.
@@ -167,6 +172,7 @@ private:
 	std::optional<Color> markerColor_;         ///< See setMarkerColor().
 	bool keepMarker_ = false;                  ///< See setKeepMarker().
 	float scroll_ = 0.0f;                      ///< See scrollPosition().
+	Panel* elements_ = nullptr;                ///< The tabs' elements for assistive tools (describeTabs()), a child.
 	float contentWidth_ = 0.0f;                ///< All the tabs' width.
 	std::size_t hovered_ = 0;                  ///< The tab under the pointer, or tabs_.size().
 	std::size_t pressed_ = 0;                  ///< The tab the left button went down on, or tabs_.size().

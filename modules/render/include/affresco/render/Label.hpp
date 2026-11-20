@@ -123,9 +123,9 @@ public:
 	void setJustify(bool justify);
 	/// @brief Whether wrapped lines are justified (setJustify()).
 	[[nodiscard]] bool justify() const noexcept { return justify_; }
-	/// @brief Sets extra room between the characters of plain text on one line (headings, small capitals), as CSS's
-	/// letter-spacing: after each character but the last, counted in the alignment and when fitted to the text.
-	/// Wrapped text and rich text (runs) keep the font's own spacing.
+	/// @brief Sets extra room between the characters of plain text (headings, small capitals), as CSS's
+	/// letter-spacing: after each character but the last, counted in the alignment, in wrapping, in justified lines
+	/// and when fitted to the text. Rich text (runs) keeps the font's own spacing.
 	/// @param pixels The room, in pixels; negative tightens; 0 (the default) is the font's.
 	void setLetterSpacing(float pixels);
 	/// @brief The extra room between characters, in pixels (setLetterSpacing()).
@@ -167,7 +167,7 @@ private:
 	/// @param line The line, without the spaces it ends with.
 	/// @param top The line's top.
 	void paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
-	/// @brief Whether plain text is drawn with letterSpacing(): one line of it, no runs.
+	/// @brief Whether plain text is drawn with letterSpacing(): wrapped or not, no runs.
 	[[nodiscard]] bool spaced() const noexcept;
 	/// @brief A line's width with letterSpacing() when spaced(), else the font's.
 	/// @param font The font.

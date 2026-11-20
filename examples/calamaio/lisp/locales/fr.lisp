@@ -380,7 +380,6 @@
                  :echo.notAYank "La commande précédente n’était pas un collage"
                  :echo.notDefined "Non défini"
                  :echo.notLoaded "Non chargé : {error}"
-                 :echo.nothingLeft "Plus rien à enregistrer ; fermez la fenêtre pour terminer la session"
                  :echo.nothingToSave "(Rien à enregistrer)"
                  :echo.onlyWindow "Impossible de retirer la seule fenêtre du cadre"
                  :echo.proposed "La proposition {proposal} vous attend : M-x accept-proposal, ou C-x C-z pour la laisser"

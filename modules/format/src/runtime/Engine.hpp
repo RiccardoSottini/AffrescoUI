@@ -54,6 +54,7 @@
 #include "Verify.hpp"
 #include "Watches.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <string>
@@ -133,6 +134,9 @@ struct Engine : VersionObserver {
 	Picks picks; ///< What the person pointed at ("pick") and has neither removed nor sent.
 	/// Which file holds an entry of a JSON document (Runtime::setFileOf()); empty: the files aren't known.
 	std::function<FileOf(std::string_view pointer)> fileOf;
+	/// Opens a web address the person said yes to (Runtime::setWebOpener()); empty: this host opens none.
+	std::function<bool(const std::string& url)> openWebAddress;
+	std::uint64_t webQuestion = 0; ///< The openUrl question shown (Window::confirm()'s id), or 0.
 	AsyncCalls calls;                  ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0;       ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this};         ///< The declared sounds, played by "audio" steps.
