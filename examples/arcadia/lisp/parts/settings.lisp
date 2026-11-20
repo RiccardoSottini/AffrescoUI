@@ -238,11 +238,29 @@
 
 ;;; Storage
 
+(defstate storageDrive main)
+
+(defcomputed drives "The computer's two drives: each one's size and what else is on it, in GB."
+  [{:id "main" :title (t "storage.main") :totalGb 1000 :otherGb 180}
+   {:id "second" :title (t "storage.second") :totalGb 2000 :otherGb 60}])
+
+(defcomputed drive "The drive the storage page shows." (find #(= (:id %) state.storageDrive) computed.drives))
+
+(defcomputed driveGames "The games installed on the drive shown, the largest first."
+  (filter #(= (or-else (:drive %) "main") state.storageDrive) computed.installedGames))
+
+(defcomputed otherDrive "The drive the storage page doesn't show, where Move takes a game."
+  (find #(not= (:id %) state.storageDrive) computed.drives))
+
+(defcomputed driveUsedGb "How much the drive shown holds, in GB: its games and everything else."
+  (+ computed.drive.otherGb
+     (sum (map #(or-else (:sizeGb %) 0) computed.driveGames))))
+
 (defmacro used-text
   ;; A macro: the text is an expression, shown and read aloud.
-  "How much of the drive is used: the games and 180 GB of everything else, of 1,000 GB."
+  "How much of the drive shown is used, of its size."
   []
-  `(t "settings.used" {:used (formatNumber (+ computed.usedGb 180) 0 1) :total (formatNumber 1000)}))
+  `(t "settings.used" {:used (formatNumber computed.driveUsedGb 0 1) :total (formatNumber computed.drive.totalGb)}))
 
 (defmacro game-colour
   ;; A macro: the colour is an expression of the repeat's index.
@@ -250,28 +268,54 @@
   [i]
   `(get ["@color.accent" "@color.play" "@color.online" "@color.warm" "@color.link"] (mod ~i 5)))
 
+(defmacro share
+  ;; A macro: the width is an expression of the drive shown.
+  "A size in GB as a width: its share of the drive shown."
+  [gb]
+  `(-> ~gb (* 100) (/ computed.drive.totalGb) text (str "%")))
+
 (defcomponent settingsStorage
-  "The storage page: the drive's use, a bar of the games on it, and each game with a way to uninstall it."
+  "The storage page: the drives to choose from, the one chosen's use, a bar of the games on it, and each game with a
+  way to move it to the other drive or uninstall it."
   {}
   `(node :fill true :color transparent
-     (node :style sectionCaps :text ~(upper-case (t "settings.drive")))
+     (row#storage-drives :anchors {:left 0 :right 0 :top 0} :height 38 :gap 6 :alignItems center :role tablist
+       :arrows horizontal
+       ~(repeat [d computed.drives :key d.id] (drive-tab d)))
      (label#storage-used :font small
-       :anchors {:left 0 :right 0 :top 22}
+       :anchors {:left 0 :right 0 :top 48}
        :height 18
        :text ~(used-text)
        :textColor @color.text)
-     (row#storage-bar :anchors {:left 0 :right 0 :top 46}
+     (row#storage-bar :anchors {:left 0 :right 0 :top 72}
        :height 12
        :radius 6
        :color @color.raised
        :label ~(used-text)
-       (node :width "18%" :alignSelf stretch :color @color.dim)
-       ~(repeat [g computed.installedGames :index i]
-          `(node :width ~(str (text (/ g.sizeGb 10)) "%") :alignSelf stretch :color ~(game-colour i))))
-     (column#storage-games :anchors {:left 0 :right 0 :top 72 :bottom 0} :scroll vertical
-       ~(repeat [g computed.installedGames :index i] (storage-game g i)))))
+       (node :width ~(share computed.drive.otherGb) :alignSelf stretch :color @color.dim)
+       ~(repeat [g computed.driveGames :index i]
+          `(node :width ~(share g.sizeGb) :alignSelf stretch :color ~(game-colour i))))
+     (label#storage-empty :when ~(empty? computed.driveGames)
+       :font small
+       :anchors {:left 0 :right 0 :top 100}
+       :height 18
+       :text ~(t "storage.empty")
+       :textColor @color.muted)
+     (column#storage-games :anchors {:left 0 :right 0 :top 96 :bottom 0} :scroll vertical
+       ~(repeat [g computed.driveGames :index i :key g.id] (storage-game g i)))))
 
-(defview storage-game "An installed game on the storage page: its colour, name and size, and Uninstall." [g i]
+(defview drive-tab "A drive as a tab: its name and size, lit when it is the one shown." [d]
+  `(node :id ~(str "storage-drive-" d.id)
+     :style pillButton
+     :role tab
+     :icon hard-drive
+     :text ~(t "storage.driveTab" {:name d.title :size (formatNumber d.totalGb)})
+     :selected ~(= state.storageDrive d.id)
+     :color ~(if (= state.storageDrive d.id) "@color.select" "@color.raised")
+     :textColor ~(if (= state.storageDrive d.id) "@color.bright" "@color.text")
+     :onClick ~(handler show-drive d.id)))
+
+(defview storage-game "An installed game on the storage page: its colour, name and size, Move and Uninstall." [g i]
   `(row :id ~(str "storage-" g.id) :anchors {:left 0 :right 0} :height 32 :gap 10 :alignItems center
      (panel :width 10 :height 10 :radius 5 :color ~(game-colour i))
      (label :grow 1 :height 20 :text ~g.title :textColor @color.text)
@@ -279,19 +323,35 @@
        :fitText true
        :text ~(t "properties.sizeValue" {:size (formatNumber g.sizeGb 0 1)})
        :textColor @color.muted)
-     (label :id ~(str "storage-uninstall-" g.id)
-       :font small
-       :fitText true
-       :padding 6
-       :radius 3
+     (node :id ~(str "storage-move-" g.id) :style storageLink
+       :text ~(t "storage.moveTo" {:name computed.otherDrive.title})
+       :textColor ~(if (= g.status "running") "@color.dim" "@color.link")
+       :disabled ~(= g.status "running")
+       :tooltip ~(t (if (= g.status "running") "storage.moveRunning" "storage.moveAbout"))
+       :onClick ~(handler moveGame g.id))
+     (node :id ~(str "storage-uninstall-" g.id) :style storageLink
        :text ~(t "menu.game.uninstall")
        :textColor ~(if (= g.status "running") "@color.dim" "@color.link")
        :disabled ~(= g.status "running")
-       :focusable true
-       :role button
-       :cursor hand
-       :hover {:color @color.hover}
        :onClick ~(handler askUninstall g.id))))
+
+(defstyle storageLink "A small link-like button on the storage page."
+  (label :font small :fitText true :padding 6 :radius 3 :focusable true :role button :cursor hand
+    :hover {:color @color.hover}))
+
+(defn show-drive "Shows a drive on the storage page." [id] (set "state.storageDrive" id))
+
+(defcommand moveGame "Moves an installed game to the computer's other drive; it plays the same from there."
+  :title ~(t "storage.move") :description ~(t "command.moveGame.about") :category ~(t "category.settings")
+  :icon "hard-drive"
+  [id]
+  (let [game (game-of id)
+        from (or-else (:drive game) "main")
+        to (if (= from "main") "second" "main")
+        running (= (:status game) "running")]
+    (when (and (some? game) (:installed game) (not running))
+      (update-record "games" :id id :fields {:drive to})
+      (notify (t "storage.moved" {:title (:title game) :name (t (str "storage." to))})))))
 
 ;;; Account
 

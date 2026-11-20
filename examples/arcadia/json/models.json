@@ -39,6 +39,12 @@
 					"type": "boolean",
 					"default": false
 				},
+				"drive": {
+					"type": "enum",
+					"values": ["main", "second"],
+					"default": "main",
+					"description": "The drive it is installed on."
+				},
 				"note": {
 					"type": "string",
 					"maxLength": 500

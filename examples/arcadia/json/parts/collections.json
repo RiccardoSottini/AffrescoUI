@@ -21,7 +21,10 @@
 			"icon": "folder-plus",
 			"do": [
 				{ "dismiss": true },
-				{ "set": "state.newCollection", "to": { "open": true, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" } }
+				{
+					"set": "state.newCollection",
+					"to": { "open": true, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" }
+				}
 			]
 		},
 		"createCollection": {
@@ -43,7 +46,12 @@
 									"to": "{{concat(state.collections, [state.newCollection.kind == 'manual' ? { id: 'mine-' + state.collectionSeq, title: trim(state.newCollection.title), games: state.newCollection.games } : { id: 'mine-' + state.collectionSeq, title: trim(state.newCollection.title), games: [], rule: { field: state.newCollection.rule.field, value: state.newCollection.rule.value } }])}}"
 								},
 								{ "set": "state.newCollection.open", "to": false },
-								{ "run": "notify", "with": { "text": "{{t('coll.created', { name: trim(state.newCollection.title) })}}" } }
+								{
+									"run": "notify",
+									"with": {
+										"text": "{{t('coll.created', { name: trim(state.newCollection.title) })}}"
+									}
+								}
 							]
 						}
 					]
@@ -76,7 +84,12 @@
 					"dimColor": "@color.muted",
 					"highlight": "@color.accent",
 					"buttons": [
-						{ "title": "{{t('coll.create')}}", "run": "createCollection", "default": true, "keepOpen": true },
+						{
+							"title": "{{t('coll.create')}}",
+							"run": "createCollection",
+							"default": true,
+							"keepOpen": true
+						},
 						{ "title": "{{t('dialog.cancel')}}" }
 					]
 				},
@@ -133,7 +146,10 @@
 								"selected": "{{state.newCollection.kind == kind}}",
 								"color": "{{state.newCollection.kind == kind ? '@color.select' : '@color.raised'}}",
 								"textColor": "{{state.newCollection.kind == kind ? '@color.bright' : '@color.text'}}",
-								"onClick": [{ "set": "state.newCollection.kind", "to": "{{kind}}" }, { "set": "state.newCollection.error", "to": "" }]
+								"onClick": [
+									{ "set": "state.newCollection.kind", "to": "{{kind}}" },
+									{ "set": "state.newCollection.error", "to": "" }
+								]
 							}
 						]
 					},
@@ -157,7 +173,11 @@
 						"children": [
 							{
 								"type": "row",
-								"repeat": { "for": "g", "in": "{{sort(computed.owned, lower(it.title))}}", "key": "{{g.id}}" },
+								"repeat": {
+									"for": "g",
+									"in": "{{sort(computed.owned, lower(it.title))}}",
+									"key": "{{g.id}}"
+								},
 								"id": "{{'coll-pick-' + g.id}}",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 30,
@@ -186,8 +206,20 @@
 										"fit": "cover",
 										"radius": 2
 									},
-									{ "type": "label", "grow": 1, "height": 20, "text": "{{g.title}}", "textColor": "@color.text" },
-									{ "type": "label", "font": "small", "fitText": true, "text": "{{g.genre ?? ''}}", "textColor": "@color.muted" },
+									{
+										"type": "label",
+										"grow": 1,
+										"height": 20,
+										"text": "{{g.title}}",
+										"textColor": "@color.text"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"fitText": true,
+										"text": "{{g.genre ?? ''}}",
+										"textColor": "@color.muted"
+									},
 									{ "type": "panel", "width": 8, "height": 1, "color": "transparent" }
 								]
 							}
@@ -205,7 +237,11 @@
 						"label": "{{t('coll.rule')}}",
 						"children": [
 							{
-								"repeat": { "for": "rule", "in": "{{computed.collectionRules}}", "key": "{{rule.key}}" },
+								"repeat": {
+									"for": "rule",
+									"in": "{{computed.collectionRules}}",
+									"key": "{{rule.key}}"
+								},
 								"id": "{{'coll-rule-' + rule.key}}",
 								"style": "pillButton",
 								"role": "radio",
@@ -213,7 +249,10 @@
 								"selected": "{{state.newCollection.rule.key == rule.key}}",
 								"color": "{{state.newCollection.rule.key == rule.key ? '@color.select' : '@color.raised'}}",
 								"textColor": "{{state.newCollection.rule.key == rule.key ? '@color.bright' : '@color.text'}}",
-								"onClick": [{ "set": "state.newCollection.rule", "to": "{{rule}}" }, { "set": "state.newCollection.error", "to": "" }]
+								"onClick": [
+									{ "set": "state.newCollection.rule", "to": "{{rule}}" },
+									{ "set": "state.newCollection.error", "to": "" }
+								]
 							}
 						]
 					}
