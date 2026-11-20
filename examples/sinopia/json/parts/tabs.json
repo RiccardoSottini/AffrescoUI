@@ -223,7 +223,8 @@
 							  "runs": "{{[{ icon: k[1], size: 24 }, { text: '\n' + k[2], size: 11 }]}}",
 							  "onClick": { "run": "setTransition", "with": { "props": "{{ {kind: k[0]} }}" } } }
 						] },
-						{ "id": "b-effect-options", "use": "rbBig", "with": { "icon": "{{computed.directionIcons[computed.slide.transition.direction ?? 'left']}}", "title": "{{'From\n' + (computed.slide.transition.direction ?? 'left')}}", "width": 52,
+						{ "use": "fadeOptions" },
+						{ "id": "b-effect-options", "use": "rbBig", "when": "{{computed.slide.transition.kind != 'fade'}}", "with": { "icon": "{{computed.directionIcons[computed.slide.transition.direction ?? 'left']}}", "title": "{{'From\n' + (computed.slide.transition.direction ?? 'left')}}", "width": 52,
 						                                                    "enabled": "{{contains(['push', 'wipe', 'reveal', 'cover'], computed.slide.transition.kind ?? 'none')}}" },
 						  "tooltip": "The side the transition comes from",
 						  "onClick": { "run": "setTransition", "with": { "props": "{{ {direction: computed.directions[(indexOf(computed.directions, computed.slide.transition.direction ?? 'left') + 1) % 4]} }}" } } }
@@ -312,15 +313,15 @@
 						{ "id": "b-motion-preview", "use": "rbBig", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Play this slide's transition and builds",
 						  "onClick": "previewSlide" }
 					] },
-					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : 'Entrance'}}" }, "children": [
-						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 380 }, "children": [
+					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : 'Entrance'}}" }, "children": [
+						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 560 }, "children": [
 							{ "type": "label",
-							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{[['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']]}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects)}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
 							  "runs": "{{[{ icon: e[1], size: 24 }, { text: '\n' + e[2], size: 11 }]}}",
-							  "onClick": { "run": "setAnimation", "with": { "effect": "{{e[0]}}", "kind": "{{a.kind ?? 'entrance'}}", "start": "{{a.start ?? 'click'}}", "ms": "{{a.ms ?? 500}}" } } }
+							  "onClick": { "run": "chooseEffect", "with": { "effect": "{{e[0]}}" } } }
 						] },
-						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null}}", "width": 46 },
+						{ "id": "b-exit", "use": "rbBig", "with": { "icon": "log-out", "title": "As\nExit", "on": "{{a.kind == 'exit'}}", "enabled": "{{a != null && a.kind != 'emphasis'}}", "width": 46 },
 						  "tooltip": "Leave the slide instead of coming in", "onClick": { "run": "changeAnimation", "with": { "props": "{{ {kind: a.kind == 'exit' ? 'entrance' : 'exit'} }}" } } }
 					] },
 					{ "id": "g-motion-timing", "use": "rbGroup", "with": { "title": "Timing" }, "children": [
@@ -342,7 +343,8 @@
 							] },
 							{ "type": "label", "id": "motion-count", "height": 22, "textColor": "@rbMuted",
 							  "runs": [{ "text": "{{length(computed.slide.animations ?? []) + ' on this slide, ' + count(computed.slide.animations ?? [], it.start == 'click') + ' on a click'}}", "size": 12 }] }
-						] }
+						] },
+						{ "use": "motionTimingMore", "with": { "a": "{{a}}" } }
 					] },
 					{ "id": "g-motion-advanced", "use": "rbGroup", "with": { "title": "Advanced" }, "children": [
 						{ "id": "b-motion-pane", "use": "rbBig", "with": { "icon": "list-ordered", "title": "Animation\nPane", "on": "{{state.sidePane == 'motion' && !state.formatPane}}", "width": 64 },

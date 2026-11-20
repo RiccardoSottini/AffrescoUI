@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -114,7 +114,7 @@
 		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
 		"mod+f": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": false } }] }],
 		"mod+h": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": true } }] }],
-		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.inkTool != null}}", "do": "inkTool", "with": { "tool": null } }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"escape": [{ "when": "{{state.show.on && state.showPen.tool != null}}", "do": "penTool", "with": { "tool": null } }, { "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.inkTool != null}}", "do": "inkTool", "with": { "tool": null } }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
