@@ -139,6 +139,10 @@
 					"click": "#terms"
 				},
 				{
+					"scroll": "#stack-form-2",
+					"dy": -100
+				},
+				{
 					"click": "#label-create-account"
 				},
 				{

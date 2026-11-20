@@ -1815,14 +1815,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 71
+						"is": 68
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 510
+						"is": 516
 					}
 				},
 				{
@@ -1860,14 +1860,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 71
+						"is": 68
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 510
+						"is": 516
 					}
 				},
 				{
@@ -1904,7 +1904,7 @@
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 578
+						"is": 584
 					}
 				}
 			]

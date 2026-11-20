@@ -618,7 +618,8 @@
 		"fieldLabel": {
 			"type": "label",
 			"font": "small",
-			"height": 18,
+			"height": 24,
+			"align": "start end",
 			"color": "transparent",
 			"textColor": "@color.text",
 			"anchors": {
@@ -4592,6 +4593,8 @@
 										{
 											"id": "label-password",
 											"style": "fieldLabel",
+											"height": 18,
+											"align": "start center",
 											"anchors": {},
 											"fitText": true,
 											"text": "{{t('password')}}"

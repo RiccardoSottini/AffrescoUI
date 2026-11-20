@@ -117,7 +117,12 @@
 
 (defview password-step "The second step: the password, Forgot password?, the Caps Lock warning and Remember me." []
   [`(row#row-password :when ~(= state.step "password") :height 18 :justify space-between :anchors {:left 0 :right 10}
-      (node#label-password :style fieldLabel :anchors {} :fitText true :text ~(t "password"))
+      (node#label-password :style fieldLabel
+        :height 18
+        :align "start center"
+        :anchors {}
+        :fitText true
+        :text ~(t "password"))
       (node#forgot :style smallLink :text ~(t "forgot") :onClick open-forgot))
    (password-field)
    `(label#capsLockWarning :when ~(and (= state.step "password") window.capsLock)

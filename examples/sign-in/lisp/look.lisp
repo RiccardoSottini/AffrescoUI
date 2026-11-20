@@ -72,8 +72,13 @@
 (defstyle caption "A line of muted text under a title."
   (label :height 20 :textColor @color.muted :anchors {:left 0 :right 10}))
 
-(defstyle fieldLabel "A field's name, over it."
-  (label :font small :height 18 :color transparent :textColor @color.text :anchors {:left 0 :right 10}))
+(defstyle fieldLabel "A field's name, over it: closer to its field than to what is above."
+  (label :font small
+    :height 24
+    :align "start end"
+    :color transparent
+    :textColor @color.text
+    :anchors {:left 0 :right 10}))
 
 (defstyle title "A screen's title, large."
   (label :font title :height 34 :textColor @color.text :anchors {:left 0 :right 10}))
