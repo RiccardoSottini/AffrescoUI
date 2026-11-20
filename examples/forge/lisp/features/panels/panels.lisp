@@ -1,7 +1,7 @@
 ;;; panels.lisp --- Forge's panel: Problems, Output, the notification centre and progress
 ;;;
-;;; Problems lists the TODO and FIXME lines of the open files and the language server's diagnostics, and a click goes
-;;; to the line; Output is a log every feature writes to with notify and log-line; the notification centre over the
+;;; Problems lists the TODO and FIXME lines of the open files and the language server's diagnostics as a tree, each
+;;; file with its problems under it, errors first, and opening one goes to the line; Output is a log every feature writes to with notify and log-line; the notification centre over the
 ;;; status bar's bell keeps the toasts' history; a long task shows a toast with a bar. The panel's tabs and the
 ;;; status bar's counts come from this state.
 
@@ -17,6 +17,8 @@
 
 (defstate problemsFilter "")
 
+(defstate problemsFolded [] "The files whose problems are folded away in Problems, by their rows' ids.")
+
 (defn severity-rank "Where a severity sorts: errors first, then warnings, then the rest." [severity]
   (case severity :error 0 :warning 1 2))
 
@@ -24,24 +26,45 @@
   (let [text (str/lower-case (str it.message " " it.file))]
     (or (empty? query) (str/includes? text query))))
 
-(defn problem-row "A problem's row (`it`, its place in the list as `index`): its severity's icon, message, file and line." [it]
+(defn problem-row "A problem's row (`it`, its place in the list as `index`): its severity's icon, its message and line." [it]
   {:id it.index
    :icon (case it.severity :error "circle-x" :warning "alert-triangle" "info")
    :iconColor (case it.severity :error "#f85149" :warning "#cca700" "#3794ff")
-   :cells [it.message it.label it.line]})
+   :label (t "problems.row" {:message it.message :line it.line})})
 
-(defn problem-rows "The problems (`problems`) the filter (`filter-text`) keeps, errors first, each a row." [problems filter-text]
+(defn problem-file-row "A file's row in Problems, its name and how many problems it has, those problems under it." [rows]
+  (let [{:keys [file label]} (first rows)]
+    {:id (str "file:" file)
+     :icon "file-code"
+     :label (t "problems.fileRow" {:name label :path file :n (count rows)})
+     :children (map problem-row rows)}))
+
+(defn problems-kept "The problems (`problems`) the filter (`filter-text`) keeps, numbered, errors first." [problems filter-text]
   (let [query (str/lower-case (str/trim filter-text))
-        numbered (map-indexed (fn [index it] (assoc it :index index)) problems)
-        kept (filter #(problem-matches query %) numbered)]
-    (map problem-row (sort-by #(severity-rank (:severity %)) kept))))
+        numbered (map-indexed (fn [index it] (assoc it :index index)) problems)]
+    (sort-by #(severity-rank (:severity %)) (filter #(problem-matches query %) numbered))))
 
-(defcomputed problemRows (problem-rows state.problems state.problemsFilter))
+(defn problem-rows "The problems kept (`kept`), as a row per file with its problems under it, the files by path." [kept]
+  (let [by-file (group-by :file kept)]
+    (map #(problem-file-row (get by-file %)) (sort (keys by-file)))))
 
-(defn go-to-problem "A row of Problems, opened: its file shown at its line." []
-  (let [{:keys [file label line]} (get state.problems (number event.id))]
-    (showTab file label)
-    (go-to-line line)))
+(defcomputed problemsShown (problems-kept state.problems state.problemsFilter))
+
+(defcomputed problemRows (problem-rows computed.problemsShown))
+
+(defcomputed problemsOpen "The files open in Problems: every one but those folded."
+  (remove #(contains state.problemsFolded %) (map :id computed.problemRows)))
+
+(defn fold-problems "A file's row in Problems opened or closed: kept folded or not." []
+  (set "state.problemsFolded" (if event.expanded
+                                (remove #(= % event.id) state.problemsFolded)
+                                (conj state.problemsFolded event.id))))
+
+(defn go-to-problem "A problem's row of Problems, opened: its file shown at its line (a file's row folds instead)." []
+  (when-not (str/starts-with? (str event.id) "file:")
+    (let [{:keys [file label line]} (get state.problems (number event.id))]
+      (showTab file label)
+      (go-to-line line))))
 
 (defcommand showProblems "Focus Problems"
   :title ~(t "command.showProblems")
