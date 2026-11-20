@@ -158,13 +158,13 @@
   `(row#tab-design :fitContent width :height 92 :gap 4 :color transparent
      (node#g-themes :use rbGroup :with {:title ~(t "ribbon.themes")}
        (node#gal-themes :use rbGallery :with {:width 490 :more gal-themes}
-         ~(repeat [theme (slice computed.themes 0 6) :key theme.id]
+         ~(repeat [theme computed.galleryThemes :key theme.id]
            (theme-choice theme))))
      (node#g-variants :use rbGroup :with {:title ~(t "ribbon.variants")}
        (node#gal-variants :use rbGallery :with {:width 290}
          ~(repeat [v computed.theme.variants :index n]
            (variant-choice v n)))
-       (column#variants-col :width 76 :height 72 :gap 2 :alignItems stretch :color transparent
+       (column#variants-col :width 96 :height 72 :gap 0 :alignItems stretch :color transparent
          (node#b-colors :use rbSmall
            :with {:icon palette :title ~(t "ribbon.colors") :menu true}
            :tooltip ~(t "ribbon.anotherThemeSColoursFor")
@@ -172,7 +172,11 @@
          (node#b-fonts :use rbSmall
            :with {:icon type :title ~(t "ribbon.fonts") :menu true}
            :tooltip ~(t "ribbon.theFontsOfTheTitles")
-           :onClick ~(handler open-drop "b-fonts"))))
+           :onClick ~(handler open-drop "b-fonts"))
+         (node#b-save-theme :use rbSmall
+           :with {:icon bookmark-plus :title ~(t "design.saveTheme")}
+           :tooltip ~(t "design.saveThisDeckSLook")
+           :onClick save-theme)))
      (node#g-customize :use rbGroup :with {:title ~(t "ribbon.customize")}
        (node#b-slide-size :use rbBig
          :with {:icon rectangle-horizontal :title ~(t "ribbon.slideSize") :width 46 :enabled false}
@@ -507,7 +511,7 @@
      :height 60
      :radius 2
      :cursor hand
-     :tooltip ~(t (str "theme." theme.id))
+     :tooltip ~(theme-name theme)
      :color ~(get theme.colors theme.background)
      :borderWidth ~(if (= state.deck.theme theme.id) 2 1)
      :borderColor ~(if (= state.deck.theme theme.id) "@brand" "@rbFieldLine")

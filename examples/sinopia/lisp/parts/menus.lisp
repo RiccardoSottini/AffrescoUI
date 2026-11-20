@@ -452,7 +452,7 @@
   (concat [{:title (t "menu.fromTheTheme") :checked (nil? state.deck.colors) :run "setColorSet" :with {:id nil}}
            {:separator true}]
           (map (fn [it]
-                 {:title (t (str "theme." it.id))
+                 {:title (theme-name it)
                   :checked (= state.deck.colors it.id)
                   :run "setColorSet"
                   :with {:id it.id}})
@@ -514,7 +514,7 @@
 
 (defcomputed menu-gal-themes "The theme gallery's whole list."
   (map (fn [it]
-         {:title (t (str "theme." it.id)) :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
+         {:title (theme-name it) :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
        computed.themes))
 
 (defcomputed menu-b-effects "The Shape Effects menu." computed.effectItems)

@@ -283,6 +283,99 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sinopia-own-themes",
+			"note": "Design > Save Theme keeps the deck's look, its own colours too, as a theme of the gallery, first in it, and gives the deck that theme",
+			"steps": [
+				{
+					"click": "#tab-design-label"
+				},
+				{
+					"click": "#theme-ember"
+				},
+				{
+					"click": "#b-save-theme"
+				},
+				{
+					"expect": {
+						"state": "ownThemes[0].name",
+						"is": "My Theme 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "own1"
+					}
+				},
+				{
+					"expect": {
+						"node": "#theme-own1",
+						"exists": true
+					}
+				},
+				{
+					"click": "#theme-default"
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "default"
+					}
+				},
+				{
+					"click": "#theme-own1"
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "own1"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-soft-edges-and-blurred-shadows",
+			"note": "Shape Effects gives a shape soft edges; its shadow and glow are blurred",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#o10"
+				},
+				{
+					"click": "#b-effects"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Soft Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[2].effect",
+						"is": "soft"
+					}
+				},
+				{
+					"capture": "soft"
+				},
+				{
+					"click": "#b-effects"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Shadow"
+					}
+				},
+				{
+					"capture": "shadow"
+				}
+			]
 		}
 	]
 }
