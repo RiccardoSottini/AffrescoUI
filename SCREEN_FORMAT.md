@@ -253,6 +253,8 @@ only for the elements that changed.
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
+Cmd+A (Ctrl+A elsewhere) selects the whole text, in `selectionColor`: typing or pasting replaces it, Backspace or
+Delete clears it, Cmd+C copies and Cmd+X cuts it (never a `secret` one); a caret key or a click leaves it.
 
 ### `editor`
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,

@@ -16,7 +16,8 @@ namespace affresco {
 /// @brief A single-line text input: collects what is typed while it has focus (click it to focus it).
 ///
 /// Shows a placeholder when empty and a caret when focused, and scrolls so the end of the text stays visible.
-/// Backspace deletes; Cmd+V / Ctrl+V pastes, with line breaks and tabs turned into spaces.
+/// Backspace deletes; Cmd+V / Ctrl+V pastes, with line breaks and tabs turned into spaces. Cmd+A / Ctrl+A selects the
+/// whole text: typing or pasting then replaces it, Backspace or Delete clears it, Cmd+C copies and Cmd+X cuts it.
 class TextArea : public Label {
 public:
 	/// @brief An empty input with a white background and an I-beam cursor.
@@ -59,8 +60,8 @@ public:
 	/// @param codepoint The character.
 	/// @return True if setAccept() lets it in.
 	[[nodiscard]] bool accepts(char32_t codepoint) const noexcept;
-	/// @brief Adds text at the end as typing would (keeping the characters accepted and within the most), firing
-	/// onTextChanged if it changed: what a script types.
+	/// @brief Adds text at the end as typing would (keeping the characters accepted and within the most; replacing
+	/// the whole text when it is selected), firing onTextChanged if it changed: what a script types.
 	/// @param utf8 UTF-8 text.
 	/// @return Whether the text changed.
 	bool insertText(std::string_view utf8);
@@ -68,6 +69,12 @@ public:
 	/// @param count How many (at most all of them).
 	/// @return The text removed, as UTF-8.
 	std::string removeLast(std::size_t count);
+
+	/// @brief Whether the whole text is selected (Cmd+A / Ctrl+A), so that typing replaces it.
+	/// @return See selectAll().
+	[[nodiscard]] bool allSelected() const noexcept { return allSelected_; }
+	/// @brief Selects the whole text, as Cmd+A / Ctrl+A does (nothing when it is empty).
+	void selectAll();
 
 	/// @copydoc Panel::takeTyped
 	[[nodiscard]] bool takeTyped() noexcept override { return std::exchange(typedNow_, false); }
@@ -85,6 +92,7 @@ protected:
 
 	void keyEvent(const KeyEvent& event) override;
 	void charEvent(const CharEvent& event) override;
+	void mouseButtonEvent(const MouseButtonEvent& event) override;
 	void focusEvent(bool focused) override;
 	void paint(Painter& painter) const override;
 
@@ -92,6 +100,10 @@ private:
 	/// @brief Reports what a key of the person's changed: as typing, unless the field is a secret or the key was pressed
 	/// for the screen.
 	void reportKey();
+	/// @brief Handles a key while the whole text is selected: copy, cut, clear or replace by a paste.
+	/// @param event The key, pressed or repeated.
+	/// @return Whether the key was used.
+	bool selectionKey(const KeyEvent& event);
 
 	std::u32string placeholder_;             ///< See setPlaceholder().
 	Color placeholderColor_ = colors::muted; ///< See setPlaceholderColor().
@@ -99,6 +111,7 @@ private:
 	std::size_t maxLength_ = 0;              ///< See setMaxLength().
 	Accept accept_ = Accept::Any;            ///< See setAccept().
 	bool typedNow_ = false;                  ///< What onTextChanged reports now is the person's typing.
+	bool allSelected_ = false;               ///< See allSelected().
 };
 
 } // namespace affresco

@@ -68,6 +68,9 @@ public:
 	/// @brief Sets the selection's colour.
 	/// @param color The colour.
 	void setSelectionColor(Color color);
+	/// @brief The selection's colour.
+	/// @return See setSelectionColor().
+	[[nodiscard]] Color selectionColor() const noexcept { return selectionColor_; }
 
 	/// @brief The text as laid out for the label's current box: lines of pieces, from the block of lines' top-left.
 	/// Empty without a font.
