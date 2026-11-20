@@ -440,6 +440,7 @@
   [id section]
   (set "state.hubTab" (otherwise section "hub"))
   (set "state.hubPost" nil)
+  (set "state.hubShot" nil)
   (go :library :hub id))
 
 (defcommand toggleCollections "Folds every collection of the game list, or unfolds them all."
@@ -567,6 +568,22 @@
     (when (and (some? state.hubPost) (not (str/blank? draft)))
       (push "state.hubReplies" {:post state.hubPost :text draft})
       (set "state.hubDraft" ""))))
+
+(defcommand openHubShot "Opens a screenshot of the player hub big, by its place, with its caption and its vote."
+  :title ~(t "command.openHubShot") :description ~(t "command.openHubShot.about") :category ~(t "category.game")
+  [n]
+  (set "state.hubShot" n))
+
+(defcommand closeHubShot "Goes back from an open screenshot to the hub's screenshots."
+  :title ~(t "command.closeHubShot") :description ~(t "command.closeHubShot.about") :category ~(t "category.game")
+  :enablement ~(some? state.hubShot)
+  []
+  (set "state.hubTab" "screenshots")
+  (set "state.hubShot" nil))
+
+(defn step-hub-shot "Shows the hub's screenshot before (-1) or after (1) the open one, round the ends." [by]
+  (let [n (count state.hubShots)]
+    (set "state.hubShot" (mod (+ state.hubShot by n) n))))
 
 (defcommand voteHubPost "Marks a post of the player hub as helpful, or takes the vote back."
   :title ~(t "command.voteHubPost") :description ~(t "command.voteHubPost.about") :category ~(t "category.game")

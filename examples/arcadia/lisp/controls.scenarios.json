@@ -230,6 +230,26 @@
 			]
 		},
 		{
+			"name": "hub-screenshots",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#section-link-discussions" },
+				{ "click": "#hub-tab-hub" },
+				{ "click": "#hub-shots-all" },
+				{ "expect": { "state": "hubTab", "is": "screenshots" } },
+				{ "click": "#hub-shot-1" },
+				{ "expect": { "state": "hubShot", "is": 1 } },
+				{ "click": "#hub-shot-vote" },
+				{ "expect": { "state": "hubVoted", "is": ["shot-2"] } },
+				{ "click": "#hub-shot-next" },
+				{ "expect": { "state": "hubShot", "is": 2 } },
+				{ "click": "#hub-shot-prev" },
+				{ "capture": "hub-screenshot" },
+				{ "click": "#hub-shot-back" },
+				{ "expect": { "state": "hubShot", "is": null } }
+			]
+		},
+		{
 			"name": "game-links",
 			"steps": [
 				{ "click": "#row-favourites-starfall" },

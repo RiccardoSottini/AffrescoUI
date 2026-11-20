@@ -473,7 +473,17 @@
 			"hub.reply.0": "Merci, ça m'a beaucoup aidé pour {game}.",
 			"hub.reply.1": "Pareil pour moi. La seconde moitié de {game} devient bien plus simple quand on sait ça.",
 			"hub.reply.2": "Gardé pour plus tard. Est-ce toujours valable après la dernière mise à jour ?",
-			"hub.reply.3": "Je suis partant s'il reste de la place, je joue presque tous les soirs."
+			"hub.reply.3": "Je suis partant s'il reste de la place, je joue presque tous les soirs.",
+			"hub.screenshots": "Captures d'écran",
+			"hub.seeAll": "Tout voir",
+			"hub.backToShots": "Toutes les captures",
+			"hub.shotOf": "{n} sur {total}",
+			"hub.shot.0": "Premières lueurs sur la crête",
+			"hub.shot.1": "Trouvé cette vue par hasard",
+			"hub.shot.2": "Le long détour",
+			"hub.shot.3": "Notre équipe, au bout de la nuit",
+			"hub.shot.prev": "Capture précédente",
+			"hub.shot.next": "Capture suivante"
 		}
 	}
 }

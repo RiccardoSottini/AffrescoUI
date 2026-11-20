@@ -473,7 +473,17 @@
 			"hub.reply.0": "Thanks, this helped a lot with {game}.",
 			"hub.reply.1": "Same here. The second half of {game} gets much easier once you know this.",
 			"hub.reply.2": "Saved for later. Is this still right after the last update?",
-			"hub.reply.3": "Count me in if there is room, I play most evenings."
+			"hub.reply.3": "Count me in if there is room, I play most evenings.",
+			"hub.screenshots": "Screenshots",
+			"hub.seeAll": "See all",
+			"hub.backToShots": "All screenshots",
+			"hub.shotOf": "{n} of {total}",
+			"hub.shot.0": "First light over the ridge",
+			"hub.shot.1": "Found this view by accident",
+			"hub.shot.2": "The long way round",
+			"hub.shot.3": "Our crew, at the end of the night",
+			"hub.shot.prev": "Previous screenshot",
+			"hub.shot.next": "Next screenshot"
 		}
 	}
 }
