@@ -191,8 +191,7 @@
 		"mod+alt+right": "nextEditor",
 		"mod+alt+left": "previousEditor",
 		"ctrl+pagedown": "nextEditor",
-		"ctrl+pageup": "previousEditor",
-		"mod+shift+t": "reopenClosedEditor"
+		"ctrl+pageup": "previousEditor"
 	},
 
 	"menus": {

@@ -378,4 +378,3 @@
 (defkey "mod+alt+left" previousEditor)
 (defkey "ctrl+pagedown" nextEditor)
 (defkey "ctrl+pageup" previousEditor)
-(defkey "mod+shift+t" reopenClosedEditor)
