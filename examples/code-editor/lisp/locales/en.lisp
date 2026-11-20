@@ -213,4 +213,17 @@
                 :command.refreshFolders "Refresh Folders"
                 :category.project "Project"
                 :command.reopenClosed "Reopen Closed File"
-                :command.toggleComment "Toggle Comment"}}}
+                :command.toggleComment "Toggle Comment"
+                :command.splitEditor "Split Editor"
+                :command.splitEditor.about "Shows the file in a second editor group too; again, closes it."
+                :command.closeSplit "Close Second Group"
+                :command.closeSplit.about "Closes the second editor group; its file stays open."
+                :command.toggleLayout "Toggle Layout: Columns or Rows"
+                :command.toggleLayout.about "Puts the two editor groups side by side, or one under the other."
+                :command.selectIndentation "Indentation"
+                :command.selectIndentation.about "Picks how many spaces an indentation level is, for the file shown."
+                :bar.spaces "Spaces: {n}"
+                :ui.current "Current"
+                :ui.selectIndentation "Select the indentation of the file"
+                :ui.openToTheSide "Open to the Side"
+                :status.problems "{errors, plural, one {# error} other {# errors}}, {warnings, plural, one {# warning} other {# warnings}}"}}}

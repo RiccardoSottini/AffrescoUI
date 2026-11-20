@@ -74,10 +74,12 @@
      ~(status-problems)
      ~(status-size)
      (node#statusIndent :style statusItem
-       :text ~(if computed.file (t "bar.spaces4") "")
-       :textColor @faint
+       :text ~(if computed.file (t "bar.spaces" {:n (or-else computed.file.tabSize 4)}) "")
+       :hover {:textColor @text}
        :anchors {:right 140}
-       :tooltip ~(t "bar.indentation4SpacesChangingIt"))
+       :cursor hand
+       :tooltip ~(t "command.selectIndentation")
+       :onClick selectIndentation)
      (node#statusSyntax :style statusItem
        :text ~(if computed.file (or computed.file.language "Plain Text") "")
        :hover {:textColor @text}
@@ -102,13 +104,7 @@
 
 (defview status-problems "How many errors and warnings: a click shows them." []
   `(node#statusProblems :style statusItem
-     :text ~(str computed.errors
-                 " "
-                 (if (= computed.errors 1) "error" "errors")
-                 ", "
-                 computed.warnings
-                 " "
-                 (if (= computed.warnings 1) "warning" "warnings"))
+     :text ~(t "status.problems" {:errors computed.errors :warnings computed.warnings})
      :textColor ~(if (> computed.errors 0) "@error" "@muted")
      :hover {:textColor @text}
      :anchors {:left 104}
@@ -239,6 +235,8 @@
                      :with {:file ~state.tabMenu.file}
                      :enabled ~(< (indexOf state.tabs state.tabMenu.file) (dec (count state.tabs)))}
                     {:separator true}
+                    {:title ~(t "ui.openToTheSide") :run open-to-side :with {:file ~state.tabMenu.file}}
+                    {:separator true}
                     {:title ~(t "ui.reopenClosedFile") :run reopenClosed :enabled ~(pos? (count state.closed))}]}))
 
 (defview editor-menu "The editor's context menu." []
@@ -267,3 +265,16 @@
             :highlight @rowSelected
             :field @input
             :providers [{:items ~computed.syntaxes :run set-syntax :placeholder ~(t "ui.selectTheSyntaxOfThe")}]}))
+
+(defview indent-pick "The indentation picker: spaces per level for the file shown." []
+  `(node#indentPick :when ~state.indentPick.open
+     :use quickPick
+     :with {:name indentPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.indentations :run set-indentation
+                         :placeholder ~(t "ui.selectIndentation")}]}))

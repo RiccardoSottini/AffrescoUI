@@ -213,4 +213,17 @@
                 :command.refreshFolders "Actualiser les dossiers"
                 :category.project "Projet"
                 :command.reopenClosed "Rouvrir le fichier fermé"
-                :command.toggleComment "Basculer le commentaire"}}}
+                :command.toggleComment "Basculer le commentaire"
+                :command.splitEditor "Diviser l’éditeur"
+                :command.splitEditor.about "Affiche aussi le fichier dans un second groupe d’éditeurs ; à nouveau, le ferme."
+                :command.closeSplit "Fermer le second groupe"
+                :command.closeSplit.about "Ferme le second groupe d’éditeurs ; son fichier reste ouvert."
+                :command.toggleLayout "Basculer la disposition : colonnes ou lignes"
+                :command.toggleLayout.about "Place les deux groupes d’éditeurs côte à côte, ou l’un sous l’autre."
+                :command.selectIndentation "Retrait"
+                :command.selectIndentation.about "Choisit combien d’espaces compte un niveau de retrait, pour le fichier affiché."
+                :bar.spaces "Espaces : {n}"
+                :ui.current "Actuel"
+                :ui.selectIndentation "Choisissez le retrait du fichier"
+                :ui.openToTheSide "Ouvrir sur le côté"
+                :status.problems "{errors, plural, one {# erreur} other {# erreurs}}, {warnings, plural, one {# avertissement} other {# avertissements}}"}}}

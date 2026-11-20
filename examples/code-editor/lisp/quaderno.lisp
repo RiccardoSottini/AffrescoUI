@@ -690,3 +690,35 @@
 (defcommand about "Says what Quaderno is."
   :description ~(t "command.about.about") :title ~(t "command.about") :category ~(t "category.help") :icon "info" []
   (set "state.aboutOpen" true))
+
+;;; Layouts: a second editor group
+
+(defcommand splitEditor "Shows the file in a second editor group too, beside the first; again, closes it."
+  :description ~(t "command.splitEditor.about") :title ~(t "command.splitEditor") :category ~(t "category.view")
+  :icon columns-2 :enablement ~(or (file-open) (>= state.split 0)) []
+  (set "state.split" (if (>= state.split 0) -1 state.active)))
+
+(defcommand closeSplit "Closes the second editor group; its file stays open in the first."
+  :description ~(t "command.closeSplit.about") :title ~(t "command.closeSplit") :category ~(t "category.view")
+  :icon x :enablement ~(>= state.split 0) []
+  (set "state.split" -1))
+
+(defcommand toggleLayout "Puts the two editor groups side by side, or one under the other."
+  :description ~(t "command.toggleLayout.about") :title ~(t "command.toggleLayout") :category ~(t "category.view")
+  :icon rows-2 []
+  (set "state.splitSizes" [])
+  (set "state.layout" (if (= state.layout :row) :column :row))
+  (when (neg? state.split) (set "state.split" state.active)))
+
+(defn open-to-side "Shows a file in the second editor group." [file]
+  (set "state.split" file))
+
+;;; Indentation
+
+(defcommand selectIndentation "Picks how many spaces an indentation level is, for the file shown."
+  :description ~(t "command.selectIndentation.about") :title ~(t "command.selectIndentation")
+  :category ~(t "category.view") :icon indent :enablement ~(file-open) []
+  (set "state.indentPick" {:open true :query ""}))
+
+(defn set-indentation "Gives the file shown a row of the indentation picker's size." [item]
+  (set "state.files[state.active].tabSize" item.size))

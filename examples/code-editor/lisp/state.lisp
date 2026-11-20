@@ -59,6 +59,14 @@
 
 (defstate results {:query "" :at 0} "Find in Files' last search: its query, counts, text and the result shown.")
 
+(defstate split -1 "The file the second editor group shows, by index; -1 when the editor isn't split.")
+
+(defstate layout row "How the two editor groups sit: row (side by side) or column (one under the other).")
+
+(defstate splitSizes [] "The editor groups' sizes, kept as the sash is dragged.")
+
+(defstate indentPick {:open false :query ""} "The indentation picker: open, and its text.")
+
 (defstate wrap false "Whether long lines wrap.")
 
 (defstate ruler false "Whether the ruler at column 80 is shown.")

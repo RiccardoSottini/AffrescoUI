@@ -692,6 +692,61 @@
 				{ "click": "#panelClose" },
 				{ "expect": { "state": "panelOpen", "is": false } }
 			]
+		},
+		{
+			"name": "split-editor",
+			"note": "Cmd+\\ shows the file in a second group too; typing there changes the same file; the layout flips to rows; its tab's close button closes the group",
+			"steps": [
+				{ "key": "mod+backslash" },
+				{ "wait": 50 },
+				{ "expect": { "state": "split", "is": 0 } },
+				{ "expect": { "node": "#sideEditor", "exists": true } },
+				{ "click": "#sideEditor" },
+				{ "key": "mod+end" },
+				{ "type": "x" },
+				{ "expect": { "state": "files[0].dirty", "is": true } },
+				{ "expect": { "state": "files[0].text.length", "is": 438 } },
+				{ "key": "alt+mod+backslash" },
+				{ "wait": 50 },
+				{ "expect": { "state": "layout", "is": "column" } },
+				{ "expect": { "state": "split", "is": 0 } },
+				{ "action": "closeSplit" },
+				{ "wait": 50 },
+				{ "expect": { "state": "split", "is": -1 } },
+				{ "expect": { "state": "tabs", "is": [0, 1, 3], "note": "the file stays open in the first group" } }
+			]
+		},
+		{
+			"name": "open-to-the-side",
+			"note": "The tab menu's Open to the Side shows that tab's file in the second group",
+			"steps": [
+				{ "click": [370, 45], "note": "Station.hpp's tab" },
+				{ "click": "#editorTabs" },
+				{ "key": "shift+f10" },
+				{ "wait": 50 },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "split", "is": 1 } },
+				{ "expect": { "node": "#sideTabs", "exists": true } }
+			]
+		},
+		{
+			"name": "indentation-from-the-status-bar",
+			"note": "The status bar's indentation opens the picker; 2 spaces applies to the file shown",
+			"steps": [
+				{ "expect": { "node": "#statusIndent", "text": "Spaces: 4" } },
+				{ "click": "#statusIndent" },
+				{ "wait": 50 },
+				{ "expect": { "state": "indentPick.open", "is": true } },
+				{ "type": "2" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].tabSize", "is": 2 } },
+				{ "expect": { "node": "#statusIndent", "text": "Spaces: 2" } }
+			]
 		}
 	]
 }

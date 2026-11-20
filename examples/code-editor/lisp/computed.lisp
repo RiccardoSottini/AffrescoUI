@@ -177,6 +177,11 @@
    {:title "Shell" :language "Shell" :grammar "script.sh"}
    {:title "TypeScript" :language "TypeScript" :grammar "typescript"}])
 
+(defcomputed indentations "The indentation picker's rows: spaces per level, the file's own marked."
+  (map (fn [it] {:title (t "bar.spaces" {:n it}) :size it
+                 :detail (if (= it (or-else (:tabSize computed.file) 4)) (t "ui.current") "")})
+       [2 4 8]))
+
 (defcomputed settingsText "The settings as a JSON file, which Save applies."
   (str "{\n\t// Quaderno settings: save this file (Cmd+S) to apply them.\n\t// theme: \"dark\", \"light\" or \"system\"\n\t\"theme\": "
        (json state.theme)

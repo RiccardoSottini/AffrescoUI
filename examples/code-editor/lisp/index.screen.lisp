@@ -64,4 +64,5 @@
     ~(tab-menu)
     ~(editor-menu)
     ~(theme-pick)
-    ~(syntax-pick)))
+    ~(syntax-pick)
+    ~(indent-pick)))

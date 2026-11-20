@@ -213,4 +213,17 @@
                 :command.refreshFolders "Actualizar carpetas"
                 :category.project "Proyecto"
                 :command.reopenClosed "Volver a abrir el archivo cerrado"
-                :command.toggleComment "Alternar comentario"}}}
+                :command.toggleComment "Alternar comentario"
+                :command.splitEditor "Dividir editor"
+                :command.splitEditor.about "Muestra el archivo también en un segundo grupo de editores; otra vez, lo cierra."
+                :command.closeSplit "Cerrar el segundo grupo"
+                :command.closeSplit.about "Cierra el segundo grupo de editores; su archivo sigue abierto."
+                :command.toggleLayout "Alternar diseño: columnas o filas"
+                :command.toggleLayout.about "Pone los dos grupos de editores uno al lado del otro, o uno debajo del otro."
+                :command.selectIndentation "Sangría"
+                :command.selectIndentation.about "Elige cuántos espacios tiene un nivel de sangría, para el archivo mostrado."
+                :bar.spaces "Espacios: {n}"
+                :ui.current "Actual"
+                :ui.selectIndentation "Selecciona la sangría del archivo"
+                :ui.openToTheSide "Abrir al lado"
+                :status.problems "{errors, plural, one {# error} other {# errores}}, {warnings, plural, one {# advertencia} other {# advertencias}}"}}}

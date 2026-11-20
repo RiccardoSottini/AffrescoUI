@@ -56,6 +56,10 @@
    :wrap {:run toggleWordWrap :group "4_editor"}
    :ruler {:run toggleRuler :group "4_editor" :order 2}
    :minimap {:run toggleMinimap :group "4_editor" :order 3}
+   :indentation {:run selectIndentation :group "4_editor" :order 5}
+   :split {:run splitEditor :group "2b_groups"}
+   :layout {:run toggleLayout :group "2b_groups" :order 2}
+   :closeSplit {:run closeSplit :group "2b_groups" :order 3}
    :unfold {:run unfoldAll :group "4_editor" :order 4}
    :syntax {:run selectSyntax :group "5_look"}
    :theme {:run selectTheme :group "5_look" :order 2}})
@@ -94,6 +98,8 @@
 (defmenu window "The Window menu."
   {:next {:run nextTab :group "1_tabs"}
    :previous {:run previousTab :group "1_tabs" :order 2}
+   :split {:run splitEditor :group "1b_groups"}
+   :layout {:run toggleLayout :group "1b_groups" :order 2}
    :closeAll {:run closeAll :group "2_close"}})
 
 (defmenu help "The Help menu." {:palette {:run commandPalette :group "1_palette"} :about {:run about :group "2_about"}})
@@ -187,3 +193,7 @@
 (defkey "ctrl+cmd+shift+f" {:when ~(= context.platform :mac) :do toggleZen})
 
 (defkey "shift+f11" toggleZen)
+
+(defkey "mod+backslash" splitEditor)
+
+(defkey "alt+mod+backslash" toggleLayout)
