@@ -58,7 +58,7 @@ Every part of the format follows these, and so should every extension:
 | Key | Meaning |
 |---|---|
 | `version` | Required. `2` (a file of version 1 is read by migrating it: "Migrating from version 1"). |
-| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
+| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `"fill": true` (`affrescoui check` reports a container root). |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"letters"` (`C-x`, `M-<`; `"emacs"` is its older name). |
@@ -233,7 +233,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -253,6 +253,8 @@ only for the elements that changed.
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
+Cmd+A (Ctrl+A) selects the whole text: what is typed or pasted next, Backspace, Delete or Cmd+X replaces it, Cmd+C
+copies it, and another key ends the selection.
 
 ### `editor`
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
@@ -1191,7 +1193,10 @@ are stored in the state as they are shown to a `calendar`. The functions give nu
 ## Events
 
 A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
-`event.left`/`top` (in the handling node) and its `width`/`height`.
+`event.left`/`top` (in the handling node) and its `width`/`height`. Pointer events (press, release, click, double
+click, context menu, drag, drop and scroll) also get the modifier keys held: `event.shift`, `ctrl`, `alt`, `cmd` and
+`mod` (Cmd on macOS, Ctrl elsewhere, as in shortcuts), e.g. `{{event.shift ? 'extend' : 'replace'}}` or
+`(if event.shift ...)` in a handler.
 
 <!-- generated: events -->
 | Handler | When |
@@ -1354,6 +1359,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
+| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
 | `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
@@ -2234,7 +2240,7 @@ allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part. `"mods": "shift+alt"` holds modifier keys over the step (`shift`, `ctrl`, `alt`, `cmd`, `mod`), on `drag` and `scroll` too |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
@@ -2260,7 +2266,7 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks disabled` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has; `disabled` is whether it takes no input) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 

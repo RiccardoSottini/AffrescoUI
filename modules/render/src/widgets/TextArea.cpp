@@ -86,6 +86,11 @@ bool TextArea::accepts(char32_t codepoint) const noexcept {
 
 bool TextArea::insert(std::u32string_view added) {
 	bool changed = false;
+	if(allSelected_ && !added.empty()) { // what is typed or pasted replaces the selected text
+		allSelected_ = false;
+		changed = !text_.empty();
+		text_.clear();
+	}
 	for(const char32_t codepoint : added) {
 		if(maxLength_ != 0 && text_.size() >= maxLength_) break;
 		if(!accepts(codepoint)) continue;
@@ -125,6 +130,34 @@ void TextArea::keyEvent(const KeyEvent& event) {
 	Label::keyEvent(event);                    // first: a binding that runs for the key keeps it from the text
 	if(event.action == Action::Release || (window() && window()->keyTaken())) return;
 
+	const bool command = event.mods.super() || event.mods.control();
+	if(command && event.key == Key::A) { // select all: the next typing, paste or deletion replaces the text
+		allSelected_ = !text_.empty();
+		invalidatePaint();
+		return;
+	}
+	if(allSelected_ && command && (event.key == Key::C || event.key == Key::X)) { // copy or cut the whole text
+		if(!secret_ && window()) window()->setClipboardText(text());
+		if(event.key == Key::C || secret_) return;
+	}
+	const bool deletes = event.key == Key::Backspace || event.key == Key::Delete ||
+	                     (allSelected_ && command && event.key == Key::X && !secret_);
+	if(allSelected_ && deletes) {
+		allSelected_ = false;
+		text_.clear();
+		invalidate();
+		reportKey();
+		return;
+	}
+	const bool modifierOnly = event.key == Key::LeftShift || event.key == Key::RightShift ||
+	                          event.key == Key::LeftControl || event.key == Key::RightControl ||
+	                          event.key == Key::LeftAlt || event.key == Key::RightAlt || event.key == Key::LeftSuper ||
+	                          event.key == Key::RightSuper;
+	if(allSelected_ && !modifierOnly && !isPaste(event)) { // any other key (an arrow) ends the selection
+		allSelected_ = false;
+		invalidatePaint();
+	}
+
 	if(event.key == Key::Backspace && !text_.empty()) {
 		text_.pop_back();
 		invalidate();
@@ -142,6 +175,7 @@ void TextArea::charEvent(const CharEvent& event) {
 
 void TextArea::focusEvent(bool focused) {
 	invalidatePaint(); // caret appears/disappears
+	if(!focused) allSelected_ = false;
 
 	Label::focusEvent(focused);
 }
@@ -163,6 +197,10 @@ void TextArea::paint(Painter& painter) const {
 		const std::u32string shown = shownText();
 		const float width = f->measure(shown);
 		const float left = std::round(content.left + std::min(0.0f, content.width() - width - 2.0f));
+		if(allSelected_) // the label's default selection colour, behind the whole text
+			painter.fillRect({std::max(left, content.left), baseline - f->ascent(),
+			                  std::min(left + width, content.right), baseline - f->ascent() + f->lineHeight()},
+			                 Color::hex(0xb4d5fe));
 		painter.drawText(*f, shown, {left, baseline}, textColor());
 	}
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs every command of the affrescoui tool on every template (ctest "cli"), and checks what each one must do:
 
-- check:  every template passes (exit 0), in text and with --json;
+- check:  every template passes (exit 0), in text and with --json; what only building rejects is reported;
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
 - strings: literal text moves to a language file, and a screen that requires that is held to it;
@@ -564,6 +564,13 @@ def main():
         checker.expect(problems[0]["source"] == "lisp" and "line 2, column 15" in problems[0]["message"],
                        f"check: a Lisp file that isn't a value: {problems}")
         checker.run("convert", broken_lisp, expect=1)
+        # What only building rejects: a property the node's type doesn't have, inside a program the schema can't see
+        unbuilt = os.path.join(scratch, "unbuilt.screen.lisp")
+        with open(unbuilt, "w", encoding="utf-8") as file:
+            file.write('(ns unbuilt)\n(defscreen main (panel#all (panel#box :gap 8)))\n')
+        problems = json.loads(checker.run("check", unbuilt, "--json", expect=1))["problems"]
+        checker.expect(any(problem["source"] == "format" and "root.children[0].gap" in problem["message"]
+                           for problem in problems), f"check: a property building rejects: {problems}")
         checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
         checker.packages()
