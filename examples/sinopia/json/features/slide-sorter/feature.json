@@ -2,7 +2,7 @@
 	"format": "affrescoui-feature",
 	"version": 2,
 	"name": "slideSorter",
-	"release": "1.0.0",
+	"release": "1.1.0",
 	"title": "Slide sorter",
 	"description": "Sinopia's slide sorter as a part other apps install: thumbnails of an ordered list of pages, drag to reorder, click to select, and a button that duplicates the selected page.",
 	"license": "Apache-2.0",
