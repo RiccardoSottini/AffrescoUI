@@ -273,7 +273,8 @@
        :role button
        :isOpen ~open
        :hover {:textColor @color.bright}
-       :onClick ~(handler fold-section section.id open))
+       :onClick ~(handler fold-section section.id open)
+       :onContextMenu ~(handler editCollection section.id))
      ~(repeat [g games :key (+ section.id g.id)]
         `(node :id ~(str "row-" section.id "-" g.id) :when ~open :use gameRow :with {:game ~g}))))
 
@@ -422,7 +423,13 @@
      :height 280
      :gap 6
      :when ~(> (count games) 0)
-     (node :use shelfHeader :with {:title ~section.title :count ~(count games)})
+     (node :use shelfHeader :with {:title ~section.title :count ~(count games)}
+       (node :id ~(str "shelf-edit-" section.id) :when ~(contains (map :id state.collections) section.id)
+         :style iconButton
+         :icon pencil
+         :tooltip ~(t "coll.edit")
+         :label ~(t "coll.edit")
+         :onClick ~(handler editCollection section.id)))
      (row :height 236 :anchors {:left 0 :right 0} :gap 14 :scroll horizontal :arrows horizontal
        ~(repeat [g games] `(node :id ~(str "shelf-" section.id "-" g.id) :use capsule :with {:game ~g})))))
 

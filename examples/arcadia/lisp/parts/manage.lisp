@@ -13,6 +13,14 @@
 
 (defstate properties {:open false :tab general :verify ""})
 
+(defstate compat {} "The compatibility layer each game is forced to run with, by its id; a game not here runs as it is.")
+
+(def compat-layers "The compatibility layers a game can be forced to use, the newest first."
+  ["bridge9" "bridge8" "experimental"])
+
+(defcomputed compatLayer "The layer the game being managed is forced to use, or nil."
+  (get state.compat computed.manageGame.id))
+
 (defcomputed manageDrive "The name of the drive the game being managed is installed on."
   (t (str "storage." (or-else computed.manageGame.drive "main"))))
 
@@ -74,7 +82,7 @@
 ;;; Properties
 
 (defcomponent propertiesDialog
-  "A game's properties: launch options and in-game settings, updates, installed files, extra content."
+  "A game's properties: launch options and in-game settings, updates, installed files, compatibility, extra content."
   {}
   `(node :use dialog
      :with {:open state.properties.open
@@ -93,11 +101,12 @@
          ~(general-page)
          ~(updates-page)
          ~(files-page)
+         ~(compat-page)
          ~(extras-page)))))
 
 (defview properties-tabs "The properties' pages down the left side, the one shown lit." []
   `(column#properties-tabs :width 150 :alignSelf stretch :gap 2 :role tablist :arrows vertical
-     ~(repeat [tab ["general" "updates" "files" "dlc"]]
+     ~(repeat [tab ["general" "updates" "files" "compat" "dlc"]]
         `(label :id ~(str "properties-tab-" tab)
            :anchors {:left 0 :right 0}
            :height 30
@@ -272,6 +281,62 @@
        :text ~(if (< f.gb 0.01) (t "properties.tiny") (t "properties.sizeValue" {:size (formatNumber f.gb 1 2)}))
        :textColor @color.muted)
      (panel :width 8 :height 1 :color transparent)))
+
+(defview compat-page "The compatibility page: forcing a compatibility layer, and which one." []
+  `(node :when ~(= state.properties.tab "compat") :fill true :color transparent
+     ~(caps-title "properties.compatTitle" 0)
+     (row#properties-compat :anchors {:left 0 :right 0 :top 24} :height 30 :alignItems center
+       (label :grow 1 :height 22 :text ~(t "properties.compatForce") :textColor @color.text)
+       (toggle#properties-compat-toggle :width 40
+         :height 22
+         :label ~(t "properties.compatForce")
+         :checked ~(some? computed.compatLayer)
+         :activeColor @color.accent
+         :onChange ~(handler set-compat (when event.value (first compat-layers)))))
+     ~(compat-choice "bridge9" 64)
+     ~(compat-choice "bridge8" 96)
+     ~(compat-choice "experimental" 128)
+     (label :font small
+       :text ~(t "properties.compatNote")
+       :textColor @color.dim
+       :wrap true
+       :anchors {:left 0 :right 0 :top 168}
+       :height 40)))
+
+(defview compat-choice "A compatibility layer, a radio button, dimmed while no layer is forced." [layer top]
+  `(row :id ~(str "properties-compat-" layer)
+     :let {:on ~(= computed.compatLayer layer) :enabled ~(some? computed.compatLayer)}
+     :anchors {:left 0 :right 0 :top ~top}
+     :height 28
+     :gap 10
+     :alignItems center
+     :focusable ~enabled
+     :role radio
+     :selected ~on
+     :disabled ~(not enabled)
+     :cursor ~(if enabled "hand" "arrow")
+     :label ~(t (str "properties.compat." layer))
+     :radius 3
+     :hover {:color ~(if enabled "@color.hover" "transparent")}
+     :onClick ~(handler choose-compat layer)
+     (panel :color transparent :width 2 :height 1)
+     (panel :width 14
+       :height 14
+       :radius 7
+       :borderWidth 2
+       :borderColor ~(if on "@color.accent" "@color.dim")
+       :color transparent
+       (node :when ~on :anchors {:left 3 :top 3} :width 4 :height 4 :radius 2 :color @color.accent))
+     (label :grow 1
+       :height 22
+       :text ~(t (str "properties.compat." layer))
+       :textColor ~(if enabled "@color.text" "@color.dim"))))
+
+(defn set-compat "Forces a compatibility layer on the game being managed, or none (nil)." [layer]
+  (set (str "state.compat." computed.manageGame.id) layer))
+
+(defn choose-compat "Chooses the layer forced on the game being managed, while one is." [layer]
+  (when-some [_ computed.compatLayer] (set-compat layer)))
 
 (defview extras-page "The extra content page: none yet." []
   `(node :when ~(= state.properties.tab "dlc") :fill true :color transparent
