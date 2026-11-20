@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <initializer_list>
@@ -284,6 +285,26 @@ void checkChosen(const json& value, const std::string& at) {
 		fail(at, "expected a file name of letters, digits, '-', '_' and '.', or null to cancel");
 }
 
+/// @brief Checks a `choose` step's "from": a file inside the scenario's screens folder, copied into the run's own
+/// folder under the chosen name (a fixture, such as a picture to open).
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If it isn't a relative path that stays inside that folder, or there is nothing to name.
+void checkChosenFrom(const json& step, const std::string& place) {
+	if(!step.contains("from")) return;
+	const json& from = step["from"];
+	const std::string at = place + ".from";
+	if(step["choose"].is_null()) fail(at, "needs a file name to copy it to");
+	if(!from.is_string() || from.get_ref<const std::string&>().empty() ||
+	   from.get_ref<const std::string&>().size() > 256)
+		fail(at, "expected a path of 1 to 256 bytes");
+	const std::filesystem::path path(from.get<std::string>());
+	if(path.is_absolute() || path.has_root_name() || path.has_root_directory())
+		fail(at, "expected a path relative to the scenario's screens folder");
+	for(const std::filesystem::path& part : path)
+		if(part == "..") fail(at, "must stay inside the scenario's screens folder (no '..')");
+}
+
 /// @brief Checks the steps whose one value says it all: type, key, revision, propose, resize, wait, capture, choose,
 /// expect.
 /// @param step The step.
@@ -291,7 +312,8 @@ void checkChosen(const json& value, const std::string& at) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkValueStep(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "note"}, place);
+	if(kind == "choose") onlyKeys(step, {kind, "from", "note"}, place);
+	else onlyKeys(step, {kind, "note"}, place);
 	const json& value = step[std::string(kind)];
 	const std::string at = place + "." + std::string(kind);
 	if(kind == "type") {
@@ -308,6 +330,7 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		checkFileName(value, at);
 	} else if(kind == "choose") {
 		checkChosen(value, at);
+		checkChosenFrom(step, place);
 	} else {
 		checkExpectation(value, at);
 	}

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <memory>
 
 namespace affresco::automation::detail {
@@ -103,12 +104,24 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("wait")) {
 		wait(step["wait"].get<double>());
 	} else if(step.contains("choose")) {
+		if(step.contains("from")) copyFixture(step["from"].get<std::string>(), step["choose"].get<std::string>());
 		choose(step["choose"]);
 	} else if(step.contains("capture")) {
 		picture(step["capture"].get<std::string>(), true, number);
 	} else if(step.contains("expect")) {
 		expect(step["expect"], number);
 	} // else a step that is only a "note"
+}
+
+void Player::copyFixture(const std::string& from, const std::string& name) {
+	const std::filesystem::path folder = std::filesystem::weakly_canonical(stage_.scenario.screen.parent_path());
+	const std::filesystem::path source = std::filesystem::weakly_canonical(folder / std::filesystem::path(from));
+	const auto [end, rest] = std::ranges::mismatch(folder, source);
+	if(end != folder.end() || !std::filesystem::is_regular_file(source))
+		throw StepError("choose: '" + from + "' isn't a file inside the scenario's screens folder");
+	std::error_code error;
+	std::filesystem::copy_file(source, stage_.scratch / name, std::filesystem::copy_options::overwrite_existing, error);
+	if(error) throw StepError("choose: '" + from + "' can't be copied: " + error.message());
 }
 
 void Player::choose(const json& file) {

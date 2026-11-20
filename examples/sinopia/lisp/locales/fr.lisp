@@ -701,7 +701,7 @@
                 :menu.slideTitled "Diapositive {n} : {title}"
                 :menu.matches "{n, plural, one {# résultat} other {# résultats}} dans la présentation."
                 :menu.replaced "{n, plural, one {# objet remplacé} other {# objets remplacés}}."
-                :object.name "{kind, select, title {Titre} subTitle {Sous-titre} content {Contenu} shape {Forme} line {Ligne} icon {Icône} ink {Encre} other {Zone de texte}} {n}"
+                :object.name "{kind, select, title {Titre} subTitle {Sous-titre} content {Contenu} shape {Forme} line {Ligne} icon {Icône} ink {Encre} table {Tableau} picture {Image} other {Zone de texte}} {n}"
                 :pane.findings "{n, plural, one {# point} other {# points}} à examiner :"
                 :ink.width.thin "Fin"
                 :ink.width.medium "Moyen"

@@ -701,7 +701,7 @@
                 :menu.slideTitled "Slide {n}: {title}"
                 :menu.matches "{n, plural, one {# match} other {# matches}} in the deck."
                 :menu.replaced "Replaced {n, plural, one {# object} other {# objects}}."
-                :object.name "{kind, select, title {Title} subTitle {Subtitle} content {Content} shape {Shape} line {Line} icon {Icon} ink {Ink} other {Text Box}} {n}"
+                :object.name "{kind, select, title {Title} subTitle {Subtitle} content {Content} shape {Shape} line {Line} icon {Icon} ink {Ink} table {Table} picture {Picture} other {Text Box}} {n}"
                 :pane.findings "{n, plural, one {# finding} other {# findings}} to look at:"
                 :ink.width.thin "Thin"
                 :ink.width.medium "Medium"
