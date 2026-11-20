@@ -2,6 +2,8 @@
                 :arrange.forward "Avancer"
                 :arrange.backward "Reculer"
                 :arrange.back "Mettre à l’arrière-plan"
+                :arrange.group "Grouper"
+                :arrange.ungroup "Dissocier"
                 :align.left "Aligner à gauche"
                 :align.center "Aligner au centre"
                 :align.right "Aligner à droite"

@@ -101,6 +101,10 @@
                 ["middle" "align-center-horizontal"]
                 ["bottom" "align-end-horizontal"]])
           [{:separator true}]
+          [{:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "groupObjects" :enabled computed.canGroup}
+           {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroupObjects"
+            :enabled computed.canUngroup}]
+          [{:separator true}]
           (map (fn [it]
                  {:title (t (str "distribute." it.0)) :icon it.1 :run "distribute" :with {:axis it.0}
                   :enabled (> (count computed.selected) 1)})
@@ -242,7 +246,8 @@
                                                  :id (str "o" (+ next index))
                                                  :x (+ (or-else (:x it) 0) 18)
                                                  :y (+ (or-else (:y it) 0) 18)
-                                                 :ph nil))
+                                                 :ph nil
+                                                 :group (some-> (:group it) (str "-" next))))
                                         state.clip)))
       (set "state.board.selection" (map #(str "o" (+ next %)) (range (count state.clip)))))
     (increment "state.deck.next" :by (count state.clip))))

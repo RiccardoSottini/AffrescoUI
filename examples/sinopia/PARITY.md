@@ -23,7 +23,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Slides | New slide with a layout, duplicate, delete | done | done | new-duplicate-delete-slide |
 | Slides | Drag to reorder | partial | done | sorter-drag-to-reorder |
 | Slides | Sections (add, rename, collapse) | partial | done | first-frame, section-menu, sections-and-ribbon |
-| Slides | Hide slide (dimmed, crossed number, skipped in the show) | partial | partial | hide-a-slide, present-skips-and-blacks |
+| Slides | Hide slide (dimmed, crossed number, skipped in the show) | partial | done | hide-a-slide, present-skips-and-blacks |
 | Slides | Slide context menu | missing | done | context-menus (on the rail, a shape and the canvas; Shift+F10) |
 | Canvas | Slide centred on grey | partial | done | first-frame, resized |
 | Canvas | Placeholders ("Click to add title", "Click to add text") | missing | done | edit-text-in-place |
@@ -60,7 +60,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Distance indicators (equal gaps) | missing | missing | |
 | Arrange | Align (left, centre, right, top, middle, bottom) | done | done | align-and-distribute |
 | Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
-| Arrange | Group and ungroup | missing | missing | |
+| Arrange | Group and ungroup | missing | done | group-and-ungroup (Arrange, the context menu, Ctrl+G and Ctrl+Shift+G; a click on one member selects the group) |
 | Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | partial | format-size-and-rotation |
 | Arrange | Selection pane (names, show and hide) | missing | partial | selection-pane (Home > Select > Selection Pane; the names are given, not renamed) |
@@ -149,13 +149,11 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 
 | Priority | Row or control | What it needs |
 |---|---|---|
-| P1 | Arrange: group and ungroup | JSON: an object of kind `group` holding objects, drawn and moved as one, with Group and Ungroup in Arrange and the context menu |
 | P1 | Content: insert picture (Insert > Pictures) | Library: `openFile` of an image into an asset the slide draws and the saved deck carries; then JSON for an object of kind `picture` |
 | P1 | Content: tables (Insert > Table) | JSON: an object of kind `table` (rows of text cells) with a size grid to insert it and Tab between cells |
 | P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |
-| P1 | Slides: hide slide (the crossed-out number) | JSON: a strike through the number in the slide list |
 | P2 | Shell: a contextual tab for the selected shape | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
 | P2 | Shell: File view (new deck, recent decks) | JSON: New from the themes; library: a list of recently opened files |
 | P2 | Canvas: rulers, gridlines and guides | JSON: rulers along the canvas, a drawn grid, guides dragged from the rulers that objects snap to |

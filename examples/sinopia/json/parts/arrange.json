@@ -1,0 +1,25 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Groups: objects that share a group (a name from deck.next) are selected, moved, sized and aligned as one. Selecting one of them selects them all (viewChanged widens the selection with groupedSelection); Ungroup takes the name away; a pasted copy of a group is a group of its own.",
+
+	"computed": {
+		"canGroup": "{{length(computed.selected) > 1 && !every(computed.selected, it.group != null && it.group == computed.first.group)}}",
+		"canUngroup": "{{!every(computed.selected, (it.group ?? '') == '')}}",
+		"touchedGroups": "{{map(filter(computed.objects, contains(state.board.selection, it.id) && it.group != null), it.group)}}",
+		"groupedSelection": "{{map(filter(computed.objects, contains(state.board.selection, it.id) || contains(computed.touchedGroups, it.group ?? '')), it.id)}}"
+	},
+
+	"actions": {
+		"groupObjects": [
+			{ "if": "{{computed.canGroup}}", "then": [
+				{ "run": "setObjects", "with": { "props": "{{ {group: 'g' + state.deck.next} }}" } },
+				{ "increment": "state.deck.next", "by": 1 }
+			] }
+		],
+		"ungroupObjects": [
+			{ "if": "{{computed.canUngroup}}", "then": [{ "run": "setObjects", "with": { "props": { "group": null } } }] }
+		]
+	}
+}

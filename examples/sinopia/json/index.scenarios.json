@@ -203,6 +203,33 @@
 			]
 		},
 		{
+			"name": "sinopia-group-and-ungroup",
+			"note": "Group makes the selected objects one: a click on any of them selects them all, and a pasted copy is a group of its own; Ungroup takes them apart",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "key": "mod+a" },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Group" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].group", "is": "g40" } },
+				{ "expect": { "state": "deck.slides[3].objects[4].group", "is": "g40" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "board.selection.length", "is": 0 } },
+				{ "click": "#o10" },
+				{ "expect": { "state": "board.selection.length", "is": 7 } },
+				{ "key": "mod+d" },
+				{ "expect": { "state": "deck.slides[3].objects[7].group", "is": "g40-41" } },
+				{ "key": "mod+z" },
+				{ "click": "#o11" },
+				{ "expect": { "state": "board.selection.length", "is": 7 } },
+				{ "key": "mod+shift+g" },
+				{ "expect": { "state": "deck.slides[3].objects[1].group", "is": null } },
+				{ "key": "escape" },
+				{ "click": "#o12" },
+				{ "expect": { "state": "board.selection.length", "is": 1 } }
+			]
+		},
+		{
 			"name": "sinopia-align-and-distribute",
 			"note": "One shape aligns to the slide, several to the box around them; distribute leaves equal gaps; the arrow keys nudge",
 			"steps": [

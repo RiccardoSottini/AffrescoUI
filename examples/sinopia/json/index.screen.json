@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -82,6 +82,7 @@
 		],
 		"viewChanged": [
 			{ "set": "state.board", "to": "{{view}}" },
+			{ "if": "{{length(computed.touchedGroups) > 0}}", "then": [{ "set": "state.board.selection", "to": "{{computed.groupedSelection}}" }] },
 			{ "if": "{{state.editing != null && !contains(view.selection ?? [], state.editing)}}", "then": [{ "set": "state.editing", "to": null }] },
 			{ "if": "{{abs(view.camera.zoom - computed.fitCamera.zoom) > 0.0001 || abs(view.camera.x - computed.fitCamera.x) > 0.01 || abs(view.camera.y - computed.fitCamera.y) > 0.01}}",
 			  "then": [{ "set": "state.fit", "to": false }] }
@@ -100,6 +101,8 @@
 		"mod+x": [{ "when": "{{!context.textInputFocus}}", "do": "cutObjects" }],
 		"mod+v": [{ "when": "{{!context.textInputFocus}}", "do": "pasteObjects" }],
 		"mod+a": [{ "when": "{{!context.textInputFocus}}", "do": "selectAll" }],
+		"mod+g": [{ "when": "{{!context.textInputFocus}}", "do": "groupObjects" }],
+		"mod+shift+g": [{ "when": "{{!context.textInputFocus}}", "do": "ungroupObjects" }],
 		"mod+b": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "bold" } }],
 		"mod+i": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "italic" } }],
 		"mod+u": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "underline" } }],

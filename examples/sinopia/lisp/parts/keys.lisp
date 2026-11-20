@@ -29,6 +29,10 @@
 
 (defkey "mod+a" {:when ~(not context.textInputFocus) :do selectAll})
 
+(defkey "mod+g" {:when ~(not context.textInputFocus) :do groupObjects})
+
+(defkey "mod+shift+g" {:when ~(not context.textInputFocus) :do ungroupObjects})
+
 (defkey "mod+b" {:when ~(not context.textInputFocus) :do toggle-text :with {:key bold}})
 
 (defkey "mod+i" {:when ~(not context.textInputFocus) :do toggle-text :with {:key italic}})

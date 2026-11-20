@@ -17,6 +17,7 @@
             sinopia.parts.slide
             sinopia.parts.sample-deck
             sinopia.parts.edit
+            sinopia.parts.arrange
             sinopia.parts.ribbon
             sinopia.parts.tabs
             sinopia.parts.show

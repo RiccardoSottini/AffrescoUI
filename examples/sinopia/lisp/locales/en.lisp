@@ -2,6 +2,8 @@
                 :arrange.forward "Bring Forward"
                 :arrange.backward "Send Backward"
                 :arrange.back "Send to Back"
+                :arrange.group "Group"
+                :arrange.ungroup "Ungroup"
                 :align.left "Align Left"
                 :align.center "Align Center"
                 :align.right "Align Right"

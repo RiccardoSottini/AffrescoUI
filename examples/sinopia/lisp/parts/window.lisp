@@ -108,7 +108,7 @@
   (set "state.fit" false))
 
 (defn view-changed "Keeps the canvas's new view; a pan or a zoom stops fitting the slide." [view]
-  (set "state.board" view)
+  (set "state.board" (assoc view :selection (with-groups (or-else view.selection []))))
   (when (and (some? state.editing) (not (contains (or-else view.selection []) state.editing)))
     (set "state.editing" nil))
   (when (or (> (abs (- view.camera.zoom computed.fitCamera.zoom)) 0.0001)
