@@ -79,7 +79,6 @@ uniform mat4 shadowMatrix;
 uniform float exposure;
 uniform float opacity;
 uniform int solid;
-uniform int zUp;
 layout(location = 0) out vec4 color;
 const float PI = 3.14159265;
 
@@ -185,14 +184,10 @@ void main() {
 	metallic = clamp(metallic, 0.0, 1.0);
 	roughness = clamp(roughness, 0.04, 1.0);
 	vec3 lit;
-	if(solid != 0 && zUp != 0) { // the studio light from above when z is up: the top, the front and the side differ
-		vec3 key = normalize(vec3(0.55, -0.35, 0.75));
-		vec3 fill = normalize(vec3(-0.6, 0.3, 0.2));
-		lit = albedo * (0.22 + 0.72 * max(dot(n, key), 0.0) + 0.22 * max(dot(n, fill), 0.0));
-	} else if(solid != 0) {
-		vec3 key = normalize(vec3(0.4, 0.8, 0.45));
+	if(solid != 0) { // a matte studio light from above, dim enough that the top and each side read apart
+		vec3 key = normalize(vec3(0.5, 0.8, 0.3));
 		vec3 fill = normalize(vec3(-0.6, 0.2, -0.3));
-		lit = albedo * (0.25 + 0.75 * max(dot(n, key), 0.0) + 0.25 * max(dot(n, fill), 0.0));
+		lit = albedo * (0.14 + 0.6 * max(dot(n, key), 0.0) + 0.18 * max(dot(n, fill), 0.0));
 	} else {
 		lit = albedo * mix(vec3(0.05, 0.045, 0.04), vec3(0.11, 0.12, 0.14), n.y * 0.5 + 0.5) + emissive;
 		for(int i = 0; i < 8; ++i) {
