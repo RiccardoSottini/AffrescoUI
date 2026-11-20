@@ -30,7 +30,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 ## What it shows
 
 - **Screen documents in parts:** `include` of the pages and the string tables; pages as components with `use`.
-- **Widgets:** virtualised tables (the library of 3,000 songs, a collection, search results), grids of albums and artists, a list for the queue (dragged, or moved with Alt+Up and Down), the `curves` control for a five-band equaliser with presets (the one the curve is marked), sliders, a waveform, a tab list for the menu.
+- **Widgets:** virtualised tables (the library of 3,000 songs, a collection, search results), grids of albums and artists, a list for the queue (dragged, or moved with Alt+Up and Down; Delete takes a song out, and a button clears it), the `curves` control for a five-band equaliser with presets (the one the curve is marked), sliders, a waveform, a tab list for the menu.
 - **A visualiser of what plays:** the beat declares `"bands": 32`, so its state has `spectrum`, how loud each band of frequencies was, 20 times a second (`"updates": 50`); two `path` nodes draw it as bars and their reflection (`computed.bars`). With no sound (headless, or a host that gives none) the bars stay low and flat.
 - **A simulated player:** an `every` timer moves the song along, crossfades into the next one and steps the lyrics. The queue and the play order hold `list:track` keys (`-1` for the library), so any song can be queued.
 - **Playlists as records:** made, renamed (a text field in place of the name) and deleted (a `dialog`) with `insert`, `update` and `delete` steps on the `playlists` model; the queue, the liked songs and what plays are remapped in the same action.

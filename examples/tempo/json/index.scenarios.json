@@ -250,6 +250,22 @@
 			]
 		},
 		{
+			"name": "queue-remove-and-clear",
+			"note": "Delete takes the picked song out of the queue, says so and picks the next; the clear button empties the queue and hides itself",
+			"steps": [
+				{ "click": [1100, 344], "note": "the first song up next" },
+				{ "expect": { "state": "queuePick", "is": "0:3" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "queue[0]", "is": "0:4" } },
+				{ "expect": { "state": "queuePick", "is": "0:4" } },
+				{ "expect": { "node": "#queueNote", "text": "Glyph Atlas left the queue" } },
+				{ "click": "#clearQueue" },
+				{ "expect": { "state": "queue", "is": [] } },
+				{ "expect": { "node": "#clearQueue", "exists": false } },
+				{ "expect": { "node": "#queueEmpty", "exists": true } }
+			]
+		},
+		{
 			"name": "queue-reorder-by-drag",
 			"note": "Dragging the first song up next below the third puts it in third place",
 			"steps": [

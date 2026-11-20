@@ -628,6 +628,17 @@
 			{ "if": "{{computed.queueAt < 0}}", "then": [{ "stop": true }] },
 			{ "run": "placeQueued", "with": { "song": "{{state.queue[computed.queueAt]}}", "at": "{{clamp(computed.queueAt + by, 0, length(state.queue) - 1)}}" } }
 		],
+		"unqueue": [
+			{ "note": "Takes the song picked in the queue out of it, picks the one after it, and says so" },
+			{ "if": "{{computed.queueAt < 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.queueNote", "to": "{{t('queue.removed', { title: computed.queueSongs[indexOf(map(computed.queueSongs, it.key), state.queuePick)].title ?? '' })}}" },
+			{ "run": "leaveQueue", "with": { "song": "{{state.queuePick}}", "at": "{{computed.queueAt}}" } }
+		],
+		"leaveQueue": [
+			{ "note": "with: song (its key), at (its place): it leaves the queue, and the song now at its place is picked" },
+			{ "set": "state.queue", "to": "{{filter(state.queue, it != song)}}" },
+			{ "set": "state.queuePick", "to": "{{state.queue[min(at, length(state.queue) - 1)] ?? null}}" }
+		],
 		"dropQueued": [
 			{ "note": "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows" },
 			{
@@ -829,6 +840,8 @@
 		"showSound": { "title": "Show the equaliser and crossfade", "category": "View", "icon": "sliders-horizontal", "do": [{ "set": "state.page", "to": "sound" }] },
 		"cancelRename": { "title": "Leave the playlist's name", "category": "View", "icon": "x", "enablement": "{{state.renaming}}",
 			"do": [{ "set": "state.renaming", "to": false }] },
+		"clearQueue": { "title": "{{t('command.clearQueue')}}", "description": "{{t('command.clearQueue.about')}}", "category": "Playback", "icon": "list-x",
+			"enablement": "{{length(state.queue) > 0}}", "do": [{ "set": "state.queue", "to": [] }, { "set": "state.queuePick", "to": null }] },
 		"toggleQueue": { "title": "Show or hide the queue", "category": "View", "icon": "list-ordered", "do": [{ "toggle": "state.queueOpen" }] },
 		"toggleShuffle": { "title": "Shuffle", "category": "Playback", "icon": "shuffle", "do": [
 			{ "toggle": "state.shuffle" },
@@ -1214,7 +1227,9 @@
 							{ "type": "path", "id": "waveLeft", "d": "{{computed.waveLeft}}", "viewBox": "0 0 128 56", "fit": "fill", "anchors": { "left": 20, "right": 20, "top": 216 }, "height": 48, "stroke": "@faint", "strokeWidth": 2.5, "strokeCap": "round" },
 							{ "id": "queueTime", "style": "caption", "text": "{{computed.elapsedText}} / {{computed.track.time}}", "anchors": { "left": 20, "top": 270 } },
 							{ "id": "label-up-next", "style": "caption", "text": "{{t('queue.upNext')}}", "anchors": { "left": 20, "top": 304 } },
-							{ "id": "queueNote", "style": "caption", "live": "polite", "text": "{{state.queueNote}}", "anchors": { "right": 20, "top": 304 } },
+							{ "id": "queueNote", "style": "caption", "live": "polite", "text": "{{state.queueNote}}", "anchors": { "right": 56, "top": 304 } },
+							{ "id": "clearQueue", "style": "control", "when": "{{length(computed.upNext) > 0}}", "icon": "list-x", "font": "small", "width": 28, "height": 28, "radius": 14,
+								"color": "@surface", "anchors": { "right": 16, "top": 296 }, "label": "{{t('queue.clear')}}", "tooltip": "{{t('queue.clear')}}", "onClick": "clearQueue" },
 							{
 								"type": "list",
 								"id": "queue",
@@ -1231,7 +1246,7 @@
 								"drag": {},
 								"onDrop": "dropQueued",
 								"onOpen": "jumpTo",
-								"keys": { "alt+up": { "run": "moveQueued", "with": { "by": -1 } }, "alt+down": { "run": "moveQueued", "with": { "by": 1 } } }
+								"keys": { "alt+up": { "run": "moveQueued", "with": { "by": -1 } }, "alt+down": { "run": "moveQueued", "with": { "by": 1 } }, "delete": "unqueue", "backspace": "unqueue" }
 							},
 							{ "id": "queueEmpty", "when": "{{length(computed.upNext) == 0}}", "style": "caption", "text": "{{t('queue.empty')}}", "anchors": { "left": 20, "top": 330 } }
 						]

@@ -213,6 +213,17 @@
     (when (>= at 0)
       (place-queued (get state.queue at) (clamp (+ at by) 0 (dec (count state.queue)))))))
 
+(defn unqueue "Takes the song picked in the queue out of it, picks the one after it, and says so." []
+  (let [at computed.queueAt]
+    (when (>= at 0)
+      (let [song (get state.queue at)
+            left (without state.queue song)
+            title (some->> computed.queueSongs (find #(= (:key %) song)) :title)
+            last-at (dec (count left))]
+        (set "state.queueNote" (t "queue.removed" {:title (or title "")}))
+        (set "state.queue" left)
+        (set "state.queuePick" (get left (min at last-at)))))))
+
 (defn drop-queued "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows." []
   (let [song event.data.id]
     (place-queued song (if-some [over event.id]
@@ -546,6 +557,12 @@
   :title ~(t "command.cancelRename") :description ~(t "command.cancelRename.about")
   :category ~(t "category.view") :icon "x" :enablement ~state.renaming []
   (set "state.renaming" false))
+
+(defcommand clearQueue "Empties the queue: nothing comes after the song playing (repeating all starts the order again)."
+  :title ~(t "command.clearQueue") :description ~(t "command.clearQueue.about")
+  :category ~(t "category.playback") :icon "list-x" :enablement ~(seq state.queue) []
+  (set "state.queue" [])
+  (set "state.queuePick" nil))
 
 (defcommand toggleQueue "Shows or hides the queue beside the page."
   :title ~(t "command.toggleQueue") :description ~(t "command.toggleQueue.about")

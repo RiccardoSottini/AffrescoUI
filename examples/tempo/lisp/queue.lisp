@@ -37,7 +37,19 @@
        :text ~(str computed.elapsedText " / " computed.track.time)
        :anchors {:left 20 :top 270})
      (node#label-up-next :style caption :text ~(t "queue.upNext") :anchors {:left 20 :top 304})
-     (node#queueNote :style caption :live polite :text ~state.queueNote :anchors {:right 20 :top 304})
+     (node#queueNote :style caption :live polite :text ~state.queueNote :anchors {:right 56 :top 304})
+     (node#clearQueue :style control
+       :when ~(seq computed.upNext)
+       :icon list-x
+       :font small
+       :width 28
+       :height 28
+       :radius 14
+       :color @surface
+       :anchors {:right 16 :top 296}
+       :label ~(t "queue.clear")
+       :tooltip ~(t "queue.clear")
+       :onClick clearQueue)
      ~(up-next)
      (node#queueEmpty
        :when ~(empty? computed.upNext)
@@ -77,4 +89,4 @@
      :drag {}
      :onDrop drop-queued
      :onOpen jump-to
-     :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1)}))
+     :keys {"alt+up" ~(handler move-queued -1) "alt+down" ~(handler move-queued 1) :delete unqueue :backspace unqueue}))

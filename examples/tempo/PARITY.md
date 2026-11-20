@@ -36,7 +36,7 @@ difference the note says. `missing`: not yet.
 | The sound of what plays | done | A beat for the simulated songs; a song may name a sound of its own (an attached file) |
 | Shuffle | done | Cmd+S: the songs up next shuffled, and back in order |
 | Repeat: off, all, one | done | Cmd+R |
-| A queue to see and reorder | done | By dragging, or Alt and the arrows |
+| A queue to see and reorder | done | By dragging, or Alt and the arrows; Delete takes a song out, and the button by "Coming up" (or "Clear the queue" in the palette) empties it |
 | Crossfade into the next song | done | The two overlap: the next song's sound starts under the last seconds of the one before (the beat plays on two decks) |
 | Equaliser with presets | done | On a curves control: five peaking filters (60 Hz to 16 kHz) shape the sound and the visualiser; the preset the curve is shows as chosen |
 | Now playing: the cover, a visualiser and the lyrics | done | The visualiser is the spectrum of what plays (the sound's `bands`) |

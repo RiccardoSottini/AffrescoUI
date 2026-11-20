@@ -136,6 +136,7 @@ struct VoiceCore {
 	float pan = 0;                ///< See Voice::pan().
 	float rate = 1;               ///< See Voice::rate().
 	bool loop = false;            ///< See Voice::loop().
+
 	std::vector<Biquad> equalizer; ///< See Voice::setEqualizer(): the bands that change the sound.
 
 	std::vector<float> input;       ///< Frames read from the reader.
