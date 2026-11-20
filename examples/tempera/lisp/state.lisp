@@ -59,7 +59,7 @@
    [{:id marquee :name marquee :icon box-select :key "M"}
     {:id ellipse :name ellipse :icon circle-dashed :key "Shift+M"}]
    [{:id lasso :name lasso :icon lasso :key "L"} {:id polygon :name polygon :icon pentagon :key "Shift+L"}]
-   [{:id quick-select :name quickSelect :icon wand-sparkles :key "Shift+W"} {:id wand :name wand :icon wand :key "W"}]
+   [{:id quick-select :name quickSelect :icon wand-2 :key "Shift+W"} {:id wand :name wand :icon wand :key "W"}]
    [{:id crop :name crop :icon crop :key "C"}]
    []
    [{:id eyedropper :name eyedropper :icon pipette :key "I"}]

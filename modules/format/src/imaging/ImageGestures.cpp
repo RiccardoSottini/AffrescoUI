@@ -186,14 +186,23 @@ bool clickWand(imaging::Document& document, const ToolSettings& settings, imagin
 	return true;
 }
 
-/// @brief Adds a point to the quick-selection stroke, a quarter of the brush from the last one at least.
+/// @brief Adds points to the quick-selection stroke up to a point, a quarter of the brush apart along the way.
 /// @param image The image.
 /// @param at Where.
 void addQuickPoint(ImageDocument& image, Point at) {
 	std::vector<Point>& path = image.path;
 	const float step = std::max(1.0f, image.settings.tip.size / 4.0f);
-	if(!path.empty() && std::hypot(at.x - path.back().x, at.y - path.back().y) < step) return;
-	if(path.size() < image.limits.polygonPoints) path.push_back(at);
+	if(path.empty()) {
+		path.push_back(at);
+		return;
+	}
+	const Point from = path.back();
+	const float distance = std::hypot(at.x - from.x, at.y - from.y);
+	const int steps = static_cast<int>(std::min(distance / step, static_cast<float>(image.limits.polygonPoints)));
+	for(int index = 1; index <= steps && path.size() < image.limits.polygonPoints; ++index) {
+		const float share = static_cast<float>(index) * step / distance;
+		path.push_back({from.x + (at.x - from.x) * share, from.y + (at.y - from.y) * share});
+	}
 }
 
 /// @brief Selects what the quick-selection stroke found, in the press's mode, and clears the stroke.

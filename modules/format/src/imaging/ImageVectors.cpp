@@ -507,9 +507,9 @@ bool editPath(ImageDocument& image, Point at) {
 		image.pathAnchor = -2;
 		return true;
 	}
-	if(const auto [segment, t] = segmentNear(image, at); segment >= 0) {
-		changePaths(image, "Add Anchor Point", [&, segment = segment, t = t](im::Structure& changed) {
-			splitSegment(activePath(changed), static_cast<std::size_t>(segment), t);
+	if(const std::pair<int, float> found = segmentNear(image, at); found.first >= 0) {
+		changePaths(image, "Add Anchor Point", [&](im::Structure& changed) {
+			splitSegment(activePath(changed), static_cast<std::size_t>(found.first), found.second);
 		});
 		image.pathAnchor = -2;
 		return true;
