@@ -114,7 +114,6 @@
                 :info.play "Reproducir"
                 :info.pause "Pausa"
                 :info.volume "Volumen"
-                :info.queueEmpty "No hay nada más en la cola"
                 :info.related "Usado en “{name}”"
                 :edit.preview "Vista previa"
                 :profile.owner "Propietario, con sesión iniciada en este dispositivo"

@@ -117,7 +117,6 @@
 			"info.play": "Play",
 			"info.pause": "Pause",
 			"info.volume": "Volume",
-			"info.queueEmpty": "Nothing else in the queue",
 			"info.related": "Used in “{name}”",
 			"edit.preview": "Preview",
 			"profile.owner": "Owner, signed in on this device",

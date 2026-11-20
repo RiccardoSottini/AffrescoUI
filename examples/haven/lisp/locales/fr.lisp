@@ -114,7 +114,6 @@
                 :info.play "Lecture"
                 :info.pause "Pause"
                 :info.volume "Volume"
-                :info.queueEmpty "Plus rien dans la file d’attente"
                 :info.related "Utilisé dans « {name} »"
                 :edit.preview "Aperçu"
                 :profile.owner "Propriétaire, connecté sur cet appareil"

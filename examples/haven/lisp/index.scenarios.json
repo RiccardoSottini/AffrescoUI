@@ -442,6 +442,20 @@
 			]
 		},
 		{
+			"name": "speaker-queue",
+			"note": "The speaker's dialog names its track; previous and next step through the queue, wrapping",
+			"steps": [
+				{ "click": "#deviceName", "nth": 2 },
+				{ "expect": { "node": "#infoTrack", "text": "Paper Lanterns  ·  The Quiet Rooms" } },
+				{ "click": "#infoNext" },
+				{ "expect": { "state": "media.track", "is": 1 } },
+				{ "expect": { "node": "#infoTrack", "text": "Slow Tide  ·  Marisol Grey" } },
+				{ "click": "#infoPrevious" },
+				{ "click": "#infoPrevious" },
+				{ "expect": { "state": "media.track", "is": 3 } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [
