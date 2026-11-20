@@ -424,6 +424,24 @@
 			]
 		},
 		{
+			"name": "device-filters",
+			"note": "The devices' Filters menu narrows the tables to a room or a connection, and All shows everything again",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "Kitchen" } },
+				{ "expect": { "state": "devFilter", "is": "Kitchen" } },
+				{ "expect": { "state": "devFilterOpen", "is": false } },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "Zigbee" } },
+				{ "expect": { "state": "devFilter", "is": "Zigbee" } },
+				{ "click": "#devFilters" },
+				{ "click": { "role": "menuitem", "name": "All devices and rooms" } },
+				{ "expect": { "state": "devFilter", "is": "" } }
+			]
+		},
+		{
 			"name": "placeholders-say-why",
 			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
 			"steps": [

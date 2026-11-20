@@ -187,9 +187,11 @@
 ;;; Parts every page uses
 
 ;; Each item has a title, an icon, a run and its with, or is a separator.
-(defcomponent popMenu "An overflow menu open at the state path: a raised, rounded list of items under its button."
-  {:open "" :items [] :width 200}
-  `(node :overlay {:placement below-end :open ~open :dismiss outside :modal true}
+(defcomponent popMenu
+  "An overflow menu open at the state path: a raised, rounded list of items under its button, lined up with its end
+  (below-end) or its start (below)."
+  {:open "" :items [] :width 200 :placement below-end}
+  `(node :overlay {:placement ~placement :open ~open :dismiss outside :modal true}
      :width ~width
      ;; style: keep, a binding's function given to sum names its item it
      :height ~(+ 16 (sum items (fn [it] (if (= it.separator true) 17 48))))

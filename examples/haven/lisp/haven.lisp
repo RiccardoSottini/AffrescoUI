@@ -538,6 +538,9 @@
 
 (defn pick-hist-day "The day history shows: 0 is today, 6 the oldest kept." [day] (set "state.histDay" (clamp day 0 6)))
 
+(defn pick-device-filter "Narrows the devices' tables to a room or a connection, or empty for all." [filter]
+  (set "state.devFilter" filter))
+
 (defn show-energy-view "What the energy page's week is by: day, device or room." [view] (set "state.energyView" view))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
