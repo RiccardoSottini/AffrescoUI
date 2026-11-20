@@ -1,5 +1,5 @@
 {:strings {:en {:windowTitle "Sign in"
-                :footer "An AffrescoUI template  ·  every screen, rule and colour is in one Lisp program"
+                :footer "An AffrescoUI template  ·  every screen, rule and colour is in the app's source"
                 :welcomeBack "Welcome back"
                 :signInTo "Sign in with your Example ID"
                 :email "Email"

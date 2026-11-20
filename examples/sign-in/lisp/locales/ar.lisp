@@ -1,5 +1,5 @@
 {:strings {:ar {:windowTitle "تسجيل الدخول"
-                :footer "قالب من AffrescoUI  ·  كل شاشة وقاعدة ولون في برنامج Lisp واحد"
+                :footer "قالب من AffrescoUI  ·  كل شاشة وقاعدة ولون في مصدر التطبيق"
                 :welcomeBack "مرحبًا بعودتك"
                 :signInTo "سجّل الدخول باستخدام Example ID"
                 :email "البريد الإلكتروني"

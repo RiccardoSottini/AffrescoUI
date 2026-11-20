@@ -535,7 +535,6 @@
 		"csvRows": "{{map(data.ordered, scan(computed.vals[index], {h: acc.h, line: data.ordered[acc.h].name + ',' + addDays(data.ordered[acc.h].from, index) + ',' + (data.ordered[acc.h].kind == 'measurable' ? text(it) : it == 1 ? 'YES' : it == -1 ? 'SKIP' : 'NO')}, {h: index}))}}",
 		"freqText": "{{computed.sel < 0 ? '' : computed.h.kind == 'measurable' ? t('target', {type: computed.h.targetType, value: computed.h.target, unit: computed.h.unit, per: computed.h.frequency.days == 1 ? 'day' : computed.h.frequency.days == 7 ? 'week' : 'month'}) : computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? t('freq.daily') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? t('freq.everyN', {n: computed.h.frequency.days}) : t(computed.h.frequency.days == 7 ? 'freq.week' : 'freq.month', {n: computed.h.frequency.times})}}"
 	},
-	"onLoad": [{ "set": "state.assistant.side", "to": "start", "note": "the assistant's launcher under the habits, clear of the charts" }],
 	"watch": {
 		"computed.syncData": [
 			{
@@ -1833,8 +1832,9 @@
 		},
 		"startUp": [
 			{
-				"note": "As Streak opens: today's date, and the demo habits the person never changed moved so their last day is today (unless a scenario pinned the day first)"
+				"note": "As Streak opens: the assistant's launcher under the habits (clear of the charts), today's date, and the demo habits the person never changed moved so their last day is today (unless a scenario pinned the day first)"
 			},
+			{ "set": "state.assistant.side", "to": "start" },
 			{
 				"if": "{{state.dayPinned}}",
 				"then": [

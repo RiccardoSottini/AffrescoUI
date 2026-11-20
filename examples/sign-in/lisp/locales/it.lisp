@@ -1,5 +1,5 @@
 {:strings {:it {:windowTitle "Accedi"
-                :footer "Un modello AffrescoUI  ·  ogni schermata, regola e colore è in un solo programma Lisp"
+                :footer "Un modello AffrescoUI  ·  ogni schermata, regola e colore è nel sorgente dell'app"
                 :welcomeBack "Bentornato"
                 :signInTo "Accedi con il tuo Example ID"
                 :email "Email"
