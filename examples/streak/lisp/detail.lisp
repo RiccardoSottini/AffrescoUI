@@ -175,11 +175,11 @@
      (node#stat-overview-stats :use stat
        :with {:value ~(formatPercent computed.stats.score) :caption ~(t "stat.score") :color ~computed.col})
      (node#stat-overview-stats-2 :use stat
-       :with {:value ~(+ (if (>= computed.stats.month 0) "+" "") (formatPercent computed.stats.month))
+       :with {:value ~(str (if (neg? computed.stats.month) "−" "+") (formatPercent (abs computed.stats.month)))
               :caption ~(t "stat.month")
               :color ~computed.col})
      (node#stat-overview-stats-3 :use stat
-       :with {:value ~(+ (if (>= computed.stats.year 0) "+" "") (formatPercent computed.stats.year))
+       :with {:value ~(str (if (neg? computed.stats.year) "−" "+") (formatPercent (abs computed.stats.year)))
               :caption ~(t "stat.year")
               :color ~computed.col})
      (node#stat-overview-stats-4 :use stat

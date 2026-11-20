@@ -263,18 +263,12 @@
        :height 32
        :label "−"
        :onClick ~(handler step-times -1))
-     (label#label-text-edit-n :text
-                              ~(text state.edit.n)
-                              :textColor
-                              @c.text
-                              :width
-                              40
-                              :height
-                              20
-                              :align
-                              center
-                              :role
-                              status)
+     (label#label-text-edit-n :text ~(text state.edit.n)
+       :textColor @c.text
+       :width 40
+       :height 20
+       :align center
+       :role status)
      (node#freqMore
        :style iconButton
        :font iconsSmall

@@ -2938,7 +2938,7 @@
 														"id": "stat-overview-stats-2",
 														"use": "stat",
 														"with": {
-															"value": "{{(computed.stats.month >= 0 ? '+' : '') + formatPercent(computed.stats.month)}}",
+															"value": "{{(computed.stats.month < 0 ? '−' : '+') + formatPercent(abs(computed.stats.month))}}",
 															"caption": "{{t('stat.month')}}",
 															"color": "{{computed.col}}"
 														}
@@ -2947,7 +2947,7 @@
 														"id": "stat-overview-stats-3",
 														"use": "stat",
 														"with": {
-															"value": "{{(computed.stats.year >= 0 ? '+' : '') + formatPercent(computed.stats.year)}}",
+															"value": "{{(computed.stats.year < 0 ? '−' : '+') + formatPercent(abs(computed.stats.year))}}",
 															"caption": "{{t('stat.year')}}",
 															"color": "{{computed.col}}"
 														}
