@@ -114,7 +114,7 @@
 			"now.paused": "Paused",
 			"sound.equaliser": "EQUALISER",
 			"sound.equaliserOn": "Equaliser on",
-			"sound.equaliserNote": "Five bands from 60 Hz to 16 kHz shape the sound and the visualiser",
+			"sound.equaliserNote": "Five bands, 60 Hz to 16 kHz, shape what you hear",
 			"sound.curve": "Equaliser curve: Left and Right pick a band, Up and Down set it",
 			"sound.presets": "Presets",
 			"preset.flat": "Flat",

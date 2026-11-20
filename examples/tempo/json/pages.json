@@ -390,15 +390,15 @@
 				"children": [
 					{ "id": "soundTitle", "style": "pageTitle", "text": "{{t('menu.sound')}}" },
 					{ "id": "equaliserCaption", "style": "caption", "text": "{{t('sound.equaliser')}}", "anchors": { "left": 32, "top": 80 } },
-					{ "type": "label", "id": "equaliserNote", "text": "{{t('sound.equaliserNote')}}", "font": "small", "textColor": "@muted", "anchors": { "left": 140, "top": 80 }, "fitText": true },
+					{ "type": "label", "id": "equaliserNote", "text": "{{t('sound.equaliserNote')}}", "font": "small", "textColor": "@muted", "anchors": { "left": 32, "right": 32, "top": 100 }, "height": 16 },
 					{ "type": "label", "id": "equaliserOnLabel", "text": "{{t('sound.equaliserOn')}}", "font": "small", "textColor": "@muted", "anchors": { "right": 84, "top": 78 }, "fitText": true },
 					{ "type": "toggle", "id": "equaliserOn", "role": "switch", "label": "{{t('sound.equaliserOn')}}", "focusable": true, "anchors": { "right": 32, "top": 76 }, "width": 40, "height": 22,
 						"checked": "{{state.eqOn}}", "trackColor": "@faint", "activeColor": "@accent", "onChange": { "set": "state.eqOn", "to": "{{event.value}}" } },
 					{
 						"type": "curves",
 						"id": "equaliser",
-						"anchors": { "left": 32, "right": 32, "top": 108 },
-						"height": 168,
+						"anchors": { "left": 32, "right": 32, "top": 124 },
+						"height": 152,
 						"focusable": true,
 						"label": "{{t('sound.curve')}}",
 						"tooltip": "{{t('sound.equaliserNote')}}",

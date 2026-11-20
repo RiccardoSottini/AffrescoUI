@@ -498,15 +498,15 @@
 		},
 		{
 			"name": "a-song-menu",
-			"note": "A song's menu: play next and add to the queue for any song, like; Shift+F10 opens it on the library's selected row, and a library song joins the queue of a mix",
+			"note": "A song's menu: play next and add to (or take out of) the queue for any song, like; Shift+F10 opens it on the library's selected row, and a library song joins the queue of a mix",
 			"steps": [
 				{ "revision": { "type": "revision", "message": "The menu of the eighth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 7 } } } },
 				{ "click": { "role": "menuitem", "name": "Play next" } },
 				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:4", "0:5", "0:6", "0:8"] } },
 				{ "expect": { "state": "songMenu.open", "is": false } },
 				{ "revision": { "type": "revision", "message": "The menu of the fifth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 4 } } } },
-				{ "click": { "role": "menuitem", "name": "Add to the queue" } },
-				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:5", "0:6", "0:8", "0:4"] } },
+				{ "click": { "role": "menuitem", "name": "Remove from the queue" }, "note": "the fifth song is up next, so its menu takes it out" },
+				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:5", "0:6", "0:8"] } },
 				{ "key": "mod+l" },
 				{ "click": "#libraryTable" },
 				{ "key": "shift+f10" },
@@ -517,7 +517,7 @@
 				{ "revision": { "type": "revision", "message": "The menu of a library song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": -1, "track": 5 } } } },
 				{ "click": { "role": "menuitem", "name": "Play next" } },
 				{ "expect": { "state": "queue[0]", "is": "-1:5" } },
-				{ "expect": { "state": "queue.length", "is": 7 } },
+				{ "expect": { "state": "queue.length", "is": 6 } },
 				{ "key": "mod+4" },
 				{ "expect": { "node": "#likedCount", "text": "1 song" } }
 			]

@@ -99,7 +99,7 @@
                 :now.paused "En pause"
                 :sound.equaliser "ÉGALISEUR"
                 :sound.equaliserOn "Égaliseur activé"
-                :sound.equaliserNote "Cinq bandes de 60 Hz à 16 kHz façonnent le son et le visualiseur"
+                :sound.equaliserNote "Cinq bandes, de 60 Hz à 16 kHz, façonnent le son"
                 :sound.curve "Courbe de l’égaliseur : Gauche et Droite choisissent une bande, Haut et Bas la règlent"
                 :sound.presets "Préréglages"
                 :preset.flat "Neutre"

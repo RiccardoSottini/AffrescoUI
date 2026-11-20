@@ -166,8 +166,8 @@
       :text ~(t "sound.equaliserNote")
       :font small
       :textColor @muted
-      :anchors {:left 140 :top 80}
-      :fitText true)
+      :anchors {:left 32 :right 32 :top 100}
+      :height 16)
    `(label#equaliserOnLabel
       :text ~(t "sound.equaliserOn")
       :font small
@@ -184,8 +184,8 @@
       :trackColor @faint
       :activeColor @accent
       :onChange switch-equaliser)
-   `(curves#equaliser :anchors {:left 32 :right 32 :top 108}
-      :height 168
+   `(curves#equaliser :anchors {:left 32 :right 32 :top 124}
+      :height 152
       :focusable true
       :label ~(t "sound.curve")
       :tooltip ~(t "sound.equaliserNote")
