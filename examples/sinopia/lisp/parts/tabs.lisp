@@ -263,7 +263,8 @@
          :onClick previewSlide))
      ~(g-effects)
      (node#g-motion-timing :use rbGroup :with {:title ~(t "ribbon.timing")}
-       ~(motion-timing-col))
+       ~(motion-timing-col)
+       ~(motion-timing-more))
      (node#g-motion-advanced :use rbGroup :with {:title ~(t "ribbon.advanced")}
        (node#b-motion-pane :use rbBig
          :with {:icon list-ordered
@@ -547,7 +548,9 @@
             :style ~(if (= (or-else computed.slide.transition.kind "none") k.0) "rbButtonOn" "rbButton")
             :runs ~[{:icon k.1 :size 24} {:text (str "\n" k.2) :size 11}]
             :onClick ~(handler set-transition-kind k.0))))
+     ~(fade-options)
      (node#b-effect-options :use rbBig
+       :when ~(not= computed.slide.transition.kind "fade")
        :with {:icon ~(get computed.directionIcons (or-else computed.slide.transition.direction "left"))
               :title ~(t "ribbon.fromSide" {:side (or-else computed.slide.transition.direction "left")})
               :width 52
@@ -593,27 +596,36 @@
        :with {:icon layout-grid :title ~(t "ribbon.slideSorter") :on ~(= state.view "sorter") :width 46}
        :onClick [{:set state.view :to sorter}])
      (node#b-notes-page :use rbBig
-       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :width 46 :enabled false}
-       :tooltip ~(t "ribbon.theNotesPageViewIsn"))
+       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :on ~(= state.view "notesPage") :width 46}
+       :tooltip ~(t "notes.theSlideOverItsNotes")
+       :onClick [{:set state.view :to notesPage}])
      (node#b-reading :use rbBig
        :with {:icon book-open :title ~(t "ribbon.readingView") :width 50}
        :onClick ~(handler readingView state.current))))
 
-(defview g-effects "The build effects for the selected objects, and As Exit." []
-  `(node#g-effects :use rbGroup :with {:title ~(if (= a.kind "exit") (t "ribbon.exit") (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 380}
-       ~(repeat [e computed.buildEffects]
+(defview g-effects "The build effects for the selected objects, the emphasis effects, and As Exit." []
+  `(node#g-effects :use rbGroup
+     :with {:title ~(case a.kind
+                      "exit" (t "ribbon.exit")
+                      "emphasis" (t "motion.emphasis")
+                      "path" (t "motion.motionPath")
+                      (t "ribbon.entrance"))}
+     (node#gal-effects :use rbGallery :with {:width 692}
+       ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 60
+            :width 50
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}
             :style ~(cond (not on) "rbButtonOff" (= (or-else a.effect "none") e.0) "rbButtonOn" :else "rbButton")
             :runs ~[{:icon e.1 :size 24} {:text (str "\n" e.2) :size 11}]
-            :onClick ~(handler set-animation e.0 (or-else a.kind "entrance") (or-else a.start "click")
-                                (or-else a.ms 500)))))
+            :onClick ~(handler choose-effect e.0))))
      (node#b-exit :use rbBig
-       :with {:icon log-out :title ~(t "ribbon.asExit") :on ~(= a.kind "exit") :enabled ~(some? a) :width 46}
+       :with {:icon log-out
+              :title ~(t "ribbon.asExit")
+              :on ~(= a.kind "exit")
+              :enabled ~(and (some? a) (contains? #{"entrance" "exit"} a.kind))
+              :width 46}
        :tooltip ~(t "ribbon.leaveTheSlideInsteadOf")
        :onClick toggle-exit)))
 

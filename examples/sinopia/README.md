@@ -13,7 +13,7 @@ and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorte
 
 ```sh
 ./build/affrescoui_launcher examples/sinopia/lisp/index.screen.lisp --socket out/s   # the workspace, with the sample deck
-./build/affrescoui test examples/sinopia/lisp/index.scenarios.json                   # the 57 scenarios (ctest: scenarios)
+./build/affrescoui test examples/sinopia/lisp/index.scenarios.json                   # the scenarios (ctest: scenarios)
 ```
 
 ## The workspace
@@ -21,28 +21,30 @@ and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorte
 | Part | What it does |
 |---|---|
 | Title bar | The deck's name, the tabs, a search (Alt+Q) that lists the commands whose names hold what is typed and runs one, undo, redo, save, present |
-| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, group and ungroup, rotate and flip, distribute; Find, Replace, Select and the Selection Pane), Insert (tables from a size grid, with a style in each accent; pictures from PNG and JPEG files; text box, shapes, icons, styled text, symbols, a link to a slide, footer and slide numbers), Design (themes, variants, another theme's colours, the fonts of titles and text, Format Background), Transitions and Motion (builds and the Animation Pane; Preview plays the slide in the window), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so; [`PARITY.md`](PARITY.md) lists them, with what each needs |
+| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, group and ungroup, rotate and flip, distribute; Find, Replace, Select and the Selection Pane), Insert (tables from a size grid, with a style in each accent; pictures from PNG and JPEG files; text box, shapes, icons, styled text, symbols, a link to a slide, footer and slide numbers), Design (themes, variants, another theme's colours, the fonts of titles and text, Format Background), Transitions (a glide that moves the objects two slides share; a fade through black or smoothly) and Motion (entrance and exit builds, fly sides, pulse, spin and teeter emphasis, motion paths, a delay and repeats, and the Animation Pane; Preview plays the slide in the window), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink, Ink to Shape, Ink Replay), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Notes Page with Export Notes Pages, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so; [`PARITY.md`](PARITY.md) lists them, with what each needs |
 | Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it, and a right click (or Shift+F10) opens the slide menu; a section's title folds its slides away and back |
 | Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar. A double click or F2 edits a text box's or shape's text in place (Tab and Shift+Tab change the list level; Escape or a click elsewhere ends it); a right click opens the shape's menu, or the slide's on an empty part |
 | Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |
 | Side pane | In place of the format pane: the slide's objects by name (a click selects one, the eye hides it), its builds in order (reordered and removed), its comments (written, resolved, deleted), the accessibility findings (each one goes to its slide and object), the keyboard shortcuts, or about |
 | Notes | The slide's speaker notes, under the slide; the status bar hides and shows them, and the comments pane |
 | Outline and sorter | The deck's text slide by slide, or every slide in a grid, dragged to reorder |
-| Slide show | Full screen, or in a window of its own beside a presenter view: the slide, the next one, the notes (larger or smaller), a timer, the controls and See All Slides (a click on one goes there). Rehearsing, a bar counts each slide's seconds, which are kept as the slide's timing; with Use Timings on, the show moves on by itself |
+| Slide show | Full screen, or in a window of its own beside a presenter view: the slide, the next one, the notes (larger or smaller), a timer, the controls and See All Slides (a click on one goes there), a pen whose strokes stay on each slide until Erase All, and a laser pointer the audience sees. Rehearsing, a bar counts each slide's seconds, which are kept as the slide's timing; with Use Timings on, the show moves on by itself |
 
 Keys while editing: `mod+f` find, `mod+h` replace, `mod+s` save, `mod+o` open, `mod+z` and `mod+y` undo and redo, `mod+m` new slide, `mod+d`
 duplicate, `mod+c`, `mod+x` and `mod+v`, `mod+a` select all, `mod+b`, `mod+i` and `mod+u`, `mod+l`, `mod+e`, `mod+r`
 and `mod+j` align the text (while it is edited, the caret's paragraph), `mod+g` and `mod+shift+g` group and ungroup,
 a double click edits a text or a table's cell (Tab and Shift+Tab go to the next and the previous cell), the arrow keys nudge (Shift: 10), Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
 While presenting: a click on linked text goes to its slide; Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
-screen black or white, a slide's number and Enter go to it, and Escape ends.
+screen black or white, a slide's number and Enter go to it, Ctrl+P picks the pen, L the laser pointer, E erases the pen,
+and Escape puts the pen down, then ends.
 
 ## The deck
 
 The deck is the state `deck` (the sample is [`parts/sample-deck.lisp`](lisp/parts/sample-deck.lisp)): a title, a size,
 a theme and variant, sections and slides. A slide has a layout, notes, a background, a transition (`fade`, `push`,
-`wipe`, `cover`, `glide` and more, with a duration and a direction), builds (`appear`, `fade`, `wipe`, `fly` or `zoom`,
-as an entrance or an exit, on a click, with or after the one before) and objects, back to front: text, shapes from
+`wipe`, `cover`, `glide` and more, with a duration and a direction), builds (`appear`, `fade`, `wipe`, `fly` or `zoom`
+as an entrance or an exit, `pulse`, `spin` or `teeter` as an emphasis, or a motion path; on a click, with or after the
+one before, with a `delay` and a `repeat` count) and objects, back to front: text, shapes from
 [`parts/geometry.lisp`](lisp/parts/geometry.lisp)'s presets, lines, tables (`cells`: rows of texts, the first the
 header, in a `tint`) and pictures (`src`: the PNG or JPEG as a data URI, so the saved deck carries it). Objects with
 the same `group` are selected and moved as one. Saved, it is that JSON; opened, it is checked to
@@ -62,6 +64,8 @@ be a deck before it replaces the one on screen, as a change undo takes back.
 | [`show.lisp`](lisp/parts/show.lisp) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
 | [`views.lisp`](lisp/parts/views.lisp) | The outline, the sorter, the format pane, and the deck as a file (`saveFile`, `openFile`, `export`) |
 | [`menus.lisp`](lisp/parts/menus.lisp) | The ribbon's drop-down menus and colour grids, Copy Style, and the find box (find, replace, rename a section) |
+| [`motion.lisp`](lisp/parts/motion.lisp) | Glide and smooth fades, emphasis, motion paths, the builds' delay and repeats, and the presenter's pen and laser pointer |
+| [`ink.lisp`](lisp/parts/ink.lisp), [`notes-page.lisp`](lisp/parts/notes-page.lisp) | Ink Replay and Ink to Shape; the notes page view and Export Notes Pages |
 | [`review.lisp`](lisp/parts/review.lisp) | The Ink, Record, Check and Help tabs: ink on the slide, timings, comments, the accessibility check, the side pane |
 | [`themes/sinopia.lisp`](lisp/themes/sinopia.lisp) | The app's own look: the window's colour tokens, light and dark |
 
