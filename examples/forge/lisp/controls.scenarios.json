@@ -166,6 +166,20 @@
 			]
 		},
 		{
+			"name": "forge-controls-setting-check",
+			"note": "A boolean setting's check box on the settings page turns the setting off, then on again",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "click": "#setting-check" },
+				{ "wait": 50 },
+				{ "expect": { "state": "settings", "is": { "breadcrumbs.enabled": false } } },
+				{ "click": "#setting-check" },
+				{ "wait": 50 },
+				{ "expect": { "state": "settings", "is": { "breadcrumbs.enabled": true } } }
+			]
+		},
+		{
 			"name": "forge-controls-debug-sections",
 			"note": "In Run and Debug, a section's title collapses the section, its chevron pointing sideways, and expands it again",
 			"steps": [
