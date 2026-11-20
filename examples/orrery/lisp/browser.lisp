@@ -48,9 +48,9 @@
      :expanded ~state.expandedBodies
      :value ~state.selected
      :rowHeight 24
-     :onChange ~(handler chooseBody event.value)
-     :onOpen ~(handler flyToBody event.value)
-     :onExpand ~(handler expandBody event.id event.expanded)
+     :onChange ~(handler choose-body event.value)
+     :onOpen ~(handler fly-to-body event.value)
+     :onExpand ~(handler expand-body event.id event.expanded)
      :color @panel
      :textColor @text
      :selectedTextColor @text

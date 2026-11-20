@@ -227,7 +227,7 @@
      :borderWidth ~(if on 4 0)
      :borderColor @color.accent
      :cursor hand
-     :onClick ~(handler couchChoose g.id)))
+     :onClick ~(handler couch-choose g.id)))
 
 (defview couch-play "The chosen game's button: Play, Stop, Update or Install, as its state is." []
   `(node#couch-play :style pillButton

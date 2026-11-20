@@ -15,7 +15,7 @@
 (defstate app {:name "" :capabilities []}
   "The app's name and the capabilities it asks for: each {key kind name why allowed}, from permissions.app.")
 
-(defn loadApp "Asks the host which app this is, and what it asks for." []
+(defn load-app "Asks the host which app this is, and what it asks for." []
   (call "permissions.app" :into "state.app"))
 
 (defn flip "Checks or unchecks the i-th capability." [i allowed]
@@ -89,7 +89,7 @@
 (defscreen main "The question: the app's name, a card per capability, a hint, and the two answers."
   :window {:title "Permissions" :width 560 :height 460 :minWidth 420 :minHeight 320}
   :theme ~window.colorScheme
-  :onLoad loadApp
+  :onLoad load-app
   :fonts {:default {:file "../fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
           :title {:file "../fonts/Roboto-Regular.ttf" :size 22 :bold true}
           :icons {:file "../fonts/Lucide.ttf" :size 15}}

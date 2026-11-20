@@ -315,7 +315,7 @@
      :role button
      :label ~(formatDate (dateMs d) "medium" "utc")
      :onClick ~(handler cellClick computed.sel d event.x event.y)
-     :onContextMenu ~(handler openPopup computed.sel d event.x event.y)
+     :onContextMenu ~(handler open-popup computed.sel d event.x event.y)
      (label#label-format-date-date-3 :text ~(formatDate (dateMs d) "d" "utc")
        :font tiny
        :fill 0
@@ -404,7 +404,7 @@
      :role button
      :cursor hand
      :label ~(str (formatDate (dateMs nt.key) "medium" "utc") ": " nt.value)
-     :onClick ~(handler openPopup computed.sel nt.key event.x event.y)
+     :onClick ~(handler open-popup computed.sel nt.key event.x event.y)
      (label#label-format-date-date-7 :text ~(formatDate (dateMs nt.key) "EEE d MMM" "utc")
        :font small
        :textColor ~computed.col

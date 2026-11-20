@@ -301,7 +301,7 @@
      :cursor hand
      :hover {:color @color.hover :textColor @color.bright}
      :isOpen ~(and (= item "categories") state.storeCatsOpen)
-     :onClick ~(handler openStoreBar item)
+     :onClick ~(handler open-store-bar item)
      (node :when ~(= item "categories")
        :use menu
        :with {:open state.storeCatsOpen
@@ -436,7 +436,7 @@
            :height 86
            :cursor hand
            :color "#000000"
-           :onHover ~(handler showFeatureShot n)
+           :onHover ~(handler show-feature-shot n)
            :onLeave {:set state.storeShot :to nil}
            (image :fill true
              :fit cover
@@ -460,7 +460,7 @@
      :cursor hand
      :label ~(t "store.previous")
      :hover {:color "#ffffff26"}
-     :onClick previousFeature))
+     :onClick previous-feature))
 
 (defview featured-next "The arrow that shows the next featured game, the first after the last." []
   `(label#featured-next :icon chevron-right
@@ -479,7 +479,7 @@
      :cursor hand
      :label ~(t "store.next")
      :hover {:color "#ffffff26"}
-     :onClick nextFeature))
+     :onClick next-feature))
 
 (defview featured-dots "A dot per featured game, lit for the one shown, that shows its game." []
   `(row :height 12 :anchors {:left 0 :right 0 :bottom 6} :gap 3 :justify center
@@ -491,7 +491,7 @@
            :color ~(if (= d state.storeFeature) "@store.dotOn" "@store.dot")
            :role button
            :label ~(t "store.slide" {:n (inc d)})
-           :onClick ~(handler showFeature d)))))
+           :onClick ~(handler show-feature d)))))
 
 ;;; Offers and categories
 
@@ -567,7 +567,7 @@
            :color ~(if (= state.storeList tab) "@store.card" "transparent")
            :textColor ~(if (= state.storeList tab) "@color.bright" "@store.chipText")
            :hover {:textColor @color.bright}
-           :onClick ~(handler showStoreList tab)))))
+           :onClick ~(handler show-store-list tab)))))
 
 (defview store-lists "The tab's games, the one under the pointer previewed beside them." []
   `(row :height 600 :anchors {:left 0 :right 0} :gap 0 :alignItems start
@@ -576,7 +576,7 @@
           `(node :id ~(str "store-row-" g.id)
              :use storeRow
              :with {:g ~g :lit ~(= computed.storePreview.id g.id)}
-             :onHover ~(handler previewGame g.id))))
+             :onHover ~(handler preview-game g.id))))
      (node#store-preview :width 308
        :height 592
        :color transparent

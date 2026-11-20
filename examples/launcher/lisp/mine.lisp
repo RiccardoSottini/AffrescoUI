@@ -18,13 +18,13 @@
          :text ~(t "mine.install")
          :width 192
          :height 38
-         :onClick installFromFile)
+         :onClick install-from-file)
        (node#mineFolder :style secondary
          :icon folder-open
          :text ~(t "mine.showFolder")
          :width 150
          :height 38
-         :onClick ~(handler revealMine ""))
+         :onClick ~(handler reveal-mine ""))
        (node#mineNew :style primary :icon plus :text ~(t "nav.newApp") :width 130 :height 38 :onClick showCreate))
      (label#mineUnavailable :when ~(not= state.mineError "")
        :font small
@@ -92,8 +92,8 @@
      :label ~(t "mine.openLabel" {:name app.name})
      :hover {:borderColor @c.accent}
      :focused {:borderColor @c.accent :borderWidth 2}
-     :onClick ~(handler openApp app)
-     :keys {:delete ~(handler askDelete app.id app.name)}
+     :onClick ~(handler open-app app)
+     :keys {:delete ~(handler ask-delete app.id app.name)}
      (label#mineInitial :text ~(upper-case (slice app.name 0 1))
        :font initial
        :align center
@@ -113,29 +113,29 @@
 
 (defview mine-actions "A row's buttons: open, export, duplicate, show in the folder, delete." [app]
   `(row#mineActions :gap 4 :anchors {:right 14 :top 21} :height 34 :width 248 :justify end
-     (node#mineOpen :style primary :text ~(t "mine.open") :width 74 :height 34 :onClick ~(handler openApp app))
+     (node#mineOpen :style primary :text ~(t "mine.open") :width 74 :height 34 :onClick ~(handler open-app app))
      (node#mineExport :style iconButton
        :icon package
        :tooltip ~(t "mine.export")
        :label ~(t "mine.exportLabel" {:name app.name})
-       :onClick ~(handler exportMine app.id app.name))
+       :onClick ~(handler export-mine app.id app.name))
      (node#mineDuplicate :style iconButton
        :icon copy
        :tooltip ~(t "mine.duplicate")
        :label ~(t "mine.duplicateLabel" {:name app.name})
-       :onClick ~(handler duplicateMine app.id app.name))
+       :onClick ~(handler duplicate-mine app.id app.name))
      (node#mineReveal :style iconButton
        :icon folder-open
        :tooltip ~(t "mine.reveal")
        :label ~(t "mine.revealLabel" {:name app.name})
-       :onClick ~(handler revealMine app.id))
+       :onClick ~(handler reveal-mine app.id))
      (node#mineDelete :style iconButton
        :icon trash-2
        :tooltip ~(t "mine.delete")
        :label ~(t "mine.deleteLabel" {:name app.name})
        :hover {:color @c.dangerSoft :textColor @c.danger}
        :focused {:color @c.dangerSoft :textColor @c.danger}
-       :onClick ~(handler askDelete app.id app.name))))
+       :onClick ~(handler ask-delete app.id app.name))))
 
 ;;; The question before a delete
 
@@ -147,6 +147,6 @@
                                      :width 460
                                      :height 180
                                      :highlight @c.accent
-                                     :buttons [{:title ~(t "delete.confirm") :run deleteMine}
+                                     :buttons [{:title ~(t "delete.confirm") :run delete-mine}
                                                {:title ~(t "delete.cancel") :default true}]})
              :launcherToasts (node#launcherToastList :use toasts :with {:name toasts})})

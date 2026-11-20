@@ -15,7 +15,7 @@ python3 examples/arcadia/lisp/e2e_test.py build
 downloads, the cart and the wishlist, the library's filters, codes, backups, friends and chat. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen and its parts say what is
 shown and keep their keys, the download timer and the first page as data; `lisp/arcadia.lisp` says what happens: every
 action is a command, as it was written, with its title, category and description, and the handlers name them. Lists that
-hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `gameOf`).
+hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `game-of`).
 
 ## What it shows
 

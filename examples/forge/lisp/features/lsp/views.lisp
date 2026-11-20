@@ -68,7 +68,7 @@
           :gap 8
           :color ~(if (= c.index state.lsp.completion.index) "@color.selection" "@color.widget")
           :cursor hand
-          :onClick ~(handler lspComplete c.index)
+          :onClick ~(handler lsp-complete c.index)
           (label#lsp-completion-label :font code :fitText true :textColor @color.text :text ~c.item.label)
           (label#lsp-completion-detail :grow 1 :textColor @color.muted :text ~c.item.detail)))))
 
@@ -101,7 +101,7 @@
             :height 150
             :title ~(t "command.renameSymbol")
             :message ""
-            :buttons [{:title ~(t "lsp-rename-dialog.rename") :run lspRenameSend} {:title ~(t "lsp-rename-dialog.cancel")}]}
+            :buttons [{:title ~(t "lsp-rename-dialog.rename") :run lsp-rename-send} {:title ~(t "lsp-rename-dialog.cancel")}]}
      (textarea#lsp-rename-name :bind state.lsp.rename.name
        :autofocus true
        :anchors {:left 20 :right 20 :top 48}
@@ -111,7 +111,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "lsp-rename-name.placeholder")
-       :onSubmit lspRenameSend)))
+       :onSubmit lsp-rename-send)))
 
 (defview lsp-review-dialog "The edits a rename or a format proposes, to apply or not." []
   `(node#lsp-review-dialog :use dialog
@@ -147,10 +147,10 @@
             :providers [{:prefix @
                          :items ~computed.lspSymbolItems
                          :key name
-                         :run lspSymbolPicked
+                         :run lsp-symbol-picked
                          :placeholder ~(t "lsp-symbols.goToA")}
                         {:prefix "#"
                          :items ~computed.lspSymbolItems
                          :key name
-                         :run lspSymbolPicked
+                         :run lsp-symbol-picked
                          :placeholder ~(t "lsp-symbols.typeToSearch")}]}))

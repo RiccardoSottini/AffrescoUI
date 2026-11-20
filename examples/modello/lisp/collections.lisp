@@ -10,7 +10,7 @@
 (defn own-collections "Writes the collections into the scene, the first time one changes." []
   (when (nil? state.scene.collections) (set "state.scene.collections" computed.collections)))
 
-(defn toggleCollection "A collection's eye, arrow or camera in the outliner: hides its objects, or keeps them from being picked or rendered."
+(defn toggle-collection "A collection's eye, arrow or camera in the outliner: hides its objects, or keeps them from being picked or rendered."
   [id key]
   (own-collections)
   (let [i (indexOf (ids state.scene.collections) id)]
@@ -40,7 +40,7 @@
       (moveToCollection id false)
       (set "state.activeCollection" id))))
 
-(defn renameCollection "Names a collection, if the name isn't empty." [id name]
+(defn rename-collection "Names a collection, if the name isn't empty." [id name]
   (let [trimmed (str/trim name)]
     (when (and (not (str/blank? trimmed)) (contains computed.collectionIds id))
       (snapshot)
@@ -55,7 +55,7 @@
     (set "state.outlinerFilter" "")
     (set "state.outlinerOpen.root" true)
     (set "state.renaming" (str "coll:" computed.activeCollectionData.id))
-    (after 50 focusRename)))
+    (after 50 focus-rename)))
 
 (defcommand deleteCollection "Deletes the active collection; its objects go to the first other one."
   :title ~(t "command.deleteCollection") :description ~(t "command.deleteCollection.about")
@@ -70,6 +70,7 @@
       (set "state.activeCollection" heir)
       (set "state.last" (t "command.deleteCollection")))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn moveToCollection "Moves the selected objects into a collection, with an undo step when undoable is true."
   [id undoable]
   (dismiss)

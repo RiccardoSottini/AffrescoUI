@@ -37,7 +37,10 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   nodes merge by id. A part a later commit changed too is a conflict, settled only by the caller's `drop` or `keep`
   (`MergeOptions::takeProposal` takes the parent's value for a dropped one); `detail::Trail` names the later commits
   that changed it. `undoPlan` judges the result as a change; `undoRevision` writes it, marked `undo` (`of`, `drop`,
-  `then`), and `commit()` and `submitRevision` work it out again before it lands. A drop or a rebuild by an author
+  `then`), and `commit()` and `submitRevision` work it out again before it lands, unless it is the undo
+  `undoRevision` just worked out on the same head, with the same choices, patch and (where the commit changed it) live
+  state: the same inputs give the same patch, so it is taken once as it is. Verify mode (`AFFRESCOUI_VERIFY_UPDATES=1`)
+  works it out in full anyway and logs an "undo check" error on any difference. A drop or a rebuild by an author
   who may not review is always a proposal, and where the screen declares no permissions, by anyone but the person.
   The live state is undone only while every part is as the commit left it.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).

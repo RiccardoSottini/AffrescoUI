@@ -18,7 +18,7 @@
   :title ~(t "command.newSample") :description ~(t "command.newSample.about") :category ~(t "category.file")
   :icon "sparkles"
   []
-  (drawSample))
+  (draw-sample))
 
 (defcommand openFile "Opens an image or a Tempera project."
   :title ~(t "command.openFile") :description ~(t "command.openFile.about") :category ~(t "category.file")
@@ -162,31 +162,31 @@
   :title ~(t "command.rotateLayer180") :description ~(t "command.rotateLayer180.about") :category ~(t "category.edit")
   :icon "rotate-cw"
   []
-  (transformActive {:angle 180}))
+  (transform-active {:angle 180}))
 
 (defcommand rotateLayerRight "Turns the active layer a quarter turn clockwise."
   :title ~(t "command.rotateLayerRight") :description ~(t "command.rotateLayerRight.about")
   :category ~(t "category.edit") :icon "rotate-cw"
   []
-  (transformActive {:angle 90}))
+  (transform-active {:angle 90}))
 
 (defcommand rotateLayerLeft "Turns the active layer a quarter turn anticlockwise."
   :title ~(t "command.rotateLayerLeft") :description ~(t "command.rotateLayerLeft.about")
   :category ~(t "category.edit") :icon "rotate-ccw"
   []
-  (transformActive {:angle -90}))
+  (transform-active {:angle -90}))
 
 (defcommand flipLayerHorizontal "Flips the active layer left to right."
   :title ~(t "command.flipLayerHorizontal") :description ~(t "command.flipLayerHorizontal.about")
   :category ~(t "category.edit") :icon "flip-horizontal"
   []
-  (transformActive {:scaleX -100}))
+  (transform-active {:scaleX -100}))
 
 (defcommand flipLayerVertical "Flips the active layer upside down."
   :title ~(t "command.flipLayerVertical") :description ~(t "command.flipLayerVertical.about")
   :category ~(t "category.edit") :icon "flip-vertical"
   []
-  (transformActive {:scaleY -100}))
+  (transform-active {:scaleY -100}))
 
 ;;; Image
 

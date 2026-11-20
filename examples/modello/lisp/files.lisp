@@ -10,16 +10,16 @@
 (defn saved "A file saved: its name in the status bar." [result]
   (set "state.fileStatus" (t "file.saved" {:name (:name result)})))
 
-(defn notSaved "A file not saved: why, in the status bar." [error]
+(defn not-saved "A file not saved: why, in the status bar." [error]
   (set "state.fileStatus" (t "file.notSaved" {:reason (:message error)})))
 
 (defn exported "A scene exported: its name in the status bar." [result]
   (set "state.fileStatus" (t "file.exported" {:name (:name result)})))
 
-(defn notExported "A scene not exported: why, in the status bar." [error]
+(defn not-exported "A scene not exported: why, in the status bar." [error]
   (set "state.fileStatus" (t "file.notExported" {:reason (:message error)})))
 
-(defn notOpened "A file not opened: why, in the status bar." [error]
+(defn not-opened "A file not opened: why, in the status bar." [error]
   (set "state.fileStatus" (t "file.notOpened" {:reason (:message error)})))
 
 ;;; Scenes
@@ -36,8 +36,9 @@
   :category ~(t "category.file") :icon "save" []
   (dismiss)
   (saveFile {:format "modello-scene" :version 1 :scene state.scene :added state.added}
-            :name "scene.json" :title (t "file.saveTitle") :onDone saved :onError notSaved))
+            :name "scene.json" :title (t "file.saveTitle") :onDone saved :onError not-saved))
 
+; style: keep, named in examples/modello/lisp/index.scenarios.json
 (defn sceneOpened "A file opened: it replaces the scene if it is a Modello scene, and says so either way." []
   (if computed.openedIsScene
     (do (when (not= state.mode :object) (set "state.mode" :object))
@@ -59,7 +60,7 @@
   :title ~(t "command.openScene") :description ~(t "command.openScene.about")
   :category ~(t "category.file") :icon "folder-open" []
   (dismiss)
-  (openFile "state.opened" :extensions ["json"] :title (t "file.openTitle") :onDone opened :onError notOpened))
+  (openFile "state.opened" :extensions ["json"] :title (t "file.openTitle") :onDone opened :onError not-opened))
 
 (defcommand exportGltf "Exports the viewport's scene, with its animation, as glTF."
   :title ~(t "command.exportGltf") :description ~(t "command.exportGltf.about")
@@ -71,7 +72,7 @@
       :animations computed.gltfClips
       :name "scene"
       :onDone exported
-      :onError notExported)))
+      :onError not-exported)))
 
 ;;; Rendering
 
@@ -89,4 +90,4 @@
     :title (t "file.renderTitle")
     :name "render.png"
     :onDone saved
-    :onError notSaved))
+    :onError not-saved))

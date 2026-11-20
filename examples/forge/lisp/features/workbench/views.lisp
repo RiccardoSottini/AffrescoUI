@@ -78,7 +78,7 @@
           :cursor hand
           :textColor @color.muted
           :hover {:textColor @color.text}
-          :onClick ~(handler breadcrumbClicked path si)))
+          :onClick ~(handler breadcrumb-clicked path si)))
      ~(repeat [symbol computed.symbolTrail]
        `(label#breadcrumb-symbol :role button
           :label ~(str/trim symbol.label)

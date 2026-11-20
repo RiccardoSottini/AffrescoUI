@@ -629,7 +629,7 @@
        :style rbButton
        :anchors {:left 8 :right 8}
        :runs [{:icon ban :size 14} {:text ~(str " " drop.none) :size 12}]
-       :onClick ~(handler pickColor state.colors.id nil))
+       :onClick ~(handler pick-color state.colors.id nil))
      ~(repeat [sec drop.sections :index s]
        `(column :id ~(str "colors-s" s)
           :anchors {:left 8 :right 8}
@@ -707,7 +707,7 @@
      :bind state.find.with
      :placeholder ~(t "menu.replaceWith")
      :placeholderColor @rbMuted
-     :onSubmit replaceOne))
+     :onSubmit replace-one))
 
 (defview find-text "The text to find, or the section's name, or the footer." []
   `(textarea#find-text :anchors {:left 10 :right 10}
@@ -725,11 +725,11 @@
                      :footer (or-else state.deck.footer (t "menu.footer"))
                      (t "menu.textInTheSlides"))
      :placeholderColor @rbMuted
-     :onSubmit submitFind))
+     :onSubmit submit-find))
 
 (defpart menus
          "The drop-downs, the colour grid and the find box over the window, and Copy Style's watch."
-         :watch {:state.board.selection [~(handler paintSelection event.value)]}
+         :watch {:state.board.selection [~(handler paint-selection event.value)]}
          :overlays {:zDrop (node :use
                        contextMenu
                        :shadow {:x 0 :y 4 :blur 14 :color "#0000003a"}
@@ -780,7 +780,7 @@
           :hover {:borderColor @brand}
           :tooltip ~(or-else (get computed.slotTitles (get (str/split slot ".") 0)) slot)
           :label ~slot
-          :onClick ~(handler pickColor state.colors.id c)))))
+          :onClick ~(handler pick-color state.colors.id c)))))
 
 (defview find-buttons "Find Next, Replace and Replace All, or OK for a name." []
   `(row#find-buttons :anchors {:left 10 :right 10} :height 26 :gap 4 :color transparent :justify end
@@ -797,52 +797,56 @@
        :fitText true
        :padding 8
        :runs [{:text ~(t "menu.findNext") :size 12}]
-       :onClick findNext)
+       :onClick find-next)
      (label#find-replace :when ~(and state.find.replace (= (or-else state.find.ask "") ""))
        :style rbButton
        :height 26
        :fitText true
        :padding 8
        :runs [{:text ~(t "ribbon.replace") :size 12}]
-       :onClick replaceOne)
+       :onClick replace-one)
      (label#find-replace-all :when ~(and state.find.replace (= (or-else state.find.ask "") ""))
        :style rbButtonOn
        :height 26
        :fitText true
        :padding 10
        :runs [{:text ~(t "menu.replaceAll") :size 12}]
-       :onClick replaceAll)))
+       :onClick replace-all)))
 
 ;;; Opening the menus and panes
 
-(defn openDrop "Opens a button's drop-down, below it." [id]
+(defn open-drop "Opens a button's drop-down, below it." [id]
   (set "state.colors.open" false)
   (set "state.drop" {:open true :id id}))
 
-(defn openColors "Opens a colour button's grid, below it." [id]
+(defn open-colors "Opens a colour button's grid, below it." [id]
   (set "state.drop.open" false)
   (set "state.colors" {:open true :id id}))
 
-(defn openContext "Opens the menu of a slide, an object or the canvas, at a point." [x y kind]
+(defn open-context "Opens the menu of a slide, an object or the canvas, at a point." [x y kind]
   (set "state.drop.open" false)
   (set "state.ctx" {:open true :x x :y y :kind kind}))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn openFormatPane "Opens the format pane, leaving the sorter for the slide." []
   (when (= state.view "sorter")
     (set "state.view" "normal"))
   (set "state.formatPane" true)
   (set "state.sidePane" nil))
 
+; style: keep, format-background is already a definition
 (defn formatBackground "Opens the format pane on the slide's background." []
   (set "state.board.selection" [])
   (openFormatPane))
 
 ;;; The search box
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn runSearched "Runs a command the search box found, and empties the box." [action args]
   (set "state.search" "")
   (run action :with args))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn searchSlides "Finds the search box's text in the slides, and empties the box." []
   (set "state.find.text" (str/trim state.search))
   (openFind false)
@@ -854,26 +858,27 @@
 (def color-keys "The property each colour button sets." {"b-color" "color" "b-fill" "fill" "b-outline" "line"
                                                           "b-highlight" "highlight"})
 
-(defn pickColor "A colour picked in a button's grid (nil for none): the button keeps it, and the selection takes it."
+(defn pick-color "A colour picked in a button's grid (nil for none): the button keeps it, and the selection takes it."
   [id value]
   (set "state.colors.open" false)
   (when-some [color value]
     (set "state.lastColor" (assoc state.lastColor id color)))
-  (applyColor id value))
+  (apply-color id value))
 
-(defn quickStyle "The fill, line and text colour of a quick style: a slot, a tint, line:slot, or nil for none." [value]
+(defn quick-style "The fill, line and text colour of a quick style: a slot, a tint, line:slot, or nil for none." [value]
   (cond (nil? value) {:fill nil :line nil :color nil}
         (= (slice value 0 5) "line:") {:fill "light1" :line (slice value 5) :lineWidth 2 :color (slice value 5)}
         (str/includes? value ".") {:fill value :line (first (str/split value ".")) :color "dark1"}
         :else {:fill value :line value :color "light1"}))
 
-(defn applyColor "Gives the selected objects a colour button's colour, or a quick style." [id value]
+(defn apply-color "Gives the selected objects a colour button's colour, or a quick style." [id value]
   (if (= id "b-quick-styles")
-    (setObjects (quickStyle value))
+    (setObjects (quick-style value))
     (setObjects (assoc {} (get color-keys id) value))))
 
 ;;; Text
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn pasteText "Pastes the copied objects' text only, as text boxes a little down and right." []
   (when (seq state.clip)
     (commit)
@@ -888,31 +893,34 @@
       (set "state.board.selection" (map #(str "o" (+ next %)) (range (count state.clip)))))
     (increment "state.deck.next" :by (count state.clip))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setLink
   "Links the selected objects' text to a slide of the deck, which a click in the show goes to (nil: no link)."
   [slide]
   (setObjects {:link slide}))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn selectKind "Selects the slide's objects of some kinds: text, shape, line..." [kinds]
   (set "state.board.selection"
        (->> computed.objects (filter #(contains kinds (or-else (:kind %) "text"))) (map :id))))
 
-(defn indentLine "A line moved a list level in (by 1, four spaces, up to 8 levels) or out (by -1)." [by line]
+(defn indent-line "A line moved a list level in (by 1, four spaces, up to 8 levels) or out (by -1)." [by line]
   (let [at (indexOf line (str/trim line))]
     (if (pos? by)
       (if (< at 32) (str "    " line) line)
       (slice line (min at 4)))))
 
-(defn indentText "Moves every line of the selected text a list level in (by 1) or out (by -1)." [by]
+(defn indent-text "Moves every line of the selected text a list level in (by 1) or out (by -1)." [by]
   (when computed.anyText
     (commit)
     (set-objects (map (fn [o]
                         (if (selected? o)
                           ; style: keep, the host's split keeps the empty lines at the end, which the join gives back
-                          (assoc o :text (join "\n" (map #(indentLine by %) (split (or-else (:text o) "") "\n"))))
+                          (assoc o :text (join "\n" (map #(indent-line by %) (split (or-else (:text o) "") "\n"))))
                           o))
                       computed.objects))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn insertSymbol "Adds a symbol to the selected text, or a text box of it in the middle of the slide." [symbol]
   (if computed.anyText
     (do (commit)
@@ -927,7 +935,7 @@
                                                  "font" "fill" "line" "lineWidth" "dash" "align" "anchor" "bullets"
                                                  "bulletIcon" "numbering" "spacing"])
 
-(defn copyStyle "Keeps the selection's look, which the next objects selected take; or forgets it." []
+(defn copy-style "Keeps the selection's look, which the next objects selected take; or forgets it." []
   (if (or (some? state.painter) (not computed.anyText))
     (set "state.painter" nil)
     (set "state.painter" (zipmap text-style-keys (map #(get computed.first %) text-style-keys)))))
@@ -936,25 +944,29 @@
 
 (def closed-box "The find box closed and empty." {:open false :replace false :text "" :with "" :status "" :ask ""})
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn removeSection "Removes the section the slide shown is in; its slides join the one before." []
   (when-some [section computed.sectionHere]
     (commit)
     (set "state.deck.sections" (remove #(= (:id %) (:id section)) state.deck.sections))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn removeSections "Removes every section." []
   (commit)
   (set "state.deck.sections" []))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn askSectionName "Asks for the section's new name, in the find box." []
   (set "state.find" (merge closed-box {:open true :ask "section"})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn askFooter "Asks for the footer's text, in the find box." []
   (set "state.find" (merge closed-box {:open true :ask "footer"})))
 
 (defn answer "Takes what the find box was asked for: the section's name or the footer." []
-  (if (= state.find.ask :section) (renameSection) (setFooter)))
+  (if (= state.find.ask :section) (rename-section) (set-footer)))
 
-(defn renameSection "Renames the section the slide shown is in." []
+(defn rename-section "Renames the section the slide shown is in." []
   (let [name (str/trim state.find.text)]
     (when (and (some? computed.sectionHere) (not= name ""))
       (commit)
@@ -962,62 +974,64 @@
            (map #(if (= (:id %) computed.sectionHere.id) (assoc % :name name) %) state.deck.sections))))
   (set "state.find" closed-box))
 
-(defn setFooter "Sets the footer's text on every slide (empty: none)." []
+(defn set-footer "Sets the footer's text on every slide (empty: none)." []
   (commit)
   (let [footer (str/trim state.find.text)]
     (set "state.deck.footer" (if (= footer "") nil footer)))
   (set "state.find" closed-box))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn toggleSlideNumbers "Shows the slides' numbers, or hides them." []
   (commit)
   (set "state.deck.slideNumbers" (not (or-else state.deck.slideNumbers false))))
 
 ;;; Find and Replace
 
-(defn submitFind "Enter in the find box: takes what it asked for, or finds the next." []
-  (if (not= (or-else state.find.ask "") "") (answer) (findNext)))
+(defn submit-find "Enter in the find box: takes what it asked for, or finds the next." []
+  (if (not= (or-else state.find.ask "") "") (answer) (find-next)))
 
-(defn paintSelection "Gives the objects selected next the look Copy Style kept." [selection]
+(defn paint-selection "Gives the objects selected next the look Copy Style kept." [selection]
   (when (and (some? state.painter) (seq selection))
     (setObjects state.painter)
     (set "state.painter" nil)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn openFind "Opens the find box, with Replace or without, keeping the text unless it was asking for something."
   [replace]
   (set "state.find" {:open true :replace replace :text (if (not= (or-else state.find.ask "") "") "" state.find.text)
                      :with state.find.with :status "" :ask ""}))
 
-(defn findNext "Selects the next object that holds the text, on this slide or the next that has one." []
+(defn find-next "Selects the next object that holds the text, on this slide or the next that has one." []
   (if (zero? computed.hitCount)
     (set "state.find.status" (if (= computed.findQuery "") "" (t "menu.notFound")))
     (let [here (get computed.hitsBySlide state.current)]
-      (findAfter (indexOf here (or-else (get state.board.selection 0) "")) here))))
+      (find-after (indexOf here (or-else (get state.board.selection 0) "")) here))))
 
-(defn findAfter "Selects the hit after the one at `at` of this slide's hits, `here`, else the next slide's first."
+(defn find-after "Selects the hit after the one at `at` of this slide's hits, `here`, else the next slide's first."
   [at here]
   (if (or (and (>= at 0) (< (inc at) (count here)))
           (and (neg? at) (seq here) (empty? state.board.selection)))
     (set "state.board.selection" [(get here (inc at))])
     (let [slides (count state.deck.slides)]
-      (findOn (find #(seq (get computed.hitsBySlide %))
+      (find-on (find #(seq (get computed.hitsBySlide %))
                     (map #(mod (+ state.current 1 %) slides) (range slides))))))
   (set "state.find.status" (t "menu.matches" {:n computed.hitCount})))
 
-(defn findOn "Shows a slide and selects its first hit." [slide]
-  (pickSlide slide)
+(defn find-on "Shows a slide and selects its first hit." [slide]
+  (pick-slide slide)
   (set "state.board.selection" [(get-in computed.hitsBySlide [slide 0])]))
 
 (defn replaced "A text with every hit replaced." [text]
   (str/replace text computed.findQuery state.find.with))
 
-(defn replaceOne "Replaces the text in the selected object, then finds the next." []
+(defn replace-one "Replaces the text in the selected object, then finds the next." []
   (when (and (not= computed.findQuery "")
              (pos? (count computed.selected))
              (str/includes? (or-else computed.first.text "") computed.findQuery))
     (setObjects {:text (replaced computed.first.text)}))
-  (findNext))
+  (find-next))
 
-(defn replaceAll "Replaces the text everywhere in the deck, as one change." []
+(defn replace-all "Replaces the text everywhere in the deck, as one change." []
   (if (pos? computed.hitCount)
     (do (set "state.find.status" (t "menu.replaced" {:n computed.hitCount}))
         (commit)

@@ -71,7 +71,7 @@
      :onExpand explorerExpand
      :onOpen openExplorerItem
      :onDrop explorerDrop
-     :onContextMenu explorerMenu))
+     :onContextMenu explorer-menu))
 
 ;;; The dialogs
 

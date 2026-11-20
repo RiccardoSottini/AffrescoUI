@@ -291,10 +291,10 @@
      :grow 1
      :alignSelf stretch
      :color @sky
-     :onPress viewPress
-     :onDrag viewDrag
-     :onRelease viewRelease
-     :onScroll viewScroll
+     :onPress view-press
+     :onDrag view-drag
+     :onRelease view-release
+     :onScroll view-scroll
      ~(scene-view)
      ~(repeat [t computed.marked :key t.id]
         `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
@@ -343,7 +343,7 @@
      :background "#070b0c"
      :outlineColor @accent
      :controls {:orbit none :pan none :zoom false :select left :selects false}
-     :onSelect ~(handler pickInScene event.button event.id)))
+     :onSelect ~(handler pick-in-scene event.button event.id)))
 
 (defview info-card "The card of the selected body, at the bottom left." []
   `(panel#view-info :anchors {:left 12 :bottom 12}
@@ -450,4 +450,4 @@
        :checked ~o.on
        :activeColor @accent
        :trackColor @border
-       :onChange ~(handler toggleRender o.id))))
+       :onChange ~(handler toggle-render o.id))))

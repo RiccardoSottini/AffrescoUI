@@ -19,7 +19,7 @@
           :cursorColor @color.accent
           :scrollback 1000
           :focusable true
-          :keys {:tab terminalKeepTab "shift+tab" terminalKeepTab}))))
+          :keys {:tab terminal-keep-tab "shift+tab" terminal-keep-tab}))))
 
 (defview terminal-head "The terminals' tabs, each closable, and a button for a new one." []
   `(row#terminal-head :width "100%" :height 28 :alignItems center
@@ -32,7 +32,7 @@
        :activeBackground @color.panel
        :accentColor @color.accent
        :tabs ~state.terminals.list
-       :onClose ~(handler terminalClose event.id))
+       :onClose ~(handler terminal-close event.id))
      (label#terminal-new :icon plus
        :textColor @color.muted
        :padding 8

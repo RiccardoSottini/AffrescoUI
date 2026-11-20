@@ -219,16 +219,16 @@
    :full {:run setScreenMode :with {:args {:mode full}} :title ~(t "menu.screenMode.full") :order 2}})
 
 (defmenu window "The Window menu: the panels."
-  {:adjustments {:run showPanel :with {:args {:slot properties :id adjustments}}
+  {:adjustments {:run show-panel :with {:args {:slot properties :id adjustments}}
                  :title ~(t "menu.window.adjustments") :order 1}
-   :channels {:run showPanel :with {:args {:slot layers :id channels}} :title ~(t "menu.window.channels") :order 2}
-   :colour {:run showPanel :with {:args {:slot colour :id colour}} :title ~(t "menu.window.colour") :order 3}
-   :history {:run showPopout :with {:args {:id history}} :title ~(t "menu.window.history") :order 4}
-   :layers {:run showPanel :with {:args {:slot layers :id layers}} :title ~(t "menu.window.layers") :order 5}
-   :navigator {:run showPopout :with {:args {:id navigator}} :title ~(t "menu.window.navigator") :order 6}
-   :paths {:run showPanel :with {:args {:slot layers :id paths}} :title ~(t "menu.window.paths") :order 7}
-   :properties {:run showPanel :with {:args {:slot properties :id properties}}
+   :channels {:run show-panel :with {:args {:slot layers :id channels}} :title ~(t "menu.window.channels") :order 2}
+   :colour {:run show-panel :with {:args {:slot colour :id colour}} :title ~(t "menu.window.colour") :order 3}
+   :history {:run show-popout :with {:args {:id history}} :title ~(t "menu.window.history") :order 4}
+   :layers {:run show-panel :with {:args {:slot layers :id layers}} :title ~(t "menu.window.layers") :order 5}
+   :navigator {:run show-popout :with {:args {:id navigator}} :title ~(t "menu.window.navigator") :order 6}
+   :paths {:run show-panel :with {:args {:slot layers :id paths}} :title ~(t "menu.window.paths") :order 7}
+   :properties {:run show-panel :with {:args {:slot properties :id properties}}
                 :title ~(t "menu.window.properties") :order 8}
-   :swatches {:run showPanel :with {:args {:slot colour :id swatches}} :title ~(t "menu.window.swatches") :order 9}})
+   :swatches {:run show-panel :with {:args {:slot colour :id swatches}} :title ~(t "menu.window.swatches") :order 9}})
 
 (defmenu help "The Help menu." {:about {:run showAbout}})

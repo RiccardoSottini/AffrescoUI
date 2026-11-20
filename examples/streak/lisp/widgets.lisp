@@ -33,7 +33,7 @@
      :runs [~(-> (str "period." (get state key)) t upper-case (str " ")) {:icon chevron-down}]
      :label ~(str (t "period") ": " (t (str "period." (get state key))))
      :isOpen ~(get state.menus (case key :scorePeriod "score" "history"))
-     :onClick ~(handler openPeriodMenu key)
+     :onClick ~(handler open-period-menu key)
      (node#menu-text-button :use menu
        :with {:open ~(str "state.menus." (case key :scorePeriod "score" "history"))
               :width 160

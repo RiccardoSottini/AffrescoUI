@@ -34,7 +34,7 @@
      (node#layer-filter-toggle :use tIcon
        :with {:icon ~(if state.layerFilter.on "toggle-right" "toggle-left")
               :tip ~(if state.layerFilter.on (t "layers.filterOff") (t "layers.filterOn"))
-              :run toggleLayerFilter})
+              :run toggle-layer-filter})
      (node :width 4 :height 1 :style clear)))
 
 (defview kind-filter "The filter's icon for one kind of layer: on while the filter shows that kind." [kind icon]
@@ -43,7 +43,7 @@
      :with {:icon ~icon
             :tip ~(t (str "layers.only." kind))
             :on ~(and state.layerFilter.on (contains state.layerFilter.kinds kind))
-            :run toggleLayerKind
+            :run toggle-layer-kind
             :args {:kind ~kind}}))
 
 (defview layers-blend-row "The active layer's blend mode and opacity." []
@@ -140,7 +140,7 @@
       :width 12
       :height 36
       :cursor hand
-      :onClick ~(handler foldGroup {:id layer.id}))
+      :onClick ~(handler fold-group {:id layer.id}))
    `(label :id ~(str "layer-clip-" layer.id)
       :when ~layer.clipped
       :icon corner-left-down

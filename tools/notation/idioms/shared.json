@@ -5,5 +5,7 @@
 	"allowed": {
 		"four-nested-calls": 11
 	},
-	"kept": {}
+	"kept": {
+		"camel-case-name": 9
+	}
 }

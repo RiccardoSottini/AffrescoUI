@@ -53,10 +53,10 @@
      :maxLength ~maxLength
      :label ~fieldName
      :description ~(or error "")
-     :onSubmit ~(handler runIfAny submit)
-     :onFocus ~(handler focusField key)
-     :onBlur ~(handler blurField key)
-     :onChange ~(handler runIfAny change)))
+     :onSubmit ~(handler run-if-any submit)
+     :onFocus ~(handler focus-field key)
+     :onBlur ~(handler blur-field key)
+     :onChange ~(handler run-if-any change)))
 
 (defview eye-button "The checked field's eye, which shows or hides every password." []
   `(node#field-eye :when ~eye
@@ -146,5 +146,5 @@
      :icon ~icon
      :text ~(t (str "section_" section))
      :selected ~(= state.section section)
-     :onClick ~(handler setSection section)
-     :keys {:enter ~(handler setSection section) :space ~(handler setSection section)}))
+     :onClick ~(handler set-section section)
+     :keys {:enter ~(handler set-section section) :space ~(handler set-section section)}))

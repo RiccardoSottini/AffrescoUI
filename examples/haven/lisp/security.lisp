@@ -47,7 +47,7 @@
      :cursor hand
      :role group
      :label ~(t "alarm.title")
-     :onClick ~(handler openInfo "alarm" 0)
+     :onClick ~(handler open-info "alarm" 0)
      (label#alarmIcon :icon ~(if (= state.security :off) "shield-off" "shield-check")
        :text ""
        :textColor ~computed.alarmColor
@@ -75,7 +75,7 @@
           :selected ~(= mode state.security)
           :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
           :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
-          :onClick ~(handler pressAlarmMode mode)))))
+          :onClick ~(handler press-alarm-mode mode)))))
 
 (defcomponent alarmKeypad "The keypad of the alarm's details: the code typed, as dots, the keys, and the modes."
   {}
@@ -109,7 +109,7 @@
           :icon ~(case key "clear" "x" "back" "delete" "")
           :text ~(if (= (count key) 1) key "")
           :label ~(if (= (count key) 1) key (t (str "alarm." key)))
-          :onClick ~(handler pressAlarmKey key)))))
+          :onClick ~(handler press-alarm-key key)))))
 
 (defview alarm-actions "The keypad's modes, which take the code typed." []
   `(row#alarmActions :anchors {:left 24 :right 24 :top 300}
@@ -127,7 +127,7 @@
           :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
           :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
           :selected ~(= mode state.security)
-          :onClick ~(handler armAlarm mode)))))
+          :onClick ~(handler arm-alarm mode)))))
 
 ;;; The notifications
 

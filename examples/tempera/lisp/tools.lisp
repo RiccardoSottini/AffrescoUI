@@ -60,7 +60,7 @@
      :color ~(if (= tool.id state.doc.tool) "@selected" "transparent")
      :hover {:color ~(if tool.id "@hover" "transparent")}
      :onClick ~(handler setTool {:tool tool.id})
-     :onContextMenu ~(handler toggleOpen (str "state.flyout.g" n))
+     :onContextMenu ~(handler toggle-open (str "state.flyout.g" n))
      (node :when ~(= tool.id state.doc.tool) :x 0 :anchors {:top 6 :bottom 6} :width 3 :radius 2 :color @accent)
      (node :when ~(> (count g) 1)
        :width 3
@@ -136,7 +136,7 @@
      :borderColor @muted
      :tooltip ~(t title)
      :cursor hand
-     :onClick {:run showPanel :with {:args {:slot colour :id colour}}}))
+     :onClick {:run show-panel :with {:args {:slot colour :id colour}}}))
 
 (defview screen-mode-button "The screen mode: a click changes it; a right click shows both modes." []
   `(label#screen-mode :role button

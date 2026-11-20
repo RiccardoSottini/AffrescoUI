@@ -273,7 +273,7 @@
      :tooltip ~file.id
      :hover {:color @color.hover}
      :focused {:color @color.hover}
-     :onClick ~(handler openPath file.id file.title)))
+     :onClick ~(handler open-path file.id file.title)))
 
 ;;; The status bar
 
@@ -415,7 +415,7 @@
          :onClick clearNotifications)
        (node#notification-centre-hide :use forgeTitleButton
          :with {:icon chevron-down :tip ~(t "notification-centre-hide.tip")}
-         :onClick hideNotifications)
+         :onClick hide-notifications)
        (node#notification-centre-end :width 4))
      (list#notifications :label ~(t "notifications.label")
        :when ~(not (empty? state.notifications))

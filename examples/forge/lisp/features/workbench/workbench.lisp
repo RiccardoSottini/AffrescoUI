@@ -37,32 +37,32 @@
   :description ~(t "command.refreshOutline") :category ~(t "category.outline") :icon "refresh-cw" []
   (if (= computed.activeDoc.kind :file)
     (do
-      (when-some [_ computed.lspLanguage] (lspAsk "outline" nil nil "" ""))
+      (when-some [_ computed.lspLanguage] (lsp-ask "outline" nil nil "" ""))
       (when (not= state.outlineSymbols computed.activeDoc.id)
         (let [{:keys [language text]} computed.activeDoc
               lines (map-indexed (fn [index row] {:line (inc index) :row row}) (take 20000 (str/split text "\n" -1)))]
-          (outlineOf (if (= language "Markdown") [] (map #(assoc % :code (str/trim (:row %))) lines))
+          (outline-of (if (= language "Markdown") [] (map #(assoc % :code (str/trim (:row %))) lines))
                      (if (= language "Markdown") (filter #(str/starts-with? (:row %) "#") lines) [])
                      (= language "Python")))))
     (do (set "state.outline" []) (set "state.outlineSymbols" ""))))
 
-(defn outlineOf
+(defn outline-of
   "A file's outline from its lines (`rows`, `headings`, whether `python`): headings, or the lines that define."
   [rows headings python]
   (set "state.outline"
-       (slice (concat (markdownOutline headings)
-                      (if python (pythonOutline rows) [])
-                      (if python [] (braceOutline rows)))
+       (slice (concat (markdown-outline headings)
+                      (if python (python-outline rows) [])
+                      (if python [] (brace-outline rows)))
               0
               2000)))
 
-(defn markdownOutline "A Markdown file's headings (# to ####), each at its level." [headings]
+(defn markdown-outline "A Markdown file's headings (# to ####), each at its level." [headings]
   (->> headings
        (filter #(#{"# " "## " "### " "#### "} (slice (:row %) 0 (inc (indexOf (:row %) " ")))))
        (map (fn [{:keys [line row]}]
               {:line line :depth (dec (indexOf row " ")) :label (slice (str/trim (slice row (indexOf row " "))) 0 120)}))))
 
-(defn pythonOutline "A Python file's classes and functions, each as deep as it is indented (3 levels at most)." [rows]
+(defn python-outline "A Python file's classes and functions, each as deep as it is indented (3 levels at most)." [rows]
   (->> rows
        (filter (fn [{:keys [code]}] (some #(str/starts-with? code %) ["def " "class " "async def "])))
        (map (fn [{:keys [line row code]}]
@@ -79,7 +79,7 @@
                  :kind kind
                  :label (slice (slice text 0 (cond (pos? paren) paren (pos? colon) colon :else (count text))) 0 120)})))))
 
-(defn braceOutline
+(defn brace-outline
   "A file's lines that open a block with {, at the top or one level in: classes, namespaces and functions."
   [rows]
   (->> rows
@@ -101,15 +101,16 @@
                        (and (str/includes? label "(") (not (#{"if " "if(" "for" "whi" "swi"} (slice label 0 3)))) :function
                        :else nil)}))))
 
+; style: keep, named in examples/forge/lisp/layout.scenarios.json
 (defn outlinePicked "A symbol of the outline, picked: the caret goes to its line." []
   (let [line (number (first (str/split event.value ":" -1)))]
-    (when (> line 0) (goToLine line))))
+    (when (> line 0) (go-to-line line))))
 
-(defn outlineFollowsCaret "The caret moved: the outline is read again once it rests 300 ms." []
+(defn outline-follows-caret "The caret moved: the outline is read again once it rests 300 ms." []
   (debounce 300 refreshOutline))
 
 (defpart outline-follows "The outline follows the caret, once it rests."
-  :watch {:state.caret outlineFollowsCaret})
+  :watch {:state.caret outline-follows-caret})
 
 ;;; Breadcrumbs, the minimap and the diff's layout
 
@@ -142,19 +143,19 @@
   :description ~(t "command.toggleBreadcrumbs") :category ~(t "category.view") :icon "chevrons-right" []
   (set "settings.breadcrumbs.enabled" (not settings.breadcrumbs.enabled)))
 
-(defn breadcrumbClicked
+(defn breadcrumb-clicked
   "A breadcrumb clicked: a folder (the `si`th part of `path`) opens in the explorer, the file's name shows its symbols."
   [path si]
   (let [parts (str/split path "/" -1)]
     (if (< si (dec (count parts)))
-      (revealFolder (str/join "/" (take (inc si) parts)))
+      (reveal-folder (str/join "/" (take (inc si) parts)))
       (goToSymbol))))
 
-(defn revealFolder "Opens the explorer with a folder and its parents open, the folder chosen." [path]
-  (explorerShow path)
+(defn reveal-folder "Opens the explorer with a folder and its parents open, the folder chosen." [path]
+  (explorer-show path)
   (when-not (contains state.explorer.expanded path)
     (set "state.explorer.expanded" (concat state.explorer.expanded [path]))
-    (explorerList path))
+    (explorer-list path))
   (set "state.sideView" :explorer)
   (set "state.layout.sidebar" true))
 
@@ -171,7 +172,7 @@
 
 ;;; Recently opened files
 
-(defn rememberRecent "A file just shown (`id`, `label`) comes first in the recently opened files."
+(defn remember-recent "A file just shown (`id`, `label`) comes first in the recently opened files."
   [id label]
   (set "state.quickPick.recent"
        (take 10
@@ -191,18 +192,18 @@
 
 ;;; Editor groups and tabs
 
-(defn moveTabToGroup
+(defn move-tab-to-group
   "A tab dropped on group `to`'s strip at `at`: it leaves its group, which closes if empty."
   [id to at]
-  (when-some [from (holdingTab id to)]
+  (when-some [from (holding-tab id to)]
     (let [others (remove #(= (:id %) id) (get-in state.groups [to :tabs]))]
       (set (str "state.groups[" to "].tabs")
            (concat (take at others) [(find #(= (:id %) id) (get-in state.groups [from :tabs]))] (drop at others))))
     (set (str "state.groups[" to "].active") id)
-    (closeTab from id)
+    (close-tab from id)
     (set "state.activeGroup" (indexOf (map #(= (:active %) id) state.groups) true))))
 
-(defn holdingTab "The index of the group other than `to` that has the tab `id`, or nil." [id to]
+(defn holding-tab "The index of the group other than `to` that has the tab `id`, or nil." [id to]
   ; style: keep, #(...) can't hold another #(...)
   (first (filter (fn [g] (and (not= g to) (some #(= (:id %) id) (get-in state.groups [g :tabs]))))
                  (range (count state.groups)))))
@@ -210,7 +211,7 @@
 (defn without "A list without its item at `at`." [items at]
   (concat (take at items) (drop (inc at) items)))
 
-(defn reorderTab "A tab dragged along its strip, from one place to another." [gi from to]
+(defn reorder-tab "A tab dragged along its strip, from one place to another." [gi from to]
   (let [tabs (get-in state.groups [gi :tabs])
         others (without tabs from)]
     (set (str "state.groups[" gi "].tabs") (concat (take to others) [(get tabs from)] (drop to others)))))
@@ -223,13 +224,13 @@
                         (> (count (get-in state.groups [state.activeGroup :tabs])) 1)))
   []
   (when (= state.activeGroup (dec (count state.groups))) (push "state.groups" {:tabs [] :active nil}))
-  (moveTabToGroup (activeTabId) (inc state.activeGroup) 1000))
+  (move-tab-to-group (active-tab-id) (inc state.activeGroup) 1000))
 
 (defcommand moveEditorToPreviousGroup "Move Editor into Previous Group"
   :title ~(t "command.moveEditorToPreviousGroup")
   :description ~(t "command.moveEditorToPreviousGroup") :category ~(t "category.view") :icon "arrow-left"
   :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active]))) (> state.activeGroup 0)) []
-  (moveTabToGroup (activeTabId) (dec state.activeGroup) 1000))
+  (move-tab-to-group (active-tab-id) (dec state.activeGroup) 1000))
 
 (defcommand focusFirstGroup "Focus First Editor Group"
   :title ~(t "command.focusFirstGroup") :description ~(t "command.focusFirstGroup") :category ~(t "category.view") []
@@ -256,8 +257,8 @@
   :enablement ~(some #(and (= (:id %) (get-in state.groups [state.activeGroup :active])) (:sticky %))
                      (get-in state.groups [state.activeGroup :tabs]))
   []
-  (let [tabs (activeTabs)
-        active (activeTabId)
+  (let [tabs (active-tabs)
+        active (active-tab-id)
         others (remove #(= (:id %) active) tabs)]
     (set (str "state.groups[" state.activeGroup "].tabs")
          (concat (filter :sticky others)
@@ -270,8 +271,8 @@
   :enablement ~(some #(and (not= (:id %) (get-in state.groups [state.activeGroup :active])) (not (:sticky %)))
                      (get-in state.groups [state.activeGroup :tabs]))
   []
-  (doseq [tab (filter #(and (not= (:id %) (activeTabId)) (not (:sticky %))) (activeTabs))]
-    (closeTab state.activeGroup tab.id)))
+  (doseq [tab (filter #(and (not= (:id %) (active-tab-id)) (not (:sticky %))) (active-tabs))]
+    (close-tab state.activeGroup tab.id)))
 
 ;;; settings.json and keybindings.json
 
@@ -288,7 +289,7 @@
   :description ~(t "command.openSettingsJson.about") []
   (set "state.settingsJson" (json (or-else state.settings {})))
   (set "state.settingsJsonError" "")
-  (openPage "forge:settings.json" "settings.json" "settingsJson"))
+  (open-page "forge:settings.json" "settings.json" "settingsJson"))
 
 (defcommand applySettingsJson "Apply Settings (JSON)"
   :title ~(t "command.applySettingsJson")
@@ -301,7 +302,7 @@
   "The keys every feature contributes, as JSON (read-only: a feature's keys section changes them)."
   :title ~(t "command.openKeybindingsJson") :category ~(t "category.preferences") :icon "braces"
   :description ~(t "command.openKeybindingsJson.about") []
-  (openPage "forge:keybindings.json" "keybindings.json" "keybindingsJson"))
+  (open-page "forge:keybindings.json" "keybindings.json" "keybindingsJson"))
 
 ;;; Keys, in the order the keyboard shortcuts page lists them
 

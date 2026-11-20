@@ -23,10 +23,10 @@
                     :cells [it.message it.label it.line]})
                  state.problems))
 
-(defn goToProblem "A row of Problems, opened: its file shown at its line." []
+(defn go-to-problem "A row of Problems, opened: its file shown at its line." []
   (let [{:keys [file label line]} (get state.problems (number event.id))]
     (showTab file label)
-    (goToLine line)))
+    (go-to-line line)))
 
 (defcommand showProblems "Focus Problems"
   :title ~(t "command.showProblems")
@@ -51,11 +51,11 @@
   (push "state.output" {:time (now) :text (str "[" severity "] " message)})
   (push "state.notifications" {:time (now) :severity severity :message message})
   (set "state.toast" {:open true :message message :progress nil})
-  (debounce 4000 hideToast))
+  (debounce 4000 hide-toast))
 
 (defstate toast {:open false :message "" :progress nil})
 
-(defn hideToast "Hides the toast in the corner." []
+(defn hide-toast "Hides the toast in the corner." []
   (set "state.toast.open" false))
 
 (defcommand showOutput "Focus Output"
@@ -94,11 +94,11 @@
 
 (defstate panelTab problems)
 
-(defn openTerminalWithPanel "Opens a terminal when the Terminal tab is shown with none." []
+(defn open-terminal-with-panel "Opens a terminal when the Terminal tab is shown with none." []
   (when (and (= state.panelTab :terminal) (empty? state.terminals.list) (true? state.layout.panel)) (terminalNew)))
 
 (defpart terminal-on-show "The Terminal tab, shown with none open, opens one."
-  :watch {:state.panelTab openTerminalWithPanel})
+  :watch {:state.panelTab open-terminal-with-panel})
 
 ;;; Indexing the folder again
 
@@ -107,13 +107,13 @@
   :description ~(t "command.reindex.about") []
   (set "state.toast" {:open true :message (t "toast.indexing") :progress 0.2})
   (explorerRefresh)
-  (invoke "search.files" :with {:exclude state.folder.skip} :onError reindexFailed :onDone reindexDone))
+  (invoke "search.files" :with {:exclude state.folder.skip} :onError reindex-failed :onDone reindex-done))
 
-(defn reindexDone "The folder's files indexed for Go to File; Output says how many." [result]
+(defn reindex-done "The folder's files indexed for Go to File; Output says how many." [result]
   (indexed result.files)
   (set "state.toast.progress" 1)
   (log-line (t (if result.truncated "log.indexedTruncated" "log.indexed") {:n (count result.files)}))
-  (debounce 1500 hideToast))
+  (debounce 1500 hide-toast))
 
-(defn reindexFailed "Says why the folder couldn't be indexed." [error]
+(defn reindex-failed "Says why the folder couldn't be indexed." [error]
   (notify "error" (t "notify.indexingFailed" {:error error.message})))

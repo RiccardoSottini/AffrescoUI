@@ -24,7 +24,7 @@
 
 (defpart events "Quaderno's start and its watch: the files are prepared, and the assistant sits above the find panel."
   :onLoad prepare
-  :watch {:state.findBar [~(handler liftAssistant)]})
+  :watch {:state.findBar [~(handler lift-assistant)]})
 
 ;;; The screen
 

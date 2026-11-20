@@ -37,15 +37,15 @@
                    :language cpp
                    :start onDemand
                    :restart {:times 3 :after 1000}}}
-  :watch {:state.symbolPick.query searchWorkspaceSymbols})
+  :watch {:state.symbolPick.query search-workspace-symbols})
 
-(defn lspAsk
+(defn lsp-ask
   "Asks the server about the active file, its text sent along; line and column from 0, or nil for the caret's."
   [kind line column newName query]
   (when (not= kind "outline") (increment "state.lsp.request" :by 1))
   (when-some [language computed.lspLanguage]
-    (lspListen)
-    (lspCall kind
+    (lsp-listen)
+    (lsp-call kind
              state.lsp.request
              (if (= kind "workspaceSymbols") "" computed.activeDoc.id)
              (if (= kind "workspaceSymbols")
@@ -60,11 +60,11 @@
     (when (and (not= kind "workspaceSymbols") (not (contains state.lsp.open computed.activeDoc.id)))
       (set "state.lsp.open" (slice (conj state.lsp.open computed.activeDoc.id) (- 256))))))
 
-(defn lspCall
+(defn lsp-call
   "Asks one kind of question, each a step naming its method; the silent kinds cancel the last. Answers go to lspAnswer."
   [kind request path arguments]
-  (let [done [lspAnswered kind request path]
-        failed [lspFailed kind request path]]
+  (let [done [lsp-answered kind request path]
+        failed [lsp-failed kind request path]]
     (case kind
       :hover (invoke "lsp.hover" :with arguments :id "lsp-hover" :onDone done :onError failed)
       :completion (invoke "lsp.completion" :with arguments :id "lsp-completion" :onDone done :onError failed)
@@ -79,18 +79,19 @@
       :workspaceSymbols (invoke "lsp.workspaceSymbols" :with arguments :onDone done :onError failed)
       nil)))
 
-(defn lspAnswered "The server's answer to a question." [kind request path result]
-  (lspAnswer {:kind kind :request request :path path :result result :error nil}))
+(defn lsp-answered "The server's answer to a question." [kind request path result]
+  (lsp-answer {:kind kind :request request :path path :result result :error nil}))
 
-(defn lspFailed "The server's refusal of a question." [kind request path error]
-  (lspAnswer {:kind kind :request request :path path :result nil :error error}))
+(defn lsp-failed "The server's refusal of a question." [kind request path error]
+  (lsp-answer {:kind kind :request request :path path :result nil :error error}))
 
+; style: keep, named in examples/forge/lisp/layout.scenarios.json, examples/forge/lisp/lsp.scenarios.json
 (defn lspPlay
   "Plays an answer the service gave (`event`: kind, result, path, request, error), as the scenarios do."
   []
   (if (= event.kind "diagnostics")
-    (lspPublished event.result)
-    (lspAnswer {:kind event.kind
+    (lsp-published event.result)
+    (lsp-answer {:kind event.kind
                 :request (or-else event.request state.lsp.request)
                 :path (or-else event.path "")
                 :result (or-else event.result nil)
@@ -98,33 +99,33 @@
 
 ;;; Its answers
 
-(defn lspAnswer
+(defn lsp-answer
   "An answer (`answer`: kind, request, path, result, error; its positions from 0), shown as its kind asks."
   [answer]
   (if (some? answer.error)
-    (lspRefused answer)
+    (lsp-refused answer)
     (case answer.kind
-      :hover (when (= answer.request state.lsp.hover.request) (lspShowHover answer))
-      :completion (when (= answer.request state.lsp.completion.request) (lspShowCompletions answer.result.items))
-      :signature (lspShowSignature answer.result)
+      :hover (when (= answer.request state.lsp.hover.request) (lsp-show-hover answer))
+      :completion (when (= answer.request state.lsp.completion.request) (lsp-show-completions answer.result.items))
+      :signature (lsp-show-signature answer.result)
       :definition
         (if (= (count answer.result.locations) 1)
-          (lspOpenLocation (first answer.result.locations))
+          (lsp-open-location (first answer.result.locations))
           (lspPeek answer))
       :references (lspPeek answer)
-      (:rename :format) (lspReview answer)
-      :outline (when (= answer.path (or-else computed.activeDoc.id "")) (lspShowOutline answer))
+      (:rename :format) (lsp-review answer)
+      :outline (when (= answer.path (or-else computed.activeDoc.id "")) (lsp-show-outline answer))
       (:symbols :workspaceSymbols) (set "state.lsp.symbols" answer.result.symbols)
-      :tokens (lspShowTokens answer.path answer.result.tokens)
+      :tokens (lsp-show-tokens answer.path answer.result.tokens)
       nil)))
 
-(defn lspRefused "Says why the server didn't answer, but for the kinds asked as the person types." [answer]
+(defn lsp-refused "Says why the server didn't answer, but for the kinds asked as the person types." [answer]
   (case answer.kind
     (:rename :format) (notify "warning" (t "lsp.notApplied" {:error answer.error.message}))
     (:hover :completion :signature :tokens :outline) nil
     (notify "info" (t "lsp.refused" {:error answer.error.message}))))
 
-(defn lspShowHover "The hover's text, at the place asked about." [answer]
+(defn lsp-show-hover "The hover's text, at the place asked about." [answer]
   (set "state.lsp.hover"
        {:open (not (empty? answer.result.text))
         :text answer.result.text
@@ -132,17 +133,18 @@
         :y state.lsp.at.y
         :request answer.request}))
 
-(defn lspShowCompletions "The completions, the first chosen." [items]
+(defn lsp-show-completions "The completions, the first chosen." [items]
   (set "state.lsp.completion.items" items)
   (set "state.lsp.completion.index" 0)
   (set "state.lsp.completion.open" (pos? (count items))))
 
-(defn lspShowSignature "The signature of the call at the caret, if there is one." [result]
+(defn lsp-show-signature "The signature of the call at the caret, if there is one." [result]
   (set "state.lsp.signature"
        (if (some? result)
          {:open true :label result.label :documentation result.documentation}
          {:open false :label "" :documentation ""})))
 
+; style: keep, lsp-peek is already a definition
 (defn lspPeek "Definitions or references, listed in the peek." [answer]
   (set "state.lsp.peek"
        {:open true
@@ -151,7 +153,7 @@
         :title (t (if (= answer.kind "definition") "lsp.definitions" "lsp.references")
                   {:n (count answer.result.locations) :more (if answer.result.truncated "+" "")})}))
 
-(defn lspReview "A rename's or a format's edits, to review before they apply." [answer]
+(defn lsp-review "A rename's or a format's edits, to review before they apply." [answer]
   (if (empty? answer.result.edits)
     (log-line (t "lsp.nothingToChange"))
     (set "state.lsp.review"
@@ -161,13 +163,13 @@
           :files answer.result.files
           :truncated answer.result.truncated})))
 
-(defn lspShowOutline "The active file's symbols, as the outline lists them (lines from 1)." [answer]
+(defn lsp-show-outline "The active file's symbols, as the outline lists them (lines from 1)." [answer]
   (set "state.outline"
        ; style: keep, #(...) can't give a map
        (map (fn [it] {:line (inc it.line) :depth it.depth :label it.name :kind it.kind}) answer.result.symbols))
   (set "state.outlineSymbols" answer.path))
 
-(defn lspShowTokens "A file's semantic tokens, beside its diagnostics." [path tokens]
+(defn lsp-show-tokens "A file's semantic tokens, beside its diagnostics." [path tokens]
   (set "state.lsp.files"
        (conj (remove #(= (:id %) path) state.lsp.files)
              {:id path
@@ -176,20 +178,20 @@
 
 ;;; Diagnostics
 
-(defn lspListen
+(defn lsp-listen
   "Listens to the server's diagnostics, file by file, from its first request on (again after the stream ends)."
   []
   (when-not (true? state.lsp.listening)
     (set "state.lsp.listening" true)
-    (subscribe "lsp.diagnostics" :id "lsp-diagnostics" :do lspListenEach :onError lspListenFailed)))
+    (subscribe "lsp.diagnostics" :id "lsp-diagnostics" :do lsp-listen-each :onError lsp-listen-failed)))
 
-(defn lspListenEach "A file's diagnostics, as they come." [event]
-  (lspPublished event))
+(defn lsp-listen-each "A file's diagnostics, as they come." [event]
+  (lsp-published event))
 
-(defn lspListenFailed "The stream ended: the next request listens again." []
+(defn lsp-listen-failed "The stream ended: the next request listens again." []
   (set "state.lsp.listening" false))
 
-(defn lspPublished
+(defn lsp-published
   "A file's diagnostics (`published`, from 0): squiggles in its editor, and rows (from 1) in Problems."
   [published]
   (set "state.lsp.files"
@@ -213,67 +215,68 @@
                       {:severity (if (= it.severity "hint") "info" it.severity)
                        :message (if (empty? it.source) it.message (str it.message " (" it.source ")"))
                        :file published.path
-                       :label (baseName published.path)
+                       :label (base-name published.path)
                        :line (inc it.line)
                        :column (inc it.column)
                        :source "lsp"
                        :server true})
                     published.diagnostics)))
-  (when (and (some? computed.activeDoc) (= computed.activeDoc.id published.path)) (lspAsk "tokens" nil nil nil nil)))
+  (when (and (some? computed.activeDoc) (= computed.activeDoc.id published.path)) (lsp-ask "tokens" nil nil nil nil)))
 
 ;;; Keeping the server's files
 
-(defn lspChanged
+(defn lsp-changed
   "An edited file (`id`): one the server has open gets its new text once typing pauses, so its diagnostics follow."
   [id]
-  (when (contains state.lsp.open id) (debounce 500 lspChangedLater id)))
+  (when (contains state.lsp.open id) (debounce 500 lsp-changed-later id)))
 
-(defn lspChangedLater "Sends an edited file's text to the server." [id]
+(defn lsp-changed-later "Sends an edited file's text to the server." [id]
   (doseq [doc (filter #(and (= (:id %) id) (= (:kind %) "file")) state.docs)]
     (invoke "lsp.sync"
             :with {:path doc.id
                    :text doc.text
                    ; style: keep, the host's split keeps the empty text after a last dot: a name ending in one has no language
                    :language (or-else (get state.lsp.languages (str/lower-case (last (split doc.id ".")))) "cpp")}
-            :onError lspChangedLaterFailed)))
+            :onError lsp-changed-later-failed)))
 
-(defn lspChangedLaterFailed "A text the server didn't take: nothing to do." []
+(defn lsp-changed-later-failed "A text the server didn't take: nothing to do." []
   nil)
 
-(defn lspClosed "A file no longer open in Forge (`id`): the server reads it from disk again." [id]
+(defn lsp-closed "A file no longer open in Forge (`id`): the server reads it from disk again." [id]
   (when (contains state.lsp.open id)
     (set "state.lsp.open" (remove #{id} state.lsp.open))
-    (invoke "lsp.close" :with {:path id} :onError lspClosedFailed)))
+    (invoke "lsp.close" :with {:path id} :onError lsp-closed-failed)))
 
-(defn lspClosedFailed "A file the server didn't close: nothing to do." []
+(defn lsp-closed-failed "A file the server didn't close: nothing to do." []
   nil)
 
 ;;; Typing
 
 (defcomputed lspCompletions (fuzzySort state.lsp.completion.items state.lsp.completion.word "filter" 50))
 
-(defn lspHoverAt "The pointer rests over a word: asks for its hover, or hides it." []
+(defn lsp-hover-at "The pointer rests over a word: asks for its hover, or hides it." []
   (if (and (true? event.over) (some? computed.activeDoc))
     (do
       (set "state.lsp.at" {:x event.x :y event.y :top event.top})
-      (lspAsk "hover" event.line event.column nil nil)
+      (lsp-ask "hover" event.line event.column nil nil)
       (set "state.lsp.hover.request" state.lsp.request))
     (set "state.lsp.hover.open" false)))
 
-(defn lspTyped "A word typed: asks for completions, and for the signature after an open bracket or a comma." []
+(defn lsp-typed "A word typed: asks for completions, and for the signature after an open bracket or a comma." []
   (set "state.lsp.at" {:x event.x :y event.y :top event.top})
   (set "state.lsp.hover.open" false)
   (set "state.lsp.completion.word" event.word)
   (set "state.lsp.completion.index" 0)
-  (when (#{"(" ","} event.text) (lspAsk "signature" event.line event.column nil nil))
+  (when (#{"(" ","} event.text) (lsp-ask "signature" event.line event.column nil nil))
   (when (= event.text ")") (set "state.lsp.signature.open" false))
   (cond
     (and (empty? event.word) (not= event.text ".")) (set "state.lsp.completion.open" false)
     (or (= event.text ".") (= (count event.word) 1) (not (true? state.lsp.completion.open)))
       (do
-        (lspAsk "completion" event.line event.column nil nil)
+        (lsp-ask "completion" event.line event.column nil nil)
         (set "state.lsp.completion.request" state.lsp.request))))
 
+; style: keep, named in examples/forge/lisp/lsp.scenarios.json
 (defn lspPopupKey "A key in the completion popup: Up and Down choose, Enter and Tab insert, Escape closes." []
   (when (or (= event.key "escape") (empty? computed.lspCompletions)) (set "state.lsp.completion.open" false))
   (let [index state.lsp.completion.index
@@ -284,10 +287,10 @@
       :pageDown (set "state.lsp.completion.index" (min (+ index 10) last-index))
       :pageUp (set "state.lsp.completion.index" (max (- index 10) 0))
       (:enter :tab)
-        (when (and (true? state.lsp.completion.open) (seq computed.lspCompletions)) (lspComplete index))
+        (when (and (true? state.lsp.completion.open) (seq computed.lspCompletions)) (lsp-complete index))
       nil)))
 
-(defn lspComplete "Inserts a completion, by its place in the list." [index]
+(defn lsp-complete "Inserts a completion, by its place in the list." [index]
   (set "state.lsp.insert"
        {:text (get-in computed.lspCompletions [index :item :insert])
         :before (count state.lsp.completion.word)
@@ -298,7 +301,7 @@
   :title ~(t "command.triggerSuggest")
   :description ~(t "command.triggerSuggest") :category ~(t "category.edit") :icon "list"
   :enablement ~(some? computed.activeDoc) []
-  (lspAsk "completion" nil nil nil nil)
+  (lsp-ask "completion" nil nil nil nil)
   (set "state.lsp.completion.request" state.lsp.request)
   (set "state.lsp.completion.word" ""))
 
@@ -328,22 +331,23 @@
   :title ~(t "command.goToDefinition")
   :description ~(t "command.goToDefinition") :category ~(t "category.go") :icon "arrow-right"
   :enablement ~(some? computed.activeDoc) []
-  (lspAsk "definition" nil nil nil nil))
+  (lsp-ask "definition" nil nil nil nil))
 
 (defcommand findReferences "Find All References"
   :title ~(t "command.findReferences")
   :description ~(t "command.findReferences") :category ~(t "category.go") :icon "list"
   :enablement ~(some? computed.activeDoc) []
-  (lspAsk "references" nil nil nil nil))
+  (lsp-ask "references" nil nil nil nil))
 
-(defn lspOpenLocation "Opens a location (`at`: path, line, column, from 0) at its place." [at]
-  (openPath at.path (baseName at.path))
+(defn lsp-open-location "Opens a location (`at`: path, line, column, from 0) at its place." [at]
+  (open-path at.path (base-name at.path))
   (set "state.goTo.line" (inc at.line))
   (set "state.goTo.column" (inc at.column))
   (increment "state.goTo.request" :by 1))
 
+; style: keep, named in examples/forge/lisp/lsp.scenarios.json
 (defn lspPeekOpen "A row of the peek, opened." []
-  (lspOpenLocation (get state.lsp.peek.items (number event.id)))
+  (lsp-open-location (get state.lsp.peek.items (number event.id)))
   (set "state.lsp.peek.open" false))
 
 (defcommand goToSymbol "Go to Symbol in Editor..."
@@ -352,7 +356,7 @@
   (set "state.lsp.symbols" [])
   (set "state.symbolPick.query" "@")
   (set "state.symbolPick.open" true)
-  (lspAsk "symbols" nil nil nil nil))
+  (lsp-ask "symbols" nil nil nil nil))
 
 (defcommand goToWorkspaceSymbol "Go to Symbol in Workspace..."
   :title ~(t "command.goToWorkspaceSymbol")
@@ -362,12 +366,12 @@
   (set "state.symbolPick.query" "#")
   (set "state.symbolPick.open" true))
 
-(defn lspSymbolPicked "A symbol picked: its place opens." [item]
-  (lspOpenLocation item))
+(defn lsp-symbol-picked "A symbol picked: its place opens." [item]
+  (lsp-open-location item))
 
-(defn searchWorkspaceSymbols "A query typed in the symbol picker after #: the workspace's symbols are asked for." []
+(defn search-workspace-symbols "A query typed in the symbol picker after #: the workspace's symbols are asked for." []
   (when (and (true? state.symbolPick.open) (str/starts-with? event.value "#") (> (count event.value) 1))
-    (lspAsk "workspaceSymbols" nil nil nil (slice event.value 1))))
+    (lsp-ask "workspaceSymbols" nil nil nil (slice event.value 1))))
 
 ;;; Renaming and formatting
 
@@ -377,26 +381,27 @@
   :enablement ~(some? computed.activeDoc) []
   (set "state.lsp.rename" {:open true :name ""}))
 
-(defn lspRenameSend "Renames the symbol at the caret to the name typed." []
+(defn lsp-rename-send "Renames the symbol at the caret to the name typed." []
   (set "state.lsp.rename.open" false)
   (let [trimmed (str/trim state.lsp.rename.name)]
-    (when (seq trimmed) (lspAsk "rename" nil nil trimmed nil))))
+    (when (seq trimmed) (lsp-ask "rename" nil nil trimmed nil))))
 
 (defcommand formatDocument "Format Document"
   :title ~(t "command.formatDocument")
   :description ~(t "command.formatDocument") :category ~(t "category.edit") :icon "align-left"
   :enablement ~(some? computed.activeDoc) []
-  (lspAsk "format" nil nil nil nil))
+  (lsp-ask "format" nil nil nil nil))
 
+; style: keep, named in examples/forge/lisp/lsp.scenarios.json
 (defn lspApply
   "Applies the edits reviewed: in an open file's editor (one undo step, unsaved), else read, changed and written."
   []
   (doseq [[file edits] (group-by :path state.lsp.review.edits)]
-    (lspApplyTo file (map #(select-keys % [:line :column :endLine :endColumn :text]) edits)))
+    (lsp-apply-to file (map #(select-keys % [:line :column :endLine :endColumn :text]) edits)))
   (log-line (t "lsp.applied" {:edits (count state.lsp.review.edits) :files state.lsp.review.files}))
   (set "state.lsp.review.open" false))
 
-(defn lspApplyTo "Applies edits to a file, in its editor if it is open." [file edits]
+(defn lsp-apply-to "Applies edits to a file, in its editor if it is open." [file edits]
   (if (some #(and (= (:id %) file) (= (:kind %) "file")) state.docs)
     (doseq [doc (filter #(and (= (:id %) file) (= (:kind %) "file")) state.docs)]
       (if (some? (applyEdits doc.text edits))
@@ -407,17 +412,17 @@
                       it))
                   state.docs))
         (notify "error" (t "lsp.overlap" {:file file}))))
-    (invoke "files.read" :with {:path file} :onError [lspApplyToFailed file] :onDone [lspApplyToDone edits file])))
+    (invoke "files.read" :with {:path file} :onError [lsp-apply-to-failed file] :onDone [lsp-apply-to-done edits file])))
 
-(defn lspApplyToDone "A file read: its edits applied, and written." [edits file result]
+(defn lsp-apply-to-done "A file read: its edits applied, and written." [edits file result]
   (if-some [edited (applyEdits result.text edits)]
-    (invoke "files.write" :with {:path file :text edited} :onError [lspApplyToDoneFailed file])
+    (invoke "files.write" :with {:path file :text edited} :onError [lsp-apply-to-done-failed file])
     (notify "error" (t "lsp.overlap" {:file file}))))
 
-(defn lspApplyToFailed "Says why a file couldn't be changed." [file error]
+(defn lsp-apply-to-failed "Says why a file couldn't be changed." [file error]
   (notify "error" (t "lsp.notAppliedTo" {:file file :error error.message})))
 
-(defn lspApplyToDoneFailed "Says why a changed file couldn't be written." [file error]
+(defn lsp-apply-to-done-failed "Says why a changed file couldn't be written." [file error]
   (notify "error" (t "lsp.notAppliedTo" {:file file :error error.message})))
 
 ;;; Keys, in the order the keyboard shortcuts page lists them

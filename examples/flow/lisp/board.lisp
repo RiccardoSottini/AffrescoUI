@@ -95,9 +95,9 @@
 ;;; What it adds to the screen
 
 (defpart board "What board adds."
-  :watch {:computed.columns buildTimeline :state.members buildTimeline}
-  :onLoad buildTimeline
+  :watch {:computed.columns build-timeline :state.members build-timeline}
+  :onLoad build-timeline
   :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
-  :actions {"team:committed" [~(handler teamCommitted)]
-            "team:event" [~(handler teamEvent)]
-            "team:closed" [~(handler teamClosed)]})
+  :actions {"team:committed" [~(handler team-committed)]
+            "team:event" [~(handler team-event)]
+            "team:closed" [~(handler team-closed)]})

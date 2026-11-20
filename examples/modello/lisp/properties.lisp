@@ -221,19 +221,19 @@
        :with {:id prop-selectable
               :label ~(t "properties.selectable")
               :checked ~(not= computed.activeNode.selectable false)
-              :run toggleFlag
+              :run toggle-flag
               :with {:id ~(or-else computed.activeNode.id "") :key selectable}})
      (node :use checkRow
        :with {:id prop-visible
               :label ~(t "properties.showInViewports")
               :checked ~(not= computed.activeNode.visible false)
-              :run toggleFlag
+              :run toggle-flag
               :with {:id ~(or-else computed.activeNode.id "") :key visible}})
      (node :use checkRow
        :with {:id prop-render
               :label ~(t "properties.showInRenders")
               :checked ~(not= computed.activeNode.render false)
-              :run toggleFlag
+              :run toggle-flag
               :with {:id ~(or-else computed.activeNode.id "") :key render}})))
 
 (defview active-tool-panel "The Tool tab: the tool, snapping and its gizmos." []
@@ -292,7 +292,7 @@
            :textColor @text
            :color transparent
            :label ~(t "topbar.sceneName")
-           :onSubmit ~(handler renameScene event.text))))
+           :onSubmit ~(handler rename-scene event.text))))
      (node :use infoRow
        :with {:id scene-camera
               :label ~(t "menu.camera")
@@ -304,19 +304,19 @@
        :with {:id prop-collection-selectable
               :label ~(t "properties.selectable")
               :checked ~(not= computed.activeCollectionData.selectable false)
-              :run toggleCollection
+              :run toggle-collection
               :with {:id ~computed.activeCollectionData.id :key selectable}})
      (node :use checkRow
        :with {:id prop-collection-visible
               :label ~(t "properties.showInViewports")
               :checked ~(not= computed.activeCollectionData.visible false)
-              :run toggleCollection
+              :run toggle-collection
               :with {:id ~computed.activeCollectionData.id :key visible}})
      (node :use checkRow
        :with {:id prop-collection-render
               :label ~(t "properties.showInRenders")
               :checked ~(not= computed.activeCollectionData.render false)
-              :run toggleCollection
+              :run toggle-collection
               :with {:id ~computed.activeCollectionData.id :key render}})))
 
 ;;; The Data tab
@@ -390,7 +390,7 @@
      :color ~(if (= computed.activeNode.light.type kind) "@sel" "@widget")
      :hover {:color @widgetHover}
      :radius ~(case kind :point {:topLeft 4 :bottomLeft 4} :spot {:topRight 4 :bottomRight 4} 0)
-     :onClick ~(handler setLight "type" kind)
+     :onClick ~(handler set-light "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
 
 ;;; The Material tab

@@ -8,10 +8,13 @@
 #include "affresco/vcs/Repository.hpp"
 
 #include "history/HistoryStore.hpp"
+#include "history/UndoCheck.hpp"
 #include "permissions/Permissions.hpp"
 #include "review/Merge.hpp"
 #include "revisions/Deltas.hpp"
 #include "revisions/Trail.hpp"
+
+#include <affresco/core/Log.hpp>
 
 #include <algorithm>
 #include <map>
@@ -24,6 +27,13 @@ namespace affresco::vcs {
 using expect::fail;
 
 namespace {
+
+/// @brief Whether checkUndo() takes the remembered undo whatever the patch (testing::acceptAnyRememberedPatch()).
+/// @return The flag.
+bool& anyRememberedPatch() noexcept {
+	static bool on = false;
+	return on;
+}
 
 /// Largest value, as JSON, that a plan shows as it is; a larger one shows as `{"cut": true, "bytes": n}`.
 constexpr std::size_t maxShownBytes = std::size_t{16} * 1024U;
@@ -133,6 +143,8 @@ void checkUndoShape(const json& revision) {
 
 } // namespace
 
+void testing::acceptAnyRememberedPatch(bool on) noexcept { anyRememberedPatch() = on; }
+
 /// What working out an undo gives: the plan, and what the revision needs.
 struct Repository::UndoWork {
 	const Commit* target = nullptr; ///< The commit to undo.
@@ -158,6 +170,15 @@ json Repository::undoRevision(const json& revision, std::string_view author, con
 	const Commit& target = *work.target;
 	if(work.plan.outcome == "blocked") throw DocumentError(work.plan.blocked);
 	if(work.plan.outcome == "choose") throw DocumentError(openConflicts(work, describe(target)));
+	// The revision lands next, as a rule: its check needn't work the same undo out again (checkUndo())
+	const bool readsState = !target.stateUndo.is_null() && !target.stateUndo.empty();
+	WorkedUndo& worked = workedUndo_.emplace();
+	worked.head = work.plan.head;
+	worked.of = target.id;
+	worked.dropped = work.dropped;
+	worked.then = work.then;
+	worked.patch = work.patch;
+	if(readsState) worked.state = committedState();
 	return {{"author", std::string(author)},
 	        {"message", undoMessage(work, options)},
 	        {"parent", work.plan.head},
@@ -216,14 +237,15 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 	if(const std::string problem = choiceProblem(options); !problem.empty()) return blocked(problem);
 
 	// The base is the commit's document: main changed it since (the later commits), the undo takes it back
-	const json then = documentOf(target);
-	const json before = documentOf(objects_.at(target.parents.front()));
+	json thenStorage, beforeStorage; // only where the document is rebuilt: a snapshot and main's head are read in place
+	const json& then = documentAt(target, thenStorage);
+	const json& before = documentAt(objects_.at(target.parents.front()), beforeStorage);
 	if(const std::string model = changedModel(then, mainDocument(), before); !model.empty()) {
 		const int number = newestChange("/models/" + detail::escapeKey(model), target);
 		return blocked((number > 0 ? "revision " + std::to_string(number) : std::string("a later revision")) +
 		               " changed the model '" + model + "' after it: undo that first");
 	}
-	const MergeResult merged = detail::merge(then, mainDocument(), before);
+	MergeResult merged = detail::merge(then, mainDocument(), before);
 	sortConflicts(work, merged.conflicts);
 	traceLater(work);
 	if(const std::string unknown = unknownChoice(options, work.conflicts); !unknown.empty()) return blocked(unknown);
@@ -235,7 +257,8 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 	for(const json& path : work.dropped) dropped.insert(path.get<std::string>());
 	MergeOptions settle;
 	settle.takeProposal = [&dropped](const std::string& path) { return dropped.contains(path); };
-	work.document = dropped.empty() ? merged.merged : detail::merge(then, mainDocument(), before, settle).merged;
+	work.document =
+	    dropped.empty() ? std::move(merged.merged) : detail::merge(then, mainDocument(), before, settle).merged;
 	work.patch = detail::delta(mainDocument(), work.document);
 	undoState(work);
 	if(options.then.is_array()) {
@@ -452,6 +475,11 @@ void Repository::checkUndo(const json& revision, const std::string& author) cons
 	if(thenCount > patch->size()) fail("revision.undo.then", "more operations than the patch has");
 	if(!objects_.contains(of)) fail("revision.undo.of", "no commit " + of.substr(0, 7));
 
+	// The undo undoRevision() just worked out, from the same inputs, is the one the full work gives again
+	const std::optional<WorkedUndo> remembered = std::exchange(workedUndo_, std::nullopt);
+	const bool taken = remembered && sameUndo(*remembered, mark, *patch);
+	if(taken && !verifyUndo_) return;
+
 	UndoOptions options;
 	options.drop = mark["drop"];
 	options.keep = "all";
@@ -459,7 +487,21 @@ void Repository::checkUndo(const json& revision, const std::string& author) cons
 	const UndoWork work = workOutUndo(json(of), author, options, false);
 	const bool same = (work.plan.outcome == "clean" || work.plan.outcome == "ready") && work.patch == *patch &&
 	                  work.dropped == mark["drop"];
+	if(taken && !same) // verify mode: the remembered undo let through what the full work refuses
+		affresco::log(LogLevel::Error, "undo check: the remembered undo of " + of.substr(0, 7) +
+		                                   " and the undo worked out in full differ");
 	if(!same) fail("revision.undo", "this is not the undo of " + of.substr(0, 7) + " as main is now");
+}
+
+bool Repository::sameUndo(const WorkedUndo& remembered, const json& mark, const json& patch) const {
+	const std::string& of = mark["of"].get_ref<const std::string&>();
+	if(remembered.head != main_.back() || remembered.of != of || remembered.dropped != mark["drop"] ||
+	   remembered.then != mark["then"].get<std::size_t>())
+		return false;
+	if(!anyRememberedPatch() && remembered.patch != patch) return false;
+	// The live state is read only for a commit that changed it (undoState())
+	const Commit& target = objects_.at(of);
+	return target.stateUndo.is_null() || target.stateUndo.empty() || remembered.state == committedState();
 }
 
 /* Proposals that undo */

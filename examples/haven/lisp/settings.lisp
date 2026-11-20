@@ -115,7 +115,7 @@
      :focusable true
      :role button
      :label ~(t (str "set." row.id))
-     :onClick ~(handler openSettingsRow row.id)
+     :onClick ~(handler open-settings-row row.id)
      (label :font icons :icon ~row.icon :text "" :textColor "#ffffff" :color ~row.color
        :anchors {:left 16 :top 16} :width 40 :height 40 :radius 20 :align center)
      (label :text ~(t (str "set." row.id))
@@ -246,7 +246,7 @@
      :focusable true
      :role tab
      :selected ~(= state.devTab tab)
-     :onClick ~(handler showDeviceTab tab)
+     :onClick ~(handler show-device-tab tab)
      {:when ~(= state.devTab tab)
       :anchors {:left 0 :right 0 :bottom 0}
       :height 2
@@ -375,7 +375,7 @@
        :selectedTextColor @text
        :selectedBackground @selected
        :accentColor @border
-       :onOpen ~(handler openRoom event.value))
+       :onOpen ~(handler open-room event.value))
      {:anchors {:left 0 :right 0 :top 28} :height 1 :color @divider}
      ~(repeat [row computed.roomEntityRows]
        `(node#roomEntityTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
@@ -449,9 +449,9 @@
        :with {:open state.langMenu
               :placement below
               :width 240
-              :items [{:title "English" :checked ~(= settings.ui.language "en") :run pickLanguage :with {:lang en}}
-                      {:title "Español" :checked ~(= settings.ui.language "es") :run pickLanguage :with {:lang es}}
-                      {:title "Français" :checked ~(= settings.ui.language "fr") :run pickLanguage
+              :items [{:title "English" :checked ~(= settings.ui.language "en") :run pick-language :with {:lang en}}
+                      {:title "Español" :checked ~(= settings.ui.language "es") :run pick-language :with {:lang es}}
+                      {:title "Français" :checked ~(= settings.ui.language "fr") :run pick-language
                        :with {:lang fr}}]})))
 
 (defview menu-chevron "The chevron at the end of a field that opens a menu." [top]
@@ -488,7 +488,7 @@
        :focusable true
        :role button
        :label ~(t "set.resetOne" {:name s.title})
-       :onClick ~(handler resetSetting s.key))
+       :onClick ~(handler reset-setting s.key))
      (node#generalSwitch :when ~(= s.type "boolean")
        :use pill
        :with {:at ~(str "settings." s.key) :on ~s.value :name ~s.title}
@@ -510,7 +510,7 @@
      :hover {:color @raisedHover}
      :textColor @text
      :label ~s.title
-     :onChange ~(handler typeSetting s event.value)))
+     :onChange ~(handler type-setting s event.value)))
 
 (defview general-pick "A setting with a list of values: the one chosen, and the menu of them." [s]
   `(label#generalPick :when ~(and (= s.type "string") (some? s.enum))

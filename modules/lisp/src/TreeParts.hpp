@@ -44,6 +44,9 @@ public:
 	/// @brief Whether it has no member.
 	/// @return true if so.
 	[[nodiscard]] bool empty() const noexcept { return members_.empty(); }
+	/// @brief How many members it has.
+	/// @return The count.
+	[[nodiscard]] std::size_t size() const noexcept { return members_.size(); }
 	/// @brief The first member.
 	/// @return An iterator.
 	[[nodiscard]] std::vector<Member>::iterator begin() noexcept { return members_.begin(); }

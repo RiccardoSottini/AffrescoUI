@@ -53,6 +53,8 @@ void addSection(json& tree, const std::string& key, Section& section,
 			return; // only defaults, which the value there replaces
 		throw Problem("defscreen main gives \"" + key + "\" as something other than a map");
 	}
+	// An object's members are a vector of pairs whose key is const, so growing it copies every value already there
+	object.get_ref<json::object_t&>().reserve(object.size() + section.size());
 	for(auto& [name, value] : section) {
 		if(section.isDefault(name)) {
 			if(object.contains(name)) continue;
@@ -202,6 +204,9 @@ void giveAgain(const Gift& gift, BuiltParts& parts) {
 
 json treeOf(BuiltParts& parts, std::set<std::pair<std::string, std::string>>& defaulted) {
 	json tree = {{"format", "affrescoui-screen"}, {"version", 2}};
+	// Room for every key first: growing an object copies the members already there (addSection())
+	tree.get_ref<json::object_t&>().reserve(tree.size() + parts.main.size() + parts.sections.size() +
+	                                        parts.values.size());
 	for(auto& [key, member] : parts.main.items()) tree[key] = std::move(member);
 	defaulted.clear();
 	for(const char* key : {"screens", "actions", "keys", "settings"}) // the format's own first

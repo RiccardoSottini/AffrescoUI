@@ -475,7 +475,7 @@
      :role slider
      :label ~(t "nav.ball")
      :onPress {:set state.dragLast :to [0 0]}
-     :onDrag orbitByDrag
+     :onDrag orbit-by-drag
      ~(repeat [a (filter #(not= (:label %) "") computed.navAxes) :key a.name] (nav-axis-line a))
      ~(repeat [a computed.navAxes :key a.name] (nav-axis-end a))))
 
@@ -494,7 +494,7 @@
      :role button
      :label ~(t (str "nav." a.view))
      :hover {:color ~(slice a.color 0 7)}
-     :onClick ~(handler viewAxis a.view)
+     :onClick ~(handler view-axis a.view)
      (label :text ~a.label :textColor "#151515" :font small :align center :fill true)))
 
 (defview nav-button "A button under the gizmo: dragged, the magnifier zooms and the hand pans; clicked, the others switch."
@@ -510,6 +510,6 @@
      :tooltip ~b.title
      :focusable true
      :onPress {:set state.dragLast :to [0 0]}
-     :onDrag ~(handler dragNav b.id)
-     :onClick ~(handler navClick b.id)
+     :onDrag ~(handler drag-nav b.id)
+     :onClick ~(handler nav-click b.id)
      (label :font icons :icon ~b.icon :text "" :textColor @text :align center :fill true)))

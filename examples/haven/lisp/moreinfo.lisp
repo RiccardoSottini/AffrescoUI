@@ -106,7 +106,7 @@
      :font icons
      :color transparent
      :anchors {:right ~right :top 10}
-     :onClick ~(handler closeInfoFor page)))
+     :onClick ~(handler close-info-for page)))
 
 (defview light-details "A light: its brightness in a tall bar, and buttons that switch it, colour it or warm it." []
   `(node#infoLightBody :use infoBody :with {:kind light}
@@ -116,22 +116,22 @@
               :label ~(str (t "light.brightness")
                            ": "
                            (if computed.infoLight.on (str computed.infoLight.level "%") (t "light.off")))
-              :pick pickLevel
-              :up levelUp
-              :down levelDown})
+              :pick pick-level
+              :up level-up
+              :down level-down})
      (node#infoLightButtons :use infoRow
        (node#infoPower :use iconBtn
          :with {:icon power :tip info.power}
          :selected ~computed.infoLight.on
          :color ~(if computed.infoLight.on "@warmSoft" "@raised")
          :textColor ~(if computed.infoLight.on "@warm" "@text")
-         :onClick ~(handler switchLight state.info.index))
+         :onClick ~(handler switch-light state.info.index))
        (node#infoColour :use iconBtn
          :with {:icon palette :tip colour.title}
-         :onClick ~(handler colourFromInfo state.info.index))
+         :onClick ~(handler colour-from-info state.info.index))
        (node#infoWarm :use iconBtn
          :with {:icon thermometer-sun :tip colour.warm}
-         :onClick ~(handler warmLight state.info.index)))
+         :onClick ~(handler warm-light state.info.index)))
      (node#infoLightHint :style caption
        :text ~(t "info.lightHint")
        :anchors {:left 0 :right 0 :top 460}
@@ -171,9 +171,9 @@
      :with {:open state.modeMenu
             :placement below
             :width 352
-            :items [{:title ~(t "mode.Heat") :checked ~(= state.mode "Heat") :run pickMode :with {:mode "Heat"}}
-                    {:title ~(t "mode.Cool") :checked ~(= state.mode "Cool") :run pickMode :with {:mode "Cool"}}
-                    {:title ~(t "mode.Auto") :checked ~(= state.mode "Auto") :run pickMode :with {:mode "Auto"}}]}))
+            :items [{:title ~(t "mode.Heat") :checked ~(= state.mode "Heat") :run pick-mode :with {:mode "Heat"}}
+                    {:title ~(t "mode.Cool") :checked ~(= state.mode "Cool") :run pick-mode :with {:mode "Cool"}}
+                    {:title ~(t "mode.Auto") :checked ~(= state.mode "Auto") :run pick-mode :with {:mode "Auto"}}]}))
 
 (defview climate-details "The climate: the dial and its steps, the mode, and the temperature over the last day." []
   `(node#infoClimateBody :use infoBody :with {:kind climate}
@@ -181,11 +181,11 @@
      (node#infoDown :use iconBtn
        :with {:icon minus :tip climate.down}
        :anchors {:left 146 :top 212}
-       :onClick ~(handler setTarget -0.5))
+       :onClick ~(handler set-target -0.5))
      (node#infoUp :use iconBtn
        :with {:icon plus :tip climate.up}
        :anchors {:right 146 :top 212}
-       :onClick ~(handler setTarget 0.5))
+       :onClick ~(handler set-target 0.5))
      ~(mode-field)
      (label#infoHistoryTitle :textColor @text
        :icon history
@@ -213,29 +213,29 @@
        :with {:share ~(/ computed.room.blinds 100)
               :fill @cover
               :label ~(str (t "blinds.title") ": " (t "blinds.open" {:n (round computed.room.blinds)}))
-              :pick pickBlinds
-              :up blindsUp
+              :pick pick-blinds
+              :up blinds-up
               :down blindsDown
               :left 96})
      (node#infoTilt :use bigBar
        :with {:share ~(/ state.coverTilt 100)
               :fill @cover
               :label ~(t "info.tilt" {:n state.coverTilt})
-              :pick pickTilt
-              :up tiltUp
-              :down tiltDown
+              :pick pick-tilt
+              :up tilt-up
+              :down tilt-down
               :left 232
               :width 72})
      (node#infoCoverButtons :use infoRow
        (node#infoOpen :use iconBtn
          :with {:icon chevron-up :tip blinds.openButton}
-         :onClick ~(handler moveBlinds 100))
+         :onClick ~(handler move-blinds 100))
        (node#infoStop :use iconBtn
          :with {:icon square :tip info.stop}
-         :onClick stopBlinds)
+         :onClick stop-blinds)
        (node#infoShut :use iconBtn
          :with {:icon chevron-down :tip blinds.close}
-         :onClick ~(handler moveBlinds 0)))
+         :onClick ~(handler move-blinds 0)))
      (node#infoCoverHint :style caption
        :text ~(t "info.coverHint")
        :anchors {:left 0 :right 0 :top 460}
@@ -265,7 +265,7 @@
               :tip ~(if computed.infoDevice.on "info.pause" "info.play")}
        :color @accentSoft
        :textColor @accent
-       :onClick ~(handler deviceCall state.info.index))
+       :onClick ~(handler device-call state.info.index))
      (node :use iconBtn
        :with {:icon skip-forward :tip info.next}
        :tooltip ~(t "info.queueEmpty")
@@ -326,7 +326,7 @@
        :focusable true
        :role link
        :label ~(t "info.related" {:name (t (str "rule." computed.infoFacts.related))})
-       :onClick openRelated)))
+       :onClick open-related)))
 
 (defview device-details "A device: its icon, its controls, its facts and its last changes." []
   `(node#infoDeviceBody :use infoBody :with {:kind device}
@@ -349,7 +349,7 @@
        :height 36
        :radius 18
        :text ~(t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".doOff" ".doOn")))
-       :onClick ~(handler deviceCall state.info.index))
+       :onClick ~(handler device-call state.info.index))
      ~(device-facts)
      (label#infoLogTitle :textColor @text
        :icon activity
@@ -385,10 +385,10 @@
      (node :use popMenu
        :with {:open state.infoMenu
               :width 200
-              :items [{:title ~(t "info.menuRelated") :icon workflow :run infoRelatedMenu :with nil :separator false}
+              :items [{:title ~(t "info.menuRelated") :icon workflow :run info-related-menu :with nil :separator false}
                       {:title ~(t "info.menuAttributes")
                        :icon list
-                       :run showToast
+                       :run show-toast
                        :with {:message ~(t "info.attributesNote")}}]})))
 
 ;;; Its parts
@@ -418,7 +418,7 @@
      :focusable true
      :role slider
      :label ~label
-     :keys {:up ~(handler runNamed up) :down ~(handler runNamed down)}
+     :keys {:up ~(handler run-named up) :down ~(handler run-named down)}
      (node#barFill :anchors {:left 0 :right 0 :bottom 0}
        :height ~(* 240 share)
        :color ~fill
@@ -434,7 +434,7 @@
           :height 24
           :color transparent
           :cursor hand
-          :onClick ~(handler pickBand pick (* (- 10 k) 10))))))
+          :onClick ~(handler pick-band pick (* (- 10 k) 10))))))
 
 (defcomponent thermoDial "The target temperature on a dial coloured by the mode; p prefixes the inner ids."
   {:p "" :small false}

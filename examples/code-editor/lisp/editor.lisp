@@ -39,10 +39,10 @@
      :tabRadius 7
      :tabGap 4
      :tabInset 5
-     :onContextMenu ~(handler openTabMenu event.x event.y event.data.id)
-     :onChange ~(handler showFile (number event.value))
+     :onContextMenu ~(handler open-tab-menu event.x event.y event.data.id)
+     :onChange ~(handler show-file (number event.value))
      :onClose ~(handler close (number event.id))
-     :onMove ~(handler moveTab event.from event.to (number event.id))))
+     :onMove ~(handler move-tab event.from event.to (number event.id))))
 
 (defview editor
   "The file `open` in the library's editor: its language gives the commands, its grammar the colours."
@@ -75,10 +75,10 @@
      :color @background :textColor @plain :lineNumberColor @faint :activeLineNumberColor @text
      :lineColor @line :selectionColor @selection :caretColor @accent :guideColor @guide
      :matchColor @selection :bracketColor @accent
-     :onShow editorShown
-     :onChange ~(handler markDirty open)
-     :onContextMenu ~(handler openEditorMenu event.x event.y event.left event.top event.width event.height)
-     :onDoubleClick ~(handler resultClicked open state.caret.line)))
+     :onShow editor-shown
+     :onChange ~(handler mark-dirty open)
+     :onContextMenu ~(handler open-editor-menu event.x event.y event.left event.top event.width event.height)
+     :onDoubleClick ~(handler result-clicked open state.caret.line)))
 
 (defview find-panel "The find panel under the editor: find, replace, where, its toggles and buttons." []
   `(node#findPanel :dir ~state.dir
@@ -107,7 +107,7 @@
        :style findButton
        :text ~(t "bar.find")
        :anchors {:right 12 :top 5}
-       :onClick searchFiles)
+       :onClick search-files)
      (node#label-find :when ~(> computed.findLeft 128) :style findLabel :text ~(t "ui.find2")
        :anchors {:left 128 :top 9})
      (node#label-where :when ~state.findBar.inFiles :style findLabel :text ~(t "ui.where") :anchors {:left 128 :top 39})
@@ -124,15 +124,15 @@
      :placeholder ~(if (> computed.findLeft 128) "" (t "bar.find"))
      :bind state.findBar.text
      :autofocus true
-     :onChange findAsTyped
-     :onSubmit submitFind))
+     :onChange find-as-typed
+     :onSubmit submit-find))
 
 (defview replace-text "The replacement: Enter replaces one, or in the files." []
   `(node#replaceText :style findField
      :when ~state.findBar.replacing
      :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top ~computed.replaceTop}
      :bind state.findBar.replace
-     :onSubmit submitReplace))
+     :onSubmit submit-replace))
 
 (defview find-selection "In selection: find only in the selected text." []
   `(node#findSelection :style findToggle
@@ -158,7 +158,7 @@
      :anchors {:left ~computed.findLeft :right 112 :top 35}
      :placeholder ~(t "ui.whereOpenFoldersOpenFiles")
      :bind state.findBar.where
-     :onSubmit searchFiles))
+     :onSubmit search-files))
 
 (defview find-word "Whole word." []
   `(node#findWord :style findToggle

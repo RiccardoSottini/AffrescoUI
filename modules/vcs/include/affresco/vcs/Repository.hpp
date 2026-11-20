@@ -4,6 +4,7 @@
 /// @brief vcs::Repository: Git-like version control for any JSON document and its live state.
 
 #include "affresco/core/DocumentRules.hpp"
+#include "affresco/core/Portable.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/vcs/Leases.hpp"
 #include "affresco/vcs/Roles.hpp"
@@ -305,6 +306,9 @@ private:
 		/// What it undid, when it is an undo (undoRevision()): `{"of", "drop", "then"}`, or null. The id covers it
 		/// when present. It describes, it never authorises: no rule reads it.
 		json undo;
+		/// Its deltas rebuilt the document its tree names once (rebuild()): the deltas and the snapshot they start
+		/// from never change, so they give that document again.
+		mutable bool rebuiltOnce = false;
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -430,6 +434,12 @@ private:
 	/// @return The document.
 	/// @throws HistoryError If a delta read from disk doesn't rebuild the document its id names.
 	[[nodiscard]] json documentOf(const Commit& commit) const;
+	/// @brief A commit's document, as documentOf() gives it, without a copy where the repository keeps it whole.
+	/// @param commit The commit.
+	/// @param storage Holds the document when it has to be rebuilt.
+	/// @return main's head's document, the commit's snapshot, or storage.
+	/// @throws HistoryError If a delta read from disk doesn't rebuild the document its id names.
+	[[nodiscard]] const json& documentAt(const Commit& commit, json& storage) const;
 	/// @brief Rebuilds a commit's document from the nearest snapshot along first parents, and checks it against the
 	/// commit's tree.
 	/// @param objects The commits, by id.
@@ -451,6 +461,16 @@ private:
 
 	/// @brief What working out an undo gives: the plan, and what the revision needs.
 	struct UndoWork;
+	/// @brief The undo undoRevision() last worked out, and what it was worked out from, so that checkUndo() needn't
+	/// work the same one out again when the revision lands (sameUndo()).
+	struct WorkedUndo {
+		std::string head;     ///< main's head it was worked out on.
+		std::string of;       ///< The commit it undoes.
+		json dropped;         ///< The paths it drops, as its mark lists them.
+		std::size_t then = 0; ///< How many operations at the end of the patch are "then".
+		json patch;           ///< The patch.
+		json state;           ///< The live state it read, when the commit changed the live state; else null.
+	};
 	/// @brief Works out an undo: the plan, and the patch when it can be done (VERSION_CONTROL.md, "Undo that keeps
 	/// what came later"). Changes nothing.
 	/// @param revision The commit to undo.
@@ -513,6 +533,14 @@ private:
 	/// @param author Its author.
 	/// @throws DocumentError `revision.undo: ...` if not.
 	void checkUndo(const json& revision, const std::string& author) const;
+	/// @brief Tells whether checkUndo() may take the undo undoRevision() last worked out for the one it checks: the
+	/// same main head, commit undone, dropped paths, "then" count and patch, and the same live state where the commit
+	/// changed it. The full work would then give that patch again, from the same inputs.
+	/// @param remembered The undo last worked out.
+	/// @param mark The revision's undo mark, checked.
+	/// @param patch The revision's patch.
+	/// @return true if it may.
+	[[nodiscard]] bool sameUndo(const WorkedUndo& remembered, const json& mark, const json& patch) const;
 	/// @brief Checks the shape of an undo mark: `{"of": <64 hex digits>, "drop": [paths], "then": <whole number>}`.
 	/// @param mark The mark.
 	/// @param where Where it is, for the error.
@@ -1007,6 +1035,11 @@ private:
 	std::vector<Peer> peers_;                       ///< Who is connected, oldest first, at most maxPeers.
 	int nextPeer_ = 1;                              ///< The next peer's number.
 	const void* submitting_ = nullptr;              ///< The connection whose revision is judged now (submitFrom()).
+	/// The undo undoRevision() last worked out; checkUndo() takes it.
+	mutable std::optional<WorkedUndo> workedUndo_;
+	/// Verify mode (AFFRESCOUI_VERIFY_UPDATES=1 as the repository is made): checkUndo() works every undo out in full
+	/// even when it may take the remembered one, and logs any difference.
+	bool verifyUndo_ = environmentVariable("AFFRESCOUI_VERIFY_UPDATES") == "1";
 };
 
 } // namespace affresco::vcs

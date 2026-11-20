@@ -10,21 +10,22 @@
 (defn key-of "A node's keyframe at the current frame." [n]
   {:frame state.frame :translation (:translation n) :rotationDegrees (:rotationDegrees n) :scale (:scale n)})
 
-(defn keySelected "Keys the selected objects where they are, at the current frame." []
+(defn key-selected "Keys the selected objects where they are, at the current frame." []
   (change-nodes selected?
                 (fn [n]
                   (let [others (remove #(= (:frame %) state.frame) (or (:keyframes n) []))]
                     (assoc n "keyframes" (sort-by :frame (concat others [(key-of n)])))))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn autoKey "Keys the selected objects after a change, while Auto Keying is on." []
-  (when (true? state.autoKey) (keySelected)))
+  (when (true? state.autoKey) (key-selected)))
 
 (defcommand insertKeyframe "Keys the selected objects at the current frame."
   :title ~(t "command.insertKeyframe") :description ~(t "command.insertKeyframe.about")
   :category ~(t "category.animation") :icon "diamond" :enablement ~(pos? (count state.view.selection)) []
   (dismiss)
   (snapshot)
-  (keySelected)
+  (key-selected)
   (set "state.last" (t "command.insertKeyframe")))
 
 (defn change-keys "Changes the keyframes of the selected objects that have some." [change]
@@ -51,7 +52,7 @@
 (defn frame-at "The frame at a time in seconds." [time]
   (inc (round (* time 24))))
 
-(defn moveKeyframe "A keyframe dragged on the timeline: the selected objects' keys at its frame move to the new one." []
+(defn move-keyframe "A keyframe dragged on the timeline: the selected objects' keys at its frame move to the new one." []
   (let [from (frame-at event.from)
         to (frame-at event.time)]
     (when (and (not= from to) (not (contains computed.keyFrames to)) (contains computed.keyFrames from))
@@ -59,7 +60,7 @@
       (set "state.keyDragAt" to)
       (change-keys (fn [keyframes]
                      (->> keyframes (map #(if (= (:frame %) from) (assoc % :frame to) %)) (sort-by :frame))))
-      (poseFrame))))
+      (pose-frame))))
 
 ;;; Posing between keyframes
 
@@ -82,16 +83,16 @@
            :rotationDegrees (between (:rotationDegrees a) (:rotationDegrees b) u 1000)
            :scale (between (:scale a) (:scale b) u 10000))))
 
-(defn poseFrame "Poses every node that has keyframes at the current frame." []
+(defn pose-frame "Poses every node that has keyframes at the current frame." []
   (change-nodes #(seq (:keyframes %)) posed))
 
 ;;; The current frame and the range
 
-(defn setFrame "Goes to a frame." [value]
+(defn set-frame "Goes to a frame." [value]
   (set "state.frame" (round (clamp value 0 1048574)))
-  (poseFrame))
+  (pose-frame))
 
-(defn setRange "The start or the end of the range: of the preview range while it is used." [key value]
+(defn set-range "The start or the end of the range: of the preview range while it is used." [key value]
   (let [frame (round (clamp value 0 1048574))
         [start-key end-key] computed.rangeKeys
         [start end] computed.range]
@@ -99,8 +100,8 @@
       (set (str "state." start-key) (min frame end))
       (set (str "state." end-key) (max frame start)))))
 
-(defn setFrameField "A field of the timeline's header: the current frame, the start or the end." [key value]
-  (if (= key :frame) (setFrame value) (setRange key value)))
+(defn set-frame-field "A field of the timeline's header: the current frame, the start or the end." [key value]
+  (if (= key :frame) (set-frame value) (set-range key value)))
 
 (defcommand togglePreviewRange "Plays a range of its own, the whole range to start with, or the scene's again."
   :title ~(t "command.togglePreviewRange") :description ~(t "command.togglePreviewRange.about")
@@ -127,31 +128,31 @@
     (set "state.frame" (cond (= state.playing :reverse) (if (<= state.frame start) end (dec state.frame))
                              (>= state.frame end) start
                              :else (inc state.frame))))
-  (poseFrame))
+  (pose-frame))
 
 (defcommand jumpStart "Goes to the first frame."
   :title ~(t "command.jumpStart") :description ~(t "command.jumpStart.about")
   :category ~(t "category.playback") []
   (dismiss)
-  (setFrame (first computed.range)))
+  (set-frame (first computed.range)))
 
 (defcommand jumpEnd "Goes to the last frame."
   :title ~(t "command.jumpEnd") :description ~(t "command.jumpEnd.about")
   :category ~(t "category.playback") []
   (dismiss)
-  (setFrame (second computed.range)))
+  (set-frame (second computed.range)))
 
 (defcommand prevKey "Goes to the keyframe before, or to the start."
   :title ~(t "command.prevKey") :description ~(t "command.prevKey.about")
   :category ~(t "category.playback") []
   (dismiss)
-  (setFrame (apply max (first computed.range) (filter #(< % state.frame) computed.keyFrames))))
+  (set-frame (apply max (first computed.range) (filter #(< % state.frame) computed.keyFrames))))
 
 (defcommand nextKey "Goes to the next keyframe, or to the end."
   :title ~(t "command.nextKey") :description ~(t "command.nextKey.about")
   :category ~(t "category.playback") []
   (dismiss)
-  (setFrame (apply min (second computed.range) (filter #(> % state.frame) computed.keyFrames))))
+  (set-frame (apply min (second computed.range) (filter #(> % state.frame) computed.keyFrames))))
 
 (defcommand frameCurrent "Scrolls the timeline to the current frame."
   :title ~(t "command.frameCurrent") :description ~(t "command.frameCurrent.about")
@@ -183,14 +184,14 @@
   :category ~(t "category.marker") :enablement ~(some #(< (:frame %) state.frame) state.markers) []
   (dismiss)
   (let [before (markers-where #(< % state.frame))]
-    (when (seq before) (setFrame (apply max before)))))
+    (when (seq before) (set-frame (apply max before)))))
 
 (defcommand nextMarker "Goes to the next marker."
   :title ~(t "command.nextMarker") :description ~(t "command.nextMarker.about")
   :category ~(t "category.marker") :enablement ~(some #(> (:frame %) state.frame) state.markers) []
   (dismiss)
   (let [later (markers-where #(> % state.frame))]
-    (when (seq later) (setFrame (apply min later)))))
+    (when (seq later) (set-frame (apply min later)))))
 
-(defn scrubTo "The timeline scrubbed: the frame at that time." [time]
-  (setFrame (frame-at time)))
+(defn scrub-to "The timeline scrubbed: the frame at that time." [time]
+  (set-frame (frame-at time)))

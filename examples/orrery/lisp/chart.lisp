@@ -61,7 +61,7 @@
        :textColor @text
        :label ~(t "chart.noteText")
        :placeholder ~(t "chart.note")
-       :onSubmit addNote)
+       :onSubmit add-note)
      ~(add-note-button)
      (node#mark :visible ~(= state.skyMode "above")
        :style button
@@ -69,7 +69,7 @@
        :role button
        :label ~(t "command.toggleMarker")
        :tooltip ~(t "command.toggleMarker")
-       :onClick markSelected
+       :onClick mark-selected
        :width 30)
      (node#clear-notes :visible ~(= state.skyMode "above")
        :style button
@@ -77,7 +77,7 @@
        :role button
        :label ~(t "chart.clearNotes")
        :tooltip ~(t "chart.clearNotes")
-       :onClick clearNotes
+       :onClick clear-notes
        :width 30)))
 
 (defview ground-button "From the ground: the sky as you see it, standing on the Earth." []
@@ -107,7 +107,7 @@
      :role button
      :label ~(t "chart.addNote")
      :tooltip ~(t "chart.addNote")
-     :onClick addNote
+     :onClick add-note
      :width 30))
 
 (defview chart-frame
@@ -122,8 +122,8 @@
        :accentColor @accent
        :items ~computed.chartItems
        :label ~(t "chart.label")
-       :onTransform moveNotes
-       :keys {:delete deleteNotes :backspace deleteNotes}
+       :onTransform move-notes
+       :keys {:delete delete-notes :backspace delete-notes}
        :anchors {:left 0 :right 0 :top 0 :bottom 0})
      (node#sky-view :use skyFromGround
        :visible ~(= state.skyMode "ground")
@@ -173,7 +173,7 @@
      :textColor @text
      :accentColor @accent
      :zoom 0.8
-     :onMove moveGraphNodes
+     :onMove move-graph-nodes
      :onConnect reparent
      :onDisconnect orbitAround
-     :onSelect ~(handler pickInGraph event.ids)))
+     :onSelect ~(handler pick-in-graph event.ids)))

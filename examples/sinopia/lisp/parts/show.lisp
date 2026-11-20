@@ -239,15 +239,15 @@
      :focusable true
      :role dialog
      :label ~(t "show.slideShow")
-     :every {:ms 1000 :do showSecond}
-     :onClick ~(handler showViewClick event.left event.top event.width event.height)
+     :every {:ms 1000 :do show-second}
+     :onClick ~(handler show-view-click event.left event.top event.width event.height)
      (image#show-image :when ~(or (not state.presenterView) state.show.preview) :fill 0 :source audience :fit contain)
      (node :use presenter :when ~(and state.presenterView (not state.show.preview)))
      ~(rehearsal)))
 
 (defcomponent presenter "The presenter view: the slide shown, the next, the notes, a timer and the controls."
   {}
-  `(node#presenter :fill 0 :color "#141a19" :every {:ms 1000 :do showTick}
+  `(node#presenter :fill 0 :color "#141a19" :every {:ms 1000 :do show-tick}
      ~(presenter-top)
      (node#presenter-current :anchors {:left 24 :top 60 :right 384 :bottom 76} :color "#000000" :radius 4
        (image#presenter-current-image :fill 0 :source audience :fit contain))
@@ -273,52 +273,52 @@
 (defkey "space" {:when ~state.show.on :do showNext})
 
 (defkey "enter"
-  [{:when ~(and state.show.on (not= state.show.typed "")) :do showTyped} {:when ~state.show.on :do showNext}])
+  [{:when ~(and state.show.on (not= state.show.typed "")) :do show-typed} {:when ~state.show.on :do showNext}])
 
 (defkey "n" {:when ~state.show.on :do showNext})
 
-(defkey "left" {:when ~state.show.on :do showPrevious})
+(defkey "left" {:when ~state.show.on :do show-previous})
 
-(defkey "up" {:when ~state.show.on :do showPrevious})
+(defkey "up" {:when ~state.show.on :do show-previous})
 
-(defkey "pageup" {:when ~state.show.on :do showPrevious})
+(defkey "pageup" {:when ~state.show.on :do show-previous})
 
-(defkey "p" {:when ~state.show.on :do showPrevious})
+(defkey "p" {:when ~state.show.on :do show-previous})
 
-(defkey "home" {:when ~state.show.on :do showGo :with {:index ~(or-else computed.showOrder.0 0) :built false}})
+(defkey "home" {:when ~state.show.on :do show-go :with {:index ~(or-else computed.showOrder.0 0) :built false}})
 
 (defkey "end"
   [{:when ~state.show.on
-    :do showGo
+    :do show-go
     :with {:index ~(or-else (get computed.showOrder (dec (count computed.showOrder))) 0) :built true}}])
 
-(defkey "0" {:when ~state.show.on :do showType :with {:digit "0"}})
+(defkey "0" {:when ~state.show.on :do show-type :with {:digit "0"}})
 
-(defkey "1" {:when ~state.show.on :do showType :with {:digit "1"}})
+(defkey "1" {:when ~state.show.on :do show-type :with {:digit "1"}})
 
-(defkey "2" {:when ~state.show.on :do showType :with {:digit "2"}})
+(defkey "2" {:when ~state.show.on :do show-type :with {:digit "2"}})
 
-(defkey "3" {:when ~state.show.on :do showType :with {:digit "3"}})
+(defkey "3" {:when ~state.show.on :do show-type :with {:digit "3"}})
 
-(defkey "4" {:when ~state.show.on :do showType :with {:digit "4"}})
+(defkey "4" {:when ~state.show.on :do show-type :with {:digit "4"}})
 
-(defkey "5" {:when ~state.show.on :do showType :with {:digit "5"}})
+(defkey "5" {:when ~state.show.on :do show-type :with {:digit "5"}})
 
-(defkey "6" {:when ~state.show.on :do showType :with {:digit "6"}})
+(defkey "6" {:when ~state.show.on :do show-type :with {:digit "6"}})
 
-(defkey "7" {:when ~state.show.on :do showType :with {:digit "7"}})
+(defkey "7" {:when ~state.show.on :do show-type :with {:digit "7"}})
 
-(defkey "8" {:when ~state.show.on :do showType :with {:digit "8"}})
+(defkey "8" {:when ~state.show.on :do show-type :with {:digit "8"}})
 
-(defkey "9" {:when ~state.show.on :do showType :with {:digit "9"}})
+(defkey "9" {:when ~state.show.on :do show-type :with {:digit "9"}})
 
-(defkey "b" {:when ~state.show.on :do showBlack})
+(defkey "b" {:when ~state.show.on :do show-black})
 
-(defkey "period" {:when ~state.show.on :do showBlack})
+(defkey "period" {:when ~state.show.on :do show-black})
 
-(defkey "w" {:when ~state.show.on :do showWhite})
+(defkey "w" {:when ~state.show.on :do show-white})
 
-(defkey "comma" {:when ~state.show.on :do showWhite})
+(defkey "comma" {:when ~state.show.on :do show-white})
 
 (defkey "f5" {:when ~(not state.show.on) :do present :with {:from 0}})
 
@@ -331,7 +331,7 @@
                      :background "#000000"
                      :fullscreen true
                      :onClick showNext
-                     :onClose showEnd}}
+                     :onClose show-end}}
          :overlays {:zShow (node :use showView :when ~state.show.on :anchors {:left 0 :right 0 :top 0 :bottom 0})})
 
 ;;; Views
@@ -395,7 +395,7 @@
      (label#rehearsal-repeat :style presenterButton
        :runs [{:icon rotate-ccw :size 15}]
        :tooltip ~(t "show.timeThisSlideAgain")
-       :onClick retimeSlide)
+       :onClick retime-slide)
      (label#rehearsal-total :fitText true
        :height 32
        :padding 8
@@ -451,7 +451,7 @@
      :cursor hand
      :role listitem
      :label ~(t "slide.n" {:n (inc i)})
-     :onClick ~(handler showJump i)
+     :onClick ~(handler show-jump i)
      ~(navigator-picture s i)
      (label :id ~(str "navigator-" s.id "-number")
        :width 200
@@ -478,13 +478,13 @@
          :padding 6
          :runs [{:icon a-arrow-down :size 14}]
          :tooltip ~(t "show.smallerNotes")
-         :onClick ~(handler notesBy -2))
+         :onClick ~(handler notes-by -2))
        (label#presenter-notes-larger :style presenterButton
          :height 24
          :padding 6
          :runs [{:icon a-arrow-up :size 14}]
          :tooltip ~(t "show.largerNotes")
-         :onClick ~(handler notesBy 2)))
+         :onClick ~(handler notes-by 2)))
      (column#presenter-notes-box :grow 1 :scroll vertical :color transparent
        (label#presenter-notes :width 336
          :wrap true
@@ -502,7 +502,7 @@
      (label#presenter-previous :style presenterButton
        :runs [{:icon chevron-left :size 16}]
        :tooltip ~(t "show.previousLeft")
-       :onClick showPrevious)
+       :onClick show-previous)
      (label#presenter-where :fitText true
        :height 32
        :padding 6
@@ -514,12 +514,12 @@
        :onClick showNext)
      (label#presenter-black :style ~(if state.show.black "presenterButtonOn" "presenterButton")
        :runs [{:icon square :size 14} {:text ~(t "show.blackB") :size 13}]
-       :onClick showBlack)
+       :onClick show-black)
      (label#presenter-all :style ~(if state.show.navigator "presenterButtonOn" "presenterButton")
        :runs [{:icon layout-grid :size 14} {:text ~(t "show.seeAllSlides") :size 13}]
        :onClick [{:toggle state.show.navigator}])
      (node#presenter-gap :grow 1 :height 1 :color transparent)
-     (label#presenter-end :style presenterButton :runs [{:text ~(t "show.endSlideShow") :size 13}] :onClick showEnd)))
+     (label#presenter-end :style presenterButton :runs [{:text ~(t "show.endSlideShow") :size 13}] :onClick show-end)))
 
 ;;; Starting and ending
 
@@ -528,25 +528,27 @@
 
 (defn present "Starts the show at a slide: full screen, or in the audience's window with the presenter view here."
   [from]
-  (showStart from)
+  (show-start from)
   (if state.presenterView (openWindow "audience") (fullscreen true)))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn readingView "Starts the show in this window, at a slide." [from]
-  (showStart from))
+  (show-start from))
 
-(defn showStart "Starts the show at the first slide shown from an index." [from]
+(defn show-start "Starts the show at the first slide shown from an index." [from]
   (set "state.show" (merge state.show show-reset))
-  (showEnter -1 (or-else (find #(>= % from) computed.showOrder) (get computed.showOrder 0) 0))
+  (show-enter -1 (or-else (find #(>= % from) computed.showOrder) (get computed.showOrder 0) 0))
   (focus "#show-view"))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn previewSlide
   "Plays the slide shown here as the show would: its transition, a build each second, then the end."
   []
   (set "state.show" (merge state.show show-reset {:preview true}))
-  (showEnter (if (pos? state.current) (dec state.current) -1) state.current)
+  (show-enter (if (pos? state.current) (dec state.current) -1) state.current)
   (focus "#show-view"))
 
-(defn showEnd "Ends the show, keeping a rehearsal's timings, and shows the slide it ended on." []
+(defn show-end "Ends the show, keeping a rehearsal's timings, and shows the slide it ended on." []
   (when state.show.on
     (when state.show.rehearsing
       (set "state.deck.slides[state.show.index].advanceAfter" state.show.onSlide)
@@ -560,12 +562,12 @@
     (when windows.main.fullscreen (fullscreen false))
     (focus "#thumbnails")))
 
-(defn togglePresenterView "Shows the next show in the audience's window, with the presenter view here, or not." []
+(defn toggle-presenter-view "Shows the next show in the audience's window, with the presenter view here, or not." []
   (toggle "state.presenterView"))
 
 ;;; Going through the slides
 
-(defn showEnter "Goes to a slide from another, by its transition, keeping a rehearsal's time on the one left."
+(defn show-enter "Goes to a slide from another, by its transition, keeping a rehearsal's time on the one left."
   [previous index]
   (when (and state.show.rehearsing (>= previous 0))
     (set (str "state.deck.slides[" previous "].advanceAfter") state.show.onSlide))
@@ -573,89 +575,90 @@
   (if (= (or-else computed.showSlide.transition.kind :none) :none)
     (set "state.show.t" 1)
     (animate "state.show.t" :to 1 :ms (or-else computed.showSlide.transition.ms 500) :easing "inOut"))
-  (showPlay))
+  (show-play))
 
-(defn showPlay "Plays the builds of the step shown, if it has any." []
+(defn show-play "Plays the builds of the step shown, if it has any." []
   (if (pos? (->> computed.showTimings (filter #(= (:step %) state.show.step)) (map :end) (apply max 0)))
     (animate "state.show.clock" :to computed.showStepEnd :ms computed.showStepEnd :easing "linear")
     (set "state.show.clock" 0)))
 
+; style: keep, show-next is already a definition
 (defn showNext "The next build, else the next slide, else the end; after the end, leaves." []
-  (cond state.show.ended (showEnd)
+  (cond state.show.ended (show-end)
         (< state.show.step computed.showSteps) (do (set "state.show.clock" 0)
                                                     (increment "state.show.step")
                                                     (set "state.show.t" 1)
-                                                    (showPlay))
-        (some? computed.showNext) (showEnter state.show.index computed.showNext)
+                                                    (show-play))
+        (some? computed.showNext) (show-enter state.show.index computed.showNext)
         :else (set "state.show.ended" true)))
 
-(defn showPrevious "Back a build, else to the slide before, built." []
+(defn show-previous "Back a build, else to the slide before, built." []
   (cond state.show.ended (set "state.show.ended" false)
         (pos? state.show.step) (do (set "state.show.clock" 1000000) (increment "state.show.step" :by -1))
-        (some? computed.showPrevious) (showGo computed.showPrevious true)))
+        (some? computed.showPrevious) (show-go computed.showPrevious true)))
 
-(defn showGo "Goes straight to a slide, without its transition, built or not." [index built]
+(defn show-go "Goes straight to a slide, without its transition, built or not." [index built]
   (set "state.show"
        (merge state.show {:index (clamp index 0 (dec (count state.deck.slides))) :from -1 :t 1 :clock 1000000
                           :ended false :black false :white false :typed ""}))
   (set "state.show.step" (if built computed.showSteps 0)))
 
-(defn showJump "Goes to a slide chosen in the presenter's grid, and closes the grid." [index]
-  (showGo index false)
+(defn show-jump "Goes to a slide chosen in the presenter's grid, and closes the grid." [index]
+  (show-go index false)
   (set "state.show.navigator" false))
 
 (defn inside? "Whether a point of the slide is in a box." [x y box]
   (and (>= x box.x) (<= x (+ box.x box.w)) (>= y box.y) (<= y (+ box.y box.h))))
 
-(defn showClick "A click on the 960 by 540 slide: on linked text it goes to that slide, elsewhere it moves on." [x y]
+(defn show-click "A click on the 960 by 540 slide: on linked text it goes to that slide, elsewhere it moves on." [x y]
   (if-some [link (find #(inside? x y %) (reverse computed.showLinks))]
-      (showGo (indexOf (map :id state.deck.slides) (:link link)) false)
+      (show-go (indexOf (map :id state.deck.slides) (:link link)) false)
       (showNext)))
 
-(defn showViewClick "A click on the show in this window, at its place on the slide drawn to fit."
+(defn show-view-click "A click on the show in this window, at its place on the slide drawn to fit."
   [left top width height]
   (when (or (not state.presenterView) state.show.preview)
     (let [scale (min (/ width 960) (/ height 540))]
-      (showClick (/ (- left (/ (- width (* 960 scale)) 2)) scale) (/ (- top (/ (- height (* 540 scale)) 2)) scale)))))
+      (show-click (/ (- left (/ (- width (* 960 scale)) 2)) scale) (/ (- top (/ (- height (* 540 scale)) 2)) scale)))))
 
-(defn showType "A digit typed in the show, of the slide number Enter goes to." [digit]
+(defn show-type "A digit typed in the show, of the slide number Enter goes to." [digit]
   (set "state.show.typed" (str state.show.typed digit)))
 
-(defn showTyped "Goes to the slide whose number was typed." []
-  (showGo (dec (number state.show.typed)) false)
+(defn show-typed "Goes to the slide whose number was typed." []
+  (show-go (dec (number state.show.typed)) false)
   (set "state.show.typed" ""))
 
-(defn showBlack "Shows a black screen, or the show again." []
+(defn show-black "Shows a black screen, or the show again." []
   (set "state.show.white" false)
   (toggle "state.show.black"))
 
-(defn showWhite "Shows a white screen, or the show again." []
+(defn show-white "Shows a white screen, or the show again." []
   (set "state.show.black" false)
   (toggle "state.show.white"))
 
 ;;; Time
 
-(defn showSecond
+(defn show-second
   "Each second of the show: the slide's time, and the next step when the deck's timing for it is up."
   []
   (when-not (or state.show.paused state.show.ended)
     (increment "state.show.onSlide")
     (increment "state.show.elapsed")
     (when (and state.show.preview (>= state.show.t 1) (>= state.show.clock computed.showStepEnd))
-      (if (< state.show.step computed.showSteps) (showNext) (showEnd)))
+      (if (< state.show.step computed.showSteps) (showNext) (show-end)))
     (when (and (not state.show.rehearsing)
                (or-else state.deck.useTimings false)
                (some? computed.showSlide.advanceAfter)
                (>= state.show.onSlide computed.showSlide.advanceAfter))
       (showNext))))
 
-(defn showTick "The presenter's timer, each second it isn't paused." []
+(defn show-tick "The presenter's timer, each second it isn't paused." []
   (when-not state.show.paused
     (increment "state.show.seconds")))
 
-(defn retimeSlide "Times the slide shown again, in a rehearsal." []
+(defn retime-slide "Times the slide shown again, in a rehearsal." []
   (set "state.show.elapsed" (- state.show.elapsed state.show.onSlide))
   (set "state.show.onSlide" 0))
 
-(defn notesBy "Makes the presenter's notes larger or smaller, between 10 and 48." [by]
+(defn notes-by "Makes the presenter's notes larger or smaller, between 10 and 48." [by]
   (set "state.show.notesSize" (clamp (+ state.show.notesSize by) 10 48)))

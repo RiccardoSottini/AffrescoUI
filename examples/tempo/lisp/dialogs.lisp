@@ -46,7 +46,7 @@
             :message ~(t "playlist.deleteMessage" {:name (or-else computed.list.name "")})
             :primaryLast true
             :buttons [{:title ~(t "dialog.cancel")}
-                      {:title ~(t "playlist.delete") :default true :run deleteList :with {:list ~state.current}}]}))
+                      {:title ~(t "playlist.delete") :default true :run delete-list :with {:list ~state.current}}]}))
 
 (defview quick-pick "The quick pick: songs by default, commands after >." []
   `(node#quickPick :when ~state.quickPick.open
@@ -57,5 +57,5 @@
             :accent @accent
             :highlight @accentSoft
             :field @field
-            :providers [{:items ~computed.picks :run playFromPick :placeholder ~(t "pick.songs")}
+            :providers [{:items ~computed.picks :run play-from-pick :placeholder ~(t "pick.songs")}
                         {:prefix ">" :items ~computed.palette :placeholder ~(t "pick.commands")}]}))
