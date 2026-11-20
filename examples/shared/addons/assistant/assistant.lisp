@@ -34,6 +34,10 @@
 (defstate assistant
   {:show true
    :lift 0
+   :size 40
+   :inset 16
+   :floor 0
+   :side :end
    :open false
    :anim 1
    :draft ""
@@ -588,7 +592,10 @@ run) and overlays: its launcher and its panel."
                                                                    (pos? (count state.assistant.messages))
                                                                    state.assistant.show)
                                   :use chatLauncher
-                                  :anchors {:right 24 :bottom ~(+ 24 state.assistant.lift)}
+                                  :anchors {:right ~(if (= state.assistant.side :start)
+                                                     (- window.width state.assistant.inset state.assistant.size)
+                                                     state.assistant.inset)
+                                            :bottom ~(+ state.assistant.inset state.assistant.floor state.assistant.lift)}
                                   :with {:isOpen ~state.assistant.open
                                          :run assistant.toggle
                                          :unread ~(+ state.assistant.unread
@@ -600,7 +607,8 @@ run) and overlays: its launcher and its panel."
                                          :hoverColor @assistant.accentHover
                                          :iconColor @assistant.onAccent
                                          :badgeColor @assistant.danger
-                                         :badgeTextColor @assistant.onAccent})
+                                         :badgeTextColor @assistant.onAccent
+                                         :size ~state.assistant.size})
              :assistantPanel ~(assistant-panel)})
 
 ;;; Views
@@ -1245,8 +1253,10 @@ while the draft is a request: building it would build the field again, and the c
 (defview assistant-panel "The assistant's panel over the app: the header, the conversation and the field." []
   `(column#assistantPanel :dir auto
      :width 380
-     :height ~(min 560 (- (- window.height 120) state.assistant.lift))
-     :anchors {:right 24 :bottom ~(+ 96 state.assistant.lift)}
+     :height ~(min 560 (- window.height state.assistant.inset state.assistant.floor state.assistant.lift
+                         state.assistant.size 40))
+     :anchors {:right ~(if (= state.assistant.side :start) (- window.width state.assistant.inset 380) state.assistant.inset)
+               :bottom ~(+ state.assistant.inset state.assistant.floor state.assistant.lift state.assistant.size 16)}
      :overlay {:placement window :open state.assistant.open :modal true}
      :color @assistant.surface
      :radius 12
@@ -1255,7 +1265,7 @@ while the draft is a request: building it would build the field again, and the c
      :shadow {:x 0 :y 8 :blur 24 :color "#00000040"}
      :translate ~[0 (* (- 1 state.assistant.anim) 16)]
      :scale ~(+ 0.96 (* 0.04 state.assistant.anim))
-     :transformOrigin bottomRight
+     :transformOrigin ~(if (= state.assistant.side :start) :bottomLeft :bottomRight)
      :role dialog
      :label ~(t "assistant.title")
      :keys {:escape assistant.close

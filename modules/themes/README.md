@@ -29,7 +29,8 @@ components/controls.json  segmentedControl, searchField, breadcrumbs and tabStri
 components/dock.json      dock
 components/panels.json    inspector and ribbon
 components/chat.json      chatBubble, typingIndicator, proposalCard, chatComposer and chatLauncher
-tokens/kit.json           the kit's tokens: kit.background, kit.surface, ..., kit.radius, kit.borderWidth
+tokens/kit.json           the kit's tokens: kit.background, kit.surface, ..., kit.radius, kit.borderWidth, the type
+                          scale (kit.fontCaption ... kit.fontDisplay) and kit.iconSize
 src/Themes.cpp            the loader
 src/Embed.cmake           writes the files into a generated Embedded.cpp, as bytes
 ```

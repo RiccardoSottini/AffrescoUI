@@ -26,6 +26,7 @@ const DragHooks* dragHooks(const Record* record) {
 
 void Events::mouseButton(Panel& panel, const MouseButtonEvent& event) {
 	const Vec2 at = event.position;
+	modifiers_ = event.mods;
 	if(event.button == MouseButton::Right) {
 		if(event.action != affresco::Action::Release || !panel.bounds().contains(at)) return;
 		// The item under the pointer (a tab, a row), as a drag from there would carry it
@@ -67,6 +68,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 		if(own) return;
 	}
 	drop["data"] = ended.data;
+	addModifiers(drop);
 	fire(*ended.over, "onDrop", drop);
 }
 
@@ -77,9 +79,10 @@ void Events::released(Panel& panel, Vec2 at) {
 		dropped(ended, at);
 		return; // a drag is not a click
 	}
-	if(!panel.bounds().contains(at)) return;
-
-	bubble(panel, "onRelease", {{"type", "release"}}, &at);
+	// The press's release reaches the panel pressed wherever it is let go, as a capture would; a click only over it
+	const bool inside = panel.bounds().contains(at);
+	bubble(panel, "onRelease", {{"type", "release"}, {"inside", inside}}, &at);
+	if(!inside) return;
 
 	// A toggle or slider keeps its click (like a native control): it changed its value
 	const Record* own = engine_.reconciler.recordOf(&panel);

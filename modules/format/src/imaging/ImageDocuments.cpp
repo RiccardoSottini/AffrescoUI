@@ -7,6 +7,7 @@
 
 #include "affresco/imaging/Composite.hpp"
 #include "affresco/imaging/Project.hpp"
+#include "affresco/imaging/Shapes.hpp"
 #include "affresco/render/Bitmap.hpp"
 
 #include <algorithm>
@@ -61,11 +62,13 @@ constexpr int navigatorSide = 160;
 /// @param depth Its depth.
 /// @return The row.
 [[nodiscard]] json layerJson(const std::string& image, const imaging::Layer& layer, int depth) {
+	const bool content = layer.content.kind != imaging::ContentKind::none;
 	json row = {{"id", std::to_string(layer.id)},
 	            {"name", layer.name},
 	            {"label", layer.name},
 	            {"depth", depth},
-	            {"kind", kindName(layer.kind)},
+	            {"kind", content ? imaging::contentKindNames()[static_cast<std::size_t>(layer.content.kind)]
+	                             : kindName(layer.kind)},
 	            {"visible", layer.visible},
 	            {"opacity", static_cast<int>(std::lround(layer.opacity * 100.0f))},
 	            {"blend", imaging::blendModeName(layer.blend)},
@@ -77,6 +80,7 @@ constexpr int navigatorSide = 160;
 	            {"thumbnail", layer.kind == imaging::LayerKind::pixel ? thumbnailName(image, layer.id) : ""}};
 	row["adjustment"] =
 	    layer.kind == imaging::LayerKind::adjustment ? imaging::adjustmentToJson(layer.adjustment) : json(nullptr);
+	row["content"] = content ? imaging::contentToJson(layer.content) : json(nullptr);
 	return row;
 }
 
@@ -191,6 +195,7 @@ ImageDocument& ImageDocuments::image(const std::string& name, const json& defini
 	if(found != images_.end() && found->second->source == definition) return *found->second;
 	ImageDefinition read = readImageDefinition(definition, at);
 	auto made = std::make_unique<ImageDocument>(name, std::move(read), definition);
+	made->fonts = fonts_;
 	ImageDocument& image = *made;
 	images_.insert_or_assign(name, std::move(made));
 	tell(image); // a new canvas for the views that show it
@@ -207,9 +212,15 @@ void ImageDocuments::attach(Declarations declarations, Publisher publisher) {
 	publisher_ = std::move(publisher);
 }
 
+void ImageDocuments::attachFonts(Fonts fonts) {
+	fonts_ = std::make_shared<const Fonts>(std::move(fonts));
+	for(auto& [name, image] : images_) image->fonts = fonts_;
+}
+
 void ImageDocuments::detach() noexcept {
 	declarations_ = nullptr;
 	publisher_ = nullptr;
+	fonts_.reset();
 }
 
 ImageDocument* ImageDocuments::declared(const std::string& name) {
@@ -326,7 +337,10 @@ json snapshot(const ImageDocument& image) {
 	        {"message", image.message},
 	        {"previewing", image.preview != nullptr},
 	        {"clipboard", image.clipboard != nullptr},
-	        {"histogram", image.histogram}};
+	        {"histogram", image.histogram},
+	        {"paths", pathsJson(document)},
+	        {"activePath", document.structure().activePath},
+	        {"vector", imaging::contentToJson(settings.vector)}};
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads
@@ -375,6 +389,17 @@ void settle(ImageDocument& image) {
 	image.stroke.reset();
 	image.preview.reset();
 	image.path.clear();
+}
+
+void deselectKeeping(ImageDocument& image) {
+	imaging::Document& document = image.canvas->document();
+	if(!document.hasSelection()) return;
+	const imaging::Image& selection = document.selection();
+	image.lastSelection.clear();
+	for(const imaging::TileKey& key : selection.writtenTiles())
+		if(auto tile = selection.tile(key))
+			image.lastSelection.emplace(std::pair{key.column, key.row}, std::move(tile));
+	imaging::deselect(document);
 }
 
 std::shared_ptr<ImageDocuments> makeImageDocuments() { return std::make_shared<ImageDocuments>(); }

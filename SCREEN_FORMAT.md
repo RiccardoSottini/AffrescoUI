@@ -58,7 +58,7 @@ Every part of the format follows these, and so should every extension:
 | Key | Meaning |
 |---|---|
 | `version` | Required. `2` (a file of version 1 is read by migrating it: "Migrating from version 1"). |
-| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
+| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `"fill": true` (`affrescoui check` reports a container root). |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"letters"` (`C-x`, `M-<`; `"emacs"` is its older name). |
@@ -83,6 +83,7 @@ Every part of the format follows these, and so should every extension:
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
+| `keyBindings` | `"state.keyBindings"`: where the person's own key bindings are, `[{ "keys": "mod+alt+t", "command": "toggleTheme" }]`, each running a command (an action with a title) by name. They are read before `keys`, so one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file. |
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
@@ -233,7 +234,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -241,6 +242,7 @@ only for the elements that changed.
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "underline", "strike", "background", "shadow", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
+| `letterSpacing` | Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's `letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's spacing. |
 <!-- end generated -->
 
 ```json
@@ -253,6 +255,8 @@ only for the elements that changed.
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
+Cmd+A (Ctrl+A elsewhere) selects the whole text, in `selectionColor`: typing or pasting replaces it, Backspace or
+Delete clears it, Cmd+C copies and Cmd+X cuts it (never a `secret` one); a caret key or a click leaves it.
 
 ### `editor`
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
@@ -266,7 +270,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
@@ -279,6 +283,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
@@ -559,7 +564,7 @@ top stays in place.
 <!-- generated: list -->
 | Key | Meaning |
 |---|---|
-| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
+| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). `"marks"`: parts of the label drawn highlighted, each `[first, count]` in characters (at most 64), such as a search's matches in a line. Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
 | `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. A state path (`"expanded": "state.files.open"`) does that itself: the ids are read from there, and kept there before `onExpand` runs. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
 | `guides` | On a `tree`: a line per level left of the nested rows (default true). |
@@ -629,10 +634,11 @@ time, as it is drawn.
 | `tracks` | The tracks, usually from state: `{ id, label, keyframes, clips, tracks, expanded, muted, locked }` (at most 10,000 in all, ids unique). A track with `tracks` is a group (at most 16 deep) that its chevron or Enter opens and closes (`onExpand`); its M and L buttons, or the keys, mute and lock it (`onChange`, `event.type` `"track"`): a locked track's items don't move. A keyframe is `{ time, value, easing }`, `easing` being `"step"` (drawn as a square), `"linear"` (a diamond, the default) or `"bezier"` (a circle; CSS's ease-in-out, or `[x1, y1, x2, y2]` for others). A clip is `{ id, label, start, duration, color }` (ids unique across tracks). At most 10,000 keyframes and 10,000 clips a track, 100,000 in all. The node's children, made with `repeat`, are the headers: child i is the i-th track (a group's tracks following it), placed in its row and hidden while the row is scrolled away or closed. |
 | `duration`, `fps` | Its length, in seconds (default 10), and its frames per second (`fps`, 1 to 1000, default 30): times snap to frames. |
 | `time` | The playhead, in seconds, usually `{{state.time}}` (applied when it changes). A press or a drag on the ruler, Left and Right (a frame; a second with Shift), Comma and Period (the previous or next keyframe, clip edge or marker), Home and End (the play range's ends) move it and run `onScrub`. |
-| `timeFormat` | The ruler's labels: `"frames"` (the default), `"seconds"` or `"timecode"` (`HH:MM:SS:FF`). Its ticks follow the zoom. |
+| `timeFormat` | The ruler's labels: `"frames"` (the default), `"seconds"`, `"timecode"` (`HH:MM:SS:FF`) or `"none"` (ticks only, for markers that name the times, as a roadmap's months). Its ticks follow the zoom. |
 | `playRange` | `[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration). |
 | `markers` | Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000). |
 | `snap` | Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the play range and the playhead. Alt held at the press leaves it off for that drag. |
+| `trackButtons` | Whether each track shows its M and L buttons, and the M and L keys mute and lock it (the default); `false` for tracks that are never muted or locked, such as a roadmap's projects. |
 | `pixelsPerSecond`, `offset` | The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, `offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, or a drag with the right or middle button) stay until then. |
 | `selectedKeys` | The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index (`"pos:2"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and `onClipChange` for each item. |
 | `headerWidth`, `trackHeight` | The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28). |
@@ -746,7 +752,7 @@ to load is left out and named in the log.
 |---|---|
 | `bind` | A state path keeping the view (camera and selection), both ways. |
 | `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
-| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "display", "asset" }`; `display` is `"solid"` (the default), `"wire"` (its edges) or `"bounds"` (the box around it), and a node is picked by its surfaces however it is drawn; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone", "castsShadow" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
 | `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
 | `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
 | `time` | The animations' time, in seconds (default 0). |
@@ -763,7 +769,7 @@ to load is left out and named in the log.
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
 | `xray` | How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to 1 (kept at 0.95, so they still show). |
 | `lighting` | `"scene"` (the default: the scene's lights, a soft studio light if it has none) or `"studio"` (the studio light only, the scene's lights left out: a material preview). |
-| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local" | "view", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "individual" (each node about its own origin), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
 | `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
@@ -957,13 +963,15 @@ The parts of a conversation with an assistant (see Asking the agents) are built-
   unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
   action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
   left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
-  badge).
+  badge; `size` is its diameter, 56 by default, its icon scaled with it).
 
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
 `kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
-like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system). The sizes include a type scale
+(`kit.fontCaption` to `kit.fontDisplay`, 13 pixels for body text at 1x) and one icon size, `kit.iconSize`, for a font's
+`size` and an icon font's (`"fonts": { "default": { "file": "...", "size": "@kit.fontBody" } }`).
 
 <!-- generated: kitTokens -->
 | Token | Dark | Light | For |
@@ -992,6 +1000,14 @@ like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
 | `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
 | `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
 | `kit.borderWidth` | 1 | 1 | Borders. |
+| `kit.fontCaption` | 11 | 11 | The type scale: captions, badges and shortcut hints. |
+| `kit.fontSmall` | 12 | 12 | The type scale: secondary text, status bars and metadata. |
+| `kit.fontBody` | 13 | 13 | The type scale: body text, controls and lists (a font's `size`). |
+| `kit.fontSubheading` | 15 | 15 | The type scale: a group's or a card's heading. |
+| `kit.fontHeading` | 18 | 18 | The type scale: a panel's or a dialog's heading. |
+| `kit.fontTitle` | 24 | 24 | The type scale: a page's title. |
+| `kit.fontDisplay` | 32 | 32 | The type scale: large figures and hero text. |
+| `kit.iconSize` | 16 | 16 | Icons in bars, buttons, lists and menus: one size per row. |
 <!-- end generated -->
 
 ## Values, expressions and state
@@ -1181,13 +1197,16 @@ are stored in the state as they are shown to a `calendar`. The functions give nu
 ## Events
 
 A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
-`event.left`/`top` (in the handling node) and its `width`/`height`.
+`event.left`/`top` (in the handling node) and its `width`/`height`. Pointer events (press, release, click, double
+click, context menu, drag, drop and scroll) also get the modifier keys held: `event.shift`, `ctrl`, `alt`, `cmd` and
+`mod` (Cmd on macOS, Ctrl elsewhere, as in shortcuts), e.g. `{{event.shift ? 'extend' : 'replace'}}` or
+`(if event.shift ...)` in a handler.
 
 <!-- generated: events -->
 | Handler | When |
 |---|---|
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; `event.data` is the item under the pointer that a drag would carry, as a tab's `{ "id", "index" }` or a list row's `{ "id", "ids" }`, when there is one). |
-| `onPress`, `onRelease` | Left button down, up. |
+| `onPress`, `onRelease` | Left button down, up (the release reaches the node pressed wherever it is let go: `event.inside` says whether over it; a click needs it over). |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
@@ -1269,6 +1288,10 @@ variables), or a list of bindings, where the first that applies runs.
 5. A press that starts a chord waits for the next one.
 6. If nothing matched, `onKey` bubbles.
 
+**Gamepads:** a connected gamepad presses keys in the focused window, so every keyboard path works with it: the D-pad
+and the left stick press the arrows (held, they repeat), A presses Enter, B Escape, X Space, the right bumper Tab and the
+left one Shift+Tab. While one is connected the desktop loop looks at it 30 times a second; the web build has none.
+
 **Variables:**
 - `context`: `focus` (the focused node's id), `focusPath` (the ids from the root), `textInputFocus`, `overlay` (one is
   open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
@@ -1337,13 +1360,14 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "recenter", "recenterTop" and "recenterBottom" scroll the caret's row to the middle, the top or the bottom |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
+| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
 | `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
@@ -1385,7 +1409,7 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
-| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. A control step |
+| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. With `"as": "image"` it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an `image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A control step |
 | `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
@@ -1466,7 +1490,7 @@ The operations, and the keys of `with` each reads:
 | `deleteMask` | `id` | Deletes a layer's mask. |
 | `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
-| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
+| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the last selection again, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
@@ -1478,6 +1502,7 @@ The operations, and the keys of `with` each reads:
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
@@ -1492,13 +1517,27 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
+| `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `fill` | Adds a type layer. |
+| `addShape` | `shape`, `x`, `y`, `x2`, `y2`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Adds a shape layer. |
+| `editContent` | `id`, `text`, `x`, `y`, `x2`, `y2`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `shape`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Changes a type or shape layer's content, and draws it again. |
+| `rasterize` | `id` | Makes a type or shape layer a pixel layer of the same pixels. |
+| `newPath` | `name` | Adds an empty path, the active one, for the pen. |
+| `selectPath` | `index` | Makes a path the active one (-1 for none). |
+| `deletePath` | `index` | Deletes a path (the active one when no index). |
+| `renamePath` | `index`, `name` | Renames a path. |
+| `setPath` | `points`, `closed` | Replaces the active path's anchors, or closes or opens it. |
+| `strokePath` | `width` | Strokes the active path on the active layer with the foreground colour. |
+| `fillPath` | — | Fills the active path on the active layer with the foreground colour. |
+| `pathToSelection` | `mode` | Makes a selection of the active path's inside. |
+| `pathToShape` | — | Makes a shape layer of the active path. |
 <!-- end generated -->
 
-Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
-and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
+Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `reselect`: the selection
+the last `none` or marquee click took away, `invert`, `rectangle` and `ellipse` from `from` to `to`, `polygon` through
+`points`, `wand` at `x`, `y`, `colorRange` of `color` within
 `fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
 its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
 layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
@@ -1511,6 +1550,18 @@ tool's press with `shift` held adds to the selection, with `alt` subtracts, with
 a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
 go through the file dialogs the person sees: a document never names a file.
 
+**Type, shapes and paths.** A type or shape layer is a pixel layer drawn from its `content` (in its snapshot row, with
+`kind` `text` or `shape`): `{"text", "font", "size", "leading", "bold", "italic", "align", "x", "y", "fill"}` for type
+(drawn with the screen's `fonts`, `""` the default), `{"shape": rectangle|ellipse|polygon|line|path, "x", "y", "x2",
+"y2", "radius", "sides", "points", "fill", "stroke", "strokeWidth"}` for a shape, colours as `#rrggbb[aa]`. `addText`,
+`addShape` and `editContent` take those keys and draw the layer again (typing and sliders coalesce into one step);
+painting and filters refuse it until `rasterize`; moving moves its content. The `vector` tool option holds what new type
+and shapes start as. The `text` gesture adds a type layer at the press or picks the one pressed, then the canvas types
+into it (Backspace, Enter, Escape stops); `shape` drags one out; `pen` adds anchors to the active path (a drag pulls
+smooth handles; a press on the first anchor closes it); `path-select` drags the active path or the anchor pressed. The
+paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
+canvas while one is active.
+
 ### Image values and the snapshot
 
 The names the operations and tool options take, and the library's limits:
@@ -1518,7 +1569,7 @@ The names the operations and tool options take, and the library's limits:
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
-| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom` |
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
 | A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
@@ -1593,6 +1644,7 @@ last 1,024 samples mixed, all 0 unless it plays; `"updates": 50` makes it follow
 | `seek` | `to` (seconds) | Moves it (a file, bytes or a tone; not a live stream). |
 | `volume` | `to` (0 to 4), `ms` | Sets its gain, over `ms` if given. |
 | `pan`, `rate`, `loop` | `to` | Sets its balance, its playback rate, whether it loops. |
+| `eq` | `to` | Sets its equaliser: a list of up to 16 bands `{ "frequency": 60, "gain": 6, "q": 1 }` (20 Hz to 20 kHz, -24 to 24 dB, `q` 0.1 to 10, 1 by default), peaking filters on what it plays; `[]` takes it off. |
 | `master` | `to` (0 to 4) | Sets the gain of every sound (no `of`). |
 
 `of` names the sound, and may be left out when the screen declares only one; the operation may be computed
@@ -2224,7 +2276,7 @@ allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part. `"mods": "shift+alt"` holds modifier keys over the step (`shift`, `ctrl`, `alt`, `cmd`, `mod`), on `drag` and `scroll` too |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
@@ -2235,7 +2287,7 @@ allowed on the file, a scenario and a step.
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
 | `{ "command": "moveCard", "with": { ... }, "as": "agent" }` | Runs one of the app's commands as its author's peer would (`as`, default `agent`): the arguments are checked, the run rules judge, and it runs under that name. A run that would wait for a reviewer or the person, or is denied, ends the scenario. `"verdict": "ask"` (`allow`, `ask`, `person` or `deny`) runs nothing and checks the verdict a run would meet instead |
 | `{ "resize": [960, 720] }` | Resizes the window |
-| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
+| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }`. `"from": "fixtures/photo.png"` first copies that file of the scenario's screens folder (a path inside it, without `..`) into the run's own folder under the chosen name, e.g. a picture to open |
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 
@@ -2250,7 +2302,7 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks disabled` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has; `disabled` is whether it takes no input) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 

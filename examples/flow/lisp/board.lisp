@@ -88,15 +88,24 @@
   true "Show a notice when a move puts a column over its work-in-progress limit."
   :type boolean :title ~(t "settings.wipWarnings") :description ~(t "settings.wipWarnings.about"))
 
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
+
 (defcustom board.weekStart
   1 "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker."
   :type number :minimum 0 :maximum 6 :title ~(t "settings.weekStart") :description ~(t "settings.weekStart.about"))
 
 ;;; What it adds to the screen
 
+(defn start-up "At start: the timeline, and the assistant's launcher in the sidebar's empty bottom, clear of the board." []
+  (build-timeline)
+  (set "state.assistant.side" :start)
+  (set "state.assistant.floor" 32))
+
 (defpart board "What board adds."
   :watch {:computed.columns build-timeline :state.members build-timeline}
-  :onLoad build-timeline
+  :onLoad start-up
   :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
   :actions {"team:committed" [~(handler team-committed)]
             "team:event" [~(handler team-event)]

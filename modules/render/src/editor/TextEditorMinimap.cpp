@@ -80,6 +80,8 @@ void TextEditor::paintMinimap(Painter& painter, const Layout& layout) const {
 	if(!minimap_) return;
 	const Rect map = minimapFrame();
 	painter.fillRect(map, color().a > 0.0f ? color() : lineColor_);
+	// Text scrolled under the minimap stays hidden on its right too, up to the editor's edge
+	if(color().a > 0.0f) painter.fillRect({map.right, map.top, frame().right, map.bottom}, color());
 	const float offset = minimapOffset();
 	const auto first = static_cast<std::size_t>(offset / minimapRowHeight);
 	const std::size_t last =

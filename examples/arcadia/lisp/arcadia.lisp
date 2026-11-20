@@ -81,7 +81,10 @@
   (set "settings.appearance.language"
        (case settings.appearance.language :en :es :es :fr :en)))
 
-(defn open-start-page "Opens Arcadia on the page Settings choose, when it isn't the library." []
+(defn open-start-page
+  "Opens Arcadia on the page Settings choose, when it isn't the library; the assistant's launcher sits above the
+  bottom bar." []
+  (set "state.assistant.floor" 40)
   (when (not= settings.appearance.startPage :library)
     (set "state.nav" [{:tab settings.appearance.startPage :page :home :id nil}])))
 
@@ -248,7 +251,7 @@
   :icon "sofa"
   []
   (dismiss)
-  (set "state.couch" {:open true :at 0})
+  (set "state.couch" {:open true :at 0 :section "library"})
   (fullscreen true)
   (focus "#couch-shelf"))
 
@@ -261,14 +264,34 @@
 (defcommand couchMove "Moves along the couch shelf, left or right."
   :title ~(t "command.couchMove") :description ~(t "command.couchMove.about") :category ~(t "category.view")
   [by]
-  (let [lastAt (dec (count computed.couchGames))]
+  (let [lastAt (dec (count computed.couchItems))]
     (set "state.couch.at" (clamp (+ state.couch.at by) 0 lastAt))))
 
 (defn show-settings-page "Shows a page of Settings: interface, downloads, storage or account." [page]
   (set "state.settingsDialog.page" page))
 
-(defn couch-choose "Chooses a game on the couch shelf, by its id." [id]
-  (set "state.couch.at" (indexOf (map :id computed.couchGames) id)))
+(defn couch-choose "Chooses a tile on the couch shelf, by its id." [id]
+  (set "state.couch.at" (indexOf (map :id computed.couchItems) id)))
+
+(defn couch-section "Shows a row of couch mode: your games, the store or your friends, from its first tile." [section]
+  (set "state.couch.section" section)
+  (set "state.couch.at" 0)
+  (focus "#couch-shelf"))
+
+(defn couch-step "Shows the row of couch mode before or after this one." [by]
+  (let [sections ["library" "store" "friends"]
+        at (clamp (+ (indexOf sections state.couch.section) by) 0 2)]
+    (couch-section (get sections at))))
+
+(defn couch-enter
+  "Does what the chosen tile's button says: plays a game of yours, opens a store game's page, or chats with a friend;
+  the last two leave couch mode."
+  []
+  (let [id (:id computed.couchItem)]
+    (case state.couch.section
+      "store" (do (leaveCouch) (openStore id))
+      "friends" (do (leaveCouch) (showCommunity) (openChat id))
+      (primary computed.couchGame))))
 
 ;;; Friends
 
@@ -415,15 +438,33 @@
   (when (< k (dec (count computed.dlQueue)))
     (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(inc k) :at]))))
 
-(defn next-rate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
-  (let [rate (+ 34 (mod (* state.dlTick 7) 19))]
-    (if (> settings.downloads.limit 0) (min settings.downloads.limit rate) rate)))
+(defn region-share "How much of the full rate the download region's servers give: the nearest give it all." []
+  (case settings.downloads.region
+    :americas 0.75
+    :asia 0.6
+    1))
+
+(defn next-rate
+  "The next sample of the rate, in MB/s: a wave that repeats, as the region's servers give it, under the speed limit if
+  there is one."
+  []
+  (let [wave (+ 34 (mod (* state.dlTick 7) 19))
+        rate (round (* (region-share) wave))]
+    (if (pos? settings.downloads.limit) (min settings.downloads.limit rate) rate)))
+
+(defn hour-now "The hour of the day now, from 0 to 23 (UTC)." []
+  (-> (now) (/ 3600000) floor (mod 24)))
 
 (defn download-tick
   ;; Not while a game runs, unless Settings allow it.
-  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there."
+  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there;
+  outside the schedule's hours, nothing moves."
   []
-  (when (and (some? computed.download) (not state.dlPaused) (or settings.downloads.whilePlaying (nil? state.running)))
+  (set "state.dlHour" (hour-now))
+  (when (and (some? computed.download)
+             (not state.dlPaused)
+             (not computed.dlWaiting)
+             (or settings.downloads.whilePlaying (nil? state.running)))
     (set "state.dlTick" (inc state.dlTick))
     (set "state.dlRate" (concat (rest state.dlRate) [(next-rate)]))
     (let [step (/ (get state.dlRate 47) 1024)]
@@ -439,6 +480,8 @@
   :title ~(t "command.openHub") :description ~(t "command.openHub.about") :category ~(t "category.game")
   [id section]
   (set "state.hubTab" (otherwise section "hub"))
+  (set "state.hubPost" nil)
+  (set "state.hubShot" nil)
   (go :library :hub id))
 
 (defcommand toggleCollections "Folds every collection of the game list, or unfolds them all."
@@ -546,6 +589,49 @@
 (defn show-hub-tab "Shows a section of a game's hub: everything, the discussions or the guides." [tab]
   (set "state.hubTab" tab))
 
+(defcommand openHubPost "Opens a post of the player hub on its thread: what it says, its replies, and a box to reply in."
+  :title ~(t "command.openHubPost") :description ~(t "command.openHubPost.about") :category ~(t "category.game")
+  [post]
+  (set "state.hubDraft" "")
+  (set "state.hubPost" post))
+
+(defcommand closeHubPost "Goes back from a post's thread to the hub's list of posts."
+  :title ~(t "command.closeHubPost") :description ~(t "command.closeHubPost.about") :category ~(t "category.game")
+  :enablement ~(some? state.hubPost)
+  []
+  (set "state.hubPost" nil))
+
+(defcommand replyToPost "Posts the reply written under the open post of the player hub."
+  :title ~(t "command.replyToPost") :description ~(t "command.replyToPost.about") :category ~(t "category.game")
+  :icon "send" :enablement ~(and (some? state.hubPost) (not= (trim state.hubDraft) ""))
+  []
+  (let [draft (str/trim state.hubDraft)]
+    (when (and (some? state.hubPost) (not (str/blank? draft)))
+      (push "state.hubReplies" {:post state.hubPost :text draft})
+      (set "state.hubDraft" ""))))
+
+(defcommand openHubShot "Opens a screenshot of the player hub big, by its place, with its caption and its vote."
+  :title ~(t "command.openHubShot") :description ~(t "command.openHubShot.about") :category ~(t "category.game")
+  [n]
+  (set "state.hubShot" n))
+
+(defcommand closeHubShot "Goes back from an open screenshot to the hub's screenshots."
+  :title ~(t "command.closeHubShot") :description ~(t "command.closeHubShot.about") :category ~(t "category.game")
+  :enablement ~(some? state.hubShot)
+  []
+  (set "state.hubTab" "screenshots")
+  (set "state.hubShot" nil))
+
+(defn step-hub-shot "Shows the hub's screenshot before (-1) or after (1) the open one, round the ends." [by]
+  (let [n (count state.hubShots)]
+    (set "state.hubShot" (mod (+ state.hubShot by n) n))))
+
+(defcommand voteHubPost "Marks a post of the player hub as helpful, or takes the vote back."
+  :title ~(t "command.voteHubPost") :description ~(t "command.voteHubPost.about") :category ~(t "category.game")
+  :icon "thumbs-up"
+  [post]
+  (set "state.hubVoted" (toggled state.hubVoted post)))
+
 ;;; Managing a game
 
 (defcommand openGameMenu "Opens the menu of a game at the pointer (or the focused item)."
@@ -591,6 +677,8 @@
   (update-record "games" :id computed.manageGame.id :fields {:updates way}))
 
 (defn files-verified "Says the game's files were checked." [] (set "state.properties.verify" "done"))
+
+(defn toggle-files "Shows the folders of the game's installed files, or hides them." [] (toggle "state.filesShown"))
 
 (defn verify-files "Checks the game's files: a moment, then they are fine." []
   (set "state.properties.verify" "running")
@@ -677,10 +765,13 @@
   :title ~(t "command.setWishSort") :description ~(t "command.setWishSort.about") :category ~(t "category.store")
   [by] (set "state.wishSort" by))
 
-(defcommand purchase "Pays from the wallet: the games join the library, not installed, and leave the wishlist."
+(defcommand purchase
+  "Pays from the wallet: the games join the library, not installed, and leave the wishlist; each euro earns 100 points."
   :title ~(t "command.purchase") :description ~(t "command.purchase.about") :category ~(t "category.store")
   :icon "credit-card" :enablement ~(and (pos? (count state.cart)) (<= computed.cartTotal state.user.wallet))
   []
+  (let [earned (round (* computed.cartTotal 100))]
+    (set "state.points" (+ state.points earned)))
   (update-record "games" :id state.cart :fields {:owned true})
   (set "state.user.wallet" (-> state.user.wallet (- computed.cartTotal) (* 100) round (/ 100)))
   (set "state.wishlist" (remove #(has state.cart %) state.wishlist))
@@ -697,6 +788,8 @@
   (case item
     :categories (toggle "state.storeCatsOpen")
     :news (do (libraryHome) (after 50 reveal-node "#news-header"))
+    :points (showRewards)
+    :labs (showExperiments)
     (do (storeHome)
         (when (= item :noteworthy)
           (set "state.storeList" :new)
@@ -736,3 +829,89 @@
 
 (defn wish-down "Moves the wishlist's game at rank i down one, unless it is last." [i]
   (when (< i (dec (count state.wishlist))) (wishMove i (inc i))))
+
+;;; Rewards and experiments
+
+(defcommand showRewards "Opens the store's Rewards: the points shop."
+  :title ~(t "command.showRewards") :description ~(t "command.showRewards.about") :category ~(t "category.store")
+  :icon "star"
+  []
+  (leave-dialogs)
+  (go :store :points nil))
+
+(defcommand redeemReward "Spends points on a reward, which becomes the person's."
+  :title ~(t "command.redeemReward") :description ~(t "command.redeemReward.about") :category ~(t "category.store")
+  [id]
+  (let [item (find #(= (:id %) id) state.rewardItems)]
+    (when (and (some? item) (not (has state.rewardsOwned id)) (>= state.points (:cost item)))
+      (set "state.points" (- state.points (:cost item)))
+      (push "state.rewardsOwned" id)
+      (notify (t "rewards.redeemed" {:name (t (str "rewards.item." id))})))))
+
+(defn show-reward-kind "Shows the rewards of one kind, or all of them." [kind] (set "state.rewardKind" kind))
+
+(defcommand showExperiments "Opens the store's Experiments: ideas to try and turn off."
+  :title ~(t "command.showExperiments") :description ~(t "command.showExperiments.about")
+  :category ~(t "category.store") :icon "flask-conical"
+  []
+  (leave-dialogs)
+  (go :store :labs nil))
+
+(defcommand toggleDiscoveryQueue "Starts the discovery queue from its first game, or stops it."
+  :title ~(t "command.toggleDiscoveryQueue") :description ~(t "command.toggleDiscoveryQueue.about")
+  :category ~(t "category.store")
+  []
+  (set "state.labsAt" 0)
+  (toggle "state.labsQueue"))
+
+(defcommand nextQueueGame "Shows the discovery queue's next game."
+  :title ~(t "command.nextQueueGame") :description ~(t "command.nextQueueGame.about") :category ~(t "category.store")
+  :enablement ~(some? computed.labsGame)
+  []
+  (set "state.labsAt" (inc state.labsAt)))
+
+(defcommand skipQueueGame "Passes on a game of the discovery queue: it leaves the queue for good."
+  :title ~(t "command.skipQueueGame") :description ~(t "command.skipQueueGame.about") :category ~(t "category.store")
+  [id]
+  (push "state.labsSkipped" id))
+
+(defcommand toggleHideOwned "Hides the games the person owns from the store's lists, or shows them again."
+  :title ~(t "command.toggleHideOwned") :description ~(t "command.toggleHideOwned.about")
+  :category ~(t "category.store")
+  []
+  (toggle "state.labsHideOwned"))
+
+;;; Your screenshots and the controller
+
+(defcommand takeScreenshot "Takes a screenshot of the game running, kept with the game's screenshots."
+  :title ~(t "command.takeScreenshot") :description ~(t "command.takeScreenshot.about") :category ~(t "category.game")
+  :icon "camera" :enablement ~(some? state.running)
+  []
+  (when-some [game state.running]
+    (push "state.shots" {:id (now) :game game :file (get ["shot1" "shot2" "shot3" "hero"] (mod (count state.shots) 4))})
+    (notify (t "shots.saved"))))
+
+(defcommand openShot "Opens one of a game's screenshots in the viewer, by its place, newest first."
+  :title ~(t "command.openShot") :description ~(t "command.openShot.about") :category ~(t "category.game")
+  [game n]
+  (set "state.shotView" {:open true :game game :at n}))
+
+(defn step-shot "Shows the viewer's screenshot before (-1) or after (1) the one shown, round the ends." [by]
+  (let [n (count computed.viewShots)]
+    (set "state.shotView.at" (mod (+ state.shotView.at by n) n))))
+
+(defcommand deleteShot "Deletes the screenshot the viewer shows; the viewer closes with the last one."
+  :title ~(t "command.deleteShot") :description ~(t "command.deleteShot.about") :category ~(t "category.game")
+  :icon "trash-2" :enablement ~(some? computed.viewShot)
+  []
+  (let [gone computed.viewShot.id
+        left (dec (count computed.viewShots))
+        last (max 0 (dec left))]
+    (set "state.shots" (remove #(= (:id %) gone) state.shots))
+    (set "state.shotView.at" (min state.shotView.at last))
+    (when (zero? left) (set "state.shotView.open" false))))
+
+(defcommand setPadLayout "Chooses a game's controller layout: default, southpaw or classic."
+  :title ~(t "command.setPadLayout") :description ~(t "command.setPadLayout.about") :category ~(t "category.game")
+  [id layout]
+  (set (str "state.padLayouts." id) layout))

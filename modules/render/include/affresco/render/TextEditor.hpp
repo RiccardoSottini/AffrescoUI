@@ -188,6 +188,12 @@ public:
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing
+	/// right); a click on it folds or unfolds the line.
+	/// @param shown true to draw them.
+	void setFoldMarkers(bool shown);
+	/// @brief Whether the gutter shows fold markers.
+	[[nodiscard]] bool foldMarkers() const noexcept { return foldMarkers_; }
 	/// @brief Draws a thin vertical line, the whole height of the text, at each of some columns (in the guides'
 	/// colour), e.g. to show where lines should end.
 	/// @param columns The columns, counted from 0 in spaces (at most maxRulers kept).
@@ -271,8 +277,9 @@ public:
 	/* Commands: TextEditorCommands.cpp */
 
 	/// @brief The commands runCommand() knows, by name: selections (goTo is selectRange()), line operations, case
-	/// conversion, transpose, toggleComment, and the edit commands (undo, redo, cut, copy, paste, selectAll,
-	/// indentLines, outdentLines, unfoldAll).
+	/// conversion, transpose, toggleComment, the edit commands (undo, redo, cut, copy, paste, selectAll,
+	/// indentLines, outdentLines, unfoldAll), and scrolling the caret's row to the middle, the top or the bottom of
+	/// the view (recenter, recenterTop, recenterBottom).
 	[[nodiscard]] static const std::vector<std::string_view>& commandNames();
 	/// @brief Runs a command, as one undo step (ignored when it edits and the text is read-only).
 	/// @param name One of commandNames().
@@ -381,12 +388,13 @@ public:
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
 	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
-	/// fit, and how many lines there are.
+	/// fit, how many lines there are, and how tall a row is.
 	struct View {
 		std::size_t first = 0; ///< The line of the first visible row, from 1.
 		std::size_t last = 0;  ///< The line of the last visible row, from 1.
 		std::size_t rows = 0;  ///< How many whole rows fit.
 		std::size_t lines = 0; ///< How many lines the text has.
+		float rowHeight = 0;   ///< A row's height, in window units: a scroll bar's pixels as rows.
 		/// @brief Whether two views are the same.
 		bool operator==(const View&) const = default;
 	};
@@ -996,6 +1004,7 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	bool foldMarkers_ = false;        ///< See setFoldMarkers().
 	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
 	std::u32string composition_;      ///< See setComposition().

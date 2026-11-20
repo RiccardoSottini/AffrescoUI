@@ -69,10 +69,14 @@
        :fitText true
        :icon ~(cond (not computed.activeLayer) "circle-off"
                     (= computed.activeLayer.kind "group") "folder"
+                    (= computed.activeLayer.kind "text") "type"
+                    (= computed.activeLayer.kind "shape") "shapes"
                     computed.adjustment "contrast"
                     :else "image")
        :text ~(cond (not computed.activeLayer) (t "properties.noLayer")
                     (= computed.activeLayer.kind "group") (t "properties.group")
+                    (= computed.activeLayer.kind "text") (t "properties.typeLayer")
+                    (= computed.activeLayer.kind "shape") (t "properties.shapeLayer")
                     computed.adjustment (t (str "adjustment." computed.adjustmentKind))
                     :else (t "properties.pixelLayer")))
      (node#properties-name :style dim
@@ -88,7 +92,74 @@
      ~@(balance-values)
      ~@(brightness-values)
      ~@(threshold-values)
+     ~@(type-values)
+     ~@(shape-values)
      ~(layer-sections)))
+
+(defview type-values "A type layer's Character: its text, size, style, alignment and colour, each change drawn again."
+  []
+  [`(editor#type-text :label ~(t "character.text")
+      :when ~(= computed.activeLayer.kind "text")
+      :text ~computed.activeLayer.content.text
+      :wrap true
+      :width "100%"
+      :height 64
+      :color @input
+      :textColor @text
+      :borderWidth 1
+      :borderColor @border
+      :radius @kit.radius
+      :onChange ~(handler set-text event.value))
+   `(row#type-character :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-size :use tField
+        :with {:title ~(t "character.size") :key size :value ~computed.activeLayer.content.size :low 4 :high 1000
+               :unit " px" :width 52 :pop false :run edit-content})
+      (node#type-bold :use tIcon
+        :with {:icon bold :tip ~(t "option.bold") :on ~computed.activeLayer.content.bold :run edit-content
+               :args {:bold ~(not computed.activeLayer.content.bold)}})
+      (node#type-italic :use tIcon
+        :with {:icon italic :tip ~(t "option.italic") :on ~computed.activeLayer.content.italic :run edit-content
+               :args {:italic ~(not computed.activeLayer.content.italic)}})
+      (node#type-colour :role button :label ~(t "character.colour") :tooltip ~(t "character.colour.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler edit-content {:fill state.doc.foreground})))
+   `(row#type-paragraph :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 2 :alignItems center
+      (node :style dim :text ~(str (t "character.paragraph") ":") :width 74 :height 20 :fitText false)
+      ~@(map (fn [it]
+               `(node :id ~(str "type-align-" (first it))
+                  :use tIcon
+                  :with {:icon ~(second it) :tip ~(t (str "option.align." (first it)))
+                         :on ~(= computed.activeLayer.content.align (first it)) :run edit-content
+                         :args {:align ~(first it)}}))
+             [["left" "align-left"] ["center" "align-center"] ["right" "align-right"]])
+      (node#type-leading :use tField
+        :with {:title ~(t "character.leading") :key leading :value ~computed.activeLayer.content.leading :low 0.5
+               :high 5 :scale 100 :unit "%" :width 44 :pop false :run edit-content}))
+   `(node#type-rasterize :use tButton
+      :when ~(= computed.activeLayer.kind "text")
+      :with {:title ~(t "command.rasterizeType") :run rasterizeLayer})])
+
+(defview shape-values "A shape layer's fill, stroke, width and corners, each change drawn again." []
+  [`(row#shape-colours :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+      (node :style dim :text ~(str (t "option.shapeFill") ":"))
+      (node#shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler edit-content {:fill state.doc.foreground}))
+      (node :style dim :text ~(str (t "option.shapeStroke") ":"))
+      (node#shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.stroke :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler edit-content {:stroke state.doc.background})))
+   `(row#shape-sizes :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+      (node#shape-stroke-width :use tField
+        :with {:title ~(t "option.strokeWidth") :key strokeWidth :value ~computed.activeLayer.content.strokeWidth
+               :low 0 :high 200 :unit " px" :width 48 :pop false :run edit-content})
+      (node#shape-radius :use tField
+        :when ~(= computed.activeLayer.content.shape "rectangle")
+        :with {:title ~(t "option.radius") :key radius :value ~computed.activeLayer.content.radius :low 0 :high 1000
+               :unit " px" :width 48 :pop false :run edit-content}))
+   `(node#shape-rasterize :use tButton
+      :when ~(= computed.activeLayer.kind "shape")
+      :with {:title ~(t "command.rasterizeLayer") :run rasterizeLayer})])
 
 (defview levels-values "A Levels layer's tones, and its input, gamma and output sliders." []
   [`(node#adjust-tones :use areaChart

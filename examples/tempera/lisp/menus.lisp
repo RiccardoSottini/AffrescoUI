@@ -93,7 +93,7 @@
    :arrange {:submenu arrange :title ~(t "menu.layer.arrange") :group "6_arrange" :order 1}
    :align {:submenu layerAlign :title ~(t "menu.layer.align") :group "6_arrange" :order 2}
    :lock {:run toggleLockAll :title ~(t "menu.layer.lock") :group "6_arrange" :order 3}
-   :rasterize {:run unavailable :title ~(t "menu.layer.rasterize") :group "7_merge" :order 1}
+   :rasterize {:run rasterizeLayer :title ~(t "menu.layer.rasterize") :group "7_merge" :order 1}
    :mergeDown {:run mergeDown :group "7_merge" :order 2}
    :mergeVisible {:run mergeVisible :group "7_merge" :order 3}
    :flatten {:run flattenImage :group "7_merge" :order 4}})
@@ -166,19 +166,21 @@
 
 ;;; Text, Select and Filter
 
-(defmenu type "The Text menu: not available yet."
-  {:panels {:run unavailable :title ~(t "menu.type.panels") :group "1_panels"}
+(defmenu type "The Type menu: a new type layer, its Character panel, and rasterizing it."
+  {:new {:run newTypeLayer :group "0_new"}
+   :panels {:run show-panel :with {:args {:slot properties :id properties}} :title ~(t "menu.type.panels")
+            :group "1_panels"}
    :workPath {:run unavailable :title ~(t "menu.type.workPath") :group "2_convert" :order 1}
-   :rasterize {:run unavailable :title ~(t "menu.type.rasterize") :group "2_convert" :order 2}})
+   :rasterize {:run rasterizeLayer :title ~(t "menu.type.rasterize") :group "2_convert" :order 2}})
 
 (defmenu select "The Select menu."
   {:all {:run selectAll :group "1_select" :order 1}
    :none {:run deselect :group "1_select" :order 2}
-   :reselect {:run unavailable :title ~(t "menu.select.reselect") :group "1_select" :order 3}
+   :reselect {:run reselect :title ~(t "menu.select.reselect") :group "1_select" :order 3}
    :inverse {:run invertSelection :group "1_select" :order 4}
    :colorRange {:run colorRange :title ~(t "menu.select.colorRange") :group "2_range"}
    :feather {:run featherSelection :title ~(t "menu.select.feather") :group "3_modify" :order 1}
-   :transform {:run unavailable :title ~(t "menu.select.transform") :group "3_modify" :order 2}
+   :transform {:run showTransformSelection :title ~(t "menu.select.transform") :group "3_modify" :order 2}
    :quickMask {:run toggleQuickMask :title ~(t "menu.select.quickMask") :group "4_mask"}})
 
 (defmenu filter "The Filter menu: its kinds of filter."
@@ -229,6 +231,16 @@
    :paths {:run show-panel :with {:args {:slot layers :id paths}} :title ~(t "menu.window.paths") :order 7}
    :properties {:run show-panel :with {:args {:slot properties :id properties}}
                 :title ~(t "menu.window.properties") :order 8}
-   :swatches {:run show-panel :with {:args {:slot colour :id swatches}} :title ~(t "menu.window.swatches") :order 9}})
+   :swatches {:run show-panel :with {:args {:slot colour :id swatches}} :title ~(t "menu.window.swatches") :order 9}
+   :workspace {:submenu workspaceChoices :title ~(t "menu.window.workspace") :order 10}})
+
+(defmenu workspaceChoices "Window > Workspace: the workspaces to choose, saving the dock as one, deleting one, resetting."
+  {:standard {:run chooseWorkspace :with {:args {:name standard}} :title ~(t "workspace.standard") :group "1_choose"
+              :order 1}
+   :painting {:run chooseWorkspace :with {:args {:name painting}} :title ~(t "workspace.painting") :group "1_choose"
+              :order 2}
+   :save {:run saveWorkspace :group "2_keep" :order 1}
+   :delete {:run deleteWorkspace :group "2_keep" :order 2}
+   :reset {:run resetWorkspace :group "2_keep" :order 3}})
 
 (defmenu help "The Help menu." {:about {:run showAbout}})

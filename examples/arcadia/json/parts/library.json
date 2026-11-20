@@ -28,7 +28,7 @@
 
 	"computed": {
 		"libList": "{{sort(filter(computed.owned, (!state.readyOnly || it.installed) && (!state.favOnly || it.favourite) && (empty(state.query) || fuzzy(state.query, it.title) != null)), state.recentFirst ? it.lastPlayed ?? 0 : lower(it.title), state.recentFirst ? 'desc' : 'asc')}}",
-		"collected": "{{split(join(map(state.collections, join(it.games, ',')), ','), ',')}}",
+		"collected": "{{split(join(map(filter(state.collections, it.rule == null), join(it.games, ',')), ','), ',')}}",
 		"sections": "{{concat([{ id: 'favourites', title: t('lib.favourites'), ids: map(filter(computed.owned, it.favourite), it.id) }], state.collections, [{ id: 'uncategorised', title: t('lib.uncategorised'), ids: map(filter(computed.owned, !it.favourite && !contains(computed.collected, it.id)), it.id) }])}}",
 		"recent": "{{slice(sort(filter(computed.owned, it.lastPlayed != null), it.lastPlayed, 'desc'), 0, 10)}}",
 		"recentGroups": "{{filter([{ label: t('time.today'), games: filter(computed.recent, state.today - it.lastPlayed < 86400000) }, { label: t('time.yesterday'), games: filter(computed.recent, state.today - it.lastPlayed >= 86400000 && state.today - it.lastPlayed < 172800000) }, { label: t('time.thisWeek'), games: filter(computed.recent, state.today - it.lastPlayed >= 172800000 && state.today - it.lastPlayed < 604800000) }, { label: t('time.lastWeek'), games: filter(computed.recent, state.today - it.lastPlayed >= 604800000 && state.today - it.lastPlayed < 1209600000) }, { label: t('time.earlier'), games: filter(computed.recent, state.today - it.lastPlayed >= 1209600000) }], length(it.games) > 0)}}",
@@ -338,6 +338,14 @@
 								"onClick": { "toggle": "state.recentFirst" }
 							},
 							{
+								"id": "library-new-collection",
+								"style": "iconButton",
+								"icon": "folder-plus",
+								"tooltip": "{{t('coll.new')}}",
+								"label": "{{t('coll.new')}}",
+								"onClick": "newCollection"
+							},
+							{
 								"id": "library-ready",
 								"style": "iconButton",
 								"icon": "circle-play",
@@ -423,7 +431,7 @@
 								"type": "column",
 								"repeat": { "for": "section", "in": "{{computed.sections}}", "key": "{{section.id}}" },
 								"let": {
-									"games": "{{filter(computed.libList, contains(section.ids ?? section.games, it.id))}}",
+									"games": "{{filter(computed.libList, section.rule != null ? it[section.rule.field] == section.rule.value : contains(section.ids ?? section.games, it.id))}}",
 									"open": "{{!(state.collapsed[section.id] ?? false)}}"
 								},
 								"anchors": { "left": 0, "right": 0 },
@@ -580,7 +588,7 @@
 						"id": "home-content",
 						"anchors": { "left": 28, "right": 28 },
 						"gap": 6,
-						"height": "{{412 + 286 * length(filter(computed.sections, it.id != 'uncategorised' && length(it.ids ?? it.games) > 0)) + 239 * ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164)))}}",
+						"height": "{{412 + 286 * length(filter(computed.sections, it.id != 'uncategorised' && (it.rule != null || length(it.ids ?? it.games) > 0))) + 239 * ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164)))}}",
 						"children": [
 							{ "type": "panel", "height": 10, "width": 1, "color": "transparent" },
 							{
@@ -748,12 +756,12 @@
 									"key": "{{section.id}}"
 								},
 								"let": {
-									"games": "{{filter(computed.owned, contains(section.ids ?? section.games, it.id))}}"
+									"games": "{{filter(computed.owned, section.rule != null ? it[section.rule.field] == section.rule.value : contains(section.ids ?? section.games, it.id))}}"
 								},
 								"anchors": { "left": 0, "right": 0 },
 								"height": 280,
 								"gap": 6,
-								"when": "{{length(games) > 0}}",
+								"when": "{{length(games) > 0 || section.rule != null}}",
 								"children": [
 									{
 										"use": "shelfHeader",
@@ -1271,7 +1279,7 @@
 						"id": "game-columns",
 						"anchors": { "left": 32, "right": 32 },
 						"gap": 24,
-						"height": "{{max(700, 150 + length(filter(data.activity, it.game == g.id)) * 96 + length(filter(data.news, it.game == g.id)) * 120)}}",
+						"height": "{{max(860, 150 + length(filter(data.activity, it.game == g.id)) * 96 + length(filter(data.news, it.game == g.id)) * 120)}}",
 						"children": [
 							{
 								"type": "column",
@@ -1590,22 +1598,77 @@
 									{
 										"id": "screenshots-card",
 										"use": "sideCard",
-										"with": { "title": "{{t('game.screenshots')}}", "height": 132 },
+										"with": {
+											"title": "{{t('shots.title')}}",
+											"height": 150
+										},
 										"children": [
 											{
+												"type": "label",
+												"font": "small",
+												"anchors": {
+													"left": 14,
+													"right": 14,
+													"top": 38
+												},
+												"height": 16,
+												"text": "{{t('shots.count', {'n': length(computed.myShots)})}}",
+												"textColor": "@color.muted"
+											},
+											{
+												"type": "label",
+												"id": "shots-none",
+												"when": "{{empty(computed.myShots)}}",
+												"font": "small",
+												"wrap": true,
+												"anchors": {
+													"left": 14,
+													"right": 14,
+													"top": 62
+												},
+												"height": 64,
+												"text": "{{t('shots.none')}}",
+												"textColor": "@color.dim"
+											},
+											{
 												"type": "row",
+												"when": "{{(length(computed.myShots) > 0)}}",
 												"gap": 6,
-												"anchors": { "left": 14, "right": 14, "top": 40 },
-												"height": 80,
+												"anchors": {
+													"left": 14,
+													"right": 14,
+													"top": 62
+												},
+												"height": 74,
 												"children": [
 													{
 														"type": "image",
-														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
-														"file": "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}",
-														"grow": 1,
-														"height": 80,
+														"id": "my-shot-{{k}}",
+														"repeat": {
+															"for": "s",
+															"in": "{{slice(computed.myShots, 0, 3)}}",
+															"index": "k"
+														},
+														"file": "../assets/art/{{(g.art ?? g.id)}}/{{s.file}}.svg",
+														"width": 90,
+														"height": 74,
 														"fit": "cover",
-														"radius": 2
+														"radius": 3,
+														"focusable": true,
+														"role": "button",
+														"cursor": "hand",
+														"label": "{{t('shots.open')}}",
+														"hover": {
+															"borderWidth": 2,
+															"borderColor": "@color.accent"
+														},
+														"onClick": {
+															"run": "openShot",
+															"with": {
+																"game": "{{g.id}}",
+																"n": "{{k}}"
+															}
+														}
 													}
 												]
 											}
@@ -1614,15 +1677,124 @@
 									{
 										"id": "controller-card",
 										"use": "sideCard",
-										"with": { "title": "{{t('game.controller')}}", "height": 74 },
+										"with": {
+											"title": "{{t('game.controller')}}",
+											"height": "{{((g.controller == 'none') ? 74 : 204)}}"
+										},
 										"children": [
 											{
 												"type": "label",
+												"id": "controller-support",
 												"icon": "gamepad-2",
-												"text": "{{t('controller.' + g.controller)}}",
+												"text": "{{t(('controller.' + g.controller))}}",
 												"textColor": "@color.text",
-												"anchors": { "left": 14, "right": 14, "top": 42 },
+												"anchors": {
+													"left": 14,
+													"right": 14,
+													"top": 42
+												},
 												"height": 20
+											},
+											{
+												"type": "column",
+												"when": "{{(g.controller != 'none')}}",
+												"anchors": {
+													"left": 14,
+													"right": 14,
+													"top": 72
+												},
+												"height": 120,
+												"gap": 8,
+												"children": [
+													{
+														"type": "row",
+														"id": "pad-layouts",
+														"height": 26,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"gap": 4,
+														"role": "tablist",
+														"arrows": "horizontal",
+														"children": [
+															{
+																"type": "label",
+																"id": "pad-layout-{{l}}",
+																"repeat": {
+																	"for": "l",
+																	"in": "{{['default', 'southpaw', 'classic']}}"
+																},
+																"font": "small",
+																"fitText": true,
+																"padding": 9,
+																"height": 26,
+																"radius": 13,
+																"role": "tab",
+																"focusable": true,
+																"cursor": "hand",
+																"selected": "{{(computed.padLayout == l)}}",
+																"text": "{{t(('pad.layout.' + l))}}",
+																"color": "{{((computed.padLayout == l) ? '@color.select' : '@color.raised')}}",
+																"textColor": "{{((computed.padLayout == l) ? '@color.bright' : '@color.text')}}",
+																"hover": {
+																	"textColor": "@color.bright"
+																},
+																"onClick": {
+																	"run": "setPadLayout",
+																	"with": {
+																		"id": "{{g.id}}",
+																		"layout": "{{l}}"
+																	}
+																}
+															}
+														]
+													},
+													{
+														"type": "column",
+														"id": "pad-bindings",
+														"height": 84,
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"gap": 2,
+														"role": "list",
+														"children": [
+															{
+																"type": "row",
+																"repeat": {
+																	"for": "b",
+																	"in": "{{state.padBindings[computed.padLayout]}}"
+																},
+																"height": 19,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"role": "listitem",
+																"children": [
+																	{
+																		"type": "label",
+																		"font": "small",
+																		"grow": 1,
+																		"height": 19,
+																		"text": "{{t(b[0])}}",
+																		"textColor": "@color.muted"
+																	},
+																	{
+																		"type": "label",
+																		"font": "small",
+																		"fitText": true,
+																		"height": 19,
+																		"text": "{{t(b[1])}}",
+																		"textColor": "@color.text"
+																	}
+																]
+															}
+														]
+													}
+												]
 											}
 										]
 									},

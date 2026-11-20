@@ -152,7 +152,9 @@
 										{ "title": "{{t('menu.viewLibrary')}}", "run": "showLibrary" },
 										{ "title": "{{t('menu.activate')}}", "run": "openCode", "with": { "kind": "activate" } },
 										{ "title": "{{t('menu.redeem')}}", "run": "openCode", "with": { "kind": "redeem" } },
-										{ "title": "{{t('menu.addOther')}}", "run": "openAddGame" }
+										{ "title": "{{t('menu.addOther')}}", "run": "openAddGame" },
+										{ "separator": true },
+										{ "title": "{{t('coll.new')}}", "run": "newCollection" }
 									]
 								},
 								{
@@ -407,7 +409,7 @@
 						"radius": 2,
 						"hover": { "color": "@color.hover" },
 						"onClick": "showDownloads",
-						"label": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}",
+						"label": "{{computed.download && computed.dlWaiting ? t('bottom.scheduled', { title: computed.downloadGame.title }) : computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}",
 						"children": [
 							{
 								"type": "label",
@@ -430,7 +432,7 @@
 										"anchors": { "left": 0, "right": 0 },
 										"height": 15,
 										"textColor": "@color.text",
-										"text": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}"
+										"text": "{{computed.download && computed.dlWaiting ? t('bottom.scheduled', { title: computed.downloadGame.title }) : computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}"
 									},
 									{
 										"id": "downloads-track",

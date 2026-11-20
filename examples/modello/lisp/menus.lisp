@@ -102,6 +102,8 @@
    :snap {:submenu snap :title ~(t "menu.snap") :group "1_transform" :order 2}
    :duplicate {:run duplicate :group "2_edit" :order 1}
    :delete {:run deleteSelected :group "2_edit" :order 2}
+   :parent {:run parentToActive :group "2_edit" :order 3}
+   :clearParent {:run clearParent :group "2_edit" :order 4}
    :keyframe {:run insertKeyframe :group "3_anim"}
    :show {:submenu objectShowHide :title ~(t "menu.showHide") :group "4_show"}})
 
@@ -138,6 +140,8 @@
    :duplicate {:run duplicate :group "3_edit" :order 1}
    :hide {:run hideSelected :group "3_edit" :order 2}
    :collection {:run moveToCollectionMenu :group "3_edit" :order 3}
+   :parent {:run parentToActive :group "3_edit" :order 4}
+   :clearParent {:run clearParent :group "3_edit" :order 5}
    :keyframe {:run insertKeyframe :group "4_anim"}
    :delete {:run deleteSelected :group "5_delete"}})
 
@@ -202,9 +206,9 @@
   [{:title (t "mode.object") :icon "box" :checked (= state.mode :object) :run "setMode" :with {:mode "object"}}
    {:title (t "mode.edit") :icon "pen-tool" :enabled false :keyLabel (t "menu.notYet")}])
 
-(defcomputed orientationItems "The transform orientations; Gimbal and View are to come."
+(defcomputed orientationItems "The transform orientations; Gimbal is to come."
   (map (fn [it]
-         (if (contains ["gimbal" "view"] it)
+         (if (= it "gimbal")
            {:title (t (str "orientation." it)) :enabled false :keyLabel (t "menu.notYet")}
            {:title (t (str "orientation." it))
             :checked (= state.orientation it)
@@ -212,11 +216,9 @@
             :with {:key "orientation" :value it}}))
        ["global" "local" "normal" "gimbal" "view" "cursor"]))
 
-(defcomputed pivotItems "The pivot points; Individual Origins is to come."
+(defcomputed pivotItems "The pivot points: what the selected objects turn and scale about."
   (map (fn [it]
-         (if (= it "individual")
-           {:title (t (str "pivot." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}}))
+         {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}})
        ["bounds" "cursor" "individual" "median" "active"]))
 
 (defcomputed snapItems "What snapping snaps to (vertices, edges and faces are to come), and its increments."
@@ -282,13 +284,11 @@
 
 ;;; Editors and workspaces
 
-(defcomputed editorTypes "The editors an area can show; the image and text editors are to come."
+(defcomputed editorTypes "The editors an area can show."
   (map (fn [it]
          {:id it.0
           :title (t (str "editor." it.0))
-          :icon it.1
-          :enabled (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0)
-          :keyLabel (if (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0) "" (t "menu.notYet"))})
+          :icon it.1})
        [["viewport" "axis-3-d"]
         ["image" "image"]
         ["shader" "git-fork"]
@@ -298,18 +298,12 @@
         ["text" "file-text"]]))
 
 (defcomputed workspaces
-  "The top bar's workspaces: name is what state.workspace holds; a workspace with needs says what it waits for."
-  [{:id "layout" :name "Layout" :title (t "workspace.layout")}
-   {:id "modeling" :name "Model" :title (t "workspace.modeling")}
-   {:id "sculpting" :name "Sculpt" :title (t "workspace.sculpting") :needs (t "workspace.sculpting.needs")}
-   {:id "uv editing" :name "UV" :title (t "workspace.uv") :needs (t "workspace.uv.needs")}
-   {:id "texture paint" :name "Paint" :title (t "workspace.paint") :needs (t "workspace.paint.needs")}
-   {:id "shading" :name "Materials" :title (t "workspace.shading")}
-   {:id "animation" :name "Animate" :title (t "workspace.animation")}
-   {:id "rendering" :name "Render" :title (t "workspace.rendering")}
-   {:id "compositing" :name "Compose" :title (t "workspace.compositing") :needs (t "workspace.compositing.needs")}
-   {:id "geometry nodes" :name "Nodes" :title (t "workspace.nodes") :needs (t "workspace.nodes.needs")}
-   {:id "scripting" :name "Script" :title (t "workspace.scripting") :needs (t "workspace.scripting.needs")}])
+  "The top bar's workspaces, each a preset of the areas for one kind of work: name is what state.workspace holds."
+  [{:id "stage" :name "Stage" :icon "layout-dashboard" :title (t "workspace.stage")}
+   {:id "shape" :name "Shape" :icon "pen-tool" :title (t "workspace.shape")}
+   {:id "surface" :name "Surface" :icon "palette" :title (t "workspace.surface")}
+   {:id "motion" :name "Motion" :icon "film" :title (t "workspace.motion")}
+   {:id "shot" :name "Shot" :icon "aperture" :title (t "workspace.shot")}])
 
 ;;; The timeline's and the outliner's menus
 

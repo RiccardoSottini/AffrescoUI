@@ -7,7 +7,7 @@
 (defview sidebar "The sidebar, hidden in the mini player." []
   `(node#sidebar :when ~(not state.mini)
      :dir auto
-     :anchors {:left 0 :top 0 :bottom 112}
+     :anchors {:left 0 :top 0 :bottom ~(if settings.window.statusBar 112 84)}
      :width 248
      :color @sidebar
      :role navigation
@@ -130,7 +130,7 @@
      :onClick ~(handler open-list index)
      :onDoubleClick ~(handler play index 0)
      :tooltip ~(t "playlist.play")
-     (image#image-list-cover :file ~list.cover :fit cover :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
+     (image#image-list-cover :file ~list.cover :fit cover :color @button :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
      (label#label-list-name :text ~list.name :textColor @text :anchors {:left 62 :top 10} :fitText true)
      (node#label-plural-list-tracks
        :style caption

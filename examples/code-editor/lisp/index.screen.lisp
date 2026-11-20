@@ -24,7 +24,7 @@
 
 (defpart events "Quaderno's start and its watch: the files are prepared, and the assistant sits above the find panel."
   :onLoad prepare
-  :watch {:state.findBar [~(handler lift-assistant)]})
+  :watch {:state.findBar [~(handler lift-assistant)] :state.files [~(handler keep-unsaved)]})
 
 ;;; The screen
 
@@ -41,6 +41,10 @@
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
                 :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+  :persist [state.unsaved state.tabs state.active state.split state.layout state.theme state.wrap state.ruler
+            state.minimap state.sidebarOpen state.branch
+            state.userKeys]
+  :keyBindings state.userKeys
   :theme ~computed.theme
   (node#panel-root :color @background
     ~(title-bar)
@@ -64,4 +68,7 @@
     ~(tab-menu)
     ~(editor-menu)
     ~(theme-pick)
-    ~(syntax-pick)))
+    ~(syntax-pick)
+    ~(indent-pick)
+    ~(snippet-pick)
+    ~(branch-pick)))

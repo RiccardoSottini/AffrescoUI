@@ -145,10 +145,10 @@
 (defview page "A page of the app, beside the sidebar and above the status bar, while it is the one shown."
   [id page use dir]
   `(node :id ~id :dir ~dir :when ~(= state.page page) :use ~use :anchors {:left ~computed.sideWidth :right 0 :top 0
-                                                                          :bottom 32}))
+                                                                          :bottom ~(if settings.window.statusBar 32 0)}))
 
 (defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
-  `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
+  `(node#statusBar :when ~settings.window.statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
      (node#panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author
                                                     :message revision.message})
@@ -187,9 +187,11 @@
 ;;; Parts every page uses
 
 ;; Each item has a title, an icon, a run and its with, or is a separator.
-(defcomponent popMenu "An overflow menu open at the state path: a raised, rounded list of items under its button."
-  {:open "" :items [] :width 200}
-  `(node :overlay {:placement below-end :open ~open :dismiss outside :modal true}
+(defcomponent popMenu
+  "An overflow menu open at the state path: a raised, rounded list of items under its button, lined up with its end
+  (below-end) or its start (below)."
+  {:open "" :items [] :width 200 :placement below-end}
+  `(node :overlay {:placement ~placement :open ~open :dismiss outside :modal true}
      :width ~width
      ;; style: keep, a binding's function given to sum names its item it
      :height ~(+ 16 (sum items (fn [it] (if (= it.separator true) 17 48))))

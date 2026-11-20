@@ -10,6 +10,9 @@
   (:require "locales/en.lisp"
             "locales/es.lisp"
             "locales/fr.lisp"
+            "locales/design.en.lisp"
+            "locales/design.es.lisp"
+            "locales/design.fr.lisp"
             sinopia.parts.window
             sinopia.parts.keys
             sinopia.parts.themes
@@ -17,10 +20,21 @@
             sinopia.parts.slide
             sinopia.parts.sample-deck
             sinopia.parts.edit
+            sinopia.parts.arrange
+            sinopia.parts.content
             sinopia.parts.ribbon
             sinopia.parts.tabs
             sinopia.parts.show
+            sinopia.parts.motion
+            sinopia.parts.ink
+            sinopia.parts.notes-page
             sinopia.parts.views
+            sinopia.parts.format
+            sinopia.parts.shape-format
+            sinopia.parts.canvas
+            sinopia.parts.file
+            sinopia.parts.design
+            sinopia.parts.search
             sinopia.parts.menus
             sinopia.parts.review
             "../../shared/addons/assistant/assistant.lisp"
@@ -35,7 +49,7 @@
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 12}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 12 :fallback [icons]}
           :slideText {:file "../../shared/fonts/Roboto-Regular.ttf" :size 48 :fallback [icons]}}
-  :persist [state.deck state.theme state.presenterView]
+  :persist [state.deck state.theme state.presenterView state.recentDecks]
   :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
   :theme ~state.theme
   (node#root :color @work
@@ -48,4 +62,6 @@
       ~(status-bar))
     ~(repeat [s state.deck.slides :key s.id]
       `(node :use slideImage :with {:s ~s}))
+    ~(repeat [s (if (= state.view "notesPage") state.deck.slides []) :index n :key s.id]
+      `(node :use notesPageImage :with {:s ~s :n ~n}))
     (node :use showStage :when ~state.show.on)))

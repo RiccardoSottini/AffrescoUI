@@ -17,11 +17,13 @@
 		},
 		"uninstall": {
 			"open": false
-		}
+		},
+		"filesShown": false
 	},
 	"computed": {
 		"manageGame": "{{find(data.games, it.id == state.manage)}}",
-		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}"
+		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}",
+		"gameFiles": "{{[{ name: 'content.pak', icon: 'package', gb: (computed.manageGame.sizeGb ?? 0) * 0.78 }, { name: 'textures.pak', icon: 'image', gb: (computed.manageGame.sizeGb ?? 0) * 0.15 }, { name: 'audio.pak', icon: 'music', gb: (computed.manageGame.sizeGb ?? 0) * 0.06 }, { name: computed.manageGame.id + '.bin', icon: 'cpu', gb: (computed.manageGame.sizeGb ?? 0) * 0.009 }, { name: 'settings.cfg', icon: 'file', gb: 0.0001 }]}}"
 	},
 	"actions": {
 		"openGameMenu": {
@@ -130,7 +132,7 @@
 				"with": {
 					"open": "state.properties.open",
 					"width": 640,
-					"height": 400,
+					"height": 460,
 					"title": "{{t('properties.title', { game: computed.manageGame.title ?? '' })}}",
 					"color": "@color.panel",
 					"textColor": "@color.text",
@@ -619,51 +621,95 @@
 												"anchors": {
 													"left": 0,
 													"right": 0,
-													"top": 60
+													"top": 56
 												},
 												"height": 18
 											},
 											{
 												"type": "label",
 												"id": "properties-folder",
-												"text": "{{'Arcadia/games/' + computed.manageGame.title}}",
 												"textColor": "@color.text",
 												"font": "small",
 												"anchors": {
 													"left": 0,
 													"right": 0,
-													"top": 84
+													"top": 78
 												},
-												"height": 22
-											},
-											{
-												"id": "properties-verify",
-												"use": "quietButton",
-												"anchors": {
-													"left": 0,
-													"top": 128
-												},
-												"height": 32,
-												"with": {
-													"title": "{{t('properties.verify')}}",
-													"icon": "shield-check"
-												},
-												"disabled": "{{state.properties.verify == 'running'}}",
-												"onClick": [
+												"height": 22,
+												"runs": [
 													{
-														"set": "state.properties.verify",
-														"to": "running"
+														"text": "{{t('storage.' + (computed.manageGame.drive ?? 'main')) + '  ›  '}}",
+														"color": "@color.muted"
 													},
 													{
-														"after": 1500,
-														"do": [
-															{
-																"set": "state.properties.verify",
-																"to": "done"
-															}
-														]
+														"text": "{{t('properties.folderPath', { game: computed.manageGame.title })}}"
 													}
 												]
+											},
+											{
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 108
+												},
+												"height": 36,
+												"gap": 8,
+												"children": [
+													{
+														"id": "properties-browse",
+														"use": "quietButton",
+														"with": {
+															"title": "{{t(state.filesShown ? 'properties.hideFiles' : 'properties.browse')}}",
+															"icon": "folder-open",
+															"on": "{{state.filesShown}}"
+														},
+														"onClick": {
+															"toggle": "state.filesShown"
+														}
+													},
+													{
+														"id": "properties-verify",
+														"use": "quietButton",
+														"with": {
+															"title": "{{t('properties.verify')}}",
+															"icon": "shield-check"
+														},
+														"disabled": "{{state.properties.verify == 'running'}}",
+														"onClick": [
+															{
+																"set": "state.properties.verify",
+																"to": "running"
+															},
+															{
+																"after": 1500,
+																"do": [
+																	{
+																		"set": "state.properties.verify",
+																		"to": "done"
+																	}
+																]
+															}
+														]
+													},
+													{
+														"id": "properties-move",
+														"use": "quietButton",
+														"with": {
+															"title": "{{t('properties.move')}}",
+															"icon": "hard-drive"
+														},
+														"disabled": "{{computed.manageGame.status == 'running'}}",
+														"tooltip": "{{t(computed.manageGame.status == 'running' ? 'storage.moveRunning' : 'storage.moveAbout')}}",
+														"onClick": {
+															"run": "moveGame",
+															"with": {
+																"id": "{{computed.manageGame.id}}"
+															}
+														}
+													}
+												],
+												"alignItems": "center"
 											},
 											{
 												"type": "label",
@@ -673,11 +719,75 @@
 												"anchors": {
 													"left": 0,
 													"right": 0,
-													"top": 168
+													"top": 152
 												},
 												"height": 20,
 												"text": "{{state.properties.verify == 'running' ? t('properties.verifying') : state.properties.verify == 'done' ? t('properties.verified') : ''}}",
 												"textColor": "{{state.properties.verify == 'done' ? '@color.play' : '@color.muted'}}"
+											},
+											{
+												"type": "column",
+												"id": "properties-files",
+												"when": "{{state.filesShown}}",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 176,
+													"bottom": 0
+												},
+												"scroll": "vertical",
+												"role": "list",
+												"label": "{{t('properties.folder')}}",
+												"children": [
+													{
+														"type": "row",
+														"repeat": {
+															"for": "f",
+															"in": "{{computed.gameFiles}}",
+															"key": "{{f.name}}"
+														},
+														"id": "{{'properties-file-' + slug(f.name)}}",
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 26,
+														"gap": 10,
+														"alignItems": "center",
+														"role": "listitem",
+														"label": "{{f.name}}",
+														"children": [
+															{
+																"type": "label",
+																"icon": "{{f.icon}}",
+																"text": "",
+																"fitText": true,
+																"textColor": "@color.muted"
+															},
+															{
+																"type": "label",
+																"grow": 1,
+																"height": 18,
+																"font": "small",
+																"text": "{{f.name}}",
+																"textColor": "@color.text"
+															},
+															{
+																"type": "label",
+																"font": "small",
+																"fitText": true,
+																"text": "{{f.gb < 0.01 ? t('properties.tiny') : t('properties.sizeValue', { size: formatNumber(f.gb, 1, 2) })}}",
+																"textColor": "@color.muted"
+															},
+															{
+																"type": "panel",
+																"width": 8,
+																"height": 1,
+																"color": "transparent"
+															}
+														]
+													}
+												]
 											}
 										]
 									},

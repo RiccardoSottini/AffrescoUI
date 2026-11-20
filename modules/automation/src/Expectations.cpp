@@ -100,7 +100,7 @@ using Reader = json (*)(const Panel&);
 
 /// @brief The properties every panel has. Positions and sizes are the panel's whole area in window units, before
 /// clipping, from the last layout.
-constexpr std::array<std::pair<std::string_view, Reader>, 17> everyPanel = {{
+constexpr std::array<std::pair<std::string_view, Reader>, 18> everyPanel = {{
     {"color", [](const Panel& panel) { return json(panel.color().toHex()); }},
     {"borderColor", [](const Panel& panel) { return json(panel.borderColor().toHex()); }},
     {"borderWidth", [](const Panel& panel) { return json(panel.borderWidth()); }},
@@ -118,6 +118,7 @@ constexpr std::array<std::pair<std::string_view, Reader>, 17> everyPanel = {{
     {"role", [](const Panel& panel) { return json(accessibleRole(panel)); }},
     {"name", [](const Panel& panel) { return json(accessibleName(panel)); }},
     {"description", [](const Panel& panel) { return json(panel.accessibleDescription()); }},
+    {"disabled", [](const Panel& panel) { return json(panel.accessibleState().disabled); }},
 }};
 
 /// @brief Reads a property that every panel has, or that its kind of panel has.

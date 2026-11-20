@@ -8,6 +8,7 @@
 #include "affresco/imaging/Blend.hpp"
 #include "affresco/imaging/History.hpp"
 #include "affresco/imaging/Image.hpp"
+#include "affresco/imaging/Vector.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -53,6 +54,7 @@ struct Layer {
 	Adjustment adjustment;               ///< adjustment: what it does.
 	std::uint64_t parent = 0;            ///< Its group's id, or 0 at the top.
 	std::vector<std::uint64_t> children; ///< group: its layers, the bottom one first.
+	LayerContent content;                ///< pixel: the text or shape its pixels are drawn from, if any.
 
 	/// @brief Whether two layers are the same.
 	[[nodiscard]] friend bool operator==(const Layer&, const Layer&) = default;
@@ -66,6 +68,8 @@ struct Structure {
 	bool selection = false;                                           ///< Whether a selection is active.
 	std::unordered_map<std::uint64_t, std::shared_ptr<Image>> images; ///< Layers' images and masks, by id.
 	std::uint64_t nextId = 2;                                         ///< The next id given (1 is the selection's).
+	std::vector<VectorPath> paths;                                    ///< The paths (the Paths panel), top first.
+	int activePath = -1;                                              ///< The path edited, or -1.
 };
 
 /// @brief A layered image and its history.
@@ -163,6 +167,21 @@ public:
 	/// @param pixels The image, of the document's size and format.
 	/// @return Its id.
 	std::uint64_t addImageLayer(const std::string& name, std::shared_ptr<Image> pixels);
+	/// @brief Adds a type or shape layer above the active one: its content, and its pixels drawn from it.
+	/// @param name Its name.
+	/// @param content What it is drawn from.
+	/// @param pixels Its pixels, of the document's size and format.
+	/// @return Its id.
+	std::uint64_t addContentLayer(const std::string& name, const LayerContent& content, std::shared_ptr<Image> pixels);
+	/// @brief Changes a type or shape layer's content and its pixels together, as one step; with no content, the
+	/// layer becomes a pixel layer of the same pixels (rasterized).
+	/// @param id The layer.
+	/// @param name The step's name.
+	/// @param content The new content.
+	/// @param pixels Its pixels drawn again (null to keep them).
+	/// @param coalesce See changeStructure().
+	void setContent(std::uint64_t id, const std::string& name, const LayerContent& content,
+	                std::shared_ptr<Image> pixels, bool coalesce = false);
 	/// @brief Deletes a layer (a group with its layers).
 	/// @param id The layer.
 	void deleteLayer(std::uint64_t id);

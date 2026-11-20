@@ -279,7 +279,8 @@ TimeFormat timeFormatOf(const json& values, const std::string& path) {
 	if(format == "frames") return TimeFormat::Frames;
 	if(format == "seconds") return TimeFormat::Seconds;
 	if(format == "timecode") return TimeFormat::Timecode;
-	fail(path + ".timeFormat", R"(expected "frames", "seconds" or "timecode")");
+	if(format == "none") return TimeFormat::None;
+	fail(path + ".timeFormat", R"(expected "frames", "seconds", "timecode" or "none")");
 }
 
 /// @brief Gives a timeline the camera its node asks for, if it asks for one.
@@ -311,6 +312,7 @@ void applyTimeline(Panel& panel, const json& values, const PropertyReader& reade
 	view->setModel(timelineModelOf(values, reader, path));
 	view->setTimeFormat(timeFormatOf(values, path));
 	view->setSnap(flagOr(values, "snap", true));
+	view->setTrackButtons(flagOr(values, "trackButtons", true));
 	const auto sizeOr = [&](const char* key, double low, double high, float otherwise) {
 		return values.contains(key) ? static_cast<float>(numberWithin(values[key], path + "." + key, low, high))
 		                            : otherwise;
@@ -429,6 +431,7 @@ void registerTimelineType(TypeRegistry& registry) {
 	    {"offset", ValueKind::Number},      {"selectedKeys", ValueKind::Any},  {"headerWidth", ValueKind::Number},
 	    {"trackHeight", ValueKind::Number}, {"headerColor", ValueKind::Color}, {"clipColor", ValueKind::Color},
 	    {"textColor", ValueKind::Color},    {"accentColor", ValueKind::Color}, {"font", ValueKind::Font}};
+	set->properties.push_back({"trackButtons", ValueKind::Boolean});
 	set->apply = applyTimeline;
 	set->everyUpdate = true; // colours follow the theme; an unchanged model, playhead, camera or selection is skipped
 	set->keepsClicks = true;

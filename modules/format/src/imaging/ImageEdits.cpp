@@ -45,10 +45,11 @@ constexpr std::size_t previewTiles = 256;
 	return imaging::colorRangeCoverage(image.canvas->document(), *colour, fuzziness, flagOf(with, "allLayers", false));
 }
 
-/// @brief select: selects by a shape, a wand click or a colour range; or all, none, the inverse.
+/// @brief select: selects by a shape, a wand click or a colour range; or all, none, the inverse, or again the
+/// selection that the last "none" took away (reselect).
 /// @param image The image.
-/// @param with kind ("all", "none", "invert", "rectangle", "ellipse", "polygon", "wand", "colorRange"), mode, and the
-/// shape's from and to, points, x and y, color and fuzziness.
+/// @param with kind ("all", "none", "reselect", "invert", "rectangle", "ellipse", "polygon", "wand", "colorRange"),
+/// mode, and the shape's from and to, points, x and y, color and fuzziness.
 /// @throws DocumentError If the kind is unknown or its arguments malformed.
 void select(ImageDocument& image, const json& with, Window*) {
 	settle(image);
@@ -57,7 +58,11 @@ void select(ImageDocument& image, const json& with, Window*) {
 	const auto mode = selectionModeOf(textOf(with, "mode"), image.settings.mode);
 	const int width = document.width(), height = document.height();
 	if(kind == "all") return imaging::selectAll(document);
-	if(kind == "none") return imaging::deselect(document);
+	if(kind == "none") return deselectKeeping(image);
+	if(kind == "reselect") {
+		if(image.lastSelection.empty()) throw DocumentError("There is no selection to reselect");
+		return imaging::select(document, "Reselect", image.lastSelection, imaging::SelectionMode::replace);
+	}
 	if(kind == "invert") return imaging::invertSelection(document);
 	if(kind == "rectangle" || kind == "ellipse") {
 		const imaging::Point from = pointOf(with, "from"), to = pointOf(with, "to");
@@ -184,7 +189,8 @@ std::vector<ImageOperation> editOperations() {
 	return {
 	    {"select",
 	     {"kind", "mode", "from", "to", "points", "x", "y", "color", "fuzziness", "allLayers"},
-	     "Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range.",
+	     "Selects all, none, the last selection again, the inverse, a rectangle, an ellipse, a polygon, by magic wand "
+	     "or by colour range.",
 	     select},
 	    {"feather", {"radius"}, "Softens the selection's edge.", feather},
 	    {"fillSelection", {"color", "mask"}, "Fills the selection of the active layer with a colour.", fillSelection},

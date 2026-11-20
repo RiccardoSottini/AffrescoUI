@@ -46,6 +46,9 @@ struct Lens {
 	bool operator==(const Lens&) const noexcept = default;
 };
 
+/// @brief How a viewport draws a node's mesh: its surfaces, its edges only, or the box around it.
+enum class Display { Solid, Wire, Bounds };
+
 /// @brief How a material's alpha is used (as glTF).
 enum class AlphaMode { Opaque, Mask, Blend };
 
@@ -77,6 +80,7 @@ struct Node {
 	std::optional<Light> light; ///< A light here, if any.
 	std::optional<Lens> camera; ///< A camera here, if any.
 	bool visible = true;        ///< Hidden nodes and their children aren't drawn or picked.
+	Display display{};          ///< How its mesh is drawn (solid first); it is picked by its surfaces all the same.
 };
 
 /// @brief The limits a scene is checked against: what a document or a file may ask for.

@@ -8,6 +8,7 @@
 #include "editor/TextEditorShared.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 #include <string>
 #include <utility>
@@ -74,7 +75,8 @@ const std::vector<std::string_view>& TextEditor::commandNames() {
 	                                                    "transpose",      "toggleComment",    "undo",
 	                                                    "redo",           "cut",              "copy",
 	                                                    "paste",          "selectAll",        "indentLines",
-	                                                    "outdentLines",   "unfoldAll"};
+	                                                    "outdentLines",   "unfoldAll",        "recenter",
+	                                                    "recenterTop",    "recenterBottom"};
 	return names;
 }
 
@@ -119,7 +121,15 @@ bool TextEditor::runCommand(std::string_view name) {
 		}
 		endEdit();
 	} else if(name == "toggleComment") toggleComment("//");
-	else return lineCommand(name) || textCommand(name) || editCommand(name);
+	else if(name == "recenter" || name == "recenterTop" || name == "recenterBottom") {
+		// The caret's row to the middle, the top or the bottom of the view, as far as the text lets it scroll
+		const float lh = lineHeight(), height = frame().height() - textPadding;
+		const float top = static_cast<float>(rowOf(caret_)) * lh;
+		const float y = name == "recenterTop"      ? top
+		                : name == "recenterBottom" ? top + lh - height
+		                                           : top - std::floor((height - lh) / 2.0f / lh) * lh;
+		setScroll({scroll_.x, std::max(y, 0.0f)});
+	} else return lineCommand(name) || textCommand(name) || editCommand(name);
 	return true;
 }
 

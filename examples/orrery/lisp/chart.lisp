@@ -167,7 +167,7 @@
      :nodes ~computed.graphNodes
      :links ~computed.graphLinks
      :selectedIds ~[state.selected]
-     :kindColors {:orbit "#2dd4bf"}
+     :kindColors {:orbit ~(if (= state.theme :night) "#ff4433" "#2dd4bf")}
      :nodeColor @raised
      :headerColor @border
      :textColor @text

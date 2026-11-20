@@ -18,7 +18,9 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
-	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
+	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and "
+	 "it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `\"fill\": true` "
+	 "(`affrescoui check` reports a container root).",
 	 "sections"},
     {"format", R"json({"const": "affrescoui-screen"})json", "`\"affrescoui-screen\"`, for tools.", "sections"},
     {"note", R"json({"type": "string"})json", "A comment.", "sections"},
@@ -179,6 +181,12 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
     {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/keyHandler"},
 		"description": "Screen-wide shortcuts: \"mod+k\" -> handler"})json",
 	 "Screen-wide shortcuts: `\"mod+k\" → handler` (see Events).", "sections"},
+    {"keyBindings", R"json({"type": "string", "pattern": "^state\\.",
+		"description": "The state path of the person's own key bindings, [{keys, command}], run before keys"})json",
+	 "`\"state.keyBindings\"`: where the person's own key bindings are, `[{ \"keys\": \"mod+alt+t\", \"command\": "
+	 "\"toggleTheme\" }]`, each running a command (an action with a title) by name. They are read before `keys`, so "
+	 "one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file.",
+	 "sections"},
     {"menus", R"json({"type": "object", "description": "menu -> item key -> item, listed by the menus variable",
 		"additionalProperties": {"type": "object", "additionalProperties": {"type": "object",
 		"additionalProperties": false, "properties": {"run": {"type": "string"}, "submenu": {"type": "string"},
@@ -428,7 +436,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
 	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
-	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
+	 "true` it also reads the comments and trailing commas settings and theme files have. With `\"as\": \"image\"` "
+	 "it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an "
+	 "`image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A "
+	 "control step",
 	 "outsideSteps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
@@ -485,7 +496,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"edit", "",
 	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
 	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
-	 R"("word", "selection" or "line")",
+	 R"("word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over )"
+	 R"(that range; "recenter", "recenterTop" and "recenterBottom" scroll the caret's row to the middle, the top or the bottom)",
 	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
@@ -504,6 +516,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"(`{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`))",
 	 "steps"},
     {"copy", "", R"(`{ "copy": "{{state.link}}" }`: to the clipboard)", "steps"},
+    {"paste", R"json({"const": "text"})json",
+	 R"(`{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step)",
+	 "steps"},
     {"lisp", "",
 	 R"(`{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too))",
 	 "steps"},
@@ -567,7 +582,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"image", "", R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
-		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+		"eq", "master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"

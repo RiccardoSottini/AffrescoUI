@@ -7,7 +7,7 @@
 
 (defview player "The floating player at the bottom, hidden in the mini player." []
   `(node#player :when ~(not state.mini)
-     :anchors {:left 12 :right 12 :bottom 40}
+     :anchors {:left 12 :right 12 :bottom ~(if settings.window.statusBar 40 12)}
      :height 64
      :radius 16
      :color @bar
@@ -79,7 +79,7 @@
 (defview now-card "The song playing: its cover (a click shows its list), title and artist, like, and the seek bar." []
   `(node#nowCard :dir auto :anchors {:left 224 :right 268 :top 0 :bottom 0} :color transparent
      (image#playingCover :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 10
        :anchors {:left 0 :top 10}
        :width 44
@@ -170,7 +170,7 @@
      :tooltip ~(t "player.mute")
      :onClick toggleMute))
 
-(defview volume-slider "The volume." []
+(defview volume-slider "The volume, dimmed while muted (muting keeps it)." []
   `(slider#volume :anchors {:right 16 :top 24}
      :width 100
      :height 16
@@ -179,8 +179,8 @@
      :label ~(t "player.volume")
      :bind state.volume
      :trackColor @faint
-     :activeColor @muted
-     :knobColor @text
+     :activeColor ~(if state.muted "@faint" "@muted")
+     :knobColor ~(if state.muted "@muted" "@text")
      :tooltip ~(t "player.volume")))
 
 ;;; The mini player
@@ -197,7 +197,7 @@
      :color @surface
      (image#miniCover
        :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 6
        :anchors {:left 20 :top 20}
        :width 112

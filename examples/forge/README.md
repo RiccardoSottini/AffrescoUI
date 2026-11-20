@@ -1,8 +1,8 @@
-# Forge: a demo IDE in JSON
+# Forge: a demo IDE made of live documents
 
 Forge is a demo of what the library can carry: a code workbench whose whole user interface is one screen document,
-which people and agents change while it runs. It is JSON only, with no C++ of its own: an app (`app.json`) that the
-stock host opens, from the Launcher or from the command line. It is an example, not part of the library.
+which people and agents change while it runs. It is written in Lisp (`lisp/`, what the Launcher opens) and in JSON
+(`json/`), with no C++ of its own: an app that the stock host opens, from the Launcher or from the command line. It is an example, not part of the library.
 
 **It has real behaviour, and is still JSON for now** (RFC 0005, stage 6): most of its actions run services through
 `invoke`, `request` and `subscribe`. A program's code that names their methods written out is judged as JSON is
@@ -15,8 +15,9 @@ a button to; its size and its signed catalogue make it a move of its own.
 
 `app.json` asks for what Forge uses, and the host asks the person before granting any of it: the folder to work in
 (`workspace`, read and written), the programs its services run (the login shell, sh for the debugger's
-terminal, git, clangd, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
-and the assistant. Without the folder it shows the welcome page. The layout, the theme and the settings are kept in
+terminal, git, the language servers, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
+and the assistant. With no file open it shows the welcome page: Start (New File, Open Folder, Clone Git Repository, Go
+to File, Run a Command), the folder's recent files, a walkthrough and the daily keys. The layout, the theme and the settings are kept in
 `--data DIR`.
 
 ## How it is built
@@ -30,16 +31,16 @@ its own folder, `features/<name>/`: its JSON and its scenarios.
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the colour theme import (`openFile` and `themeSources`), and the file icon theme |
 | `accounts` | Signing in to the document server (`apps/server`) with a device code, settings synced through the person's `~settings` document, and who is on a shared document, and where, in the status bar ; `accounts.scenarios.json` |
-| `panels` | Problems, output, notifications (toasts and a list), and progress |
+| `panels` | Problems (errors first, filtered by text or file), output, notifications (toasts and a list), and progress |
 | `editor` | Files in the library's `editor` node, read and written through the `fs` service and shared by every group; preview tabs (a click in the explorer, replaced by the next), dirty markers, Save (`mod+s`), Save All (`mod+alt+s`), Revert File and Keep Editor |
-| `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the `search` service as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
+| `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the `search` service as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, each match highlighted in its line (the list item's `marks`), a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 | `explorer` | The side bar's tree, kept current by the `watch` service, with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
-| `terminal` | The panel's Terminal tab: up to 8 shells as tabs, each the library's `terminal` node on the `pty` provider, run, cleared and closed by the `runInTerminal`, `clearTerminal` and `closeTerminal` steps, with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+alt+t` |
+| `terminal` | The panel's Terminal tab: up to 8 shells as tabs, one more beside the one shown with Split Terminal (`mod+shift+5`), each the library's `terminal` node on the `pty` provider, run, cleared and closed by the `runInTerminal`, `clearTerminal` and `closeTerminal` steps, with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+alt+t` |
 | `debug` | The debugger (`mod+shift+d`): launch configurations from `.forge/launch.json`, sessions with lldb-dap or debugpy on the `dap` provider, a floating toolbar and F5, Shift+F5, Cmd+Shift+F5, F6, F9, F10, F11, Shift+F11; gutter breakpoints (a click toggles one, Shift+click edits its condition, hit count or log message, Alt+click disables it) marked verified or not, the Breakpoints list with the exception filters, the call stack per thread, variables as a lazy tree paged by 100, Set Value, watches, the debug console with history and completion, and a value on hover while paused; `debug.scenarios.json` |
-| `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly by the `gitStatus` and `gitBranches` expression functions, and `diffLines` compares a file with HEAD |
+| `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, discard a change after a confirm (git restores the file, or a new file is deleted), commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly by the `gitStatus` and `gitBranches` expression functions, and `diffLines` compares a file with HEAD |
 | `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 | `editing` | The find and replace bar (`mod+f`, `mod+alt+f`): plain, whole word, case-sensitive or a regular expression, in the file or in the selection (`alt+l`), with the match count; word wrap (`alt+z`), bracket matching and indentation guides as settings; `editing.scenarios.json` |
-| `workbench` | The secondary side bar with the outline (`mod+alt+b`), breadcrumbs, the minimap, the inline or side-by-side diff, Open Recent (`ctrl+r`), pinned tabs, moving an editor between groups, and settings and keybindings as JSON; `workbench.scenarios.json`, `layout.scenarios.json` |
+| `workbench` | The secondary side bar with the outline (`mod+alt+b`), breadcrumbs, the minimap, the inline or side-by-side diff, Open Recent (`ctrl+r`), pinned tabs, moving an editor between groups, Next and Previous Editor (`mod+alt+right`, `mod+alt+left`), Close Editors to the Right, Close All Editors (`mod+k mod+w`), Reopen Closed Editor, the editor's menu (More Actions, or a right click on the tabs), and settings and keybindings as JSON; `workbench.scenarios.json`, `layout.scenarios.json` |
 
 Forge has no natives: everything outside the screen goes through the library's services, and each one's root is the
 folder the person chose, so nothing reaches outside it. A save writes a file beside the old one, then renames it over it.
@@ -64,8 +65,11 @@ A theme is a set of variants of the same tokens (`themes.json`), switched by `"t
 
 ## Language servers
 
-`features/lsp/` talks to clangd through the `lsp` provider. A server that isn't installed, or that the person didn't
-allow, doesn't start, and the editor works without it. A server starts with the first
+`features/lsp/` talks to a language server per language through the `lsp` provider, each its own service routed by
+the file's extension: clangd for C, C++ and Objective-C, `pyright-langserver` for Python, `typescript-language-server`
+for TypeScript and JavaScript, `gopls` for Go and `rust-analyzer` for Rust (the host starts the two that need it with
+`--stdio`). A server that isn't installed, or that the person didn't allow, doesn't start, and the editor works
+without it. A server starts with the first
 file of its language, and gets incremental changes in the encoding it chose. It gives diagnostics (squiggles, and rows
 in Problems), hover, completion (fuzzy, Ctrl+Space) and signature help, Go to Definition (F12), Find References
 (Shift+F12, a peek list), Rename (F2) and Format Document (Shift+Alt+F) as a list of edits applied only after you

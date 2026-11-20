@@ -450,6 +450,11 @@ TEST_CASE("search: a screen finds through the search service, then writes a repl
 	CHECK(stateAt(screen, "/result/matches") == 3);
 	CHECK(stateAt(screen, "/result/files") == 2);
 	CHECK(stateAt(screen, "/events").size() == 2);
+	for(const json& event : stateAt(screen, "/events"))
+		for(const json& match : event["matches"]) {
+			CHECK(match["first"] == match["at"]); // a character per byte here
+			CHECK(match["count"] == 6);
+		}
 
 	screen.runAction("replace", window->root());
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/written") == true; }));

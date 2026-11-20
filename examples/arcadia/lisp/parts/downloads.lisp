@@ -11,6 +11,8 @@
 
 (defstate dlTick 0)
 
+(defstate dlHour -1)
+
 (defstate dlRate
   [22
    31
@@ -70,10 +72,14 @@
 (defcomputed dlParked "The downloads taken off the schedule."
   (filter #(= (:status %) :paused) state.downloads))
 
+(defcomputed dlWaiting
+  "Whether the download waits for the schedule: Settings allow only 1:00 to 7:00, and the hour (UTC) is outside it."
+  (and (= settings.downloads.schedule "night") (>= state.dlHour 0) (not (<= 1 state.dlHour 6))))
+
 (defcomputed dlDone "The downloads finished." (filter #(= (:status %) :done) state.downloads))
 
 (defcomputed dlNow "The rate now, in MB/s: the last sample, or 0 while paused or idle."
-  (if (or state.dlPaused (nil? computed.download)) 0 state.dlRate.47))
+  (if (or state.dlPaused computed.dlWaiting (nil? computed.download)) 0 state.dlRate.47))
 
 (defcomputed dlPeak "The highest rate of the samples." (max state.dlRate))
 
@@ -202,11 +208,12 @@
        :textColor @color.bright)
      (label :font caps
        :text ~(upper-case (cond state.dlPaused (t "dl.paused")
+                                computed.dlWaiting (t "dl.waitingSchedule")
                                 (= computed.download.kind "update") (t "dl.updating")
                                 :else (t "dl.downloading")))
        :height 18
        :anchors {:left 0 :right 0}
-       :textColor ~(if state.dlPaused "@color.muted" "@dl.net"))
+       :textColor ~(if (or state.dlPaused computed.dlWaiting) "@color.muted" "@dl.net"))
      (panel :color transparent :height 8 :width 1)
      ~(progress-bar)
      (row :height 20 :anchors {:left 0 :right 0} :gap 16
@@ -216,7 +223,7 @@
          :font small
          :textColor @color.text)
        (panel :color transparent :grow 1 :height 1)
-       (label :text ~(if state.dlPaused "" (t "dl.left" {:n computed.dlLeft}))
+       (label :text ~(if (or state.dlPaused computed.dlWaiting) "" (t "dl.left" {:n computed.dlLeft}))
          :fitText true
          :font small
          :textColor @color.muted))))

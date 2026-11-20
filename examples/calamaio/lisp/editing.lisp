@@ -18,6 +18,24 @@
     (read-only))
   (set "state.arg" nil))
 
+(def pairs "The closing character electric-pair-mode types after each opening one." {"(" ")" "[" "]" "{" "}" "\"" "\""})
+
+(defn char-after "The character after point in the selected window, or an empty text at the end of a line." []
+  (let [{:keys [line column]} (point)
+        text (get (str/split (or computed.buf.text "") "\n" -1) (dec line) "")]
+    (subs text (min (dec column) (count text)) (min column (count text)))))
+
+(defn electric-pair
+  "A bracket or a quote typed while electric-pair-mode is on: an opening one types its closing one too, point between;
+  a closing one steps over the same character after point instead of typing another."
+  [c]
+  (set "state.arg" nil)
+  (cond (not (editable?)) nil
+        (and (#{")" "]" "}" "\""} c) (= c (char-after))) (press "right" :in computed.ed)
+        (contains? pairs c) (do (edit "type" :in computed.ed :text (str c (get pairs c)))
+                                (press "left" :in computed.ed))
+        :else (edit "type" :in computed.ed :text c)))
+
 (defcommand delete-char "Deletes the character after point."
   :title ~(t "command.delete-char") :category ~(t "category.editing")
   :description ~(t "command.delete-char.about")

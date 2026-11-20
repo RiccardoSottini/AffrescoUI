@@ -12,16 +12,72 @@
      :sashSize 2
      :sashColor @border
      :sashActiveColor @accent
-     (node#editorGroup :color @background
-       ~(editor-tabs)
-       ~(repeat [open (if computed.file [state.active] []) :key open]
-         (editor open))
-       (label#welcome :when ~(not computed.file)
-         :text ~(t "ui.noFileOpenPickOne")
-         :textColor @faint
-         :anchors {:left 0 :right 0 :top 32 :bottom 0}
-         :align center))
+     (split#editorSplit :direction ~state.layout
+       :bind state.splitSizes
+       :minSize [240 200]
+       :sashSize 2
+       :sashColor @border
+       :sashActiveColor @accent
+       (node#editorGroup :color @background
+         ~(editor-tabs)
+         ~(repeat [open (if computed.file [state.active] []) :key open]
+           (editor open))
+         (label#welcome :when ~(not computed.file)
+           :text ~(t "ui.noFileOpenPickOne")
+           :textColor @faint
+           :anchors {:left 0 :right 0 :top 32 :bottom 0}
+           :align center))
+       ~(side-group))
      ~(bottom-panel)))
+
+(defview side-group "The second editor group, beside the first or under it: one file, its own caret." []
+  `(node#sideGroup :when ~(and (>= state.split 0) (not state.zen)) :color @background
+     (tabs#sideTabs
+       :anchors {:left 0 :right 0 :top 0}
+       :height 32
+       :tabs ~[{:id (text state.split) :label (get-in state.files [state.split :name])
+                :marker (get-in state.files [state.split :dirty])}]
+       :value ~(text state.split)
+       :color @tabBar
+       :textColor @muted
+       :activeTextColor @text
+       :activeBackground @background
+       :accentColor transparent
+       :markerColor @accent
+       :keepMarker true
+       :tabRadius 7
+       :tabGap 4
+       :tabInset 5
+       :onClose closeSplit)
+     ~(repeat [open (if (>= state.split 0) [state.split] []) :key open]
+       (side-editor open))))
+
+(defview side-editor "The file `open` in the second group: the same text as in the first, edited in either." [open]
+  `(editor#sideEditor
+     :font code
+     :lineNumbers true
+     :language ~(get-in state.files [open :language])
+     :grammar ~(or-else (get-in state.files [open :grammar]) (get-in state.files [open :name]))
+     :readOnly ~(or-else (get-in state.files [open :readOnly]) false)
+     :commands {"alt+up" moveLinesUp
+                "alt+down" moveLinesDown
+                "mod+shift+k" deleteLines
+                "mod+[" outdentLines
+                "mod+]" indentLines
+                "mod+c" copyLine
+                "mod+x" cutLine}
+     :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
+     :minimap false
+     :indentGuides ~(not (get-in state.files [open :scratch]))
+     :brackets true :bracketStyle underline :foldMarkers true
+     :rulers ~(if state.ruler [80] [])
+     :wrap ~state.wrap
+     :bind "state.files[open].text"
+     :anchors {:left 0 :right 0 :top 32 :bottom 0}
+     :color @background :textColor @plain :lineNumberColor @faint :activeLineNumberColor @text
+     :lineColor @line :selectionColor @selection :caretColor @accent :guideColor @guide
+     :bracketColor @accent
+     :onChange ~(handler mark-dirty open)))
 
 (defview editor-tabs "The open files' tabs: a dot on an unsaved one; drag to reorder, right-click for the menu." []
   `(tabs#editorTabs :when ~(not state.zen)
@@ -64,10 +120,12 @@
      :minimap ~state.minimap :minimapStyle bars :minimapWidth 44 :minimapViewport always
      :matchStyle outline
      :indentGuides ~(not (get-in state.files [open :scratch]))
-     :brackets true :bracketStyle underline
+     :brackets true :bracketStyle underline :foldMarkers true
+     :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap
      :find ~computed.findQuery
+     :insert ~state.snippetInsert
      :bind "state.files[open].text"
      :caret state.caret
      :autofocus true

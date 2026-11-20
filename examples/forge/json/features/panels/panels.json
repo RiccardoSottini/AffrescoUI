@@ -6,6 +6,7 @@
 
 	"state": {
 		"problems": [],
+		"problemsFilter": "",
 		"output": [],
 		"notifications": [],
 		"toast": { "open": false, "message": "", "progress": null },
@@ -15,7 +16,7 @@
 	"computed": {
 		"errors": "{{count(state.problems, it.severity == 'error')}}",
 		"warnings": "{{count(state.problems, it.severity == 'warning')}}",
-		"problemRows": "{{map(state.problems, {id: index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}",
+		"problemRows": "{{map(sort(filter(map(state.problems, merge(it, {index: index})), empty(trim(state.problemsFilter)) || contains(lower(it.message + ' ' + it.file), lower(trim(state.problemsFilter)))), it.severity == 'error' ? 0 : it.severity == 'warning' ? 1 : 2), {id: it.index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}",
 		"outputRows": "{{map(state.output, {id: index, label: time(it.time, 'HH:mm:ss') + '  ' + it.text})}}",
 		"notificationRows": "{{map(reverse(state.notifications), {id: index, label: it.message, icon: it.severity == 'error' ? 'circle-x' : 'bell'})}}"
 	},
@@ -100,6 +101,14 @@
 					  ] },
 					{ "type": "label", "id": "problems-empty", "when": "{{state.panelTab == 'problems' && empty(state.problems)}}", "width": "100%", "padding": 12,
 					  "text": "No problems found in the open files so far.", "textColor": "@color.text" },
+					{ "type": "row", "id": "problems-filter-row", "when": "{{state.panelTab == 'problems' && !empty(state.problems)}}", "width": "100%", "height": 32,
+					  "alignItems": "center", "children": [
+						{ "id": "problems-filter-start", "width": 12 },
+						{ "type": "textarea", "id": "problems-filter", "width": 300, "height": 24, "padding": 5, "color": "@color.input", "textColor": "@color.text",
+						  "placeholderColor": "@color.muted", "bind": "state.problemsFilter", "placeholder": "Filter by text or file" },
+						{ "type": "label", "id": "problems-shown", "grow": 1, "height": 24, "padding": 8, "textColor": "@color.muted",
+						  "text": "{{empty(trim(state.problemsFilter)) ? '' : length(computed.problemRows) + ' of ' + length(state.problems)}}" }
+					  ] },
 					{ "type": "table", "id": "problems", "when": "{{state.panelTab == 'problems' && !empty(state.problems)}}", "label": "Problems", "width": "100%", "grow": 1,
 					  "items": "{{computed.problemRows}}", "rowHeight": 22, "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",

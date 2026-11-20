@@ -239,7 +239,7 @@ theme, and a name can't be both a colour and a token.
   It looks the same and grants nothing, so `checkChange` has nothing to check; the renderer keeps its textures within
   a budget and draws a subtree directly beyond it.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
-  `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
+  `pad` 10,000; nested actions 48; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
   10,000 positions past a list's end (`maxListGap`); a text an expression builds (a template, `join`, `+`, `t`, a
   message) 64 MiB (`textLimit`); 250,000 panels per screen (`maxPanels`); a timer's delay about 24.8 days, as in web
@@ -267,7 +267,8 @@ deferred work, timers and animations run through the window (`Window::defer`, `s
 destroyed it cancels its timers, its deferred tasks check that it is still alive, and it disconnects every signal it
 connected (the window's and its panels'), so a window can outlive its screen. Image files are decoded on the
 `ImageCache`'s worker thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an
-`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits
+`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `createWindow(app)` waits
+for the images the first screen asks for (at most 400 ms), so its first frame shows them; `waitForImages` waits
 for the worker and shows what it decoded. `onAsyncCall` functions run on a pool of 2 to 4 threads
 (`src/calls/AsyncCalls.*`), which share only a call's cancellation and its latest report with the main thread; every
 result comes back through the `Executor`, and destroying the runtime joins them.

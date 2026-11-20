@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/format.json", "parts/shape-format.json", "parts/canvas.json", "parts/file.json", "parts/design.json", "parts/search.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -52,7 +52,7 @@
 		"board": { "camera": { "x": 0, "y": 0, "zoom": 1 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } }
 	},
 
-	"persist": ["state.deck", "state.theme", "state.presenterView"],
+	"persist": ["state.deck", "state.theme", "state.presenterView", "state.recentDecks"],
 
 	"computed": {
 		"tabs": [
@@ -65,7 +65,7 @@
 		"canvasHeight": "{{max(window.height - 45 - (state.ribbon ? 100 : 0) - 27 - (state.notes ? 77 : 0), 100)}}",
 		"fitZoom": "{{min((computed.canvasWidth - 56) / 960, (computed.canvasHeight - 40) / 540)}}",
 		"fitCamera": "{{ {x: 480 - computed.canvasWidth / (2 * computed.fitZoom), y: 270 - computed.canvasHeight / (2 * computed.fitZoom), zoom: computed.fitZoom} }}",
-		"view": "{{state.fit ? merge(state.board, {camera: computed.fitCamera}) : state.board}}",
+		"view": "{{merge(state.fit ? merge(state.board, {camera: computed.fitCamera}) : state.board, {guides: computed.guidesShown})}}",
 		"zoom": "{{computed.view.camera.zoom}}",
 		"slideTitle": "{{trim(split(find(computed.objects, it.ph == 'title' || it.ph == 'ctrTitle').text ?? '', '\n')[0])}}",
 		"sectionFirsts": "{{map(state.deck.sections ?? [], it.first)}}",
@@ -81,7 +81,9 @@
 			{ "set": "state.fit", "to": false }
 		],
 		"viewChanged": [
+			{ "if": "{{!state.guides && length(view.guides.vertical ?? []) + length(view.guides.horizontal ?? []) > 0}}", "then": [{ "set": "state.guides", "to": true }] },
 			{ "set": "state.board", "to": "{{view}}" },
+			{ "if": "{{length(computed.touchedGroups) > 0}}", "then": [{ "set": "state.board.selection", "to": "{{computed.groupedSelection}}" }] },
 			{ "if": "{{state.editing != null && !contains(view.selection ?? [], state.editing)}}", "then": [{ "set": "state.editing", "to": null }] },
 			{ "if": "{{abs(view.camera.zoom - computed.fitCamera.zoom) > 0.0001 || abs(view.camera.x - computed.fitCamera.x) > 0.01 || abs(view.camera.y - computed.fitCamera.y) > 0.01}}",
 			  "then": [{ "set": "state.fit", "to": false }] }
@@ -100,13 +102,15 @@
 		"mod+x": [{ "when": "{{!context.textInputFocus}}", "do": "cutObjects" }],
 		"mod+v": [{ "when": "{{!context.textInputFocus}}", "do": "pasteObjects" }],
 		"mod+a": [{ "when": "{{!context.textInputFocus}}", "do": "selectAll" }],
+		"mod+g": [{ "when": "{{!context.textInputFocus}}", "do": "groupObjects" }],
+		"mod+shift+g": [{ "when": "{{!context.textInputFocus}}", "do": "ungroupObjects" }],
 		"mod+b": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "bold" } }],
 		"mod+i": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "italic" } }],
 		"mod+u": [{ "when": "{{!context.textInputFocus}}", "do": "toggleText", "with": { "key": "underline" } }],
-		"mod+l": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "left" } } }],
-		"mod+e": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "center" } } }],
-		"mod+r": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "right" } } }],
-		"mod+j": [{ "when": "{{!context.textInputFocus}}", "do": "setObjects", "with": { "props": { "align": "justify" } } }],
+		"mod+l": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "left" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "left" } }],
+		"mod+e": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "center" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "center" } }],
+		"mod+r": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "right" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "right" } }],
+		"mod+j": [{ "when": "{{!context.textInputFocus}}", "do": "setAlign", "with": { "align": "justify" } }, { "when": "{{state.editing != null}}", "do": "setAlign", "with": { "align": "justify" } }],
 		"mod+shift+.": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": 1 } }],
 		"mod+shift+,": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": -1 } }],
 		"delete": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
@@ -114,7 +118,7 @@
 		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
 		"mod+f": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": false } }] }],
 		"mod+h": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": true } }] }],
-		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.inkTool != null}}", "do": "inkTool", "with": { "tool": null } }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"escape": [{ "when": "{{state.show.on && state.showPen.tool != null}}", "do": "penTool", "with": { "tool": null } }, { "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.inkTool != null}}", "do": "inkTool", "with": { "tool": null } }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
@@ -134,8 +138,9 @@
 					{ "id": "command-divider", "width": 1, "height": 20, "color": "@rbLine" },
 					{ "id": "command-pad-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label",
-					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{computed.tabs}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
-					  "runs": [{ "text": "{{t.title}}", "size": 12 }],
+					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{concat(computed.tabs, computed.contextTabs)}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
+					  "textColor": "{{state.tab == t.id && state.ribbon ? '@onBrand' : t.contextual ? '@brandLine' : '@rbInk'}}",
+					  "runs": [{ "text": "{{t.title}}", "size": 12, "bold": "{{t.contextual ?? false}}" }],
 					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbon", "to": true }] },
 					{ "id": "command-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "textarea", "id": "search", "width": 200, "height": 28, "padding": 6, "radius": 14, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
@@ -174,7 +179,8 @@
 						{ "use": "tabInk", "when": "{{state.tab == 'draw'}}" },
 						{ "use": "tabRecord", "when": "{{state.tab == 'record'}}" },
 						{ "use": "tabCheck", "when": "{{state.tab == 'review'}}" },
-						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" }
+						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" },
+						{ "use": "tabShapeFormat", "when": "{{state.tab == 'shapeFormat'}}" }
 					  ] }
 				]
 			},
@@ -237,7 +243,7 @@
 									{ "type": "row", "id": "{{'thumb-' + s.id + '-gutter'}}", "width": 170, "height": 18, "gap": 4, "color": "transparent", "alignItems": "center", "children": [
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-number'}}", "fitText": true, "height": 16,
 										  "textColor": "{{i == state.current ? '@brandLine' : '@rbMuted'}}",
-										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}" }] },
+										  "runs": [{ "text": "{{text(i + 1)}}", "size": 11, "bold": "{{i == state.current}}", "strike": "{{s.hidden ?? false}}" }] },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-star'}}", "when": "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}",
 										  "width": 14, "height": 16, "align": "center", "textColor": "@rbMuted", "runs": [{ "icon": "wand-sparkles", "size": 10 }], "tooltip": "Has a transition or animations" },
 										{ "type": "label", "id": "{{'thumb-' + s.id + '-hidden'}}", "when": "{{s.hidden ?? false}}",
@@ -251,8 +257,9 @@
 					{ "id": "thumbs-line", "when": "{{state.view == 'normal'}}", "width": 1, "color": "@barLine" },
 					{ "use": "outlineView", "when": "{{state.view == 'outline'}}" },
 					{ "use": "sorterView", "when": "{{state.view == 'sorter'}}" },
+					{ "use": "notesPageView", "when": "{{state.view == 'notesPage'}}" },
 					{
-						"type": "column", "id": "centre", "when": "{{state.view != 'sorter'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
+						"type": "column", "id": "centre", "when": "{{state.view != 'sorter' && state.view != 'notesPage'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
 						"children": [
 							{ "id": "board-area", "grow": 1, "color": "@work", "children": [
 								{
@@ -265,11 +272,12 @@
 									"children": [
 										{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
 										  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
+										{ "use": "gridLines" },
 										{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
 										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
 										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
 											{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
-										  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
+										  "onDoubleClick": { "run": "editObject", "with": { "id": "{{o.id}}", "left": "{{event.left}}", "top": "{{event.top}}", "width": "{{event.width}}", "height": "{{event.height}}" } } }
 									]
 								},
 								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" }
@@ -324,6 +332,7 @@
 		]
 		},
 		{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}" }, "use": "slideImage", "with": { "s": "{{s}}" } },
+		{ "repeat": { "for": "s", "in": "{{state.view == 'notesPage' ? state.deck.slides : []}}", "key": "{{s.id}}", "index": "n" }, "use": "notesPageImage", "with": { "s": "{{s}}", "n": "{{n}}" } },
 		{ "use": "showStage", "when": "{{state.show.on}}" }]
 	}
 }

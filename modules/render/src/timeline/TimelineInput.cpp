@@ -347,7 +347,7 @@ void TimelineView::mouseButtonEvent(const MouseButtonEvent& event) {
 				const HeaderPart part = headerPart(point.x, lanes, model_.tracks[track].depth);
 				keyRow_ = row;
 				if(part == HeaderPart::Chevron) toggleExpanded(track);
-				else if(part != HeaderPart::None) toggleFlag(track, part == HeaderPart::Lock);
+				else if(part != HeaderPart::None && trackButtons_) toggleFlag(track, part == HeaderPart::Lock);
 			}
 		} else if(const auto item = itemAt(point, edge)) {
 			select(pressedSelection(selectedItems_, *item, event.mods.shift()));

@@ -70,7 +70,7 @@
 	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio", "user"] },
 	"state": {
 		"theme": "dark",
-		"workspace": "Layout",
+		"workspace": "Stage",
 		"mode": "object",
 		"tool": "select",
 		"menuBar": {},
@@ -101,7 +101,7 @@
 		"sceneLights": false,
 		"sceneWorld": false,
 		"world": { "color": "#3a3f47" },
-		"render": { "exposure": 1 },
+		"render": { "exposure": 1, "resolution": [1920, 1080], "fps": 24 },
 		"propertiesFilter": "",
 		"overlays": true,
 		"overlay": { "grid": true, "axes": true, "cursor": true, "text": true, "stats": false, "extras": true },
@@ -138,7 +138,7 @@
 		"propTab": "object",
 		"panels": { "transform": true, "activeTool": true, "viewPanel": true, "cursorPanel": true, "colorManagement": true,
 		            "frameRange": true, "scenePanel": true, "surfaceWorld": true, "restrictions": true, "dataPanel": true,
-		            "surfaceMaterial": true },
+		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true, "format": true },
 		"sidebar": false,
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "items": null, "x": 0, "y": 0 },
@@ -161,9 +161,9 @@
 	"computed": {
 		"activeNode": "{{find(state.scene.nodes, it.id == state.active)}}",
 		"selectedNodes": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}",
-		"gizmo": "{{merge({ visible: state.gizmos && (contains(['move', 'rotate', 'scale'], state.tool) && state.toolGizmos != false || state.tool == 'select' && state.objectGizmo != null), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : state.tool == 'select' && state.objectGizmo != null ? state.objectGizmo : 'translate', space: state.orientation == 'local' || state.orientation == 'normal' ? 'local' : 'world', snap: state.snap ? computed.snapSteps : {} }, state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : state.pivot == 'bounds' && computed.boundsCentre != null ? { pivot: computed.boundsCentre } : {})}}"
+		"gizmo": "{{merge({ visible: state.gizmos && (contains(['move', 'rotate', 'scale'], state.tool) && state.toolGizmos != false || state.tool == 'select' && state.objectGizmo != null), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : state.tool == 'select' && state.objectGizmo != null ? state.objectGizmo : 'translate', space: state.orientation == 'local' || state.orientation == 'normal' ? 'local' : state.orientation == 'view' ? 'view' : 'world', snap: state.snap ? computed.snapSteps : {} }, state.pivot == 'individual' ? { individual: true } : state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : state.pivot == 'bounds' && computed.boundsCentre != null ? { pivot: computed.boundsCentre } : {})}}"
 	},
-	"onLoad": { "set": "state.startScene", "to": "{{state.scene}}" },
+	"onLoad": [{ "set": "state.startScene", "to": "{{state.scene}}" }, { "set": "state.assistant.floor", "to": 22 }, { "set": "state.assistant.size", "to": 26 }, { "set": "state.assistant.inset", "to": 2 }],
 	"root": {
 		"id": "root",
 		"color": "@gap",
@@ -192,7 +192,7 @@
 				{ "use": "modelloStatusBar" }
 			]
 		},
-		{ "id": "playback", "when": "{{state.playing != false}}", "width": 0, "height": 0, "every": { "ms": 42, "do": "tick" } },
+		{ "id": "playback", "when": "{{state.playing != false}}", "width": 0, "height": 0, "every": { "ms": "{{round(1000 / computed.fps)}}", "do": "tick" } },
 		{ "id": "popup", "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}", "y": "{{state.ctx.y}}",
 		  "items": "{{state.ctx.items ?? menus[state.ctx.menu] ?? []}}", "icons": "{{some(state.ctx.items ?? menus[state.ctx.menu] ?? [], it.icon != null)}}" } },
 		{ "id": "pie", "use": "pieMenu", "with": { "open": "state.pie.open", "x": "{{state.pie.x}}", "y": "{{state.pie.y}}", "items": "{{computed.pieItems}}",
@@ -200,7 +200,7 @@
 		{ "id": "about-dialog", "use": "dialog", "with": { "open": "state.about", "title": "Modello 1.0", "width": 360, "height": 170,
 		  "message": "A 3D modeller written only as AffrescoUI screen documents: the stock host runs it.",
 		  "buttons": [{ "title": "Close" }] } },
-		{ "id": "render-window", "use": "dialog", "with": { "open": "state.rendering", "title": "Render", "width": 760, "height": 518,
+		{ "id": "render-window", "use": "dialog", "with": { "open": "state.rendering", "title": "Render", "width": 760, "height": "{{clamp(100 + round(720 * (state.render.resolution[1] ?? 1080) / (state.render.resolution[0] ?? 1920)), 260, 720)}}",
 		  "buttons": [{ "title": "Close" }, { "title": "Save As Image…", "run": "saveRender", "keepOpen": true }] },
 		  "children": [{
 			"type": "scene", "id": "render-image", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 56 },

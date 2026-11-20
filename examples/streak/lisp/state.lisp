@@ -5,7 +5,13 @@
 (ns streak.state)
 
 ;;; State
-(defstate today "2026-10-15" "Today, as a date." :type (string))
+(defstate today "2026-10-15" "Today, as a date: the system's from the start (see start-up in habits.lisp)." :type (string))
+
+(defstate demoDay "2026-10-15" "The day the demo habits the person never changed end on." :type (string))
+
+(defstate demoStamp 0 "When start-up last moved the demo habits (ms since 1970): a habit changed later is the person's.")
+
+(defstate dayPinned false "Whether today stays where pin-seed-day put it, for screenshots and tests." :type (boolean))
 
 (defstate nextId 1 "The number of the next habit added.")
 
@@ -60,6 +66,8 @@
   "The dialog that adds or edits a habit, and its fields.")
 
 (defstate colorOpen false "Whether the dialog's palette is open.")
+
+(defstate timeOpen false "Whether the reminder's clock is open.")
 
 (defstate confirmDelete false "Whether the dialog that deletes is shown.")
 

@@ -22,8 +22,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"})json",
 	 R"(A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1.)", "editor"},
     {"viewport", R"json({"type": "string",
-		"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines } (lines from 1)"})json",
-	 R"(A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators.)",
+		"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines, rowHeight } (lines from 1)"})json",
+	 R"(A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars.)",
 	 "editor"},
     {"font", "", "Font and text colour.", "editor"},
     {"textColor", "", "", "editor"},
@@ -76,6 +76,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"foldMarkers", "flag",
+	 "`true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line "
+	 "(pointing right); a click on it folds or unfolds the line.",
+	 "editor"},
     {"tabSize",
 	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the "
@@ -358,17 +362,20 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
 		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"},
 		"icon": {"type": "string"}, "iconColor": {"type": ["string", "null"]},
+		"marks": {"type": ["array", "null"], "maxItems": 64, "items": {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "integer", "minimum": 0}}},
 		"cells": {"type": "array", "minItems": 1, "maxItems": 256,
 		"items": {"type": ["string", "number", "boolean", "null"]}}}}]}},
 		{"$ref": "#/$defs/v2/dynamic"}],
-		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"})json",
+		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, marks, children (tree), expandable (tree), cells (table) }"})json",
 	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
 	 "\"label\", \"icon\", \"iconColor\" }` (an icon before the label, by name, as a label's `icon`, in a hex colour "
 	 "or "
 	 "the text's); in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
 	 "children aren't loaded yet: `onExpand` can load them); in a `table`, `\"cells\"`: the texts of the row's "
-	 "columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as "
-	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
+	 "columns, in order (at most 256). `\"marks\"`: parts of the label drawn highlighted, each `[first, count]` in "
+	 "characters (at most 64), such as a search's matches in a line. Only the rows in view are drawn, so a list "
+	 "scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
 	 "list"},
     {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
 		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
@@ -596,9 +603,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "marker), Home and End (the play range's ends) move it and run `onScrub`.",
 	 "timeline"},
     {"timeFormat",
-	 R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"` or `\"timecode\"` (`HH:MM:SS:FF`). Its ticks "
-	 "follow the zoom.",
+	 R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode", "none"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"`, `\"timecode\"` (`HH:MM:SS:FF`) or `\"none\"` "
+	 "(ticks only, for markers that name the times, as a roadmap's months). Its ticks follow the zoom.",
 	 "timeline"},
     {"playRange",
 	 R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
@@ -609,6 +616,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"snap", "flag",
 	 "Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the "
 	 "play range and the playhead. Alt held at the press leaves it off for that drag.",
+	 "timeline"},
+    {"trackButtons", "flag",
+	 "Whether each track shows its M and L buttons, and the M and L keys mute and lock it (the default); `false` for "
+	 "tracks that are never muted or locked, such as a roadmap's projects.",
 	 "timeline"},
     {"pixelsPerSecond",
 	 R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v2/dynamic"}],

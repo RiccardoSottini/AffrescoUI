@@ -15,7 +15,10 @@
             arcadia.parts.places
             arcadia.parts.chrome
             arcadia.parts.library
+            arcadia.parts.collections
+            arcadia.parts.game-panels
             arcadia.parts.game
+            arcadia.parts.rewards
             arcadia.parts.store
             arcadia.parts.store-game
             arcadia.parts.cart
@@ -60,6 +63,7 @@
       ~(pages)
       (node#bottom-bar :use bottomBar))
     (node#settings-dialog :use settingsDialog)
+    (node#collection-dialog :use collectionDialog)
     (node :use gameMenu)
     (node#properties-dialog :use propertiesDialog)
     (node#uninstall-dialog :use uninstallDialog)
@@ -67,6 +71,7 @@
     (node#add-game-dialog :use addGameDialog)
     (node#backup-dialog :use backupDialog)
     (node#note-dialog :use noteDialog)
+    (node#shot-viewer :use shotViewer)
     (node#info-dialog :use infoDialog)
     (node :use clientToast)
     (node :use couchMode)

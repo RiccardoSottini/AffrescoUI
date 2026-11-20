@@ -156,7 +156,7 @@
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
   :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
   []
-  (set "state.transform" {:open true :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
+  (set "state.transform" {:open true :target :layer :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
 (defcommand rotateLayer180 "Turns the active layer half a turn."
   :title ~(t "command.rotateLayer180") :description ~(t "command.rotateLayer180.about") :category ~(t "category.edit")
@@ -421,6 +421,55 @@
   (doseq [child (reverse computed.groupChildren)] (moveLayer {:id (:id child) :onto state.grouping}))
   (deleteLayer {:id state.grouping}))
 
+(defcommand rasterizeLayer "Makes the active type or shape layer a pixel layer, to paint on."
+  :title ~(t "command.rasterizeLayer") :description ~(t "command.rasterizeLayer.about")
+  :category ~(t "category.layer") :icon "grid-2x2" :enablement ~computed.activeHoldsContent
+  []
+  (rasterize {}))
+
+(defcommand newTypeLayer "Adds a type layer in the middle of the image, in the foreground colour."
+  :title ~(t "command.newTypeLayer") :description ~(t "command.newTypeLayer.about") :category ~(t "category.type")
+  :icon "type"
+  []
+  (add-text {:text (t "type.sample") :x (round (/ state.doc.width 3)) :y (round (/ state.doc.height 3))}))
+
+(defcommand newWorkPath "Adds an empty path for the pen to draw, and chooses the pen."
+  :title ~(t "command.newWorkPath") :description ~(t "command.newWorkPath.about") :category ~(t "category.paths")
+  :icon "pen-tool"
+  []
+  (new-path {})
+  (setTool {:tool "pen"}))
+
+(defcommand strokeActivePath "Strokes the active path on the active layer with the foreground colour."
+  :title ~(t "command.strokePath") :description ~(t "command.strokePath.about") :category ~(t "category.paths")
+  :icon "spline" :enablement ~computed.hasPath
+  []
+  (stroke-path {}))
+
+(defcommand fillActivePath "Fills the active path on the active layer with the foreground colour."
+  :title ~(t "command.fillPath") :description ~(t "command.fillPath.about") :category ~(t "category.paths")
+  :icon "paint-bucket" :enablement ~computed.hasPath
+  []
+  (fill-path {}))
+
+(defcommand selectActivePath "Selects the inside of the active path."
+  :title ~(t "command.pathToSelection") :description ~(t "command.pathToSelection.about")
+  :category ~(t "category.paths") :icon "square-dashed" :enablement ~computed.hasPath
+  []
+  (path-to-selection {}))
+
+(defcommand shapeFromPath "Makes a shape layer of the active path."
+  :title ~(t "command.pathToShape") :description ~(t "command.pathToShape.about") :category ~(t "category.paths")
+  :icon "shapes" :enablement ~computed.hasPath
+  []
+  (path-to-shape {}))
+
+(defcommand deleteActivePath "Deletes the active path."
+  :title ~(t "command.deletePath") :description ~(t "command.deletePath.about") :category ~(t "category.paths")
+  :icon "trash-2" :enablement ~computed.hasPath
+  []
+  (delete-path {}))
+
 (defcommand mergeDown "Merges the active layer into the pixel layer below it."
   :title ~(t "command.mergeDown") :description ~(t "command.mergeDown.about") :category ~(t "category.layer")
   :icon "arrow-down-to-line"
@@ -453,6 +502,18 @@
   :icon "square-x"
   []
   (select {:kind "none"}))
+
+(defcommand reselect "Selects again what the last Deselect took away."
+  :title ~(t "command.reselect") :description ~(t "command.reselect.about") :category ~(t "category.select")
+  :icon "rotate-ccw-square" :enablement ~(not state.doc.selection)
+  []
+  (select {:kind "reselect"}))
+
+(defcommand showTransformSelection "Opens the transform dialog on the selection: moves, scales and turns its outline."
+  :title ~(t "command.showTransformSelection") :description ~(t "command.showTransformSelection.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (set "state.transform" {:open true :target :selection :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
 (defcommand invertSelection "Selects what isn't selected, and nothing of what is."
   :title ~(t "command.invertSelection") :description ~(t "command.invertSelection.about")
@@ -540,11 +601,23 @@
   :title ~(t "command.resetWorkspace") :description ~(t "command.resetWorkspace.about")
   :category ~(t "category.window") :icon "layout-panel-left"
   []
-  (set "state.panels" {:colour "colour" :properties "properties" :layers "layers"})
-  (set "state.popout" {:history false :navigator false})
-  (set "state.screenMode" :standard))
+  (chooseWorkspace {:name "standard"}))
 
-(defcommand showSearch "Searches the commands, and runs the one chosen."
+(defcommand saveWorkspace "Saves the dock as it is as a new workspace."
+  :title ~(t "command.saveWorkspace") :description ~(t "command.saveWorkspace.about") :category ~(t "category.window")
+  :icon "save"
+  []
+  (save-workspace))
+
+(defcommand deleteWorkspace "Deletes the workspace chosen, one saved, and goes back to the standard one."
+  :title ~(t "command.deleteWorkspace") :description ~(t "command.deleteWorkspace.about")
+  :category ~(t "category.window") :icon "trash-2" :enablement ~computed.workspaceSaved
+  []
+  (let [left (remove #(= (:name %) state.workspace) state.workspaces)]
+    (set "state.workspaces" left))
+  (chooseWorkspace {:name "standard"}))
+
+(defcommand showSearch "Searches the commands, the tools and the layers, and runs or chooses the one picked."
   :title ~(t "command.showSearch") :description ~(t "command.showSearch.about") :category ~(t "category.help")
   :icon "search"
   []

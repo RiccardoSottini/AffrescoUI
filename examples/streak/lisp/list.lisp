@@ -222,6 +222,7 @@
      :width 44
      :anchors {:top 0 :bottom 0}
      :color transparent
+     :radius 14
      :cursor hand
      :hover {:color @c.hover}
      :role ~(if (= hb.kind :measurable) "button" "checkbox")

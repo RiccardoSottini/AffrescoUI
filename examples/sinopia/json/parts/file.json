@@ -1,0 +1,78 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The File tab's new decks and recent decks. New starts a deck from a theme: one title slide, its placeholders empty. The decks last opened or saved are kept (their names and their slides, across sessions), and a click on one opens it again, as a change Undo takes back.",
+
+	"state": {
+		"recentDecks": []
+	},
+
+	"computed": {
+		"newThemes": "{{slice(computed.themes, 0, 6)}}"
+	},
+
+	"actions": {
+		"newDeck": [
+			{ "note": "with: theme, the theme the new deck starts in; Undo takes it back" },
+			{ "run": "commit" },
+			{ "set": "state.deck", "to": { "title": "Untitled deck", "size": [960, 540], "theme": "{{theme}}", "variant": 0, "next": 3, "sections": [],
+			                               "slides": [{ "id": "s1", "layout": "title", "notes": "",
+			                                            "objects": [{ "id": "o1", "kind": "text", "ph": "ctrTitle", "text": "" }, { "id": "o2", "kind": "text", "ph": "subTitle", "text": "" }] }] } },
+			{ "set": "state.current", "to": 0 },
+			{ "set": "state.board.selection", "to": [] },
+			{ "set": "state.fileStatus", "to": "A new deck." }
+		],
+		"rememberDeck": [
+			{ "note": "with: name, the file the deck shown was opened from or saved to: it heads the recent decks, at most four" },
+			{ "set": "state.recentDecks", "to": "{{slice(concat([{ name: name, deck: state.deck }], filter(state.recentDecks, it.name != name)), 0, 4)}}" }
+		],
+		"openRecent": [
+			{ "note": "with: index, a recent deck to open again, as a change Undo takes back" },
+			{ "run": "commit" },
+			{ "set": "state.deck", "to": "{{state.recentDecks[index].deck}}" },
+			{ "set": "state.current", "to": 0 },
+			{ "set": "state.board.selection", "to": [] },
+			{ "set": "state.fileStatus", "to": "{{'Opened ' + state.recentDecks[index].name + '.'}}" }
+		]
+	},
+
+	"components": {
+		"fileNew": {
+			"params": {},
+			"note": "New: a deck from each theme, drawn as its background, Aa and its accents.",
+			"node": {
+				"id": "g-file-new", "use": "rbGroup", "with": { "title": "New" }, "children": [
+					{ "type": "row", "id": "file-new-row", "fitContent": "width", "height": 70, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
+						{ "type": "panel", "id": "{{'new-' + th.id}}", "repeat": { "for": "th", "in": "{{computed.newThemes}}", "key": "{{th.id}}" },
+						  "width": 64, "height": 52, "radius": 4, "cursor": "hand", "role": "button", "label": "{{'A new deck in ' + th.name}}", "tooltip": "{{'A new deck in ' + th.name}}",
+						  "color": "{{th.colors[th.background]}}", "borderWidth": 1, "borderColor": "@rbFieldLine", "hover": { "borderColor": "@brand" },
+						  "onClick": { "run": "newDeck", "with": { "theme": "{{th.id}}" } },
+						  "children": [
+							{ "type": "label", "id": "{{'new-' + th.id + '-aa'}}", "x": 6, "y": 6, "width": 40, "height": 22, "textColor": "{{th.colors.dark1}}", "runs": [{ "text": "Aa", "size": 16 }] },
+							{ "type": "row", "id": "{{'new-' + th.id + '-bar'}}", "x": 6, "y": 36, "width": 52, "height": 6, "color": "transparent", "children": [
+								{ "id": "{{'new-' + th.id + '-' + c}}", "repeat": { "for": "c", "in": ["accent1", "accent2", "accent3", "accent4"] }, "width": 13, "height": 6, "color": "{{th.colors[c]}}" }
+							] }
+						  ] }
+					] }
+				]
+			}
+		},
+
+		"fileRecent": {
+			"params": {},
+			"note": "Recent: the decks last opened or saved; a click opens one again.",
+			"node": {
+				"id": "g-file-recent", "use": "rbGroup", "with": { "title": "Recent" }, "children": [
+					{ "type": "column", "id": "file-recent-list", "width": 200, "height": 72, "gap": 0, "alignItems": "stretch", "color": "transparent", "children": [
+						{ "type": "label", "id": "file-recent-none", "when": "{{length(state.recentDecks) == 0}}", "height": 72, "wrap": true, "padding": 4, "textColor": "@rbMuted",
+						  "runs": [{ "text": "The decks you open or save are listed here.", "size": 12 }] },
+						{ "type": "label", "id": "{{'recent-' + i}}", "repeat": { "for": "r", "in": "{{slice(state.recentDecks, 0, 3)}}", "index": "i" }, "height": 22, "padding": 4, "style": "rbButton",
+						  "tooltip": "{{'Open ' + r.name + ' again'}}", "runs": [{ "icon": "file-clock", "size": 13 }, { "text": "{{' ' + r.name}}", "size": 12 }],
+						  "onClick": { "run": "openRecent", "with": { "index": "{{i}}" } } }
+					] }
+				]
+			}
+		}
+	}
+}

@@ -11,7 +11,7 @@
 (defview home-page "The home page: the top bar, the summary, and the room's cards." []
   `(node#main :dir auto
      :when ~(= state.page :home)
-     :anchors {:left ~computed.sideWidth :right 0 :top 0 :bottom 32}
+     :anchors {:left ~computed.sideWidth :right 0 :top 0 :bottom ~(if settings.window.statusBar 32 0)}
      :color transparent
      ~(top-bar)
      ~(summary-chips)
@@ -122,23 +122,28 @@
      :tooltip ~(t "toolbar.searchKey")
      :onClick searchEntities))
 
-(defview add-card-button "While editing, Add card: not there yet." []
+(defview add-card-button "While editing, Add card: a menu of the cards taken off, off while every card is on." []
   `(node#editAddCard :when ~state.editing
      :style button
      :icon plus
      :text ~(t "edit.addCard")
      :color transparent
-     :hover {:color transparent}
-     :textColor @onHeaderDim
+     :hover {:color ~(if (empty? state.hiddenCards) "transparent" "@accentSoft")}
+     :textColor ~(if (empty? state.hiddenCards) "@onHeaderDim" "@accent")
      :anchors {:right 112 :top 10}
      :padding 14
      :fitText true
      :height 36
      :radius 18
+     :focusable ~(not (empty? state.hiddenCards))
+     :role button
      :label ~(t "edit.addCard")
-     :tooltip ~(t "edit.addCardSoon")
-     :cursor arrow
-     :disabled true))
+     :tooltip ~(if (empty? state.hiddenCards) (t "edit.addCardSoon") (t "edit.addCardTip"))
+     :cursor ~(if (empty? state.hiddenCards) "arrow" "hand")
+     :disabled ~(empty? state.hiddenCards)
+     :isOpen ~state.addCardOpen
+     :onClick {:toggle state.addCardOpen}
+     (node#addCardMenu :use popMenu :with {:open state.addCardOpen :width 220 :items ~computed.hiddenChoices})))
 
 (defview page-menu-button "The button of the page's menu." []
   `(label#dashMore :when ~(not state.editing)
@@ -196,20 +201,22 @@
      :color transparent
      :scroll vertical
      ~(room-picture)
-     (label#label-lights :font heading
+     (label#label-lights :when ~computed.cardShown.lights
+       :font heading
        :textColor @text
        :text ~computed.cardTitle.lights
        :anchors {:left ~(if state.editing 14 4) :top ~(if computed.compact 0 136)}
        :fitText true)
-     (node#label-click-a-light :when ~(not state.editing)
+     (node#label-click-a-light :when ~(and computed.cardShown.lights (not state.editing))
        :style caption
        :text ~(t "lights.hint")
        :anchors {:right 4 :top ~(if computed.compact 4 140)})
      ~(lights-grid)
-     ~(card-heading "label-scenes" 'computed.cardTitle.scenes "#lights.bottom + 16")
+     ~(card-heading "label-scenes" 'computed.cardTitle.scenes 'computed.scenesTop 'computed.cardShown.scenes)
      ~(scene-row)
-     ~(card-heading "label-security" 'computed.cardTitle.security "#scenes.bottom + 16")
+     ~(card-heading "label-security" 'computed.cardTitle.security 'computed.securityTop 'computed.cardShown.security)
      (node#alarmTile :use alarmTile
+       :when ~computed.cardShown.security
        :anchors {:left ~(if state.editing 10 0) :right ~(if state.editing 10 0) :top "#label-security.bottom + 10"})
      ~(edit-frame "editLights" "lights" 'computed.cardTitle.lights {:top "#label-lights.top - 6"
                                                                     :bottom "#lights.bottom + 10"})
@@ -218,8 +225,10 @@
      ~(edit-frame "editSecurity" "security" 'computed.cardTitle.security
                   {:top "#label-security.top - 6" :bottom "#alarmTile.bottom + 10"})))
 
-(defview card-heading "The heading of a group of cards, moved in while the cards are being arranged." [id title top]
+(defview card-heading "The heading of a group of cards, moved in while the cards are being arranged."
+  [id title top shown]
   `(label :id ~id
+     :when ~shown
      :font heading
      :textColor @text
      :text ~title
@@ -228,14 +237,18 @@
 
 (defview edit-frame "A group's frame while the cards are being arranged: its outline, and the pencil that edits it."
   [id card title edges]
-  `(node :id ~id :use editFrame :with {:card ~card :name ~title} :anchors ~(merge {:left 0 :right 0} edges)))
+  `(node :id ~id
+     :when ~(and state.editing (get computed.cardShown card))
+     :use editFrame
+     :with {:card ~card :name ~title}
+     :anchors ~(merge {:left 0 :right 0} edges)))
 
 (defview room-picture "The room's picture, its name and its climate on a shade at the bottom." []
   `(node#areaCard :when ~(not computed.compact)
      :anchors {:left 0 :right 0 :top 0}
      :height 120
      :radius 18
-     :color @card
+     :color ~computed.room.tint
      :role group
      :label ~computed.room.name
      (image#roomImage :file ~computed.room.image
@@ -254,7 +267,8 @@
        :fitText true)))
 
 (defview lights-grid "The room's lights, two to a row." []
-  `(grid#lights :columns 2
+  `(grid#lights :when ~computed.cardShown.lights
+     :columns 2
      :gap 8
      :anchors {:left ~(if state.editing 10 0) :right ~(if state.editing 10 0) :top ~(if computed.compact 30 166)}
      :height ~(-> (count computed.room.lights) (/ 2) ceil (* 112) (- 8))
@@ -328,7 +342,8 @@
      :tooltip ~(t "light.brightness")))
 
 (defview scene-row "The scenes, side by side." []
-  `(row#scenes :anchors {:left ~(if state.editing 10 0) :right ~(if state.editing 10 0)
+  `(row#scenes :when ~computed.cardShown.scenes
+     :anchors {:left ~(if state.editing 10 0) :right ~(if state.editing 10 0)
                          :top "#label-scenes.bottom + 10"}
      :height 76
      :gap 8
@@ -371,7 +386,8 @@
 ;;; The end side: the climate, the blinds and the devices
 
 (defview climate-card "The climate: the dial of the target, the steps that change it, and the heating modes." []
-  `(node#climateCard :anchors {:right 24 :top 116}
+  `(node#climateCard :when ~computed.cardShown.climate
+     :anchors {:right 24 :top 116}
      :x "52%"
      :width "45%"
      :height ~(if computed.compact 228 300)
@@ -443,7 +459,8 @@
      :onClick ~(handler pick-mode mode)))
 
 (defview blinds-card "The blinds: how open they are, open and close, and a bar that sets them." []
-  `(node#blindsCard :anchors {:right 24 :top "#climateCard.bottom + 12"}
+  `(node#blindsCard :when ~computed.cardShown.cover
+     :anchors {:right 24 :top ~(if computed.cardShown.climate "#climateCard.bottom + 12" 116)}
      :x "52%"
      :width "45%"
      :height 112
@@ -460,8 +477,8 @@
      (node#label-round-room-blinds :style caption
        :text ~(t "blinds.open" {:n (round computed.room.blinds)})
        :anchors {:left 60 :top 32})
-     ~(blinds-button "label-open" "chevron-up" "blinds.openButton" 100 52 12)
-     ~(blinds-button "label-close" "chevron-down" "blinds.close" 0 96 56)
+     ~(blinds-button "label-open" "chevron-up" "blinds.openButton" 100 84 12)
+     ~(blinds-button "label-close" "chevron-down" "blinds.close" 0 128 56)
      (node#level-bar-blinds-card :use levelBar
        :with {:level ~(/ computed.room.blinds 100) :fill @cover :back ~computed.coverTint}
        :anchors {:left 12 :right 12 :bottom 12})
@@ -514,7 +531,8 @@
      :onClick ~(handler move-blinds to)))
 
 (defview devices-card "The devices, a tile each." []
-  `(node#devicesCard :anchors {:right 24 :top "#blindsCard.bottom + 12" :bottom 16}
+  `(node#devicesCard :when ~computed.cardShown.devices
+     :anchors {:right 24 :top ~computed.devicesTop :bottom 16}
      :x "52%"
      :width "45%"
      :color transparent

@@ -90,6 +90,8 @@
           :mark {:file "../../shared/fonts/Lucide.ttf" :size 22}
           :iconsSmall {:file "../../shared/fonts/Lucide.ttf" :size 14}}
   :persist [state.nextId
+            state.demoDay
+            state.demoStamp
             state.selected
             state.sort
             state.hideCompleted

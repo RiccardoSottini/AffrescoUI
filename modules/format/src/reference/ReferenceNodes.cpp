@@ -326,13 +326,13 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"font", R"json({"type": "string"})json", "Font name. Default: `default`.", "label"},
     {"padding", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Pixels between the edges and the text.", "label"},
-    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"},
-		{"type": "string", "pattern": "^(start|center|end) (start|center|end)$"},
+    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"},
+		{"type": "string", "pattern": "^(start|center|end|justify) (start|center|end)$"},
 		{"type": "object", "additionalProperties": false,
-		"properties": {"horizontal": {"$ref": "#/$defs/v2/align"},
+		"properties": {"horizontal": {"anyOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"}]},
 		"vertical": {"$ref": "#/$defs/v2/align"}}}],
 		"description": "label: text alignment; stack: v1 name of \"from\""})json",
-	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`.)",
+	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically).)",
 	 "label"},
     {"wrap", "flag", "Break lines that don't fit the width.", "label"},
     {"fitText", R"json({"oneOf": [{"type": "boolean"}, {"type": "object", "required": ["maxWidth"],
@@ -376,6 +376,12 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "are left out of the copy.",
 	 "label"},
     {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
+    {"letterSpacing",
+	 R"json({"anyOf": [{"type": "number", "minimum": -16, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's "
+	 "`letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's "
+	 "spacing.",
+	 "label"},
 });
 
 /// @brief The three parts of the table, joined once in order.

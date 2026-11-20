@@ -154,10 +154,13 @@
 
 ;;; The image and the active layer
 
-(defview transform-dialog "The Free Transform dialog: move, scale and turn the active layer." []
+(defview transform-dialog "The transform dialog: move, scale and turn the active layer, or the selection's outline." []
   (dialog-host
     `(node#transform-dialog :use dialog
-       :with {:open state.transform.open :title ~(t "transformDialog.title") :message "" :width 340 :height 270
+       :with {:open state.transform.open
+              :title ~(t (if (= state.transform.target :selection) "transformDialog.selectionTitle"
+                             "transformDialog.title"))
+              :message "" :width 340 :height 270
               :buttons ~[{:title (t "dialog.cancel")} {:title (t "dialog.ok") :run "applyTransform" :default true}]}
        ~(fields "transform-fields" 4
           (number-row "transformDialog.across" "x" "transform" "unit.px")

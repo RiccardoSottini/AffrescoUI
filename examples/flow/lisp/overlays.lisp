@@ -24,7 +24,8 @@
 (defview status-bar "The status bar: the revision shown, and the window's size." []
   `(node#statusBar :use statusBar
      :anchors {:left 220 :right 0 :bottom 0}
-     :with {:height 32
+     :visible ~settings.window.statusBar
+     :with {:height ~(if settings.window.statusBar 32 0)
             :color @color.surface
             :textColor @color.muted
             :highlight @color.chipHover

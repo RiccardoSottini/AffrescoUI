@@ -23,6 +23,9 @@
      ~(fill-options)
      ~(gradient-options)
      ~(crop-options)
+     ~(type-options)
+     ~(shape-options)
+     ~(path-options)
      (node#option-sample-all :use tCheck
        :when ~(= state.doc.tool "eyedropper")
        :with {:title ~(t "option.sampleAllLayers") :key allLayers :checked ~state.doc.options.allLayers})
@@ -42,6 +45,74 @@
      :color @accentSoft
      (label :icon ~computed.tool.icon :textColor @accent :width 26 :height 26 :align center)
      (label#options-tool-name :text ~computed.toolName :textColor @text :fitText true)))
+
+;;; Type, shapes and paths
+
+(defview type-options "The Type tool's options: size, bold and italic, alignment, and the colour (the foreground)." []
+  `(row#options-type :when ~(= state.doc.gesture "text") :grow 100 :alignItems center :gap 8 :height 30
+     (node#option-type-size :use tField
+       :with {:title ~(t "option.typeSize") :key size :value ~state.doc.vector.size :low 4 :high 1000 :unit " px"
+              :width 52 :pop false :run set-vector})
+     (node :style sep)
+     (node#option-type-bold :use tIcon
+       :with {:icon bold :tip ~(t "option.bold") :on ~state.doc.vector.bold :run set-vector
+              :args {:bold ~(not state.doc.vector.bold)}})
+     (node#option-type-italic :use tIcon
+       :with {:icon italic :tip ~(t "option.italic") :on ~state.doc.vector.italic :run set-vector
+              :args {:italic ~(not state.doc.vector.italic)}})
+     (node :style sep)
+     ~@(map (fn [it]
+              `(node :id ~(str "option-align-" (first it))
+                 :use tIcon
+                 :with {:icon ~(second it) :tip ~(t (str "option.align." (first it)))
+                        :on ~(= state.doc.vector.align (first it)) :run set-vector :args {:align ~(first it)}}))
+            [["left" "align-left"] ["center" "align-center"] ["right" "align-right"]])
+     (node :style sep)
+     (node#option-type-colour :role button :label ~(t "option.typeColour") :tooltip ~(t "option.typeColour.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler set-vector {:fill state.doc.foreground}))
+     (label :style dim :text ~(t "option.typeHint") :fitText true)))
+
+(defview shape-options "A shape tool's options: the fill (the foreground), the stroke, its width, and the corners." []
+  `(row#options-shape :when ~(= state.doc.gesture "shape") :grow 100 :alignItems center :gap 8 :height 30
+     (node :style dim :text ~(str (t "option.shapeFill") ":"))
+     (node#option-shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler set-vector {:fill state.doc.foreground}))
+     (node :style dim :text ~(str (t "option.shapeStroke") ":"))
+     (node#option-shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.vector.stroke :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler set-vector {:stroke state.doc.background}))
+     (node#option-stroke-width :use tField
+       :with {:title "" :key strokeWidth :value ~state.doc.vector.strokeWidth :low 0 :high 200 :unit " px"
+              :width 48 :pop false :run set-vector :tip ~(t "option.strokeWidth")})
+     (node#option-shape-radius :use tField
+       :when ~(= state.doc.vector.shape "rectangle")
+       :with {:title ~(t "option.radius") :key radius :value ~state.doc.vector.radius :low 0 :high 1000 :unit " px"
+              :width 48 :pop false :run set-vector})
+     (node#option-shape-sides :use tField
+       :when ~(= state.doc.vector.shape "polygon")
+       :with {:title ~(t "option.sides") :key sides :value ~state.doc.vector.sides :low 3 :high 64 :unit ""
+              :width 36 :pop false :run set-vector})))
+
+(defview path-options "The pen's and the path selection's options: what to make of the active path." []
+  `(row#options-path :when ~(contains ["pen" "path-select"] state.doc.gesture)
+     :grow 100
+     :alignItems center
+     :gap 6
+     :height 30
+     (node :style dim :text ~(str (t "option.makePath") ":"))
+     (node#option-path-selection :use tButton
+       :with {:title ~(t "option.path.selection") :run selectActivePath :off ~(not computed.hasPath)})
+     (node#option-path-shape :use tButton
+       :with {:title ~(t "option.path.shape") :run shapeFromPath :off ~(not computed.hasPath)})
+     (node#option-path-stroke :use tButton
+       :with {:title ~(t "option.path.stroke") :run strokeActivePath :off ~(not computed.hasPath)})
+     (node#option-path-fill :use tButton
+       :with {:title ~(t "option.path.fill") :run fillActivePath :off ~(not computed.hasPath)})
+     (node :style sep)
+     (label :style dim :text ~(t (if (= state.doc.gesture "pen") "option.penHint" "option.pathSelectHint"))
+       :fitText true)))
 
 ;;; Painting
 
@@ -283,7 +354,17 @@
          :with {:open state.workspaceMenu
                 :placement below-end
                 :width 200
-                :items ~[{:title (t "workspace.standard") :checked true :run "resetWorkspace"}
-                         {:separator true}
-                         {:title (t "command.resetWorkspace") :run "resetWorkspace"}]}))
+                :items ~(concat
+                          [{:title (t "workspace.standard") :checked (= state.workspace "standard")
+                            :run "chooseWorkspace" :with {:args {:name "standard"}}}
+                           {:title (t "workspace.painting") :checked (= state.workspace "painting")
+                            :run "chooseWorkspace" :with {:args {:name "painting"}}}]
+                          (map #(hash-map :title (:name %) :checked (= state.workspace (:name %))
+                                          :run "chooseWorkspace" :with {:args {:name (:name %)}})
+                               state.workspaces)
+                          [{:separator true}
+                           {:title (t "command.saveWorkspace") :run "saveWorkspace"}
+                           {:title (t "command.deleteWorkspace") :run "deleteWorkspace"
+                            :enabled computed.workspaceSaved}
+                           {:title (t "command.resetWorkspace") :run "resetWorkspace"}])}))
      (node :width 6 :height 1 :style clear)))

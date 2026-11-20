@@ -8,6 +8,10 @@
       "screen": "index.screen.lisp",
       "steps": [
         {
+          "action": "pin-seed-day",
+          "note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+        },
+        {
           "expect": {
             "image": "first-frame"
           }

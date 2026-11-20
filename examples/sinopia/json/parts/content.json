@@ -1,0 +1,171 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "What Insert puts on a slide besides text and shapes. A table is an object of kind table whose cells are rows of texts, the first row its header, the others banded in its tint (an accent of the theme): Insert > Table opens a grid of sizes, a double click on a cell edits it, and Tab and Shift+Tab go to the next and the previous cell (Tab in the last one adds a row). A picture is an object of kind picture whose src is the PNG or JPEG the person chose, held in the deck as a data URI, so the saved deck carries it.",
+
+	"state": {
+		"tablePick": { "open": false, "rows": 0, "cols": 0 },
+		"cell": [0, 0],
+		"caret": { "line": 1, "column": 1, "selected": 0 },
+		"picture": null
+	},
+
+	"computed": {
+		"tableSizes": "{{map(range(48), { r: floor(it / 8) + 1, c: it % 8 + 1 })}}",
+		"tableSelected": "{{length(filter(computed.selected, it.kind == 'table')) > 0}}"
+	},
+
+	"components": {
+		"tableGrid": {
+			"params": {},
+			"note": "Insert > Table: a grid of sizes; the pointer picks one, a click puts that table on the slide.",
+			"node": {
+				"type": "column", "id": "table-grid", "width": 196, "height": "{{computed.tableSelected ? 236 : 182}}", "gap": 6, "radius": 10, "color": "@card", "borderWidth": 1, "borderColor": "@rbLine",
+				"shadow": { "y": 4, "blur": 14, "color": "#00000033" }, "role": "menu", "label": "Insert Table",
+				"overlay": { "anchor": "#b-ins-table", "placement": "below", "open": "state.tablePick.open", "dismiss": "outside", "modal": true },
+				"children": [
+					{ "id": "table-grid-top", "height": 2, "color": "transparent" },
+					{ "type": "label", "id": "table-grid-title", "height": 18, "anchors": { "left": 10, "right": 10 }, "textColor": "@rbInk",
+					  "runs": [{ "text": "{{state.tablePick.rows > 0 ? state.tablePick.rows + ' × ' + state.tablePick.cols + ' Table' : 'Insert Table'}}", "size": 12, "bold": true }] },
+					{ "type": "grid", "id": "table-grid-cells", "columns": 8, "gap": 3, "height": 141, "anchors": { "left": 10, "right": 10 }, "color": "transparent", "children": [
+						{
+							"id": "{{'table-grid-' + z.r + '-' + z.c}}", "repeat": { "for": "z", "in": "{{computed.tableSizes}}" }, "width": 18, "height": 18, "radius": 2, "cursor": "hand", "role": "menuitem",
+							"label": "{{z.r + ' × ' + z.c + ' Table'}}",
+							"let": { "on": "{{z.r <= state.tablePick.rows && z.c <= state.tablePick.cols}}" },
+							"color": "{{on ? '@rbChecked' : '@card'}}", "borderWidth": 1, "borderColor": "{{on ? '@brand' : '@rbFieldLine'}}",
+							"onHover": { "run": "pickTableSize", "with": { "rows": "{{z.r}}", "cols": "{{z.c}}" } },
+							"onClick": { "run": "insertTable", "with": { "rows": "{{z.r}}", "cols": "{{z.c}}" } }
+						}
+					] },
+					{ "type": "label", "id": "table-styles-title", "when": "{{computed.tableSelected}}", "height": 18, "anchors": { "left": 10, "right": 10 }, "textColor": "@rbInk",
+					  "runs": [{ "text": "Table Styles", "size": 12, "bold": true }] },
+					{ "type": "row", "id": "table-styles", "when": "{{computed.tableSelected}}", "height": 22, "gap": 6, "anchors": { "left": 10, "right": 10 }, "color": "transparent", "children": [
+						{
+							"type": "column", "id": "{{'table-style-' + tint}}", "repeat": { "for": "tint", "in": ["accent1", "accent2", "accent3", "accent4", "accent5", "accent6"] },
+							"width": 22, "height": 22, "radius": 3, "cursor": "hand", "role": "menuitem", "label": "{{'Accent ' + slice(tint, 6)}}",
+							"color": "{{computed.palette[tint + '.1']}}", "borderWidth": 1, "borderColor": "{{computed.palette[tint]}}", "hover": { "borderColor": "@brand" },
+							"onClick": { "run": "setTableTint", "with": { "tint": "{{tint}}" } },
+							"children": [{ "id": "{{'table-style-' + tint + '-head'}}", "height": 7, "color": "{{computed.palette[tint]}}" }]
+						}
+					] }
+				]
+			}
+		},
+		"slideTable": {
+			"params": { "o": null, "prefix": "", "w": 100, "h": 100, "edit": false },
+			"note": "A table object's cells, in a box w by h: the header row in its tint, the rows banded; while a cell is edited, an editor over it, the same one from cell to cell.",
+			"node": {
+				"id": "{{prefix + o.id + '-table'}}", "x": 0, "y": 0, "width": "{{w}}", "height": "{{h}}",
+				"let": {
+					"rows": "{{max(length(o.cells ?? []), 1)}}",
+					"cols": "{{max(length(o.cells[0] ?? []), 1)}}",
+					"tint": "{{o.tint ?? 'accent1'}}",
+					"size": "{{o.size ?? 16}}",
+					"editing": "{{edit && state.editing == o.id}}"
+				},
+				"color": "{{computed.palette[tint + '.1']}}", "borderWidth": 1, "borderColor": "{{computed.palette[tint]}}",
+				"children": [
+					{ "type": "column", "id": "{{prefix + o.id + '-rows'}}", "x": 0, "y": 0, "width": "{{w}}", "height": "{{h}}", "color": "transparent", "children": [
+						{
+							"type": "row", "id": "{{prefix + o.id + '-r' + r}}", "repeat": { "for": "cells", "in": "{{o.cells ?? []}}", "index": "r" }, "width": "{{w}}", "height": "{{h / rows}}",
+							"color": "{{r == 0 ? computed.palette[tint] : r % 2 == 1 ? computed.palette[tint + '.2'] : computed.palette[tint + '.1']}}",
+							"children": [
+								{
+									"id": "{{prefix + o.id + '-c' + r + '-' + c}}", "repeat": { "for": "text", "in": "{{cells}}", "index": "c" }, "width": "{{w / cols}}", "height": "{{h / rows}}", "color": "transparent",
+									"borderWidth": 0.5, "borderColor": "{{computed.palette['light1']}}",
+									"children": [
+										{ "type": "label", "id": "{{prefix + o.id + '-c' + r + '-' + c + '-t'}}", "when": "{{!(editing && state.cell == [r, c])}}",
+										  "anchors": { "left": 7, "right": 7, "top": 4, "bottom": 4 }, "wrap": true, "align": { "horizontal": "start", "vertical": "center" },
+										  "runs": [{ "text": "{{text}}", "size": "{{size}}", "bold": "{{r == 0}}", "color": "{{computed.palette[r == 0 ? 'light1' : 'dark1']}}" }] }
+									]
+								}
+							]
+						}
+					] },
+					{
+						"type": "editor", "id": "{{'cell-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
+						"let": { "k": "{{size / 48}}", "r": "{{state.cell[0]}}", "c": "{{state.cell[1]}}", "cw": "{{w / cols}}", "rh": "{{h / rows}}" },
+						"bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].cells[' + r + '][' + c + ']'}}",
+						"keys": { "tab": { "run": "nextCell", "with": { "by": 1 } }, "shift+tab": { "run": "nextCell", "with": { "by": -1 } } },
+						"x": "{{c * cw + 7 - 12 * k}}", "y": "{{r * rh + (rh - size * 1.2) / 2 - 6 * k}}",
+						"width": "{{(cw - 14 + 24 * k) / k}}", "height": "{{size * 1.7 / k}}", "scale": "{{k}}",
+						"font": "slideText", "transformOrigin": "topLeft", "color": "transparent", "lineColor": "transparent",
+						"textColor": "{{computed.palette[r == 0 ? 'light1' : 'dark1']}}", "caretColor": "{{computed.palette[r == 0 ? 'light1' : 'dark1']}}",
+						"selectionColor": "#2a9d8f55", "label": "{{'Row ' + (r + 1) + ', column ' + (c + 1)}}"
+					}
+				]
+			}
+		},
+		"slidePicture": {
+			"params": { "o": null, "prefix": "", "w": 100, "h": 100 },
+			"note": "A picture object: its image, filling its box w by h.",
+			"node": { "type": "image", "id": "{{prefix + o.id + '-picture'}}", "x": 0, "y": 0, "width": "{{w}}", "height": "{{h}}",
+			          "source": "{{o.src ?? ''}}", "fit": "fill", "label": "{{o.alt ?? 'Picture'}}" }
+		}
+	},
+
+	"overlays": {
+		"zTable": { "use": "tableGrid", "when": "{{state.tablePick.open}}" }
+	},
+
+	"actions": {
+		"openTableGrid": [
+			{ "set": "state.drop.open", "to": false },
+			{ "set": "state.tablePick", "to": { "open": true, "rows": 0, "cols": 0 } }
+		],
+		"pickTableSize": [
+			{ "set": "state.tablePick.rows", "to": "{{rows}}" },
+			{ "set": "state.tablePick.cols", "to": "{{cols}}" }
+		],
+		"insertTable": [
+			{ "set": "state.tablePick.open", "to": false },
+			{ "run": "insertObject", "with": { "object": "{{ {kind: 'table', x: 80, y: 270 - min(rows * 40, 440) / 2, w: 800, h: min(rows * 40, 440), tint: 'accent1', cells: map(range(rows), map(range(cols), ''))} }}" } }
+		],
+		"editCell": [
+			{ "note": "with: id, r, c: the table and the cell edited, in an editor over it, until Escape or a click elsewhere" },
+			{ "run": "commit" },
+			{ "set": "state.board.selection", "to": ["{{id}}"] },
+			{ "set": "state.cell", "to": ["{{r}}", "{{c}}"] },
+			{ "set": "state.editing", "to": "{{id}}" },
+			{ "focus": "{{'#cell-' + id}}" }
+		],
+		"editObject": [
+			{ "note": "with: id, left, top, width, height: a double click on an object; a table edits the cell under the pointer, other objects their text" },
+			{ "if": "{{length(find(computed.objects, it.id == id).cells ?? []) > 0}}",
+			  "then": [{ "run": "editCell", "with": {
+				"id": "{{id}}",
+				"r": "{{clamp(floor(top / max(height, 1) * length(find(computed.objects, it.id == id).cells)), 0, length(find(computed.objects, it.id == id).cells) - 1)}}",
+				"c": "{{clamp(floor(left / max(width, 1) * length(find(computed.objects, it.id == id).cells[0])), 0, length(find(computed.objects, it.id == id).cells[0]) - 1)}}" } }],
+			  "else": [{ "run": "editText", "with": { "id": "{{id}}" } }] }
+		],
+		"nextCell": [
+			{ "note": "with: by: Tab (1) goes to the next cell, Shift+Tab (-1) to the one before; Tab in the last cell adds a row" },
+			{ "if": "{{max(state.cell[0] * length(find(computed.objects, it.id == state.editing).cells[0]) + state.cell[1] + by, 0) >= length(find(computed.objects, it.id == state.editing).cells) * length(find(computed.objects, it.id == state.editing).cells[0])}}",
+			  "then": [{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, it.id == state.editing ? merge(it, { cells: concat(it.cells, [map(it.cells[0], '')]), h: it.h + it.h / length(it.cells) }) : it)}}" }] },
+			{ "set": "state.cell", "to": "{{[floor(max(state.cell[0] * length(find(computed.objects, it.id == state.editing).cells[0]) + state.cell[1] + by, 0) / length(find(computed.objects, it.id == state.editing).cells[0])), max(state.cell[0] * length(find(computed.objects, it.id == state.editing).cells[0]) + state.cell[1] + by, 0) % length(find(computed.objects, it.id == state.editing).cells[0])]}}" }
+		],
+		"setTableTint": [
+			{ "note": "with: tint: the selected tables take an accent of the theme" },
+			{ "if": "{{computed.tableSelected}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) && it.kind == 'table' ? merge(it, { tint: tint }) : it)}}" }
+			] }
+		],
+		"insertPicture": [
+			{ "openFile": "state.picture", "as": "image", "title": "Insert a picture",
+			  "onDone": [{ "run": "pictureOpened", "with": { "result": "{{result}}" } }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + error.message}}" }] }
+		],
+		"placePicture": [
+			{ "note": "with: result, k: the picture's size scaled by k (400 by 300 when the file doesn't say), in the middle of the slide" },
+			{ "run": "insertObject", "with": { "object": "{{ {kind: 'picture', w: (result.width ?? 0) > 0 ? round(result.width * k) : 400, h: (result.height ?? 0) > 0 ? round(result.height * k) : 300, x: 480 - ((result.width ?? 0) > 0 ? round(result.width * k) : 400) / 2, y: 270 - ((result.height ?? 0) > 0 ? round(result.height * k) : 300) / 2, src: state.picture, alt: result.name} }}" } }
+		],
+		"pictureOpened": [
+			{ "note": "with: result: the picture just opened goes in the middle of the slide, at most 640 by 400, and is selected" },
+			{ "run": "placePicture", "with": { "result": "{{result}}", "k": "{{min(640 / max(result.width ?? 0, 1), 400 / max(result.height ?? 0, 1), 1)}}" } },
+			{ "set": "state.picture", "to": null },
+			{ "set": "state.fileStatus", "to": "{{'Inserted ' + result.name + '.'}}" }
+		]
+	}
+}

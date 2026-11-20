@@ -13,7 +13,9 @@
 #include <affresco/render/Window.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <filesystem>
 #include <memory>
 
 namespace affresco::automation::detail {
@@ -102,12 +104,24 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("wait")) {
 		wait(step["wait"].get<double>());
 	} else if(step.contains("choose")) {
+		if(step.contains("from")) copyFixture(step["from"].get<std::string>(), step["choose"].get<std::string>());
 		choose(step["choose"]);
 	} else if(step.contains("capture")) {
 		picture(step["capture"].get<std::string>(), true, number);
 	} else if(step.contains("expect")) {
 		expect(step["expect"], number);
 	} // else a step that is only a "note"
+}
+
+void Player::copyFixture(const std::string& from, const std::string& name) {
+	const std::filesystem::path folder = std::filesystem::weakly_canonical(stage_.scenario.screen.parent_path());
+	const std::filesystem::path source = std::filesystem::weakly_canonical(folder / std::filesystem::path(from));
+	const auto [end, rest] = std::ranges::mismatch(folder, source);
+	if(end != folder.end() || !std::filesystem::is_regular_file(source))
+		throw StepError("choose: '" + from + "' isn't a file inside the scenario's screens folder");
+	std::error_code error;
+	std::filesystem::copy_file(source, stage_.scratch / name, std::filesystem::copy_options::overwrite_existing, error);
+	if(error) throw StepError("choose: '" + from + "' can't be copied: " + error.message());
 }
 
 void Player::choose(const json& file) {
@@ -119,27 +133,42 @@ void Player::choose(const json& file) {
 	});
 }
 
+void Player::holdModifiers(Mods mods, affresco::Action action) {
+	static constexpr std::array<std::pair<int, Key>, 4> keys = {
+	    {{0x1, Key::LeftShift}, {0x2, Key::LeftControl}, {0x4, Key::LeftAlt}, {0x8, Key::LeftSuper}}};
+	Mods held = action == affresco::Action::Press ? Mods{} : mods;
+	for(const auto& [bit, key] : keys) {
+		if((mods.bits & bit) == 0) continue;
+		if(action == affresco::Action::Press) held.bits |= bit;
+		else held.bits &= ~bit;
+		stage_.window.routeKey({key, 0, action, held});
+	}
+}
+
 bool Player::playPointer(const json& step) {
 	using affresco::Action;
 	Window& window = stage_.window;
 	const int nth = step.value("nth", 0);
+	const Mods mods = step.contains("mods") ? parseModifiers(step["mods"].get<std::string>()).value_or(Mods{}) : Mods{};
 	const auto button = [&](const json& target, Action action, MouseButton which = MouseButton::Left) {
 		const Vec2 at = pointOf(target, nth);
 		window.routeMouseMove(at);
-		window.routeMouseButton({which, action, {}, at});
+		window.routeMouseButton({which, action, mods, at});
 	};
+	holdModifiers(mods, Action::Press); // held as a person holds them, over the whole step
+	bool played = true;
 	if(step.contains("move")) {
 		window.routeMouseMove(pointOf(step["move"], nth));
 	} else if(step.contains("click")) {
-		button(step["click"], Action::Press);
-		button(step["click"], Action::Release);
+		button(step["click"], Action::Press, MouseButton::Left);
+		button(step["click"], Action::Release, MouseButton::Left);
 	} else if(step.contains("rightClick")) {
 		button(step["rightClick"], Action::Press, MouseButton::Right);
 		button(step["rightClick"], Action::Release, MouseButton::Right);
 	} else if(step.contains("press")) {
-		button(step["press"], Action::Press);
+		button(step["press"], Action::Press, MouseButton::Left);
 	} else if(step.contains("release")) {
-		button(step["release"], Action::Release);
+		button(step["release"], Action::Release, MouseButton::Left);
 	} else if(step.contains("drag")) {
 		drag(step);
 	} else if(step.contains("scroll")) {
@@ -147,9 +176,10 @@ bool Player::playPointer(const json& step) {
 		window.routeMouseMove(at);
 		window.routeScroll({{step.value("dx", 0.0f), step.value("dy", 0.0f)}, at});
 	} else {
-		return false;
+		played = false;
 	}
-	return true;
+	holdModifiers(mods, Action::Release);
+	return played;
 }
 
 void Player::drag(const json& step) {
@@ -157,7 +187,8 @@ void Player::drag(const json& step) {
 	const int nth = step.value("nth", 0);
 	const Vec2 from = pointOf(step["drag"], nth);
 	window.routeMouseMove(from);
-	window.routeMouseButton({MouseButton::Left, affresco::Action::Press, {}, from});
+	const Mods mods = step.contains("mods") ? parseModifiers(step["mods"].get<std::string>()).value_or(Mods{}) : Mods{};
+	window.routeMouseButton({MouseButton::Left, affresco::Action::Press, mods, from});
 	// The drop target is found once the drag has started: what it moves may change the layout
 	const Vec2 to = pointOf(step["to"], step.value("toNth", 0));
 	const int moves = step.value("moves", 4);
@@ -165,7 +196,7 @@ void Player::drag(const json& step) {
 		const float along = static_cast<float>(i) / static_cast<float>(moves);
 		window.routeMouseMove({from.x + (to.x - from.x) * along, from.y + (to.y - from.y) * along});
 	}
-	window.routeMouseButton({MouseButton::Left, affresco::Action::Release, {}, to});
+	window.routeMouseButton({MouseButton::Left, affresco::Action::Release, mods, to});
 }
 
 void Player::type(const std::string& text) {

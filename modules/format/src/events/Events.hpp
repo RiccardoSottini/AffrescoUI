@@ -170,6 +170,13 @@ private:
 	/// @param position The pointer.
 	/// @return The event.
 	static json pointerEvent(std::string_view type, const Panel& panel, Vec2 position);
+	/// @brief Adds the modifier keys held to a pointer event: `shift`, `ctrl`, `alt`, `cmd`, and `mod` (Cmd on macOS,
+	/// Ctrl elsewhere, as in shortcuts).
+	/// @param event The event, which receives them.
+	void addModifiers(json& event) const;
+	/// @brief Keeps the modifier keys held after a key event: its own, with a modifier key it presses or releases.
+	/// @param event The key event.
+	void keepModifiers(const KeyEvent& event) noexcept;
 	/// @brief Handles a mouse button on a built panel: press, release, click, double click, drop.
 	/// @param panel The panel that holds the mouse.
 	/// @param event The event.
@@ -178,7 +185,8 @@ private:
 	/// @param panel The panel pressed.
 	/// @param at Where.
 	void pressed(Panel& panel, Vec2 at);
-	/// @brief Handles a release of the left button: a drop, or a release and a click (or a double click).
+	/// @brief Handles a release of the left button: a drop, or a release (wherever it is) and, over the panel pressed,
+	/// a click (or a double click).
 	/// @param panel The panel that holds the mouse.
 	/// @param at Where.
 	void released(Panel& panel, Vec2 at);
@@ -295,6 +303,7 @@ private:
 	std::string focusPath_;            ///< The path of the latest focusStep().
 	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
 	bool capsLock_ = false;            ///< Whether caps lock was on at the latest key event: bindings update on a change.
+	Mods modifiers_; ///< The modifier keys held, from the latest key or button event: pointer events carry them.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

@@ -6,6 +6,7 @@
 #include "affresco/automation/Scenarios.hpp"
 #include "affresco/core/Channel.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Input.hpp"
 
 #include <filesystem>
 #include <functional>
@@ -102,6 +103,10 @@ private:
 	/// @return Whether it was one of them.
 	/// @throws StepError If a target isn't there.
 	bool playPointer(const json& step);
+	/// @brief Presses or releases the modifier keys a pointer step holds (scenario "mods"), one key event each.
+	/// @param mods The modifiers.
+	/// @param action Press or Release.
+	void holdModifiers(Mods mods, affresco::Action action);
 	/// @brief Plays a drag: press on a target, move to the other in steps, release.
 	/// @param step The step.
 	/// @throws StepError If a target isn't there.
@@ -116,6 +121,11 @@ private:
 	/// @param milliseconds How long.
 	/// @throws StepError If timers keep coming due without the time moving.
 	void wait(double milliseconds);
+	/// @brief Copies a file of the scenario's screens folder (a fixture) into the run's own folder, for choose().
+	/// @param from Its path, relative to that folder (checked by the scenario file's reader: no '..').
+	/// @param name The name it takes in the run's own folder.
+	/// @throws StepError If it isn't a file inside that folder (a link out of it, say), or can't be copied.
+	void copyFixture(const std::string& from, const std::string& name);
 	/// @brief Answers the file dialogs that follow with a file in the run's own folder, as the person would choose it.
 	/// @param file Its name, or null to cancel them.
 	void choose(const json& file);

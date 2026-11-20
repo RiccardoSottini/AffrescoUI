@@ -176,6 +176,9 @@
   :category ~(t "category.object") :icon "trash-2" :enablement ~(pos? (count state.view.selection)) []
   (dismiss)
   (snapshot)
+  (doseq [n state.scene.nodes]
+    (when (and (not (selected? n)) (contains state.view.selection (:parent n)))
+      (reparent (:id n) nil)))
   (set "state.scene.nodes" (remove selected? state.scene.nodes))
   (set "state.view.selection" [])
   (set "state.active" nil)
@@ -270,6 +273,11 @@
              (not= (get computed.activeNode.light key) value))
     (snapshot)
     (set (str "state.scene.nodes[" computed.activeIndex "].light." key) value)))
+
+(defn set-display "How the viewport draws the active mesh: solid, wire or bounds; undoable." [mode]
+  (when (and (>= computed.activeIndex 0) (not= (or-else computed.activeNode.display "solid") mode))
+    (snapshot)
+    (set (str "state.scene.nodes[" computed.activeIndex "].display") mode)))
 
 ;;; The widgets (widgets.lisp)
 

@@ -98,9 +98,25 @@
 			{ "note": "found: { file, matches: [{ line (from 1), column, length, text, at }] }, one file's matches: a tree item with a child per match, each naming its place in hits" },
 			{
 				"set": "state.search.result",
-				"to": "{{merge(state.search.result, {tree: concat(state.search.result.tree, [{id: 'file:' + found.file, label: reverse(split(found.file, '/'))[0] + (contains(found.file, '/') ? '  ' + slice(found.file, 0, length(found.file) - length(reverse(split(found.file, '/'))[0]) - 1) : '') + '  (' + length(found.matches) + ')', icon: 'file', children: map(found.matches, {id: 'hit:' + (length(state.search.result.hits) + index), label: it.line + ': ' + trim(it.text)})}]), hits: concat(state.search.result.hits, map(found.matches, {file: found.file, label: reverse(split(found.file, '/'))[0], line: it.line, column: it.column})), files: state.search.result.files + 1, matches: state.search.result.matches + length(found.matches)})}}"
+				"to": "{{merge(state.search.result, {tree: concat(state.search.result.tree, [{id: 'file:' + found.file, label: reverse(split(found.file, '/'))[0] + (contains(found.file, '/') ? '  ' + slice(found.file, 0, length(found.file) - length(reverse(split(found.file, '/'))[0]) - 1) : '') + '  (' + length(found.matches) + ')', icon: 'file', children: map(found.matches, {id: 'hit:' + (length(state.search.result.hits) + index), label: it.line + ': ' + trim(it.text), marks: [[length(it.line + ': ') + max(0, (it.first ?? it.at) - (length(it.text) + 1 - length(trim(it.text + 'x')))), it.count ?? it.length]]})}]), hits: concat(state.search.result.hits, map(found.matches, {file: found.file, label: reverse(split(found.file, '/'))[0], line: it.line, column: it.column})), files: state.search.result.files + 1, matches: state.search.result.matches + length(found.matches)})}}"
 			}
 		],
+		"searchCollapseAll": { "title": "Collapse All", "category": "Search", "icon": "list-collapse",
+			"description": "Collapse every file of the results, or open them all again when they are.",
+			"enablement": "{{state.search.result != null}}",
+			"do": [{ "set": "state.search.collapsed", "to": "{{empty(state.search.collapsed) ? map(state.search.result.tree, it.id) : []}}" }] },
+		"searchClear": { "title": "Clear Search Results", "category": "Search", "icon": "list-x",
+			"description": "Clear the query and the results, cancelling a search running.",
+			"enablement": "{{state.search.result != null || !empty(state.search.query)}}",
+			"do": [
+				{ "cancel": "forge-search" },
+				{ "set": "state.search.query", "to": "" },
+				{ "set": "state.search.result", "to": null },
+				{ "set": "state.search.ran", "to": null },
+				{ "set": "state.search.error", "to": "" },
+				{ "set": "state.search.collapsed", "to": [] },
+				{ "focus": "#search-query" }
+			] },
 		"cancelSearch": {
 			"title": "Cancel Search",
 			"category": "Search",
@@ -334,6 +350,14 @@
 						"children": [
 							{ "type": "label", "id": "search-summary", "text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
 							  "textColor": "@color.muted", "grow": 1, "height": 22 },
+							{ "type": "label", "id": "search-collapse-all", "when": "{{state.search.result != null}}", "role": "button",
+							  "label": "Collapse All", "icon": "list-collapse", "font": "icons", "width": 22, "height": 22, "align": "center",
+							  "cursor": "hand", "radius": 3, "tooltip": "Collapse All", "textColor": "@color.text",
+							  "hover": { "color": "@color.hover" }, "onClick": { "run": "searchCollapseAll" } },
+							{ "type": "label", "id": "search-clear", "when": "{{state.search.result != null}}", "role": "button",
+							  "label": "Clear Search Results", "icon": "list-x", "font": "icons", "width": 22, "height": 22, "align": "center",
+							  "cursor": "hand", "radius": 3, "tooltip": "Clear Search Results", "textColor": "@color.text",
+							  "hover": { "color": "@color.hover" }, "onClick": { "run": "searchClear" } },
 							{ "type": "label", "id": "search-open-editor", "when": "{{state.search.result != null}}", "role": "button",
 							  "label": "Open Results in Editor", "icon": "file-text", "font": "icons", "width": 22, "height": 22, "align": "center",
 							  "cursor": "hand", "radius": 3, "tooltip": "Open Results in Editor", "textColor": "@color.text",

@@ -12,8 +12,11 @@
 #include "affresco/imaging/Gradient.hpp"
 #include "affresco/imaging/Limits.hpp"
 #include "affresco/imaging/Selection.hpp"
+#include "affresco/imaging/Vector.hpp"
+#include "affresco/render/Font.hpp"
 #include "affresco/render/ImageCache.hpp"
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -51,6 +54,10 @@ enum class Gesture : std::uint8_t {
 	sample,           ///< Picks the foreground colour (the background's with the right button).
 	pan,              ///< Pans the view.
 	zoom,             ///< Zooms in, out with the right button.
+	text,             ///< Adds a type layer where pressed, or makes the type layer pressed on the active one.
+	shape,            ///< Draws a shape layer from the press to the release (the tool's "vector" options).
+	pen,              ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
+	pathSelect,       ///< Drags the active path, or the anchor pressed on.
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
@@ -112,6 +119,9 @@ struct ToolSettings {
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
 	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
+	/// text, shape: what a new type or shape layer starts as (its font, size, shape, stroke); its fill is the
+	/// foreground colour.
+	imaging::LayerContent vector;
 };
 
 /// @brief A press in progress on the canvas.
@@ -173,9 +183,16 @@ struct ImageDocument {
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
 	std::shared_ptr<const imaging::Image> clipboard;       ///< What copy and cut kept, the image's size then.
+	imaging::Coverage lastSelection;                       ///< The selection the last deselect took away (reselect).
 	std::vector<int> histogram;                            ///< What histogram last counted, by brightness.
 	std::uint64_t thumbnailRevision = ~std::uint64_t{0};   ///< The document revision the thumbnails show.
 	std::uint64_t thumbnailGeneration = ~std::uint64_t{0}; ///< The document the thumbnails show.
+	/// Loads a font of the screen by name, size and style, for type layers; set by the runtime (ImageDocuments).
+	std::weak_ptr<const std::function<std::shared_ptr<const Font>(const std::string&, float, FontStyle)>> fonts;
+	int pathAnchor = -1;   ///< path-select: the anchor being dragged, or -1 for the whole path.
+	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
+	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
+	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
 };
 
 /// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.
@@ -209,11 +226,16 @@ public:
 	using Declarations = std::function<const json*()>;
 	/// @brief Hands an image to the screen: its snapshot to its "into" state path, its thumbnails to the image cache.
 	using Publisher = std::function<void(ImageDocument&)>;
+	/// @brief Loads a font of the screen by its name ("" for the default), size and style, or returns nullptr.
+	using Fonts = std::function<std::shared_ptr<const Font>(const std::string&, float, FontStyle)>;
 
 	/// @brief Attaches the runtime: where the images are declared, and how the screen hears of them.
 	/// @param declarations The document's "images" section.
 	/// @param publisher The publisher.
 	void attach(Declarations declarations, Publisher publisher);
+	/// @brief Attaches the screen's fonts, which type layers are drawn with (images hold them weakly).
+	/// @param fonts The fonts.
+	void attachFonts(Fonts fonts);
 	/// @brief Detaches the runtime, which is going away: no image is declared or published after.
 	void detach() noexcept;
 	/// @brief The image of a name the document declares, made from its entry the first time (image()).
@@ -259,6 +281,7 @@ private:
 	std::map<std::string, std::vector<ImageWatcher*>, std::less<>> watchers_;      ///< The watchers, by image name.
 	Declarations declarations_;                                                    ///< See attach().
 	Publisher publisher_;                                                          ///< See attach().
+	std::shared_ptr<const Fonts> fonts_;                                           ///< See attachFonts().
 };
 
 /// @brief Parses "#rrggbb" or "#rrggbbaa".
@@ -319,6 +342,54 @@ void updateThumbnails(ImageDocument& image, ImageCache& images);
 /// @return Whether the screen should hear of it (the document, the view or a colour changed).
 bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event);
 
+/// @brief Draws a type or shape layer's content into new pixels of the document's size (type with the screen's
+/// fonts).
+/// @param image The image.
+/// @param content The content.
+/// @return The pixels.
+/// @throws DocumentError If the content is too large, or no font can draw its text.
+[[nodiscard]] std::shared_ptr<imaging::Image> drawContent(const ImageDocument& image,
+                                                          const imaging::LayerContent& content);
+
+/// @brief The box a type or shape layer's content takes: {left, top, right, bottom} (text laid out with its font).
+/// @param image The image.
+/// @param content The content.
+[[nodiscard]] std::array<float, 4> contentBounds(const ImageDocument& image, const imaging::LayerContent& content);
+
+/// @brief Plays a press of the vector gestures (text, shape, pen, path-select).
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool pressVector(ImageDocument& image, imaging::Point at);
+
+/// @brief Plays a drag of the vector gestures.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool dragVector(ImageDocument& image, imaging::Point at);
+
+/// @brief Plays a release of the vector gestures (a shape is made here).
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool releaseVector(ImageDocument& image, imaging::Point at);
+
+/// @brief Whether the canvas types into the active type layer: the text gesture began typing there, and it is still
+/// the active layer.
+/// @param image The image.
+[[nodiscard]] bool typingInto(const ImageDocument& image);
+
+/// @brief Types into the active type layer: text added at its end, or its last character taken back; one step while
+/// typing goes on.
+/// @param image The image.
+/// @param added The text added (UTF-8), or "" to take the last character back.
+/// @throws DocumentError If the text grows past its bound.
+void typeText(ImageDocument& image, std::string_view added);
+
+/// @brief The paths of a document as a screen shows them: [{name, closed, points, active}].
+/// @param document The document.
+[[nodiscard]] json pathsJson(const imaging::Document& document);
+
 /// @brief Offsets the active layer's pixels as one step.
 /// @param document The document.
 /// @param dx Across.
@@ -373,6 +444,10 @@ void crop(ImageDocument& image, int x, int y, int width, int height);
 /// @brief Ends a stroke or a filter preview in progress, before another edit.
 /// @param image The image.
 void settle(ImageDocument& image);
+
+/// @brief Selects nothing, one step, keeping the selection there was for reselect (select's "reselect").
+/// @param image The image.
+void deselectKeeping(ImageDocument& image);
 
 /// @brief A selection mode by its name.
 /// @param name "replace", "add", "subtract" or "intersect".

@@ -14,9 +14,12 @@ opens it when it is started without a file.
 
 ## What it shows
 
-- **Apps:** every app as a grid of cards, the person's own first, then the examples of [`apps.json`](json/apps.json) (cover,
-  name, a tagline in the person's language). Each card is tagged **Yours** or **Example**. A search field, and Enter or a
-  click to open one. A host-run example can also start a new app.
+- **Apps:** a welcome for a newcomer (the mark, what the apps are, New app) while they have no app of their own; then
+  every app as a grid of cards, the person's own first, then the examples of [`apps.json`](json/apps.json) (cover,
+  name, a tagline in the person's language). Each card is tagged **Yours** or with its example's category
+  (Productivity, Creative, Developer, Home & leisure, Forms: `categories` and `category` in `apps.json`), and the
+  categories, with **Your apps** once there are some, filter the grid. A search field, and Enter or a click to open
+  one. A host-run example can also start a new app.
 - **My apps:** each folder of the apps folder that holds an `index.screen.json` (or a `json/` folder with one, or a `lisp/`
   folder with an `app.lisp`: a copy of an example, or of a program), named by its window's title (a program's `:name`), the last
   changed first (an app just made or duplicated is at the top at once, before the folder is read again): open,
@@ -34,11 +37,14 @@ opens it when it is started without a file.
   the versions of apps and the features it lists, with a search. A card opens the same review page, with the line
   "Listed in the AffrescoUI catalogue, checked on <date>". A version installs as a file does. A feature is reviewed
   there, with what it needs, and is installed from inside an app.
+- **Commands** an agent can run, each once the person says yes, as it starts a program: `appOpen` (an app by its
+  name or folder) and `appCreate` (a name, the example it starts from, and what its assistant is asked first), which
+  fills in the Create page and makes the app as Create does, a name it refuses staying there with its reason.
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
   no double curly braces, which the new app's file would read as an expression; a folder of that name holding
   something else is said to be there, and kept),
   a starting point (a blank app, [`starters/blank.screen.json`](json/starters/blank.screen.json), or a copy of a host-run
-  example's `json/` or `lisp/` folder, as Settings choose, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
+  example's `json/` or `lisp/` folder, as Settings choose, every one shown at once, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
   to the new app's assistant (`--ask`). The app opens at once.
 - **Settings:** theme and language (kept with `persist`), whether the examples open from their `json` or their `lisp`
   folder, and which one a new app is copied from (also kept; Calamaio, which `apps.json` marks `"notation": "lisp"`,
@@ -69,7 +75,7 @@ opens it when it is started without a file.
 |---|---|
 | `index.screen.json` | The screen document |
 | `locales/` | Its text, one file per language |
-| `apps.json` | The examples: id, name, tagline, folder, program, cover; `notation` for one with a single folder, `starter: false` for one a new app isn't copied from |
+| `apps.json` | The examples: id, name, tagline, category, folder, program, cover; `notation` for one with a single folder, `starter: false` for one a new app isn't copied from; and `categories`, in the order the Apps page shows them |
 | `covers/` | The examples' pictures, 480 pixels wide (from `.github/media/`) |
 | `starters/blank.screen.json` | A new blank app, with the assistant open; its changes wait for the person's review |
 | `index.scenarios.json` | Its scenarios; its pictures are in `tests/render/scenarios/launcher.json` |

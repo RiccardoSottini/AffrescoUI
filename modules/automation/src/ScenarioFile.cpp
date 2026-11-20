@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <initializer_list>
@@ -149,14 +150,25 @@ void checkExpectation(const json& expect, const std::string& place) {
 	}
 }
 
+/// @brief Checks the modifier keys a pointer step holds, if it names some: "shift", "alt+shift".
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If they are malformed.
+void checkModifiers(const json& step, const std::string& place) {
+	if(!step.contains("mods")) return;
+	if(!step["mods"].is_string() || !detail::parseModifiers(step["mods"].get<std::string>()))
+		fail(place + ".mods", R"(expected modifier keys joined by '+': shift, ctrl, alt, cmd, mod ("alt+shift"))");
+}
+
 /// @brief Checks a pointer step: move, click, press or release, with a target.
 /// @param step The step.
 /// @param kind Its kind.
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkPointer(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "nth", "note"}, place);
+	onlyKeys(step, {kind, "nth", "mods", "note"}, place);
 	checkTarget(step[std::string(kind)], place + "." + std::string(kind));
+	checkModifiers(step, place);
 }
 
 /// @brief Checks a drag: from a target to another, in a number of moves.
@@ -164,8 +176,9 @@ void checkPointer(const json& step, std::string_view kind, const std::string& pl
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkDrag(const json& step, const std::string& place) {
-	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "note"}, place);
+	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "mods", "note"}, place);
 	checkTarget(step["drag"], place + ".drag");
+	checkModifiers(step, place);
 	if(!step.contains("to")) fail(place, R"("drag" needs "to": where to drop)");
 	checkTarget(step["to"], place + ".to");
 	if(step.contains("toNth") && (!step["toNth"].is_number_integer() || step["toNth"].get<long long>() < 0 ||
@@ -181,8 +194,9 @@ void checkDrag(const json& step, const std::string& place) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkScroll(const json& step, const std::string& place) {
-	onlyKeys(step, {"scroll", "dx", "dy", "nth", "note"}, place);
+	onlyKeys(step, {"scroll", "dx", "dy", "nth", "mods", "note"}, place);
 	checkTarget(step["scroll"], place + ".scroll");
+	checkModifiers(step, place);
 	for(const char* axis : {"dx", "dy"})
 		if(step.contains(axis) && !step[axis].is_number()) fail(place + "." + axis, "expected a number");
 }
@@ -271,6 +285,26 @@ void checkChosen(const json& value, const std::string& at) {
 		fail(at, "expected a file name of letters, digits, '-', '_' and '.', or null to cancel");
 }
 
+/// @brief Checks a `choose` step's "from": a file inside the scenario's screens folder, copied into the run's own
+/// folder under the chosen name (a fixture, such as a picture to open).
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If it isn't a relative path that stays inside that folder, or there is nothing to name.
+void checkChosenFrom(const json& step, const std::string& place) {
+	if(!step.contains("from")) return;
+	const json& from = step["from"];
+	const std::string at = place + ".from";
+	if(step["choose"].is_null()) fail(at, "needs a file name to copy it to");
+	if(!from.is_string() || from.get_ref<const std::string&>().empty() ||
+	   from.get_ref<const std::string&>().size() > 256)
+		fail(at, "expected a path of 1 to 256 bytes");
+	const std::filesystem::path path(from.get<std::string>());
+	if(path.is_absolute() || path.has_root_name() || path.has_root_directory())
+		fail(at, "expected a path relative to the scenario's screens folder");
+	for(const std::filesystem::path& part : path)
+		if(part == "..") fail(at, "must stay inside the scenario's screens folder (no '..')");
+}
+
 /// @brief Checks the steps whose one value says it all: type, key, revision, propose, resize, wait, capture, choose,
 /// expect.
 /// @param step The step.
@@ -278,7 +312,8 @@ void checkChosen(const json& value, const std::string& at) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkValueStep(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "note"}, place);
+	if(kind == "choose") onlyKeys(step, {kind, "from", "note"}, place);
+	else onlyKeys(step, {kind, "note"}, place);
 	const json& value = step[std::string(kind)];
 	const std::string at = place + "." + std::string(kind);
 	if(kind == "type") {
@@ -295,6 +330,7 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		checkFileName(value, at);
 	} else if(kind == "choose") {
 		checkChosen(value, at);
+		checkChosenFrom(step, place);
 	} else {
 		checkExpectation(value, at);
 	}

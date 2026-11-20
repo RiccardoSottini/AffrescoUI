@@ -483,6 +483,168 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-workbench-cycle-close-reopen",
+			"note": "Next and Previous Editor go round the group's tabs; Close Editors to the Right and Close All close tabs, and Reopen Closed Editor brings the last file back",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				},
+				{
+					"key": "mod+alt+right"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "previousEditor"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				},
+				{
+					"action": "previousEditor"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "closeEditorsToTheRight"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				},
+				{
+					"action": "closeAllEditors"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#welcome",
+						"exists": true
+					}
+				},
+				{
+					"action": "reopenClosedEditor"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "reopenClosedEditor"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-editor-menu",
+			"note": "A group's head: More Actions opens the editor's menu inside the window; Split Editor Right splits the group",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#group-more"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "editorMenu.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#group-split"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[1].active",
+						"is": "src/main.cpp"
+					}
+				}
+			]
 		}
 	]
 }

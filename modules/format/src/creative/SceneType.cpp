@@ -105,7 +105,7 @@ json point(const json& value, const std::string& at) {
 	return value;
 }
 
-/// @brief Reads "gizmo": {visible, mode, space, pixels, pivot, snap: {translate, rotate, scale}}, checked.
+/// @brief Reads "gizmo": {visible, mode, space, pixels, pivot, individual, snap: {translate, rotate, scale}}, checked.
 /// @param value The value. @param at Its place, for errors. @return It.
 /// @throws DocumentError If a member is of the wrong kind or out of range.
 json readGizmo(const json& value, const std::string& at) {
@@ -115,8 +115,10 @@ json readGizmo(const json& value, const std::string& at) {
 		fail(at + ".mode", R"(expected "translate", "rotate" or "scale")");
 	if(gizmo.contains("space")) {
 		const std::string space = string(gizmo["space"], at + ".space");
-		if(space != "world" && space != "local") fail(at + ".space", R"(expected "world" or "local")");
+		if(space != "world" && space != "local" && space != "view")
+			fail(at + ".space", R"(expected "world", "local" or "view")");
 	}
+	if(gizmo.contains("individual")) boolean(gizmo["individual"], at + ".individual");
 	if(gizmo.contains("pixels")) within(gizmo["pixels"], at + ".pixels", 10.0f, 400.0f);
 	if(gizmo.contains("pivot") && !gizmo["pivot"].is_null()) point(gizmo["pivot"], at + ".pivot");
 	if(gizmo.contains("snap")) {

@@ -30,12 +30,12 @@ inline constexpr std::array<std::string_view, 5> capabilitySections = {"services
                                                                        "permissions"};
 
 /// The steps that reach outside the screen or review it: a feature installed by revision can't contain them.
-inline constexpr std::array<std::string_view, 33> controlSteps = {
+inline constexpr std::array<std::string_view, 34> controlSteps = {
     "call",          "send",          "connect",       "patch",      "respond",  "accept",   "reject",
     "preview",       "endPreview",    "restore",       "revert",     "undo",     "signIn",   "signOut",
     "ask",           "cancelAsk",     "chooseFolder",  "attach",     "saveFile", "openFile", "export",
     "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen", "evaluate", "propose",  "exportChanges",
-    "pick",          "unpick",        "allowRun",      "denyRun",    "undoRun"};
+    "pick",          "unpick",        "allowRun",      "denyRun",    "undoRun",  "paste"};
 
 /// The parts a feature provides and composition merges, written in JSON or built by its program.
 inline constexpr std::array<std::string_view, 10> featureParts = {

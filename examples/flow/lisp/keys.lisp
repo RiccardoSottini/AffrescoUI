@@ -53,7 +53,10 @@
 (defkey "mod+enter" openIssue)
 
 (defkey "escape"
-  [{:when ~state.issueOpen :do closeIssue} {:when ~(pos? (count state.marked)) :do clearMarks} {:do clearFilters}])
+  [{:when ~state.issueOpen :do closeIssue}
+   {:when ~(and (= state.page :projects) (>= state.projectOpen 0) (not context.textInputFocus)) :do close-project-page}
+   {:when ~(pos? (count state.marked)) :do clearMarks}
+   {:do clearFilters}])
 
 ;;; Menus
 
