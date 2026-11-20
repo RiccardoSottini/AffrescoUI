@@ -389,9 +389,9 @@
      :tooltip ~(text c)
      (node#panel-freq-dot
        :anchors {:left "50%" :top 12}
-       :translate ~[(- (if (zero? c) 2 (+ 4 (* c 2)))) (- (if (zero? c) 2 (+ 4 (* c 2))))]
-       :width ~(if (zero? c) 4 (+ 8 (* c 4)))
-       :height ~(if (zero? c) 4 (+ 8 (* c 4)))
+       :translate ~[(- (if (zero? c) 2 (+ 3 (* c 1.5)))) (- (if (zero? c) 2 (+ 3 (* c 1.5))))]
+       :width ~(if (zero? c) 4 (+ 6 (* c 3)))
+       :height ~(if (zero? c) 4 (+ 6 (* c 3)))
        :radius 20
        :color ~(if (zero? c) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (dec (min c 5))))))))
 
