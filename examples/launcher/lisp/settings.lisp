@@ -100,7 +100,7 @@
                       {:id es :title "Español" :width 80}
                       {:id fr :title "Français" :width 84}]})))
 
-(defview notation-card "The notation the examples open in: JSON or Lisp." []
+(defview notation-card "The notation the examples open in: Lisp, the standard, or JSON." []
   `(node#settingsNotation :use settingsCard :with {:title ~(t "settings.notation") :icon braces :height 158}
      (label#notationLabel :text ~(t "settings.notationLabel")
        :textColor @c.muted
@@ -116,7 +116,7 @@
               :color @c.raised
               :selectedColor @c.surface
               :highlight @c.hover
-              :items [{:id json :title "JSON" :width 80} {:id lisp :title "Lisp" :width 80}]})
+              :items [{:id lisp :title "Lisp" :width 80} {:id json :title "JSON" :width 80}]})
      (label#notationText :wrap true
        :textColor @c.muted
        :text ~(t "settings.notationText")

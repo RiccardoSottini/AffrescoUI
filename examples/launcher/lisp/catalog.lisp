@@ -31,6 +31,7 @@
          ~(repeat [app computed.shown :key app.id]
            `(node#appCard :use appCard :with {:app ~app}))))
      (label#appsNone :when ~(empty? computed.shown)
+       :icon search-x
        :textColor @c.muted
        :align center
        :wrap true
@@ -141,7 +142,10 @@
      (node#cardStart :when ~(and (not app.mine) (= app.program :host) (not= app.starter false))
        :style iconButton
        :icon copy-plus
-       :anchors {:right 10 :top 172}
+       :font icons
+       :width 30
+       :height 30
+       :anchors {:right 12 :top 174}
        :tooltip ~(t "apps.startFrom" {:name app.name})
        :label ~(t "apps.startFrom" {:name app.name})
        :onClick ~(handler start-from app.id))))
