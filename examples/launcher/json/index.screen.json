@@ -230,22 +230,19 @@
 				{ "stop": true }
 			] },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineCopy'}}",
-			               "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }],
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
 			  "onError": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineCopy": [
 			{ "note": "with: i, pass" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/json/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineProgram'}}",
-			               "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }],
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
 			  "onError": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineProgram": [
 			{ "note": "with: i, pass. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/lisp/app.lisp'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMine'}}",
-			               "with": { "i": "{{result.exists == true && result.kind == 'file' ? i : i + 1}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }],
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }],
 			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }
 		],
 
