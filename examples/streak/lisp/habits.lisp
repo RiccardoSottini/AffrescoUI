@@ -450,8 +450,10 @@
       (and (= created updated)
            (not (neg? (daysBetween from seed-day)))))))
 
-(defn start-up "As Streak opens: today's date, and the demo habits the person never changed moved so their last day
-  is today (unless a scenario pinned the day first)." []
+(defn start-up "As Streak opens: the assistant's launcher in the bottom left corner (under the habits, clear of the
+  charts), today's date, and the demo habits the person never changed moved so their last day is today (unless a
+  scenario pinned the day first)." []
+  (set "state.assistant.side" :start)
   (when-not (true? state.dayPinned)
     (let [day (today)
           days (daysBetween state.demoDay day)]
