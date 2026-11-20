@@ -83,6 +83,7 @@ Every part of the format follows these, and so should every extension:
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
+| `keyBindings` | `"state.keyBindings"`: where the person's own key bindings are, `[{ "keys": "mod+alt+t", "command": "toggleTheme" }]`, each running a command (an action with a title) by name. They are read before `keys`, so one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file. |
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
