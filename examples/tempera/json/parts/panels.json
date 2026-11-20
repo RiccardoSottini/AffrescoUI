@@ -359,7 +359,7 @@
 						  "children": [
 							{ "width": 3, "height": 20, "radius": 2, "color": "{{p.active ? '@accent' : 'transparent'}}" },
 							{ "type": "label", "icon": "spline", "textColor": "@text", "width": 24, "height": 24, "align": "center", "color": "@canvasBack", "radius": 4 },
-							{ "type": "label", "text": "{{p.name}}", "textColor": "@text", "grow": 1, "height": 20 },
+							{ "type": "label", "text": "{{p.name}}", "textColor": "@text", "grow": 1, "height": 20, "align": { "horizontal": "start", "vertical": "center" } },
 							{ "style": "dim", "text": "{{p.anchors}} anchors" },
 							{ "width": 6, "height": 1, "style": "clear" }
 						  ] },

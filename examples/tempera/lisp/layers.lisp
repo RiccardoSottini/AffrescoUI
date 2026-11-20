@@ -268,7 +268,7 @@
      :onClick ~(handler select-path {:index (if p.active -1 p.index)})
      (node :width 3 :height 20 :radius 2 :color ~(if p.active "@accent" "transparent"))
      (label :icon spline :textColor @text :width 24 :height 24 :align center :color @canvasBack :radius 4)
-     (label :text ~p.name :textColor @text :grow 1 :height 20)
+     (label :text ~p.name :textColor @text :grow 1 :height 20 :align {:horizontal start :vertical center})
      (node :style dim :text ~(t "paths.anchors" {:n (str p.anchors)}))
      (node :width 6 :height 1 :style clear)))
 
