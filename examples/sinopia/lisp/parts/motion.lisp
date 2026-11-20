@@ -42,6 +42,12 @@
 (defcomputed flySides "The sides a build flies in from, or out to, each with its arrow."
   '[["bottom" "move-down"] ["left" "move-left"] ["top" "move-up"] ["right" "arrow-right"]])
 
+(defcomputed pathEffects "The motion paths of the gallery: each with its icon and its name."
+  [["pathRight" "move-right" (t "motion.pathRight")]
+   ["pathDown" "move-down" (t "motion.pathDown")]
+   ["pathArc" "redo-2" (t "motion.pathArc")]
+   ["pathCircle" "circle-dashed" (t "motion.pathCircle")]])
+
 (defcomputed emphasisEffects "The emphasis effects of the gallery: each with its icon and its name."
   [["pulse" "heart-pulse" (t "motion.pulse")]
    ["spin" "rotate-cw" (t "motion.spin")]
@@ -94,6 +100,17 @@
         sx (/ g.w (max box.w 1))
         sy (/ g.h (max box.h 1))]
     [(+ moved (* away sx)) (+ moved (* away sy))]))
+
+(defn path-offset "Where an object is along a motion path, the part `p` of the way done, from where it starts." [path p]
+  (let [turn (* 6.28318 p)
+        rise (sin (* 3.14159 p))
+        drop (- 1 (cos turn))]
+    (case path
+      "pathRight" [(* 240 p) 0]
+      "pathDown" [0 (* 160 p)]
+      "pathArc" [(* 240 p) (* -120 rise)]
+      "pathCircle" [(* 80 (sin turn)) (* 80 drop)]
+      [0 0])))
 
 (defn fly-offset "Where a flying object is, the part `away` of the way off the slide, by the side it flies from."
   [side box away]
@@ -279,14 +296,18 @@
 (defn emphasis? "Whether an effect is an emphasis." [effect]
   (contains? #{"pulse" "spin" "teeter"} effect))
 
+(defn path? "Whether an effect is a motion path." [effect]
+  (contains? #{"pathRight" "pathDown" "pathArc" "pathCircle"} effect))
+
 (defn choose-effect "Gives the selected objects a build of an effect: an emphasis, or an entrance or exit as it was."
   [effect]
   (let [a computed.animation
         kind (cond (emphasis? effect) "emphasis"
+                   (path? effect) "path"
                    (= (:kind a) "exit") "exit"
                    :else "entrance")
         start (or-else (:start a) "click")
-        ms (or-else (:ms a) (if (emphasis? effect) 1000 500))]
+        ms (or-else (:ms a) (if (#{"emphasis" "path"} kind) 1000 500))]
     (set-animation effect kind start ms)))
 
 (defn animation-delay-by "Waits longer or shorter before the selected objects' build, by milliseconds." [by]

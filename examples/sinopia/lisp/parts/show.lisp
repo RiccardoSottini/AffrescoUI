@@ -50,6 +50,7 @@
        (filter #(case (:kind %)
                   :exit (< (:step %) state.show.step)
                   :emphasis false
+                  :path false
                   (> (:step %) state.show.step)))
        (map :target)))
 
@@ -363,12 +364,13 @@
                      (> a.step step) 0
                      :else (clamp (/ (- clock a.start) (max (or-else a.ms 500) 1)) 0 reps))
            :p ~(if (>= r reps) 1 (- r (floor r)))
-           :q ~(cond (nil? a) 1 (= a.kind :emphasis) 1 (= a.kind :exit) (- 1 p) :else p)
+           :q ~(cond (nil? a) 1 (#{:emphasis :path} a.kind) 1 (= a.kind :exit) (- 1 p) :else p)
            :g ~(find #(= (:id %) o.id) glide)
            :v ~(if (some? g) q (* q fade))
            :ph ~(or-else (find #(= (:ph %) o.ph) layout.ph) {})
            :box ~{:x (or-else o.x ph.x 0) :y (or-else o.y ph.y 0) :w (or-else o.w ph.w 100) :h (or-else o.h ph.h 100)}
            :effect ~(cond (= a.kind :emphasis) (if (and (pos? r) (< r reps)) a.effect "none")
+                          (= a.kind :path) (if (pos? r) a.effect "none")
                           (< q 1) (or-else a.effect "appear")
                           (< v 1) "fade"
                           :else "none")
@@ -382,6 +384,7 @@
      :width ~(if (= effect :wipe) (+ box.x (* box.w q)) 960)
      :height 540
      :translate ~(cond (= effect :fly) (fly-offset (or-else a.direction "bottom") box away)
+                       (= a.kind :path) (path-offset effect p)
                        (some? g) (glide-offset g box moved)
                        :else [0 0])
      :scale ~(cond (= effect :zoom) (max q 0.01)

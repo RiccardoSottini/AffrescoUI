@@ -603,11 +603,15 @@
 
 (defview g-effects "The build effects for the selected objects, the emphasis effects, and As Exit." []
   `(node#g-effects :use rbGroup
-     :with {:title ~(case a.kind "exit" (t "ribbon.exit") "emphasis" (t "motion.emphasis") (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 560}
-       ~(repeat [e (concat computed.buildEffects computed.emphasisEffects)]
+     :with {:title ~(case a.kind
+                      "exit" (t "ribbon.exit")
+                      "emphasis" (t "motion.emphasis")
+                      "path" (t "motion.motionPath")
+                      (t "ribbon.entrance"))}
+     (node#gal-effects :use rbGallery :with {:width 692}
+       ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 60
+            :width 50
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}
@@ -618,7 +622,7 @@
        :with {:icon log-out
               :title ~(t "ribbon.asExit")
               :on ~(= a.kind "exit")
-              :enabled ~(and (some? a) (not= a.kind "emphasis"))
+              :enabled ~(and (some? a) (contains? #{"entrance" "exit"} a.kind))
               :width 46}
        :tooltip ~(t "ribbon.leaveTheSlideInsteadOf")
        :onClick toggle-exit)))

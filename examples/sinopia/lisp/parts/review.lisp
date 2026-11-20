@@ -521,7 +521,7 @@
        :role button
        :textColor @rbInk
        :label ~(t "pane.buildLabel" {:name a.name :effect a.effect :exit (= a.kind "exit") :start a.start})
-       :runs ~[{:icon (case a.kind "exit" "log-out" "emphasis" "heart-pulse" "log-in") :size 13}
+       :runs ~[{:icon (case a.kind "exit" "log-out" "emphasis" "heart-pulse" "path" "route" "log-in") :size 13}
                {:text (str " " a.name) :size 12}
                {:text (str "  " a.effect (if (= a.start :click) "" (str ", " a.start))) :size 11 :color "@rbMuted"}]
        :onClick ~(handler select-target a.target))
