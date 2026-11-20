@@ -319,11 +319,12 @@
   ;; A macro: the line is an expression, shown and read aloud.
   "What the bottom bar says of the downloads: the game in progress and how far it is, or a link to them."
   []
-  `(if computed.download
-     (t "bottom.downloading"
-        {:title computed.downloadGame.title
-         :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
-     (t "bottom.manage")))
+  `(cond
+     (and computed.download computed.dlWaiting) (t "bottom.scheduled" {:title computed.downloadGame.title})
+     computed.download (t "bottom.downloading"
+                          {:title computed.downloadGame.title
+                           :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
+     :else (t "bottom.manage")))
 
 (defview downloads-status
   "The download in progress, with its bar, in the middle of the bottom bar: it opens the downloads."

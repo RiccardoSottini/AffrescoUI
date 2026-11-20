@@ -415,15 +415,32 @@
   (when (< k (dec (count computed.dlQueue)))
     (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(inc k) :at]))))
 
-(defn next-rate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
-  (let [rate (+ 34 (mod (* state.dlTick 7) 19))]
-    (if (> settings.downloads.limit 0) (min settings.downloads.limit rate) rate)))
+(defn region-share "How much of the full rate the download region's servers give: the nearest give it all." []
+  (case settings.downloads.region
+    :americas 0.75
+    :asia 0.6
+    1))
+
+(defn next-rate
+  "The next sample of the rate, in MB/s: a wave that repeats, as the region's servers give it, under the speed limit if
+  there is one."
+  []
+  (let [rate (round (* (region-share) (+ 34 (mod (* state.dlTick 7) 19))))]
+    (if (pos? settings.downloads.limit) (min settings.downloads.limit rate) rate)))
+
+(defn hour-now "The hour of the day now, from 0 to 23 (UTC)." []
+  (mod (floor (/ (now) 3600000)) 24))
 
 (defn download-tick
   ;; Not while a game runs, unless Settings allow it.
-  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there."
+  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there;
+  outside the schedule's hours, nothing moves."
   []
-  (when (and (some? computed.download) (not state.dlPaused) (or settings.downloads.whilePlaying (nil? state.running)))
+  (set "state.dlHour" (hour-now))
+  (when (and (some? computed.download)
+             (not state.dlPaused)
+             (not computed.dlWaiting)
+             (or settings.downloads.whilePlaying (nil? state.running)))
     (set "state.dlTick" (inc state.dlTick))
     (set "state.dlRate" (concat (rest state.dlRate) [(next-rate)]))
     (let [step (/ (get state.dlRate 47) 1024)]

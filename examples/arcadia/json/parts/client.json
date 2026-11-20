@@ -318,8 +318,9 @@
 					{
 						"type": "row",
 						"anchors": { "left": 0, "right": 0, "top": 22 },
-						"height": 30,
+						"height": 38,
 						"gap": 6,
+						"alignItems": "center",
 						"role": "radiogroup",
 						"label": "{{title}}",
 						"arrows": "horizontal",
@@ -468,6 +469,16 @@
 						"use": "choiceRow",
 						"with": {
 							"top": 0,
+							"title": "{{t('settings.region')}}",
+							"key": "downloads.region",
+							"current": "{{settings.downloads.region}}",
+							"options": "{{map(['auto', 'europe', 'americas', 'asia'], { value: it, title: t('settings.region.' + it) })}}"
+						}
+					},
+					{
+						"use": "choiceRow",
+						"with": {
+							"top": 64,
 							"title": "{{t('settings.limit')}}",
 							"key": "downloads.limit",
 							"current": "{{settings.downloads.limit}}",
@@ -475,9 +486,19 @@
 						}
 					},
 					{
+						"use": "choiceRow",
+						"with": {
+							"top": 128,
+							"title": "{{t('settings.schedule')}}",
+							"key": "downloads.schedule",
+							"current": "{{settings.downloads.schedule}}",
+							"options": "{{[{ value: 'anytime', title: t('settings.schedule.anytime') }, { value: 'night', title: t('settings.schedule.night') }]}}"
+						}
+					},
+					{
 						"type": "row",
 						"id": "settings-while-playing",
-						"anchors": { "left": 0, "right": 0, "top": 72 },
+						"anchors": { "left": 0, "right": 0, "top": 196 },
 						"height": 30,
 						"alignItems": "center",
 						"children": [
@@ -494,12 +515,12 @@
 							}
 						]
 					},
-					{ "style": "sectionCaps", "anchors": { "left": 0, "right": 0, "top": 124 }, "text": "{{upper(t('settings.cache'))}}" },
+					{ "style": "sectionCaps", "anchors": { "left": 0, "right": 0, "top": 244 }, "text": "{{upper(t('settings.cache'))}}" },
 					{
 						"type": "label",
 						"font": "small",
 						"wrap": true,
-						"anchors": { "left": 0, "right": 0, "top": 146 },
+						"anchors": { "left": 0, "right": 0, "top": 266 },
 						"height": 36,
 						"text": "{{t('settings.cacheNote')}}",
 						"textColor": "@color.muted"
@@ -507,7 +528,7 @@
 					{
 						"id": "settings-clear-cache",
 						"style": "pillButton",
-						"anchors": { "left": 0, "top": 186 },
+						"anchors": { "left": 0, "top": 304 },
 						"text": "{{t('settings.clearCache')}}",
 						"onClick": "clearCache"
 					}

@@ -43,6 +43,20 @@
   :title ~(t "setting.whilePlaying")
   :description ~(t "setting.whilePlaying.about"))
 
+(defcustom downloads.region "auto"
+  "Where downloads come from: the nearest servers, or a region's."
+  :type string
+  :enum [auto europe americas asia]
+  :title ~(t "setting.region")
+  :description ~(t "setting.region.about"))
+
+(defcustom downloads.schedule "anytime"
+  "When downloads run: at any time, or only between 1:00 and 7:00 (UTC), when the line is quiet."
+  :type string
+  :enum [anytime night]
+  :title ~(t "setting.schedule")
+  :description ~(t "setting.schedule.about"))
+
 (defcustom library.sortBy "name"
   "Name from A to Z, the most hours, or the most recently played."
   :type string
@@ -91,9 +105,9 @@
 
 (defcomponent choiceRow "A setting's caps title over its choices, each { value, title }."
   {:title "" :key "" :current nil :options [] :top 0}
-  `(node :anchors {:left 0 :right 0 :top ~top} :height 56 :color transparent
+  `(node :anchors {:left 0 :right 0 :top ~top} :height 60 :color transparent
      (node :style sectionCaps :text ~(upper-case title))
-     (row :anchors {:left 0 :right 0 :top 22} :height 30 :gap 6 :role radiogroup :label ~title :arrows horizontal
+     (row :anchors {:left 0 :right 0 :top 22} :height 38 :gap 6 :alignItems center :role radiogroup :label ~title :arrows horizontal
        ~(repeat [o options]
           `(node :id ~(str "setting-" (slug key) "-" o.value)
              :use choice
@@ -176,11 +190,19 @@
 ;;; Downloads
 
 (defcomponent settingsDownloads
-  "The downloads page: the speed limit, downloading while playing, and the download cache."
+  "The downloads page: the region, the speed limit, the schedule, downloading while playing, and the download cache."
   {}
   `(node :fill true :color transparent
      (node :use choiceRow
        :with {:top 0
+              :title ~(t "settings.region")
+              :key downloads.region
+              :current ~settings.downloads.region
+              ; style: keep, #(...) can't give a map
+              :options ~(map (fn [it] {:value it :title (t (str "settings.region." it))})
+                             ["auto" "europe" "americas" "asia"])})
+     (node :use choiceRow
+       :with {:top 64
               :title ~(t "settings.limit")
               :key downloads.limit
               :current ~settings.downloads.limit
@@ -188,7 +210,14 @@
                                {:value it
                                 :title (if (= it 0) (t "settings.noLimit") (t "settings.limitValue" {:n it}))})
                              [0 10 25])})
-     (row#settings-while-playing :anchors {:left 0 :right 0 :top 72} :height 30 :alignItems center
+     (node :use choiceRow
+       :with {:top 128
+              :title ~(t "settings.schedule")
+              :key downloads.schedule
+              :current ~settings.downloads.schedule
+              :options ~[{:value "anytime" :title (t "settings.schedule.anytime")}
+                         {:value "night" :title (t "settings.schedule.night")}]})
+     (row#settings-while-playing :anchors {:left 0 :right 0 :top 196} :height 30 :alignItems center
        (label :grow 1 :height 22 :text ~(t "settings.whilePlaying") :textColor @color.text)
        (toggle#settings-while-playing-toggle :width 40
          :height 22
@@ -196,15 +225,15 @@
          :checked ~settings.downloads.whilePlaying
          :activeColor @color.accent
          :onChange ~(handler setSetting "downloads.whilePlaying" event.value)))
-     (node :style sectionCaps :anchors {:left 0 :right 0 :top 124} :text ~(upper-case (t "settings.cache")))
+     (node :style sectionCaps :anchors {:left 0 :right 0 :top 244} :text ~(upper-case (t "settings.cache")))
      (label :font small
        :wrap true
-       :anchors {:left 0 :right 0 :top 146}
+       :anchors {:left 0 :right 0 :top 266}
        :height 36
        :text ~(t "settings.cacheNote")
        :textColor @color.muted)
      (node#settings-clear-cache :style pillButton
-       :anchors {:left 0 :top 186}
+       :anchors {:left 0 :top 304}
        :text ~(t "settings.clearCache")
        :onClick clearCache)))
 
