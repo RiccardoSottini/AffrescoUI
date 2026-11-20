@@ -166,7 +166,7 @@ bool Steps::runSteps(const json& steps, Panel& sender, const json& event, const 
                      const std::string& where) {
 	if(++actionDepth_ > maxActionDepth) {
 		--actionDepth_;
-		fail(where, "actions nested too deeply (more than 32 levels)");
+		fail(where, "actions nested too deeply (more than 48 levels)");
 	}
 
 	bool keepGoing = true;

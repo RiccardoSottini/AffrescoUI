@@ -159,7 +159,7 @@ struct Item {
 	json key;           ///< A keyed repeat's key (null: none).
 };
 
-inline constexpr int maxActionDepth = 32;               ///< Nested action calls before giving up (recursion guard).
+inline constexpr int maxActionDepth = 48;               ///< Nested action calls before giving up (recursion guard).
 inline constexpr std::size_t maxLoopIterations = 10000; ///< "while" iterations before giving up.
 inline constexpr int maxComponentDepth = 32;            ///< Components inside components before giving up.
 /// Computed values that read computed values, before giving up: a chain of them recurses once per link.

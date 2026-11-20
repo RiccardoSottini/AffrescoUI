@@ -82,7 +82,7 @@ public:
 	/// @param locals Variables.
 	/// @param where Its place, for errors.
 	/// @return false if a "stop" step ended the action.
-	/// @throws DocumentError If a step fails or actions nest more than 32 levels deep.
+	/// @throws DocumentError If a step fails or actions nest more than 48 levels deep.
 	bool runSteps(const json& steps, Panel& sender, const json& event, const Scope& locals, const std::string& where);
 	/// @brief Runs steps later, from a timer or after the event, with a sender that may be gone by then (the root
 	/// stands in).

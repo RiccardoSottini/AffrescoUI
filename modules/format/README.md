@@ -239,7 +239,7 @@ theme, and a name can't be both a colour and a token.
   It looks the same and grants nothing, so `checkChange` has nothing to check; the renderer keeps its textures within
   a budget and draws a subtree directly beyond it.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
-  `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
+  `pad` 10,000; nested actions 48; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
   10,000 positions past a list's end (`maxListGap`); a text an expression builds (a template, `join`, `+`, `t`, a
   message) 64 MiB (`textLimit`); 250,000 panels per screen (`maxPanels`); a timer's delay about 24.8 days, as in web
