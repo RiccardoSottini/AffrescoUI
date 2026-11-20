@@ -30,6 +30,7 @@
 		"title": {
 			"file": "../../shared/fonts/Roboto-Regular.ttf",
 			"size": 26,
+			"bold": true,
 			"fallback": ["arabicTitle"]
 		},
 		"icons": {
@@ -44,6 +45,10 @@
 			"file": "../../shared/fonts/Lucide.ttf",
 			"size": 22
 		},
+		"hero": {
+			"file": "../../shared/fonts/Lucide.ttf",
+			"size": 30
+		},
 		"mono": {
 			"file": "../../shared/fonts/JetBrainsMono-Regular.ttf",
 			"size": 15
@@ -51,6 +56,7 @@
 		"heading": {
 			"file": "../../shared/fonts/Roboto-Regular.ttf",
 			"size": 19,
+			"bold": true,
 			"fallback": ["icons", "arabicHeading"]
 		},
 		"arabic": {
@@ -168,6 +174,14 @@
 		"color.strong": {
 			"light": "#16a34a",
 			"dark": "#4ade80"
+		},
+		"color.success": {
+			"light": "#16a34a",
+			"dark": "#4ade80"
+		},
+		"color.successSoft": {
+			"light": "#dcfce7",
+			"dark": "#14532d80"
 		},
 		"color.shadow": {
 			"light": "#0f172a1f",
@@ -359,6 +373,10 @@
 			"error": "",
 			"left": 0
 		},
+		"done": {
+			"email": "",
+			"kind": ""
+		},
 		"shortcutsOpen": false,
 		"forgot": {
 			"open": false,
@@ -543,6 +561,9 @@
 		"resetTime": "{{floor(max(0, state.reset.left) / 60) + ':' + pad(max(0, state.reset.left) % 60, 2, '0')}}",
 		"sections": "{{[{ name: 'profile', icon: 'user' }, { name: 'emails', icon: 'mail' }, { name: 'security', icon: 'shield-check' }, { name: 'devices', icon: 'monitor-smartphone' }, { name: 'connected', icon: 'link' }, { name: 'activity', icon: 'history' }, { name: 'data', icon: 'trash-2' }]}}",
 		"wide": "{{window.width >= 760}}",
+		"narrow": "{{window.width < 560}}",
+		"cardStyle": "{{window.width < 560 ? 'cardFlat' : 'card'}}",
+		"cardWidth": "{{window.width < 560 ? window.width : min(420, window.width - 32)}}",
 		"avatarColor": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatar' + state.user.avatar : '@color.accentSoft'}}",
 		"avatarText": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatarText' : '@color.accent'}}",
 		"passwordDays": "{{state.user.passwordDays ?? 0}}",
@@ -802,6 +823,15 @@
 			"fitContent": "height",
 			"scroll": "vertical"
 		},
+		"cardFlat": {
+			"style": "card",
+			"radius": 0,
+			"borderWidth": 0,
+			"color": "transparent",
+			"shadow": {
+				"color": "#00000000"
+			}
+		},
 		"form": {
 			"type": "column",
 			"fitContent": "height",
@@ -826,6 +856,32 @@
 				"y": 6,
 				"blur": 16,
 				"color": "@color.glow"
+			}
+		},
+		"doneRing": {
+			"width": 84,
+			"height": 84,
+			"radius": 42,
+			"color": "@color.successSoft"
+		},
+		"doneBadge": {
+			"type": "label",
+			"font": "hero",
+			"text": "",
+			"width": 60,
+			"height": 60,
+			"radius": 30,
+			"anchors": {
+				"left": 12,
+				"top": 12
+			},
+			"align": "center",
+			"color": "@color.success",
+			"textColor": "@color.accentText",
+			"shadow": {
+				"y": 6,
+				"blur": 16,
+				"color": "@color.successSoft"
 			}
 		},
 		"spacer": {
@@ -2575,16 +2631,14 @@
 				"to": "password"
 			},
 			{
-				"navigate": "signInForm"
-			},
-			{
-				"focus": "#textarea-placeholder"
-			},
-			{
-				"run": "notify",
-				"with": {
-					"message": "{{t('passwordChanged')}}"
+				"set": "state.done",
+				"to": {
+					"email": "{{state.email}}",
+					"kind": "reset"
 				}
+			},
+			{
+				"run": "showDone"
 			}
 		],
 		"saveProfile": [
@@ -4198,6 +4252,13 @@
 				"note": "The account, its trusted devices and its failed attempts go; nothing is written back"
 			},
 			{
+				"set": "state.done",
+				"to": {
+					"email": "{{state.user.email}}",
+					"kind": "deleted"
+				}
+			},
+			{
 				"set": "state.accounts",
 				"to": "{{filter(state.accounts, lower(it.email) != lower(state.user.email))}}"
 			},
@@ -4217,10 +4278,50 @@
 				"run": "endSession"
 			},
 			{
-				"run": "notify",
-				"with": {
-					"message": "{{t('deleted')}}"
+				"run": "showDone"
+			}
+		],
+		"showDone": [
+			{
+				"note": "The success screen for the flow state.done names, its button focused"
+			},
+			{
+				"set": "state.toast.open",
+				"to": false
+			},
+			{
+				"navigate": "done"
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "#doneButton"
+					}
+				]
+			}
+		],
+		"leaveDone": [
+			{
+				"note": "The success screen's button: the sign-in form, at the step the finished flow left it on"
+			},
+			{
+				"set": "state.done",
+				"to": {
+					"email": "",
+					"kind": ""
 				}
+			},
+			{
+				"navigate": "signInForm"
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "#textarea-placeholder"
+					}
+				]
 			}
 		]
 	},
@@ -4243,8 +4344,8 @@
 			"children": [
 				{
 					"id": "card",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-top",
@@ -4699,8 +4800,8 @@
 			"children": [
 				{
 					"id": "panel-card",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "panel-card-top",
@@ -5010,8 +5111,8 @@
 			"children": [
 				{
 					"id": "card-two-step",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-two-step-top",
@@ -5214,8 +5315,8 @@
 			"children": [
 				{
 					"id": "card-reset",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
 					"children": [
 						{
 							"id": "card-reset-top",
@@ -5373,6 +5474,100 @@
 				"ms": 1000,
 				"do": "resetTick"
 			}
+		},
+		"done": {
+			"id": "panel-done",
+			"style": "screen",
+			"children": [
+				{
+					"id": "card-done",
+					"style": "{{computed.cardStyle}}",
+					"width": "{{computed.cardWidth}}",
+					"children": [
+						{
+							"id": "card-done-top",
+							"height": 44,
+							"color": "transparent"
+						},
+						{
+							"id": "stack-done",
+							"style": "form",
+							"role": "status",
+							"live": "polite",
+							"label": "{{t('doneTitle', { kind: state.done.kind })}}",
+							"children": [
+								{
+									"type": "row",
+									"id": "row-done-badge",
+									"height": 84,
+									"justify": "center",
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "done-ring",
+											"style": "doneRing",
+											"children": [
+												{
+													"id": "done-badge",
+													"style": "doneBadge",
+													"icon": "{{state.done.kind == 'deleted' ? 'user-x' : 'check'}}"
+												}
+											]
+										}
+									]
+								},
+								{
+									"id": "spacer-done",
+									"style": "spacer",
+									"height": 10
+								},
+								{
+									"id": "label-done-title",
+									"style": "title",
+									"align": "center",
+									"role": "heading",
+									"text": "{{t('doneTitle', { kind: state.done.kind })}}"
+								},
+								{
+									"id": "label-done-text",
+									"style": "caption",
+									"align": "center",
+									"wrap": true,
+									"height": 44,
+									"text": "{{t('doneText', { kind: state.done.kind, email: state.done.email })}}"
+								},
+								{
+									"id": "spacer-done-button",
+									"style": "spacer",
+									"height": 10
+								},
+								{
+									"id": "doneButton",
+									"style": "primary",
+									"icon": "{{state.done.kind == 'deleted' ? 'arrow-left' : 'log-in'}}",
+									"text": "{{t('doneButton', { kind: state.done.kind })}}",
+									"onClick": "leaveDone"
+								},
+								{
+									"id": "doneOther",
+									"when": "{{state.done.kind == 'deleted'}}",
+									"style": "link",
+									"text": "{{t('doneOther')}}",
+									"onClick": "toCreate"
+								}
+							]
+						},
+						{
+							"id": "card-done-end",
+							"height": 36,
+							"color": "transparent"
+						}
+					]
+				}
+			]
 		},
 		"signedIn": {
 			"id": "panel-signed-in",
@@ -6495,10 +6690,11 @@
 	},
 	"root": {
 		"id": "panel-root",
-		"color": "@color.background",
+		"color": "{{computed.narrow ? '@color.surface' : '@color.background'}}",
 		"children": [
 			{
 				"id": "glow",
+				"when": "{{!computed.narrow}}",
 				"width": 520,
 				"height": 520,
 				"radius": 999,
@@ -6512,6 +6708,7 @@
 			},
 			{
 				"id": "glow-2",
+				"when": "{{!computed.narrow}}",
 				"width": 460,
 				"height": 460,
 				"radius": 999,

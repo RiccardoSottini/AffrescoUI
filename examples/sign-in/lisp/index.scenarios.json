@@ -1702,7 +1702,10 @@
 			"note": "Bug: at the smallest window the create card with its errors ran past the window and over the footer; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"wait": 50
@@ -1732,14 +1735,20 @@
 					"expect": {
 						"node": "#panel-card",
 						"property": "width",
-						"is": 420
+						"is": 480
 					}
 				},
 				{
 					"expect": {
 						"node": "#panel-card",
 						"property": "x",
-						"is": 30
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#glow",
+						"exists": false
 					}
 				},
 				{
@@ -1806,7 +1815,10 @@
 			"note": "Bug: sizes worked out in computed values kept the old window size until the next click, so the first click after a resize hit the wrong field; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"expect": {
@@ -1847,7 +1859,10 @@
 					}
 				},
 				{
-					"resize": [960, 720]
+					"resize": [
+						960,
+						720
+					]
 				},
 				{
 					"expect": {
@@ -1869,7 +1884,10 @@
 			"note": "At 1920 by 1080 the card stays 420 wide in the middle, with the logo and the footer",
 			"steps": [
 				{
-					"resize": [1920, 1080]
+					"resize": [
+						1920,
+						1080
+					]
 				},
 				{
 					"expect": {
@@ -2788,14 +2806,48 @@
 				},
 				{
 					"expect": {
+						"node": "#label-done-title",
+						"text": "Password updated"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "The new password for ada@example.com is set. Use it to sign in from now on."
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": false
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#doneButton",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
 						"node": "#label-welcome-back",
 						"exists": true
 					}
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Your password was changed. Sign in with the new one."
+						"state": "step",
+						"is": "password"
 					}
 				},
 				{
@@ -5632,6 +5684,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
 						"state": "formError",
 						"is": ""
@@ -5818,6 +5876,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -5933,6 +5997,12 @@
 				},
 				{
 					"wait": 800
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -6133,6 +6203,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -6302,7 +6378,10 @@
 					}
 				},
 				{
-					"resize": [600, 720]
+					"resize": [
+						600,
+						720
+					]
 				},
 				{
 					"wait": 50
@@ -7041,9 +7120,27 @@
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Your account was deleted"
+						"node": "#label-done-title",
+						"text": "Account deleted"
 					}
+				},
+				{
+					"expect": {
+						"state": "done.email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": true
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {

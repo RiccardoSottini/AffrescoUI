@@ -405,7 +405,8 @@
         :else
         (password-reset)))
 
-(defn password-reset "The new password, saved: the lock lifts, and the password step waits with the email." []
+(defn password-reset "The new password, saved: the lock lifts, the success screen says so, then the password step waits."
+  []
   (update-account state.reset.email {:password state.reset.password :passwordDays 0})
   (set "state.failures" (remove #{(str/lower-case state.reset.email)} state.failures))
   (set "state.email" state.reset.email)
@@ -413,9 +414,7 @@
   (set "state.submitted" false)
   (set "state.reset" {:email "" :code "" :password "" :confirm "" :submitted false :error "" :left 0})
   (set "state.step" "password")
-  (navigate "signInForm")
-  (focus "#textarea-placeholder")
-  (notify (t "passwordChanged")))
+  (show-done "reset" state.email))
 
 ;;; The session
 

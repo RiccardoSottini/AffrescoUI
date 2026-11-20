@@ -417,6 +417,17 @@
 					"wait": 800
 				},
 				{
+					"expect": {
+						"image": "reset-done"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -492,6 +503,12 @@
 				},
 				{
 					"wait": 800
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"click": "#password"
@@ -836,6 +853,118 @@
 				{
 					"expect": {
 						"image": "dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-goodbye",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "delete"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "deleted"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"resize": [
+						480,
+						640
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow-dark"
 					}
 				}
 			]

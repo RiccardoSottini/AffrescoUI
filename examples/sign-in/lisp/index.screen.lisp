@@ -19,6 +19,7 @@
             sign-in.sign-in-form
             sign-in.create-account
             sign-in.codes
+            sign-in.done
             sign-in.account
             sign-in.account-sections
             "../../shared/addons/assistant/assistant.lisp"
@@ -37,11 +38,12 @@
   :strings {:default en :locale ~state.locale :keep ["EXAM PLEE XAMP LE23" "DEMO-1001" "Example ID"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons arabic]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [iconsSmall arabicSmall]}
-          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :fallback [arabicTitle]}
-          :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 19 :fallback [icons arabicHeading]}
+          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :bold true :fallback [arabicTitle]}
+          :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 19 :bold true :fallback [icons arabicHeading]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 18}
           :iconsSmall {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :logo {:file "../../shared/fonts/Lucide.ttf" :size 22}
+          :hero {:file "../../shared/fonts/Lucide.ttf" :size 30}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 15}
           :arabic {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 15}
           :arabicSmall {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 13}
@@ -49,7 +51,7 @@
           :arabicHeading {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 19}}
   :persist [state.theme state.remember state.locale]
   :theme ~state.theme
-  (node#panel-root :color @color.background
+  (node#panel-root :color ~(if computed.narrow "@color.surface" "@color.background")
     ~@(glows)
     (outlet#screens :dir auto :anchors {:left 0 :right 0 :top 56 :bottom 44})
     ~(announcer)
@@ -73,5 +75,7 @@
 (defscreen twoStep "The code a second step asks for." ~(two-step-card))
 
 (defscreen reset "A new password, after a reset code." ~(reset-card))
+
+(defscreen done "What just went right: a new password, a deleted account." ~(done-card))
 
 (defscreen signedIn "The account page, once signed in." ~(account-screen))

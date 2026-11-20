@@ -34,6 +34,8 @@
    :color.fair {:light "#f59e0b" :dark "#fbbf24"}
    :color.good {:light "#6366f1" :dark "#818cf8"}
    :color.strong {:light "#16a34a" :dark "#4ade80"}
+   :color.success {:light "#16a34a" :dark "#4ade80"}
+   :color.successSoft {:light "#dcfce7" :dark "#14532d80"}
    :color.shadow {:light "#0f172a1f" :dark "#00000066"}
    :color.backdrop {:light "#0f172a66" :dark "#000000a0"}
    :color.toast {:light "#0f172a" :dark "#e2e8f0"}
@@ -222,6 +224,9 @@
     :fitContent height
     :scroll vertical))
 
+(defstyle cardFlat "A form's card on a narrow window: no frame, the page itself is the card."
+  {:style card :radius 0 :borderWidth 0 :color transparent :shadow {:color "#00000000"}})
+
 (defstyle form "A card's column of fields and buttons."
   (column :fitContent height :gap 8 :anchors {:left 36 :right 26}))
 
@@ -236,6 +241,21 @@
     :color @color.accent
     :textColor @color.accentText
     :shadow {:y 6 :blur 16 :color @color.glow}))
+
+(defstyle doneRing "The success screen's soft ring around its tick."
+  (node :width 84 :height 84 :radius 42 :color @color.successSoft))
+
+(defstyle doneBadge "The success screen's tick, on the success colour in the middle of its ring."
+  (label :font hero
+    :text ""
+    :width 60
+    :height 60
+    :radius 30
+    :anchors {:left 12 :top 12}
+    :align center
+    :color @color.success
+    :textColor @color.accentText
+    :shadow {:y 6 :blur 16 :color @color.successSoft}))
 
 (defstyle spacer "Some room between a form's parts." {:height 6 :anchors {:left 0 :right 10} :color transparent})
 
