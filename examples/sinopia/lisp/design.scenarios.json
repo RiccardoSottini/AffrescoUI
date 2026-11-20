@@ -118,6 +118,16 @@
 				{ "click": "#format-own-reset" },
 				{ "expect": { "state": "deck.colors", "is": null } }
 			]
+		},
+		{
+			"name": "sinopia-more-shape-presets",
+			"note": "The whole shapes list opens from the gallery, with more presets: rounded and snipped corners, a plaque, arrow callouts, more flowchart symbols and a second explosion",
+			"steps": [
+				{ "click": "#gal-shapes-all" },
+				{ "expect": { "state": "drop.id", "is": "gal-shapes" } },
+				{ "expect": { "state": "drop.open", "is": true } },
+				{ "capture": "list" }
+			]
 		}
 	]
 }
