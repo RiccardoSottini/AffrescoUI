@@ -185,7 +185,7 @@
 
 	"persist": ["state.theme", "state.view"],
 
-	"onLoad": [{ "run": "drawSample" }],
+	"onLoad": [{ "set": "state.assistant.size", "to": 28 }, { "set": "state.assistant.inset", "to": 10 }, { "run": "drawSample" }],
 
 	"root": {
 		"id": "root", "color": "@background",

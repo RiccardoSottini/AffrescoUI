@@ -45,7 +45,11 @@
 		"state.members": "buildTimeline"
 	},
 
-	"onLoad": "buildTimeline",
+	"onLoad": [
+		{ "set": "state.assistant.side", "to": "start", "note": "the assistant's launcher in the sidebar's empty bottom, clear of the board" },
+		{ "set": "state.assistant.floor", "to": 32 },
+		{ "run": "buildTimeline" }
+	],
 
 	"channels": {
 		"team": { "socket": "studio.sock", "reconnect": { "after": 2000 } }

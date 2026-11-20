@@ -37,6 +37,7 @@
    :size 40
    :inset 16
    :floor 0
+   :side :end
    :open false
    :anim 1
    :draft ""
@@ -591,7 +592,9 @@ run) and overlays: its launcher and its panel."
                                                                    (pos? (count state.assistant.messages))
                                                                    state.assistant.show)
                                   :use chatLauncher
-                                  :anchors {:right ~state.assistant.inset
+                                  :anchors {:right ~(if (= state.assistant.side :start)
+                                                     (- window.width state.assistant.inset state.assistant.size)
+                                                     state.assistant.inset)
                                             :bottom ~(+ state.assistant.inset state.assistant.floor state.assistant.lift)}
                                   :with {:isOpen ~state.assistant.open
                                          :run assistant.toggle
@@ -1252,7 +1255,7 @@ while the draft is a request: building it would build the field again, and the c
      :width 380
      :height ~(min 560 (- window.height state.assistant.inset state.assistant.floor state.assistant.lift
                          state.assistant.size 40))
-     :anchors {:right ~state.assistant.inset
+     :anchors {:right ~(if (= state.assistant.side :start) (- window.width state.assistant.inset 380) state.assistant.inset)
                :bottom ~(+ state.assistant.inset state.assistant.floor state.assistant.lift state.assistant.size 16)}
      :overlay {:placement window :open state.assistant.open :modal true}
      :color @assistant.surface
@@ -1262,7 +1265,7 @@ while the draft is a request: building it would build the field again, and the c
      :shadow {:x 0 :y 8 :blur 24 :color "#00000040"}
      :translate ~[0 (* (- 1 state.assistant.anim) 16)]
      :scale ~(+ 0.96 (* 0.04 state.assistant.anim))
-     :transformOrigin bottomRight
+     :transformOrigin ~(if (= state.assistant.side :start) :bottomLeft :bottomRight)
      :role dialog
      :label ~(t "assistant.title")
      :keys {:escape assistant.close

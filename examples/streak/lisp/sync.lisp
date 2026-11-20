@@ -5,6 +5,13 @@
 
 (ns streak.sync)
 
+;;; Starting
+
+(defn place-assistant "The assistant's launcher in the bottom left corner, under the habits, clear of the charts." []
+  (set "state.assistant.side" :start))
+
+(defpart start "What runs as Streak starts." :onLoad place-assistant)
+
 ;;; The server
 
 (defpart server "The sync's watch, and what the channel's events run."

@@ -145,7 +145,7 @@
 (defview page "A page of the app, beside the sidebar and above the status bar, while it is the one shown."
   [id page use dir]
   `(node :id ~id :dir ~dir :when ~(= state.page page) :use ~use :anchors {:left ~computed.sideWidth :right 0 :top 0
-                                                                          :bottom 32}))
+                                                                          :bottom ~(if settings.window.statusBar 32 0)}))
 
 (defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
   `(node#statusBar :when ~settings.window.statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar

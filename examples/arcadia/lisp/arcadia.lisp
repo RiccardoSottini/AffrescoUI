@@ -81,7 +81,10 @@
   (set "settings.appearance.language"
        (case settings.appearance.language :en :es :es :fr :en)))
 
-(defn open-start-page "Opens Arcadia on the page Settings choose, when it isn't the library." []
+(defn open-start-page
+  "Opens Arcadia on the page Settings choose, when it isn't the library; the assistant's launcher sits above the
+  bottom bar." []
+  (set "state.assistant.floor" 40)
   (when (not= settings.appearance.startPage :library)
     (set "state.nav" [{:tab settings.appearance.startPage :page :home :id nil}])))
 

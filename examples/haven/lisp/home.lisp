@@ -11,7 +11,7 @@
 (defview home-page "The home page: the top bar, the summary, and the room's cards." []
   `(node#main :dir auto
      :when ~(= state.page :home)
-     :anchors {:left ~computed.sideWidth :right 0 :top 0 :bottom 32}
+     :anchors {:left ~computed.sideWidth :right 0 :top 0 :bottom ~(if settings.window.statusBar 32 0)}
      :color transparent
      ~(top-bar)
      ~(summary-chips)

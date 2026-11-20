@@ -117,8 +117,12 @@
                (range 49))
           [{:x 1200 :y 800} {:x 0 :y 800}]))
 
-(defn draw-sample "The sample, 1200 × 800: a dawn sky, a sun and hills, each a layer; then no history, and the brush."
+(defn draw-sample
+  "The sample, 1200 × 800: a dawn sky, a sun and hills, each a layer; then no history, and the brush. The assistant's
+  launcher sits in the strip at the right edge."
   []
+  (set "state.assistant.size" 28)
+  (set "state.assistant.inset" 10)
   (image "newImage" :with {:width 1200 :height 800})
   (image "setLayer" :with {:id state.doc.active :name (t "sample.sky")})
   (image "setTool" :with {:tool "gradient"})

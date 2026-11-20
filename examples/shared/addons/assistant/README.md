@@ -104,7 +104,8 @@ All in `state.assistant`:
 | `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
 | `size` | The launcher's diameter in pixels (`40` by default); the panel opens just over it |
 | `inset` | Pixels between the launcher (and the panel) and the window's right and bottom edges (`16` by default) |
-| `floor` | The height of the app's own bar along the bottom (a status bar), which the launcher and the panel stay above (`0` by default). An app whose corner holds content says where the launcher goes with `floor`, `inset` and `size`, set as it starts, e.g. `"onLoad": [{ "set": "state.assistant.floor", "to": 22 }]` |
+| `side` | The corner: `"end"` (the bottom right, the default) or `"start"` (the bottom left) |
+| `floor` | The height of the app's own bar along the bottom (a status bar), which the launcher and the panel stay above (`0` by default). An app whose corner holds content says where the launcher goes with `side`, `floor`, `inset` and `size`, set as it starts, e.g. `"onLoad": [{ "set": "state.assistant.floor", "to": 22 }]` |
 | `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
 | `codeFont` | The font of evaluated code and its results (`"default"` until the app names a monospace one) |

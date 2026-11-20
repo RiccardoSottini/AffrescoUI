@@ -7,7 +7,7 @@
 (defview sidebar "The sidebar, hidden in the mini player." []
   `(node#sidebar :when ~(not state.mini)
      :dir auto
-     :anchors {:left 0 :top 0 :bottom 112}
+     :anchors {:left 0 :top 0 :bottom ~(if settings.window.statusBar 112 84)}
      :width 248
      :color @sidebar
      :role navigation
