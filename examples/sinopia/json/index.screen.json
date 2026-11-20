@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -272,7 +272,7 @@
 										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
 										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
 											{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
-										  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
+										  "onDoubleClick": { "run": "editObject", "with": { "id": "{{o.id}}", "left": "{{event.left}}", "top": "{{event.top}}", "width": "{{event.width}}", "height": "{{event.height}}" } } }
 									]
 								},
 								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" }

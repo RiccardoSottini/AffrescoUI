@@ -122,10 +122,10 @@
 						{ "id": "b-ins-new-slide", "use": "rbBig", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 }, "onClick": { "run": "newSlide", "with": { "layout": "content" } } }
 					] },
 					{ "id": "g-ins-tables", "use": "rbGroup", "with": { "title": "Tables" }, "children": [
-						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "width": 46, "enabled": false }, "tooltip": "Inserting a table isn't available yet" }
+						{ "id": "b-ins-table", "use": "rbBig", "with": { "icon": "table", "title": "Table", "menu": true, "width": 46 }, "tooltip": "Insert a table: pick its size in the grid", "onClick": "openTableGrid" }
 					] },
 					{ "id": "g-ins-images", "use": "rbGroup", "with": { "title": "Images" }, "children": [
-						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52, "enabled": false }, "tooltip": "Inserting pictures isn't available yet" },
+						{ "id": "b-ins-pictures", "use": "rbBig", "with": { "icon": "image", "title": "Pictures", "width": 52 }, "tooltip": "Insert a PNG or JPEG picture from a file", "onClick": "insertPicture" },
 						{ "id": "b-ins-album", "use": "rbBig", "with": { "icon": "images", "title": "Photo\nAlbum", "width": 50, "enabled": false }, "tooltip": "A photo album isn't available yet" }
 					] },
 					{ "id": "g-ins-illustrations", "use": "rbGroup", "with": { "title": "Illustrations" }, "children": [

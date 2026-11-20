@@ -67,7 +67,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | missing | |
 | Content | Crop a picture | missing | missing | |
-| Content | Tables | missing | missing | |
+| Content | Tables | missing | done | insert-a-table (Insert > Table's size grid; a double click edits a cell, Tab and Shift+Tab move, Tab in the last cell adds a row) |
 | Content | Table styles | missing | missing | |
 | Content | Charts (column, bar, line, pie) | missing | missing | |
 | Content | Icons | missing | done | insert-tab |
@@ -150,7 +150,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | Priority | Row or control | What it needs |
 |---|---|---|
 | P1 | Content: insert picture (Insert > Pictures) | Library: `openFile` of an image into an asset the slide draws and the saved deck carries; then JSON for an object of kind `picture` |
-| P1 | Content: tables (Insert > Table) | JSON: an object of kind `table` (rows of text cells) with a size grid to insert it and Tab between cells |
 | P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |

@@ -447,7 +447,7 @@
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}
           :onContextMenu ~(handler object-menu o.id event.x event.y)
-          :onDoubleClick ~(handler edit-text o.id)))))
+          :onDoubleClick ~(handler edit-object o.id event.left event.top event.width event.height)))))
 
 (defview notes-pane "The speaker notes of the slide shown, edited in place." []
   `(node#notes-pane :height 76 :color @notes :when ~state.notes

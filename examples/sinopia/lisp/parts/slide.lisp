@@ -52,7 +52,7 @@
        :textColor ~(or-else computed.palette.dark2 computed.palette.dark1)
        :runs [{:text ~(-> (map :id state.deck.slides) (indexOf slide.id) inc text) :size 12}])))
 
-(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink or text, at its place."
+(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink, a table, a picture or text, at its place."
   {:o nil :prefix "" :layout nil :edit false}
   `(node :id ~(str prefix o.id)
      :let ~(object-measures)
@@ -67,6 +67,8 @@
      ~(object-shape)
      ~(object-icon)
      ~(object-ink)
+     (node :use slideTable :when ~(= o.kind :table) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
+     (node :use slidePicture :when ~(= o.kind :picture) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
      ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))

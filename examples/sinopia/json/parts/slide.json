@@ -52,6 +52,8 @@
 					{ "type": "path", "id": "{{prefix + o.id + '-ink'}}", "when": "{{o.kind == 'ink'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}",
 					  "d": "{{o.d ?? ''}}", "viewBox": "{{'0 0 ' + (o.vw ?? box.w) + ' ' + (o.vh ?? box.h)}}", "fit": "fill",
 					  "stroke": "{{o.color ?? '#1f2933'}}", "strokeWidth": "{{o.width ?? 3}}", "strokeCap": "round", "strokeJoin": "round" },
+					{ "use": "slideTable", "when": "{{o.kind == 'table'}}", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "w": "{{box.w}}", "h": "{{box.h}}", "edit": "{{edit}}" } },
+					{ "use": "slidePicture", "when": "{{o.kind == 'picture'}}", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "w": "{{box.w}}", "h": "{{box.h}}" } },
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
