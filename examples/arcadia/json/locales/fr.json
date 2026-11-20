@@ -457,7 +457,23 @@
 			"hub.post.controller": "Meilleure configuration de manette pour {game} ?",
 			"hub.post.beginner": "Guide du débutant pour {game}",
 			"hub.post.coop": "Je cherche des joueurs pour {game} ce week-end",
-			"hub.post.secrets": "Dix secrets de {game} que la plupart des joueurs ratent"
+			"hub.post.secrets": "Dix secrets de {game} que la plupart des joueurs ratent",
+			"hub.backToPosts": "Toutes les publications",
+			"hub.replies": "{n, plural, one {# réponse} other {# réponses}}",
+			"hub.helpful": "Utile",
+			"hub.you": "{name} (vous)",
+			"hub.reply": "Répondre",
+			"hub.replyPlaceholder": "Écrire une réponse…",
+			"hub.body.firstHours": "J'ai fini le début de {game} hier soir. Que doit faire un nouveau joueur en premier, et qu'est-ce qui peut attendre ?",
+			"hub.body.allEndings": "{game} a plus de fins que la plupart des joueurs n'en trouvent. Voici chacune, et les choix qui y mènent, sans rien gâcher de l'histoire.",
+			"hub.body.controller": "Je joue à {game} à la manette et la disposition par défaut me gêne. Laquelle utilisez-vous, et pourquoi ?",
+			"hub.body.beginner": "Tout ce que j'aurais aimé savoir en commençant {game} : les commandes, les premiers objectifs et les erreurs à éviter.",
+			"hub.body.coop": "Nous sommes deux à jouer à {game} samedi soir et cherchons deux joueurs de plus. Sans pression, tous niveaux bienvenus.",
+			"hub.body.secrets": "Après cent heures sur {game}, voici les lieux cachés et les astuces qui surprennent encore.",
+			"hub.reply.0": "Merci, ça m'a beaucoup aidé pour {game}.",
+			"hub.reply.1": "Pareil pour moi. La seconde moitié de {game} devient bien plus simple quand on sait ça.",
+			"hub.reply.2": "Gardé pour plus tard. Est-ce toujours valable après la dernière mise à jour ?",
+			"hub.reply.3": "Je suis partant s'il reste de la place, je joue presque tous les soirs."
 		}
 	}
 }

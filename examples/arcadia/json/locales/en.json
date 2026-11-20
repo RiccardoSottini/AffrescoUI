@@ -457,7 +457,23 @@
 			"hub.post.controller": "Best controller layout for {game}?",
 			"hub.post.beginner": "A beginner's guide to {game}",
 			"hub.post.coop": "Looking for people to play {game} with this weekend",
-			"hub.post.secrets": "Ten secrets in {game} most players miss"
+			"hub.post.secrets": "Ten secrets in {game} most players miss",
+			"hub.backToPosts": "All posts",
+			"hub.replies": "{n, plural, one {# reply} other {# replies}}",
+			"hub.helpful": "Helpful",
+			"hub.you": "{name} (you)",
+			"hub.reply": "Reply",
+			"hub.replyPlaceholder": "Write a reply…",
+			"hub.body.firstHours": "Finished the opening of {game} last night. What should a new player do first, and what can wait until later?",
+			"hub.body.allEndings": "{game} has more endings than most people find. Here is each one, and the choices that lead to it, without spoiling the story.",
+			"hub.body.controller": "I play {game} on a pad and the default layout feels cramped. Which layout do you use, and why?",
+			"hub.body.beginner": "Everything I wish someone had told me when I started {game}: the controls, the first goals and the mistakes to avoid.",
+			"hub.body.coop": "Two of us are playing {game} together on Saturday evening and want two more. Relaxed pace, all levels welcome.",
+			"hub.body.secrets": "After a hundred hours in {game}, these are the hidden places and tricks that still surprise people.",
+			"hub.reply.0": "Thanks, this helped a lot with {game}.",
+			"hub.reply.1": "Same here. The second half of {game} gets much easier once you know this.",
+			"hub.reply.2": "Saved for later. Is this still right after the last update?",
+			"hub.reply.3": "Count me in if there is room, I play most evenings."
 		}
 	}
 }

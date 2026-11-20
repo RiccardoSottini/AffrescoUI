@@ -457,7 +457,23 @@
 			"hub.post.controller": "¿La mejor configuración de mando para {game}?",
 			"hub.post.beginner": "Guía de {game} para principiantes",
 			"hub.post.coop": "Busco gente para jugar a {game} este fin de semana",
-			"hub.post.secrets": "Diez secretos de {game} que casi nadie ve"
+			"hub.post.secrets": "Diez secretos de {game} que casi nadie ve",
+			"hub.backToPosts": "Todas las publicaciones",
+			"hub.replies": "{n, plural, one {# respuesta} other {# respuestas}}",
+			"hub.helpful": "Útil",
+			"hub.you": "{name} (tú)",
+			"hub.reply": "Responder",
+			"hub.replyPlaceholder": "Escribe una respuesta…",
+			"hub.body.firstHours": "Anoche terminé el comienzo de {game}. ¿Qué debería hacer primero alguien nuevo y qué puede esperar?",
+			"hub.body.allEndings": "{game} tiene más finales de los que casi todos encuentran. Aquí está cada uno y las decisiones que llevan a él, sin destripar la historia.",
+			"hub.body.controller": "Juego a {game} con mando y la distribución por defecto me resulta incómoda. ¿Cuál usáis y por qué?",
+			"hub.body.beginner": "Todo lo que me habría gustado saber al empezar {game}: los controles, los primeros objetivos y los errores que evitar.",
+			"hub.body.coop": "Somos dos jugando a {game} el sábado por la tarde y buscamos dos más. Sin prisas, todos los niveles son bienvenidos.",
+			"hub.body.secrets": "Tras cien horas en {game}, estos son los lugares ocultos y los trucos que aún sorprenden.",
+			"hub.reply.0": "Gracias, me ha ayudado mucho con {game}.",
+			"hub.reply.1": "Igual que yo. La segunda mitad de {game} es mucho más fácil sabiendo esto.",
+			"hub.reply.2": "Guardado para luego. ¿Sigue siendo válido tras la última actualización?",
+			"hub.reply.3": "Contad conmigo si hay sitio, juego casi todas las tardes."
 		}
 	}
 }

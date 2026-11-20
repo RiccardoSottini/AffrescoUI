@@ -439,6 +439,7 @@
   :title ~(t "command.openHub") :description ~(t "command.openHub.about") :category ~(t "category.game")
   [id section]
   (set "state.hubTab" (otherwise section "hub"))
+  (set "state.hubPost" nil)
   (go :library :hub id))
 
 (defcommand toggleCollections "Folds every collection of the game list, or unfolds them all."
@@ -545,6 +546,33 @@
 
 (defn show-hub-tab "Shows a section of a game's hub: everything, the discussions or the guides." [tab]
   (set "state.hubTab" tab))
+
+(defcommand openHubPost "Opens a post of the player hub on its thread: what it says, its replies, and a box to reply in."
+  :title ~(t "command.openHubPost") :description ~(t "command.openHubPost.about") :category ~(t "category.game")
+  [post]
+  (set "state.hubDraft" "")
+  (set "state.hubPost" post))
+
+(defcommand closeHubPost "Goes back from a post's thread to the hub's list of posts."
+  :title ~(t "command.closeHubPost") :description ~(t "command.closeHubPost.about") :category ~(t "category.game")
+  :enablement ~(some? state.hubPost)
+  []
+  (set "state.hubPost" nil))
+
+(defcommand replyToPost "Posts the reply written under the open post of the player hub."
+  :title ~(t "command.replyToPost") :description ~(t "command.replyToPost.about") :category ~(t "category.game")
+  :icon "send" :enablement ~(and (some? state.hubPost) (not= (trim state.hubDraft) ""))
+  []
+  (let [draft (str/trim state.hubDraft)]
+    (when (and (some? state.hubPost) (not (str/blank? draft)))
+      (push "state.hubReplies" {:post state.hubPost :text draft})
+      (set "state.hubDraft" ""))))
+
+(defcommand voteHubPost "Marks a post of the player hub as helpful, or takes the vote back."
+  :title ~(t "command.voteHubPost") :description ~(t "command.voteHubPost.about") :category ~(t "category.game")
+  :icon "thumbs-up"
+  [post]
+  (set "state.hubVoted" (toggled state.hubVoted post)))
 
 ;;; Managing a game
 
