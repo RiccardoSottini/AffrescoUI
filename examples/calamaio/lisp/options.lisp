@@ -31,6 +31,13 @@
   (toggle "settings.show-paren-mode")
   (mode-said (t "mode.bracketMatching") settings.show-paren-mode))
 
+(defcommand electric-pair-mode "Types the closing bracket or quote with the opening one, or stops."
+  :title ~(t "command.electric-pair-mode") :category ~(t "category.options")
+  :description ~(t "command.electric-pair-mode.about")
+  []
+  (toggle "settings.electric-pair-mode")
+  (mode-said (t "mode.electricPair") settings.electric-pair-mode))
+
 (defcommand menu-bar-mode "Shows or hides the menu bar; F10 still opens its menus."
   :title ~(t "command.menu-bar-mode") :category ~(t "category.options")
   :description ~(t "command.menu-bar-mode.about")

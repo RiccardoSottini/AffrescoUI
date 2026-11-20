@@ -382,12 +382,13 @@ public:
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
 	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
-	/// fit, and how many lines there are.
+	/// fit, how many lines there are, and how tall a row is.
 	struct View {
 		std::size_t first = 0; ///< The line of the first visible row, from 1.
 		std::size_t last = 0;  ///< The line of the last visible row, from 1.
 		std::size_t rows = 0;  ///< How many whole rows fit.
 		std::size_t lines = 0; ///< How many lines the text has.
+		float rowHeight = 0;   ///< A row's height, in window units: a scroll bar's pixels as rows.
 		/// @brief Whether two views are the same.
 		bool operator==(const View&) const = default;
 	};

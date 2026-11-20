@@ -3025,6 +3025,129 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "electric-pairs",
+			"note": "Typed brackets are plain while electric-pair-mode is off; on, ( types () with point inside, ) steps over the one after point, and a quote types two.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "p"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "("
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "("
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "electric-pair-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Electric pairs on"
+					}
+				},
+				{
+					"key": "shift+9"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "(()"
+					}
+				},
+				{
+					"type": "a"
+				},
+				{
+					"key": "shift+0"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "((a)"
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.column",
+						"is": 5
+					}
+				},
+				{
+					"key": "shift+apostrophe"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "((a)\"\""
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "electric-pair-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Electric pairs off"
+					}
+				}
+			]
 		}
 	]
 }

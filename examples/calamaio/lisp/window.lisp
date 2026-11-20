@@ -30,7 +30,7 @@
          :with {:search ~state.customQuery :query state.customQuery})
        ~(buffer-editor w))
      (node :width 8 :alignSelf stretch :color @fringe)
-     ~(scroll-bar)))
+     ~(scroll-bar w)))
 
 ;;; The buffer
 
@@ -89,7 +89,16 @@
                               :do quit-window}}
                         with-reading)
            {"*" reading}
-           (zipmap (map str (range 10)) (map #(with-reading (digit-binding %)) (range 10))))))
+           (zipmap (map str (range 10)) (map #(with-reading (digit-binding %)) (range 10)))
+           (update-vals pair-keys #(with-reading (pair-binding %))))))
+
+(def pair-keys "The keys of the brackets and the quote electric-pair-mode types, and their characters."
+  {"shift+9" "(" "shift+0" ")" "leftbracket" "[" "rightbracket" "]" "shift+leftbracket" "{" "shift+rightbracket" "}"
+   "shift+apostrophe" "\""})
+
+(defview pair-binding "A bracket's key in a window, while electric-pair-mode is on: electric-pair types it." [c]
+  `{:when ~(and (= state.sel w) (get settings "electric-pair-mode") (not state.is.on) (not state.qr.on))
+    :do electric-pair :with {:c ~c}})
 
 (defview digit-binding "A digit's key in a window: adds the digit to an argument typed as digits (M-5 2)." [d]
   `{:when ~(and (some? state.arg) state.argDigits) :do digit-argument :with {:d ~d}})
@@ -104,8 +113,11 @@
          :request state.qr.req :replace state.qr.replace}
         :else nil))
 
-(defview scroll-bar "The scroll bar: a thumb as tall as the share of the buffer in view, where that share is." []
-  `(node :width 10 :alignSelf stretch :color @track
+(defview scroll-bar
+  "The scroll bar: a thumb as tall as the share of the buffer in view, where that share is; dragging it scrolls." [w]
+  `(node :id ~(str "sb" w) :width 10 :alignSelf stretch :color @track
+     :onPress scroll-bar-press
+     :onDrag scroll-bar-drag
      :let {:lines ~(max 1 (or-else v.lines 1))
            :shown ~(min 1 (max 0.05 (/ (inc (- (or-else v.last 1) (or-else v.first 1))) lines)))}
      (node :x 2 :width 6 :radius 3 :color @thumb
@@ -153,6 +165,25 @@
 
 (defn select-window "Makes a window the selected one, as its editor takes the focus." [w]
   (set "state.sel" w))
+
+(defstate drag nil "A scroll bar being dragged: its window, and the first line its editor showed at the press.")
+
+(defn scroll-bar-press "A press on a window's scroll bar: selects the window, and keeps where its view starts." [w]
+  (set "state.sel" w)
+  (set "state.drag" {:w w :first (or-else (get-in state.win [w :view :first]) 1)}))
+
+(defn scroll-bar-drag
+  "Dragging a scroll bar: its editor shows the line as far down the buffer as the pointer has moved down the bar."
+  [w event]
+  (let [{:keys [first rows lines rowHeight]} (get-in state.win [w :view])
+        e (str "#ed" w)
+        bar (* (max 1 (or-else rows 1)) (max 1 (or-else rowHeight 20)))
+        pixels (* event.dy (or-else lines 1))
+        moved (round (/ pixels bar))
+        top (max 1 (min (- lines rows -1) (+ state.drag.first moved)))
+        bottom (min lines (+ top rows -1))]
+    (when (and (= state.drag.w w) (not= top first) (has-editor? e))
+      (edit "goTo" :in e :line (if (> top first) bottom top) :column 1))))
 
 (defn mark-modified "Marks the buffer a window shows as changed." [w]
   (set (str "state.bufs." (get-in state.win [w :buf]) ".dirty") true))

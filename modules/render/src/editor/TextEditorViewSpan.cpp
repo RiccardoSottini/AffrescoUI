@@ -26,14 +26,14 @@ TextEditor::View TextEditor::view() const {
 	const std::size_t count = std::max<std::size_t>(rowCount(), 1);
 	const float lh = lineHeight();
 	const std::size_t rows = visibleLines();
-	if(lh <= 0.0f) return {1, rowSpan(std::min(rows, count) - 1).line + 1, rows, lines_.size()};
+	if(lh <= 0.0f) return {1, rowSpan(std::min(rows, count) - 1).line + 1, rows, lines_.size(), lh};
 	// The rows shown whole: a row the top edge cuts isn't the first, nor one the bottom edge cuts the last
 	const float scroll = std::max(scroll_.y, 0.0f);
 	const std::size_t first = std::min(rowsUpTo(std::ceil(scroll / lh - 0.01f), count), count - 1);
 	const float bottom = (scroll + frame().height() - textPadding) / lh;
 	const std::size_t shown = std::max<std::size_t>(rowsUpTo(std::floor(bottom + 0.01f), count), 1);
 	const std::size_t last = std::clamp(std::min(shown, count) - 1, first, count - 1);
-	return {rowSpan(first).line + 1, rowSpan(last).line + 1, rows, lines_.size()};
+	return {rowSpan(first).line + 1, rowSpan(last).line + 1, rows, lines_.size(), lh};
 }
 
 void TextEditor::noteView() {

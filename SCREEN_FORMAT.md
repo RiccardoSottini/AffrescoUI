@@ -266,7 +266,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
