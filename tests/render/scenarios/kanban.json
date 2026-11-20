@@ -152,7 +152,16 @@
 				{ "expect": { "image": "projects" } },
 				{ "key": "mod+j" },
 				{ "wait": 50 },
-				{ "expect": { "image": "projects-dark" } }
+				{ "expect": { "image": "projects-dark" } },
+				{ "key": "mod+j" },
+				{ "click": "#projectRow", "nth": 0 },
+				{ "wait": 50 },
+				{ "expect": { "image": "project-page" } },
+				{ "key": "escape" },
+				{ "key": "g" },
+				{ "key": "r" },
+				{ "wait": 50 },
+				{ "expect": { "image": "roadmap" } }
 			]
 		},
 		{
