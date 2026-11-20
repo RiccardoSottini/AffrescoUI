@@ -374,7 +374,7 @@
 					{ "type": "label", "id": "selection-empty", "when": "{{length(computed.objects) == 0}}", "height": 24, "textColor": "@rbMuted", "runs": [{ "text": "This slide has no objects.", "size": 12 }] },
 					{ "type": "row",
 					  "id": "{{'selection-' + o.id}}", "repeat": { "for": "o", "in": "{{reverse(computed.objects)}}", "key": "{{o.id}}", "index": "n" }, "height": 26, "gap": 4, "alignItems": "center",
-					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
+					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : o.kind == 'table' ? 'Table' : o.kind == 'picture' ? 'Picture' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
 					  "color": "{{contains(state.board.selection, o.id) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
 						{ "type": "label", "id": "{{'selection-' + o.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
