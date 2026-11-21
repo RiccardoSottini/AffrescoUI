@@ -6846,6 +6846,94 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-gradient-options",
+			"note": "The gradient's Reverse, Dither and Transparency options work and are kept",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "g"
+				},
+				{
+					"expect": {
+						"state": "doc.options.reverse",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.transparency",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"reverse": true,
+							"dither": true,
+							"transparency": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.reverse",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.dither",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.transparency",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 400,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 600,
+									"y": 400,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 1100,
+									"y": 400,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Gradient"
+					}
+				}
+			]
 		}
 	]
 }

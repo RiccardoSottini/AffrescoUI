@@ -298,9 +298,11 @@
               :items ~[{:title (t "blend.normal") :checked true}]})
      (node#option-gradient-opacity :use tField
        :with {:title ~(t "option.opacity") :key fillOpacity :value ~state.doc.options.fillOpacity})
-     (node#gradient-reverse :use tCheck :with {:title ~(t "option.reverse") :checked false :off true})
-     (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :checked false :off true})
-     (node#gradient-transparency :use tCheck :with {:title ~(t "option.transparency") :checked true :off true})))
+     (node#gradient-reverse :use tCheck
+       :with {:title ~(t "option.reverse") :key reverse :checked ~state.doc.options.reverse})
+     (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :key dither :checked ~state.doc.options.dither})
+     (node#gradient-transparency :use tCheck
+       :with {:title ~(t "option.transparency") :key transparency :checked ~state.doc.options.transparency})))
 
 (defview selection-box-options
   "The handles of Transform Selection and Free Transform: what a drag does, the numbers, and Done." []

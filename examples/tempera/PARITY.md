@@ -69,7 +69,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
 | Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, each drag one step (undo cancels it); Numbers... opens the dialog that also flips and turns it; no rotating or skewing handles |
 | Crop with overlay grid and aspect presets | done | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the drag ratio (Free, 1 : 1, 4 : 3, 3 : 2, 16 : 9, 4 : 5) holds a drag to that shape, and the ratios menu crops the largest centred part at once |
-| Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
+| Gradient tool with editor | partial | Inline editor and presets; Reverse, Dither and Transparency work; its blend modes are disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
 | Eyedropper | done | |
 | Clone stamp (Alt-click source) | done | |

@@ -425,7 +425,7 @@ void drawGradient(ImageDocument& image, Point at) {
 	if(settings.gradient) gradient = *settings.gradient;
 	else gradient.stops = {{0.0f, settings.foreground}, {1.0f, settings.background}};
 	imaging::drawGradient(image.canvas->document(), *target, gradient, settings.shape, image.press.start, at,
-	                      settings.opacity);
+	                      settings.opacity, settings.gradientOptions);
 }
 
 /// @brief Selects inside the lasso's path, if it has an area, and clears the path.

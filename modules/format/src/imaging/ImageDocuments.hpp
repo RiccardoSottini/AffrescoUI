@@ -119,6 +119,7 @@ struct ToolSettings {
 	imaging::SampleOptions sample;                                 ///< magic-wand, fill: tolerance and contiguity.
 	imaging::GradientShape shape = imaging::GradientShape::linear; ///< gradient: its shape.
 	std::optional<imaging::Gradient> gradient; ///< gradient: its stops; none: foreground to background.
+	imaging::GradientOptions gradientOptions;  ///< gradient: reverse, dither and transparency.
 	float opacity = 1.0f;                      ///< fill, gradient: 0 to 1.
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
 	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.

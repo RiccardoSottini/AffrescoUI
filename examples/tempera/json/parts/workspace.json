@@ -319,9 +319,9 @@
 						{ "id": "gradient-mode", "use": "tPicker", "with": { "title": "Normal", "tip": "Mode: other modes aren't available yet", "width": 84, "open": "state.paintModeMenu",
 						  "items": [{ "title": "Normal", "checked": true }] } },
 						{ "id": "option-gradient-opacity", "use": "tField", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}" } },
-						{ "id": "gradient-reverse", "use": "tCheck", "with": { "title": "Reverse", "checked": false, "off": true } },
-						{ "id": "gradient-dither", "use": "tCheck", "with": { "title": "Dither", "checked": false, "off": true } },
-						{ "id": "gradient-transparency", "use": "tCheck", "with": { "title": "Transparency", "checked": true, "off": true } }
+						{ "id": "gradient-reverse", "use": "tCheck", "with": { "title": "Reverse", "key": "reverse", "checked": "{{state.doc.options.reverse}}" } },
+						{ "id": "gradient-dither", "use": "tCheck", "with": { "title": "Dither", "key": "dither", "checked": "{{state.doc.options.dither}}" } },
+						{ "id": "gradient-transparency", "use": "tCheck", "with": { "title": "Transparency", "key": "transparency", "checked": "{{state.doc.options.transparency}}" } }
 					  ] },
 
 					{ "type": "row", "id": "options-type", "grow": 100, "when": "{{state.doc.gesture == 'text'}}", "alignItems": "center", "gap": 8, "height": 30, "children": [

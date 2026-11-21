@@ -24,7 +24,7 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `Filter.hpp` | Gaussian blur, motion blur, sharpen, unsharp mask and add noise, and the selection's feather, tile by tile with a halo, for a preview of the visible tiles or the whole layer |
 | `Vector.hpp` | Vector content: paths of anchors with curve handles (the document's `Structure::paths`), and the `LayerContent` a type or shape layer is drawn from (text, font, size, style, tracking, kerning, alignment; a rectangle, ellipse, polygon, line or path with fill and stroke) |
 | `Shapes.hpp` | Vector content drawn: paths flattened, strokes, type and shape layers rendered into a layer's pixels (text with a `render` font), a type layer's outlines as paths (`textOutlines`, through HarfBuzz), and their JSON |
-| `Gradient.hpp` | Linear, radial, angle, reflected and diamond gradients, and a fill by colour (the paint bucket) |
+| `Gradient.hpp` | Linear, radial, angle, reflected and diamond gradients (reversed, dithered or opaque by `GradientOptions`), and a fill by colour (the paint bucket) |
 | `Color.hpp` | `ColorProfile` (sRGB, Display P3, a wide RGB, grey, or parsed from bytes), `ColorTransform`, soft proofing, and the 3D table the canvas converts to the display through |
 | `Codec.hpp` | PNG and JPEG read into tiled images (16-bit PNG to `rgba16f`) with their embedded profile, and written |
 | `Project.hpp` | The project file: a header, a JSON manifest, then each tile deflated; opened by reading the manifest only, each tile inflated on first use |

@@ -114,6 +114,9 @@ constexpr int navigatorSide = 160;
 	        {"quickMask", settings.quickMask},
 	        {"autoSelect", settings.autoSelect},
 	        {"cropRatio", settings.cropRatio},
+	        {"reverse", settings.gradientOptions.reverse},
+	        {"dither", settings.gradientOptions.dither},
+	        {"transparency", settings.gradientOptions.transparency},
 	        {"retouch", imaging::retouchNames()[static_cast<std::size_t>(settings.retouch) -
 	                                            static_cast<std::size_t>(imaging::StrokeMode::dodge)]}};
 }
