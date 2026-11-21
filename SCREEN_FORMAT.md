@@ -235,7 +235,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text and `runs`, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |

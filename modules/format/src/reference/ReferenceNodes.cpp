@@ -342,7 +342,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"properties": {"horizontal": {"anyOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"}]},
 		"vertical": {"$ref": "#/$defs/v2/align"}}}],
 		"description": "label: text alignment; stack: v1 name of \"from\""})json",
-	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically).)",
+	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text and `runs`, left to right; `"justify center"` centres the block vertically).)",
 	 "label"},
     {"wrap", "flag", "Break lines that don't fit the width.", "label"},
     {"fitText", R"json({"oneOf": [{"type": "boolean"}, {"type": "object", "required": ["maxWidth"],

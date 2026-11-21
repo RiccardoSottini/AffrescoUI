@@ -116,9 +116,9 @@ public:
 	/// @brief Turns word wrap on or off.
 	/// @param wrap true to break lines that don't fit the width.
 	void setWrap(bool wrap);
-	/// @brief Justifies wrapped plain text: every line but a paragraph's last is stretched to the full width, the room
-	/// left shared between its spaces. Lines are placed from the start otherwise; rich text (runs) and right-to-left
-	/// text are left as they are.
+	/// @brief Justifies wrapped text, plain or rich (runs): every line but a paragraph's last is stretched to the full
+	/// width, the room left shared between its spaces. Lines are placed from the start otherwise; right-to-left text is
+	/// left as it is.
 	/// @param justify true to justify.
 	void setJustify(bool justify);
 	/// @brief Whether wrapped lines are justified (setJustify()).
@@ -195,6 +195,7 @@ private:
 		float boxWidth = 0.0f;      ///< The width they are aligned in.
 		Align align = Align::Start; ///< Their placement.
 		std::size_t length = 0;     ///< The shown text's length (a text area changes it without a version).
+		bool justified = false;     ///< Whether its wrapped lines are justified (setJustify()).
 		/// @brief Whether two are the same.
 		friend bool operator==(const LaidOut&, const LaidOut&) = default;
 	};

@@ -11,6 +11,7 @@
 #include <affresco/render/Accessibility.hpp>
 #include <affresco/render/Bitmap.hpp>
 #include <affresco/render/Font.hpp>
+#include <affresco/render/RichText.hpp>
 #include <affresco/render/Tabs.hpp>
 
 #include <doctest/doctest.h>
@@ -241,4 +242,23 @@ TEST_CASE("clipboard images: paste one under a name on the person's click, and c
 	built.screen.runAction("copy", built.window->root());
 	REQUIRE(built.window->clipboardImage() != nullptr);
 	CHECK(built.window->clipboardImage()->width() == 3);
+}
+
+TEST_CASE("justify: rich text's wrapped lines fill the width, cut at their spaces; a paragraph's last line doesn't") {
+	const auto font = affresco::Font::load(std::filesystem::path(AFFRESCOUI_FONTS_DIR) / "Roboto-Regular.ttf", 16.0f);
+	REQUIRE(font != nullptr);
+	affresco::TextLayout layout;
+	const std::vector<affresco::TextRun> runs = {{.text = U"one two three "}, {.text = U"four five six seven eight"}};
+	const float box = font->measure(U"one two three four") + 12.0f; // room left on the first line
+	layout.layOut(runs, *font, box, box, affresco::Align::Start);
+	REQUIRE(layout.lines().size() >= 2);
+	const std::size_t firstLinePieces = layout.lines()[0].endPiece - layout.lines()[0].firstPiece;
+	layout.justify(box);
+	const auto& first = layout.lines()[0];
+	CHECK(first.endPiece - first.firstPiece > firstLinePieces); // cut at the spaces
+	const auto& lastPiece = layout.pieces()[first.endPiece - 1];
+	CHECK(lastPiece.x + lastPiece.width >= box - 1.0f); // reaches the right edge
+	const auto& last = layout.lines().back();
+	CHECK(layout.pieces()[last.firstPiece].x == doctest::Approx(0.0f));
+	CHECK(last.width < box); // the paragraph's last line keeps its spacing
 }

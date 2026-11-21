@@ -311,13 +311,15 @@ const TextLayout& Label::textLayout() const {
 	const Rect content = contentRect();
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
 	const Align horizontal = readingAlign(horizontal_);
-	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size()};
+	const bool justified = justify_ && wrap_ && !rightToLeft(); // words go left to right
+	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size(), justified};
 	if(key == laidOut_) return layout_;
 	if(runs_.empty()) {
 		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal);
 	} else {
 		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal);
 	}
+	if(justified) layout_.justify(content.width());
 	laidOut_ = key;
 	return layout_;
 }
