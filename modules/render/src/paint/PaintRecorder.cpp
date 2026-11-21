@@ -356,13 +356,15 @@ void PaintRecorder::drawRoundedImage(const Bitmap& bitmap, const Rect& rect, con
 		if(clip_.right > clip_.left && clip_.bottom > clip_.top)
 			pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
 	};
-	for(float y = shape.top; y < shape.top + topBand; y += row) {
-		const float depth = y + row / 2.0f - shape.top;
+	const auto rows = [row](float band) { return static_cast<int>(std::ceil(band / row)); };
+	for(int index = 0, count = rows(topBand); index < count; ++index) {
+		const float y = shape.top + static_cast<float>(index) * row, depth = y + row / 2.0f - shape.top;
 		strip(y, std::min(y + row, shape.top + topBand), shape.left + inset(topLeft, depth),
 		      shape.right - inset(topRight, depth));
 	}
 	strip(shape.top + topBand, shape.bottom - bottomBand, shape.left, shape.right);
-	for(float y = shape.bottom - bottomBand; y < shape.bottom; y += row) {
+	for(int index = 0, count = rows(bottomBand); index < count; ++index) {
+		const float y = shape.bottom - bottomBand + static_cast<float>(index) * row;
 		const float depth = shape.bottom - (y + row / 2.0f);
 		strip(y, std::min(y + row, shape.bottom), shape.left + inset(bottomLeft, depth),
 		      shape.right - inset(bottomRight, depth));
