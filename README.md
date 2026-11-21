@@ -6,7 +6,7 @@
 
 ### Any application, defined in one format and rendered natively.<br/>Its users reshape it live, just by asking an AI.
 
-[![Defined in Lisp · JSON](https://img.shields.io/badge/defined%20in-Lisp%20%C2%B7%20JSON-D97706)](LISP.md)
+[![Defined in Lisp, a Clojure dialect · JSON](https://img.shields.io/badge/defined%20in-Lisp%20%28a%20Clojure%20dialect%29%20%C2%B7%20JSON-D97706)](LISP.md)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
@@ -15,7 +15,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 **[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
-**[Lisp](#written-in-lisp)** ·
+**[Lisp (Clojure)](#written-in-lisp-a-clojure-dialect)** ·
 **[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Documentation](#documentation)**
 
 <br/>
@@ -39,11 +39,12 @@ app made from a name and a description, a small change to a home app, and the La
 > ```
 
 AffrescoUI is a native UI engine whose applications are **defined in Lisp**. [AffrescoUI Lisp](LISP.md), a sandboxed
-dialect of Clojure, is the standard: an application's window, views, state, behaviour, commands, keys, settings and text
-are all named Lisp definitions, which the engine builds into one document, draws in C++ and OpenGL, and keeps running.
-**JSON is supported too:** the same document can be written directly in JSON, and every example ships both. People and
-AI agents change an application while it runs: each change is checked against the app's permissions, previewed if it
-needs approval, and applied in place in milliseconds, with no rebuild, no restart and nothing lost.
+dialect of **Clojure**, is the standard: an application's window, views, state, behaviour, commands, keys, settings and
+text are all named Lisp definitions, which the engine builds into one document, draws in C++ and OpenGL, and keeps
+running. If you write Clojure, you can already read and write these apps. **JSON is supported too:** the same document
+can be written directly in JSON, and every example ships both. People and AI agents change an application while it runs:
+each change is checked against the app's permissions, previewed if it needs approval, and applied in place in
+milliseconds, with no rebuild, no restart and nothing lost.
 
 ## The vision
 
@@ -254,17 +255,35 @@ web/                 the WebAssembly build
 
 The layers, the path of a revision and of an event, and the security boundary: [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Written in Lisp
+## Written in Lisp, a Clojure dialect
 
 An AffrescoUI app is a program in **AffrescoUI Lisp**, a sandboxed dialect of Clojure with its own runtime, built into
 the library ([LISP.md](LISP.md) has every definition and rule in tables; [`modules/lisp`](modules/lisp/README.md), [RFC
 0005](rfcs/0005-lisp-language.md), [RFC 0006](rfcs/0006-clojure-dialect.md)). Its forms, functions and reader forms are
-Clojure's; it is measured against Clojure's cross-dialect test suite ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)),
-and every difference is written down with what to write instead
-([differences.md](modules/lisp/reference/differences.md)). Every example is written in its idiomatic style
+Clojure's: of 186 everyday Clojure forms, 163 give Clojure's own value and the other 23 are left out or differ on
+purpose ([everyday.lisp](tests/conformance/everyday.lisp), checked on every test run). It is measured against Clojure's
+cross-dialect test suite too ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)), every difference is written down with
+what to write instead ([differences.md](modules/lisp/reference/differences.md)), and clj-kondo lints the programs with
+[its configuration](editors/clj-kondo/README.md). Every example is written in its idiomatic style
 ([style.md](modules/lisp/reference/style.md)). The program is a folder of small, named definitions. Building it gives
 the document the engine draws, and its functions run whenever a button is pressed, a key is typed or a bound value
-changes.
+changes. From Flow's own code (`examples/flow/lisp/flow.lisp`):
+
+```clojure
+(ns flow.flow)
+
+(defn cards-of "A column's cards, in their order." [c]
+  (:cards (column c)))
+
+(defn next-order "The order that puts a card at the end of a column." [c]
+  (->> (cards-of c) (map :order) (reduce max -1) inc))
+
+(defn column-of "The column that holds a card, or -1." [ref]
+  (or (first (keep-indexed (fn [c col]
+                              (when (some #(= (:ref %) ref) (:cards col)) c))
+                            computed.columns))
+      -1))
+```
 
 | You define | In AffrescoUI Lisp |
 |---|---|
