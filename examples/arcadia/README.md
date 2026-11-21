@@ -44,14 +44,15 @@ hold a game, a swap of two places and a game by its id are one function each (`h
   something, and `controls.scenarios.json` proves each one. A Settings window (`mod+,`) with Interface, Downloads
   (a download region, a bandwidth limit, a schedule that keeps downloads to 1:00 to 7:00 UTC, downloading while
   playing, clearing the cache), Storage (two drives, usage by game, moving a game between them, uninstall) and Account
-  pages; a game's properties with its installed files to browse, its drive, and a move to the other drive; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
+  pages; a game's properties with its installed files to browse, its drive, a move to the other drive, and a compatibility
+  layer to force; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
   from this computer; backup and restore through the file dialogs; offline mode; signing out and in; a couch mode in
-  full screen with rows of your games, the store's and your friends, driven by the arrow keys or a gamepad; a game's player hub with discussions, guides and screenshots, where a post opens
+  full screen with rows of your games, the store's, your friends and settings, driven by the arrow keys or a gamepad; a game's player hub with discussions, guides and screenshots, where a post opens
   on its thread (replies, a helpful vote, a box to reply in) and a screenshot opens big; your own screenshots of a game
   (F12 while it runs) in a viewer that steps and deletes; the controller's layout per game; browsing a game's installed
   files in its properties; notes on a game; filters and collapsing collections in the library, and new ones
   (`parts/collections.lisp`): games picked by hand, or dynamic, filled by a rule (installed, never played, favourites, a
-  genre); votes on reviews. The store bar's Rewards is a points shop (each euro spent earns 100 points) and its
+  genre), renamed, changed or deleted from a shelf's pencil or a right click on its heading; votes on reviews. The store bar's Rewards is a points shop (each euro spent earns 100 points, the rewards redeemed shown on the profile) and its
   Experiments hold a discovery queue and a switch that hides owned games from the store. Exit is disabled with a tooltip
   (a document can't close the window it runs in).
 - **The look**: aubergine and charcoal with an amber accent, a centred segmented navigation, flat pill bars, rounded
