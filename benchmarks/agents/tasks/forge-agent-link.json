@@ -2,7 +2,7 @@
 	"id": "forge-agent-link",
 	"level": "forge",
 	"screen": "examples/forge/json/index.screen.json",
-	"request": "In Forge, add a button \"Ask the Agent\" (id welcome-agent) to the Welcome page's Quick actions, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
+	"request": "In Forge, add a button \"Ask the Agent\" (id welcome-agent) to the Welcome page's Start list, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
 	"scenarios": [
 		{
 			"name": "welcome",
@@ -61,18 +61,15 @@
 		{
 			"message": "Agent links",
 			"add": {
-				"#welcome-body/children/11": {
-					"type": "label",
+				"#welcome-left/children/6": {
 					"id": "welcome-agent",
-					"role": "button",
-					"icon": "bot",
-					"text": "Ask the Agent",
-					"width": "100%",
-					"height": 38,
-					"padding": 12,
-					"radius": 9,
-					"color": "@color.widget",
-					"cursor": "hand",
+					"use": "forgeWelcomeAction",
+					"with": {
+						"icon": "bot",
+						"text": "Ask the Agent",
+						"tip": "Show the Agent view",
+						"command": "showAgent"
+					},
 					"onClick": {
 						"run": "showAgent"
 					}

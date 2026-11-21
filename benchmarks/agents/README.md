@@ -80,6 +80,7 @@ Each task has:
 | `present` | optional: the addresses the change must make (a program's definition, `/program/<file>/<name>`, or a JSON action), when the request says which way it is written |
 | `commits` | optional: how many revisions the request takes (0 for a `use` task) |
 | `runs` | optional: how many runs of the app's commands the request takes, as the host logs them ran (0 for a change) |
+| `setup` | optional, for a `use` task: scenario steps played before the runs, as the app's own scenarios start (Streak's `pin-seed-day`, so its demo days don't follow the calendar) |
 | `reference` | the revisions that do it (`submit_revision` arguments), which the oracle submits; for a `use` task, `{"run": [...]}`, the commands it runs (`run_command`'s `name` and `arguments`) |
 
 The reference's output tokens also give the "feature request" budget of `tests/perf/budgets.json`: its largest

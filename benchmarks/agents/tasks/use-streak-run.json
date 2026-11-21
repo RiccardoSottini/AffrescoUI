@@ -3,6 +3,12 @@
 	"level": "use",
 	"screen": "examples/streak/lisp/index.screen.lisp",
 	"request": "I ran 5 km on 15 October 2026: put it in my Run habit.",
+	"setup": [
+		{
+			"action": "pin-seed-day",
+			"note": "The demo habits as seed/ wrote them, ending on 2026-10-15, whatever the date"
+		}
+	],
 	"scenarios": [
 		{
 			"name": "ran",

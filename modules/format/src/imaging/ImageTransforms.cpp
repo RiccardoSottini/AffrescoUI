@@ -565,9 +565,10 @@ void distributeLayers(ImageDocument& image, const json& with, Window* /*window*/
 	imaging::Document& document = image.canvas->document();
 	const std::string edge = textOf(with, "edge", "left");
 	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
-	const auto* const found = std::ranges::find(edges, edge);
-	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
-	const auto index = static_cast<std::size_t>(found - edges.begin());
+	// An index, not an iterator: an array's is a pointer with some standard libraries (libstdc++) and not with others
+	// (MSVC's, libc++'s hardened one), so no one declaration of it builds and passes clang-tidy everywhere
+	const auto index = static_cast<std::size_t>(std::ranges::distance(edges.begin(), std::ranges::find(edges, edge)));
+	if(index == edges.size()) throw DocumentError("Unknown edge " + edge);
 	const std::size_t axis = index < 3 ? 0 : 1;
 	const json ids = with.contains("ids") && with.at("ids").is_array() ? with.at("ids") : json::array();
 	const std::vector<Placed> placed = placedLayers(image, ids, axis, index % 3);
