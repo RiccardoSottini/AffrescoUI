@@ -71,8 +71,8 @@ void RasterView::paint(Painter& painter) const {
 	paintPaths(painter, *shown);
 	if(gesture == Gesture::selectionBox || gesture == Gesture::layerBox) paintSelectionBox(painter, *shown);
 	if(hovered_ && !shown->spaceHeld && !shown->press.pan &&
-	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone || gesture == Gesture::retouch ||
-	    gesture == Gesture::quickSelect))
+	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone ||
+	    gesture == Gesture::retouch || gesture == Gesture::quickSelect))
 		paintBrush(painter, *shown);
 }
 

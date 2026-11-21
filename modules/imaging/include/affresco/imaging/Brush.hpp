@@ -42,8 +42,8 @@ struct BrushPreset {
 
 /// @brief What a stroke does.
 enum class StrokeMode : std::uint8_t {
-	paint, ///< Lays the colour.
-	erase, ///< Takes away opacity (on a mask or the selection: hides, deselects).
+	paint,   ///< Lays the colour.
+	erase,   ///< Takes away opacity (on a mask or the selection: hides, deselects).
 	clone,   ///< Copies the image from an offset, as it was when the stroke began.
 	dodge,   ///< Lightens the pixels under it.
 	burn,    ///< Darkens them.
