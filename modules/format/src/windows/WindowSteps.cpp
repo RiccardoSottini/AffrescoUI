@@ -69,6 +69,7 @@ void openUrlStep(const Running& s) {
 		 .text = url,
 		 .accept = "Open",
 		 .decline = "Cancel"},
+	    // NOLINTNEXTLINE(bugprone-exception-escape): only the warning's text can throw, if memory runs out
 	    [&engine, url](bool yes) {
 		    engine.webQuestion = 0;
 		    if(!yes || !engine.openWebAddress) return;
