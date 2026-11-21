@@ -18,7 +18,7 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `History.hpp` | `History`: steps that keep only the tiles they changed, before and after, bounded by `undoSteps` and `undoBytes` (the oldest go first) |
 | `Blend.hpp` | The 12 blend modes (normal, multiply, screen, overlay, soft light, darken, lighten, difference, hue, saturation, colour, luminosity), on the CPU and as GLSL, tested against each other |
 | `Composite.hpp` | `Compositor` (a document flattened, one tile at a time at any mip level) and `Sampler` (pixels of a layer or of the flattened document) |
-| `Adjustment.hpp` | The 8 adjustments: levels, curves (a composite curve and one per channel), hue/saturation, colour balance, brightness/contrast, invert, threshold and gradient map |
+| `Adjustment.hpp` | The 8 adjustments: levels, curves (a composite curve and one per channel), hue/saturation (or colorize), colour balance, brightness/contrast, invert, threshold and gradient map |
 | `Selection.hpp` | Shapes (rectangle, ellipse, lasso, polygon) with soft edges, combined by replace, add, subtract or intersect; the magic wand, colour range, invert, and the selection's bounds to the pixel |
 | `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased or cloned along a path, with pressure, as one step |
 | `Filter.hpp` | Gaussian blur, motion blur, sharpen, unsharp mask, add noise and high pass, and the selection's feather, tile by tile with a halo, for a preview of the visible tiles or the whole layer |

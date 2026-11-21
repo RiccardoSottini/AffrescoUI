@@ -131,6 +131,7 @@ json adjustmentToJson(const Adjustment& adjustment) {
 	            {"hue", adjustment.hue},
 	            {"saturation", adjustment.saturation},
 	            {"lightness", adjustment.lightness},
+	            {"colorize", adjustment.colorize},
 	            {"balance", adjustment.balance},
 	            {"brightness", adjustment.brightness},
 	            {"contrast", adjustment.contrast},
@@ -154,6 +155,8 @@ Adjustment adjustmentFromJson(const json& value) {
 	adjustment.hue = numberIn(value, "hue", adjustment.hue);
 	adjustment.saturation = numberIn(value, "saturation", adjustment.saturation);
 	adjustment.lightness = numberIn(value, "lightness", adjustment.lightness);
+	if(const auto colorize = value.find("colorize"); colorize != value.end() && colorize->is_boolean())
+		adjustment.colorize = colorize->get<bool>();
 	const json& balance = listIn(value, "balance", 3);
 	for(std::size_t index = 0; index < balance.size(); ++index)
 		adjustment.balance.at(index) = numberOf(balance[index], "balance");

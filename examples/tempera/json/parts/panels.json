@@ -276,6 +276,13 @@
 					  "accentColor": "{{state.curveChannel == 'red' ? '#e5484d' : state.curveChannel == 'green' ? '#46a758' : state.curveChannel == 'blue' ? '#3e8ed0' : '@accent'}}",
 					  "histogram": "{{map(state.doc.histogram ?? [], min(it, 4 * sum(state.doc.histogram) / length(state.doc.histogram)))}}",
 					  "onChange": { "run": "setCurve", "with": { "args": { "points": "{{event.value.points}}" } } } },
+					{ "type": "row", "id": "adjust-colorize-row", "when": "{{computed.adjustmentKind == 'hue-saturation'}}", "width": "100%", "height": 24, "gap": 8, "alignItems": "center",
+					  "children": [
+						{ "type": "checkbox", "id": "adjust-colorize", "label": "Colorize", "width": 14, "height": 14, "checked": "{{computed.adjustment.colorize == true}}",
+						  "activeColor": "@accent", "trackColor": "@border", "knobColor": "@input",
+						  "onChange": { "run": "setAdjustment", "with": { "args": { "colorize": "{{event.value}}" } } } },
+						{ "type": "label", "text": "Colorize", "textColor": "@text", "fitText": true, "tooltip": "Colour the image in one hue, by its lightness" }
+					  ] },
 					{ "id": "adjust-hue", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
 					  "with": { "title": "Hue", "key": "hue", "value": "{{computed.adjustment.hue}}", "min": -180, "max": 180, "scale": 1 } },
 					{ "id": "adjust-saturation", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",

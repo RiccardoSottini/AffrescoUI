@@ -225,8 +225,22 @@
      :focused {:borderWidth 1 :borderColor @accent}
      :onClick [{:set state.curveChannel :to ~ch}]))
 
-(defview hue-values "A Hue/Saturation layer's hue, saturation and lightness." []
-  [(adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)
+(defview hue-values "A Hue/Saturation layer's Colorize, then its hue, saturation and lightness." []
+  [`(row#adjust-colorize-row :when ~(= computed.adjustmentKind "hue-saturation")
+      :width "100%"
+      :height 24
+      :gap 8
+      :alignItems center
+      (checkbox#adjust-colorize :label ~(t "adjust.colorize")
+        :width 14
+        :height 14
+        :checked ~(= computed.adjustment.colorize true)
+        :activeColor @accent
+        :trackColor @border
+        :knobColor @input
+        :onChange ~(handler setAdjustment {:colorize event.value}))
+      (label :text ~(t "adjust.colorize") :textColor @text :fitText true :tooltip ~(t "adjust.colorize.tip")))
+   (adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)
    (adjust-slider "adjust-saturation" "hue-saturation" "saturation" -100 100 100)
    (adjust-slider "adjust-lightness" "hue-saturation" "lightness" -100 100 100)])
 

@@ -128,6 +128,17 @@ TEST_CASE("imaging adjustments: settings are clamped and tables follow the formu
 	CHECK(adjustPixel(curves, Pixel{0.0f, 0.0f, 0.0f, 1.0f}).green == doctest::Approx(0.0f));
 	CHECK(adjustmentFromJson(adjustmentToJson(curves)) == curves);
 
+	Adjustment colorize; // red at full saturation: mid grey becomes a mid red, white stays white
+	colorize.kind = AdjustmentKind::hueSaturation;
+	colorize.colorize = true;
+	colorize.saturation = 1.0f;
+	CHECK(adjustmentShader(colorize) == AdjustmentShader::byLuminosity);
+	const Pixel red = adjustPixel(colorize, {0.5f, 0.5f, 0.5f, 1.0f});
+	CHECK(red.red == doctest::Approx(1.0f));
+	CHECK(red.green == doctest::Approx(0.0f));
+	CHECK(adjustPixel(colorize, {1.0f, 1.0f, 1.0f, 1.0f}).blue == doctest::Approx(1.0f));
+	CHECK(adjustmentFromJson(adjustmentToJson(colorize)).colorize);
+
 	Gradient gradient;
 	gradient.stops.assign(40, GradientStop{2.0f, {2.0f, -1.0f, 0.5f, 1.0f}});
 	gradient.normalize();

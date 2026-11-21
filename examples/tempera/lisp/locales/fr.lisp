@@ -11,6 +11,8 @@
                 :adjust.channel.green "Vert"
                 :adjust.channel.red "Rouge"
                 :adjust.channel.rgb "RVB"
+                :adjust.colorize "Redéfinir"
+                :adjust.colorize.tip "Colore l'image d'une seule teinte, selon sa luminosité"
                 :adjust.contrast "Contraste"
                 :adjust.curve "Courbe"
                 :adjust.curveChannel "Couche de la courbe"

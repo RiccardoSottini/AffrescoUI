@@ -92,6 +92,28 @@ namespace {
 	return turned;
 }
 
+/// @brief A colour in one hue at a luminosity (hue/saturation's colorize): the hue, the saturation (-1 to 1 as 0 to
+/// 100 %) and that luminosity as an HSL colour, then lightened or darkened.
+/// @param adjustment The adjustment.
+/// @param pixel The colour, of which only the luminosity counts.
+[[nodiscard]] Pixel colorized(const Adjustment& adjustment, const Pixel& pixel) noexcept {
+	const float light = clamped(detail::luminosityOf(pixel)),
+	            saturation = clamped((adjustment.saturation + 1.0f) / 2.0f);
+	const float hue = std::fmod(adjustment.hue + 360.0f, 360.0f) / 60.0f;
+	const float chroma = (1.0f - std::abs(2.0f * light - 1.0f)) * saturation;
+	const float second = chroma * (1.0f - std::abs(std::fmod(hue, 2.0f) - 1.0f)), base = light - chroma / 2.0f;
+	const auto sector = static_cast<std::size_t>(hue) % 6;
+	using Shares = std::array<std::size_t, 3>; // which part red, green and blue take, in each sixth of the hues
+	constexpr std::array<Shares, 6> order{{{0, 1, 2}, {1, 0, 2}, {2, 0, 1}, {2, 1, 0}, {1, 2, 0}, {0, 2, 1}}};
+	const std::array<float, 3> parts{chroma, second, 0.0f};
+	Pixel out{base + parts[order[sector][0]], base + parts[order[sector][1]], base + parts[order[sector][2]],
+	          pixel.alpha};
+	for(float* channel : {&out.red, &out.green, &out.blue})
+		*channel = clamped(adjustment.lightness >= 0.0f ? *channel + (1.0f - *channel) * adjustment.lightness
+		                                                : *channel * (1.0f + adjustment.lightness));
+	return out;
+}
+
 } // namespace
 
 Pixel Gradient::at(float position) const noexcept {
@@ -168,8 +190,8 @@ void Adjustment::normalize() {
 
 AdjustmentShader adjustmentShader(const Adjustment& adjustment) noexcept {
 	switch(adjustment.kind) {
-	case AdjustmentKind::hueSaturation:
-		return AdjustmentShader::hueSaturation;
+	case AdjustmentKind::hueSaturation: // colorizing maps the luminosity, as a gradient map does
+		return adjustment.colorize ? AdjustmentShader::byLuminosity : AdjustmentShader::hueSaturation;
 	case AdjustmentKind::threshold:
 	case AdjustmentKind::gradientMap:
 		return AdjustmentShader::byLuminosity;
@@ -198,7 +220,7 @@ std::array<std::uint8_t, std::size_t{256} * 4> adjustmentTable(const Adjustment&
 Pixel adjustPixel(const Adjustment& adjustment, const Pixel& pixel) noexcept {
 	switch(adjustment.kind) {
 	case AdjustmentKind::hueSaturation:
-		return hueSaturation(adjustment, pixel);
+		return adjustment.colorize ? colorized(adjustment, pixel) : hueSaturation(adjustment, pixel);
 	case AdjustmentKind::threshold: {
 		const float value = detail::luminosityOf(pixel) >= adjustment.level ? 1.0f : 0.0f;
 		return {value, value, value, pixel.alpha};

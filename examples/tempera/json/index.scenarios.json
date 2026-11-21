@@ -5084,6 +5084,43 @@
 			]
 		},
 		{
+			"name": "tempera-colorize",
+			"note": "A Hue/Saturation layer's Colorize colours the image in one hue, kept on the layer and taken back by undo",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+u"
+				},
+				{
+					"expect": {
+						"node": "#adjust-colorize",
+						"exists": true
+					}
+				},
+				{
+					"click": "#adjust-colorize"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.colorize",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.colorize",
+						"is": false
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-type-layer",
 			"note": "The Type tool adds a type layer; its text, size and style edit in place, and it rasterizes",
 			"steps": [

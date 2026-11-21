@@ -11,6 +11,8 @@
                 :adjust.channel.green "Green"
                 :adjust.channel.red "Red"
                 :adjust.channel.rgb "RGB"
+                :adjust.colorize "Colorize"
+                :adjust.colorize.tip "Colour the image in one hue, by its lightness"
                 :adjust.contrast "Contrast"
                 :adjust.curve "Curve"
                 :adjust.curveChannel "Curve's channel"
