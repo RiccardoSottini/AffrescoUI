@@ -12,6 +12,7 @@
 #include <functional>
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace affresco::format::editing {
 
@@ -67,7 +68,7 @@ constexpr double grabDistance = 8.0;
 /// @brief Makes a type layer, active, drawn from a content.
 /// @param image The image.
 /// @param content The content (kind text).
-void makeTypeLayer(ImageDocument& image, im::LayerContent content) {
+void makeTypeLayer(const ImageDocument& image, im::LayerContent content) {
 	content.kind = im::ContentKind::text;
 	if(content.text.empty()) content.text = "Text";
 	image.canvas->document().addContentLayer(typeLayerName(content.text), content, drawContent(image, content));
@@ -76,7 +77,7 @@ void makeTypeLayer(ImageDocument& image, im::LayerContent content) {
 /// @brief Makes a shape layer, active, drawn from a content.
 /// @param image The image.
 /// @param content The content (kind shape).
-void makeShapeLayer(ImageDocument& image, im::LayerContent content) {
+void makeShapeLayer(const ImageDocument& image, im::LayerContent content) {
 	content.kind = im::ContentKind::shape;
 	image.canvas->document().addContentLayer(shapeLayerName(content), content, drawContent(image, content));
 }
@@ -169,7 +170,7 @@ void addPath(im::Structure& structure, std::string name) {
 /// @brief addText: adds a type layer.
 /// @param image The image.
 /// @param with text, x, y, size, font, bold, italic, align, leading, fill (the foreground's when absent).
-void addText(ImageDocument& image, const json& with, Window*) {
+void addText(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	im::LayerContent content = image.settings.vector;
 	content.fill = image.settings.foreground;
@@ -181,7 +182,7 @@ void addText(ImageDocument& image, const json& with, Window*) {
 /// @param image The image.
 /// @param with shape, x, y, x2, y2, radius, sides, points, closed, fill (the foreground's when absent), stroke,
 /// strokeWidth.
-void addShape(ImageDocument& image, const json& with, Window*) {
+void addShape(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	im::LayerContent content = image.settings.vector;
 	content.fill = image.settings.foreground;
@@ -193,7 +194,7 @@ void addShape(ImageDocument& image, const json& with, Window*) {
 /// typing and sliders coalesce into one step.
 /// @param image The image.
 /// @param with id, and the content's keys.
-void editContent(ImageDocument& image, const json& with, Window*) {
+void editContent(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const im::Layer& layer = contentLayer(image, with);
 	im::LayerContent content = layer.content;
@@ -217,7 +218,7 @@ void editContent(ImageDocument& image, const json& with, Window*) {
 /// @brief rasterize: makes a type or shape layer a pixel layer of the same pixels.
 /// @param image The image.
 /// @param with id.
-void rasterize(ImageDocument& image, const json& with, Window*) {
+void rasterize(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const im::Layer& layer = contentLayer(image, with);
 	image.canvas->document().setContent(
@@ -227,7 +228,7 @@ void rasterize(ImageDocument& image, const json& with, Window*) {
 /// @brief newPath: adds an empty path, the active one, which the pen then draws.
 /// @param image The image.
 /// @param with name.
-void newPath(ImageDocument& image, const json& with, Window*) {
+void newPath(ImageDocument& image, const json& with, Window* /*window*/) {
 	const std::string name = nameOf(with, "name");
 	changePaths(image, "New Path", [&](im::Structure& structure) { addPath(structure, name); });
 }
@@ -235,7 +236,7 @@ void newPath(ImageDocument& image, const json& with, Window*) {
 /// @brief selectPath: makes a path the active one (-1 for none: the paths hide).
 /// @param image The image.
 /// @param with index.
-void selectPath(ImageDocument& image, const json& with, Window*) {
+void selectPath(ImageDocument& image, const json& with, Window* /*window*/) {
 	im::Document& document = image.canvas->document();
 	const int index = wholeOf(with, "index", -1);
 	const int count = static_cast<int>(document.structure().paths.size());
@@ -248,11 +249,11 @@ void selectPath(ImageDocument& image, const json& with, Window*) {
 /// @brief deletePath: deletes a path.
 /// @param image The image.
 /// @param with index (the active path's when absent).
-void deletePath(ImageDocument& image, const json& with, Window*) {
+void deletePath(ImageDocument& image, const json& with, Window* /*window*/) {
 	const int index = pathIndexOf(image, with);
 	changePaths(image, "Delete Path", [&](im::Structure& structure) {
 		structure.paths.erase(structure.paths.begin() + index);
-		if(structure.activePath >= static_cast<int>(structure.paths.size()) || structure.activePath == index)
+		if(std::cmp_greater_equal(structure.activePath, structure.paths.size()) || structure.activePath == index)
 			structure.activePath = -1;
 		else if(structure.activePath > index) --structure.activePath;
 	});
@@ -261,7 +262,7 @@ void deletePath(ImageDocument& image, const json& with, Window*) {
 /// @brief renamePath: renames a path.
 /// @param image The image.
 /// @param with index, name.
-void renamePath(ImageDocument& image, const json& with, Window*) {
+void renamePath(ImageDocument& image, const json& with, Window* /*window*/) {
 	const int index = pathIndexOf(image, with);
 	const std::string name = nameOf(with, "name");
 	if(name.empty()) throw DocumentError("A path has a name");
@@ -272,7 +273,7 @@ void renamePath(ImageDocument& image, const json& with, Window*) {
 /// @brief setPath: replaces the active path's anchors, or closes or opens it.
 /// @param image The image.
 /// @param with points, closed.
-void setPath(ImageDocument& image, const json& with, Window*) {
+void setPath(ImageDocument& image, const json& with, Window* /*window*/) {
 	const json points = with.contains("points") ? with["points"] : json();
 	const std::vector<im::PathPoint> read =
 	    points.is_null() ? std::vector<im::PathPoint>{} : im::pointsFromJson(points);
@@ -304,7 +305,7 @@ void setPath(ImageDocument& image, const json& with, Window*) {
 /// @brief strokePath: strokes the active path on the active layer with the foreground colour.
 /// @param image The image.
 /// @param with width (the brush's size when absent).
-void strokePath(ImageDocument& image, const json& with, Window*) {
+void strokePath(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const std::vector<Point> points = flattenedPath(image);
 	const std::uint64_t target = pathTarget(image);
@@ -318,7 +319,7 @@ void strokePath(ImageDocument& image, const json& with, Window*) {
 
 /// @brief fillPath: fills the active path on the active layer with the foreground colour.
 /// @param image The image.
-void fillPath(ImageDocument& image, const json&, Window*) {
+void fillPath(ImageDocument& image, const json& /*with*/, Window* /*window*/) {
 	settle(image);
 	const std::vector<Point> points = flattenedPath(image);
 	if(points.size() < 3) throw DocumentError("A path fills with three anchors or more");
@@ -331,7 +332,7 @@ void fillPath(ImageDocument& image, const json&, Window*) {
 /// @brief pathToSelection: makes a selection of the active path's inside.
 /// @param image The image.
 /// @param with mode (replace, add, subtract, intersect).
-void pathToSelection(ImageDocument& image, const json& with, Window*) {
+void pathToSelection(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const std::vector<Point> points = flattenedPath(image);
 	if(points.size() < 3) throw DocumentError("A path makes a selection with three anchors or more");
@@ -343,7 +344,7 @@ void pathToSelection(ImageDocument& image, const json& with, Window*) {
 
 /// @brief pathToShape: makes a shape layer of the active path, filled with the foreground colour.
 /// @param image The image.
-void pathToShape(ImageDocument& image, const json&, Window*) {
+void pathToShape(ImageDocument& image, const json& /*with*/, Window* /*window*/) {
 	settle(image);
 	const im::VectorPath& path = activePath(image.canvas->document());
 	if(path.points.size() < 2) throw DocumentError("The path needs two anchors or more");
@@ -400,7 +401,7 @@ bool pressPen(ImageDocument& image, Point at) {
 /// @brief pen's drag: pulls the new anchor's handles, symmetric about it (a smooth point).
 /// @param image The image.
 /// @param at Where.
-bool dragPen(ImageDocument& image, Point at) {
+bool dragPen(const ImageDocument& image, Point at) {
 	if(image.pathAnchor < 0) return false;
 	const auto index = static_cast<std::size_t>(image.pathAnchor);
 	image.canvas->document().changeStructure(
@@ -430,7 +431,7 @@ bool dragPathSelect(ImageDocument& image, Point at) {
 	    [&](im::Structure& changed) {
 		    im::VectorPath& path = activePath(changed);
 		    for(std::size_t index = 0; index < path.points.size(); ++index) {
-			    if(anchor >= 0 && static_cast<std::size_t>(anchor) != index) continue;
+			    if(anchor >= 0 && std::cmp_not_equal(anchor, index)) continue;
 			    for(im::VectorPoint* point :
 				    {&path.points[index].anchor, &path.points[index].in, &path.points[index].out}) {
 				    point->x += dx;
@@ -505,7 +506,7 @@ bool dragVector(ImageDocument& image, imaging::Point at) {
 	}
 }
 
-bool releaseVector(ImageDocument& image, imaging::Point) {
+bool releaseVector(const ImageDocument& image, imaging::Point /*at*/) {
 	if(image.settings.gesture != Gesture::shape) return false;
 	const auto [from, to] = shapeBox(image);
 	im::LayerContent content = image.settings.vector;
@@ -555,7 +556,7 @@ json pathsJson(const imaging::Document& document) {
 		                {"label", path.name},
 		                {"closed", path.closed},
 		                {"anchors", path.points.size()},
-		                {"active", static_cast<int>(index) == structure.activePath}});
+		                {"active", std::cmp_equal(index, structure.activePath)}});
 	}
 	return rows;
 }

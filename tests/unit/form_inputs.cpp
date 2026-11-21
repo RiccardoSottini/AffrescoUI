@@ -43,7 +43,7 @@ struct Built {
 	/// @brief Presses a key in the focused panel, as the platform delivers it.
 	/// @param key The key.
 	/// @param mods The modifier keys held (GLFW_MOD_* bits).
-	void press(affresco::Key key, int mods = 0) {
+	void press(affresco::Key key, int mods = 0) const {
 		window->routeKey({key, 0, affresco::Action::Press, affresco::Mods{mods}});
 		window->routeKey({key, 0, affresco::Action::Release, affresco::Mods{mods}});
 		window->render();

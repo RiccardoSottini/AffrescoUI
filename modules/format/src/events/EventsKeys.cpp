@@ -194,8 +194,8 @@ Panel* findMnemonic(Reconciler& reconciler, const Panel& scope, Panel& panel, ch
 json personBindings(Engine& engine, const json& document) {
 	if(!document.contains("keyBindings") || !document["keyBindings"].is_string()) return json::array();
 	try {
-		json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
-		                                         *noVariables(), json::object(), "keyBindings");
+		const json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
+		                                               *noVariables(), json::object(), "keyBindings");
 		return bindings.is_array() ? bindings : json::array();
 	} catch(const DocumentError& error) {
 		engine.report(error.what());

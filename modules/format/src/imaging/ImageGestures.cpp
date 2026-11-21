@@ -237,6 +237,13 @@ void panView(ImageDocument& image, const imaging::CanvasPointer& event) {
 	image.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
 }
 
+/// @brief Whether a tool's press goes to pressVector(): type, pen and path selection.
+/// @param gesture The tool's gesture.
+/// @return true for those.
+[[nodiscard]] bool pressesVector(Gesture gesture) noexcept {
+	return gesture == Gesture::text || gesture == Gesture::pen || gesture == Gesture::pathSelect;
+}
+
 /// @brief What a tool does when a button goes down.
 /// @param image The image.
 /// @param at Where, in document pixels.
@@ -262,12 +269,8 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::zoom:
 		zoomAt(image, at, image.press.right ? 0.5 : 2.0);
 		return true;
-	case Gesture::text:
-	case Gesture::pen:
-	case Gesture::pathSelect:
-		return pressVector(image, at);
 	default:
-		return false;
+		return pressesVector(image.settings.gesture) && pressVector(image, at);
 	}
 }
 

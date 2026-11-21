@@ -13,6 +13,7 @@
 #include <cmath>
 #include <numbers>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace affresco::format {
@@ -56,6 +57,42 @@ void strokeOutline(Painter& painter, const VectorPath::Contour& contour, Color c
 void addPoint(VectorPath::Contour& contour, Vec2 point) {
 	if(contour.points.empty() || contour.points.back().x != point.x || contour.points.back().y != point.y)
 		contour.points.push_back(point);
+}
+
+/// @brief A marquee's closed outline: a rectangle's corners, or points around the ellipse inside it.
+/// @param box The marquee, in window units.
+/// @param ellipse Whether it is elliptical.
+/// @return The outline.
+[[nodiscard]] VectorPath::Contour marqueeContour(const Rect& box, bool ellipse) {
+	VectorPath::Contour contour;
+	contour.closed = true;
+	if(!ellipse) {
+		for(const Vec2 corner : {Vec2{box.left, box.top}, Vec2{box.right, box.top}, Vec2{box.right, box.bottom},
+		                         Vec2{box.left, box.bottom}})
+			addPoint(contour, corner);
+	} else {
+		const Vec2 centre{(box.left + box.right) / 2.0f, (box.top + box.bottom) / 2.0f};
+		for(int at = 0; at < ellipsePoints; ++at) {
+			const double angle = 2.0 * std::numbers::pi * at / ellipsePoints;
+			addPoint(contour, {centre.x + static_cast<float>(std::cos(angle)) * box.width() / 2.0f,
+			                   centre.y + static_cast<float>(std::sin(angle)) * box.height() / 2.0f});
+		}
+	}
+	return contour;
+}
+
+/// @brief Strokes a path's line once, solid, 1.5 units wide.
+/// @param painter The painter.
+/// @param contour The line, in window units (nothing is drawn under two points).
+/// @param color Its colour.
+void strokePathLine(Painter& painter, const VectorPath::Contour& contour, Color color) {
+	if(contour.points.size() < 2) return;
+	const std::span<const VectorPath::Contour> contours(&contour, 1);
+	std::vector<MeshVertex> mesh;
+	StrokeStyle style;
+	style.width = 1.5f;
+	appendStroke(contours, style, mesh);
+	painter.fillMesh(mesh, {}, color);
 }
 
 } // namespace
@@ -110,19 +147,7 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 	   (gesture == Gesture::selectRectangle || gesture == Gesture::selectEllipse || gesture == Gesture::shape)) {
 		const Rect box =
 		    between(toWindow(image, press.boxFrom.x, press.boxFrom.y), toWindow(image, press.boxTo.x, press.boxTo.y));
-		contour.closed = true;
-		if(!ellipse) {
-			for(const Vec2 corner : {Vec2{box.left, box.top}, Vec2{box.right, box.top}, Vec2{box.right, box.bottom},
-			                         Vec2{box.left, box.bottom}})
-				addPoint(contour, corner);
-		} else {
-			const Vec2 centre{(box.left + box.right) / 2.0f, (box.top + box.bottom) / 2.0f};
-			for(int at = 0; at < ellipsePoints; ++at) {
-				const double angle = 2.0 * std::numbers::pi * at / ellipsePoints;
-				addPoint(contour, {centre.x + static_cast<float>(std::cos(angle)) * box.width() / 2.0f,
-				                   centre.y + static_cast<float>(std::sin(angle)) * box.height() / 2.0f});
-			}
-		}
+		contour = marqueeContour(box, ellipse);
 	} else if(!image.path.empty() && (gesture == Gesture::lasso || gesture == Gesture::polygonLasso)) {
 		for(const imaging::Point& point : image.path) addPoint(contour, toWindow(image, point.x, point.y));
 		if(gesture == Gesture::polygonLasso && hovered_) addPoint(contour, pointer_); // the edge being placed
@@ -130,43 +155,44 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 	strokeOutline(painter, contour, look_.overlay);
 }
 
-void RasterView::paintPaths(Painter& painter, const editing::ImageDocument& image) const {
+void RasterView::paintContentBox(Painter& painter, const editing::ImageDocument& image) const {
 	using editing::Gesture;
-	const imaging::Document& document = image.canvas->document();
-	const imaging::Structure& structure = document.structure();
 	const Gesture gesture = image.settings.gesture;
 	const bool vectorTool = gesture == Gesture::text || gesture == Gesture::shape || gesture == Gesture::pen ||
 	                        gesture == Gesture::pathSelect || gesture == Gesture::move;
-	if(const imaging::Layer* layer = document.activeLayer();
-	   vectorTool && layer != nullptr && layer->content.kind != imaging::ContentKind::none && !image.press.down) {
-		const auto box = editing::contentBounds(image, layer->content);
-		VectorPath::Contour contour;
-		contour.closed = true;
-		for(const auto& [x, y] : {std::pair{box[0], box[1]}, {box[2], box[1]}, {box[2], box[3]}, {box[0], box[3]}})
-			addPoint(contour, toWindow(image, x, y));
-		strokeOutline(painter, contour, look_.overlay);
-	}
+	const imaging::Layer* layer = image.canvas->document().activeLayer();
+	if(!vectorTool || layer == nullptr || layer->content.kind == imaging::ContentKind::none || image.press.down) return;
+	const auto box = editing::contentBounds(image, layer->content);
+	VectorPath::Contour contour;
+	contour.closed = true;
+	for(const auto& [x, y] : {std::pair{box[0], box[1]}, {box[2], box[1]}, {box[2], box[3]}, {box[0], box[3]}})
+		addPoint(contour, toWindow(image, x, y));
+	strokeOutline(painter, contour, look_.overlay);
+}
+
+void RasterView::paintPaths(Painter& painter, const editing::ImageDocument& image) const {
+	paintContentBox(painter, image);
+	const imaging::Structure& structure = image.canvas->document().structure();
 	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size()) return;
 	const imaging::VectorPath& path = structure.paths[static_cast<std::size_t>(structure.activePath)];
 	VectorPath::Contour contour;
 	contour.closed = path.closed;
 	for(const imaging::Point& point : imaging::flattenPath(path.points, path.closed))
 		addPoint(contour, toWindow(image, point.x, point.y));
-	if(!path.closed && !path.points.empty() && hovered_ && gesture == Gesture::pen && !image.press.down)
+	if(!path.closed && !path.points.empty() && hovered_ && image.settings.gesture == editing::Gesture::pen &&
+	   !image.press.down)
 		addPoint(contour, pointer_); // the segment the next anchor would add
-	if(contour.points.size() >= 2) {
-		const std::span<const VectorPath::Contour> contours(&contour, 1);
-		std::vector<MeshVertex> mesh;
-		StrokeStyle style;
-		style.width = 1.5f;
-		appendStroke(contours, style, mesh);
-		painter.fillMesh(mesh, {}, look_.overlay);
-	}
+	strokePathLine(painter, contour, look_.overlay);
+	paintAnchors(painter, image, path);
+}
+
+void RasterView::paintAnchors(Painter& painter, const editing::ImageDocument& image,
+                              const imaging::VectorPath& path) const {
 	constexpr float anchorSide = 7.0f;
 	for(std::size_t index = 0; index < path.points.size(); ++index) {
 		const imaging::PathPoint& point = path.points[index];
 		const Vec2 at = toWindow(image, point.anchor.x, point.anchor.y);
-		if(index + 1 == path.points.size() || static_cast<int>(index) == image.pathAnchor)
+		if(index + 1 == path.points.size() || std::cmp_equal(index, image.pathAnchor))
 			for(const imaging::VectorPoint handle : {point.in, point.out}) {
 				if(handle == point.anchor) continue;
 				const Vec2 end = toWindow(image, handle.x, handle.y);
