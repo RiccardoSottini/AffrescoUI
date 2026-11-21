@@ -1135,6 +1135,23 @@
 				{ "expect": { "state": "scenes", "is": [{ "id": "scene", "name": "Scene" }] } },
 				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } }
 			]
+		},
+		{
+			"name": "modello-bevel",
+			"note": "Ctrl B in Edit Mode bevels the picked edge of the cube: a narrow face takes its place and stays selected; undo puts the edge back",
+			"steps": [
+				{ "key": "tab" },
+				{ "key": "2" },
+				{ "action": "pick", "event": { "type": "pick", "id": "cube", "button": "left", "shift": false, "x": 700, "y": 400, "point": [1, 1, 0] } },
+				{ "expect": { "state": "edit.edge", "is": [3, 7] } },
+				{ "key": "ctrl+b" },
+				{ "expect": { "state": "edit.faces", "is": [6] } },
+				{ "expect": { "state": "edit.edge", "is": null } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.meshes[0].vertices[7]", "is": [1, 1, 1] } },
+				{ "key": "tab" },
+				{ "expect": { "state": "mode", "is": "object" } }
+			]
 		}
 	]
 }

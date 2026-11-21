@@ -2,7 +2,7 @@
 ;;;
 ;;; Tab enters Edit Mode on the active mesh, whose primitive becomes an editable mesh in the scene's meshes. 1, 2 and 3
 ;;; pick vertices, edges or faces; a click selects (Shift adds), A selects all. E extrudes the faces, I insets them,
-;;; Ctrl R cuts a loop across the edge, X deletes; G, R and S move, turn and scale the selection after the pointer, with
+;;; Ctrl R cuts a loop across the edge, Ctrl B bevels it, X deletes; G, R and S move, turn and scale the selection after the pointer, with
 ;;; proportional editing pulling the vertices near it along. Every change keeps an undo snapshot first.
 
 (ns modello.editmode)
@@ -128,6 +128,13 @@
   :title ~(t "command.loopCut") :description ~(t "command.loopCut.about")
   :category ~(t "category.mesh") :enablement ~(and (= state.mode :edit) (some? state.edit.edge)) []
   (put-mesh (meshLoopCut computed.editMesh state.edit.edge) [] [] (t "command.loopCut")))
+
+(defcommand bevelEdge "Bevels the selected edge: a narrow face takes its place, and stays selected."
+  :title ~(t "command.bevelEdge") :description ~(t "command.bevelEdge.about")
+  :category ~(t "category.mesh") :enablement ~(and (= state.mode :edit) (some? state.edit.edge)) []
+  (let [mesh (meshBevel computed.editMesh state.edit.edge 0.2)
+        added [(dec (count mesh.faces))]]
+    (put-mesh mesh added (meshFaceVertices mesh added) (t "command.bevelEdge"))))
 
 (defcommand deleteElements "Deletes the selected faces, or the selected vertices and their faces."
   :title ~(t "command.deleteElements") :description ~(t "command.deleteElements.about")

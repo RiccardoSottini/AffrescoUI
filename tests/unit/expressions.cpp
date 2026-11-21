@@ -416,6 +416,7 @@ const std::vector<Case> cases = {
     {"{{length(meshDeleteFaces(meshPrimitive('cube'), [0]).faces)}}", 5, {}},
     {"{{length(meshDeleteVertices(meshPrimitive('cube'), [0]).vertices)}}", 7, {}},
     {"{{length(meshLoopCut(meshPrimitive('cube'), [2, 6]).faces)}}", 10, {}},
+    {"{{length(meshBevel(meshPrimitive('cube'), [2, 6], 0.25).faces)}}", 7, {}},
     {"{{meshMove(meshPrimitive('plane'), [0], [0, 1, 0]).vertices[0]}}", J("[-1.0,1.0,1.0]"), {}},
     {"{{meshScale(meshPrimitive('cube'), [0, 1], 2).vertices[0]}}", J("[-2.0,-1.0,-1.0]"), {}},
     {"{{meshFaceVertices(meshPrimitive('cube'), [3])}}", J("[2,6,7,3]"), {}},

@@ -76,6 +76,11 @@ struct PolyLimits {
 /// @param mesh The mesh. @param a One end of the edge. @param b The other.
 /// @return The mesh (unchanged when no quad holds the edge).
 [[nodiscard]] PolyMesh loopCut(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b);
+/// @brief Bevels an edge held by two faces: a narrow face takes its place, its ends joined into the faces around them.
+/// @param mesh The mesh. @param a One end of the edge. @param b The other. @param amount How far into each face, 0 to
+/// 0.5 of its neighbouring edges. @return The mesh (unchanged unless exactly two faces hold the edge); the new face
+/// last.
+[[nodiscard]] PolyMesh bevelEdge(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b, float amount);
 /// @brief Moves vertices, and with a radius the ones near them too, less the further they are (smooth falloff).
 /// @param mesh The mesh. @param vertices They. @param delta The move. @param radius 0 moves only them.
 /// @return The mesh.

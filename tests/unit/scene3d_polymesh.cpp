@@ -104,6 +104,13 @@ TEST_CASE("scene3d: extrude, inset, delete and loop cut") {
 	CHECK(cut.vertices.size() == 12);
 	CHECK(closed(cut));
 	CHECK(loopCut(cube, 0, 7).faces.size() == 6); // not an edge: unchanged
+
+	const PolyMesh bevelled = bevelEdge(cube, 2, 6, 0.25f);
+	CHECK(bevelled.faces.size() == 7);
+	CHECK(bevelled.vertices.size() == 10);
+	CHECK(closed(bevelled));
+	CHECK(outward(bevelled));
+	CHECK(bevelEdge(deleteFaces(cube, {3}), 2, 6, 0.25f).faces.size() == 5); // one face holds it: unchanged
 }
 
 TEST_CASE("scene3d: moving vertices with a falloff, scaling and flipping") {

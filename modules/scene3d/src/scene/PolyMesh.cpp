@@ -356,6 +356,70 @@ PolyMesh loopCut(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b) {
 	return result;
 }
 
+PolyMesh bevelEdge(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b, float amount) {
+	const float t = std::clamp(amount, 0.0f, 0.5f);
+	std::vector<std::size_t> holders; // the faces holding the edge
+	for(std::size_t f = 0; f < mesh.faces.size(); ++f) {
+		const auto& face = mesh.faces[f];
+		for(std::size_t i = 0; i < face.size(); ++i)
+			if(edgeKey(face[i], face[(i + 1) % face.size()]) == edgeKey(a, b)) holders.push_back(f);
+	}
+	if(holders.size() != 2 || t <= 0.0f) return mesh;
+	PolyMesh result = mesh;
+	// In each holder, the vertex of the edge moves towards its other neighbour in that face
+	struct Moved {
+		std::uint32_t from;      ///< The edge's vertex.
+		std::uint32_t neighbour; ///< Its other neighbour in the face.
+		std::uint32_t to;        ///< The new vertex.
+	};
+	std::vector<Moved> moved;
+	for(const std::size_t f : holders) {
+		const auto& face = mesh.faces[f]; // read from the mesh as it was, written into the result
+		const std::size_t n = face.size();
+		for(std::size_t i = 0; i < n; ++i) {
+			if(face[i] != a && face[i] != b) continue;
+			const std::uint32_t before = face[(i + n - 1) % n], after = face[(i + 1) % n];
+			const std::uint32_t other = face[i] == a ? b : a;
+			const std::uint32_t neighbour = before == other ? after : before;
+			const auto to = static_cast<std::uint32_t>(result.vertices.size());
+			result.vertices.push_back(lerp(mesh.vertices[face[i]], mesh.vertices[neighbour], t));
+			moved.push_back({face[i], neighbour, to});
+			result.faces[f][i] = to;
+		}
+	}
+	const auto movedOf = [&](std::uint32_t from, std::size_t holder) {
+		for(std::size_t k = 0; k < moved.size(); ++k)
+			if(moved[k].from == from && k / 2 == holder) return moved[k];
+		return moved.front();
+	};
+	// The new face, wound against both holders: b1, a1 (holder 0), then a2, b2 (holder 1)
+	const Moved a1 = movedOf(a, 0), b1 = movedOf(b, 0), a2 = movedOf(a, 1), b2 = movedOf(b, 1);
+	// Every other face around an end takes both new vertices, each beside the face it came from
+	for(std::size_t f = 0; f < result.faces.size(); ++f) {
+		if(f == holders[0] || f == holders[1]) continue;
+		auto& face = result.faces[f];
+		for(std::size_t i = 0; i < face.size(); ++i) {
+			if(face[i] != a && face[i] != b) continue;
+			const Moved& first = face[i] == a ? a1 : b1;
+			const Moved& second = face[i] == a ? a2 : b2;
+			const std::uint32_t before = face[(i + face.size() - 1) % face.size()];
+			const bool firstBefore = before == first.neighbour;
+			face[i] = firstBefore ? first.to : second.to;
+			face.insert(face.begin() + static_cast<std::ptrdiff_t>(i) + 1, firstBefore ? second.to : first.to);
+			++i;
+		}
+	}
+	const bool forward = [&] { // whether holder 0 runs a then b
+		const auto& face = mesh.faces[holders[0]];
+		for(std::size_t i = 0; i < face.size(); ++i)
+			if(face[i] == a) return face[(i + 1) % face.size()] == b;
+		return true;
+	}();
+	if(forward) result.faces.push_back({b1.to, a1.to, a2.to, b2.to});
+	else result.faces.push_back({a1.to, b1.to, b2.to, a2.to});
+	return compact(std::move(result));
+}
+
 PolyMesh moveVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& vertices, Vec3 delta, float radius) {
 	const std::vector<float> weights = falloff(mesh, vertices, radius);
 	PolyMesh result = mesh;

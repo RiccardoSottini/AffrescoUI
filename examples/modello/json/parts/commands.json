@@ -739,6 +739,7 @@
 		"tab": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "toggleEditMode" },
 		"e": { "when": "{{state.mode == 'edit' && state.modal == null}}", "do": "extrudeFaces" },
 		"ctrl+r": { "when": "{{state.mode == 'edit' && state.modal == null}}", "do": "loopCut" },
+		"ctrl+b": { "when": "{{state.mode == 'edit' && state.modal == null}}", "do": "bevelEdge" },
 		"o": { "when": "{{state.modal == null}}", "do": "toggleProportional" },
 		"mod+i": { "do": "selectInvert" },
 		"numpad1": { "do": "viewFront" },

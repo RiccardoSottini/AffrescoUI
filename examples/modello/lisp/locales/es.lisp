@@ -616,4 +616,6 @@
                 :command.switchScene "Cambiar de escena"
                 :command.switchScene.about "Muestra otra escena del archivo."
                 :command.addScene.about "Añade una escena vacía y la muestra."
-                :command.deleteScene.about "Elimina la escena mostrada."}}}
+                :command.deleteScene.about "Elimina la escena mostrada."
+                :command.bevelEdge "Biselar arista"
+                :command.bevelEdge.about "Bisela la arista seleccionada: una cara estrecha ocupa su lugar."}}}

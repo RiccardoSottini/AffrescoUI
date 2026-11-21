@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Modello's Edit Mode and modifiers: Tab on the active mesh copies its primitive into the scene's meshes and edits it there; 1, 2 and 3 pick vertices, edges or faces; E extrudes, I insets, Ctrl R cuts a loop, X deletes; G, R and S move, turn and scale the selection through a pivot, proportional editing pulling the vertices near it along. Mirror, array and subdivision modifiers are applied when the scene is drawn. Also glTF import and image textures.",
+	"note": "Modello's Edit Mode and modifiers: Tab on the active mesh copies its primitive into the scene's meshes and edits it there; 1, 2 and 3 pick vertices, edges or faces; E extrudes, I insets, Ctrl R cuts a loop, Ctrl B bevels an edge, X deletes; G, R and S move, turn and scale the selection through a pivot, proportional editing pulling the vertices near it along. Mirror, array and subdivision modifiers are applied when the scene is drawn. Also glTF import and image textures.",
 	"state": {
 		"edit": {
 			"select": "vertex",
@@ -349,6 +349,28 @@
 							"faces": [],
 							"vertices": [],
 							"title": "Loop Cut"
+						}
+					}
+				}
+			]
+		},
+		"bevelEdge": {
+			"title": "Bevel Edge",
+			"category": "Mesh",
+			"enablement": "{{state.mode == 'edit' && state.edit.edge != null}}",
+			"do": [
+				{
+					"set": "state.tmpMesh",
+					"to": "{{meshBevel(computed.editMesh, state.edit.edge, 0.2)}}"
+				},
+				{
+					"run": "putMesh",
+					"with": {
+						"args": {
+							"mesh": "{{state.tmpMesh}}",
+							"faces": "{{[length(state.tmpMesh.faces) - 1]}}",
+							"vertices": "{{meshFaceVertices(state.tmpMesh, [length(state.tmpMesh.faces) - 1])}}",
+							"title": "Bevel Edge"
 						}
 					}
 				}

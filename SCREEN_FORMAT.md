@@ -1054,12 +1054,12 @@ Wherever a value is expected it can be computed:
   `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`, `formKeyword(text, keywords)`,
   `setFormKeyword(text, keywords, value)`, `meshPrimitive(name)`, `meshExtrude(mesh, faces, distance)`,
   `meshInset(mesh, faces, amount)`, `meshDeleteFaces(mesh, faces)`, `meshDeleteVertices(mesh, vertices)`,
-  `meshLoopCut(mesh, edge)`, `meshMove(mesh, vertices, delta, radius?)`, `meshScale(mesh, vertices, factor, radius?)`,
-  `meshRotate(mesh, vertices, rotation, radius?)`, `meshFaceVertices(mesh, faces)`, `meshFaces(mesh, faces, offset?)`,
-  `meshCentre(mesh, vertices)`, `meshModifiers(mesh, modifiers)`, `meshEdges(mesh, thickness, edges?)`,
-  `meshFlip(mesh)`, `meshMirror(mesh, axis)`, `meshArray(mesh, count, offset)`, `meshSubdivide(mesh, levels)`,
-  `meshPick(mesh, point, mode, node?)`, `meshStats(mesh)`, `gltfScene(gltf, prefix)`, `transformCompose(outer, inner)`,
-  `transformRelative(transform, outer)`;
+  `meshLoopCut(mesh, edge)`, `meshBevel(mesh, edge, amount?)`, `meshMove(mesh, vertices, delta, radius?)`,
+  `meshScale(mesh, vertices, factor, radius?)`, `meshRotate(mesh, vertices, rotation, radius?)`,
+  `meshFaceVertices(mesh, faces)`, `meshFaces(mesh, faces, offset?)`, `meshCentre(mesh, vertices)`,
+  `meshModifiers(mesh, modifiers)`, `meshEdges(mesh, thickness, edges?)`, `meshFlip(mesh)`, `meshMirror(mesh, axis)`,
+  `meshArray(mesh, count, offset)`, `meshSubdivide(mesh, levels)`, `meshPick(mesh, point, mode, node?)`,
+  `meshStats(mesh)`, `gltfScene(gltf, prefix)`, `transformCompose(outer, inner)`, `transformRelative(transform, outer)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,

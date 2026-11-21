@@ -115,6 +115,13 @@ Value meshLoopCut(const Call& call) {
 	return result(scene3d::loopCut(meshAt(call, 0), edge[0], edge[1]));
 }
 
+/// @brief meshBevel(mesh, [a, b], amount?). @param call The call. @return The mesh, the new face last.
+Value meshBevel(const Call& call) {
+	const std::vector<std::uint32_t> edge = indicesAt(call, 1);
+	if(edge.size() != 2) call.fail("expected an edge [a, b]");
+	return result(scene3d::bevelEdge(meshAt(call, 0), edge[0], edge[1], numberOr(call, 2, 0.2f)));
+}
+
 /// @brief meshMove(mesh, vertices, [dx, dy, dz], radius?). @param call The call. @return The mesh.
 Value meshMove(const Call& call) {
 	return result(scene3d::moveVertices(meshAt(call, 0), indicesAt(call, 1), pointAt(call, 2), numberOr(call, 3, 0)));
@@ -437,6 +444,13 @@ constexpr auto table = std::to_array<Function>({
 	 .fewest = 2,
 	 .most = 2,
 	 .apply = meshLoopCut},
+    {.name = "meshBevel",
+	 .arguments = "mesh, edge, amount?",
+	 .about = "The mesh with an edge [a, b] held by two faces bevelled: a narrow face in its place (amount 0 to 0.5 "
+	          "of the edges beside it), the new face last",
+	 .fewest = 2,
+	 .most = 3,
+	 .apply = meshBevel},
     {.name = "meshMove",
 	 .arguments = "mesh, vertices, delta, radius?",
 	 .about = "The mesh with vertices moved by [dx, dy, dz]; with a radius, the ones near them too, less the further "

@@ -49,7 +49,7 @@ and review cover the scene and the workspace alike.
 | `mod+n`, `mod+o`, `mod+s` | A new scene, open one, save it (JSON, in a file you pick) |
 | `ctrl+p`, `alt+p` | Parent the selection to the active object, clear the parent (each keeps its place, turned and scaled as it was) |
 | Tab; then `1`, `2`, `3` | Edit Mode on the active mesh; pick vertices, edges or faces (a click selects, Shift adds) |
-| In Edit Mode: `e`, `i`, `ctrl+r`, `x`, `g`, `r`, `s`, `o` | Extrude, inset, loop cut, delete, move, turn, scale; proportional editing on or off |
+| In Edit Mode: `e`, `i`, `ctrl+r`, `ctrl+b`, `x`, `g`, `r`, `s`, `o` | Extrude, inset, loop cut, bevel, delete, move, turn, scale; proportional editing on or off |
 
 ## Samples
 

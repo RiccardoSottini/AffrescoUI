@@ -96,6 +96,8 @@
 
 (defkey "ctrl+r" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do loopCut})
 
+(defkey "ctrl+b" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do bevelEdge})
+
 (defkey "o" {:when ~(nil? state.modal) :do toggleProportional})
 
 (defkey "mod+i" selectInvert)

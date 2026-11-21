@@ -616,4 +616,6 @@
                 :command.switchScene "Switch Scene"
                 :command.switchScene.about "Shows another scene of the file."
                 :command.addScene.about "Adds an empty scene and shows it."
-                :command.deleteScene.about "Deletes the scene shown."}}}
+                :command.deleteScene.about "Deletes the scene shown."
+                :command.bevelEdge "Bevel Edge"
+                :command.bevelEdge.about "Bevels the selected edge: a narrow face takes its place."}}}

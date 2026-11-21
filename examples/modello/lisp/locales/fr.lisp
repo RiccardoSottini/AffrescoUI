@@ -616,4 +616,6 @@
                 :command.switchScene "Changer de scène"
                 :command.switchScene.about "Affiche une autre scène du fichier."
                 :command.addScene.about "Ajoute une scène vide et l'affiche."
-                :command.deleteScene.about "Supprime la scène affichée."}}}
+                :command.deleteScene.about "Supprime la scène affichée."
+                :command.bevelEdge "Biseauter l'arête"
+                :command.bevelEdge.about "Biseaute l'arête sélectionnée : une face étroite prend sa place."}}}
