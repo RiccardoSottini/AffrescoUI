@@ -809,6 +809,53 @@
 					]
 				}
 			]
-		}
+		},
+		"addProperty": [
+			{
+				"if": "{{computed.activeIndex < 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.tmpName",
+				"to": "{{!contains(map(computed.activeNode.props ?? [], it.name), 'prop') ? 'prop' : 'prop.' + pad(length(computed.activeNode.props ?? []), 3, '0')}}"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].props",
+				"to": "{{concat(computed.activeNode.props ?? [], [{ name: state.tmpName, value: '1.0' }])}}"
+			}
+		],
+		"setProperty": [
+			{
+				"if": "{{computed.activeIndex < 0 || trim(args.text) == ''}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].props[args.i][args.key]",
+				"to": "{{slice(trim(args.text), 0, 63)}}"
+			}
+		],
+		"removeProperty": [
+			{
+				"run": "snapshot"
+			},
+			{
+				"remove": "state.scene.nodes[computed.activeIndex].props",
+				"at": "{{args.i}}"
+			}
+		]
 	}
 }

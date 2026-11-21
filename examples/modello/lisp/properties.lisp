@@ -59,7 +59,7 @@
     :words "image picture texture"
     :needs (if (< computed.activeMaterialIndex 0) (t "panel.surfaceMaterial.needs") "")}
    {:tab "object" :key "lineArt" :title (t "panel.lineArt") :words "" :needs (t "panel.lineArt.needs")}
-   {:tab "object" :key "custom" :title (t "panel.custom") :words "" :needs (t "panel.custom.needs")}
+   {:tab "object" :key "custom" :title (t "panel.custom") :words "property properties custom" :needs ""}
    {:tab "material"
     :key "materialSettings"
     :title (t "panel.materialSettings")
@@ -195,6 +195,7 @@
      ~(data-panel)
      ~(shadow-panel)
      ~(normals-panel)
+     ~(custom-panel)
      ~(modifiers-panel)
      ~(texture-panel)
      ~(material-slot)
@@ -484,6 +485,46 @@
      :radius ~(case kind :point {:topLeft 4 :bottomLeft 4} :spot {:topRight 4 :bottomRight 4} 0)
      :onClick ~(handler set-light "type" kind)
      (label :text ~(t (str "lightType." kind)) :textColor @text :align center :fill true)))
+
+(defcomputed activeProps "The active object's custom properties: each {name, value}." (or-else computed.activeNode.props []))
+
+(defview custom-panel "The Object tab's Custom Properties: names and values of one's own, kept and saved with the object." []
+  `(node :when ~(contains computed.propShown "custom")
+     :use propPanel
+     :with {:key custom :body ~(+ 28 (* 24 (count computed.activeProps)))}
+     ~(repeat [p computed.activeProps :index i] (custom-row p i))
+     (node#custom-add :use hButton
+       :with {:icon plus :text ~(t "custom.add") :width 120 :back "@widget" :tooltip ~(t "custom.addTip") :run add-property})))
+
+(defview custom-row "One custom property: its name and its value, each typed in place, and a button that removes it." [p i]
+  `(row :id ~(str "custom-" i) :height 22 :width "100%" :gap 4 :color transparent :alignItems center
+     (node :width "38%" :height 20 :color @field :radius 4
+       (textarea :id ~(str "custom-name-" i) :anchors {:left 4 :right 2 :top 1 :bottom 1}
+         :color transparent :text ~p.name :textColor @text :label ~(t "custom.name")
+         :onSubmit ~(handler set-property i "name" event.text)))
+     (node :grow 1 :height 20 :color @field :radius 4
+       (textarea :id ~(str "custom-value-" i) :anchors {:left 4 :right 2 :top 1 :bottom 1}
+         :color transparent :text ~p.value :textColor @text :label ~(t "custom.value")
+         :onSubmit ~(handler set-property i "value" event.text)))
+     (node :id ~(str "custom-remove-" i) :use hButton
+       :with {:icon x :width 20 :back transparent :tooltip ~(t "custom.remove") :run remove-property
+              :with {:i ~i}})))
+
+(defn add-property "A custom property added to the active object, named prop (prop.001 when taken); undoable." []
+  (when (>= computed.activeIndex 0)
+    (snapshot)
+    (push (str "state.scene.nodes[" computed.activeIndex "].props")
+          {:name (unique-name "prop" (map :name computed.activeProps)) :value "1.0"})))
+
+(defn set-property "A custom property's name or value typed in place; undoable." [i key text]
+  (let [typed (slice (str/trim text) 0 63)]
+    (when (and (>= computed.activeIndex 0) (not (str/blank? typed)))
+      (snapshot)
+      (set (str "state.scene.nodes[" computed.activeIndex "].props[" i "]." key) typed))))
+
+(defn remove-property "A custom property taken off the active object; undoable." [i]
+  (snapshot)
+  (remove-state (str "state.scene.nodes[" computed.activeIndex "].props") :at i))
 
 (defview normals-panel "A mesh's normals: shaded smooth, its faces blending, or flat, each face its own." []
   `(node

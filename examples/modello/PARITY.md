@@ -23,7 +23,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | Outliner: collections, objects, data icons | done | several collections: New Collection, rename, delete, M moves objects between them, each with its own toggles |
 | Outliner: selectable, eye and camera toggles | done | |
 | Properties editor: tab strip | done | |
-| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform, Visibility, Relations (the parent) and Viewport Display (solid, wire or bounds) edit; Collections, Transform Offset, Instancing, Motion Paths, Line Drawing and Custom Properties are disabled with a reason |
+| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform, Visibility, Relations (the parent), Viewport Display (solid, wire or bounds) and Custom Properties (names and values of one's own, saved with the object) edit; Collections, Transform Offset, Instancing, Motion Paths and Line Drawing are disabled with a reason |
 | Properties: Modifiers tab | done | mirror (X, Y or Z), array (its count) and subdivision (its levels), stacked, each removable, undoable; drawn live, and left out while the object is in Edit Mode |
 | Properties: Texture tab | done | Open Image picks a PNG or JPEG as the material's base colour texture (kept in the scene, saved with it, embedded in a glTF export), Remove Image takes it off; a primitive maps it by its own coordinates, an edited mesh has none yet |
 | Properties: Data › Normals | done | Shade Smooth on or off for a mesh (its primitive becomes an editable mesh) |
@@ -104,7 +104,7 @@ the properties, glyphs that contrast with the background, a solid shading whose 
 Round 5 (round 2 of the revamp): 58 done, 4 partial, 1 missing (three rows added: the Modifiers and Texture tabs, Data › Normals). Edit Mode on editable polygon meshes (`scene3d`'s `PolyMesh.hpp`
 and the `mesh...` expression functions): vertex, edge and face selection, extrude, inset, loop cut, delete, proportional
 editing; the modifier stack; Shade Smooth; glTF import; image textures; several scenes; the Gimbal orientation; materials that
-cast no shadow; a turned or scaled parent keeping its child's place.
+cast no shadow; custom properties; a turned or scaled parent keeping its child's place.
 
 ## Left for later
 
@@ -126,7 +126,7 @@ occasionally; P3: rarely.
 | Rotation mode (quaternion, axis angle) | P3 | JSON: other rotation fields converted to rotationDegrees |
 | Properties pin | P3 | JSON: a pinned object id the panels read instead of the active one |
 | Object › Collections (link to several) | P3 | JSON: a list of collections per object instead of one |
-| Object › Transform Offset, Custom Properties | P3 | JSON: delta transforms added in the displayed scene; free key-value fields per object |
+| Object › Transform Offset | P3 | JSON: delta transforms added in the displayed scene, kept out of what a transform writes back |
 | Object › Instancing, Motion Paths, Line Drawing | P3 | library: instancing, path lines through keyframe positions, line-art rendering in `scene` |
 | Particles, Physics, Object Constraints tabs | P3 | library: particles and a physics step; constraints may be JSON (track-to as an expression) |
 | Render › Sampling, Scene › Units, Tool › Workspace | P3 | library: a sampled renderer; JSON: unit labels on the fields; JSON: workspace settings |

@@ -410,7 +410,6 @@
                 :panel.lineArt "Dibujo de líneas"
                 :panel.lineArt.needs "El dibujo de líneas aún no está disponible"
                 :panel.custom "Propiedades personalizadas"
-                :panel.custom.needs "Las propiedades personalizadas aún no están disponibles"
                 :panel.materialSettings "Ajustes"
                 :properties.castShadow "Proyectar sombras"
                 :properties.blendMode "Modo de mezcla"
@@ -618,4 +617,9 @@
                 :command.addScene.about "Añade una escena vacía y la muestra."
                 :command.deleteScene.about "Elimina la escena mostrada."
                 :command.bevelEdge "Biselar arista"
-                :command.bevelEdge.about "Bisela la arista seleccionada: una cara estrecha ocupa su lugar."}}}
+                :command.bevelEdge.about "Bisela la arista seleccionada: una cara estrecha ocupa su lugar."
+                :custom.add "Añadir propiedad"
+                :custom.addTip "Añade una propiedad propia al objeto"
+                :custom.name "Nombre de la propiedad"
+                :custom.value "Valor de la propiedad"
+                :custom.remove "Quita la propiedad"}}}

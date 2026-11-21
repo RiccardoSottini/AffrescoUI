@@ -410,7 +410,6 @@
                 :panel.lineArt "Line Drawing"
                 :panel.lineArt.needs "Line drawing isn't available yet"
                 :panel.custom "Custom Properties"
-                :panel.custom.needs "Custom properties aren't available yet"
                 :panel.materialSettings "Settings"
                 :properties.castShadow "Cast Shadows"
                 :properties.blendMode "Blend Mode"
@@ -618,4 +617,9 @@
                 :command.addScene.about "Adds an empty scene and shows it."
                 :command.deleteScene.about "Deletes the scene shown."
                 :command.bevelEdge "Bevel Edge"
-                :command.bevelEdge.about "Bevels the selected edge: a narrow face takes its place."}}}
+                :command.bevelEdge.about "Bevels the selected edge: a narrow face takes its place."
+                :custom.add "Add Property"
+                :custom.addTip "Adds a property of your own to the object"
+                :custom.name "Property name"
+                :custom.value "Property value"
+                :custom.remove "Removes the property"}}}

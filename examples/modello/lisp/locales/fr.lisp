@@ -410,7 +410,6 @@
                 :panel.lineArt "Dessin au trait"
                 :panel.lineArt.needs "Le dessin au trait n'est pas encore disponible"
                 :panel.custom "Propriétés personnalisées"
-                :panel.custom.needs "Les propriétés personnalisées ne sont pas encore disponibles"
                 :panel.materialSettings "Réglages"
                 :properties.castShadow "Projeter des ombres"
                 :properties.blendMode "Mode de fusion"
@@ -618,4 +617,9 @@
                 :command.addScene.about "Ajoute une scène vide et l'affiche."
                 :command.deleteScene.about "Supprime la scène affichée."
                 :command.bevelEdge "Biseauter l'arête"
-                :command.bevelEdge.about "Biseaute l'arête sélectionnée : une face étroite prend sa place."}}}
+                :command.bevelEdge.about "Biseaute l'arête sélectionnée : une face étroite prend sa place."
+                :custom.add "Ajouter une propriété"
+                :custom.addTip "Ajoute une propriété personnelle à l'objet"
+                :custom.name "Nom de la propriété"
+                :custom.value "Valeur de la propriété"
+                :custom.remove "Retire la propriété"}}}

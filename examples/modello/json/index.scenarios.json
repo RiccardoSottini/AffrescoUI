@@ -1250,6 +1250,25 @@
 				{ "key": "mod+z" },
 				{ "expect": { "state": "scene.nodes.length", "is": 3 } }
 			]
+		},
+		{
+			"name": "modello-custom-properties",
+			"note": "Object › Custom Properties: Add Property adds prop = 1.0 to the cube, its value typed in place, then removed; each undoable",
+			"steps": [
+				{ "click": "#custom-add" },
+				{ "expect": { "state": "scene.nodes[1].props", "is": [{ "name": "prop", "value": "1.0" }] } },
+				{ "click": "#custom-add" },
+				{ "expect": { "state": "scene.nodes[1].props[1].name", "is": "prop.001" } },
+				{ "click": "#custom-value-0" },
+				{ "key": "mod+a" },
+				{ "type": "2.5" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "expect": { "state": "scene.nodes[1].props[0].value", "is": "2.5" } },
+				{ "key": "escape" },
+				{ "click": "#custom-remove-0" },
+				{ "expect": { "state": "scene.nodes[1].props", "is": [{ "name": "prop.001", "value": "1.0" }] } }
+			]
 		}
 	]
 }
