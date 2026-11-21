@@ -177,6 +177,11 @@ private:
 	/// @brief Keeps the modifier keys held after a key event: its own, with a modifier key it presses or releases.
 	/// @param event The key event.
 	void keepModifiers(const KeyEvent& event) noexcept;
+	/// @brief Follows Alt pressed and released with no other key or modifier between: the press a document's keys name
+	/// "alt" (key hints, a menu bar's letters).
+	/// @param event A key event.
+	/// @return true if it is the release of an Alt pressed alone.
+	bool altReleasedAlone(const KeyEvent& event) noexcept;
 	/// @brief Handles a mouse button on a built panel: press, release, click, double click, drop.
 	/// @param panel The panel that holds the mouse.
 	/// @param event The event.
@@ -304,6 +309,7 @@ private:
 	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
 	bool capsLock_ = false;            ///< Whether caps lock was on at the latest key event: bindings update on a change.
 	Mods modifiers_; ///< The modifier keys held, from the latest key or button event: pointer events carry them.
+	bool altAlone_ = false; ///< Alt is held, and nothing else was pressed since (altReleasedAlone()).
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

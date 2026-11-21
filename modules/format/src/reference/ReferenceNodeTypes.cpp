@@ -445,6 +445,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "\"kind\": \"linear\" or \"radial\", \"angle\": 90, \"stops\": [{ \"at\": 0, \"color\": \"@accent\" }] }` "
 	 "(1 to 32 stops; a radial one is centred, reaching the corners).",
 	 "path"},
+    {"feather", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How wide the inside's edge fades out past the path, in window units: `1` (the default) anti-aliases it, `0` is a "
+	 "hard edge, and up to `64` a soft edge or a blurred shadow.",
+	 "path"},
     {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
     {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "The outline's width (default 1), in the view box's units (pixels when stretched by `\"fill\"`).", "path"},

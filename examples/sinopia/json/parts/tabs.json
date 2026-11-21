@@ -165,7 +165,7 @@
 					{ "id": "g-themes", "use": "rbGroup", "with": { "title": "Themes" }, "children": [
 						{ "id": "gal-themes", "use": "rbGallery", "with": { "width": 490, "more": "gal-themes" }, "children": [
 							{ "type": "panel",
-							  "id": "{{'theme-' + t.id}}", "repeat": { "for": "t", "in": "{{slice(computed.themes, 0, 6)}}", "key": "{{t.id}}" }, "width": 76, "height": 60, "radius": 2, "cursor": "hand", "tooltip": "{{t.name}}",
+							  "id": "{{'theme-' + t.id}}", "repeat": { "for": "t", "in": "{{computed.galleryThemes}}", "key": "{{t.id}}" }, "width": 76, "height": 60, "radius": 2, "cursor": "hand", "tooltip": "{{t.name}}",
 							  "color": "{{t.colors[t.background]}}", "borderWidth": "{{state.deck.theme == t.id ? 2 : 1}}",
 							  "borderColor": "{{state.deck.theme == t.id ? '@brand' : '@rbFieldLine'}}", "hover": { "borderColor": "@brand" },
 							  "onClick": { "run": "setTheme", "with": { "theme": "{{t.id}}" } },
@@ -191,11 +191,13 @@
 								{ "id": "{{'variant-' + n + '-line2'}}", "x": 18, "y": 32, "width": 24, "height": 3, "color": "{{merge(computed.theme.colors, v).accent2}}" }
 							  ] }
 						] },
-						{ "type": "column", "id": "variants-col", "width": 76, "height": 72, "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [
+						{ "type": "column", "id": "variants-col", "width": 96, "height": 72, "gap": 0, "alignItems": "stretch", "color": "transparent", "children": [
 							{ "id": "b-colors", "use": "rbSmall", "with": { "icon": "palette", "title": "Colors", "menu": true }, "tooltip": "Another theme's colours for this deck",
 							  "onClick": { "run": "openDrop", "with": { "id": "b-colors" } } },
 							{ "id": "b-fonts", "use": "rbSmall", "with": { "icon": "type", "title": "Fonts", "menu": true }, "tooltip": "The fonts of the titles and of the other text",
-							  "onClick": { "run": "openDrop", "with": { "id": "b-fonts" } } }
+							  "onClick": { "run": "openDrop", "with": { "id": "b-fonts" } } },
+							{ "id": "b-save-theme", "use": "rbSmall", "with": { "icon": "bookmark-plus", "title": "Save Theme" }, "tooltip": "Keep this deck's look as a theme of your own",
+							  "onClick": "saveTheme" }
 						] }
 					] },
 					{ "id": "g-customize", "use": "rbGroup", "with": { "title": "Customize" }, "children": [
@@ -216,7 +218,7 @@
 						  "onClick": "previewSlide" }
 					] },
 					{ "id": "g-transition-to", "use": "rbGroup", "with": { "title": "Transition to This Slide" }, "children": [
-						{ "id": "gal-transitions", "use": "rbGallery", "with": { "width": 520 }, "children": [
+						{ "id": "gal-transitions", "use": "rbGallery", "with": { "width": 520, "more": "gal-transitions" }, "children": [
 							{ "type": "label",
 							  "id": "{{'tr-' + k[0]}}", "repeat": { "for": "k", "in": "{{[['none', 'ban', 'None'], ['glide', 'blend', 'Glide'], ['fade', 'sun-dim', 'Fade'], ['push', 'arrow-left-to-line', 'Push'], ['wipe', 'chevrons-left', 'Wipe'], ['split', 'columns-2', 'Split'], ['reveal', 'arrow-left-from-line', 'Reveal'], ['cover', 'square-stack', 'Cover']]}}" }, "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{(computed.slide.transition.kind ?? 'none') == k[0] ? 'rbButtonOn' : 'rbButton'}}",
@@ -294,7 +296,8 @@
 					] },
 					{ "id": "g-export", "use": "rbGroup", "with": { "title": "Export" }, "children": [
 						{ "id": "b-export-pdf", "use": "rbBig", "with": { "icon": "file-text", "title": "PDF", "width": 46 }, "tooltip": "Every slide shown, a page each", "onClick": "exportPdf" },
-						{ "id": "b-export-png", "use": "rbBig", "with": { "icon": "file-image", "title": "Picture", "width": 50 }, "tooltip": "This slide as a PNG picture", "onClick": "exportPng" }
+						{ "id": "b-export-png", "use": "rbBig", "with": { "icon": "file-image", "title": "Picture", "width": 50 }, "tooltip": "This slide as a PNG picture", "onClick": "exportPng" },
+						{ "id": "b-export-pngs", "use": "rbBig", "with": { "icon": "images", "title": "All Slides", "width": 50 }, "tooltip": "Every slide shown, a PNG picture each", "onClick": "exportPngs" }
 					] },
 					{ "use": "fileRecent" },
 					{ "id": "g-file-info", "use": "rbGroup", "with": { "title": "Last" }, "children": [
@@ -316,9 +319,9 @@
 						  "onClick": "previewSlide" }
 					] },
 					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : a.kind == 'path' ? 'Motion Path' : 'Entrance'}}" }, "children": [
-						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692 }, "children": [
+						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692, "more": "gal-effects" }, "children": [
 							{ "type": "label",
-							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 50, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 42, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
 							  "runs": "{{[{ icon: e[1], size: 24 }, { text: '\n' + e[2], size: 11 }]}}",
 							  "onClick": { "run": "chooseEffect", "with": { "effect": "{{e[0]}}" } } }
