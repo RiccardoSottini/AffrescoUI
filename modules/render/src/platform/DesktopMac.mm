@@ -215,6 +215,49 @@ void setApplicationIcon(const Bitmap* icon) {
 	}
 }
 
+std::vector<std::uint8_t> clipboardImagePng(std::size_t most) {
+	@autoreleasepool {
+		NSPasteboard* board = NSPasteboard.generalPasteboard;
+		NSData* data = [board dataForType:NSPasteboardTypePNG];
+		if(!data) { // a TIFF (what most apps copy) becomes a PNG, which the image decoder reads
+			NSData* tiff = [board dataForType:NSPasteboardTypeTIFF];
+			if(!tiff || tiff.length > most) return {};
+			NSBitmapImageRep* rep = [NSBitmapImageRep imageRepWithData:tiff];
+			data = rep ? [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}] : nil;
+		}
+		if(!data || data.length == 0 || data.length > most) return {};
+		const auto* bytes = static_cast<const std::uint8_t*>(data.bytes);
+		return {bytes, bytes + data.length};
+	}
+}
+
+bool setClipboardImage(const Bitmap& image) {
+	@autoreleasepool {
+		// As the Dock icon: the Bitmap's pixels are Cocoa's default format, premultiplied RGBA, top row first
+		NSBitmapImageRep* rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nullptr
+		                                                                pixelsWide:image.width()
+		                                                                pixelsHigh:image.height()
+		                                                             bitsPerSample:8
+		                                                           samplesPerPixel:4
+		                                                                  hasAlpha:YES
+		                                                                  isPlanar:NO
+		                                                            colorSpaceName:NSDeviceRGBColorSpace
+		                                                               bytesPerRow:image.width() * 4
+		                                                              bitsPerPixel:32];
+		if(!rep) return false;
+		std::memcpy(rep.bitmapData, image.pixels().data(), image.pixels().size());
+		NSBitmapImageRep* srgb = [rep bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace] ?: rep;
+		NSData* png = [srgb representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+		NSData* tiff = srgb.TIFFRepresentation;
+		if(!png) return false;
+		NSPasteboard* board = NSPasteboard.generalPasteboard;
+		[board clearContents];
+		[board setData:png forType:NSPasteboardTypePNG];
+		if(tiff) [board setData:tiff forType:NSPasteboardTypeTIFF];
+		return true;
+	}
+}
+
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {
 	return std::make_unique<MacMenuBar>(window, std::move(chosen));
 }

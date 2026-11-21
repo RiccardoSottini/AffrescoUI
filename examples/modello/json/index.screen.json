@@ -10,7 +10,7 @@
 		"icons": { "file": "../../shared/fonts/Lucide.ttf", "size": 14 },
 		"iconsSmall": { "file": "../../shared/fonts/Lucide.ttf", "size": 12 }
 	},
-	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "parts/editmode.json", "parts/scenes.json", "../../shared/addons/assistant/assistant.json"],
 	"theme": "{{state.theme}}",
 	"tokens": {
 		"gap": { "dark": "#0e1116", "light": "#9aa3ae" },
@@ -27,7 +27,7 @@
 		"field": { "dark": "#12161c", "light": "#ffffff" },
 		"text": { "dark": "#e3e8ef", "light": "#161b22" },
 		"dim": { "dark": "#93a0b0", "light": "#4f5966" },
-		"faint": { "dark": "#535e6c", "light": "#96a0ac" },
+		"faint": { "dark": "#717c8b", "light": "#7f8996" },
 		"sel": { "dark": "#1f7f74", "light": "#1f8a7d" },
 		"selRow": { "dark": "#1b3f3d", "light": "#a9dcd4" },
 		"active": { "dark": "#6ff2df", "light": "#007f72" },
@@ -90,6 +90,8 @@
 				  "translation": [4.08, 1.0, 5.9], "rotationDegrees": [37.3, 3.2, 106.9], "scale": [1, 1, 1] }
 			],
 			"materials": [{ "id": "material", "name": "Material", "baseColor": [0.8, 0.8, 0.8, 1], "roughness": 0.5 }],
+			"meshes": [],
+			"textures": [],
 			"collections": [{ "id": "collection", "name": "Collection" }]
 		},
 		"cursor": [0, 0, 0],
@@ -138,7 +140,8 @@
 		"propTab": "object",
 		"panels": { "transform": true, "activeTool": true, "viewPanel": true, "cursorPanel": true, "colorManagement": true,
 		            "frameRange": true, "scenePanel": true, "surfaceWorld": true, "restrictions": true, "dataPanel": true,
-		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true, "format": true },
+		            "surfaceMaterial": true, "relations": true, "dataMore": true, "materialSettings": true, "display": true, "format": true,
+		            "modifiers": true, "texturePanel": true, "custom": true },
 		"sidebar": false,
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "items": null, "x": 0, "y": 0 },
@@ -161,7 +164,7 @@
 	"computed": {
 		"activeNode": "{{find(state.scene.nodes, it.id == state.active)}}",
 		"selectedNodes": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}",
-		"gizmo": "{{merge({ visible: state.gizmos && (contains(['move', 'rotate', 'scale'], state.tool) && state.toolGizmos != false || state.tool == 'select' && state.objectGizmo != null), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : state.tool == 'select' && state.objectGizmo != null ? state.objectGizmo : 'translate', space: state.orientation == 'local' || state.orientation == 'normal' ? 'local' : state.orientation == 'view' ? 'view' : 'world', snap: state.snap ? computed.snapSteps : {} }, state.pivot == 'individual' ? { individual: true } : state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : state.pivot == 'bounds' && computed.boundsCentre != null ? { pivot: computed.boundsCentre } : {})}}"
+		"gizmo": "{{merge({ visible: state.gizmos && (contains(['move', 'rotate', 'scale'], state.tool) && state.toolGizmos != false || state.tool == 'select' && state.objectGizmo != null), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : state.tool == 'select' && state.objectGizmo != null ? state.objectGizmo : 'translate', space: state.orientation == 'local' || state.orientation == 'normal' ? 'local' : state.orientation == 'view' || state.orientation == 'gimbal' ? state.orientation : 'world', snap: state.snap ? computed.snapSteps : {} }, state.pivot == 'individual' ? { individual: true } : state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : state.pivot == 'bounds' && computed.boundsCentre != null ? { pivot: computed.boundsCentre } : {})}}"
 	},
 	"onLoad": [{ "set": "state.startScene", "to": "{{state.scene}}" }, { "set": "state.assistant.floor", "to": 22 }, { "set": "state.assistant.size", "to": 26 }, { "set": "state.assistant.inset", "to": 2 }],
 	"root": {

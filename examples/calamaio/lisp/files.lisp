@@ -91,4 +91,4 @@
   []
   (if (some #(and (some? (:file %)) (true? (:dirty %))) (vals state.bufs))
     (message (t "echo.unsaved"))
-    (message (t "echo.nothingLeft"))))
+    (closeWindow "main")))

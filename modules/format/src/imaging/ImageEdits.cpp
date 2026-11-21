@@ -1,11 +1,14 @@
 /// @file
-/// @brief format::editing: the "image" step's edits: select, feather, fillSelection, crop, and the filters with a live
-/// preview (previewFilter, applyFilter, cancelFilter).
+/// @brief format::editing: the "image" step's edits: select, feather, fillSelection, crop, trim, and the filters with a
+/// live preview (previewFilter, applyFilter, cancelFilter).
 
 #include "ImageOperations.hpp"
 
+#include "affresco/imaging/Composite.hpp"
+
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace affresco::format::editing {
 
@@ -123,6 +126,32 @@ void cropImage(ImageDocument& image, const json& with, Window*) {
 	crop(image, wholeOf(with, "x", 0), wholeOf(with, "y", 0), wholeOf(with, "width", 0), wholeOf(with, "height", 0));
 }
 
+/// @brief trim: crops the image to the box around its visible pixels that aren't transparent (and forgets the history);
+/// an image with none, or with none transparent at its edges, stays as it is.
+/// @param image The image.
+void trimImage(ImageDocument& image, const json& /*with*/, Window* /*window*/) {
+	settle(image);
+	const imaging::Document& document = image.canvas->document();
+	const int width = document.width(), height = document.height();
+	int left = width, top = height, right = 0, bottom = 0;
+	constexpr int band = 256; // rows flattened at a time, so a large image needs little memory
+	for(int y = 0; y < height; y += band) {
+		const int rows = std::min(band, height - y);
+		const std::vector<std::uint8_t> pixels = imaging::flatten(document, 0, 0, y, width, rows);
+		std::size_t alpha = 3; // the alpha byte of each pixel in turn
+		for(int row = 0; row < rows; ++row)
+			for(int x = 0; x < width; ++x, alpha += 4)
+				if(pixels[alpha] != 0) {
+					left = std::min(left, x);
+					right = std::max(right, x + 1);
+					top = std::min(top, y + row);
+					bottom = std::max(bottom, y + row + 1);
+				}
+	}
+	if(right <= left || bottom <= top || (left == 0 && top == 0 && right == width && bottom == height)) return;
+	crop(image, left, top, right - left, bottom - top);
+}
+
 /// @brief A filter argument.
 /// @param image The image, for its limits.
 /// @param with kind, radius, amount (percent), threshold, angle, distance, monochrome, seed.
@@ -195,6 +224,10 @@ std::vector<ImageOperation> editOperations() {
 	    {"feather", {"radius"}, "Softens the selection's edge.", feather},
 	    {"fillSelection", {"color", "mask"}, "Fills the selection of the active layer with a colour.", fillSelection},
 	    {"crop", {"x", "y", "width", "height"}, "Keeps a rectangle of the image, and forgets the history.", cropImage},
+	    {"trim",
+	     {},
+	     "Crops the image to the box around its visible pixels that aren't transparent, and forgets the history.",
+	     trimImage},
 	    {"previewFilter",
 	     {"kind", "radius", "amount", "threshold", "angle", "distance", "monochrome", "seed", "name", "mask"},
 	     "Previews a filter on the active layer until it is applied or cancelled.",

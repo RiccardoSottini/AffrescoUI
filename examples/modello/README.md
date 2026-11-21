@@ -31,6 +31,8 @@ and review cover the scene and the workspace alike.
 | `lisp/viewport.lisp`, `lisp/sidebar.lisp` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
 | `lisp/bars.lisp`, `lisp/outliner.lisp`, `lisp/properties.lisp`, `lisp/timeline.lisp`, `lisp/dialogs.lisp`, `lisp/widgets.lisp` | The top bar, outliner, properties editor, timeline, status bar, dialogs and the widgets they share |
 | `lisp/shader.lisp` | The shader editor's nodes and materials |
+| `lisp/scenes.lisp` (`json/parts/scenes.json`) | Several scenes: the top bar's picker switches, adds and deletes them |
+| `lisp/editmode.lisp` (`json/parts/editmode.json`) | Edit Mode on editable meshes (vertices, edges, faces; extrude, inset, loop cut, delete, proportional editing) and the modifier stack (mirror, array, subdivision) |
 | `lisp/look.lisp` | The colours, dark and light |
 | `lisp/index.scenarios.json` | The scenarios, run headless (they stay JSON) |
 
@@ -45,7 +47,9 @@ and review cover the scene and the workspace alike.
 | Middle drag, Shift+middle drag, wheel; Shift+right click | Orbit, pan, zoom; place the 3D cursor |
 | `mod+z`, `mod+shift+z`, `n`, `t`, `i`, Space | Undo, redo, sidebar, toolbar, keyframe, play |
 | `mod+n`, `mod+o`, `mod+s` | A new scene, open one, save it (JSON, in a file you pick) |
-| `ctrl+p`, `alt+p` | Parent the selection to the active object, clear the parent (each keeps its place) |
+| `ctrl+p`, `alt+p` | Parent the selection to the active object, clear the parent (each keeps its place, turned and scaled as it was) |
+| Tab; then `1`, `2`, `3` | Edit Mode on the active mesh; pick vertices, edges or faces (a click selects, Shift adds) |
+| In Edit Mode: `e`, `i`, `ctrl+r`, `ctrl+b`, `x`, `g`, `r`, `s`, `o` | Extrude, inset, loop cut, bevel, delete, move, turn, scale; proportional editing on or off |
 
 ## Samples
 

@@ -49,7 +49,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
 | `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
 | `Camera2D.hpp` | `Camera2D`: a pure value (x, y, zoom within 0.01 to 256) mapping world units to screen units: `toScreen`, `toWorld`, `visible`, `zoomedAt` (the point under the pointer stays), `pannedBy`, `fitted` |
-| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items and guides, with smart guides; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
+| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items, guides and equal gaps, with smart guides and distance indicators; Shift keeps a corner resize's proportions and a move on one axis; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -139,7 +139,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   the pages after its Latin-1 page, so a line never changes page and makes no draw call more than at 2; the places of
   Latin-1's four bitmaps there are kept the first time it draws, so they don't follow what it drew before. Colour glyphs,
   and glyphs past the atlas's limit, are drawn plain from the nearest column. At 2 and above glyphs are unhinted, their
-  outlines' exact shapes, drawn where they are laid out. A right-to-left run is laid out right to left, and a line's
+  outlines' exact shapes, each drawn from the nearest pixel column, never resampled between two. Coverage is raised
+  by an enhanced contrast that grows with the text's luminance (`gl/QuadShaders.hpp`, `textCoverage`): blending in
+  sRGB values makes the edges of light text on a dark ground much dimmer than their coverage, so such text looked thin
+  and washed out; covered and empty pixels keep their exact colours. A right-to-left run is laid out right to left, and a line's
   runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
   first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.

@@ -12,7 +12,9 @@
 
 (defkey "s" resize)
 
-(defkey "x" [{:when ~(some? state.modal) :do lock-axis :with {:axis x}} {:do deleteMenu}])
+(defkey "x" [{:when ~(some? state.modal) :do lock-axis :with {:axis x}}
+            {:when ~(= state.mode :edit) :do deleteElements}
+            {:do deleteMenu}])
 
 (defkey "y" [{:when ~(some? state.modal) :do lock-axis :with {:axis y}}])
 
@@ -27,11 +29,14 @@
 
 (defkey "0" [{:when ~(some? state.modal) :do type-digit :with {:key "0"}}])
 
-(defkey "1" [{:when ~(some? state.modal) :do type-digit :with {:key "1"}}])
+(defkey "1" [{:when ~(some? state.modal) :do type-digit :with {:key "1"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode vertex}}])
 
-(defkey "2" [{:when ~(some? state.modal) :do type-digit :with {:key "2"}}])
+(defkey "2" [{:when ~(some? state.modal) :do type-digit :with {:key "2"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode edge}}])
 
-(defkey "3" [{:when ~(some? state.modal) :do type-digit :with {:key "3"}}])
+(defkey "3" [{:when ~(some? state.modal) :do type-digit :with {:key "3"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode face}}])
 
 (defkey "4" [{:when ~(some? state.modal) :do type-digit :with {:key "4"}}])
 
@@ -59,7 +64,9 @@
 
 (defkey "shift+a" addMenu)
 
-(defkey "delete" [{:when ~(= (get state.areas state.hoverSlot) "shader") :do deleteShaderNodes} {:do deleteSelected}])
+(defkey "delete" [{:when ~(= (get state.areas state.hoverSlot) "shader") :do deleteShaderNodes}
+                  {:when ~(= state.mode :edit) :do deleteElements}
+                  {:do deleteSelected}])
 
 (defkey "shift+d" duplicate)
 
@@ -77,9 +84,21 @@
 
 (defkey "alt+h" revealHidden)
 
-(defkey "a" selectAll)
+(defkey "a" [{:when ~(= state.mode :edit) :do select-all-elements :with {:all true}} {:do selectAll}])
 
-(defkey "alt+a" selectNone)
+(defkey "alt+a" [{:when ~(= state.mode :edit) :do select-all-elements :with {:all false}} {:do selectNone}])
+
+;;; Edit Mode
+
+(defkey "tab" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do toggleEditMode})
+
+(defkey "e" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do extrudeFaces})
+
+(defkey "ctrl+r" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do loopCut})
+
+(defkey "ctrl+b" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do bevelEdge})
+
+(defkey "o" {:when ~(nil? state.modal) :do toggleProportional})
 
 (defkey "mod+i" selectInvert)
 
@@ -145,7 +164,7 @@
 
 ;;; Animation
 
-(defkey "i" insertKeyframe)
+(defkey "i" [{:when ~(= state.mode :edit) :do insetFaces} {:do insertKeyframe}])
 
 (defkey "alt+i" deleteKeyframe)
 

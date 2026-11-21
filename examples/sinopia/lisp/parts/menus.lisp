@@ -45,8 +45,7 @@
   [{:title (t "ribbon.paste")
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
+    :run "pasteObjects"}
    {:title (t "menu.keepTextOnly") :icon "type" :run "pasteText" :enabled (pos? (count state.clip))}
    {:title (t "menu.duplicate")
     :icon "copy-plus"
@@ -93,30 +92,30 @@
     :checked (or-else computed.slide.hidden false)
     :run "hideSlide"}])
 
-(defcomputed objectCtxItems "The selected objects' context menu."
-  [{:title (t "ribbon.cut") :icon "scissors" :keyLabel "Ctrl+X" :run "cutObjects"}
-   {:title (t "ribbon.copy") :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects"}
-   {:title (t "ribbon.paste")
-    :icon "clipboard-paste"
-    :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
-   {:separator true}
-   {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
-   {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
-   {:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "group-objects" :enabled computed.canGroup}
-   {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroup-objects"
-    :enabled computed.canUngroup}
-   {:separator true}
-   {:title (t "menu.formatShape") :icon "paintbrush" :run "openFormatPane"}
-   {:title (t "menu.delete") :icon "trash-2" :keyLabel "Del" :run "deleteObjects"}])
+(defcomputed objectCtxItems "The selected objects' context menu (with a picture, its crops)."
+  (concat
+   [{:title (t "ribbon.cut") :icon "scissors" :keyLabel "Ctrl+X" :run "cutObjects"}
+    {:title (t "ribbon.copy") :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects"}
+    {:title (t "ribbon.paste")
+     :icon "clipboard-paste"
+     :keyLabel "Ctrl+V"
+     :run "pasteObjects"}
+    {:separator true}
+    {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
+    {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
+    {:title (t "arrange.group") :icon "group" :keyLabel "Ctrl+G" :run "group-objects" :enabled computed.canGroup}
+    {:title (t "arrange.ungroup") :icon "ungroup" :keyLabel "Ctrl+Shift+G" :run "ungroup-objects"
+     :enabled computed.canUngroup}
+    {:separator true}]
+   computed.cropItems
+   [{:title (t "menu.formatShape") :icon "paintbrush" :run "openFormatPane"}
+    {:title (t "menu.delete") :icon "trash-2" :keyLabel "Del" :run "deleteObjects"}]))
 
 (defcomputed canvasCtxItems "The canvas's context menu."
   [{:title (t "ribbon.paste")
     :icon "clipboard-paste"
     :keyLabel "Ctrl+V"
-    :run "pasteObjects"
-    :enabled (pos? (count state.clip))}
+    :run "pasteObjects"}
    {:separator true}
    {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "resetSlide"}
    {:title (t "menu.formatBackground") :icon "paint-bucket" :run "formatBackground"}])
@@ -420,6 +419,10 @@
     :keyLabel "Ctrl+O"}
    {:title (t "menu.exportToPdf") :icon "file-down" :run "runSearched" :with {:action "exportPdf" :args {}}}
    {:title (t "menu.exportSlideAsPicture") :icon "image" :run "runSearched" :with {:action "exportPng" :args {}}}
+   {:title (t "menu.exportEverySlideAsPictures")
+    :icon "images"
+    :run "runSearched"
+    :with {:action "exportPngs" :args {}}}
    {:title (t "menu.darkMode") :icon "moon" :run "runSearched" :with {:action "toggleTheme" :args {}}}
    {:title (t "menu.undo")
     :icon "undo-2"
@@ -448,7 +451,7 @@
   (concat [{:title (t "menu.fromTheTheme") :checked (nil? state.deck.colors) :run "setColorSet" :with {:id nil}}
            {:separator true}]
           (map (fn [it]
-                 {:title (t (str "theme." it.id))
+                 {:title (theme-name it)
                   :checked (= state.deck.colors it.id)
                   :run "setColorSet"
                   :with {:id it.id}})
@@ -510,7 +513,7 @@
 
 (defcomputed menu-gal-themes "The theme gallery's whole list."
   (map (fn [it]
-         {:title (t (str "theme." it.id)) :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
+         {:title (theme-name it) :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
        computed.themes))
 
 (defcomputed menu-b-effects "The Shape Effects menu." computed.effectItems)

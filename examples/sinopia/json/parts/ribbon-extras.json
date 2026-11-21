@@ -1,0 +1,61 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The ribbon while it is collapsed, and the whole lists of its transitions' and builds' galleries. While it is collapsed, a tab shows it over the slide, a click elsewhere or Escape hides it again, and its pin keeps it open in its place. Its tabs are the same component as the pinned ribbon's; only one of the two is ever built.",
+
+	"state": {
+		"ribbonPeek": false
+	},
+
+	"computed": {
+		"menu-gal-transitions": "{{map([['none', 'ban', 'None'], ['glide', 'blend', 'Glide'], ['fade', 'sun-dim', 'Fade'], ['push', 'arrow-left-to-line', 'Push'], ['wipe', 'chevrons-left', 'Wipe'], ['split', 'columns-2', 'Split'], ['reveal', 'arrow-left-from-line', 'Reveal'], ['cover', 'square-stack', 'Cover']], { title: it[2], icon: it[1], checked: (computed.slide.transition.kind ?? 'none') == it[0], run: 'setTransition', with: { props: { kind: it[0] } } })}}",
+		"menu-gal-effects": "{{map(concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom'], null], computed.emphasisEffects, [null], computed.pathEffects), it == null ? { separator: true } : { title: it[2], icon: it[1], checked: (computed.animation.effect ?? 'none') == it[0], enabled: length(computed.selected) > 0, run: 'chooseEffect', with: { effect: it[0] } })}}"
+	},
+
+	"components": {
+		"ribbonTabs": {
+			"params": { "rowId": "ribbon-body" },
+			"note": "The commands of the tab chosen, in the pinned ribbon or over the slide: rowId names their row.",
+			"node": { "id": "{{rowId}}", "y": 2, "anchors": { "left": 8, "right": 8 }, "height": 92, "color": "transparent",
+				  "children": [
+					{ "use": "tabHome", "when": "{{state.tab == 'home'}}" },
+					{ "use": "tabInsert", "when": "{{state.tab == 'insert'}}" },
+					{ "use": "tabDesign", "when": "{{state.tab == 'design'}}" },
+					{ "use": "tabTransitions", "when": "{{state.tab == 'transitions'}}" },
+					{ "use": "tabView", "when": "{{state.tab == 'view'}}" },
+					{ "use": "tabFile", "when": "{{state.tab == 'file'}}" },
+					{ "use": "tabMotion", "when": "{{state.tab == 'animations'}}" },
+					{ "use": "tabPresent", "when": "{{state.tab == 'slideShow'}}" },
+					{ "use": "tabInk", "when": "{{state.tab == 'draw'}}" },
+					{ "use": "tabRecord", "when": "{{state.tab == 'record'}}" },
+					{ "use": "tabCheck", "when": "{{state.tab == 'review'}}" },
+					{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" },
+					{ "use": "tabShapeFormat", "when": "{{state.tab == 'shapeFormat'}}" }
+				  ] }
+		},
+		"ribbonOverlay": {
+			"params": {},
+			"note": "The collapsed ribbon, shown over the slide under the command bar, with its pin.",
+			"node": {
+				"id": "ribbon-peek", "overlay": { "placement": "window", "open": "state.ribbonPeek", "dismiss": "outside" },
+				"anchors": { "left": 0, "right": 0, "top": 45 }, "height": 100, "color": "@rb",
+				"shadow": { "y": 6, "blur": 16, "color": "#00000038" }, "role": "toolbar", "label": "Ribbon",
+				"children": [
+					{ "use": "ribbonTabs", "with": { "rowId": "ribbon-peek-body" } },
+					{ "type": "label", "id": "ribbon-pin", "style": "barIcon", "anchors": { "right": 10, "bottom": 2 }, "width": 22, "height": 22,
+					  "runs": [{ "icon": "pin", "size": 13 }], "tooltip": "Keep the ribbon open (Ctrl+F1)", "onClick": "pinRibbon" }
+				]
+			}
+		}
+	},
+
+	"overlays": {
+		"zRibbon": { "use": "ribbonOverlay", "when": "{{state.ribbonPeek && !state.ribbon}}" }
+	},
+
+	"actions": {
+		"pinRibbon": [{ "set": "state.ribbon", "to": true }, { "set": "state.ribbonPeek", "to": false }],
+		"toggleRibbon": [{ "set": "state.ribbonPeek", "to": false }, { "toggle": "state.ribbon" }]
+	}
+}

@@ -35,12 +35,26 @@
 
 (defcomputed couchItems
   "What the couch shelf shows, each with its picture and a line under its name: your games, the store's games you don't
-  own, or your friends."
+  own, your friends, or the settings a remote can change."
   (case state.couch.section
     :store (map #(hash-map :id (:id %) :title (:title %) :file (cover-of %) :sub (store-line %))
                 (remove :owned computed.storeGames))
     :friends (map #(hash-map :id (:id %) :title (:name %) :file (avatar-of %) :sub (friend-line %)) data.friends)
+    :settings computed.couchSettings
     (map #(hash-map :id (:id %) :title (:title %) :file (cover-of %) :sub (game-line %)) computed.couchGames)))
+
+(defcomputed couchSettings
+  "The settings couch mode changes, each a tile with its icon, its name and its value now: Enter steps to the next value."
+  [{:id "theme" :key "appearance.theme" :icon "palette" :title (t "settings.theme") :values ["dark" "light"]
+    :sub (t (str "settings." settings.appearance.theme)) :at settings.appearance.theme}
+   {:id "language" :key "appearance.language" :icon "languages" :title (t "settings.language") :values ["en" "es" "fr"]
+    :sub (get {"en" "English" "es" "Español" "fr" "Français"} settings.appearance.language)
+    :at settings.appearance.language}
+   {:id "start" :key "appearance.startPage" :icon "home" :title (t "settings.startPage")
+    :values ["library" "store" "community"] :sub (t (str "nav." settings.appearance.startPage))
+    :at settings.appearance.startPage}
+   {:id "sort" :key "library.sortBy" :icon "arrow-down-wide-narrow" :title (t "settings.sortBy")
+    :values ["name" "playtime" "recent"] :sub (t (str "sort." settings.library.sortBy)) :at settings.library.sortBy}])
 
 (defcomputed couchItem "What is chosen on the couch shelf." (get computed.couchItems state.couch.at))
 
@@ -204,6 +218,8 @@
 
 ;;; Couch mode
 
+(def couch-sections "The rows of couch mode, in order." ["library" "store" "friends" "settings"])
+
 (defcomponent couchMode
   "Couch mode: big tiles of your games, the store's or your friends; left and right choose, up and down change the row,
   Enter plays, opens or chats, Escape leaves."
@@ -232,8 +248,8 @@
      ~(couch-play)
      (label :font strong :anchors {:left 48 :bottom 32} :fitText true :text ~(t "couch.hint") :textColor @color.muted)))
 
-(defview couch-tabs "The rows couch mode shows, as tabs at the top: your games, the store, your friends." []
-  `(row#couch-tabs :anchors {:left 300 :right 300 :top 34}
+(defview couch-tabs "The rows couch mode shows, as tabs at the top: your games, the store, your friends, settings." []
+  `(row#couch-tabs :anchors {:left 240 :right 240 :top 34}
      :height 56
      :gap 8
      :justify center
@@ -241,14 +257,14 @@
      :role tablist
      :arrows horizontal
      :label ~(t "couch.rows")
-     ~(repeat [section ["library" "store" "friends"]]
+     ~(repeat [section couch-sections]
         `(node :id ~(str "couch-tab-" section)
            :style pillButton
            :role tab
            :font strong
            :radius 20
            :padding 12
-           :icon ~(case section "library" "gamepad-2" "store" "store" "users")
+           :icon ~(case section "library" "gamepad-2" "store" "store" "friends" "users" "settings")
            :text ~(t (str "couch.tab." section))
            :selected ~(= state.couch.section section)
            :color ~(if (= state.couch.section section) "@color.accent" "@color.raised")
@@ -274,10 +290,39 @@
                (slice computed.couchItems (max 0 (dec state.couch.at)) (+ (max 0 (dec state.couch.at)) 9))
                :index
                i]
-        (couch-cover g))))
+        `(stack :id ~(str "couch-tile-" g.id) :width ~(if (= g.id computed.couchItem.id) 210 150)
+           :height ~(cond (or (= state.couch.section "settings") (= state.couch.section "friends"))
+                          (if (= g.id computed.couchItem.id) 210 150)
+                          (= g.id computed.couchItem.id) 315
+                          :else 225)
+           :alignSelf center
+           ~(couch-cover g)
+           ~(couch-setting g)))))
+
+(defview couch-setting "A setting's tile on the couch shelf: its icon on a raised square; a click chooses it." [g]
+  `(column :id ~(str "couch-setting-" g.id)
+     :when ~(= state.couch.section "settings")
+     :let {:on ~(= g.id computed.couchItem.id)}
+     :role option
+     :label ~(str g.title ": " g.sub)
+     :selected ~on
+     :width ~(if on 210 150)
+     :height ~(if on 210 150)
+     :radius 16
+     :color ~(if on "@color.select" "@color.raised")
+     :borderWidth ~(if on 4 0)
+     :borderColor @color.accent
+     :justify center
+     :alignItems center
+     :cursor hand
+     :onClick ~(handler couch-choose g.id)
+     :gap 10
+     (label :font rewardArt :icon ~g.icon :text "" :fitText true :textColor ~(if on "@color.bright" "@color.text"))
+     (label :font strong :fitText true :text ~g.title :textColor ~(if on "@color.bright" "@color.muted"))))
 
 (defview couch-cover "A game's cover on the couch shelf; a click chooses it." [g]
   `(image :id ~(str "couch-" g.id)
+     :when ~(not= state.couch.section "settings")
      :let {:on ~(= g.id computed.couchItem.id) :square ~(= state.couch.section "friends")}
      :role option
      :label ~g.title
@@ -293,7 +338,8 @@
      :onClick ~(handler couch-choose g.id)))
 
 (defview couch-play
-  "The chosen tile's button: Play, Stop, Update or Install for a game of yours, View in the store, or Chat with a friend."
+  "The chosen tile's button: Play, Stop, Update or Install for a game of yours, View in the store, Chat with a friend, or
+  Change a setting."
   []
   `(node#couch-play :style pillButton
      :anchors {:left 48 :top 604}
@@ -304,6 +350,7 @@
      :color ~(if (or (= state.couch.section "friends") (= computed.couchGame.status :ready)) "@color.play" "@color.accent")
      :textColor @color.top
      :text ~(t (case state.couch.section
+                 "settings" "couch.change"
                  "store" "couch.viewStore"
                  "friends" "couch.chat"
                  (case computed.couchGame.status

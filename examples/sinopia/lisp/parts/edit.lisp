@@ -118,13 +118,13 @@
                   :enabled (> (count computed.selected) 1)})
                [["x" "align-horizontal-distribute-center"] ["y" "align-vertical-distribute-center"]])))
 
-(defcomputed effectItems "The Shape Effects menu: none, a shadow or a glow on the selected objects."
+(defcomputed effectItems "The Shape Effects menu: none, a shadow, a glow or soft edges on the selected objects."
   (map (fn [it]
          {:title (t (str "effect." (or-else it "none")))
           :run "setObjects"
           :with {:props {:effect it}}
           :enabled (pos? (count computed.selected))})
-       [nil "shadow" "glow"]))
+       [nil "shadow" "glow" "soft"]))
 
 ;;; Editing text on the slide
 
@@ -233,9 +233,10 @@
     (set "state.board.selection" (->> computed.selected (filter :locked) (map :id)))))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn copyObjects "Copies the selected objects." []
+(defn copyObjects "Copies the selected objects, and their text to the system clipboard." []
   (when (seq computed.selected)
-    (set "state.clip" computed.selected)))
+    (set "state.clip" computed.selected)
+    (copy-to-system computed.selected)))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn cutObjects "Copies the selected objects, then deletes them." []
@@ -243,8 +244,10 @@
   (deleteObjects))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn pasteObjects "Pastes the copied objects onto the slide, a little down and right, with new ids, and selects them."
-  []
+(defn pasteObjects "Pastes what the system clipboard holds: the objects copied here, or another app's text." []
+  (paste "text" :into "state.pasted" :onDone pasted-text :onError paste-clip))
+
+(defn paste-clip "Pastes the copied objects onto the slide, a little down and right, with new ids, and selects them." []
   (when (seq state.clip)
     (commit)
     (let [next state.deck.next]
@@ -262,8 +265,9 @@
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn duplicateObjects "Pastes a copy of the selected objects." []
-  (copyObjects)
-  (pasteObjects))
+  (when (seq computed.selected)
+    (set "state.clip" computed.selected)
+    (paste-clip)))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn selectAll "Selects every object of the slide." []
@@ -293,11 +297,14 @@
 ;;; The deck's design
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn setTheme "Gives the deck a theme, with its own colours and its first variant." [theme]
+(defn setTheme "Gives the deck a theme, with its own colours and its first variant (and fonts, if it saved some)."
+  [theme]
   (commit)
   (set "state.deck.theme" theme)
   (set "state.deck.variant" 0)
-  (set "state.deck.colors" nil))
+  (set "state.deck.colors" nil)
+  (when-some [fonts (:fonts (find #(= (:id %) theme) computed.themes))]
+    (set "state.deck.fonts" fonts)))
 
 (defn set-variant "Gives the deck one of its theme's variants, with its own colours." [variant]
   (commit)

@@ -32,7 +32,9 @@
             modello.navigation
             modello.animation
             modello.materials
-            modello.files))
+            modello.files
+            modello.editmode
+            modello.scenes))
 
 ;;; The window, and what is in it, in the order it is drawn
 

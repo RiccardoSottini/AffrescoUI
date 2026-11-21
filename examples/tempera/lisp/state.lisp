@@ -20,6 +20,7 @@
    :active ""
    :layers []
    :history []
+   :snapshots []
    :position 0
    :dropped 0
    :canUndo false
@@ -59,18 +60,20 @@
    [{:id marquee :name marquee :icon box-select :key "M"}
     {:id ellipse :name ellipse :icon circle-dashed :key "Shift+M"}]
    [{:id lasso :name lasso :icon lasso :key "L"} {:id polygon :name polygon :icon pentagon :key "Shift+L"}]
-   [{:id wand :name wand :icon wand :key "W"}]
+   [{:id quick-select :name quickSelect :icon wand-2 :key "Shift+W"} {:id wand :name wand :icon wand :key "W"}]
    [{:id crop :name crop :icon crop :key "C"}]
    []
    [{:id eyedropper :name eyedropper :icon pipette :key "I"}]
-   [{:name healing :icon bandage}]
+   [{:id healing :name healing :icon bandage :key "J"}]
    [{:id brush :name brush :icon paintbrush :key "B"} {:id pencil :name pencil :icon pencil :key "Shift+B"}]
    [{:id clone :name clone :icon copy-plus :key "S"}]
    [{:name restore :icon undo-dot}]
    [{:id eraser :name eraser :icon eraser :key "E"}]
    [{:id gradient :name gradient :icon blend :key "G"} {:id fill :name fill :icon paint-bucket :key "Shift+G"}]
-   [{:name blur :icon droplet}]
-   [{:name dodge :icon sun-dim}]
+   [{:id blur :name blur :icon droplet :key "R"} {:id sharpen :name sharpen :icon triangle}
+    {:id smudge :name smudge :icon pointer}]
+   [{:id dodge :name dodge :icon sun-dim :key "O"} {:id burn :name burn :icon flame :key "Shift+O"}
+    {:id sponge :name sponge :icon droplets}]
    []
    [{:id pen :name pen :icon pen-tool :key "P"}]
    [{:id type :name text :icon type :key "T"}]
@@ -83,6 +86,11 @@
    [{:id hand :name hand :icon hand :key "H"}]
    [{:id zoom :name zoom :icon zoom-in :key "Z"}]]
   "The tools bar's groups, top to bottom (an empty group is a gap): a tool with no id isn't available yet.")
+
+(defstate modeTools
+  {:transform-selection {:id transform-selection :name transformSelection :icon scan}
+   :free-transform {:id free-transform :name freeTransform :icon scaling}}
+  "Tools chosen by a command, not on the tools bar: the handles of Select > Transform Selection and Free Transform.")
 
 (defstate brushHardness 80 "The brush's hardness, kept while the pencil (always hard) is chosen.")
 
@@ -124,7 +132,7 @@
   "The kinds of adjustment layer, in the Adjust panel and its menu.")
 
 (defstate filters
-  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise}]
+  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise} {:id high-pass}]
   "The filters the Filter menu opens.")
 
 (defstate profiles [{:id srgb} {:id displayP3} {:id wideRgb} {:id gray}] "The colour profiles a document can be in.")
@@ -159,6 +167,9 @@
 
 (defstate collapsed {:colour false :properties false :layers false} "The dock's groups folded to their tabs.")
 
+(defstate groupOrder ["colour" "properties" "layers"]
+  "The dock's groups from the top: a group's tabs dragged onto another group's take its place.")
+
 (defstate groupHeights {:colour 158 :properties 236}
   "The heights of the dock's first two groups, that the sash under each drags; the Layers group takes the rest.")
 
@@ -173,6 +184,9 @@
 (defstate layerFilter {:on false :kinds []} "The Layers panel's filter: on, and the kinds of layer it shows.")
 
 (defstate foldedGroups [] "The groups folded in the Layers panel.")
+
+(defstate pickedLayers []
+  "The layers picked together in the Layers panel (Shift or Cmd and a click): what Distribute spaces.")
 
 (defstate grouping "" "The layer being grouped or ungrouped, while a command moves it.")
 
@@ -191,6 +205,8 @@
 (defstate quickPick {:open false :query "" :index 0 :top 0 :recent []} "The command search.")
 
 ;;; The dialogs
+
+(defstate lastFilter {} "The filter last applied, with its values: Filter > Last Filter applies it again.")
 
 (defstate filter
   {:open false :kind gaussian-blur :radius 4 :amount 100 :threshold 0 :angle 0 :distance 12 :live true :apply 0
@@ -228,6 +244,10 @@
 
 (defstate brushMenu false "The brush presets are shown.")
 
+(defstate curveChannel "rgb" "The channel the Curves editor shows: rgb (the composite), red, green or blue.")
+
+(defstate brushPreset "" "The brush preset last chosen, filled in the Brushes panel.")
+
 (defstate gradientMenu false "The gradient presets are shown.")
 
 (defstate workspaceMenu false "The workspace menu is open.")
@@ -236,6 +256,11 @@
 
 (defstate fillSourceMenu false "The fill sources are shown.")
 
+(defstate typeFontMenu false "The Character section's font families are shown.")
+
+(defstate typeFonts [{:id "default" :title "Roboto"} {:id "symbols" :title "JetBrains Mono"}]
+  "The font families a type layer can use: the screen's font names, and what the Character section calls them.")
+
 (defstate statusMenu false "The status bar's choices are shown.")
 
 (defstate layerKindMenu false "The Layers panel's filter kinds are shown.")
@@ -243,6 +268,8 @@
 (defstate screenMenu false "The screen modes are shown.")
 
 (defstate cropMenu false "The crop ratios are shown.")
+
+(defstate cropDragMenu false "The ratios a crop drag can keep are shown.")
 
 (defstate zoomMenu false "The zoom choices are shown.")
 

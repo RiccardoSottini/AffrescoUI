@@ -65,8 +65,10 @@
             :rotationDegrees [37.3 3.2 106.9]
             :scale [1 1 1]}]
    :materials [{:id material :name "Material" :baseColor [0.8 0.8 0.8 1] :roughness 0.5}]
+   :meshes []
+   :textures []
    :collections [{:id collection :name "Collection"}]}
-  "The scene: its objects (nodes), materials and collections.")
+  "The scene: its objects (nodes), materials, editable meshes, pictures and collections.")
 
 (defstate view {:camera {:target [0 0 0] :yaw 0.7 :pitch 0.58 :distance 17.5 :fieldOfView 0.68} :selection [cube]}
   "The viewport's camera and the selected objects' ids.")
@@ -123,6 +125,10 @@
 (defstate opened nil "A file read by Open, before it is checked.")
 
 (defstate openedName nil "That file's name.")
+
+(defstate importing nil "A glTF file read by Import, before its objects join the scene.")
+
+(defstate textureImage nil "A picture read for the active material's texture, before it is used.")
 
 ;;; Shading, overlays and gizmos
 
@@ -186,7 +192,10 @@
    :dataMore true
    :materialSettings true
    :display true
-   :format true}
+   :format true
+   :modifiers true
+   :texturePanel true
+   :custom true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")

@@ -191,6 +191,8 @@ struct Function {
 /// @brief The table of the keyframe function, `keyframeValue` (ExpressionFunctionsKeyframes.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> keyframeFunctions();
+/// @brief The mesh group: editable polygon meshes (meshExtrude, meshInset, meshSubdivide...). @return Its table.
+[[nodiscard]] std::span<const Function> meshFunctions();
 /// @brief The table of the locale functions: `t`, `formatNumber`, `sortText`, ... (ExpressionFunctionsLocale.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> localeFunctions();

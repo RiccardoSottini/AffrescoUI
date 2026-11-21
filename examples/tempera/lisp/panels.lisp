@@ -21,6 +21,11 @@
        :height 32
        :alignItems center
        :arrows horizontal
+       :tooltip ~(t "panels.move")
+       :drag {:data {:group ~slot}}
+       :onDrop ~(handler move-group event.data.group slot)
+       :keys {"alt+up" {:do move-group-by :with {:slot ~slot :by -1}}
+              "alt+down" {:do move-group-by :with {:slot ~slot :by 1}}}
        (node :width 4 :height 1 :style clear)
        ~(repeat [tab tabs] (panel-tab tab))
        (node :grow 1 :height 1 :style clear)
@@ -106,13 +111,7 @@
        :width 262
        :height "100%"
        :color transparent
-       ~(colour-group)
-       ~(group-sash "colour")
-       (node :when ~state.collapsed.colour :width 1 :height 6 :style clear)
-       ~(properties-group)
-       ~(group-sash "properties")
-       (node :when ~state.collapsed.properties :width 1 :height 6 :style clear)
-       ~(layers-group))
+       ~(repeat [place state.groupOrder :key place] (dock-place place)))
      (column#panel-icons :role toolbar
        :label ~(t "panels.collapsed")
        :width 36
@@ -127,9 +126,33 @@
        (node :use tPopout :with {:name navigator :icon compass :title ~(t "panel.navigator") :height 250}
          ~(navigator-panel)))))
 
+(defview dock-place
+  "A place of the dock: the group the order puts there, then the sash that drags its height, or a gap, under every
+  group but the last. The Layers group takes the room left; Properties takes it while Layers is folded."
+  [place]
+  `(column :id ~(str "dock-place-" place)
+     :let {:folded ~(get state.collapsed place)
+           :gap ~(if (= place (last state.groupOrder)) 0 6)
+           :open ~(or-else (get state.groupHeights place) 32)}
+     :style clear
+     :width "100%"
+     :height ~(+ (if folded 32 open) gap)
+     :grow ~(case place
+              "layers" (if folded 0 1)
+              "properties" (if (and state.collapsed.layers (not folded)) 1 0)
+              0)
+     :shrink ~(if (= place "properties") 1 0)
+     :minHeight ~(+ gap (if folded 32 (case place "layers" 200 "properties" 96 32)))
+     (column :when ~(= place "colour") :style clear :width "100%" :grow 1 ~(colour-group))
+     (column :when ~(= place "properties") :style clear :width "100%" :grow 1 ~(properties-group))
+     (column :when ~(= place "layers") :style clear :width "100%" :grow 1 ~(layers-group))
+     (node :when ~(> gap 0) :style clear :width "100%" :height 6
+       (node :when ~(not= place "layers") :style clear :width "100%" :height 6 ~(group-sash place)))))
+
 (defview colour-group "The first group: the colours, the palette, the gradients and the patterns." []
   `(node :use tGroup
-     :height ~(if state.collapsed.colour 32 state.groupHeights.colour)
+     :height 32
+     :grow 1
      :with {:slot colour
             :tabs ~[{:id "colour" :label (t "panel.colour")}
                     {:id "swatches" :label (t "panel.swatches")}
@@ -145,20 +168,72 @@
 
 (defview properties-group "The second group: the active layer's properties, and the adjustments to add." []
   `(node :use tGroup
-     :height ~(if state.collapsed.properties 32 state.groupHeights.properties)
-     :grow ~(if (and state.collapsed.layers (not state.collapsed.properties)) 1 0)
-     :shrink 1
-     :minHeight ~(if state.collapsed.properties 32 96)
+     :height 32
+     :grow 1
      :with {:slot properties
-            :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
+            :tabs ~[{:id "properties" :label (t "panel.properties")}
+                    {:id "adjustments" :label (t "panel.adjust")}
+                    {:id "brushes" :label (t "panel.brushes")}]}
      ~(properties-panel)
-     ~(adjustments-panel)))
+     ~(adjustments-panel)
+     ~(brushes-panel)))
+
+(defview brushes-panel "The Brushes panel: the brush presets, a click choosing one, then the brush's numbers." []
+  `(column#brushes :when ~(= state.panels.properties "brushes")
+     :role region
+     :label ~(t "panel.brushes")
+     :anchors {:left 10 :right 10 :top 6 :bottom 6}
+     :gap 4
+     :scroll vertical
+     (column#brush-presets :role list
+       :label ~(t "option.brushPresets")
+       :width "100%"
+       :height ~(* 26 (count state.brushes))
+       ~(repeat [b state.brushes :key b.name] (brush-preset-row b)))
+     (node :width "100%" :height 1 :color @border)
+     ~(brushes-option "size" 500 "unit.pxValue")
+     ~(brushes-option "hardness" 100 "unit.percentValue")
+     ~(brushes-option "spacing" 200 "unit.percentValue")))
+
+(defview brush-preset-row "A brush preset's row in the Brushes panel: a click chooses it; it is filled while chosen."
+  [b]
+  `(row :id ~(str "brush-preset-" b.name)
+     :role listitem
+     :label ~(t (str "brush." b.name))
+     :selected ~(= state.brushPreset b.preset)
+     :width "100%"
+     :height 26
+     :alignItems center
+     :gap 6
+     :radius @kit.radius
+     :cursor hand
+     :color ~(if (= state.brushPreset b.preset) "@selected" "transparent")
+     :hover {:color @hover}
+     :onClick ~(handler choose-brush b.preset)
+     (label :icon paintbrush :textColor @muted :width 22 :height 26 :align center)
+     (label :text ~(t (str "brush." b.name))
+       :textColor @text
+       :grow 1
+       :height 26
+       :align {:horizontal start :vertical center})))
+
+(defview brushes-option "One of the brush's numbers in the Brushes panel, from 1 to high: its title, slider and value."
+  [key high unit]
+  `(row :id ~(str "brushes-" key) :width "100%" :height 26 :alignItems center :gap 8
+     (node :style dim :fitText false :text ~(str (t (str "option." key)) ":") :width 62 :height 16)
+     (node :use tRange
+       :with {:title ~(t (str "option." key))
+              :key ~key
+              :value ~(get state.doc.options key)
+              :low 1
+              :high ~high
+              :width 100})
+     (label :text ~(t unit {:n (text (get state.doc.options key))}) :textColor @text :fitText true)))
 
 (defview layers-group "The third group: the layers, the channels and the paths." []
   `(node :use tGroup
-     :grow ~(if state.collapsed.layers 0 1)
      :height 32
-     :minHeight ~(if state.collapsed.layers 32 200)
+     :grow 1
      :with {:slot layers
             :tabs ~[{:id "layers" :label (t "panel.layers")}
                     {:id "channels" :label (t "panel.channels")}
@@ -245,8 +320,18 @@
 
 ;;; The panels that pop out
 
-(defview history-panel "The History panel: the steps, the current one chosen; a click goes back or forward to one." []
+(defview history-panel
+  "The History panel: the snapshots, a click restoring one; the steps, the current one chosen, a click going back or
+  forward to one; and the button that takes a snapshot."
+  []
   `(column#history :fill true
+     (column#history-snapshots :role list
+       :label ~(t "history.snapshots")
+       :when ~(not (empty? state.doc.snapshots))
+       :width "100%"
+       :height ~(inc (* 24 (count state.doc.snapshots)))
+       ~(repeat [s state.doc.snapshots :key s.index] (snapshot-row s))
+       (node :width "100%" :height 1 :color @border))
      (list#history-list :label ~(t "panel.history")
        :width "100%"
        :grow 1
@@ -266,7 +351,29 @@
        :text ~(t "history.dropped" {:n (text state.doc.dropped)})
        :width "100%"
        :height 18
-       :padding 4)))
+       :padding 4)
+     (row#history-buttons :role toolbar :label ~(t "history.actions") :width "100%" :height 28 :alignItems center
+       (node :grow 1 :height 1 :style clear)
+       (node#history-snapshot :use tIcon :with {:icon camera :tip ~(t "command.takeSnapshot") :run takeSnapshot})
+       (node :width 6 :height 1 :style clear))))
+
+(defview snapshot-row "A snapshot's row: a click puts the layers back as it kept them; its × forgets it." [s]
+  `(row :id ~(str "snapshot-" s.index)
+     :role listitem
+     :label ~s.name
+     :width "100%"
+     :height 24
+     :alignItems center
+     :gap 6
+     :cursor hand
+     :tooltip ~(t "history.restoreSnapshot" {:name s.name})
+     :hover {:color @hover}
+     :onClick ~(handler restore-snapshot {:index s.index})
+     (label :icon camera :textColor @muted :width 22 :height 24 :align center)
+     (label :text ~s.name :textColor @text :grow 1 :height 24 :align {:horizontal start :vertical center})
+     (node :id ~(str "snapshot-delete-" s.index)
+       :use tIcon
+       :with {:icon x :tip ~(t "history.deleteSnapshot" {:name s.name}) :run delete-snapshot :args {:index ~s.index}})))
 
 (defview navigator-panel "The Navigator panel: the whole image small, and the zoom." []
   `(column#navigator :fill true :gap 6 :alignItems center

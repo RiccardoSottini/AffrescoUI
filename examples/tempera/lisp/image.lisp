@@ -19,11 +19,21 @@
                          :lasso {:gesture lasso}
                          :polygon {:gesture polygon-lasso}
                          :wand {:gesture magic-wand}
+                         :quick-select {:gesture quick-select}
+                         :transform-selection {:gesture selection-box}
+                         :free-transform {:gesture layer-box}
                          :crop {:gesture crop}
                          :brush {:gesture paint}
                          :pencil {:gesture paint :hardness 100}
                          :eraser {:gesture erase}
-                         :clone {:gesture clone}
+                         :clone {:gesture clone :healing false}
+                         :healing {:gesture clone :healing true}
+                         :blur {:gesture retouch :retouch blur}
+                         :sharpen {:gesture retouch :retouch sharpen}
+                         :smudge {:gesture retouch :retouch smudge}
+                         :dodge {:gesture retouch :retouch dodge}
+                         :burn {:gesture retouch :retouch burn}
+                         :sponge {:gesture retouch :retouch sponge}
                          :gradient {:gesture gradient}
                          :fill {:gesture fill}
                          :eyedropper {:gesture sample}

@@ -20,7 +20,7 @@
 		"infoDevice": "{{state.devices[state.info.index]}}",
 		"infoFacts": "{{state.deviceFacts[computed.infoDevice.id]}}",
 		"infoName": "{{state.info.kind == 'light' ? computed.infoLight.name : (state.info.kind == 'device' ? computed.infoDevice.name : t('info.' + state.info.kind))}}",
-		"infoState": "{{state.info.kind == 'alarm' ? t('alarm.' + state.security) : state.info.kind == 'light' ? (computed.infoLight.on ? computed.infoLight.level + '%' : t('light.off')) : (state.info.kind == 'climate' ? computed.room.target + '°' : (state.info.kind == 'cover' ? t('blinds.open', { n: round(computed.room.blinds) }) : (computed.infoDevice.busy ? t('device.waiting') : t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.on' : '.off')))))}}"
+		"infoState": "{{state.info.kind == 'alarm' ? t('alarm.' + state.security) : state.info.kind == 'light' ? (computed.infoLight.on ? computed.infoLight.level + '%' : t('light.off')) : (state.info.kind == 'climate' ? computed.room.target + '°' : (state.info.kind == 'cover' ? t('blinds.open', { n: round(computed.room.blinds) }) : (computed.infoDevice.busy ? t('device.waiting') : t('device.' + computed.infoDevice.kind + (computed.infoDevice.on ? '.on' : '.off')))))}}"
 	},
 
 	"actions": {
@@ -225,7 +225,7 @@
 								"trackColor": "transparent", "activeColor": "transparent", "knobColor": "transparent" }
 						] },
 						{ "id": "infoDeviceAction", "when": "{{computed.infoDevice.id != 'speaker'}}", "style": "choiceOn", "anchors": { "left": 120, "top": 216 }, "width": 160, "height": 36, "radius": 18,
-							"text": "{{t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.doOff' : '.doOn'))}}",
+							"text": "{{t('device.' + computed.infoDevice.kind + (computed.infoDevice.on ? '.doOff' : '.doOn'))}}",
 							"onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
 						{ "type": "stack", "id": "infoFacts", "anchors": { "left": 24, "right": 24, "top": "{{computed.infoDevice.id == 'speaker' ? 292 : 276}}" }, "height": 120, "gap": 0, "role": "list", "children": [
 							{ "type": "label", "id": "infoBattery", "icon": "battery-medium", "text": "  {{t('info.battery', { n: computed.infoFacts.battery })}}", "textColor": "@text", "role": "listitem",
@@ -242,7 +242,7 @@
 								"color": "@field", "role": "listitem", "label": "{{time}}", "children": [
 									{ "id": "infoLogTime", "style": "caption", "text": "{{time}}", "anchors": { "left": 12, "top": 12 } },
 									{ "type": "label", "id": "infoLogText", "textColor": "@text", "anchors": { "left": 64, "right": 12, "top": 10 }, "height": 20,
-										"text": "{{t('device.' + computed.infoDevice.id + ((n % 2 == 0) == computed.infoDevice.on ? '.on' : '.off'))}}" }
+										"text": "{{t('device.' + computed.infoDevice.kind + ((n % 2 == 0) == computed.infoDevice.on ? '.on' : '.off'))}}" }
 								] }
 						] }
 					] },

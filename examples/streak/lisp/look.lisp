@@ -10,7 +10,7 @@
    :c.actionBar {:light "#5b4a42" :dark "#463a35" :black "#1c1c1c"}
    :c.text {:light "#212121" :dark "#e0e0e0" :black "#e0e0e0"}
    :c.muted {:light "#757575" :dark "#9e9e9e" :black "#9e9e9e"}
-   :c.faint {:light "#cfcfcf" :dark "#5a5a5a" :black "#454545"}
+   :c.faint {:light "#b3b3b3" :dark "#6b6b6b" :black "#555555"}
    :c.track {:light "#ebe7e3" :dark "#424242" :black "#262626"}
    :c.divider {:light "#e3dfdb" :dark "#3d3d3d" :black "#222222"}
    :c.hover {:light "#0000000d" :dark "#ffffff12" :black "#ffffff12"}

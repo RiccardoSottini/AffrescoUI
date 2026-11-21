@@ -13,7 +13,7 @@
    :c.border {:light "#e3e1ee" :dark "#2b2b39"}
    :c.text {:light "#1b1a28" :dark "#ececf4"}
    :c.muted {:light "#5d5b72" :dark "#a4a2b9"}
-   :c.dim {:light "#8d8ba2" :dark "#6e6c84"}
+   :c.dim {:light "#6c6a82" :dark "#8b89a3"}
    :c.accent {:light "#5b4fe0" :dark "#8b80ff"}
    :c.accentHover {:light "#4a3fcc" :dark "#a097ff"}
    :c.accentSoft {:light "#ecebff" :dark "#28244d"}

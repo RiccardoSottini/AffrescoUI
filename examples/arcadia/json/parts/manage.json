@@ -18,10 +18,12 @@
 		"uninstall": {
 			"open": false
 		},
-		"filesShown": false
+		"filesShown": false,
+		"compat": {}
 	},
 	"computed": {
 		"manageGame": "{{find(data.games, it.id == state.manage)}}",
+		"compatLayer": "{{state.compat[computed.manageGame.id]}}",
 		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}",
 		"gameFiles": "{{[{ name: 'content.pak', icon: 'package', gb: (computed.manageGame.sizeGb ?? 0) * 0.78 }, { name: 'textures.pak', icon: 'image', gb: (computed.manageGame.sizeGb ?? 0) * 0.15 }, { name: 'audio.pak', icon: 'music', gb: (computed.manageGame.sizeGb ?? 0) * 0.06 }, { name: computed.manageGame.id + '.bin', icon: 'cpu', gb: (computed.manageGame.sizeGb ?? 0) * 0.009 }, { name: 'settings.cfg', icon: 'file', gb: 0.0001 }]}}"
 	},
@@ -49,6 +51,10 @@
 			"title": "Properties",
 			"category": "Game",
 			"icon": "settings",
+			"arguments": {
+				"id": { "type": "string", "description": "The game's id" },
+				"tab": { "enum": ["general", "updates", "files", "compat", "dlc"], "description": "The page to open at" }
+			},
 			"do": [
 				{
 					"set": "state.manage",
@@ -171,7 +177,7 @@
 										"id": "{{'properties-tab-' + tab}}",
 										"repeat": {
 											"for": "tab",
-											"in": ["general", "updates", "files", "dlc"]
+											"in": ["general", "updates", "files", "compat", "dlc"]
 										},
 										"anchors": {
 											"left": 0,
@@ -788,6 +794,95 @@
 														]
 													}
 												]
+											}
+										]
+									},
+									{
+										"when": "{{state.properties.tab == 'compat'}}",
+										"note": "The compatibility page: forcing a compatibility layer, and which one.",
+										"fill": true,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.compatTitle'))}}",
+												"textColor": "@color.muted",
+												"anchors": { "left": 0, "right": 0, "top": 0 },
+												"height": 18
+											},
+											{
+												"type": "row",
+												"id": "properties-compat",
+												"anchors": { "left": 0, "right": 0, "top": 24 },
+												"height": 30,
+												"alignItems": "center",
+												"children": [
+													{ "type": "label", "grow": 1, "height": 22, "text": "{{t('properties.compatForce')}}", "textColor": "@color.text" },
+													{
+														"type": "toggle",
+														"id": "properties-compat-toggle",
+														"width": 40,
+														"height": 22,
+														"label": "{{t('properties.compatForce')}}",
+														"checked": "{{computed.compatLayer != null}}",
+														"activeColor": "@color.accent",
+														"onChange": { "set": "{{'state.compat.' + computed.manageGame.id}}", "to": "{{event.value ? 'bridge9' : null}}" }
+													}
+												]
+											},
+											{
+												"type": "row",
+												"id": "{{'properties-compat-' + layer}}",
+												"repeat": { "for": "layer", "in": ["bridge9", "bridge8", "experimental"], "index": "i" },
+												"let": { "on": "{{computed.compatLayer == layer}}", "enabled": "{{computed.compatLayer != null}}" },
+												"anchors": { "left": 0, "right": 0, "top": "{{64 + i * 32}}" },
+												"height": 28,
+												"gap": 10,
+												"alignItems": "center",
+												"focusable": "{{enabled}}",
+												"role": "radio",
+												"selected": "{{on}}",
+												"disabled": "{{!enabled}}",
+												"cursor": "{{enabled ? 'hand' : 'arrow'}}",
+												"label": "{{t('properties.compat.' + layer)}}",
+												"radius": 3,
+												"hover": { "color": "{{enabled ? '@color.hover' : 'transparent'}}" },
+												"onClick": {
+													"if": "{{computed.compatLayer != null}}",
+													"then": [{ "set": "{{'state.compat.' + computed.manageGame.id}}", "to": "{{layer}}" }]
+												},
+												"children": [
+													{ "type": "panel", "color": "transparent", "width": 2, "height": 1 },
+													{
+														"type": "panel",
+														"width": 14,
+														"height": 14,
+														"radius": 7,
+														"borderWidth": 2,
+														"borderColor": "{{on ? '@color.accent' : '@color.dim'}}",
+														"color": "transparent",
+														"children": [
+															{ "when": "{{on}}", "anchors": { "left": 3, "top": 3 }, "width": 4, "height": 4, "radius": 2, "color": "@color.accent" }
+														]
+													},
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.compat.' + layer)}}",
+														"textColor": "{{enabled ? '@color.text' : '@color.dim'}}"
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('properties.compatNote')}}",
+												"textColor": "@color.dim",
+												"wrap": true,
+												"anchors": { "left": 0, "right": 0, "top": 168 },
+												"height": 40
 											}
 										]
 									},

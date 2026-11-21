@@ -63,6 +63,7 @@ struct Material {
 	AlphaMode alphaMode = AlphaMode::Opaque; ///< How alpha is used.
 	float alphaCutoff = 0.5f;                ///< For AlphaMode::Mask.
 	bool doubleSided = false;                ///< Whether back faces are drawn.
+	bool castsShadow = true;                 ///< Whether its surfaces cast a shadow.
 	std::string baseColorTexture;            ///< A texture id, or empty.
 	std::string metallicRoughnessTexture;    ///< A texture id (green roughness, blue metal), or empty.
 	std::string normalTexture;               ///< A texture id, or empty.

@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <utility>
 
 namespace affresco::gl {
@@ -57,9 +58,11 @@ bool QuadRenderer::replayCached(const Panel& panel, const detail::PanelGeometry&
 	const float right = static_cast<float>(area.left + area.width) / scale.x;
 	const float bottom = static_cast<float>(area.top + area.height) / scale.y;
 	constexpr std::uint16_t low = 0, high = 65535;
-	const auto corner = [](float x, float y, std::uint16_t u, std::uint16_t v) {
-		return detail::Vertex{x,   y,    u,    v, 255, 255, 255,
-		                      255, 0.0f, 0.0f, 0, 0,   0,   static_cast<std::uint16_t>(detail::QuadKind::colorGlyph)};
+	// The panel's opacity (Panel::drawnOpacity()) is the quad's: the colour glyph shader multiplies the texels' by it
+	const auto alpha = static_cast<std::uint8_t>(std::lround(panel.drawnOpacity() * 255.0f));
+	const auto corner = [alpha](float x, float y, std::uint16_t u, std::uint16_t v) {
+		return detail::Vertex{x,     y,    u,    v, 255, 255, 255,
+		                      alpha, 0.0f, 0.0f, 0, 0,   0,   static_cast<std::uint16_t>(detail::QuadKind::colorGlyph)};
 	};
 	vertices_.push_back(corner(left, top, low, high));
 	vertices_.push_back(corner(right, top, high, high));

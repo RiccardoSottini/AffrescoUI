@@ -51,7 +51,7 @@ system of six bodies on circular orbits in one plane.
 | A6 | Search | done | Cmd+F (View menu, Find) opens a `quickPick` over the bodies and the events: a body is selected and flown to, an event's day shown |
 | A7 | Go to a date | done | in the search, `@` and a date (2030-06-15) or a day number pauses at that day; Time menu, Go to a day |
 | A8 | Where you stand | done | Shift+Up and Shift+Down (View menu, Go north and Go south) move the observer 5° of latitude, from 85°S to 85°N; the sky from the ground turns and its caption says the latitude |
-| A5 | Themes, locales (right to left), accessibility | part | dark, light and night (dim red: the panels, the 3D scene, the sky, the timeline's clips, the orbit graph's wires and the strip's thumbnails) themes from the View menu, N for the night; the views of space dark in all; English, Spanish and French in the Lisp app (`locales/`, the language from the settings); under right to left the panes mirror and the 3D view keeps its labels on the bodies; the browser's tabs have no accessible nodes of their own |
+| A5 | Themes, locales (right to left), accessibility | part | dark, light and night (dim red: the panels, the 3D scene, the sky, the timeline's clips, the orbit graph's wires and the strip's thumbnails) themes from the View menu, N for the night; the views of space dark in all; English, Spanish and French in the Lisp app (`locales/`, the language from the settings); under right to left the panes mirror and the 3D view keeps its labels on the bodies; the browser's tabs are elements of their own (role tab, selected when active) |
 
 ## Rounds
 

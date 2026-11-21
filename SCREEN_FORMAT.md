@@ -162,7 +162,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
-| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
+| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `gradient` | The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and `radial-gradient()`: `["#1e3a5f", "#0b1220"]` (colours spread evenly from top to bottom), or `{ "kind": "linear", "angle": 90, "stops": ["@accent", { "at": 0.6, "color": "#00000000" }] }`. `angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A `radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or `{ "at": 0..1, "color" }`; two stops at one place change colour sharply. At most 32 stops. It can be set in `hover` and the other states. |
@@ -175,6 +175,7 @@ parent, later siblings on top of earlier ones.
 | `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
 | `translate` | Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, `scale`, then `skew`. Default: `[0, 0]`. |
 | `transformOrigin` | The point `rotate`, `scale` and `skew` turn about: `"center"` (the default), an edge or a corner (`"top"`, `"bottomRight"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner). |
+| `opacity` | How opaque the node and its children are, from `0` to `1` (the default), like CSS `opacity`: the subtree is drawn into a texture and that drawn translucent, so overlapping children don't show through each other. Layout and clicks don't change (a node at `0` still takes them: add `disabled` or `visible`). Below 1 the children are clipped to the node, as with `cache`; a transformed node is drawn at full opacity. Bind it to the state and an `animate` step fades it. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
@@ -234,7 +235,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text and `runs`, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -242,7 +243,7 @@ only for the elements that changed.
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "underline", "strike", "background", "shadow", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
-| `letterSpacing` | Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's `letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's spacing. |
+| `letterSpacing` | Extra pixels between the characters of plain text (a heading, small capitals, a spaced paragraph), as CSS's `letter-spacing`; negative tightens. Counted in `align`, `fitText`, `wrap` and justified lines; `runs` keep the font's spacing. |
 <!-- end generated -->
 
 ```json
@@ -283,6 +284,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `whitespace` | `true` draws a small dot in each space, in `guideColor`, so blanks can be seen. |
 | `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
@@ -334,6 +336,7 @@ overflow.
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `fitContent` | `true`, `"width"` or `"height"`: that size comes from the children instead of `width` and `height` (within the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its text. A child that grows or is stretched by its anchors adds only its own size. |
+| `padding` | Room inside the edges around the children, as CSS padding: one number for every edge, `[vertical, horizontal]` or `[top, right, bottom, left]`. The children are placed, and their percentages and anchors resolved, within the rest; `fitContent` adds it to the children's size, and a scrolling container scrolls it with them. A number token works (`"@space.m"`). Default: `0`. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->
@@ -354,6 +357,7 @@ after row. A child is as wide as its cell and keeps its own height at the top of
 | `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. On a `table`: the columns, left to right: a string (its id and title), or `{ "id", "title", "width" }` (pixels, default 120, at least 24). Column i shows each item's cell i. Dragging a header's right edge resizes it and runs `onColumnResize`; keep the width in state there to keep it over a change of columns. |
 | `rows` | Tracks for the rows, as `columns`. Rows past them, and every row without `rows`, are as tall as their tallest child. |
 | `gap`, `rowGap`, `columnGap` | Pixels between cells; `rowGap` and `columnGap` over `gap`. |
+| `padding` | Room inside the edges around the cells, as on a `row` (a number or a CSS-style list). |
 | `justifyItems` | Where children sit across their cells: `stretch` (default), `start`, `center` or `end`. |
 | `alignItems` | Where children sit down their cells: `start` (default), `center`, `end` or `stretch`. |
 <!-- end generated -->
@@ -530,7 +534,7 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 <!-- generated: tabs -->
 | Key | Meaning |
 |---|---|
-| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. Each tab is an element of its own to assistive tools and scenarios (role `tab`, its label as its name, `selected` when active; pressing it picks it), for the first 1,000. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
@@ -686,6 +690,7 @@ data or its size changes.
 | `fillColor` | The inside's colour; without it the path isn't filled. |
 | `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
 | `fillGradient` | The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "@accent" }] }` (1 to 32 stops; a radial one is centred, reaching the corners). |
+| `feather` | How wide the inside's edge fades out past the path, in window units: `1` (the default) anti-aliases it, `0` is a hard edge, and up to `64` a soft edge or a blurred shadow. |
 | `stroke` | The outline's colour; without it there is no outline. |
 | `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
 | `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
@@ -707,8 +712,10 @@ An infinite canvas, as in whiteboards and design tools: its children and its `it
 seen through a camera. Drag the background (or hold Space, or use the middle button) and scroll to pan; pinch, or Ctrl
 or Cmd with the wheel, zooms at the pointer, as do `+` and `-` (`0` resets the zoom, Shift+1 fits everything, Shift+2
 the selection). Click, Shift-click and a marquee select; the handles move, resize (eight of them) and rotate; arrow
-keys nudge (Shift: 10). Moves and resizes snap to the grid, to other items' edges and centres and to guides, with
-smart guides drawn while dragging. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
+keys nudge (Shift: 10). Shift held as a drag starts keeps a corner resize's proportions and a move along one axis.
+Moves and resizes snap to the grid, to other items' edges and centres and to guides, with smart guides drawn while
+dragging; a move also snaps to the gaps its row (or column) already has, or to the middle between two items, and
+distance indicators show the equal gaps. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
@@ -1052,7 +1059,14 @@ Wherever a value is expected it can be computed:
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
   `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches),
   `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`, `formKeyword(text, keywords)`,
-  `setFormKeyword(text, keywords, value)`;
+  `setFormKeyword(text, keywords, value)`, `meshPrimitive(name)`, `meshExtrude(mesh, faces, distance)`,
+  `meshInset(mesh, faces, amount)`, `meshDeleteFaces(mesh, faces)`, `meshDeleteVertices(mesh, vertices)`,
+  `meshLoopCut(mesh, edge)`, `meshBevel(mesh, edge, amount?)`, `meshMove(mesh, vertices, delta, radius?)`,
+  `meshScale(mesh, vertices, factor, radius?)`, `meshRotate(mesh, vertices, rotation, radius?)`,
+  `meshFaceVertices(mesh, faces)`, `meshFaces(mesh, faces, offset?)`, `meshCentre(mesh, vertices)`,
+  `meshModifiers(mesh, modifiers)`, `meshEdges(mesh, thickness, edges?)`, `meshFlip(mesh)`, `meshMirror(mesh, axis)`,
+  `meshArray(mesh, count, offset)`, `meshSubdivide(mesh, levels)`, `meshPick(mesh, point, mode, node?)`,
+  `meshStats(mesh)`, `gltfScene(gltf, prefix)`, `transformCompose(outer, inner)`, `transformRelative(transform, outer)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
@@ -1277,7 +1291,8 @@ and the error names `actions.<name>.arguments.<argument>`.
 
 **Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
 is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
-variables), or a list of bindings, where the first that applies runs.
+variables), or a list of bindings, where the first that applies runs. The key `"alt"` (or `"option"`) alone is Alt
+pressed and released with no other key, modifier or click between: key hints, a menu bar's letters.
 
 **Resolution:** one walk per press.
 1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
@@ -1367,7 +1382,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
-| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step |
+| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. `{ "paste": "image", "as": "clip", "into": "state.pasted" }` takes the clipboard's image instead (macOS for now; a 64 MiB PNG and 4,096 by 4,096 pixels at most): an `image` node with `"source": "clip"` shows it, and the value is `{ "image", "width", "height" }`, or null when the clipboard holds none. A control step |
+| `copyImage` | `{ "copyImage": "chart" }`: puts a named image of the screen (a `snapshot`'s, one pasted or set by the host) on the clipboard, where the system takes one (macOS for now). A control step |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
 | `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
@@ -1386,7 +1402,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
 | `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
 | `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
-| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it |
+| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it; `{ "closeWindow": "main" }` closes the screen's own window, which ends the app (Quit, Exit): only from the person's own click or key, never from a load, a timer, a message or a revision |
+| `openUrl` | `{ "openUrl": "https://example.com/help" }`: opens an http:// or https:// web address in the person's browser, only after asking them in a question the window draws itself (the whole address shown; Enter or Open says yes, Escape or Cancel no). Nothing a screen runs can answer it, so a timer, a message or a revision's code never opens one without the person's yes. Any other scheme is an error. A control step |
 | `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the person's own click or key, and Esc always leaves. A control step |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
@@ -1410,7 +1427,7 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. With `"as": "image"` it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an `image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A control step |
-| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of each node (`scale` pixels a unit, 2 by default; several nodes are written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` names them), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
 | `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |
@@ -1482,6 +1499,9 @@ The operations, and the keys of `with` each reads:
 | `redo` | — | Does again the step last taken back. |
 | `history` | `position` | Goes to a place in the history (0 is before the first step). |
 | `clearHistory` | — | Forgets every step of the history. |
+| `takeSnapshot` | `name` | Keeps the layers as they are under a name, to restore later. |
+| `restoreSnapshot` | `index` | Puts the layers back as a snapshot kept them, as one step. |
+| `deleteSnapshot` | `index` | Forgets a snapshot. |
 | `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
 | `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
 | `duplicateLayer` | `id` | Duplicates a layer. |
@@ -1494,6 +1514,7 @@ The operations, and the keys of `with` each reads:
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `trim` | — | Crops the image to the box around its visible pixels that aren't transparent, and forgets the history. |
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
@@ -1501,9 +1522,11 @@ The operations, and the keys of `with` each reads:
 | `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `convertFormat` | `format` | Converts the image to 8 bits a channel (rgba8) or 16-bit floats (rgba16f), and forgets the history. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
 | `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `distributeLayers` | `ids`, `edge` | Spaces three or more pixel layers evenly between the outermost two, by their edges or middles. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
 | `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
@@ -1517,14 +1540,15 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector`, `cropRatio`, `retouch`, `reverse`, `dither`, `transparency`, `healing` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
-| `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `fill` | Adds a type layer. |
+| `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `tracking`, `kerning`, `fill` | Adds a type layer. |
 | `addShape` | `shape`, `x`, `y`, `x2`, `y2`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Adds a shape layer. |
-| `editContent` | `id`, `text`, `x`, `y`, `x2`, `y2`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `shape`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Changes a type or shape layer's content, and draws it again. |
+| `editContent` | `id`, `text`, `x`, `y`, `x2`, `y2`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `tracking`, `kerning`, `shape`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Changes a type or shape layer's content, and draws it again. |
 | `rasterize` | `id` | Makes a type or shape layer a pixel layer of the same pixels. |
 | `newPath` | `name` | Adds an empty path, the active one, for the pen. |
+| `textToPath` | `id` | Adds the outlines of a type layer's text as paths, one per contour of each glyph (Create Work Path). |
 | `selectPath` | `index` | Makes a path the active one (-1 for none). |
 | `deletePath` | `index` | Deletes a path (the active one when no index). |
 | `renamePath` | `index`, `name` | Renames a path. |
@@ -1546,19 +1570,32 @@ layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by`
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
 tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
 `mode` (a polygon keeps the mode of its first corner). During a marquee's or crop's drag, `shift` keeps a square and
-`alt` draws from the press as the centre (a key held since the press only chose the mode). With the `autoSelect` option,
+`alt` draws from the press as the centre (a key held since the press only chose the mode); a crop with the `cropRatio`
+option (width over height, 0 for any) keeps that shape instead. The gradient's `reverse`, `dither` (a little noise
+against bands) and `transparency` (false makes every stop opaque) options change how it is laid. With the `autoSelect` option,
 a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
 go through the file dialogs the person sees: a document never names a file.
 
 **Type, shapes and paths.** A type or shape layer is a pixel layer drawn from its `content` (in its snapshot row, with
-`kind` `text` or `shape`): `{"text", "font", "size", "leading", "bold", "italic", "align", "x", "y", "fill"}` for type
-(drawn with the screen's `fonts`, `""` the default), `{"shape": rectangle|ellipse|polygon|line|path, "x", "y", "x2",
+`kind` `text` or `shape`): `{"text", "font", "size", "leading", "tracking", "kerning", "bold", "italic", "align", "x",
+"y", "fill"}` for type (drawn with the screen's `fonts`, `""` the default; `tracking` is the space after each character
+and `kerning` an object of two-character keys to the space between that pair, both in thousandths of the size), `{"shape": rectangle|ellipse|polygon|line|path, "x", "y", "x2",
 "y2", "radius", "sides", "points", "fill", "stroke", "strokeWidth"}` for a shape, colours as `#rrggbb[aa]`. `addText`,
 `addShape` and `editContent` take those keys and draw the layer again (typing and sliders coalesce into one step);
 painting and filters refuse it until `rasterize`; moving moves its content. The `vector` tool option holds what new type
 and shapes start as. The `text` gesture adds a type layer at the press or picks the one pressed, then the canvas types
 into it (Backspace, Enter, Escape stops); `shape` drags one out; `pen` adds anchors to the active path (a drag pulls
-smooth handles; a press on the first anchor closes it); `path-select` drags the active path or the anchor pressed. The
+smooth handles; a press on the first anchor closes it; on the path, a press on a segment adds an anchor there keeping the
+curve, on another anchor deletes it, and with `alt` on an anchor makes a smooth one a corner or pulls a corner's handles
+out); `path-select` drags the active path or the anchor pressed. `textToPath` adds a type layer's outlines as paths, one
+per contour. `quick-select` selects, at the release, the pixels like the one under each point of the drag (within the
+`tolerance`) and connected to it, no farther than the brush's radius (`size`), so it stops at edges.
+`retouch` strokes with the brush and changes the pixels under it as its `retouch` option says: `dodge` lightens,
+`burn` darkens, `sponge` takes the colour away, `blur` and `sharpen` move each pixel towards or away from its
+neighbours' average, `smudge` drags the paint along the stroke. A `clone` tool with the `healing` option lays the
+source's texture in the tone of the pixels it covers (the healing brush). `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
+stays), a drag inside moves it, the handle above the box turns it about its centre, one step each; `layer-box` does the same to the active pixel layer, around its pixels
+(a Free Transform step). The
 paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
 canvas while one is active.
 
@@ -1569,10 +1606,10 @@ The names the operations and tool options take, and the library's limits:
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
-| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select` |
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select`, `quick-select`, `selection-box`, `layer-box`, `retouch` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
-| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur`, `high-pass` |
 | The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
 | `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `imageFilePixels` 268435456, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
 <!-- end generated -->
@@ -1580,11 +1617,12 @@ The names the operations and tool options take, and the library's limits:
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
 `lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
-an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
-`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
-`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
-pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
-`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
+an `image` node shows), `history` (`id`, `label`), `snapshots` (`name`, `index`), `position`, `dropped`, `canUndo`,
+`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`,
+`x`, `y`), `message`, `previewing`, `clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the
+`histogram` operation last counted: pixels by brightness, darkest first, transparent ones left out; a large image is
+measured at a smaller size, so give `curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole
+image.
 
 ### An image example
 

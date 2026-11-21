@@ -41,10 +41,15 @@ struct SnapLine {
 struct SnapResult {
 	Rect rect{};                                    ///< The rectangle, moved or resized to what it snapped to.
 	std::array<std::optional<SnapLine>, 2> lines{}; ///< The vertical line, then the horizontal one; none for the grid.
+	/// Distance indicators, for a move: where the rectangle's gap to its neighbour equals another gap in the same row
+	/// (or column), that gap and the one it equals, each a segment across it (a horizontal one, `vertical` false, for
+	/// gaps along x). Two along x, then two along y.
+	std::array<std::optional<SnapLine>, 4> gaps{};
 };
 
 /// @brief Snaps a rectangle that moves whole: each axis moves by the smallest pull within the tolerance that brings
-/// one of its edges or its centre onto a target.
+/// one of its edges or its centre onto a target; where none is near, the pull that makes its gap to an item in its row
+/// (or column) equal to a gap between two items there, or centres it between two, as the distance indicators show.
 /// @param moving The rectangle where the pointer put it.
 /// @param targets What it snaps to.
 /// @param tolerance World units (screen pixels over the zoom); 0 or less snaps to nothing.

@@ -124,7 +124,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Topic | The rule |
 |---|---|
 | Reading | `state.count`, `computed.h`, `data.songs`, `settings.x`, `event.x` read the running app (a pointer event's `event.shift`, `event.alt`, `event.mod`: the modifier keys held). `item.name` reads a local's member, and `state.rows.0` is an index |
-| Changing | Only through steps, each a function: `(set "state.x" 1)`, `(toggle "state.open")`, `(push "state.list" v)`, `(insert "songs" :value v)`, `(remove-state ...)`, `(update-record ...)`, `(run "action")`, `(invoke "files.read" ...)`, `(undo)` |
+| Changing | Only through steps, each a function: `(set "state.x" 1)`, `(toggle "state.open")`, `(push "state.list" v)`, `(insert "songs" :value v)`, `(remove-state ...)`, `(update-record ...)`, `(run "action")`, `(invoke "files.read" ...)`, `(undo)`, `(openUrl "https://...")` (opens the browser on the person's yes), `(closeWindow "main")` (ends the app, from the person's own key or click) |
 | Callbacks | `:then f`, `:onDone [f arg ...]`; the parameters past the given ones come by name (`result`, `error`) |
 | Later | `(after 500 f arg)`, `(debounce 300 f arg)`: a function named by a definition, never a closure |
 | Truth | In functions only `nil` and `false` are false; in bindings `""`, `0` and `[]` are too. Write `(truthy? x)`, `(some? x)`, or `(seq x)` in a function and `(pos? (count x))` in a binding. `affrescoui check --truth` lists the places to look at |

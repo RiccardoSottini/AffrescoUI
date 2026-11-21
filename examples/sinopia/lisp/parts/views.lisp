@@ -150,9 +150,10 @@
             :low ~low
             :high ~high}))
 
-(defview format-effects "No effect, a shadow or a glow, for the selected objects." []
+(defview format-effects "No effect, a shadow, a glow or soft edges, for the selected objects." []
   `(row#format-effects :width 236 :height 26 :gap 4 :color transparent
-     ~(repeat [fx [["none" (t "view.noEffect")] ["shadow" (t "effect.shadow")] ["glow" (t "effect.glow")]] :key fx.0]
+     ~(repeat [fx [["none" (t "view.noEffect")] ["shadow" (t "effect.shadow")] ["glow" (t "effect.glow")] ["soft" (t "effect.soft")]]
+                :key fx.0]
        `(label :id ~(str "format-effect-" fx.0)
           :style ~(if (= (or-else o.effect "none") fx.0) "rbButtonOn" "rbButton")
           :height 26
@@ -307,7 +308,7 @@
 (defn pick-swatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
   (if (= run "setBackground") (setBackground slot) (set-property key slot)))
 
-(defn set-effect "Gives the selected objects an effect: none, shadow or glow." [effect]
+(defn set-effect "Gives the selected objects an effect: none, shadow, glow or soft edges." [effect]
   (setObjects {:effect (if (= effect "none") nil effect)}))
 
 (defn open-slide "Opens a slide of the sorter in the Normal view." [index]
@@ -362,10 +363,13 @@
 (defn not-exported "Says why nothing was exported." [error]
   (fileStatus (t "file.notExported" {:why error.message})))
 
+(defn shown-pages "The ids of the pages of the slides the show would show, in its order." []
+  (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder))
+
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
   (export "pdf"
-          :pages (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder)
+          :pages (shown-pages)
           :size [720 405]
           :title computed.deckName
           :onDone pdf-exported
@@ -378,6 +382,18 @@
           :scale 2
           :name (str computed.deckName " " (inc state.current))
           :onDone png-exported
+          :onError not-exported))
+
+(defn pictures-exported "Says the pictures were exported, how many, and the first one's name." [result]
+  (fileStatus (t "file.exportedPictures" {:name result.name :pages result.pages})))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn exportPngs "Exports every slide the show would show as a PNG picture, numbered, at twice its size." []
+  (export "png"
+          :pages (shown-pages)
+          :scale 2
+          :name computed.deckName
+          :onDone pictures-exported
           :onError not-exported))
 
 ;;; The look

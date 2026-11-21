@@ -264,11 +264,13 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 // already laid out stays marked, for the next pass
 void Panel::layoutChildren() {
 	const auto pass = [this] {
-		const Rect origin{frame_.left - scroll_.x, frame_.top - scroll_.y, frame_.right - scroll_.x,
-		                  frame_.bottom - scroll_.y};
+		const Rect& inset = contentInset_;
+		const Rect origin{frame_.left + inset.left - scroll_.x, frame_.top + inset.top - scroll_.y,
+		                  frame_.right - inset.right - scroll_.x, frame_.bottom - inset.bottom - scroll_.y};
+		const Vec2 inner = contentSize();
 		bool below = false, anchors = targetEdges_ != 0, overlays = false;
 		for(auto& child : children_) {
-			if(!child->isOverlay()) child->layout(origin, childClip(), size_, shown_); // overlays: after the whole tree
+			if(!child->isOverlay()) child->layout(origin, childClip(), inner, shown_); // overlays: after the whole tree
 			below = below || child->layoutDirty_ || child->layoutBelow_;
 			anchors = anchors || child->anchorsBelow_;
 			overlays = overlays || child->isOverlay() || child->overlaysBelow_;
@@ -283,7 +285,7 @@ void Panel::layoutChildren() {
 	// The content's extent, as if unscrolled; an offset the content no longer allows is pulled back
 	const ContentExtent extent = contentExtent(children_, frame_, scroll_);
 	contentMin_ = extent.min;
-	contentMax_ = extent.max;
+	contentMax_ = {extent.max.x + contentInset_.right, extent.max.y + contentInset_.bottom}; // the padding after it
 	if(scrollBy({0.0f, 0.0f})) pass();
 }
 

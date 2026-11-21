@@ -97,6 +97,11 @@ private:
 	/// @param image The image.
 	/// @param added The text added (UTF-8), or "" to take the last character back.
 	void type(editing::ImageDocument& image, std::string_view added);
+	/// @brief Handles a key while typing into a type layer: Backspace takes a character back, Enter adds a line, Escape
+	/// ends the typing.
+	/// @param event The key.
+	/// @return Whether it was one of those (and nothing else should hear of it).
+	bool typeKey(const KeyEvent& event);
 	/// @brief Sizes the image's view (and its canvas's) to the panel, in pixels, fitting the image the first time a
 	/// view sizes its canvas.
 	/// @param image The image.
@@ -122,7 +127,7 @@ private:
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintOutline(Painter& painter, const editing::ImageDocument& image) const;
-	/// @brief Draws the brush's outline under the pointer.
+	/// @brief Draws the brush's outline under the pointer, for a tool that paints with it.
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintBrush(Painter& painter, const editing::ImageDocument& image) const;
@@ -131,6 +136,20 @@ private:
 	/// @param painter The painter.
 	/// @param image The image shown.
 	void paintPaths(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws the active type or shape layer's box while a vector tool is chosen and nothing is pressed.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintContentBox(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws a path's anchors, and the handles of its last anchor and of the one being dragged.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	/// @param path The path.
+	void paintAnchors(Painter& painter, const editing::ImageDocument& image, const imaging::VectorPath& path) const;
+	/// @brief Draws the box around the selection (selection-box) or the active layer's pixels (layer-box), and its eight
+	/// handles, as the drag makes it; nothing for the other gestures.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const;
 
 	std::weak_ptr<editing::ImageDocuments> images_; ///< The runtime's images.
 	std::string name_;                              ///< See imageName().

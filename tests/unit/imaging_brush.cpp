@@ -152,6 +152,41 @@ TEST_CASE("imaging brush: eraser, clone, the selection, masks, quick mask, cance
 	CHECK_FALSE(brushPresets().empty());
 }
 
+TEST_CASE("imaging brush: dodge lightens, burn darkens, sponge greys, and masks stay") {
+	Document document(200, 100);
+	const std::uint64_t pixels = document.activeLayer()->pixels;
+	fillSelection(document, pixels, {0.6f, 0.2f, 0.2f, 1.0f}, 1.0f);
+	const auto retouch = [&](StrokeMode mode, float y) {
+		Stroke stroke(document, pixels, hardTip(20.0f), mode, red, "Retouch");
+		lay(stroke, {{20.0f, y}, {180.0f, y}});
+	};
+	retouch(StrokeMode::dodge, 20.0f);
+	retouch(StrokeMode::burn, 50.0f);
+	retouch(StrokeMode::sponge, 80.0f);
+	const Image& image = *document.image(pixels);
+	CHECK(image.pixel(100, 20).red > 0.65f);
+	CHECK(image.pixel(100, 50).red < 0.55f);
+	CHECK(image.pixel(100, 80).red - image.pixel(100, 80).green < 0.35f); // nearer grey than 0.4 apart
+	CHECK(image.pixel(100, 80).alpha == doctest::Approx(1.0f));
+	CHECK(retouchNames().size() == 6);
+}
+
+TEST_CASE("imaging gradient: reverse, transparency and dither") {
+	Document document(300, 10);
+	const std::uint64_t pixels = document.activeLayer()->pixels;
+	Gradient fade;
+	fade.stops = {{0.0f, {0.0f, 0.0f, 0.0f, 1.0f}}, {1.0f, {1.0f, 1.0f, 1.0f, 0.0f}}};
+	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f,
+	             {true, false, false});
+	const Image& image = *document.image(pixels);
+	CHECK(image.pixel(5, 5).red > 0.9f);    // reversed: white at the start
+	CHECK(image.pixel(5, 5).alpha > 0.99f); // no transparency: opaque
+	document.undo();
+	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f,
+	             {false, true, true});
+	CHECK(document.history().steps().back().name == "Gradient");
+}
+
 TEST_CASE("imaging gradient: stops, shapes, presets, and the gradient and bucket tools") {
 	Gradient fade{{{1.0f, {0.0f, 0.0f, 0.0f, 0.0f}}, {0.0f, {1.0f, 0.0f, 0.0f, 1.0f}}}};
 	fade.normalize();

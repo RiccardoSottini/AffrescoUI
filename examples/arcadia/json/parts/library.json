@@ -454,7 +454,8 @@
 										"role": "button",
 										"isOpen": "{{open}}",
 										"hover": { "textColor": "@color.bright" },
-										"onClick": { "set": "{{'state.collapsed.' + section.id}}", "to": "{{open}}" }
+										"onClick": { "set": "{{'state.collapsed.' + section.id}}", "to": "{{open}}" },
+										"onContextMenu": { "run": "editCollection", "with": { "id": "{{section.id}}" } }
 									},
 									{
 										"id": "{{'row-' + section.id + '-' + g.id}}",
@@ -765,7 +766,18 @@
 								"children": [
 									{
 										"use": "shelfHeader",
-										"with": { "title": "{{section.title}}", "count": "{{length(games)}}" }
+										"with": { "title": "{{section.title}}", "count": "{{length(games)}}" },
+										"children": [
+											{
+												"id": "{{'shelf-edit-' + section.id}}",
+												"when": "{{contains(map(state.collections, it.id), section.id)}}",
+												"style": "iconButton",
+												"icon": "pencil",
+												"tooltip": "{{t('coll.edit')}}",
+												"label": "{{t('coll.edit')}}",
+												"onClick": { "run": "editCollection", "with": { "id": "{{section.id}}" } }
+											}
+										]
 									},
 									{
 										"type": "row",

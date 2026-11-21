@@ -64,6 +64,12 @@
 
 ;;; Edit: history and the clipboard
 
+(defcommand takeSnapshot "Keeps the layers as they are, as a snapshot in the History panel, to restore later."
+  :title ~(t "command.takeSnapshot") :description ~(t "command.takeSnapshot.about") :category ~(t "category.edit")
+  :icon "camera"
+  []
+  (image "takeSnapshot"))
+
 (defcommand undo "Takes the last change back."
   :title ~(t "command.undo") :description ~(t "command.undo.about") :category ~(t "category.edit")
   :icon "undo-2" :enablement ~state.doc.canUndo
@@ -152,6 +158,12 @@
 
 ;;; Edit: the active layer's transform
 
+(defcommand freeTransformHandles "Puts handles on the box around the active layer's pixels: scale by one, move inside."
+  :title ~(t "command.freeTransformHandles") :description ~(t "command.freeTransformHandles.about")
+  :category ~(t "category.edit") :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
+  []
+  (setTool {:tool "free-transform"}))
+
 (defcommand showTransform "Opens the Free Transform dialog on the active layer."
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
   :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
@@ -201,6 +213,24 @@
   :icon "frame"
   []
   (set "state.canvasSize" {:open true :width state.doc.width :height state.doc.height :anchor "center"}))
+
+(defcommand mode8Bit "Converts the image to 8 bits a channel, forgetting the history."
+  :title ~(t "command.mode8Bit") :description ~(t "command.mode8Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba8")
+  []
+  (image "convertFormat" :with {:format "rgba8"}))
+
+(defcommand mode16Bit "Converts the image to 16 bits a channel (floating point), forgetting the history."
+  :title ~(t "command.mode16Bit") :description ~(t "command.mode16Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba16f")
+  []
+  (image "convertFormat" :with {:format "rgba16f"}))
+
+(defcommand trimImage "Crops the image to the box around its visible pixels that aren't transparent."
+  :title ~(t "command.trimImage") :description ~(t "command.trimImage.about") :category ~(t "category.image")
+  :icon "crop"
+  []
+  (image "trim"))
 
 (defcommand cropToSelection "Crops the image to the selection's box."
   :title ~(t "command.cropToSelection") :description ~(t "command.cropToSelection.about")
@@ -405,6 +435,12 @@
   [args]
   (image "alignLayer" :with args))
 
+(defcommand distributeLayers "Spaces the layers picked together evenly, by an edge or their middles: args.edge, which."
+  :title ~(t "command.distributeLayers") :description ~(t "command.distributeLayers.about")
+  :category ~(t "category.layer") :icon "align-horizontal-distribute-center" :enablement ~(>= (count computed.picked) 3)
+  [args]
+  (image "distributeLayers" :with {:ids computed.picked :edge args.edge}))
+
 (defcommand groupLayers "Puts the active layer in a new group."
   :title ~(t "command.groupLayers") :description ~(t "command.groupLayers.about") :category ~(t "category.layer")
   :icon "folder-input" :enablement ~(not (empty? state.doc.active))
@@ -432,6 +468,12 @@
   :icon "type"
   []
   (add-text {:text (t "type.sample") :x (round (/ state.doc.width 3)) :y (round (/ state.doc.height 3))}))
+
+(defcommand createWorkPath "Adds the outlines of the active type layer's text as paths, to fill, stroke or edit."
+  :title ~(t "command.createWorkPath") :description ~(t "command.createWorkPath.about") :category ~(t "category.type")
+  :icon "spline" :enablement ~(= computed.activeLayer.kind "text")
+  []
+  (text-to-path {}))
 
 (defcommand newWorkPath "Adds an empty path for the pen to draw, and chooses the pen."
   :title ~(t "command.newWorkPath") :description ~(t "command.newWorkPath.about") :category ~(t "category.paths")
@@ -508,6 +550,12 @@
   :icon "rotate-ccw-square" :enablement ~(not state.doc.selection)
   []
   (select {:kind "reselect"}))
+
+(defcommand transformSelectionHandles "Puts handles on the selection's box: drag one to scale, inside to move."
+  :title ~(t "command.transformSelectionHandles") :description ~(t "command.transformSelectionHandles.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (setTool {:tool "transform-selection"}))
 
 (defcommand showTransformSelection "Opens the transform dialog on the selection: moves, scales and turns its outline."
   :title ~(t "command.showTransformSelection") :description ~(t "command.showTransformSelection.about")
@@ -622,6 +670,12 @@
   :icon "search"
   []
   (set "state.quickPick.open" true))
+
+(defcommand lastFilter "Applies the filter last applied again, with its values."
+  :title ~(t "command.lastFilter") :description ~(t "command.lastFilter.about") :category ~(t "category.filter")
+  :icon "repeat" :enablement ~(not (empty? state.lastFilter))
+  []
+  (image "applyFilter" :with state.lastFilter))
 
 (defcommand showAbout "Says what Tempera is."
   :title ~(t "command.showAbout") :description ~(t "command.showAbout.about") :category ~(t "category.help")

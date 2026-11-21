@@ -9,6 +9,7 @@
 #include "affresco/render/Stack.hpp"
 #include "affresco/core/Numbers.hpp"
 
+#include <array>
 #include <cmath>
 #include <exception>
 #include <format>
@@ -198,6 +199,25 @@ std::optional<Length> optionalLength(const json& value, std::string_view none, c
 	return length(value, at);
 }
 
+/// @brief Reads a container's padding: one number for every edge, `[vertical, horizontal]` or
+/// `[top, right, bottom, left]`, as CSS's shorthand, each 0 or more.
+/// @param value The value.
+/// @param at Its place, for errors.
+/// @return The room at each edge.
+/// @throws DocumentError If it is malformed.
+Rect padding(const json& value, const std::string& at) {
+	if(value.is_number()) {
+		const float all = nonNegative(value, at);
+		return {all, all, all, all};
+	}
+	if(!value.is_array() || (value.size() != 2 && value.size() != 4))
+		fail(at, "expected a number, [vertical, horizontal] or [top, right, bottom, left]");
+	std::array<float, 4> edges{};
+	for(std::size_t i = 0; i < value.size(); ++i) edges[i] = nonNegative(value[i], std::format("{}[{}]", at, i));
+	if(value.size() == 2) return {edges[1], edges[0], edges[1], edges[0]};
+	return {edges[3], edges[0], edges[1], edges[2]};
+}
+
 /// @brief Applies the keys of a row, a column or a stack that its set holds; justify only when given, since the
 /// runtime's reset (and "from") set it otherwise.
 /// @param panel The panel, a Stack.
@@ -216,6 +236,7 @@ void applyStack(Panel& panel, const json& values, const PropertyReader& reader, 
 	stack->setRowGap(values.contains("rowGap") ? std::optional(pixels(values["rowGap"], at("rowGap"))) : std::nullopt);
 	stack->setColumnGap(values.contains("columnGap") ? std::optional(pixels(values["columnGap"], at("columnGap")))
 	                                                 : std::nullopt);
+	stack->setContentInset(values.contains("padding") ? padding(values["padding"], at("padding")) : Rect{});
 	const json fit = values.value("fitContent", json(false));
 	if(fit.is_boolean()) stack->setFitContent(fit.get<bool>(), fit.get<bool>());
 	else if(fit == "width" || fit == "height") stack->setFitContent(fit == "width", fit == "height");
@@ -232,6 +253,7 @@ void applyGrid(Panel& panel, const json& values, const PropertyReader& reader, c
 	auto* grid = dynamic_cast<Grid*>(&panel);
 	if(!grid) return;
 	const auto at = [&](const char* key) { return concatenate(path, ".", key); };
+	grid->setContentInset(values.contains("padding") ? padding(values["padding"], at("padding")) : Rect{});
 	grid->setRows(values.contains("rows") ? gridTracks(values["rows"], at("rows")) : std::vector<Track>{});
 	grid->setRowGap(values.contains("rowGap") ? std::optional(pixels(values["rowGap"], at("rowGap"))) : std::nullopt);
 	grid->setColumnGap(values.contains("columnGap") ? std::optional(pixels(values["columnGap"], at("columnGap")))
@@ -286,7 +308,7 @@ std::shared_ptr<const PropertySet> stackProperties(std::initializer_list<Propert
 	set->properties = applied;
 	for(PropertySpec spec : {PropertySpec{"justify", ValueKind::Text}, PropertySpec{"alignItems", ValueKind::Text},
 	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number},
-	                         PropertySpec{"fitContent", ValueKind::Any}})
+	                         PropertySpec{"fitContent", ValueKind::Any}, PropertySpec{"padding", ValueKind::Any}})
 		set->properties.push_back(std::move(spec));
 	set->apply = applyStack;
 	set->everyUpdate = true; // each key set once per update, so nothing changes when the node doesn't
@@ -301,7 +323,8 @@ std::shared_ptr<const PropertySet> gridProperties() {
 	                   {"rowGap", ValueKind::Number},
 	                   {"columnGap", ValueKind::Number},
 	                   {"justifyItems", ValueKind::Text},
-	                   {"alignItems", ValueKind::Text}};
+	                   {"alignItems", ValueKind::Text},
+	                   {"padding"}};
 	set->apply = applyGrid;
 	set->everyUpdate = true;
 	return set;

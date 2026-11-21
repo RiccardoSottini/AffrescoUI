@@ -113,8 +113,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"bottomLeft": {"$ref": "#/$defs/v2/pixels"}}}]})json",
 	 "Rounds the corners, in pixels: one number for all four (`8`), or `{ \"topLeft\", \"topRight\", \"bottomRight\", "
 	 "\"bottomLeft\" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so "
-	 "`999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the "
-	 "corners still take clicks. Default: `0`.",
+	 "`999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; "
+	 "other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`.",
 	 "look"},
     {"borderWidth", R"json({"description": "A border inside the node's edges; it doesn't change the layout",
 		"$ref": "#/$defs/v2/pixels"})json",
@@ -200,6 +200,14 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"})json",
 	 "The point `rotate`, `scale` and `skew` turn about: `\"center\"` (the default), an edge or a corner "
 	 "(`\"top\"`, `\"bottomRight\"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner).",
+	 "look"},
+    {"opacity", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "How opaque the node and its children are, drawn as one group like CSS opacity (0 to 1)"})json",
+	 "How opaque the node and its children are, from `0` to `1` (the default), like CSS `opacity`: the subtree is "
+	 "drawn into a texture and that drawn translucent, so overlapping children don't show through each other. Layout "
+	 "and clicks don't change (a node at `0` still takes them: add `disabled` or `visible`). Below 1 the children are "
+	 "clipped to the node, as with `cache`; a transformed node is drawn at full opacity. Bind it to the state and an "
+	 "`animate` step fades it.",
 	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
@@ -324,7 +332,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"text", R"json({"description": "Text, or a {{binding}}"})json", "The text.", "label"},
     {"textColor", "color", "Default black.", "label"},
     {"font", R"json({"type": "string"})json", "Font name. Default: `default`.", "label"},
-    {"padding", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"padding", R"json({"anyOf": [{"type": "number"}, {"type": "array", "minItems": 2, "maxItems": 4,
+		"items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "label: pixels between the edges and the text; row, column, stack, grid: also [vertical, horizontal] or [top, right, bottom, left]"})json",
 	 "Pixels between the edges and the text.", "label"},
     {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"},
 		{"type": "string", "pattern": "^(start|center|end|justify) (start|center|end)$"},
@@ -332,7 +342,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"properties": {"horizontal": {"anyOf": [{"$ref": "#/$defs/v2/align"}, {"const": "justify"}]},
 		"vertical": {"$ref": "#/$defs/v2/align"}}}],
 		"description": "label: text alignment; stack: v1 name of \"from\""})json",
-	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically).)",
+	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text and `runs`, left to right; `"justify center"` centres the block vertically).)",
 	 "label"},
     {"wrap", "flag", "Break lines that don't fit the width.", "label"},
     {"fitText", R"json({"oneOf": [{"type": "boolean"}, {"type": "object", "required": ["maxWidth"],
@@ -378,9 +388,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
     {"letterSpacing",
 	 R"json({"anyOf": [{"type": "number", "minimum": -16, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "Extra pixels between the characters of plain text on one line (a heading, small capitals), as CSS's "
-	 "`letter-spacing`; negative tightens. Counted in `align` and `fitText`; wrapped text and `runs` keep the font's "
-	 "spacing.",
+	 "Extra pixels between the characters of plain text (a heading, small capitals, a spaced paragraph), as CSS's "
+	 "`letter-spacing`; negative tightens. Counted in `align`, `fitText`, `wrap` and justified lines; `runs` keep "
+	 "the font's spacing.",
 	 "label"},
 });
 

@@ -311,6 +311,15 @@ public:
 	/// @brief Sets the system clipboard's text (a headless window keeps a clipboard of its own).
 	/// @param utf8 UTF-8 text.
 	void setClipboardText(const std::string& utf8);
+	/// @brief The system clipboard's image, decoded (a headless window keeps a clipboard of its own), where the OS
+	/// hands one over (macOS; elsewhere none yet): at most a 64 MiB PNG and 4,096 by 4,096 pixels.
+	/// @return The image, or nullptr if the clipboard holds none (or none this OS gives).
+	[[nodiscard]] std::shared_ptr<const Bitmap> clipboardImage() const;
+	/// @brief Puts an image on the system clipboard (a headless window keeps a clipboard of its own), where the OS
+	/// takes one (macOS).
+	/// @param image The image.
+	/// @return Whether it is there now.
+	bool setClipboardImage(const std::shared_ptr<const Bitmap>& image);
 
 	/// @brief The panel under the pointer, or nullptr. It and its ancestors count as hovered.
 	[[nodiscard]] Panel* hoveredPanel() const noexcept { return hovered_; }
@@ -634,6 +643,7 @@ private:
 	std::unique_ptr<platform::AccessibilityAdapter> accessibility_; ///< Shows the tree to screen readers, or nullptr.
 	const Clock* clock_;                                            ///< See clock(); never null.
 	std::string clipboard_;                                         ///< A headless window's clipboard.
+	std::shared_ptr<const Bitmap> clipboardImage_;                  ///< A headless window's clipboard image.
 	bool visible_ = true;                                           ///< Whether a headless window counts as shown.
 	bool closing_ = false;                                          ///< Whether a headless window was asked to close.
 	bool fullscreen_ = false;                      ///< Whether a headless window counts as filling a display.

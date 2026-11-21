@@ -1,7 +1,7 @@
 /// @file
 /// @brief format::editing: the "image" step's geometry and merges: canvasSize, imageSize, rotateCanvas, flipCanvas,
-/// transformLayer, transformSelection, alignLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's
-/// copy, cut, paste and clear.
+/// convertFormat, transformLayer, transformSelection, alignLayer, distributeLayers, mergeDown, mergeVisible, flatten,
+/// deleteHidden, and the clipboard's copy, cut, paste and clear.
 ///
 /// A change of the image's size makes a new document and forgets the history, as crop does; a change that keeps the
 /// size (a flip, a half turn, a layer's transform, the merges) is one undoable step.
@@ -257,6 +257,30 @@ void reshape(ImageDocument& image, const std::string& name, int width, int heigh
 	replaceDocument(image, std::move(made));
 }
 
+/// @brief convertFormat: converts the image to 8 bits a channel or to 16-bit floats, every layer's pixels (masks and
+/// the selection stay 8-bit), and forgets the history.
+/// @param image The image.
+/// @param with format ("rgba8" or "rgba16f").
+/// @throws DocumentError If the format is unknown.
+void convertFormat(ImageDocument& image, const json& with, Window* /*window*/) {
+	settle(image);
+	const std::string name = textOf(with, "format", "rgba8");
+	if(name != "rgba8" && name != "rgba16f") throw DocumentError("Unknown format " + name);
+	const imaging::PixelFormat format = name == "rgba8" ? imaging::PixelFormat::rgba8 : imaging::PixelFormat::rgba16f;
+	const imaging::Document& old = image.canvas->document();
+	if(old.format() == format) return;
+	imaging::Structure structure = old.structure();
+	const Sampling same{Mapping{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}};
+	for(auto& [id, layerImage] : structure.images)
+		if(layerImage && layerImage->format() != imaging::PixelFormat::mask8)
+			layerImage = remapped(*layerImage, old.width(), old.height(), format, same, image.limits);
+	auto made = std::make_unique<imaging::Document>(old.width(), old.height(), image.limits, format);
+	made->changeStructure(name == "rgba8" ? "8 Bits/Channel" : "16 Bits/Channel",
+	                      [&](imaging::Structure& replaced) { replaced = structure; });
+	made->clearHistory();
+	replaceDocument(image, std::move(made));
+}
+
 /// @brief How far across and down a name places the old image in a new canvas.
 /// @param name "top-left", "top", "top-right", "left", "center", "right", "bottom-left", "bottom" or "bottom-right".
 /// @return 0, 0.5 or 1 across and down.
@@ -449,7 +473,7 @@ void transformLayer(ImageDocument& image, const json& with, Window*) {
 /// @param with x and y (pixels), scaleX and scaleY (percent, 100 by default; negative flips), angle (degrees,
 /// clockwise).
 /// @throws DocumentError If there is no selection, or a scale is under 1 %.
-void transformSelection(ImageDocument& image, const json& with, Window*) {
+void transformSelection(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	imaging::Document& document = image.canvas->document();
 	if(!document.hasSelection()) throw DocumentError("There is no selection to transform");
@@ -496,6 +520,73 @@ void alignLayer(ImageDocument& image, const json& with, Window*) {
 	};
 	const double move = std::round(at(to) - at(*box));
 	transform(image, {{"id", std::to_string(id)}, {axis == 0 ? "x" : "y", move}}, "Align Layer");
+}
+
+/// @brief A pixel layer that distributeLayers moves: its image, and its edge or middle on the axis.
+struct Placed {
+	std::uint64_t pixels = 0; ///< The layer's image.
+	double at = 0.0;          ///< Its edge or middle on the axis.
+};
+
+/// @brief The pixel layers distributeLayers spaces, each once, with where they are on the axis (empty ones left out).
+/// @param image The image.
+/// @param ids The layers, as ids.
+/// @param axis 0 across, 1 down.
+/// @param where 0 the start, 1 the middle, 2 the end.
+/// @return The layers, sorted by where they are.
+/// @throws DocumentError If a layer isn't a plain pixel layer, or its position is locked.
+[[nodiscard]] std::vector<Placed> placedLayers(const ImageDocument& image, const json& ids, std::size_t axis,
+                                               std::size_t where) {
+	const imaging::Document& document = image.canvas->document();
+	std::vector<Placed> placed;
+	for(const json& each : ids) {
+		const imaging::Layer& layer =
+		    *document.layer(layerOf(image, {{"id", each.is_string() ? each.get<std::string>() : each.dump()}}));
+		if(std::ranges::any_of(placed, [&](const Placed& kept) { return kept.pixels == layer.pixels; })) continue;
+		if(layer.kind != imaging::LayerKind::pixel || layer.content.kind != imaging::ContentKind::none)
+			throw DocumentError("Distribute pixel layers");
+		if(layer.locks.position || layer.locks.all) throw DocumentError("A layer's position is locked");
+		const auto box = contentBox(*document.image(layer.pixels));
+		if(!box) continue;
+		const double start = (*box)[axis], end = (*box)[axis + 2];
+		placed.push_back({layer.pixels, where == 0 ? start : where == 2 ? end : (start + end) / 2.0});
+	}
+	std::ranges::stable_sort(placed, {}, &Placed::at);
+	return placed;
+}
+
+/// @brief distributeLayers: spaces three or more pixel layers evenly, as one step: the boxes around their pixels keep
+/// the outermost two where they are, and the others' edges (or middles) come at equal steps between them.
+/// @param image The image.
+/// @param with ids (the layers, as ids), edge ("left", "center", "right", "top", "middle" or "bottom").
+/// @throws DocumentError If the edge is unknown, fewer than three layers are given, or one can't be moved.
+void distributeLayers(ImageDocument& image, const json& with, Window* /*window*/) {
+	settle(image);
+	imaging::Document& document = image.canvas->document();
+	const std::string edge = textOf(with, "edge", "left");
+	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
+	const auto* const found = std::ranges::find(edges, edge);
+	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
+	const auto index = static_cast<std::size_t>(found - edges.begin());
+	const std::size_t axis = index < 3 ? 0 : 1;
+	const json ids = with.contains("ids") && with.at("ids").is_array() ? with.at("ids") : json::array();
+	const std::vector<Placed> placed = placedLayers(image, ids, axis, index % 3);
+	if(placed.size() < 3) throw DocumentError("Distribute three layers or more");
+	const double first = placed.front().at, step = (placed.back().at - first) / static_cast<double>(placed.size() - 1);
+	std::vector<std::pair<std::uint64_t, std::shared_ptr<imaging::Image>>> moved;
+	for(std::size_t i = 1; i + 1 < placed.size(); ++i) {
+		const double move = std::round(first + step * static_cast<double>(i) - placed[i].at);
+		if(move == 0.0) continue;
+		const imaging::Image& old = *document.image(placed[i].pixels);
+		const Mapping mapping =
+		    axis == 0 ? Mapping{1.0, 0.0, -move, 0.0, 1.0, 0.0} : Mapping{1.0, 0.0, 0.0, 0.0, 1.0, -move};
+		moved.emplace_back(placed[i].pixels,
+		                   remapped(old, old.width(), old.height(), old.format(), {mapping}, image.limits));
+	}
+	if(moved.empty()) return;
+	document.changeStructure("Distribute Layers", [&](imaging::Structure& changed) {
+		for(const auto& [pixels, made] : moved) changed.images[pixels] = made;
+	});
 }
 
 /// @brief The list of a layer's siblings in a structure.
@@ -844,6 +935,85 @@ void clear(ImageDocument& image, const json&, Window*) {
 
 } // namespace
 
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                          float angle) {
+	const float width = from[2] - from[0], height = from[3] - from[1];
+	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f) return;
+	if(from == to && angle == 0.0f) return;
+	transformSelection(image,
+	                   json{{"x", (to[0] + to[2] - from[0] - from[2]) / 2.0f},
+	                        {"y", (to[1] + to[3] - from[1] - from[3]) / 2.0f},
+	                        {"scaleX", (to[2] - to[0]) / width * 100.0f},
+	                        {"scaleY", (to[3] - to[1]) / height * 100.0f},
+	                        {"angle", angle}},
+	                   nullptr);
+}
+
+std::optional<std::array<float, 4>> activeLayerBox(const ImageDocument& image) {
+	const imaging::Document& document = image.canvas->document();
+	const imaging::Layer* layer = document.activeLayer();
+	if(layer == nullptr || layer->kind != imaging::LayerKind::pixel) return std::nullopt;
+	if(image.layerBoxRevision != document.revision() || image.layerBoxLayer != layer->id) {
+		image.layerBoxRevision = document.revision();
+		image.layerBoxLayer = layer->id;
+		image.layerBoxCache.reset();
+		if(const auto box = contentBox(*document.image(layer->pixels)))
+			image.layerBoxCache = std::array<float, 4>{static_cast<float>((*box)[0]), static_cast<float>((*box)[1]),
+			                                           static_cast<float>((*box)[2]), static_cast<float>((*box)[3])};
+	}
+	return image.layerBoxCache;
+}
+
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                      float angle) {
+	const float width = from[2] - from[0], height = from[3] - from[1];
+	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f) return;
+	if(from == to && angle == 0.0f) return;
+	settle(image);
+	transform(image,
+	          json{{"x", std::lround((to[0] + to[2] - from[0] - from[2]) / 2.0f)},
+	               {"y", std::lround((to[1] + to[3] - from[1] - from[3]) / 2.0f)},
+	               {"scaleX", (to[2] - to[0]) / width * 100.0f},
+	               {"scaleY", (to[3] - to[1]) / height * 100.0f},
+	               {"angle", angle}},
+	          "Free Transform");
+}
+
+imaging::Point boxRotationHandle(const std::array<float, 4>& box, float reach) noexcept {
+	return {(box[0] + box[2]) / 2.0f, box[1] - reach * 4.0f};
+}
+
+int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept {
+	if(const imaging::Point turn = boxRotationHandle(box, reach);
+	   std::abs(turn.x - at.x) <= reach && std::abs(turn.y - at.y) <= reach)
+		return 9;
+	const float middleX = (box[0] + box[2]) / 2.0f, middleY = (box[1] + box[3]) / 2.0f;
+	const std::array<imaging::Point, 8> handles{{{box[0], box[1]},
+	                                             {middleX, box[1]},
+	                                             {box[2], box[1]},
+	                                             {box[2], middleY},
+	                                             {box[2], box[3]},
+	                                             {middleX, box[3]},
+	                                             {box[0], box[3]},
+	                                             {box[0], middleY}}};
+	for(std::size_t index = 0; index < handles.size(); ++index)
+		if(std::abs(handles[index].x - at.x) <= reach && std::abs(handles[index].y - at.y) <= reach)
+			return static_cast<int>(index);
+	return at.x >= box[0] && at.x <= box[2] && at.y >= box[1] && at.y <= box[3] ? 8 : -1;
+}
+
+std::array<float, 4> draggedBox(std::array<float, 4> box, int handle, float dx, float dy) noexcept {
+	if(handle == 9) return box; // the rotation handle turns it instead
+	if(handle == 8) return {box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy};
+	const bool left = handle == 0 || handle == 6 || handle == 7, right = handle >= 2 && handle <= 4;
+	const bool top = handle <= 2, bottom = handle >= 4 && handle <= 6;
+	if(left) box[0] = std::min(box[0] + dx, box[2] - 1.0f);
+	if(right) box[2] = std::max(box[2] + dx, box[0] + 1.0f);
+	if(top) box[1] = std::min(box[1] + dy, box[3] - 1.0f);
+	if(bottom) box[3] = std::max(box[3] + dy, box[1] + 1.0f);
+	return box;
+}
+
 std::vector<ImageOperation> transformOperations() {
 	return {
 	    {"canvasSize",
@@ -856,6 +1026,10 @@ std::vector<ImageOperation> transformOperations() {
 		 "Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history).",
 		 rotateCanvas},
 	    {"flipCanvas", {"direction"}, "Mirrors the image horizontally or vertically.", flipCanvas},
+	    {"convertFormat",
+		 {"format"},
+		 "Converts the image to 8 bits a channel (rgba8) or 16-bit floats (rgba16f), and forgets the history.",
+		 convertFormat},
 	    {"transformLayer",
 		 {"id", "x", "y", "scaleX", "scaleY", "angle"},
 		 "Moves, scales, flips and turns a pixel layer about its centre.",
@@ -868,6 +1042,10 @@ std::vector<ImageOperation> transformOperations() {
 		 {"id", "edge"},
 		 "Lines a pixel layer up with an edge or the middle of the selection, or of the image.",
 		 alignLayer},
+	    {"distributeLayers",
+		 {"ids", "edge"},
+		 "Spaces three or more pixel layers evenly between the outermost two, by their edges or middles.",
+		 distributeLayers},
 	    {"mergeDown", {"id"}, "Merges a layer into the pixel layer below it.", mergeDown},
 	    {"mergeVisible", {}, "Merges the visible layers into one.", mergeVisible},
 	    {"flatten", {"background"}, "Merges every visible layer into one and discards the hidden ones.", flatten},

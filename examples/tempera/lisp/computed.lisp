@@ -9,6 +9,19 @@
 
 (defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
 
+(defcomputed cropRatios "The ratios a crop drag can keep, the width over the height: 0 for any."
+  [{:ratio 0 :title (t "crop.free")}
+   {:ratio 1 :title "1 : 1"}
+   {:ratio (/ 4 3) :title "4 : 3"}
+   {:ratio (/ 3 2) :title "3 : 2"}
+   {:ratio (/ 16 9) :title "16 : 9"}
+   {:ratio (/ 4 5) :title "4 : 5"}])
+
+(defcomputed typePair "The active type layer's last two characters, where typing goes on: the pair Kerning spaces."
+  (let [text (str computed.activeLayer.content.text)
+        n (count text)]
+    (if (< n 2) "" (subs text (- n 2)))))
+
 (defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
   (->> (indexOf (map :id state.doc.layers) state.doc.active) inc (slice state.doc.layers)))
 
@@ -21,6 +34,16 @@
                (scan computed.layersAfterActive
                      (fn [acc it] {:ended (or acc.ended (<= it.depth computed.activeLayer.depth)) :layer it})
                      {:ended false}))))
+
+(defcomputed picked "The layers picked together that the image still has."
+  (let [ids (map :id state.doc.layers)] (filter #(contains ids %) state.pickedLayers)))
+
+(defcomputed curvePoints "The points of the curve the Curves editor shows: the composite's, or the channel's own."
+  (let [channel (indexOf ["red" "green" "blue"] state.curveChannel)
+        own (get computed.adjustment.channelCurves channel)]
+    (cond (< channel 0) computed.adjustment.curve
+          (empty? own) [[0 0] [1 1]]
+          :else own)))
 
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
   (t "layer.groupName" {:n (->> state.doc.layers (filter #(= (:kind %) "group")) count inc)}))
@@ -78,18 +101,19 @@
 
 ;;; The tool
 
-(defcomputed tool "The current tool, from the tools bar's groups."
+(defcomputed tool "The current tool, from the tools bar's groups, or a tool a command chose (state.modeTools)."
   (or-else (find #(= (:id %) state.doc.tool)
                  ; style: keep, #(...) can't hold another #(...)
                  (or-else (find (fn [group] (some #(= (:id %) state.doc.tool) group)) state.tools) []))
-           {}))
+           (or-else (get state.modeTools state.doc.tool) {})))
 
 (defcomputed toolTitle "The current tool's name, as its tooltip says it." (t (str "tool." computed.tool.name)))
 
 (defcomputed toolName "The current tool's short name, on the options bar."
   (t (str "tool." computed.tool.name ".short")))
 
-(defcomputed paints "The tool paints." (contains ["brush" "pencil" "eraser" "clone"] state.doc.tool))
+(defcomputed paints "The tool paints."
+  (contains ["brush" "pencil" "eraser" "clone" "healing" "blur" "sharpen" "smudge" "dodge" "burn" "sponge"] state.doc.tool))
 
 (defcomputed activeHoldsContent "The active layer is a type or shape layer."
   (contains ["text" "shape"] computed.activeLayer.kind))
@@ -99,7 +123,7 @@
 
 (defcomputed vectorTool "The tool makes type or shapes." (contains ["text" "shape"] state.doc.gesture))
 
-(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand"] state.doc.tool))
+(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand" "quick-select"] state.doc.tool))
 
 ;;; The canvas and its rulers
 

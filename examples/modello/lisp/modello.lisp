@@ -65,12 +65,14 @@
   (set "state.lastOp" nil)
   (swap-scene "state.undoStack" "state.redoStack" state.undoStack)
   (let [left (ids state.scene.nodes)]
-    (set "state.view.selection" (filter #(contains left %) state.view.selection))))
+    (set "state.view.selection" (filter #(contains left %) state.view.selection)))
+  (edit-after-history))
 
 (defcommand redo "Makes the change Undo took back again."
   :title ~(t "command.redo") :description ~(t "command.redo.about")
   :category ~(t "category.edit") :icon "redo-2" :enablement ~(pos? (count state.redoStack)) []
-  (swap-scene "state.redoStack" "state.undoStack" state.redoStack))
+  (swap-scene "state.redoStack" "state.undoStack" state.redoStack)
+  (edit-after-history))
 
 ;;; Selecting
 
@@ -83,15 +85,15 @@
         :else (do (set "state.view.selection" (concat (without state.view.selection id) [id]))
                   (set "state.active" id))))
 
-(defcommand selectAll "Selects every object that can be picked."
+(defcommand selectAll "Selects every object that can be picked, or in Edit Mode every vertex or face."
   :title ~(t "command.selectAll") :description ~(t "command.selectAll.about")
   :category ~(t "category.select") []
-  (set "state.view.selection" computed.pickable))
+  (if (= state.mode :edit) (select-all-elements true) (set "state.view.selection" computed.pickable)))
 
 (defcommand selectNone "Selects nothing."
   :title ~(t "command.selectNone") :description ~(t "command.selectNone.about")
   :category ~(t "category.select") []
-  (set "state.view.selection" []))
+  (if (= state.mode :edit) (select-all-elements false) (set "state.view.selection" [])))
 
 (defcommand selectInvert "Selects what isn't selected, and only that."
   :title ~(t "command.selectInvert") :description ~(t "command.selectInvert.about")
@@ -175,11 +177,16 @@
   :title ~(t "command.deleteSelected") :description ~(t "command.deleteSelected.about")
   :category ~(t "category.object") :icon "trash-2" :enablement ~(pos? (count state.view.selection)) []
   (dismiss)
+  (if (= state.mode :edit) (delete-elements) (delete-objects)))
+
+(defn delete-objects "Deletes the selected objects; their children stay where they are." []
   (snapshot)
   (doseq [n state.scene.nodes]
     (when (and (not (selected? n)) (contains state.view.selection (:parent n)))
       (reparent (:id n) nil)))
   (set "state.scene.nodes" (remove selected? state.scene.nodes))
+  (let [used (map :mesh state.scene.nodes)] ; an editable mesh no object uses any more goes too
+    (set "state.scene.meshes" (filter #(contains used (:id %)) (or state.scene.meshes []))))
   (set "state.view.selection" [])
   (set "state.active" nil)
   (set "state.last" (t "command.deleteSelected")))
@@ -315,9 +322,11 @@
 (defn hover-area "The pointer over an area: Shift A, Delete and the pie menus act on its editor." [slot]
   (set "state.hoverSlot" slot))
 
-(defn rename-scene "The scene's name typed in the top bar, if it isn't empty." [text]
-  (let [name (str/trim text)]
-    (when-not (str/blank? name) (set "state.sceneName" (slice name 0 63)))))
+(defn rename-scene "The scene's name typed in the top bar, if it isn't empty; the picker lists it so." [text]
+  (let [name (slice (str/trim text) 0 63)]
+    (when-not (str/blank? name)
+      (set "state.sceneName" name)
+      (set "state.scenes" (map #(if (= (:id %) state.activeScene) (assoc % :name name) %) state.scenes)))))
 
 (defn rename-layer "The view layer's name typed in the top bar, if it isn't empty." [text]
   (let [name (str/trim text)]

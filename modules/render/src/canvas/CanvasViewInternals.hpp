@@ -32,6 +32,7 @@ struct CanvasView::Internals {
 	std::vector<RulerTick> ticks;                                ///< The rulers' ticks.
 	std::vector<CanvasTransform> pressed;                        ///< The selection at the press.
 	std::array<std::optional<SnapLine>, 2> lines;                ///< The smart guides of the drag.
+	std::array<std::optional<SnapLine>, 4> gaps;                 ///< The distance indicators of the drag.
 };
 
 namespace canvas {

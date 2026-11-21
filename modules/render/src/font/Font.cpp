@@ -439,8 +439,10 @@ Font::FittedGlyph Font::fitGlyph(const Glyph& glyph, float pen) const noexcept {
 	const Glyph& plain = rasterGlyph(glyph);
 	const float scale = data_->rasterScale;
 	const float pixels = pen * scale;
-	if(!fitsPixels(scale)) return {&plain, pen};
 	const float nearest = std::round(pixels) / scale;
+	// Dense enough to be unhinted and unmoved: still drawn from a pixel column, never resampled between two by the
+	// atlas's linear filter (which smeared every stem over two columns), within half a pixel of its place
+	if(!fitsPixels(scale)) return {&plain, std::isfinite(pixels) ? nearest : pen};
 	if(plain.color || !std::isfinite(pixels)) return {&plain, nearest};
 
 	// The fraction to the nearest quarter: a whole one is the next column, unmoved
@@ -519,8 +521,9 @@ float Font::measure(std::u32string_view text) const noexcept {
 	}
 }
 
-std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth) const {
+std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth, float letterSpacing) const {
 	std::vector<std::u32string_view> lines;
+	std::vector<float> spaced; // the advances with the letter spacing, when there is one
 	lines.reserve(4); // most texts wrap into a few lines: one allocation, rather than one each time the vector grows
 
 	// Each paragraph (up to a '\n') is measured once; its lines are views into it, broken by its advances
@@ -530,6 +533,11 @@ std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxW
 		if(!paragraph || start > paragraph->end) {
 			const std::size_t end = std::min(text.find(U'\n', start), text.size());
 			paragraph = Paragraph{data_->measure(text.substr(start, end - start)).advances, start, end};
+			if(letterSpacing != 0.0f) {
+				spaced.assign(paragraph->advances.begin(), paragraph->advances.end());
+				for(float& advance : spaced) advance += letterSpacing;
+				paragraph->advances = spaced;
+			}
 		}
 
 		const auto [end, next] = breakLine(text, *paragraph, start, maxWidth);

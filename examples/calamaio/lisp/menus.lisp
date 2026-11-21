@@ -50,6 +50,9 @@
    :wrap {:run visual-line-mode :group "1_modes" :order 2}
    :paren {:run show-paren-mode :group "1_modes" :order 3}
    :pair {:run electric-pair-mode :group "1_modes" :order 4}
+   :fill {:run auto-fill-mode :group "1_modes" :order 5}
+   :blanks {:run whitespace-mode :group "1_modes" :order 6}
+   :indicator {:run display-fill-column-indicator-mode :group "1_modes" :order 7}
    :toolbar {:run tool-bar-mode :group "4_frame" :order 1}
    :theme {:run load-theme :title ~(t "menu.options.theme") :group "5_look"}
    :splash {:run toggle-splash :title ~(t "menu.options.splash") :group "6_start" :order 1}

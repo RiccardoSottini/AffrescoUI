@@ -8,6 +8,8 @@
 		"undo": [],
 		"redo": [],
 		"clip": [],
+		"clipText": "",
+		"pasted": "",
 		"editing": null
 	},
 
@@ -28,7 +30,7 @@
 		"selectionBounds": "{{length(computed.boxes) == 0 ? computed.slideBounds : { left: min(map(computed.boxes, it.x)), top: min(map(computed.boxes, it.y)), right: max(map(computed.boxes, it.x + it.w)), bottom: max(map(computed.boxes, it.y + it.h)) } }}",
 		"selectedAt": "{{filter(range(length(computed.objects)), contains(state.board.selection, computed.objects[it].id))}}",
 		"arrangeItems": "{{concat(map([['Bring to Front', 'front', 'bring-to-front'], ['Bring Forward', 'forward', 'arrow-up'], ['Send Backward', 'backward', 'arrow-down'], ['Send to Back', 'back', 'send-to-back']], { title: it[0], icon: it[2], run: 'order', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Align Left', 'left', 'align-start-vertical'], ['Align Center', 'center', 'align-center-vertical'], ['Align Right', 'right', 'align-end-vertical'], ['Align Top', 'top', 'align-start-horizontal'], ['Align Middle', 'middle', 'align-center-horizontal'], ['Align Bottom', 'bottom', 'align-end-horizontal']], { title: it[0], icon: it[2], run: 'align', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], [{ title: 'Group', icon: 'group', keyLabel: 'Ctrl+G', run: 'groupObjects', enabled: computed.canGroup }, { title: 'Ungroup', icon: 'ungroup', keyLabel: 'Ctrl+Shift+G', run: 'ungroupObjects', enabled: computed.canUngroup }], [{ separator: true }], map([['Rotate Right 90°', 'rotate-cw', 'rotateObjects', { by: 90 }], ['Rotate Left 90°', 'rotate-ccw', 'rotateObjects', { by: -90 }], ['Flip Vertical', 'flip-vertical-2', 'flipObjects', { axis: 'flipV' }], ['Flip Horizontal', 'flip-horizontal-2', 'flipObjects', { axis: 'flipH' }]], { title: it[0], icon: it[1], run: it[2], with: it[3], enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Distribute Horizontally', 'x', 'align-horizontal-distribute-center'], ['Distribute Vertically', 'y', 'align-vertical-distribute-center']], { title: it[0], icon: it[2], run: 'distribute', with: { axis: it[1] }, enabled: length(computed.selected) > 1 }))}}",
-		"effectItems": "{{map([['No Effect', null], ['Shadow', 'shadow'], ['Glow', 'glow']], { title: it[0], run: 'setObjects', with: { props: { effect: it[1] } }, enabled: length(computed.selected) > 0 })}}",
+		"effectItems": "{{map([['No Effect', null], ['Shadow', 'shadow'], ['Glow', 'glow'], ['Soft Edges', 'soft']], { title: it[0], run: 'setObjects', with: { props: { effect: it[1] } }, enabled: length(computed.selected) > 0 })}}",
 		"canUndo": "{{length(state.undo) > 0}}",
 		"canRedo": "{{length(state.redo) > 0}}"
 	},
@@ -167,9 +169,24 @@
 				{ "set": "state.board.selection", "to": "{{map(filter(computed.selected, it.locked ?? false), it.id)}}" }
 			] }
 		],
-		"copyObjects": [{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.clip", "to": "{{computed.selected}}" }] }],
+		"copyObjects": [
+			{ "note": "copies the selected objects, and their text to the system clipboard, so another app can paste it" },
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "set": "state.clip", "to": "{{computed.selected}}" },
+				{ "set": "state.clipText", "to": "{{join(filter(map(computed.selected, it.text ?? ''), trim(it) != ''), '\n')}}" },
+				{ "if": "{{state.clipText != ''}}", "then": [{ "copy": "{{state.clipText}}" }] }
+			] }
+		],
 		"cutObjects": [{ "run": "copyObjects" }, { "run": "deleteObjects" }],
 		"pasteObjects": [
+			{ "note": "pastes what the system clipboard holds: the objects copied here (their own text, or nothing), or another app's text as a text box" },
+			{ "paste": "text", "into": "state.pasted", "onDone": [
+				{ "if": "{{trim(result ?? '') == '' || trim(result ?? '') == trim(state.clipText)}}",
+				  "then": [{ "run": "pasteClip" }],
+				  "else": [{ "run": "insertObject", "with": { "object": "{{ { kind: 'text', x: 180, y: 230, w: 600, h: 80, text: trim(result), size: 18 } }}" } }] }
+			], "onError": [{ "run": "pasteClip" }] }
+		],
+		"pasteClip": [
 			{ "if": "{{length(state.clip) > 0}}", "then": [
 				{ "run": "commit" },
 				{ "set": "state.deck.slides[state.current].objects", "to": "{{concat(computed.objects, map(state.clip, merge(it, { id: 'o' + (state.deck.next + index), x: (it.x ?? 0) + 18, y: (it.y ?? 0) + 18, ph: null, group: it.group == null ? null : it.group + '-' + state.deck.next })))}}" },
@@ -177,7 +194,7 @@
 				{ "increment": "state.deck.next", "by": "{{length(state.clip)}}" }
 			] }
 		],
-		"duplicateObjects": [{ "run": "copyObjects" }, { "run": "pasteObjects" }],
+		"duplicateObjects": [{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.clip", "to": "{{computed.selected}}" }, { "run": "pasteClip" }] }],
 		"selectAll": [{ "set": "state.board.selection", "to": "{{map(computed.objects, it.id)}}" }],
 		"insertObject": [
 			{ "run": "commit" },
@@ -234,7 +251,8 @@
 			{ "run": "commit" },
 			{ "set": "state.deck.theme", "to": "{{theme}}" },
 			{ "set": "state.deck.variant", "to": 0 },
-			{ "set": "state.deck.colors", "to": null }
+			{ "set": "state.deck.colors", "to": null },
+			{ "if": "{{find(computed.themes, it.id == theme).fonts != null}}", "then": [{ "set": "state.deck.fonts", "to": "{{find(computed.themes, it.id == theme).fonts}}" }] }
 		],
 		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }, { "set": "state.deck.colors", "to": null }],
 		"setColorSet": [

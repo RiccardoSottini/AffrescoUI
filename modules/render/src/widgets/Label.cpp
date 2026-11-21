@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <span>
 #include <vector>
 
 namespace affresco {
@@ -149,7 +150,7 @@ void Label::setLetterSpacing(float pixels) {
 	invalidate();
 }
 
-bool Label::spaced() const noexcept { return letterSpacing_ != 0.0f && !wrap_ && runs_.empty(); }
+bool Label::spaced() const noexcept { return letterSpacing_ != 0.0f && runs_.empty(); }
 
 float Label::lineWidth(const Font& font, std::u32string_view line) const {
 	const float width = font.measure(line);
@@ -179,7 +180,7 @@ void Label::prepareLayout() {
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
 	// The text changes only through invalidate(): until then, comparing it with the fitted one would find it the same
 	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != shown())) {
-		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth);
+		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth, spaced() ? letterSpacing_ : 0.0f);
 		float textWidth = 0.0f;
 		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, lineWidth(*f, line));
 		fitted_ = {shown(), f->id(), maxTextWidth, textWidth, lines.size()};
@@ -213,20 +214,24 @@ void Label::paint(Painter& painter) const {
 	}
 
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
-	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth);
+	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth, spaced() ? letterSpacing_ : 0.0f);
 	const float textHeight = static_cast<float>(lines.size()) * f->lineHeight();
 	float top = aligned(vertical_, content.top, content.height(), textHeight);
-	const std::u32string& text = shown();
 	for(std::size_t index = 0; index < lines.size(); ++index) {
 		const std::u32string_view line = lines[index];
-		// A paragraph's last line (the text's, or one a '\n' ends) keeps its natural spacing
-		const std::size_t end = static_cast<std::size_t>(line.data() - text.data()) + line.size();
-		const bool last = index + 1 == lines.size() || end >= text.size() || text[end] == U'\n';
-		if(justify_ && wrap_ && !last && !rightToLeft())
+		if(justifies(line, index + 1 == lines.size()))
 			paintJustifiedLine(painter, *f, line, top); // words go left to right
 		else paintLine(painter, *f, line, top);
 		top += f->lineHeight();
 	}
+}
+
+bool Label::justifies(std::u32string_view line, bool lastLine) const {
+	if(!justify_ || !wrap_ || lastLine || rightToLeft()) return false;
+	// A paragraph's last line (the text's, or one a '\n' ends) keeps its natural spacing
+	const std::u32string& text = shown();
+	const std::size_t end = static_cast<std::size_t>(line.data() - text.data()) + line.size();
+	return end < text.size() && text[end] != U'\n';
 }
 
 void Label::paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const {
@@ -234,12 +239,18 @@ void Label::paintJustifiedLine(Painter& painter, const Font& font, std::u32strin
 	const std::size_t gaps = static_cast<std::size_t>(std::ranges::count(line, U' '));
 	const Rect content = contentRect();
 	if(gaps == 0) return paintLine(painter, font, line, top);
-	const float share = std::max(0.0f, content.width() - font.measure(line)) / static_cast<float>(gaps);
+	const float share = std::max(0.0f, content.width() - lineWidth(font, line)) / static_cast<float>(gaps);
 	const float baseline = std::round(top + font.ascent());
+	const float spacing = spaced() ? letterSpacing_ : 0.0f;
 	std::size_t gap = 0;
 	for(std::size_t begin = 0; begin < line.size();) {
 		const std::size_t space = std::min(line.find(U' ', begin), line.size());
-		if(space > begin) {
+		for(std::size_t index = begin; index < space && spacing != 0.0f; ++index) { // each character, spaced
+			const float x = content.left + font.measure(line.substr(0, index)) + spacing * static_cast<float>(index) +
+			                share * static_cast<float>(gap);
+			painter.drawText(font, line.substr(index, 1), {std::round(x), baseline}, textColor_);
+		}
+		if(space > begin && spacing == 0.0f) {
 			const float left = content.left + font.measure(line.substr(0, begin)) + share * static_cast<float>(gap);
 			painter.drawText(font, line.substr(begin, space - begin), {std::round(left), baseline}, textColor_);
 		}
@@ -305,13 +316,15 @@ const TextLayout& Label::textLayout() const {
 	const Rect content = contentRect();
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
 	const Align horizontal = readingAlign(horizontal_);
-	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size()};
+	const bool justified = justify_ && wrap_ && !rightToLeft(); // words go left to right
+	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size(), justified};
 	if(key == laidOut_) return layout_;
 	if(runs_.empty()) {
 		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal);
 	} else {
 		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal);
 	}
+	if(justified) layout_.justify(content.width());
 	laidOut_ = key;
 	return layout_;
 }
@@ -324,15 +337,25 @@ Vec2 Label::blockOrigin() const {
 void Label::paintRuns(Painter& painter, Vec2 origin) const {
 	const TextLayout& laid = textLayout();
 	const std::u32string_view text = laid.text();
-	for(const TextLayout::Line& line : laid.lines()) {
+	const std::span<const TextLayout::Line> lines = laid.lines();
+	for(std::size_t number = 0; number < lines.size(); ++number) {
+		const TextLayout::Line& line = lines[number];
 		// Whole pixels keep glyphs sharp, as in paintLine()
 		const float baseline = std::round(origin.y + line.top + line.ascent);
+		const float share = justifiedShare(line, number + 1 == lines.size());
+		std::size_t spacesBefore = 0; // the line's spaces before the piece, each widened by the share
 		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
 			const TextLayout::Piece& piece = laid.pieces()[index];
 			const TextRun& run = runs_[piece.run];
 			const Color color = run.color.value_or(textColor_);
-			const float left = std::round(origin.x + piece.x);
-			const float right = left + piece.width;
+			const std::size_t inside = share > 0.0f ? spacesIn(text, piece.begin, std::min(piece.end, line.end)) : 0;
+			const float left = std::round(origin.x + piece.x + share * static_cast<float>(spacesBefore));
+			const float right = left + piece.width + share * static_cast<float>(inside);
+			if(share > 0.0f) {
+				paintJustifiedPiece(painter, piece, run, color, {left, baseline}, share);
+				spacesBefore += inside;
+				continue;
+			}
 			if(run.background)
 				painter.fillRect(
 				    {left, std::round(origin.y + line.top), right, std::round(origin.y + line.top + line.height)},
@@ -352,6 +375,54 @@ void Label::paintRuns(Painter& painter, Vec2 origin) const {
 				painter.fillRect({left, through, right, through + 1.0f}, color);
 			}
 		}
+	}
+}
+
+std::size_t Label::spacesIn(std::u32string_view text, std::size_t begin, std::size_t end) noexcept {
+	end = std::min(end, text.size());
+	if(begin >= end) return 0;
+	const std::u32string_view::const_iterator first = text.begin() + static_cast<std::ptrdiff_t>(begin);
+	return static_cast<std::size_t>(std::count(first, first + static_cast<std::ptrdiff_t>(end - begin), U' '));
+}
+
+float Label::justifiedShare(const TextLayout::Line& line, bool lastLine) const {
+	if(!justify_ || !wrap_ || rightToLeft() || lastLine) return 0.0f;
+	const std::u32string_view text(textLayout().text());
+	if(line.end >= text.size() || text[line.end] == U'\n') return 0.0f; // a paragraph's last line keeps its spacing
+	std::size_t end = line.end;
+	while(end > line.begin && text[end - 1] == U' ') --end; // the spaces it ends with aren't widened
+	const std::size_t gaps = spacesIn(text, line.begin, end);
+	if(gaps == 0) return 0.0f;
+	return std::max(0.0f, contentRect().width() - line.width) / static_cast<float>(gaps);
+}
+
+void Label::paintJustifiedPiece(Painter& painter, const TextLayout::Piece& piece, const TextRun& run, Color color,
+                                Vec2 at, float share) const {
+	const std::u32string_view part =
+	    std::u32string_view(textLayout().text()).substr(piece.begin, piece.end - piece.begin);
+	const Font& font = *piece.font;
+	const float lineTop = at.y - font.ascent(), lineBottom = lineTop + font.lineHeight();
+	std::size_t gap = 0;
+	for(std::size_t begin = 0; begin < part.size();) {
+		const std::size_t space = std::min(part.find(U' ', begin), part.size());
+		if(space > begin) {
+			const std::u32string_view word = part.substr(begin, space - begin);
+			const float left = std::round(at.x + font.measure(part.substr(0, begin)) + share * static_cast<float>(gap));
+			const float right = left + font.measure(word);
+			if(run.background) painter.fillRect({left, lineTop, right, lineBottom}, *run.background);
+			if(run.shadow) {
+				const float by = std::max(1.0f, std::round(font.pixelHeight() / 16.0f));
+				painter.drawText(font, word, {left + by, at.y + by}, *run.shadow);
+			}
+			painter.drawText(font, word, {left, at.y}, color);
+			if(run.underline || !run.link.empty()) painter.fillRect({left, at.y + 1.0f, right, at.y + 2.0f}, color);
+			if(run.strike) {
+				const float through = std::round(at.y - font.ascent() * 0.3f);
+				painter.fillRect({left, through, right, through + 1.0f}, color);
+			}
+		}
+		if(space < part.size()) ++gap;
+		begin = space + 1;
 	}
 }
 

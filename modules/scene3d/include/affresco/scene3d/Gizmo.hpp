@@ -7,6 +7,7 @@
 #include "affresco/scene3d/Bounds.hpp"
 #include "affresco/scene3d/Camera.hpp"
 
+#include <array>
 #include <optional>
 #include <string_view>
 
@@ -36,10 +37,11 @@ struct GizmoSnap {
 
 /// @brief A gizmo placed in the world.
 struct Gizmo {
-	GizmoMode mode = GizmoMode::Translate; ///< What it does.
-	Vec3 origin;                           ///< Where (the selection's pivot).
-	Quat orientation;                      ///< Its axes: identity in world space, the node's rotation in local space.
-	float size = 1.0f;                     ///< The handles' length in world units.
+	GizmoMode mode = GizmoMode::Translate;   ///< What it does.
+	Vec3 origin;                             ///< Where (the selection's pivot).
+	Quat orientation;                        ///< Its axes: identity in world space, the node's rotation in local space.
+	float size = 1.0f;                       ///< The handles' length in world units.
+	std::optional<std::array<Vec3, 3>> axes; ///< Axes of its own, not always at right angles (a gimbal's), if any.
 
 	/// @brief One of its axes in the world. @param index 0, 1 or 2. @return The unit vector.
 	[[nodiscard]] Vec3 axis(int index) const noexcept;

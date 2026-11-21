@@ -627,7 +627,7 @@
 
 ;;; Views
 
-(defview shape-effect "The shadow or the glow under shape `o`." [o name]
+(defview shape-effect "The shadow or the glow under shape `o`, blurred: its fill's edge fades out." [o name]
   `(path :id ~(str name "-effect")
      :when ~(contains? #{:shadow :glow} o.effect)
      :x ~(+ (- e) (if (= o.effect :shadow) 4 0))
@@ -647,8 +647,10 @@
                    (str (- e) " " (- e) " " (+ w (* 2 e)) " " (+ h (* 2 e))))
      :d ~pathData
      :fillRule ~(if g.evenodd "evenodd" "nonzero")
-     :fillColor ~(if (or (= o.effect :glow) g.open) "transparent" "#00000040")
-     :stroke ~(cond (= o.effect :glow) (str (slice halo 0 7) "66") (or g.line g.open) "#00000040" :else "transparent")
+     :let {:closed ~(not (or g.line g.open))}
+     :fillColor ~(cond (not closed) "transparent" (= o.effect :glow) (str (slice halo 0 7) "80") :else "#00000040")
+     :feather ~(if (= o.effect :glow) 12 6)
+     :stroke ~(cond closed "transparent" (= o.effect :glow) (str (slice halo 0 7) "66") :else "#00000040")
      :strokeWidth ~(if (= o.effect :glow) (+ lw 12) lw)
      :strokeJoin round))
 
@@ -671,6 +673,7 @@
                    (str (- e) " " (- e) " " (+ w (* 2 e)) " " (+ h (* 2 e))))
      :d ~pathData
      :fillRule ~(if g.evenodd "evenodd" "nonzero")
+     :feather ~(if (= o.effect :soft) 8 1)
      :fillColor ~(cond g.line ink
                        (or g.open (= o.fill :none) o.gradient) "transparent"
                        :else (or-else (get computed.palette (or-else o.fill "accent1")) o.fill))

@@ -194,8 +194,8 @@ Panel* findMnemonic(Reconciler& reconciler, const Panel& scope, Panel& panel, ch
 json personBindings(Engine& engine, const json& document) {
 	if(!document.contains("keyBindings") || !document["keyBindings"].is_string()) return json::array();
 	try {
-		json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
-		                                         *noVariables(), json::object(), "keyBindings");
+		const json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
+		                                               *noVariables(), json::object(), "keyBindings");
 		return bindings.is_array() ? bindings : json::array();
 	} catch(const DocumentError& error) {
 		engine.report(error.what());
@@ -213,26 +213,37 @@ bool isPersonBinding(const json& binding) {
 
 } // namespace
 
+bool Events::altReleasedAlone(const KeyEvent& event) noexcept {
+	if(event.action == affresco::Action::Repeat) return false;
+	const bool alt = event.key == Key::LeftAlt || event.key == Key::RightAlt;
+	if(!alt) {
+		if(event.action == affresco::Action::Press) altAlone_ = false;
+		return false;
+	}
+	constexpr unsigned others = 0x1U | 0x2U | 0x8U; // Shift, Control, Cmd
+	if(event.action == affresco::Action::Press) {
+		altAlone_ = (static_cast<unsigned>(event.mods.bits) & others) == 0;
+		return false;
+	}
+	const bool alone = altAlone_;
+	altAlone_ = false;
+	return alone;
+}
+
 bool Events::resolve(Panel* from, const KeyEvent& event) {
+	if(altReleasedAlone(event) && chord_.empty()) { // "alt": Alt pressed and released alone
+		bool waits = false;
+		return runPanelKeys(from, "alt", waits) || runDocumentKeys("alt", waits);
+	}
 	if(event.action == affresco::Action::Release) return false;
 	const std::string name = shortcut(event);
 	if(name.empty()) return false;
 	const bool chording = !chord_.empty();
-	if(name == "escape") {
-		if(chording) { // Escape ends a chord, and does nothing else
-			chord_.clear();
-			engine_.document.contextChanged();
-			if(engine_.window) engine_.window->takeKey();
-			return true;
-		}
-		dismissOverlays(nullptr);
-	}
+	if(name == "escape" && escape(chording)) return true;
 	const std::string press = chording ? chord_ + " " + name : name;
 	bool waits = false; // some key starts with this press
 	// The focused panel and its ancestors, then the document's; a focused text input keeps plain keys for typing
-	const bool ran = runPanelKeys(from, press, waits) ||
-	                 (!typesKey(from, event, name, chording) && !movesWith(engine_.reconciler, from, event) &&
-	                  runDocumentKeys(press, waits));
+	const bool ran = runPress(from, event, name, press, waits);
 	if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
 	else chord_.clear();              // it ran, or ends a chord, which drops it
 	if(chording || !chord_.empty()) engine_.document.contextChanged();
@@ -240,6 +251,24 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const bool taken = ran || waits || chording;
 	if(taken && engine_.window) engine_.window->takeKey();
 	return taken;
+}
+
+bool Events::runPress(Panel* from, const KeyEvent& event, const std::string& name, const std::string& press,
+                      bool& waits) {
+	return runPanelKeys(from, press, waits) ||
+	       (!typesKey(from, event, name, !chord_.empty()) && !movesWith(engine_.reconciler, from, event) &&
+	        runDocumentKeys(press, waits));
+}
+
+bool Events::escape(bool chording) {
+	if(!chording) {
+		dismissOverlays(nullptr);
+		return false;
+	}
+	chord_.clear(); // Escape ends a chord, and does nothing else
+	engine_.document.contextChanged();
+	if(engine_.window) engine_.window->takeKey();
+	return true;
 }
 
 bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {

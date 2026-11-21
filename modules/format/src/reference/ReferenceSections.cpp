@@ -444,7 +444,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
-	 "else each node's own), `\"png\"` of one node (`scale` pixels a unit, 2 by default), or `\"gltf\"` of one `scene` "
+	 "else each node's own), `\"png\"` of each node (`scale` pixels a unit, 2 by default; several nodes are "
+	 "written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` "
+	 "names them), or `\"gltf\"` of one `scene` "
 	 "node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures "
 	 "aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, "
 	 "bytes}`, `error` `{code, message}`. A control step",
@@ -516,8 +518,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"(`{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`))",
 	 "steps"},
     {"copy", "", R"(`{ "copy": "{{state.link}}" }`: to the clipboard)", "steps"},
-    {"paste", R"json({"const": "text"})json",
-	 R"(`{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. A control step)",
+    {"paste", R"json({"enum": ["text", "image"]})json",
+	 R"(`{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. `{ "paste": "image", "as": "clip", "into": "state.pasted" }` takes the clipboard's image instead (macOS for now; a 64 MiB PNG and 4,096 by 4,096 pixels at most): an `image` node with `"source": "clip"` shows it, and the value is `{ "image", "width", "height" }`, or null when the clipboard holds none. A control step)",
+	 "steps"},
+    {"copyImage", "",
+	 R"(`{ "copyImage": "chart" }`: puts a named image of the screen (a `snapshot`'s, one pasted or set by the host) on the clipboard, where the system takes one (macOS for now). A control step)",
 	 "steps"},
     {"lisp", "",
 	 R"(`{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too))",
@@ -614,9 +619,18 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"from", "", "", ""},
     {"openWindow", "",
 	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
-	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 R"(`{ "closeWindow": "audience" }` closes it; `{ "closeWindow": "main" }` closes the screen's own window, which )"
+	 R"(ends the app (Quit, Exit): only from the person's own click or key, never from a load, a timer, a message or )"
+	 R"(a revision)",
 	 "steps"},
     {"closeWindow", "", "", "steps"},
+    {"openUrl", R"json({"anyOf": [{"type": "string", "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://", "maxLength": 2048},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "openUrl": "https://example.com/help" }`: opens an http:// or https:// web address in the person's browser, )"
+	 R"(only after asking them in a question the window draws itself (the whole address shown; Enter or Open says yes, )"
+	 R"(Escape or Cancel no). Nothing a screen runs can answer it, so a timer, a message or a revision's code never )"
+	 R"(opens one without the person's yes. Any other scheme is an error. A control step)",
+	 "steps"},
     {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
 	 R"(`"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the )"

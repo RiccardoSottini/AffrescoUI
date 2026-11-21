@@ -104,8 +104,7 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("wait")) {
 		wait(step["wait"].get<double>());
 	} else if(step.contains("choose")) {
-		if(step.contains("from")) copyFixture(step["from"].get<std::string>(), step["choose"].get<std::string>());
-		choose(step["choose"]);
+		choose(step);
 	} else if(step.contains("capture")) {
 		picture(step["capture"].get<std::string>(), true, number);
 	} else if(step.contains("expect")) {
@@ -124,7 +123,9 @@ void Player::copyFixture(const std::string& from, const std::string& name) {
 	if(error) throw StepError("choose: '" + from + "' can't be copied: " + error.message());
 }
 
-void Player::choose(const json& file) {
+void Player::choose(const json& step) {
+	if(step.contains("from")) copyFixture(step["from"].get<std::string>(), step["choose"].get<std::string>());
+	const json& file = step["choose"];
 	chosen_ = file.is_string() ? (stage_.scratch / file.get<std::string>()).string() : std::string();
 	if(answering_) return;
 	answering_ = true;

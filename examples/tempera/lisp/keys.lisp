@@ -18,6 +18,11 @@
 (defkey "shift+l" {:do setTool :with {:args {:tool polygon}}})
 
 (defkey "w" {:do setTool :with {:args {:tool wand}}})
+(defkey "shift+w" {:do setTool :with {:args {:tool quick-select}}})
+(defkey "r" {:do setTool :with {:args {:tool blur}}})
+(defkey "j" {:do setTool :with {:args {:tool healing}}})
+(defkey "o" {:do setTool :with {:args {:tool dodge}}})
+(defkey "shift+o" {:do setTool :with {:args {:tool burn}}})
 
 (defkey "c" {:do setTool :with {:args {:tool crop}}})
 
@@ -85,7 +90,19 @@
 
 (defkey "mod+alt+shift+w" exportPng)
 
+(defkey "mod+alt+shift+s" exportJpeg)
+
 (defkey "f12" revert)
+
+;;; Panels and filters
+
+(defkey "f5" {:do show-panel :with {:args {:slot properties :id brushes}}})
+
+(defkey "f6" {:do show-panel :with {:args {:slot colour :id colour}}})
+
+(defkey "f7" {:do show-panel :with {:args {:slot layers :id layers}}})
+
+(defkey "mod+alt+f" lastFilter)
 
 ;;; Edit
 
@@ -105,7 +122,7 @@
 
 (defkey "delete" clearPixels)
 
-(defkey "mod+t" showTransform)
+(defkey "mod+t" freeTransformHandles)
 
 ;;; Image
 
@@ -179,6 +196,10 @@
 
 (defkey "mod+r" toggleRulers)
 
+(defkey "mod+semicolon" toggleGuides)
+
 (defkey "f" cycleScreenMode)
 
 (defkey "mod+f" showSearch)
+
+(defkey "f1" showAbout)

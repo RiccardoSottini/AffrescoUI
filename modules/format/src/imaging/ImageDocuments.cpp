@@ -112,7 +112,14 @@ constexpr int navigatorSide = 160;
 	        {"fillOpacity", percent(settings.opacity)},
 	        {"shape", imaging::gradientShapeNames()[static_cast<std::size_t>(settings.shape)]},
 	        {"quickMask", settings.quickMask},
-	        {"autoSelect", settings.autoSelect}};
+	        {"autoSelect", settings.autoSelect},
+	        {"cropRatio", settings.cropRatio},
+	        {"healing", settings.healing},
+	        {"reverse", settings.gradientOptions.reverse},
+	        {"dither", settings.gradientOptions.dither},
+	        {"transparency", settings.gradientOptions.transparency},
+	        {"retouch", imaging::retouchNames()[static_cast<std::size_t>(settings.retouch) -
+	                                            static_cast<std::size_t>(imaging::StrokeMode::dodge)]}};
 }
 
 /// @brief A hex digit pair's value.
@@ -303,6 +310,21 @@ void updateThumbnails(ImageDocument& image, ImageCache& images) {
 	images.setNamed(image.name + "/navigator", bitmapOf(imaging::thumbnail(document, 0, navigatorSide), navigatorSide));
 }
 
+namespace {
+
+/// @brief The snapshots of an image's document, as a screen lists them: [{name, index}], the oldest first.
+/// @param image The image.
+/// @return The list.
+[[nodiscard]] json snapshotsJson(const ImageDocument& image) {
+	json list = json::array();
+	for(std::size_t index = 0; index < image.snapshots.size(); ++index)
+		if(image.snapshots[index].generation == image.canvas->generation())
+			list.push_back({{"name", image.snapshots[index].name}, {"index", index}});
+	return list;
+}
+
+} // namespace
+
 json snapshot(const ImageDocument& image) {
 	const imaging::Document& document = image.canvas->document();
 	json layers = json::array();
@@ -321,6 +343,7 @@ json snapshot(const ImageDocument& image) {
 	        {"active", std::to_string(document.structure().active)},
 	        {"layers", std::move(layers)},
 	        {"history", historyJson(history)},
+	        {"snapshots", snapshotsJson(image)},
 	        {"position", history.position()},
 	        {"dropped", history.dropped()},
 	        {"canUndo", history.canUndo()},

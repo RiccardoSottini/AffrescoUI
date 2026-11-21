@@ -53,6 +53,54 @@ std::u32string_view trimmed(std::u32string_view text) noexcept {
 	return text;
 }
 
+/// @brief How much each space of a line widens when it is justified: none on a paragraph's last line, and none
+/// for the spaces the line ends with.
+/// @param text The whole text.
+/// @param line The line.
+/// @param boxWidth The width the line fills.
+/// @return The width each space gains.
+float justifiedShare(std::u32string_view text, const TextLayout::Line& line, float boxWidth) {
+	const bool last = line.end >= text.size() || text[line.end] == U'\n';
+	std::size_t gaps = 0;
+	for(std::size_t at = line.begin; at < line.end; ++at) gaps += text[at] == U' ' ? 1 : 0;
+	std::size_t trailing = 0; // the spaces the line ends with aren't widened
+	for(std::size_t at = line.end; at > line.begin && text[at - 1] == U' '; --at) ++trailing;
+	gaps -= trailing;
+	return last || gaps == 0 ? 0.0f : std::max(0.0f, boxWidth - line.width) / static_cast<float>(gaps);
+}
+
+/// @brief Adds a piece to a justified line: cut at its spaces, each part moved right by the shares of the spaces
+/// before it, or whole and moved when it has nothing to widen.
+/// @param piece The piece.
+/// @param whole The whole text.
+/// @param share The width each space gains.
+/// @param passed The spaces before the piece on its line, updated.
+/// @param justified The justified pieces, added to.
+void appendJustified(const TextLayout::Piece& piece, std::u32string_view whole, float share, std::size_t& passed,
+                     std::vector<TextLayout::Piece>& justified) {
+	const std::u32string_view text = whole.substr(piece.begin, piece.end - piece.begin);
+	const std::vector<float> carets = share > 0.0f ? piece.font->shape(text).carets : std::vector<float>{};
+	if(carets.size() != text.size() + 1) { // nothing to widen, or carets it can't cut by
+		justified.push_back(piece);
+		justified.back().x += share * static_cast<float>(passed);
+		passed += static_cast<std::size_t>(std::ranges::count(text, U' '));
+		return;
+	}
+	for(std::size_t begin = 0; begin < text.size();) {
+		std::size_t end = begin;
+		while(end < text.size() && text[end] != U' ') ++end;
+		if(end < text.size()) ++end; // a part ends with its space
+		TextLayout::Piece part = piece;
+		part.begin = piece.begin + begin;
+		part.end = piece.begin + end;
+		part.x = piece.x + carets[begin] + share * static_cast<float>(passed);
+		part.width = carets[end] - carets[begin];
+		justified.push_back(part);
+		passed += end > begin && text[end - 1] == U' ' ? 1 : 0;
+		begin = end;
+	}
+}
+
 } // namespace
 
 std::u32string codepointsOf(std::string_view utf8) { return detail::fromUtf8(utf8); }
@@ -159,6 +207,24 @@ void TextLayout::align(float boxWidth, Align align) noexcept {
 		const float offset = alignedOffset(align, boxWidth, line.width);
 		for(std::size_t piece = line.firstPiece; piece < line.endPiece; ++piece) pieces_[piece].x += offset;
 	}
+}
+
+// Each piece is cut at its spaces, and each part moved right by the shares of the spaces before it on its line
+void TextLayout::justify(float boxWidth) {
+	std::vector<Piece> justified;
+	justified.reserve(pieces_.size());
+	for(Line& line : lines_) {
+		const float share = justifiedShare(text_, line, boxWidth);
+		const std::size_t first = justified.size();
+		std::size_t passed = 0; // spaces before the part, on this line
+		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index)
+			appendJustified(pieces_[index], text_, share, passed, justified);
+		line.firstPiece = first;
+		line.endPiece = justified.size();
+		if(share > 0.0f) line.width = std::max(line.width, boxWidth);
+	}
+	pieces_ = std::move(justified);
+	if(!lines_.empty()) width_ = std::ranges::max(lines_, {}, &Line::width).width;
 }
 
 std::size_t TextLayout::positionAt(Vec2 point) const {

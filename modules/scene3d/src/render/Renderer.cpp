@@ -314,7 +314,7 @@ ShadowMap SceneRenderer::drawShadow(SurfaceFrame& frame, const FrameView& view) 
 	depth_.use();
 	setMatrix(depth_.uniform("viewProjection"), shadow.matrix);
 	for(const DrawItem& item : view.items)
-		if(!item.blended) drawPlain(item, depth_, false);
+		if(!item.blended && (item.material == nullptr || item.material->castsShadow)) drawPlain(item, depth_, false);
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	return shadow;
 }

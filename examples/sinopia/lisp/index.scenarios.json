@@ -1251,7 +1251,7 @@
 		},
 		{
 			"name": "sinopia-sections-and-ribbon",
-			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, and a tab shows it again",
+			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, a tab shows it over the slide, and the button pins it again",
 			"steps": [
 				{ "click": "#thumb-s3-section" },
 				{ "expect": { "state": "foldedSections", "is": ["b"] } },
@@ -1264,11 +1264,13 @@
 				{ "key": "mod+f1" },
 				{ "expect": { "node": "#ribbon", "exists": false } },
 				{ "click": "#tab-insert-label" },
-				{ "expect": { "node": "#ribbon", "exists": true } },
+				{ "expect": { "node": "#ribbon-peek", "exists": true } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": true } },
 				{ "click": "#ribbon-collapse" },
 				{ "expect": { "state": "ribbon", "is": false } },
 				{ "click": "#ribbon-collapse" },
-				{ "expect": { "state": "ribbon", "is": true } }
+				{ "expect": { "node": "#ribbon", "exists": true } }
 			]
 		},
 		{
@@ -1584,6 +1586,749 @@
 				{ "expect": { "state": "find.open", "is": true } },
 				{ "expect": { "state": "find.text", "is": "harbour" } }
 			]
+		},
+		{
+			"name": "sinopia-insert-a-chart",
+			"note": "Insert > Chart puts a chart of sample data on the slide; its menu then draws it as bars, a line or a pie, and a double click edits its data as a table",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Column"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].kind",
+						"is": "chart"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].chart",
+						"is": "column"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-bar-3-2",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-legend-1-t",
+						"text": "Series 2"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-cat-0",
+						"text": "Category 1"
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Line"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-line-2",
+						"exists": true
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Pie"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].chart",
+						"is": "pie"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-slice-3",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-bar-0-0",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-legend-3-t",
+						"text": "Category 4"
+					}
+				},
+				{
+					"click": "#o40-chart"
+				},
+				{
+					"click": "#o40-chart"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": "o40"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-c0-1-t",
+						"text": "Series 1"
+					}
+				},
+				{
+					"click": "#o40-c1-1"
+				},
+				{
+					"click": "#o40-c1-1"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#cell-o40"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": "9"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].cells[1][1]",
+						"is": "4.39"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-slice-0",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-rename-in-selection-pane",
+			"note": "A double click on a name in the Selection Pane edits it: Enter (or a click elsewhere) keeps the new name, Escape leaves the old one, and undo takes a rename back",
+			"steps": [
+				{
+					"click": "#thumb-s2-row"
+				},
+				{
+					"click": "#b-select"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Selection Pane"
+					}
+				},
+				{
+					"wait": 100
+				},
+				{
+					"click": "#selection-o4-name"
+				},
+				{
+					"click": "#selection-o4-name"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "naming.id",
+						"is": "o4"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "Agenda"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[1].name",
+						"is": "Agenda"
+					}
+				},
+				{
+					"expect": {
+						"node": "#selection-o4-name",
+						"text": "  Agenda"
+					}
+				},
+				{
+					"click": "#selection-o3-name"
+				},
+				{
+					"click": "#selection-o3-name"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"type": "X"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#selection-o3-name",
+						"text": "  Title 1"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"node": "#selection-o4-name",
+						"text": "  Content 2"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-clipboard-with-other-apps",
+			"note": "Copy puts the selected objects' text on the system clipboard too; Paste brings back Sinopia's own objects, and another app's text (here the notes' text, copied in the notes) as a text box",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#notes"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+c"
+				},
+				{
+					"click": "#o13"
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].kind",
+						"is": "text"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].text",
+						"is": "Each phase has one owner. Building starts once the permits are in."
+					}
+				},
+				{
+					"click": "#o12"
+				},
+				{
+					"key": "mod+c"
+				},
+				{
+					"expect": {
+						"state": "clipText",
+						"is": "Review\nJune"
+					}
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[8].kind",
+						"is": "shape"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[8].text",
+						"is": "Review\nJune"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-crop-a-picture",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"choose": "dusk.png",
+					"from": "fixtures/picture.png"
+				},
+				{
+					"click": "#b-ins-pictures"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 160
+					}
+				},
+				{
+					"rightClick": "#o40"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Crop to Square"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 90
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].h",
+						"is": 90
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].x",
+						"is": 435
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-picture",
+						"property": "width",
+						"is": 160
+					}
+				},
+				{
+					"rightClick": "#o40"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Whole Picture"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 160
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].crop",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].x",
+						"is": 400
+					}
+				}
+			],
+			"note": "A picture's menu crops it to a square, 4:3 or 16:9 around its middle, at the same scale, and Whole Picture gives it back"
+		},
+		{
+			"name": "sinopia-equal-gaps",
+			"steps": [
+				{
+					"click": "#b-new-slide"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "delete"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects.length",
+						"is": 0
+					}
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[0].x",
+						"is": 105
+					}
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[1].x",
+						"is": 655
+					}
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"drag": [
+						741,
+						421
+					],
+					"to": [
+						717,
+						421
+					],
+					"moves": 6
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[2].x",
+						"is": 380
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[2].y",
+						"is": 195
+					}
+				}
+			],
+			"note": "A shape dragged between two others snaps to the middle, where its gaps to both are equal (the distance indicators show them while dragging)"
+		},
+		{
+			"name": "sinopia-edit-chart-data",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Bar"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-chart",
+						"property": "name",
+						"is": "Bar chart of Series 1, Series 2, Series 3"
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Edit Data"
+					}
+				},
+				{
+					"wait": 100
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": "o40"
+					}
+				},
+				{
+					"expect": {
+						"state": "cell",
+						"is": [
+							1,
+							1
+						]
+					}
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": "5"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].cells[1][1]",
+						"is": "4.35"
+					}
+				}
+			],
+			"note": "A chart is named by its kind and series for screen readers, and Insert > Chart > Edit Data opens its data with the first value in an editor"
 		}
 	]
 }
