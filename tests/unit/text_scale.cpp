@@ -271,7 +271,7 @@ std::vector<Font::FittedGlyph> fittedGlyphs(const Font& raster, const Font::Shap
 
 } // namespace
 
-TEST_CASE("text scale: below 2, glyphs are fitted to pixels, and at 2 and above they keep their exact places") {
+TEST_CASE("text scale: below 2, glyphs are fitted to pixels, and at 2 and above drawn from the nearest column") {
 	CHECK(Font::fitsPixels(1.0f));
 	CHECK(Font::fitsPixels(1.25f));
 	CHECK(Font::fitsPixels(1.75f));
@@ -301,22 +301,22 @@ TEST_CASE("text scale: below 2, glyphs are fitted to pixels, and at 2 and above 
 	}
 	CHECK(layOut(*font, text) == laidOut); // measuring, carets and wrapping don't move
 
-	// At 2 and 3, the glyphs go where they are laid out, from their plain bitmaps: some between two pixel columns
+	// At 2 and 3, the glyphs are drawn from their plain bitmaps, each from the pixel column nearest its laid-out place
 	for(const float scale : {2.0f, 3.0f}) {
 		CAPTURE(scale);
 		const Font& dense = font->rasterAt(scale);
 		const std::vector<affresco::Vec2> corners = glyphCorners(record(*font, text, scale));
 		CHECK(layOut(*font, text) == laidOut);
 		REQUIRE(corners.size() == laidOut.pens.size());
-		std::size_t between = 0;
 		for(std::size_t index = 0; index < corners.size(); ++index) {
+			CAPTURE(index);
 			const Font::FittedGlyph fitted = dense.fitGlyph(*font->shape(text).glyphs[index].glyph, 10.0f);
 			CHECK(fitted.glyph == &dense.rasterGlyph(*font->shape(text).glyphs[index].glyph));
 			CHECK(fitted.glyph->shift == 0);
 			CHECK(fitted.pen == 10.0f);
-			CHECK(corners[index].x == 10.0f + laidOut.pens[index] + fitted.glyph->quad.left);
-			if(offPixels(corners[index].x, scale) > 0.01f) ++between;
+			CHECK(offPixels(corners[index].x, scale) < 0.01f);
+			const float drawn = (corners[index].x - fitted.glyph->quad.left) * scale;
+			CHECK(std::abs(drawn - (10.0f + laidOut.pens[index]) * scale) <= 0.5f + 0.01f);
 		}
-		CHECK(between > 0);
 	}
 }
