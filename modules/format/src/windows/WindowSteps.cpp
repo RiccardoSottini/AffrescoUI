@@ -62,10 +62,10 @@ void openUrlStep(const Running& s) {
 	if(engine.webQuestion != 0) engine.window->dismissConfirmation(engine.webQuestion); // the newest one is asked
 	engine.webQuestion = engine.window->confirm(
 	    {.title = "Open this web address?",
-	     .message = "It opens in your browser. Open it only if you expect it and know where it goes.",
-	     .text = url,
-	     .accept = "Open",
-	     .decline = "Cancel"},
+		 .message = "It opens in your browser. Open it only if you expect it and know where it goes.",
+		 .text = url,
+		 .accept = "Open",
+		 .decline = "Cancel"},
 	    [&engine, url](bool yes) {
 		    engine.webQuestion = 0;
 		    if(yes && engine.openWebAddress) engine.openWebAddress(url);
@@ -106,10 +106,7 @@ std::optional<bool> runWindowStep(const Running& s) {
 
 void registerWindowSteps(StepRegistry& registry) {
 	registry.add({"windows",
-	              {{"openWindow", {"fullscreen"}},
-	               {"closeWindow", {}},
-	               {"fullscreen", {"of"}, true},
-	               {"openUrl", {}}},
+	              {{"openWindow", {"fullscreen"}}, {"closeWindow", {}}, {"fullscreen", {"of"}, true}, {"openUrl", {}}},
 	              runWindowStep});
 }
 

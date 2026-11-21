@@ -1,7 +1,7 @@
 /// @file
-/// @brief "rotate", "scale", "skew", "translate", "transformOrigin" and "opacity", properties of every panel: how it is drawn
-/// turned, scaled, skewed or moved after layout (Panel::setTransform). Layout doesn't see them. And "opacity", also
-/// of every panel: the subtree drawn as one translucent group (Panel::setOpacity()).
+/// @brief "rotate", "scale", "skew", "translate", "transformOrigin" and "opacity", properties of every panel: how it is
+/// drawn turned, scaled, skewed or moved after layout (Panel::setTransform). Layout doesn't see them. And "opacity",
+/// also of every panel: the subtree drawn as one translucent group (Panel::setOpacity()).
 
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"

@@ -108,7 +108,8 @@ void PathView::build(Vec2 size) const {
 }
 
 // A translucent path is drawn as a group (Panel::setPaintOpacity()): its mesh's quads overlap at joins, edges and
-// crossings, which would show darker drawn one by one. Only when the group holds nothing else and is drawn untransformed
+// crossings, which would show darker drawn one by one. Only when the group holds nothing else and is drawn
+// untransformed
 float PathView::groupOpacity() const {
 	const float fill = fillMesh_.empty() ? 0.0f : fillColor_.a, stroke = strokeMesh_.empty() ? 0.0f : strokeColor_.a;
 	const float most = std::max(fill, stroke);

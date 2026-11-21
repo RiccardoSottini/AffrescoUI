@@ -18,9 +18,9 @@ namespace {
 /// The most bytes of the clipboard's text "paste" reads.
 constexpr std::size_t maxPastedBytes = 1U << 20;
 
-/// @brief "paste": the clipboard's text, or with "image" its image under the name "as" gives, only from the person's own input (a timer, a reply or a peer's message can't
-/// read what they copied), written "into" a state path, and given to "onDone" as `result`. Without a window (a check,
-/// a preview) nothing happens.
+/// @brief "paste": the clipboard's text, or with "image" its image under the name "as" gives, only from the person's
+/// own input (a timer, a reply or a peer's message can't read what they copied), written "into" a state path, and given
+/// to "onDone" as `result`. Without a window (a check, a preview) nothing happens.
 /// @param s The step.
 /// @return true.
 bool paste(const Running& s) {

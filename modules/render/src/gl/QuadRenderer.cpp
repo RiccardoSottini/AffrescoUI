@@ -228,8 +228,8 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 	// A translucent group (Panel::drawnOpacity()) is drawn as a full frame draws it, through its texture: drawn
 	// directly its parts would blend one by one. Its texture is made from the records of the frame drawn before
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
-	if(panel.drawnOpacity() < 1.0f && geometry && geometry->recorded && geometry->cached && geometry->world.isIdentity() &&
-	   !geometry->subtreeTransformed && replayCached(panel, *geometry)) {
+	if(panel.drawnOpacity() < 1.0f && geometry && geometry->recorded && geometry->cached &&
+	   geometry->world.isIdentity() && !geometry->subtreeTransformed && replayCached(panel, *geometry)) {
 		scratchColor_ = true;
 		return;
 	}

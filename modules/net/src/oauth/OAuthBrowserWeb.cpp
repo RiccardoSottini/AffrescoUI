@@ -1,6 +1,6 @@
 /// @file
-/// @brief openInBrowser and openWebAddress (SignIn.hpp) in the browser build: a new tab, with no opener, for the same URLs as
-/// OAuthBrowser.cpp. Under Node (the scenarios) there is no browser, and nothing opens.
+/// @brief openInBrowser and openWebAddress (SignIn.hpp) in the browser build: a new tab, with no opener, for the same
+/// URLs as OAuthBrowser.cpp. Under Node (the scenarios) there is no browser, and nothing opens.
 
 #include "affresco/net/SignIn.hpp"
 #include "affresco/net/Url.hpp"

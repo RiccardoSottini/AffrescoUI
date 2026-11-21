@@ -375,7 +375,7 @@ TEST_CASE("checker: references to what a section defines") {
 		  "stop, "
 		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
 		  "signIn, signOut, chooseFolder, audio, attach, saveFile, openFile, export, openWindow, closeWindow, "
-		  "fullscreen, runInTerminal, clearTerminal, closeTerminal or lisp)"}},
+		  "fullscreen, openUrl, runInTerminal, clearTerminal, closeTerminal or lisp)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",

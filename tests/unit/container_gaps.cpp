@@ -28,9 +28,9 @@ namespace {
 
 /// @brief Builds a screen from a document in a headless window and lays it out.
 struct Built {
-	ManualClock clock;                                                         ///< The window's clock.
+	ManualClock clock;                                                                ///< The window's clock.
 	std::unique_ptr<affresco::Window> window = createHeadlessWindow(400, 300, clock); ///< The window.
-	affresco::Screen screen;                                                   ///< The screen.
+	affresco::Screen screen;                                                          ///< The screen.
 
 	/// @brief Builds it.
 	/// @param document The screen document.
@@ -61,25 +61,25 @@ json screenOf(json root, json more = json::object()) {
 } // namespace
 
 TEST_CASE("padding: a column places its children inside it, and fits its content with it") {
-	Built built(screenOf({{"id", "root"},
-	                      {"children",
-	                       {{{"type", "column"},
-	                         {"id", "box"},
-	                         {"padding", {10, 20}},
-	                         {"alignItems", "stretch"},
-	                         {"fitContent", "height"},
-	                         {"width", 200},
-	                         {"gap", 4},
-	                         {"children",
-	                          {{{"id", "a"}, {"height", 30}}, {{"id", "b"}, {"height", 30}, {"anchors", "left right"}}}}},
-	                        {{"type", "grid"},
-	                         {"id", "grid"},
-	                         {"padding", 8},
-	                         {"columns", 2},
-	                         {"y", 150},
-	                         {"width", 216},
-	                         {"height", 60},
-	                         {"children", {{{"id", "cell"}, {"height", 20}}}}}}}}));
+	Built built(screenOf(
+	    {{"id", "root"},
+		 {"children",
+		  {{{"type", "column"},
+		    {"id", "box"},
+		    {"padding", {10, 20}},
+		    {"alignItems", "stretch"},
+		    {"fitContent", "height"},
+		    {"width", 200},
+		    {"gap", 4},
+		    {"children", {{{"id", "a"}, {"height", 30}}, {{"id", "b"}, {"height", 30}, {"anchors", "left right"}}}}},
+		   {{"type", "grid"},
+		    {"id", "grid"},
+		    {"padding", 8},
+		    {"columns", 2},
+		    {"y", 150},
+		    {"width", 216},
+		    {"height", 60},
+		    {"children", {{{"id", "cell"}, {"height", 20}}}}}}}}));
 	const affresco::Rect box = built.screen.find("box")->frame();
 	const affresco::Rect a = built.screen.find("a")->frame();
 	const affresco::Rect b = built.screen.find("b")->frame();
@@ -104,11 +104,11 @@ TEST_CASE("padding: a column places its children inside it, and fits its content
 }
 
 TEST_CASE("opacity: the subtree is drawn as one translucent group, and back to opaque when the key goes") {
-	Built built(screenOf({{"id", "root"},
-	                      {"onClick", {{{"toggle", "state.faded"}}}},
-	                      {"children",
-	                       {{{"id", "card"}, {"opacity", "{{state.faded ? 0.4 : 1}}"}, {"width", 50}, {"x", 200}}}}},
-	                     {{"state", {{"faded", true}}}}));
+	Built built(screenOf(
+	    {{"id", "root"},
+		 {"onClick", {{{"toggle", "state.faded"}}}},
+		 {"children", {{{"id", "card"}, {"opacity", "{{state.faded ? 0.4 : 1}}"}, {"width", 50}, {"x", 200}}}}},
+	    {{"state", {{"faded", true}}}}));
 	const affresco::Panel* card = built.screen.find("card");
 	CHECK(card->opacity() == doctest::Approx(0.4f));
 	CHECK(card->isComposited());
@@ -227,8 +227,8 @@ TEST_CASE("clipboard images: paste one under a name on the person's click, and c
 	built.click({10.0f, 10.0f}); // nothing on the clipboard yet
 	CHECK(json::parse(built.screen.stateJson())["pasted"].is_null());
 
-	const std::vector<std::uint8_t> red = {255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
-	                                       255, 0, 0, 255, 255, 0, 0, 255};
+	const std::vector<std::uint8_t> red = {255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
+	                                       255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255};
 	const auto image = affresco::Bitmap::fromPixels(3, 2, red, affresco::Bitmap::Limits{});
 	REQUIRE(built.window->setClipboardImage(image));
 	built.screen.runAction("paste", built.window->root()); // the host's, not the person's: refused
@@ -236,8 +236,8 @@ TEST_CASE("clipboard images: paste one under a name on the person's click, and c
 	built.click({10.0f, 10.0f});
 	CHECK(json::parse(built.screen.stateJson())["pasted"] == json({{"image", "clip"}, {"width", 3}, {"height", 2}}));
 
-	REQUIRE(built.window->setClipboardImage(affresco::Bitmap::fromPixels(1, 1, std::vector<std::uint8_t>{0, 0, 0, 255},
-	                                                                     affresco::Bitmap::Limits{})));
+	REQUIRE(built.window->setClipboardImage(
+	    affresco::Bitmap::fromPixels(1, 1, std::vector<std::uint8_t>{0, 0, 0, 255}, affresco::Bitmap::Limits{})));
 	built.screen.runAction("copy", built.window->root());
 	REQUIRE(built.window->clipboardImage() != nullptr);
 	CHECK(built.window->clipboardImage()->width() == 3);
