@@ -99,7 +99,7 @@ bool startStroke(ImageDocument& image, Point at) {
 	if(settings.gesture == Gesture::clone && pressCloneSource(image, at)) return true;
 	const auto target = paintTarget(image);
 	if(!target) return true;
-	const auto mode = settings.gesture == Gesture::erase     ? imaging::StrokeMode::erase
+	const auto mode = settings.gesture == Gesture::erase ? imaging::StrokeMode::erase
 	                  : settings.gesture == Gesture::clone
 	                      ? (settings.healing ? imaging::StrokeMode::heal : imaging::StrokeMode::clone)
 	                  : settings.gesture == Gesture::retouch ? settings.retouch

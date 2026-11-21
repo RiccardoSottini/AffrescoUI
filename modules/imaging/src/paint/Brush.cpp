@@ -274,7 +274,8 @@ Pixel Stroke::retouched(const Pixel& under, int x, int y, float coverage) const 
 	case StrokeMode::burn:
 		return each([&](float value) { return value * (1.0f - amount); });
 	case StrokeMode::heal: { // the source's texture over the covered pixels' own tone
-		const int fromX = x + static_cast<int>(std::lround(cloneX_)), fromY = y + static_cast<int>(std::lround(cloneY_));
+		const int fromX = x + static_cast<int>(std::lround(cloneX_)),
+		          fromY = y + static_cast<int>(std::lround(cloneY_));
 		const Pixel source = original(fromX, fromY), there = neighbourhood(x, y), here = neighbourhood(fromX, fromY);
 		const float share = std::min(1.0f, coverage);
 		const auto healed = [&](float was, float from, float tone, float sourceTone) {
