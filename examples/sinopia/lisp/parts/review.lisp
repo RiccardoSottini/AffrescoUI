@@ -25,6 +25,8 @@
 
 (defstate commentFocus nil "The comment that takes the focus when shown.")
 
+(defstate naming {:id nil :text ""} "The object whose name the selection pane is editing, and the name typed so far.")
+
 (defcomputed inkPens "The pens' colours, each with its name."
   '[["#1f2933" "black"] ["#e03131" "red"] ["#1c7ed6" "blue"] ["#2f9e44" "green"] ["#f08c00" "orange"]])
 
@@ -486,6 +488,7 @@
      :let {:title ~(object-name o (- (count computed.objects) n))}
      :color ~(if (contains state.board.selection o.id) "@rbChecked" "transparent")
      (label :id ~(str "selection-" o.id "-name")
+       :when ~(not= state.naming.id o.id)
        :grow 1
        :height 24
        :align "start center"
@@ -493,8 +496,26 @@
        :role button
        :textColor ~(if (or-else o.hidden false) "@rbMuted" "@rbInk")
        :label ~title
+       :tooltip ~(t "pane.renameTip")
        :runs [{:text ~(str "  " title) :size 12 :italic ~(or-else o.hidden false)}]
-       :onClick ~(handler select-object o.id o.hidden))
+       :onClick ~(handler select-object o.id o.hidden)
+       :onDoubleClick ~(handler start-naming o.id title))
+     (textarea :id ~(str "selection-" o.id "-rename")
+       :when ~(= state.naming.id o.id)
+       :grow 1
+       :height 22
+       :padding 4
+       :radius 4
+       :autofocus true
+       :color @rbFieldBg
+       :borderWidth 1
+       :borderColor @brand
+       :textColor @rbInk
+       :bind "state.naming.text"
+       :label ~(t "pane.renameObject" {:name title})
+       :keys {"escape" stop-naming}
+       :onSubmit name-object
+       :onBlur name-object)
      (node :id ~(str "selection-" o.id "-eye")
        :use rbSmall
        :with {:icon ~(if (or-else o.hidden false) "eye-off" "eye")}
@@ -665,6 +686,22 @@
 
 (defn select-target "Selects the object a build plays on." [id]
   (set "state.board.selection" [id]))
+
+(defn start-naming "Edits an object's name in the selection pane, starting from the name it shows." [id title]
+  (set "state.naming" {:id id :text title}))
+
+(defn stop-naming "Leaves the name being edited as it was." []
+  (set "state.naming" {:id nil :text ""}))
+
+(defn name-object "Gives the object being named the name typed (an empty one gives back its default name)." []
+  (when-some [id state.naming.id]
+    (let [typed (str/trim (or-else state.naming.text ""))]
+      (stop-naming)
+      (commit)
+      (set-objects (map #(cond (not= (:id %) id) %
+                               (str/blank? typed) (dissoc % :name)
+                               :else (assoc % :name typed))
+                        computed.objects)))))
 
 (defn hide-objects "Hides objects, by their ids, or shows them; hidden ones leave the selection." [ids hidden]
   (commit)

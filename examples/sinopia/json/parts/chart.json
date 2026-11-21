@@ -1,0 +1,341 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Insert > Chart: a chart object drawn from a small table of data. Its cells are rows of texts, like a table's: the first row names the series, the first column the categories, and the other cells are numbers. Its chart is how it is drawn: columns, bars, a line or a pie (the first series only). Insert > Chart offers the four; a double click shows the data as a table to edit, and the chart is drawn again when the edit ends.",
+	"computed": {
+		"chartSelected": "{{find(computed.selected, it.kind == 'chart').chart}}",
+		"menu-b-ins-chart": "{{concat(map([{id: 'column', icon: 'chart-column-decreasing', title: 'Column'}, {id: 'bar', icon: 'chart-bar-decreasing', title: 'Bar'}, {id: 'line', icon: 'chart-line', title: 'Line'}, {id: 'pie', icon: 'chart-pie', title: 'Pie'}], { title: it.title, icon: it.icon, checked: computed.chartSelected == it.id, run: computed.chartSelected ? 'setChartKind' : 'insertChart', with: { kind: it.id } }), computed.chartSelected ? [{ separator: true }, { title: 'Edit Data', icon: 'table', run: 'editChartData', with: { id: computed.chartId } }] : [])}}",
+		"chartId": "{{find(computed.selected, it.kind == 'chart').id}}"
+	},
+	"components": {
+		"slideChart": {
+			"params": {
+				"o": null,
+				"prefix": "",
+				"w": 100,
+				"h": 100
+			},
+			"note": "A chart object, in a box w by h: its legend, axis and gridlines, then its columns, bars, line or pie; while it is edited, the slide shows its data as a table instead.",
+			"node": {
+				"id": "{{prefix + o.id + '-chart'}}",
+				"role": "img",
+				"label": "{{((o.chart ?? 'column') == 'bar' ? 'Bar chart of ' : (o.chart ?? 'column') == 'line' ? 'Line chart of ' : (o.chart ?? 'column') == 'pie' ? 'Pie chart of ' : 'Column chart of ') + join(slice(o.cells[0] ?? [], 1), ', ')}}",
+				"x": 0,
+				"y": 0,
+				"width": "{{w}}",
+				"height": "{{h}}",
+				"let": {
+					"series": "{{slice(o.cells[0] ?? [], 1)}}",
+					"cats": "{{map(slice(o.cells ?? [], 1), text(it[0] ?? ''))}}",
+					"vals": "{{map(slice(o.cells ?? [], 1), map(slice(it, 1), max(number(it) ?? 0, 0)))}}",
+					"kind": "{{o.chart ?? 'column'}}",
+					"across": "{{(o.chart ?? 'column') == 'bar'}}",
+					"pie": "{{(o.chart ?? 'column') == 'pie'}}",
+					"a": "{{(o.chart ?? 'column') == 'bar' ? { x: 96, y: 36, w: max(w - 112, 10), h: max(h - 68, 10) } : { x: 44, y: 36, w: max(w - 60, 10), h: max(h - 68, 10) }}}",
+					"ink": "{{computed.palette.dark2 ?? computed.palette.dark1}}"
+				},
+				"color": "{{computed.palette['light1']}}",
+				"borderWidth": 1,
+				"borderColor": "{{computed.palette['light2']}}",
+				"children": [
+					{
+						"type": "row",
+						"id": "{{prefix + o.id + '-legend'}}",
+						"x": 12,
+						"y": 8,
+						"width": "{{w - 24}}",
+						"height": 18,
+						"gap": 14,
+						"justify": "center",
+						"color": "transparent",
+						"children": [
+							{
+								"type": "row",
+								"id": "{{prefix + o.id + '-legend-' + i}}",
+								"repeat": {
+									"for": "name",
+									"in": "{{pie ? cats : series}}",
+									"index": "i"
+								},
+								"fitContent": "width",
+								"height": 18,
+								"gap": 5,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "{{prefix + o.id + '-legend-' + i + '-key'}}",
+										"width": 10,
+										"height": 10,
+										"radius": 2,
+										"color": "{{computed.palette['accent' + (i % 6 + 1)]}}"
+									},
+									{
+										"type": "label",
+										"id": "{{prefix + o.id + '-legend-' + i + '-t'}}",
+										"fitText": true,
+										"height": 18,
+										"textColor": "{{ink}}",
+										"runs": [
+											{
+												"text": "{{text(name ?? '')}}",
+												"size": 14
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "{{prefix + o.id + '-marks'}}",
+						"x": 0,
+						"y": 0,
+						"width": "{{w}}",
+						"height": "{{h}}",
+						"color": "transparent",
+						"let": {
+							"most": "{{max(concat([0], flat(vals)))}}"
+						},
+						"children": [
+							{
+								"id": "{{prefix + o.id + '-axis'}}",
+								"x": 0,
+								"y": 0,
+								"width": "{{w}}",
+								"height": "{{h}}",
+								"color": "transparent",
+								"let": {
+									"step": "{{find([0.1, 0.2, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 50000, 100000], it * 5 >= most) ?? 100000}}"
+								},
+								"children": [
+									{
+										"id": "{{prefix + o.id + '-scale'}}",
+										"x": 0,
+										"y": 0,
+										"width": "{{w}}",
+										"height": "{{h}}",
+										"color": "transparent",
+										"let": {
+											"top": "{{step * max(ceil(most / step), 1)}}"
+										},
+										"children": [
+											{
+												"id": "{{prefix + o.id + '-grid-' + s}}",
+												"repeat": {
+													"for": "s",
+													"in": "{{pie ? [] : range(round(top / step) + 1)}}"
+												},
+												"x": "{{across ? a.x + a.w * s * step / top : a.x}}",
+												"y": "{{across ? a.y : a.y + a.h - a.h * s * step / top}}",
+												"width": "{{across ? 1 : a.w}}",
+												"height": "{{across ? a.h : 1}}",
+												"color": "{{computed.palette['light2']}}"
+											},
+											{
+												"type": "label",
+												"id": "{{prefix + o.id + '-tick-' + s}}",
+												"repeat": {
+													"for": "s",
+													"in": "{{pie ? [] : range(round(top / step) + 1)}}"
+												},
+												"x": "{{across ? a.x + a.w * s * step / top - 20 : 0}}",
+												"y": "{{across ? a.y + a.h + 4 : a.y + a.h - a.h * s * step / top - 9}}",
+												"width": "{{across ? 40 : 38}}",
+												"height": 18,
+												"align": {
+													"horizontal": "{{across ? 'center' : 'end'}}",
+													"vertical": "center"
+												},
+												"textColor": "{{ink}}",
+												"runs": [
+													{
+														"text": "{{text(round(s * step * 10) / 10)}}",
+														"size": 12
+													}
+												]
+											},
+											{
+												"id": "{{prefix + o.id + '-band-' + i}}",
+												"repeat": {
+													"for": "row",
+													"in": "{{(kind != 'column' && kind != 'bar') ? [] : vals}}",
+													"index": "i"
+												},
+												"x": "{{across ? a.x : a.x + i * a.w / max(length(cats), 1)}}",
+												"y": "{{across ? a.y + i * a.h / max(length(cats), 1) : a.y}}",
+												"width": "{{across ? a.w : a.w / max(length(cats), 1)}}",
+												"height": "{{across ? a.h / max(length(cats), 1) : a.h}}",
+												"color": "transparent",
+												"let": {
+													"band": "{{across ? a.h / max(length(cats), 1) : a.w / max(length(cats), 1)}}",
+													"thick": "{{(across ? a.h / max(length(cats), 1) : a.w / max(length(cats), 1)) * 0.7 / max(length(series), 1)}}"
+												},
+												"children": [
+													{
+														"id": "{{prefix + o.id + '-bar-' + i + '-' + j}}",
+														"repeat": {
+															"for": "v",
+															"in": "{{slice(row, 0, max(length(series), 1))}}",
+															"index": "j"
+														},
+														"x": "{{across ? 0 : band * 0.15 + j * thick}}",
+														"y": "{{across ? band * 0.15 + j * thick : a.h - a.h * v / top}}",
+														"width": "{{across ? a.w * v / top : max(thick - 2, 1)}}",
+														"height": "{{across ? max(thick - 2, 1) : a.h * v / top}}",
+														"color": "{{computed.palette['accent' + (j % 6 + 1)]}}"
+													}
+												]
+											},
+											{
+												"type": "label",
+												"id": "{{prefix + o.id + '-cat-' + i}}",
+												"repeat": {
+													"for": "c",
+													"in": "{{pie ? [] : cats}}",
+													"index": "i"
+												},
+												"x": "{{across ? 0 : a.x + i * a.w / max(length(cats), 1)}}",
+												"y": "{{across ? a.y + i * a.h / max(length(cats), 1) : a.y + a.h + 4}}",
+												"width": "{{across ? 88 : a.w / max(length(cats), 1)}}",
+												"height": "{{across ? a.h / max(length(cats), 1) : 20}}",
+												"align": {
+													"horizontal": "{{across ? 'end' : 'center'}}",
+													"vertical": "center"
+												},
+												"textColor": "{{ink}}",
+												"runs": [
+													{
+														"text": "{{text(c)}}",
+														"size": 14
+													}
+												]
+											},
+											{
+												"id": "{{prefix + o.id + '-plot'}}",
+												"when": "{{(kind == 'line' || kind == 'pie')}}",
+												"x": "{{a.x}}",
+												"y": "{{a.y}}",
+												"width": "{{a.w}}",
+												"height": "{{a.h}}",
+												"color": "transparent",
+												"let": {
+													"firsts": "{{map(vals, it[0] ?? 0)}}",
+													"total": "{{sum(vals, it[0] ?? 0)}}",
+													"ends": "{{scan(vals, acc + (it[0] ?? 0), 0)}}",
+													"r": "{{min(a.w, a.h) / 2}}",
+													"cx": "{{a.w / 2}}",
+													"cy": "{{a.h / 2}}"
+												},
+												"children": [
+													{
+														"type": "path",
+														"id": "{{prefix + o.id + '-line-' + j}}",
+														"repeat": {
+															"for": "name",
+															"in": "{{kind == 'line' ? series : []}}",
+															"index": "j"
+														},
+														"x": 0,
+														"y": 0,
+														"width": "{{a.w}}",
+														"height": "{{a.h}}",
+														"viewBox": "{{'0 0 ' + a.w + ' ' + a.h}}",
+														"d": "{{'M' + join(map(vals, fixed(index * a.w / max(length(cats), 1) + a.w / max(length(cats), 1) / 2, 2) + ' ' + fixed(a.h - a.h * (it[j] ?? 0) / top, 2)), 'L')}}",
+														"fillColor": "transparent",
+														"stroke": "{{computed.palette['accent' + (j % 6 + 1)]}}",
+														"strokeWidth": 3,
+														"strokeCap": "round",
+														"strokeJoin": "round"
+													},
+													{
+														"type": "path",
+														"id": "{{prefix + o.id + '-slice-' + i}}",
+														"repeat": {
+															"for": "v",
+															"in": "{{pie ? firsts : []}}",
+															"index": "i"
+														},
+														"when": "{{v > 0}}",
+														"let": {
+															"from": "{{(ends[i] - v) / max(total, 1)}}",
+															"part": "{{v / max(total, 1)}}"
+														},
+														"x": 0,
+														"y": 0,
+														"width": "{{a.w}}",
+														"height": "{{a.h}}",
+														"viewBox": "{{'0 0 ' + a.w + ' ' + a.h}}",
+														"d": "{{part >= 0.9999 ? 'M' + fixed(cx + r * sin(0 * 2 * pi()), 2) + ' ' + fixed(cy - r * cos(0 * 2 * pi()), 2) + 'A' + r + ' ' + r + ' 0 1 1 ' + fixed(cx + r * sin(0.5 * 2 * pi()), 2) + ' ' + fixed(cy - r * cos(0.5 * 2 * pi()), 2) + 'A' + r + ' ' + r + ' 0 1 1 ' + fixed(cx + r * sin(0 * 2 * pi()), 2) + ' ' + fixed(cy - r * cos(0 * 2 * pi()), 2) + 'Z' : 'M' + cx + ' ' + cy + 'L' + fixed(cx + r * sin(from * 2 * pi()), 2) + ' ' + fixed(cy - r * cos(from * 2 * pi()), 2) + 'A' + r + ' ' + r + ' 0 ' + (part > 0.5 ? 1 : 0) + ' 1 ' + fixed(cx + r * sin((from + part) * 2 * pi()), 2) + ' ' + fixed(cy - r * cos((from + part) * 2 * pi()), 2) + 'Z'}}",
+														"fillColor": "{{computed.palette['accent' + (i % 6 + 1)]}}",
+														"stroke": "{{computed.palette['light1']}}",
+														"strokeWidth": 2
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	},
+	"actions": {
+		"insertChart": [
+			{
+				"note": "with: kind: puts a chart of that kind in the middle of the slide, with sample data, and selects it"
+			},
+			{
+				"set": "state.drop.open",
+				"to": false
+			},
+			{
+				"run": "insertObject",
+				"with": {
+					"object": "{{ {kind: 'chart', chart: kind, x: 180, y: 110, w: 600, h: 340, cells: [['', 'Series 1', 'Series 2', 'Series 3'], ['Category 1', '4.3', '2.4', '2'], ['Category 2', '2.5', '4.4', '2'], ['Category 3', '3.5', '1.8', '3'], ['Category 4', '4.5', '2.8', '5']]} }}"
+				}
+			}
+		],
+		"setChartKind": [
+			{
+				"note": "with: kind: the selected charts are drawn as columns, bars, a line or a pie"
+			},
+			{
+				"set": "state.drop.open",
+				"to": false
+			},
+			{
+				"if": "{{computed.chartSelected}}",
+				"then": [
+					{
+						"run": "commit"
+					},
+					{
+						"set": "state.deck.slides[state.current].objects",
+						"to": "{{map(computed.objects, contains(state.board.selection, it.id) && it.kind == 'chart' ? merge(it, { chart: kind }) : it)}}"
+					}
+				]
+			}
+		],
+		"editChartData": [
+			{
+				"note": "with: id: opens the chart's data as a table, its first value in an editor"
+			},
+			{
+				"set": "state.drop.open",
+				"to": false
+			},
+			{
+				"run": "editCell",
+				"with": {
+					"id": "{{id}}",
+					"r": 1,
+					"c": 1
+				}
+			}
+		]
+	}
+}

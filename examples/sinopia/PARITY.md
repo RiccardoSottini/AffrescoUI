@@ -40,7 +40,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
 | Text | Font colour and highlight | missing | done | colour-grids |
 | Text | Change case and clear formatting | missing | done | font-size-and-case |
-| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | align-text, align-a-paragraph (per paragraph while the text is edited; justified text draws flush left) |
+| Text | Paragraph alignment (left, centre, right, justify) | missing | done | align-text, align-a-paragraph (per paragraph while the text is edited; justified lines fill the box's width, the last one flush left) |
 | Text | Line spacing and columns | missing | done | paragraph-menus |
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
 | Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
@@ -56,21 +56,21 @@ with its slide show, presenter view, audience window and files on library capabi
 | Format pane | Effects | partial | done | shape-effects (none, shadow, glow, soft edges) |
 | Format pane | Size and position (with lock aspect ratio) | partial | done | format-size-and-rotation, format-gradient-dash-and-text-box, shape-format-tab |
 | Format pane | Text box options (anchor, margins, wrap) | missing | done | format-gradient-dash-and-text-box (margins, wrap, autofit) |
-| Arrange | Move and resize with handles | done | partial | selected |
-| Arrange | Smart guides (centres and edges) | missing | partial | |
-| Arrange | Distance indicators (equal gaps) | missing | missing | |
+| Arrange | Move and resize with handles | done | partial | selected (Shift held as the drag starts keeps a corner resize's proportions and a move on one axis; Ctrl to copy isn't there) |
+| Arrange | Smart guides (centres and edges) | missing | done | equal-gaps (the canvas snaps to other objects' and the slide's edges and centres, and to guides, drawing the lines while dragging) |
+| Arrange | Distance indicators (equal gaps) | missing | done | equal-gaps (a move snaps to a gap the row already has, or to the middle between two objects, and marks the equal gaps) |
 | Arrange | Align (left, centre, right, top, middle, bottom) | done | done | align-and-distribute |
 | Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
 | Arrange | Group and ungroup | missing | done | group-and-ungroup (Arrange, the context menu, Ctrl+G and Ctrl+Shift+G; a click on one member selects the group) |
 | Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | done | format-size-and-rotation, group-and-ungroup (Arrange: rotate 90° either way, flip either way; the canvas's handle turns one object) |
-| Arrange | Selection pane (names, show and hide) | missing | partial | selection-pane (Home > Select > Selection Pane; the names are given, not renamed) |
+| Arrange | Selection pane (names, show and hide) | missing | done | selection-pane (Home > Select > Selection Pane), rename-in-selection-pane (a double click renames) |
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | done | insert-a-picture (a PNG or JPEG, at most 640 by 400 in its proportions, kept in the deck so the saved file carries it) |
-| Content | Crop a picture | missing | missing | |
+| Content | Crop a picture | missing | partial | crop-a-picture (the picture's menu crops to a square, 4:3 or 16:9 around its middle, and Whole Picture undoes it; no crop handles to drag) |
 | Content | Tables | missing | done | insert-a-table (Insert > Table's size grid; a double click edits a cell, Tab and Shift+Tab move, Tab in the last cell adds a row) |
 | Content | Table styles | missing | done | insert-a-table (an accent of the theme for the selected table, under Insert > Table) |
-| Content | Charts (column, bar, line, pie) | missing | missing | |
+| Content | Charts (column, bar, line, pie) | missing | done | insert-a-chart (Insert > Chart: sample data drawn as columns, bars, a line or a pie with a legend and a value axis; a double click edits the data as a table) |
 | Content | Icons | missing | done | insert-tab |
 | Content | Links (to a slide of the deck, to a web address) | missing | partial | link-to-a-slide (to a slide, followed by a click in the show; no web addresses) |
 | Content | Text box and styled text effects | partial | done | add-a-text-box, insert-tab |
@@ -86,7 +86,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Tools | Find | missing | done | find-and-replace |
 | Tools | Replace | missing | done | find-and-replace |
 | Tools | Undo and redo | done | done | delete-and-undo |
-| Tools | Cut, copy and paste | partial | partial | duplicate-an-object, paste-menu (no other apps' clipboard) |
+| Tools | Cut, copy and paste | partial | done | duplicate-an-object, paste-menu, clipboard-with-other-apps (the objects' text goes to the system clipboard; another app's text pastes as a text box; pictures from other apps don't yet) |
 | Ink | Draw with a pen and a highlighter (colours, widths) | missing | done | ink |
 | Ink | Eraser and Clear Ink | missing | done | ink |
 | Ink | Ink to shape and ink replay | missing | done | ink-to-shape-and-replay (closed strokes to rectangles and ellipses) |
@@ -138,7 +138,7 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 102 | 11 | 9 | 122 |
+| Now | 108 | 8 | 6 | 122 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, Insert > Link one and View > Notes Page one (all missing at the start), so *Now* counts 122 rows.
 
@@ -150,19 +150,14 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 
 | Priority | Row or control | What it needs |
 |---|---|---|
-| P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
-| P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
-| P1 | Text: justified text | Library: justified wrapping in labels |
-| P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
-| P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
-| P2 | Content: charts (Insert > Chart) | JSON: a chart object drawn as shapes from a small data table |
+| P2 | Tools: paste a picture from another app | Library: a step that reads the system clipboard's image |
+| P2 | Arrange: Ctrl and a drag copies | Library: the canvas's `onTransform` saying the drag was a copy |
+| P3 | Content: crop a picture by dragging | JSON: a crop mode whose handles move the crop's sides instead of the box |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
 | P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
 | P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |
 | P2 | Always: locales | Library: string tables per locale in expressions; then JSON for every label |
 | P2 | Always: keyboard access, and names, roles and focus order | JSON: names on the remaining nodes and an audit of the focus order; key hints below |
-| P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
-| P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Shell: key hints' second level (a key on every ribbon button) | JSON: badges on each tab's buttons once its letter is pressed |
 | P3 | Design: variants of one's own | JSON: save a variant of a theme (themes of one's own are done) |

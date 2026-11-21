@@ -234,7 +234,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text, left to right; `"justify center"` centres the block vertically). |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text or `runs`, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -709,8 +709,10 @@ An infinite canvas, as in whiteboards and design tools: its children and its `it
 seen through a camera. Drag the background (or hold Space, or use the middle button) and scroll to pan; pinch, or Ctrl
 or Cmd with the wheel, zooms at the pointer, as do `+` and `-` (`0` resets the zoom, Shift+1 fits everything, Shift+2
 the selection). Click, Shift-click and a marquee select; the handles move, resize (eight of them) and rotate; arrow
-keys nudge (Shift: 10). Moves and resizes snap to the grid, to other items' edges and centres and to guides, with
-smart guides drawn while dragging. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
+keys nudge (Shift: 10). Shift held as a drag starts keeps a corner resize's proportions and a move along one axis.
+Moves and resizes snap to the grid, to other items' edges and centres and to guides, with smart guides drawn while
+dragging; a move also snaps to the gaps its row (or column) already has, or to the middle between two items, and
+distance indicators show the equal gaps. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is

@@ -67,8 +67,9 @@
      ~(object-shape)
      ~(object-icon)
      ~(object-ink)
-     (node :use slideTable :when ~(= o.kind :table) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
+     (node :use slideTable :when ~(or (= o.kind :table) (and (= o.kind :chart) editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
      (node :use slidePicture :when ~(= o.kind :picture) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
+     (node :use slideChart :when ~(and (= o.kind :chart) (not editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
      ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))
@@ -206,7 +207,7 @@
   "The editor over an object whose text is edited, its first line where the text's is."
   [o]
   `(editor :id ~(str "edit-" o.id)
-     :when ~editing
+     :when ~(and editing (not (contains? #{:table :chart} o.kind)))
      :autofocus true
      :wrap true
      :caret "state.caret"
@@ -263,11 +264,13 @@
 
 (defview paragraph-text "Paragraph `n`'s text, wrapped to the box less its mark." [o prefix n]
   `(label :id ~(str prefix o.id "-p" n "-t")
+     :let {:room ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
+                                                  (if (and bullets (not prompt)) mark 0))
+                                               1))}
      :wrap ~(or-else o.wrap true)
-     :fitText {:maxWidth ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
-                                  (if (and bullets (not prompt)) mark 0))
-                               1))}
-     :align {:horizontal ~(case pa :center "center" :right "end" "start")}
+     :fitText {:maxWidth ~room}
+     :minWidth ~(if (and (= pa :justify) (not= o.wrap false)) room 0)
+     :align {:horizontal ~(case pa :center "center" :right "end" :justify "justify" "start")}
      :runs [{:text ~(if (= (str/trim line) "") " " (str/trim line))
              :size ~pt
              :bold ~(or-else o.bold p.bold false)

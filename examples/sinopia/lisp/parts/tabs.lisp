@@ -138,8 +138,9 @@
        :with {:icon face-slightly-smiling :title ~(t "ribbon.icons") :menu true :width 44}
        :onClick ~(handler open-drop "b-ins-icons"))
      (node#b-ins-chart :use rbBig
-       :with {:icon chart-column-stacked :title ~(t "ribbon.chart") :width 44 :enabled false}
-       :tooltip ~(t "ribbon.insertingAChartIsnT"))))
+       :with {:icon chart-column-stacked :title ~(t "ribbon.chart") :menu true :width 44}
+       :tooltip ~(t "chart.insertTip")
+       :onClick ~(handler open-drop "b-ins-chart"))))
 
 (defview g-ins-text "A text box, a header and footer, word art and a symbol." []
   `(node#g-ins-text :use rbGroup :with {:title ~(t "object.newText")}

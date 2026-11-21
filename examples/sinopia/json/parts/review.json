@@ -11,7 +11,8 @@
 		"stroke": [],
 		"strokeFrom": [0, 0],
 		"sidePane": null,
-		"commentFocus": null
+		"commentFocus": null,
+		"naming": { "id": null, "text": "" }
 	},
 
 	"computed": {
@@ -131,6 +132,18 @@
 			{ "note": "with: id, the build to take off this slide" },
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].animations", "to": "{{filter(computed.slide.animations ?? [], it.id != id)}}" }
+		],
+		"nameObject": [
+			{ "note": "gives the object being named the name typed (an empty one gives back its default name)" },
+			{ "if": "{{state.naming.id != null}}", "then": [
+				{ "run": "setObjectName", "with": { "id": "{{state.naming.id}}", "typed": "{{trim(state.naming.text ?? '')}}" } }
+			] }
+		],
+		"setObjectName": [
+			{ "note": "with: id, the object, and typed, its new name (empty: its default name)" },
+			{ "set": "state.naming", "to": "{{ { id: null, text: '' } }}" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, it.id == id ? merge(it, { name: typed == '' ? null : typed }) : it)}}" }
 		],
 		"hideObjects": [
 			{ "note": "with: ids, the objects to show or hide, and hidden" },
@@ -374,10 +387,15 @@
 					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : o.kind == 'table' ? 'Table' : o.kind == 'picture' ? 'Picture' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
 					  "color": "{{contains(state.board.selection, o.id) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
-						{ "type": "label", "id": "{{'selection-' + o.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
-						  "textColor": "{{o.hidden ?? false ? '@rbMuted' : '@rbInk'}}", "label": "{{name}}",
+						{ "type": "label", "id": "{{'selection-' + o.id + '-name'}}", "when": "{{state.naming.id != o.id}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
+						  "textColor": "{{o.hidden ?? false ? '@rbMuted' : '@rbInk'}}", "label": "{{name}}", "tooltip": "Double-click to rename",
 						  "runs": [{ "text": "{{'  ' + name}}", "size": 12, "italic": "{{o.hidden ?? false}}" }],
-						  "onClick": [{ "if": "{{!(o.hidden ?? false)}}", "then": [{ "set": "state.board.selection", "to": "{{[o.id]}}" }] }] },
+						  "onClick": [{ "if": "{{!(o.hidden ?? false)}}", "then": [{ "set": "state.board.selection", "to": "{{[o.id]}}" }] }],
+						  "onDoubleClick": { "set": "state.naming", "to": "{{ { id: o.id, text: name } }}" } },
+						{ "type": "textarea", "id": "{{'selection-' + o.id + '-rename'}}", "when": "{{state.naming.id == o.id}}", "grow": 1, "height": 22, "padding": 4, "radius": 4, "autofocus": true,
+						  "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@brand", "textColor": "@rbInk", "bind": "state.naming.text", "label": "{{'Name of ' + name}}",
+						  "keys": { "escape": { "set": "state.naming", "to": "{{ { id: null, text: '' } }}" } },
+						  "onSubmit": { "run": "nameObject" }, "onBlur": { "run": "nameObject" } },
 						{ "id": "{{'selection-' + o.id + '-eye'}}", "use": "rbSmall", "with": { "icon": "{{o.hidden ?? false ? 'eye-off' : 'eye'}}" },
 						  "tooltip": "{{o.hidden ?? false ? 'Show it' : 'Hide it'}}",
 						  "onClick": { "run": "hideObjects", "with": { "ids": "{{[o.id]}}", "hidden": "{{!(o.hidden ?? false)}}" } } }

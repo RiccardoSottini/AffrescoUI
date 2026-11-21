@@ -8,6 +8,8 @@
 		"undo": [],
 		"redo": [],
 		"clip": [],
+		"clipText": "",
+		"pasted": "",
 		"editing": null
 	},
 
@@ -167,9 +169,24 @@
 				{ "set": "state.board.selection", "to": "{{map(filter(computed.selected, it.locked ?? false), it.id)}}" }
 			] }
 		],
-		"copyObjects": [{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.clip", "to": "{{computed.selected}}" }] }],
+		"copyObjects": [
+			{ "note": "copies the selected objects, and their text to the system clipboard, so another app can paste it" },
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "set": "state.clip", "to": "{{computed.selected}}" },
+				{ "set": "state.clipText", "to": "{{join(filter(map(computed.selected, it.text ?? ''), trim(it) != ''), '\n')}}" },
+				{ "if": "{{state.clipText != ''}}", "then": [{ "copy": "{{state.clipText}}" }] }
+			] }
+		],
 		"cutObjects": [{ "run": "copyObjects" }, { "run": "deleteObjects" }],
 		"pasteObjects": [
+			{ "note": "pastes what the system clipboard holds: the objects copied here (their own text, or nothing), or another app's text as a text box" },
+			{ "paste": "text", "into": "state.pasted", "onDone": [
+				{ "if": "{{trim(result ?? '') == '' || trim(result ?? '') == trim(state.clipText)}}",
+				  "then": [{ "run": "pasteClip" }],
+				  "else": [{ "run": "insertObject", "with": { "object": "{{ { kind: 'text', x: 180, y: 230, w: 600, h: 80, text: trim(result), size: 18 } }}" } }] }
+			], "onError": [{ "run": "pasteClip" }] }
+		],
+		"pasteClip": [
 			{ "if": "{{length(state.clip) > 0}}", "then": [
 				{ "run": "commit" },
 				{ "set": "state.deck.slides[state.current].objects", "to": "{{concat(computed.objects, map(state.clip, merge(it, { id: 'o' + (state.deck.next + index), x: (it.x ?? 0) + 18, y: (it.y ?? 0) + 18, ph: null, group: it.group == null ? null : it.group + '-' + state.deck.next })))}}" },
@@ -177,7 +194,7 @@
 				{ "increment": "state.deck.next", "by": "{{length(state.clip)}}" }
 			] }
 		],
-		"duplicateObjects": [{ "run": "copyObjects" }, { "run": "pasteObjects" }],
+		"duplicateObjects": [{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.clip", "to": "{{computed.selected}}" }, { "run": "pasteClip" }] }],
 		"selectAll": [{ "set": "state.board.selection", "to": "{{map(computed.objects, it.id)}}" }],
 		"insertObject": [
 			{ "run": "commit" },
