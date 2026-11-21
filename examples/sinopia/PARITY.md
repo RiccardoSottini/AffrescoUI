@@ -5,20 +5,20 @@ expects, and how far Sinopia goes: **done** (works as expected), **partial** (th
 *Start* is Sinopia as a C++ app; *Now* is Sinopia as a folder of JSON that the stock host runs,
 with its slide show, presenter view, audience window and files on library capabilities (the `windows` section,
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](lisp/index.scenarios.json) or
-[`design.scenarios.json`](lisp/design.scenarios.json) (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
+[`design.scenarios.json`](lisp/design.scenarios.json) or [`effects.scenarios.json`](lisp/effects.scenarios.json) (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
 | Area | Feature | Start | Now | Evidence |
 |---|---|---|---|---|
 | Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Record, Check, View, Help) | missing | done | first-frame, insert-tab, design-tab, ink, rehearse-timings, check-and-comments |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
-| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list), shape-format-tab (quick styles) |
-| Shell | Collapse and pin the ribbon | missing | partial | sections-and-ribbon (Ctrl+F1 and the bar's button; a tab brings it back pinned, not over the slide) |
+| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | done | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list), shape-format-tab (quick styles), transition-and-build-galleries (the transitions' and builds' whole lists) |
+| Shell | Collapse and pin the ribbon | missing | done | sections-and-ribbon (Ctrl+F1 and the bar's button), ribbon-over-the-slide (a tab shows the collapsed ribbon over the slide until a click elsewhere; its pin keeps it open) |
 | Shell | A contextual tab for the selected shape | missing | done | shape-format-tab (Shape Format: insert shapes, quick styles, arrange, size) |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
 | Shell | Search ("tell me what you want to do") that runs commands | missing | done | search-commands (the named commands, and the text in the slides), search-every-command (the ribbon menus' items too) |
 | Shell | File view (new, open, save, export) | missing | done | new-and-recent-decks (a new deck from a theme, recent decks), save-and-open, export-pdf |
-| Shell | Key hints (Alt shows a key on every command) | missing | missing | |
+| Shell | Key hints (Alt shows a key on every command) | missing | partial | key-hints (Alt pressed alone shows a letter under every tab and a digit under every quick command; the key opens the tab or runs the command; no second level on the ribbon's buttons yet) |
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
 | Slides | New slide with a layout, duplicate, delete | done | done | new-duplicate-delete-slide |
 | Slides | Drag to reorder | partial | done | sorter-drag-to-reorder |
@@ -49,11 +49,11 @@ with its slide show, presenter view, audience window and files on library capabi
 | Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | done | add-a-shape, first-frame, more-shape-presets |
 | Shapes | Shape fill (solid, gradient, none) | partial | done | format-fill-and-line, colour-grids, format-gradient-dash-and-text-box |
 | Shapes | Shape outline (colour, weight, dashes) | partial | done | format-fill-and-line, colour-grids, format-gradient-dash-and-text-box |
-| Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
+| Shapes | Shape effects (shadow, glow, soft edges) | partial | done | shape-effects, soft-edges-and-blurred-shadows (a blurred shadow, a blurred glow, soft edges) |
 | Shapes | Quick styles | missing | done | colour-grids |
 | Shapes | Text inside shapes | missing | done | edit-text-in-place |
 | Format pane | Fill and line | partial | done | format-fill-and-line, format-gradient-dash-and-text-box (gradients, dashes) |
-| Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
+| Format pane | Effects | partial | done | shape-effects (none, shadow, glow, soft edges) |
 | Format pane | Size and position (with lock aspect ratio) | partial | done | format-size-and-rotation, format-gradient-dash-and-text-box, shape-format-tab |
 | Format pane | Text box options (anchor, margins, wrap) | missing | done | format-gradient-dash-and-text-box (margins, wrap, autofit) |
 | Arrange | Move and resize with handles | done | partial | selected |
@@ -76,7 +76,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Content | Text box and styled text effects | partial | done | add-a-text-box, insert-tab |
 | Design | Layouts (title, title and content, section header, two content, comparison, title only, blank) | missing | done | slide-menus |
 | Design | Slide master view | missing | missing | |
-| Design | Themes | missing | partial | design-tab |
+| Design | Themes | missing | done | design-tab, own-themes (Save Theme keeps the deck's look, colours and fonts as a theme of one's own, first in the gallery and kept for every deck) |
 | Design | Variants | missing | partial | design-tab |
 | Design | Theme colours | missing | done | theme-colors-and-fonts (another theme's colours), own-theme-colours (hex codes of the deck's own) |
 | Design | Theme fonts | missing | partial | theme-colors-and-fonts (the titles' and the text's, from the two fonts the app ships) |
@@ -102,8 +102,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Transitions | Preview | missing | done | preview (in the window, from the slide before) |
 | Animations | Entrance effects | partial | done | add-an-animation |
 | Animations | Emphasis effects | missing | done | emphasis-and-timing (pulse, spin, teeter) |
-| Animations | Exit effects | missing | done | add-an-animation, emphasis-and-timing (fly to any side; wipe from the left only) |
-| Animations | Motion paths | missing | partial | emphasis-and-timing (four preset paths: right, down, arc, circle; no drawn paths) |
+| Animations | Exit effects | missing | done | add-an-animation, emphasis-and-timing (fly to any side), wipe-from-every-side (wipe from any side, in or out) |
+| Animations | Motion paths | missing | done | emphasis-and-timing (four preset paths: right, down, arc, circle), custom-motion-path (a path drawn by hand on the slide) |
 | Animations | Animation pane | missing | done | animation-pane (the order, reorder, remove, select) |
 | Animations | Timing (on click, with, after; duration, delay) | missing | done | add-an-animation, emphasis-and-timing (delay and repeat on the Motion tab and in the Animation Pane) |
 | Animations | Preview | missing | done | preview (each build once the one before has played) |
@@ -123,7 +123,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Presenter view | Laser pointer | missing | done | presenter-pen-and-laser (while pressed and dragged) |
 | Presenter view | Audience window | partial | done | presenter-view |
 | Files | Export to PDF | done | done | export-pdf |
-| Files | Export slides as images | partial | partial |  |
+| Files | Export slides as images | partial | done | File > All Slides: every slide shown as a numbered PNG in one step (a test run has no window to draw them, so this is checked by hand) |
 | Files | Save in its own format | done | done | save-and-open |
 | Files | Open its own format | partial | done | save-and-open |
 | Always | Light and dark | done | done | dark-mode |
@@ -138,7 +138,7 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 95 | 17 | 10 | 122 |
+| Now | 102 | 11 | 9 | 122 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, Insert > Link one and View > Notes Page one (all missing at the start), so *Now* counts 122 rows.
 
@@ -161,19 +161,14 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |
 | P2 | Always: locales | Library: string tables per locale in expressions; then JSON for every label |
 | P2 | Always: keyboard access, and names, roles and focus order | JSON: names on the remaining nodes and an audit of the focus order; key hints below |
-| P3 | Shell: key hints (Alt shows a key on every command) | Library: an event for Alt pressed and released alone; then JSON badges on the tabs and buttons |
-| P3 | Animations: wipe directions | JSON: the wipe band from the right, the top and the bottom |
-| P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
-| P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
-| P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
 | P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
 | P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
-| P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
+| P3 | Shell: key hints' second level (a key on every ribbon button) | JSON: badges on each tab's buttons once its letter is pressed |
+| P3 | Animations: a drawn motion path's line on the canvas | JSON: the path drawn over the slide while its object is selected |
+| P3 | Design: variants of one's own | JSON: save a variant of a theme (themes of one's own are done) |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |
-| P3 | Animations: motion paths drawn by hand (custom paths), and their line on the canvas | JSON: a path drawn on the slide as points, followed like an ink stroke |
 | P3 | Slide show: record and export to video (Record > Record, Record > Export to Video) | Library: audio and video capture and encoding |
-| P3 | Files: export every slide as an image at once | Library: an export of several PNG pages in one step |
 | P3 | Always: the assistant chat add-on | The kit add-on's placement (right-to-left, docking, the chat button's overlap); then JSON |
 | P3 | Text: character spacing (Home > Character Spacing) | Library: letter spacing on runs |
 | P3 | Text: convert to a diagram (Home > Convert to a Diagram) | JSON: diagram layouts made from a list's items |
