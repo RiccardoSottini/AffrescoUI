@@ -37,13 +37,6 @@
      :step step
      :top (* step whole)}))
 
-(defn plot-area
-  "Where a chart `w` by `h` draws its marks: room left for the axis (for a bar chart's categories, `across`), above for
-  the legend, below for the categories."
-  [w h across]
-  (let [left (if across 96 44)]
-    {:x left :y 36 :w (max (- w left 16) 10) :h (max (- h 68) 10)}))
-
 (defn chart-bars
   "The columns (or, `across`, the bars) of chart data `d` in plot area `a`: a band a category, the series side by side."
   [d a across]
@@ -152,9 +145,9 @@
      :width ~w
      :height ~h
      :let {:d ~(chart-data o.cells)
-           :a ~(plot-area w h (= (or-else o.chart "column") "bar"))
            :kind ~(or-else o.chart "column")
            :across ~(= (or-else o.chart "column") "bar")
+           :area ~{:x (if across 96 44) :y 36 :w (max (- w (if across 112 60)) 10) :h (max (- h 68) 10)}
            :pie ~(= (or-else o.chart "column") "pie")
            :ink ~(or-else computed.palette.dark2 computed.palette.dark1)}
      :color ~(get computed.palette "light1")
@@ -176,14 +169,14 @@
               :height 18
               :textColor ~ink
               :runs [{:text ~e.text :size 14}]))))
-     ~(repeat [g (if pie [] (chart-ticks d a across))]
+     ~(repeat [g (if pie [] (chart-ticks d area across))]
        `(node :id ~(str prefix o.id "-grid-" g.id)
-          :x ~(if across g.x a.x)
-          :y ~(if across a.y g.y)
-          :width ~(if across 1 a.w)
-          :height ~(if across a.h 1)
+          :x ~(if across g.x area.x)
+          :y ~(if across area.y g.y)
+          :width ~(if across 1 area.w)
+          :height ~(if across area.h 1)
           :color ~(get computed.palette "light2")))
-     ~(repeat [g (if pie [] (chart-ticks d a across))]
+     ~(repeat [g (if pie [] (chart-ticks d area across))]
        `(label :id ~(str prefix o.id "-tick-" g.id)
           :x ~(if across (- g.x 20) 0)
           :y ~(if across (+ g.y 4) (- g.y 9))
@@ -192,9 +185,9 @@
           :align {:horizontal ~(if across "center" "end") :vertical center}
           :textColor ~ink
           :runs [{:text ~g.text :size 12}]))
-     ~(repeat [b (if (contains? #{"column" "bar"} kind) (chart-bars d a across) [])]
+     ~(repeat [b (if (contains? #{"column" "bar"} kind) (chart-bars d area across) [])]
        `(node :id ~(str prefix o.id "-bar-" b.id) :x ~b.x :y ~b.y :width ~b.w :height ~b.h :color ~b.color))
-     ~(repeat [c (if pie [] (chart-cats d a across))]
+     ~(repeat [c (if pie [] (chart-cats d area across))]
        `(label :id ~(str prefix o.id "-cat-" c.id)
           :x ~c.x
           :y ~c.y
@@ -205,31 +198,31 @@
           :runs [{:text ~c.text :size 14}]))
      (node :id ~(str prefix o.id "-plot")
        :when ~(contains? #{"line" "pie"} kind)
-       :x ~a.x
-       :y ~a.y
-       :width ~a.w
-       :height ~a.h
+       :x ~area.x
+       :y ~area.y
+       :width ~area.w
+       :height ~area.h
        :color transparent
-       ~(repeat [l (if (= kind "line") (chart-lines d a) [])]
+       ~(repeat [l (if (= kind "line") (chart-lines d area) [])]
          `(path :id ~(str prefix o.id "-line-" l.id)
             :x 0
             :y 0
-            :width ~a.w
-            :height ~a.h
-            :viewBox ~(str "0 0 " a.w " " a.h)
+            :width ~area.w
+            :height ~area.h
+            :viewBox ~(str "0 0 " area.w " " area.h)
             :d ~l.d
             :fillColor transparent
             :stroke ~l.color
             :strokeWidth 3
             :strokeCap round
             :strokeJoin round))
-       ~(repeat [s (if pie (chart-slices d a) [])]
+       ~(repeat [s (if pie (chart-slices d area) [])]
          `(path :id ~(str prefix o.id "-slice-" s.id)
             :x 0
             :y 0
-            :width ~a.w
-            :height ~a.h
-            :viewBox ~(str "0 0 " a.w " " a.h)
+            :width ~area.w
+            :height ~area.h
+            :viewBox ~(str "0 0 " area.w " " area.h)
             :d ~s.d
             :fillColor ~s.color
             :stroke ~(get computed.palette "light1")
