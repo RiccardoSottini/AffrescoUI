@@ -73,7 +73,7 @@
              :when ~(and (not= state.filter.kind "add-noise") (not= state.filter.kind "motion-blur"))
              :with {:title ~(t "filter.radius") :key radius :low 1 :high 100})
           `(node :use tFilterSlider
-             :when ~(and (not= state.filter.kind "gaussian-blur") (not= state.filter.kind "motion-blur"))
+             :when ~(not (contains ["gaussian-blur" "motion-blur" "high-pass"] state.filter.kind))
              :with {:title ~(t "filter.amount") :key amount :low 1 :high 500})
           `(node :use tFilterSlider
              :when ~(= state.filter.kind "unsharp-mask")

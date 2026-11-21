@@ -125,7 +125,7 @@
   "The kinds of adjustment layer, in the Adjust panel and its menu.")
 
 (defstate filters
-  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise}]
+  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise} {:id high-pass}]
   "The filters the Filter menu opens.")
 
 (defstate profiles [{:id srgb} {:id displayP3} {:id wideRgb} {:id gray}] "The colour profiles a document can be in.")

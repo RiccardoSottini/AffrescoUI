@@ -1577,7 +1577,7 @@ The names the operations and tool options take, and the library's limits:
 | A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
-| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur`, `high-pass` |
 | The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
 | `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `imageFilePixels` 268435456, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
 <!-- end generated -->

@@ -201,7 +201,8 @@
   {:last {:run lastFilter :group "1_last"}
    :blur {:submenu blurFilters :title ~(t "menu.filter.blur") :group "2_kinds" :order 1}
    :noise {:submenu noiseFilters :title ~(t "menu.filter.noise") :group "2_kinds" :order 2}
-   :sharpen {:submenu sharpenFilters :title ~(t "menu.filter.sharpen") :group "2_kinds" :order 3}})
+   :sharpen {:submenu sharpenFilters :title ~(t "menu.filter.sharpen") :group "2_kinds" :order 3}
+   :other {:submenu otherFilters :title ~(t "menu.filter.other") :group "2_kinds" :order 4}})
 
 (defmenu blurFilters "Filter > Blur."
   {:gaussianBlur {:run showFilter :with {:args {:kind gaussian-blur}}
@@ -210,6 +211,9 @@
 
 (defmenu noiseFilters "Filter > Noise."
   {:addNoise {:run showFilter :with {:args {:kind add-noise}} :title ~(t "menu.noiseFilters.addNoise")}})
+
+(defmenu otherFilters "Filter > Other."
+  {:highPass {:run showFilter :with {:args {:kind high-pass}} :title ~(t "menu.otherFilters.highPass")}})
 
 (defmenu sharpenFilters "Filter > Sharpen."
   {:sharpen {:run showFilter :with {:args {:kind sharpen}} :title ~(t "menu.sharpenFilters.sharpen") :order 1}

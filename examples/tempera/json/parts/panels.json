@@ -580,7 +580,7 @@
 					  "children": [
 						{ "use": "tFilterSlider", "when": "{{state.filter.kind != 'add-noise' && state.filter.kind != 'motion-blur'}}",
 						  "with": { "title": "Radius", "key": "radius", "min": 1, "max": 100 } },
-						{ "use": "tFilterSlider", "when": "{{state.filter.kind != 'gaussian-blur' && state.filter.kind != 'motion-blur'}}",
+						{ "use": "tFilterSlider", "when": "{{state.filter.kind != 'gaussian-blur' && state.filter.kind != 'motion-blur' && state.filter.kind != 'high-pass'}}",
 						  "with": { "title": "Amount", "key": "amount", "min": 1, "max": 500 } },
 						{ "use": "tFilterSlider", "when": "{{state.filter.kind == 'unsharp-mask'}}",
 						  "with": { "title": "Threshold", "key": "threshold", "max": 255 } },

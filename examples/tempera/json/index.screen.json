@@ -150,7 +150,8 @@
 		"docName": "Untitled 1",
 		"filters": [
 			{ "id": "gaussian-blur", "title": "Gaussian Blur" }, { "id": "motion-blur", "title": "Motion Blur" },
-			{ "id": "sharpen", "title": "Sharpen" }, { "id": "unsharp-mask", "title": "Unsharp Mask" }, { "id": "add-noise", "title": "Add Noise" }
+			{ "id": "sharpen", "title": "Sharpen" }, { "id": "unsharp-mask", "title": "Unsharp Mask" }, { "id": "add-noise", "title": "Add Noise" },
+			{ "id": "high-pass", "title": "High Pass" }
 		],
 		"gradientEdit": { "kind": "linear", "angle": 90, "stops": [{ "at": 0, "color": "#000000ff" }, { "at": 1, "color": "#ffffffff" }] },
 		"lastFilter": {},

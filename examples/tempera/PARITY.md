@@ -89,7 +89,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Curves | partial | The tones show behind the curve; one curve for all channels |
 | Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; no Colorize or colour ranges |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
-| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; Filter > Last Filter (Alt+Cmd+F) applies the last one again with its values; not every filter |
+| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; also Sharpen and High Pass (Filter > Other); Filter > Last Filter (Alt+Cmd+F) applies the last one again with its values; no median or lens blur |
 
 ## Image and file
 
@@ -140,7 +140,7 @@ general feature the image step or a node needs first.
 | Anti-alias checks (marquee, fill) | P3 | Library: an anti-alias flag on selection edges and fills (always on now) |
 | Curves per channel | P2 | Library: per-channel curves in the adjustment (the curves node already shows channels); then JSON |
 | Hue/Saturation: Colorize and colour ranges | P3 | Library: a colorize mode and per-range hue in the adjustment |
-| Filters: more kinds | P2 | Library: further filter kinds (high pass, median, lens blur); each then a JSON dialog |
+| Filters: more kinds | P2 | Library: further filter kinds (median, lens blur); each then a JSON dialog |
 | Edit > Stroke | P2 | Library: stroking the selection's outline |
 | Image > Mode | P2 | Library: converting the document's format (8/16 bit, greyscale) |
 | File > Print | P3 | The host: printing isn't offered to screens |

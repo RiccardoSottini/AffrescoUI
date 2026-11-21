@@ -1405,6 +1405,52 @@
 			]
 		},
 		{
+			"name": "tempera-high-pass",
+			"note": "Filter > Other > High Pass opens its dialog with the radius alone, and OK applies it as a step",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-filter"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Other"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "High Pass..."
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.kind",
+						"is": "high-pass"
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": true
+					}
+				},
+				{
+					"action": "commitFilter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-last-filter-and-panel-keys",
 			"note": "Filter > Last Filter (Alt+Cmd+F) applies the filter last applied again; F7 and F6 bring the Layers and Colour panels forward, Cmd+; shows or hides the guides, F1 says what Tempera is",
 			"steps": [

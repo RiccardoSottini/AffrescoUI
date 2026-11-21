@@ -671,7 +671,11 @@
 			"last": { "run": "lastFilter", "group": "1_last" },
 			"blur": { "submenu": "blurFilters", "title": "Blur", "group": "2_kinds", "order": 1 },
 			"noise": { "submenu": "noiseFilters", "title": "Noise", "group": "2_kinds", "order": 2 },
-			"sharpen": { "submenu": "sharpenFilters", "title": "Sharpen", "group": "2_kinds", "order": 3 }
+			"sharpen": { "submenu": "sharpenFilters", "title": "Sharpen", "group": "2_kinds", "order": 3 },
+			"other": { "submenu": "otherFilters", "title": "Other", "group": "2_kinds", "order": 4 }
+		},
+		"otherFilters": {
+			"highPass": { "run": "showFilter", "with": { "args": { "kind": "high-pass" } }, "title": "High Pass..." }
 		},
 		"blurFilters": {
 			"gaussianBlur": { "run": "showFilter", "with": { "args": { "kind": "gaussian-blur" } }, "title": "Gaussian Blur...", "order": 1 },
