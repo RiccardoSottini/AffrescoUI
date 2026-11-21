@@ -176,12 +176,14 @@ TEST_CASE("imaging gradient: reverse, transparency and dither") {
 	const std::uint64_t pixels = document.activeLayer()->pixels;
 	Gradient fade;
 	fade.stops = {{0.0f, {0.0f, 0.0f, 0.0f, 1.0f}}, {1.0f, {1.0f, 1.0f, 1.0f, 0.0f}}};
-	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f, {true, false, false});
+	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f,
+	             {true, false, false});
 	const Image& image = *document.image(pixels);
-	CHECK(image.pixel(5, 5).red > 0.9f);  // reversed: white at the start
+	CHECK(image.pixel(5, 5).red > 0.9f);    // reversed: white at the start
 	CHECK(image.pixel(5, 5).alpha > 0.99f); // no transparency: opaque
 	document.undo();
-	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f, {false, true, true});
+	drawGradient(document, pixels, fade, GradientShape::linear, {0.0f, 0.0f}, {300.0f, 0.0f}, 1.0f,
+	             {false, true, true});
 	CHECK(document.history().steps().back().name == "Gradient");
 }
 
