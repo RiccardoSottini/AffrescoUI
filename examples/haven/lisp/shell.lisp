@@ -166,14 +166,17 @@
 ;;; Over the pages
 
 (defview dialogs
-  "The dialogs, each over a scrim that dims the page: a light's colour, the details of a control, a card's editor."
+  "The dialogs, each over a scrim that dims the page: a light's colour, the details of a control, a card's editor, a
+  new device."
   []
   [`(node#scrim-app :use scrim :with {:open state.colourOpen})
    `(node#colourDialog :use colourDialog)
    `(node#scrim-app-2 :use scrim :with {:open state.info.open})
    `(node#moreInfo :use moreInfo)
    `(node#scrim-app-3 :use scrim :with {:open state.cardEdit.open})
-   `(node#cardEditor :use cardEditor)])
+   `(node#cardEditor :use cardEditor)
+   `(node#scrim-new-device :use scrim :with {:open state.newDevice.open})
+   `(node#newDeviceDialog :use newDeviceDialog)])
 
 (defview notes "The notes at the bottom: the last message, and the progress of a device's call while it runs." []
   [`(node#toast :dir auto :use snackbar :with {:open state.toast.open :message ~state.toast.message})

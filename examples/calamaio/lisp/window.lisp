@@ -54,6 +54,7 @@
      :activeLineNumberColor @fg
      :wrap ~(get settings "visual-line-mode")
      :brackets ~(get settings "show-paren-mode")
+     :whitespace ~(get settings "whitespace-mode")
      :rulers ~(if (get settings "display-fill-column-indicator-mode") [(get settings "fill-column")] [])
      :guideColor @barLine
      :readOnly ~(= b.readOnly true)
@@ -69,11 +70,12 @@
 (defview editor-keys
   "The keys a window's editor leaves to Calamaio: a listing's RET, g and q, a folder's d, u, x, R, C and +, an
   argument's digits, and every key while Calamaio reads them itself (a register's name, a character after C-u, a
-  keyboard macro): those go to register-key or editor-key, the named keys too when their own binding doesn't apply."
+  keyboard macro): those go to register-key or editor-key first, which runs a listing's keys and electric pairs itself
+  (window-command in macros.lisp), so a macro records them too."
   [w]
   (let [reading `[{:when ~(and (= state.sel w) state.regread.on) :do register-key}
                   {:when ~(and (= state.sel w) computed.readsKeys) :do editor-key}]
-        with-reading #(vector (first reading) % (second reading))
+        with-reading #(conj reading %)
         listing `{:when ~(and (= state.sel w) (or (= b.mode "dired") (= b.mode "buffer-menu")) (not state.is.on))}
         dired `{:when ~(and (= state.sel w) (= b.mode "dired") (not state.is.on))}]
     (merge (update-vals {:enter (assoc listing :do "listing-visit")
@@ -88,7 +90,10 @@
                                          (not= b.mode "messages") (not state.is.on) (not state.qr.on))
                               :do quit-window}}
                         with-reading)
-           {"*" reading}
+           {"*" reading
+            :space (with-reading `{:when ~(and (= state.sel w) (get settings "auto-fill-mode") (not state.is.on)
+                                              (not state.qr.on))
+                                   :do auto-fill-space})}
            (zipmap (map str (range 10)) (map #(with-reading (digit-binding %)) (range 10)))
            (update-vals pair-keys #(with-reading (pair-binding %))))))
 
@@ -149,6 +154,7 @@
        :tooltip ~(t "modeLine.readOnlyTip"))
      (label :fitText true :textColor ~(if on "@mlFg" "@mliFg")
        :text ~(str (get-in state.modes [b.mode :title]) (if (get settings "visual-line-mode") (t "modeLine.wrap") "")
+                   (if (get settings "auto-fill-mode") (t "modeLine.fill") "")
                    (if (and on state.kmacro.on) (t "modeLine.defining") "")))
      (node :grow 1 :height 1 :color transparent)
      (label :when ~(not= b.kind "customize") :fitText true :textColor ~(if on "@mlFg" "@mliFg")

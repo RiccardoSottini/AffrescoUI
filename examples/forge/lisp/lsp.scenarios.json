@@ -765,7 +765,7 @@
 		},
 		{
 			"name": "forge-problems-sorted-and-filtered",
-			"note": "Problems lists errors before warnings, and its filter keeps the rows whose message or file has the text typed",
+			"note": "Problems lists each file with its problems under it, errors before warnings, and its filter keeps the rows whose message or file has the text typed",
 			"steps": [
 				{
 					"action": "openExplorerItem",
@@ -807,6 +807,18 @@
 				},
 				{
 					"action": "showProblems"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "problemsFolded",
+						"is": []
+					}
+				},
+				{
+					"capture": "problems-tree"
 				},
 				{
 					"expect": {

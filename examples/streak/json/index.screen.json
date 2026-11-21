@@ -105,9 +105,9 @@
 			"black": "#9e9e9e"
 		},
 		"c.faint": {
-			"light": "#cfcfcf",
-			"dark": "#5a5a5a",
-			"black": "#454545"
+			"light": "#b3b3b3",
+			"dark": "#6b6b6b",
+			"black": "#555555"
 		},
 		"c.track": {
 			"light": "#ebe7e3",

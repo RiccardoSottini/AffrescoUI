@@ -199,9 +199,9 @@
 			}
 		],
 		"devices": [
-			{ "id": "door", "name": "Front door", "icon": "lock", "iconOff": "lock-open", "on": true, "busy": false, "progress": 0 },
-			{ "id": "vacuum", "name": "Vacuum", "icon": "bot", "iconOff": "bot", "on": false, "busy": false, "progress": 0 },
-			{ "id": "speaker", "name": "Speaker", "icon": "speaker", "iconOff": "speaker", "on": false, "busy": false, "progress": 0 }
+			{ "id": "door", "kind": "door", "name": "Front door", "icon": "lock", "iconOff": "lock-open", "on": true, "busy": false, "progress": 0 },
+			{ "id": "vacuum", "kind": "vacuum", "name": "Vacuum", "icon": "bot", "iconOff": "bot", "on": false, "busy": false, "progress": 0 },
+			{ "id": "speaker", "kind": "speaker", "name": "Speaker", "icon": "speaker", "iconOff": "speaker", "on": false, "busy": false, "progress": 0 }
 		],
 		"toast": { "open": false, "message": "" },
 		"quickPick": { "open": false, "query": "" },
@@ -228,7 +228,7 @@
 		"modes": {"type": "array", "items": {"type": "string"}},
 		"scene": {"type": "string"},
 		"rooms": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "image": {"type": "string"}, "tint": {"type": "string"}, "temp": {"type": "number"}, "target": {"type": "number"}, "humidity": {"type": "number"}, "blinds": {"type": "number"}, "kwh": {"type": "number"}, "lights": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "on": {"type": "boolean"}, "level": {"type": "number"}, "color": {"type": "string"}}}}}}},
-		"devices": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "icon": {"type": "string"}, "iconOff": {"type": "string"}, "on": {"type": "boolean"}, "busy": {"type": "boolean"}, "progress": {"type": "number"}}}},
+		"devices": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "kind": {"type": "string"}, "maker": {"type": "string"}, "room": {"type": "integer"}, "link": {"type": "string"}, "name": {"type": "string"}, "icon": {"type": "string"}, "iconOff": {"type": "string"}, "on": {"type": "boolean"}, "busy": {"type": "boolean"}, "progress": {"type": "number"}}}},
 		"toast": {"type": "object", "properties": {"open": {"type": "boolean"}, "message": {"type": "string"}}},
 		"scenes": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "key": {"type": "string"}, "action": {"type": "string"}, "icon": {"type": "string"}}}},
 		"energyView": {"enum": ["day", "device", "room"]},
@@ -316,7 +316,7 @@
 					{ "set": "state.devices[i].busy", "to": false },
 					{ "toggle": "state.devices[i].on" },
 					{ "if": "{{settings.devices.notify}}", "then": [{ "run": "showToast", "with": {
-						"message": "{{t('toast.device', { name: state.devices[i].name, state: lower(t('device.' + state.devices[i].id + (state.devices[i].on ? '.on' : '.off'))) })}}" } }] }
+						"message": "{{t('toast.device', { name: state.devices[i].name, state: lower(t('device.' + state.devices[i].kind + (state.devices[i].on ? '.on' : '.off'))) })}}" } }] }
 				] }
 			] }
 		],
@@ -809,16 +809,16 @@
 													{ "type": "label", "id": "deviceIcon", "icon": "{{d.on ? d.icon : d.iconOff}}", "text": "", "textColor": "{{d.on ? '@accent' : '@muted'}}", "color": "{{d.on ? '@accentSoft' : '@raised'}}",
 														"anchors": { "left": 10, "top": 12 }, "width": 32, "height": 32, "radius": 16, "align": "center" },
 													{ "type": "label", "id": "deviceName", "text": "{{d.name}}", "textColor": "@text", "anchors": { "left": 50, "right": 4, "top": 12 }, "height": 18 },
-													{ "id": "deviceState", "style": "caption", "text": "{{d.busy ? t('device.waiting') : t('device.' + d.id + (d.on ? '.on' : '.off'))}}", "anchors": { "left": 50, "top": 32 }, "live": "polite" },
+													{ "id": "deviceState", "style": "caption", "text": "{{d.busy ? t('device.waiting') : t('device.' + d.kind + (d.on ? '.on' : '.off'))}}", "anchors": { "left": 50, "top": 32 }, "live": "polite" },
 													{
 														"id": "deviceAction",
 														"when": "{{state.cards.devices.actions}}",
 														"style": "button",
-														"text": "{{d.busy ? '…' : t('device.' + d.id + (d.on ? '.doOff' : '.doOn'))}}",
+														"text": "{{d.busy ? '…' : t('device.' + d.kind + (d.on ? '.doOff' : '.doOn'))}}",
 														"font": "small",
 														"anchors": { "left": 12, "right": 12, "bottom": 12 },
 														"height": 28,
-														"label": "{{d.name}}: {{d.busy ? t('device.waiting') : t('device.' + d.id + (d.on ? '.doOff' : '.doOn'))}}",
+														"label": "{{d.name}}: {{d.busy ? t('device.waiting') : t('device.' + d.kind + (d.on ? '.doOff' : '.doOn'))}}",
 														"onClick": { "run": "deviceCall", "with": { "i": "{{i}}" } }
 													},
 													{ "id": "deviceProgress", "when": "{{d.busy}}", "anchors": { "left": 0, "bottom": 0 }, "width": "{{d.progress * 100}}%", "height": 3, "color": "@accent" }
@@ -870,6 +870,8 @@
 					},
 					{ "id": "scrim-app", "use": "scrim", "with": { "open": "state.colourOpen" } },
 					{ "id": "colourDialog", "use": "colourDialog" },
+					{ "id": "scrim-new-device", "use": "scrim", "with": { "open": "state.newDevice.open" } },
+					{ "id": "newDeviceDialog", "use": "newDeviceDialog" },
 					{ "id": "scrim-app-2", "use": "scrim", "with": { "open": "state.info.open" } },
 					{ "id": "moreInfo", "use": "moreInfo" },
 					{ "id": "scrim-app-3", "use": "scrim", "with": { "open": "state.cardEdit.open" } },

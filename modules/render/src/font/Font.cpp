@@ -439,8 +439,10 @@ Font::FittedGlyph Font::fitGlyph(const Glyph& glyph, float pen) const noexcept {
 	const Glyph& plain = rasterGlyph(glyph);
 	const float scale = data_->rasterScale;
 	const float pixels = pen * scale;
-	if(!fitsPixels(scale)) return {&plain, pen};
 	const float nearest = std::round(pixels) / scale;
+	// Dense enough to be unhinted and unmoved: still drawn from a pixel column, never resampled between two by the
+	// atlas's linear filter (which smeared every stem over two columns), within half a pixel of its place
+	if(!fitsPixels(scale)) return {&plain, std::isfinite(pixels) ? nearest : pen};
 	if(plain.color || !std::isfinite(pixels)) return {&plain, nearest};
 
 	// The fraction to the nearest quarter: a whole one is the next column, unmoved

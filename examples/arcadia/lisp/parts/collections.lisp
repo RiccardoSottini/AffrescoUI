@@ -1,4 +1,4 @@
-;;; collections.lisp --- the library's own collections: making one, by hand or by a rule, and removing it
+;;; collections.lisp --- the library's own collections: making one, by hand or by a rule, changing it, removing it
 ;;;
 ;;; A collection is a name and either the games picked for it (`:games`) or a rule (`:rule {:field :value}`) that
 ;;; keeps it filled by itself: every owned game whose field holds that value is in it, now and later. library.lisp shows
@@ -8,7 +8,9 @@
 
 ;;; What the window keeps
 
-(defstate newCollection {:open false :title "" :kind manual :games [] :rule nil :error ""})
+(defstate newCollection {:open false :title "" :kind manual :games [] :rule nil :error "" :editing nil}
+  "The collection window: open, the name, picked games or a rule, the error shown, and the collection it changes (nil
+  for a new one).")
 
 (defstate collectionSeq 0)
 
@@ -29,19 +31,19 @@
 ;;; The window
 
 (defcomponent collectionDialog
-  "A new collection: its name, then either the games ticked for it or the rule that fills it by itself."
+  "A new collection, or one being changed: its name, then either the games ticked for it or the rule that fills it by
+  itself."
   {}
   `(node :use dialog
      :with {:open state.newCollection.open
             :width 540
             :height 440
-            :title ~(t "coll.title")
+            :title ~(if (some? state.newCollection.editing) (t "coll.editTitle") (t "coll.title"))
             :color @color.panel
             :textColor @color.text
             :dimColor @color.muted
             :highlight @color.accent
-            :buttons [{:title ~(t "coll.create") :run createCollection :default true :keepOpen true}
-                      {:title ~(t "dialog.cancel")}]}
+            :buttons ~(collection-buttons)}
      ~(collection-name)
      (label#coll-error :when ~(not= state.newCollection.error "")
        :font small
@@ -73,6 +75,14 @@
        :role radiogroup
        :label ~(t "coll.rule")
        ~(repeat [rule computed.collectionRules :key rule.key] (rule-pill rule)))))
+
+(defn collection-buttons "The window's buttons: create (or save), delete when it changes a collection, cancel." []
+  (if (some? state.newCollection.editing)
+    [{:title (t "coll.save") :run "createCollection" :default true :keepOpen true}
+     {:title (t "coll.remove") :run "deleteCollection" :with {:id state.newCollection.editing}}
+     {:title (t "dialog.cancel")}]
+    [{:title (t "coll.create") :run "createCollection" :default true :keepOpen true}
+     {:title (t "dialog.cancel")}]))
 
 (defview collection-name "The collection's name; Enter makes it." []
   `(textarea#coll-name :height 32
@@ -146,26 +156,47 @@
   :icon "folder-plus"
   []
   (dismiss)
-  (set "state.newCollection" {:open true :title "" :kind "manual" :games [] :rule nil :error ""}))
+  (set "state.newCollection" {:open true :title "" :kind "manual" :games [] :rule nil :error "" :editing nil}))
 
-(defcommand createCollection "Makes the collection the window describes; it needs a name, and games or a rule."
+(defcommand editCollection "Opens a collection in the window, to rename it, change its games or rule, or delete it."
+  :title ~(t "coll.edit") :description ~(t "command.editCollection.about") :category ~(t "category.library")
+  :icon "pencil"
+  [id]
+  (when-some [c (find #(= (:id %) id) state.collections)]
+    (dismiss)
+    (set "state.newCollection"
+         {:open true
+          :title (:title c)
+          :kind (if (some? (:rule c)) "dynamic" "manual")
+          :games (or (:games c) [])
+          :rule (when-some [r (:rule c)]
+                  (find #(and (= (:field %) (:field r)) (= (:value %) (:value r))) computed.collectionRules))
+          :error ""
+          :editing id})))
+
+(defn collection-from "The collection the window describes, by its id and name: its picked games, or its rule."
+  [draft id title]
+  (if (= (:kind draft) "manual")
+    {:id id :title title :games (:games draft)}
+    {:id id :title title :games [] :rule {:field (get-in draft [:rule :field]) :value (get-in draft [:rule :value])}}))
+
+(defcommand createCollection
+  "Makes the collection the window describes, or saves the one it changes; it needs a name, and games or a rule."
   :title ~(t "coll.create") :description ~(t "command.createCollection.about") :category ~(t "category.library")
   []
   (let [draft state.newCollection
-        title (str/trim (:title draft))
-        manual (= (:kind draft) "manual")]
+        title (str/trim (:title draft))]
     (cond
       (empty? title) (set "state.newCollection.error" (t "coll.error.name"))
-      (and (not manual) (nil? (:rule draft))) (set "state.newCollection.error" (t "coll.error.rule"))
+      (and (= (:kind draft) "dynamic") (nil? (:rule draft))) (set "state.newCollection.error" (t "coll.error.rule"))
+      (some? (:editing draft))
+      (do (set "state.collections"
+               (map #(if (= (:id %) (:editing draft)) (collection-from draft (:id %) title) %) state.collections))
+          (set "state.newCollection.open" false)
+          (notify (t "coll.saved" {:name title})))
       :else (do (set "state.collectionSeq" (inc state.collectionSeq))
                 (set "state.collections"
-                     (concat state.collections
-                             [(if manual
-                                {:id (str "mine-" state.collectionSeq) :title title :games (:games draft)}
-                                {:id (str "mine-" state.collectionSeq)
-                                 :title title
-                                 :games []
-                                 :rule {:field (get-in draft [:rule :field]) :value (get-in draft [:rule :value])}})]))
+                     (concat state.collections [(collection-from draft (str "mine-" state.collectionSeq) title)]))
                 (set "state.newCollection.open" false)
                 (notify (t "coll.created" {:name title}))))))
 
@@ -173,4 +204,7 @@
   :title ~(t "coll.delete") :description ~(t "command.deleteCollection.about") :category ~(t "category.library")
   :icon "trash-2"
   [id]
-  (set "state.collections" (remove #(= (:id %) id) state.collections)))
+  (when-some [c (find #(= (:id %) id) state.collections)]
+    (notify (t "coll.deleted" {:name (:title c)})))
+  (set "state.collections" (remove #(= (:id %) id) state.collections))
+  (set "state.newCollection.open" false))

@@ -23,7 +23,8 @@
 		"couchGames": "{{sort(computed.owned, it.lastPlayed ?? 0, 'desc')}}",
 		"couchGame": "{{computed.couchGames[state.couch.at]}}",
 		"gameTitles": "{{fromEntries(map(data.games, { key: it.id, value: it.title }))}}",
-		"couchItems": "{{state.couch.section == 'store' ? map(filter(computed.storeGames, !it.owned), { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.storeLine', { genre: it.genre ?? '', price: formatCurrency(it.price * (1 - (it.discount ?? 0) / 100), 'EUR') }) }) : state.couch.section == 'friends' ? map(data.friends, { id: it.id, title: it.name, file: '../assets/art/avatars/' + it.avatar + '.svg', sub: it.presence == 'ingame' ? t('couch.playing', { game: computed.gameTitles[it.game] ?? '' }) : t('presence.' + it.presence) }) : map(computed.couchGames, { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.gameLine', { genre: it.genre ?? '', hours: formatNumber(it.hours ?? 0, 0, 1) }) })}}",
+		"couchItems": "{{state.couch.section == 'store' ? map(filter(computed.storeGames, !it.owned), { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.storeLine', { genre: it.genre ?? '', price: formatCurrency(it.price * (1 - (it.discount ?? 0) / 100), 'EUR') }) }) : state.couch.section == 'friends' ? map(data.friends, { id: it.id, title: it.name, file: '../assets/art/avatars/' + it.avatar + '.svg', sub: it.presence == 'ingame' ? t('couch.playing', { game: computed.gameTitles[it.game] ?? '' }) : t('presence.' + it.presence) }) : state.couch.section == 'settings' ? computed.couchSettings : map(computed.couchGames, { id: it.id, title: it.title, file: '../assets/art/' + (it.art ?? it.id) + '/cover.svg', sub: t('couch.gameLine', { genre: it.genre ?? '', hours: formatNumber(it.hours ?? 0, 0, 1) }) })}}",
+		"couchSettings": "{{[{ id: 'theme', key: 'appearance.theme', icon: 'palette', title: t('settings.theme'), values: ['dark', 'light'], sub: t('settings.' + settings.appearance.theme), at: settings.appearance.theme }, { id: 'language', key: 'appearance.language', icon: 'languages', title: t('settings.language'), values: ['en', 'es', 'fr'], sub: { en: 'English', es: 'Español', fr: 'Français' }[settings.appearance.language], at: settings.appearance.language }, { id: 'start', key: 'appearance.startPage', icon: 'home', title: t('settings.startPage'), values: ['library', 'store', 'community'], sub: t('nav.' + settings.appearance.startPage), at: settings.appearance.startPage }, { id: 'sort', key: 'library.sortBy', icon: 'arrow-down-wide-narrow', title: t('settings.sortBy'), values: ['name', 'playtime', 'recent'], sub: t('sort.' + settings.library.sortBy), at: settings.library.sortBy }]}}",
 		"couchItem": "{{computed.couchItems[state.couch.at]}}",
 		"installedGames": "{{sort(filter(data.games, it.installed), it.sizeGb ?? 0, 'desc')}}",
 		"usedGb": "{{sum(filter(data.games, it.installed), it.sizeGb ?? 0)}}",
@@ -293,21 +294,33 @@
 		"couchSection": {
 			"title": "Show a row of couch mode",
 			"category": "View",
-			"description": "Shows your games, the store or your friends in couch mode, from the first tile.",
-			"arguments": { "section": { "enum": ["library", "store", "friends"] } },
+			"description": "Shows your games, the store, your friends or settings in couch mode, from the first tile.",
+			"arguments": { "section": { "enum": ["library", "store", "friends", "settings"] } },
 			"do": [{ "set": "state.couch.section", "to": "{{section}}" }, { "set": "state.couch.at", "to": 0 }, { "focus": "#couch-shelf" }]
 		},
 		"couchStep": {
 			"title": "Show the couch row before or after",
 			"category": "View",
 			"arguments": { "by": { "type": "integer" } },
-			"do": [{ "run": "couchSection", "with": { "section": "{{['library', 'store', 'friends'][clamp(indexOf(['library', 'store', 'friends'], state.couch.section) + by, 0, 2)]}}" } }]
+			"do": [{ "run": "couchSection", "with": { "section": "{{['library', 'store', 'friends', 'settings'][clamp(indexOf(['library', 'store', 'friends', 'settings'], state.couch.section) + by, 0, 3)]}}" } }]
 		},
 		"couchEnter": {
 			"title": "Open the couch tile chosen",
 			"category": "View",
-			"description": "Plays a game of yours, opens a store game's page, or chats with a friend; the last two leave couch mode.",
+			"description": "Plays a game of yours, opens a store game's page, chats with a friend (the last two leave couch mode), or steps a setting to its next value.",
 			"do": [
+				{
+					"if": "{{state.couch.section == 'settings'}}",
+					"then": [
+						{
+							"run": "setSetting",
+							"with": {
+								"key": "{{computed.couchItem.key}}",
+								"value": "{{computed.couchItem.values[(indexOf(computed.couchItem.values, computed.couchItem.at) + 1) % length(computed.couchItem.values)]}}"
+							}
+						}
+					],
+					"else": [
 				{
 					"if": "{{state.couch.section == 'store'}}",
 					"then": [{ "run": "leaveCouch" }, { "run": "openStore", "with": { "id": "{{computed.couchItem.id}}" } }],
@@ -317,6 +330,8 @@
 							"then": [{ "run": "leaveCouch" }, { "run": "showCommunity" }, { "run": "openChat", "with": { "id": "{{computed.couchItem.id}}" } }],
 							"else": [{ "run": "primary", "with": { "game": "{{computed.couchGame}}" } }]
 						}
+					]
+				}
 					]
 				}
 			]
@@ -1079,7 +1094,7 @@
 					{
 						"type": "row",
 						"id": "couch-tabs",
-						"anchors": { "left": 300, "right": 300, "top": 34 },
+						"anchors": { "left": 240, "right": 240, "top": 34 },
 						"height": 56,
 						"gap": 8,
 						"justify": "center",
@@ -1089,14 +1104,14 @@
 						"label": "{{t('couch.rows')}}",
 						"children": [
 							{
-								"repeat": { "for": "section", "in": "{{['library', 'store', 'friends']}}" },
+								"repeat": { "for": "section", "in": "{{['library', 'store', 'friends', 'settings']}}" },
 								"id": "{{'couch-tab-' + section}}",
 								"style": "pillButton",
 								"role": "tab",
 								"font": "strong",
 								"radius": 20,
 								"padding": 12,
-								"icon": "{{section == 'library' ? 'gamepad-2' : section == 'store' ? 'store' : 'users'}}",
+								"icon": "{{section == 'library' ? 'gamepad-2' : section == 'store' ? 'store' : section == 'friends' ? 'users' : 'settings'}}",
 								"text": "{{t('couch.tab.' + section)}}",
 								"selected": "{{state.couch.section == section}}",
 								"color": "{{state.couch.section == section ? '@color.accent' : '@color.raised'}}",
@@ -1134,22 +1149,56 @@
 						},
 						"children": [
 							{
-								"type": "image",
-								"id": "{{'couch-' + g.id}}",
+								"type": "stack",
+								"id": "{{'couch-tile-' + g.id}}",
 								"repeat": { "for": "g", "in": "{{slice(computed.couchItems, max(0, state.couch.at - 1), max(0, state.couch.at - 1) + 9)}}", "index": "i" },
-								"let": { "on": "{{g.id == computed.couchItem.id}}", "square": "{{state.couch.section == 'friends'}}" },
-								"role": "option",
-								"label": "{{g.title}}",
-								"selected": "{{on}}",
-								"file": "{{g.file}}",
-								"fit": "cover",
-								"width": "{{on ? 210 : 150}}",
-								"height": "{{square ? (on ? 210 : 150) : on ? 315 : 225}}",
-								"radius": "{{square ? 105 : 12}}",
-								"borderWidth": "{{on ? 4 : 0}}",
-								"borderColor": "@color.accent",
-								"cursor": "hand",
-								"onClick": { "set": "state.couch.at", "to": "{{indexOf(map(computed.couchItems, it.id), g.id)}}" }
+								"width": "{{g.id == computed.couchItem.id ? 210 : 150}}",
+								"height": "{{state.couch.section == 'settings' || state.couch.section == 'friends' ? (g.id == computed.couchItem.id ? 210 : 150) : g.id == computed.couchItem.id ? 315 : 225}}",
+								"alignSelf": "center",
+								"children": [
+								{
+									"type": "image",
+									"id": "{{'couch-' + g.id}}",
+									"when": "{{state.couch.section != 'settings'}}",
+									"let": { "on": "{{g.id == computed.couchItem.id}}", "square": "{{state.couch.section == 'friends'}}" },
+									"role": "option",
+									"label": "{{g.title}}",
+									"selected": "{{on}}",
+									"file": "{{g.file}}",
+									"fit": "cover",
+									"width": "{{on ? 210 : 150}}",
+									"height": "{{square ? (on ? 210 : 150) : on ? 315 : 225}}",
+									"radius": "{{square ? 105 : 12}}",
+									"borderWidth": "{{on ? 4 : 0}}",
+									"borderColor": "@color.accent",
+									"cursor": "hand",
+									"onClick": { "set": "state.couch.at", "to": "{{indexOf(map(computed.couchItems, it.id), g.id)}}" }
+								},
+									{
+										"type": "column",
+										"id": "{{'couch-setting-' + g.id}}",
+										"when": "{{state.couch.section == 'settings'}}",
+										"let": { "on": "{{g.id == computed.couchItem.id}}" },
+										"role": "option",
+										"label": "{{g.title + ': ' + g.sub}}",
+										"selected": "{{on}}",
+										"width": "{{on ? 210 : 150}}",
+										"height": "{{on ? 210 : 150}}",
+										"radius": 16,
+										"color": "{{on ? '@color.select' : '@color.raised'}}",
+										"borderWidth": "{{on ? 4 : 0}}",
+										"borderColor": "@color.accent",
+										"justify": "center",
+										"alignItems": "center",
+										"cursor": "hand",
+										"onClick": { "set": "state.couch.at", "to": "{{indexOf(map(computed.couchItems, it.id), g.id)}}" },
+										"gap": 10,
+										"children": [
+											{ "type": "label", "font": "rewardArt", "icon": "{{g.icon}}", "text": "", "fitText": true, "textColor": "{{on ? '@color.bright' : '@color.text'}}" },
+											{ "type": "label", "font": "strong", "fitText": true, "text": "{{g.title}}", "textColor": "{{on ? '@color.bright' : '@color.muted'}}" }
+										]
+									}
+								]
 							}
 						]
 					},
@@ -1180,7 +1229,7 @@
 						"font": "button",
 						"color": "{{state.couch.section == 'friends' || computed.couchGame.status == 'ready' ? '@color.play' : '@color.accent'}}",
 						"textColor": "@color.top",
-						"text": "{{t(state.couch.section == 'store' ? 'couch.viewStore' : state.couch.section == 'friends' ? 'couch.chat' : computed.couchGame.status == 'ready' ? 'menu.game.play' : computed.couchGame.status == 'running' ? 'menu.game.stop' : computed.couchGame.status == 'update' ? 'menu.game.update' : 'menu.game.install')}}",
+						"text": "{{t(state.couch.section == 'settings' ? 'couch.change' : state.couch.section == 'store' ? 'couch.viewStore' : state.couch.section == 'friends' ? 'couch.chat' : computed.couchGame.status == 'ready' ? 'menu.game.play' : computed.couchGame.status == 'running' ? 'menu.game.stop' : computed.couchGame.status == 'update' ? 'menu.game.update' : 'menu.game.install')}}",
 						"onClick": "couchEnter"
 					},
 					{

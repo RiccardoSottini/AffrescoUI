@@ -133,12 +133,14 @@ constexpr std::size_t flattenPointLimit = 65536; ///< The most points a flattene
 constexpr std::size_t meshQuadLimit = 65536;     ///< The most quads a fill or a stroke makes.
 constexpr std::size_t meshWorkLimit = 1u << 24;  ///< The most edge visits a fill makes.
 
+constexpr float maxPathFeather = 64.0f; ///< The widest fringe appendFill() gives an edge, in window units.
+
 /// @brief Adds the quads that fill contours to a mesh: the area inside (by the rule), then a fringe @p feather wide
 /// outside each contour that fades to nothing, which anti-aliases its edges.
 /// @param contours The contours, in window units; each is closed.
 /// @param rule Which points are inside.
 /// @param mesh Where the quads go, 4 vertices each.
-/// @param feather How wide the fringe is; 0 for none.
+/// @param feather How wide the fringe is; 0 for none, at most maxPathFeather (wider than 1: a soft edge).
 void appendFill(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
                 float feather = 1.0f);
 

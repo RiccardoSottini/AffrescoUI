@@ -150,8 +150,10 @@ void warnOfTwiceDefined(const json& document, const json& own, const json& part,
 			const auto earlier = section->find(entry);
 			if(earlier == section->end() || *earlier == given) continue;
 			if(ownSection != own.end() && ownSection->is_object() && ownSection->contains(entry)) continue;
-			affresco::log(LogLevel::Warning, "AffrescoUI screen: include: " + name + " defines " + key + "." + entry +
-			                                     ", which an earlier include already defines: the earlier one is kept");
+			std::string message = "AffrescoUI screen: include: ";
+			message.append(name).append(" defines ").append(key).append(".").append(entry);
+			message += ", which an earlier include already defines: the earlier one is kept";
+			affresco::log(LogLevel::Warning, message);
 		}
 	}
 }
@@ -201,6 +203,19 @@ struct IncludeChain {
 	std::size_t* reads = nullptr; ///< The files read for the screen so far; owned by resolveIncludes(), for the call.
 };
 
+/// @brief The entries a file gives itself in its sections, which are meant to win over its includes'.
+/// @param document The file.
+/// @return Each object section's name, holding each of its entry names (as null).
+[[nodiscard]] json ownEntries(const json& document) {
+	json own;
+	for(const auto& [key, value] : document.items())
+		if(value.is_object()) {
+			own[key] = json::object();
+			for(const auto& [entry, given] : value.items()) own[key][entry] = nullptr;
+		}
+	return own;
+}
+
 /// @brief resolveIncludes(), with where the document is in the chain of includes.
 /// @param document The screen, or an included file.
 /// @param baseDirectory Where its include paths are resolved from.
@@ -222,12 +237,7 @@ void resolveIncludesIn(json& document, const std::filesystem::path& baseDirector
 	document.erase("include");
 	if(!includes.is_array()) throw ScreenError("AffrescoUI screen: include: expected a list of files");
 
-	json own; // the sections' names the file gives itself, which are meant to win over its includes'
-	for(const auto& [key, value] : document.items())
-		if(value.is_object()) {
-			own[key] = json::object();
-			for(const auto& [entry, given] : value.items()) own[key][entry] = nullptr;
-		}
+	const json own = ownEntries(document);
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();

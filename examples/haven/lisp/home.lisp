@@ -578,7 +578,7 @@
        :align center)
      (label#deviceName :text ~d.name :textColor @text :anchors {:left 50 :right 4 :top 12} :height 18)
      (node#deviceState :style caption
-       :text ~(if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".on" ".off"))))
+       :text ~(if d.busy (t "device.waiting") (t (str "device." d.kind (if d.on ".on" ".off"))))
        :anchors {:left 50 :top 32}
        :live polite)
      ~(device-action d i)
@@ -588,9 +588,9 @@
 (defview device-action "The device's button: what a press does, or an ellipsis while a call runs." [d i]
   `(node#deviceAction :when ~state.cards.devices.actions
      :style button
-     :text ~(if d.busy "…" (t (str "device." d.id (if d.on ".doOff" ".doOn"))))
+     :text ~(if d.busy "…" (t (str "device." d.kind (if d.on ".doOff" ".doOn"))))
      :font small
      :anchors {:left 12 :right 12 :bottom 12}
      :height 28
-     :label ~(str d.name ": " (if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".doOff" ".doOn")))))
+     :label ~(str d.name ": " (if d.busy (t "device.waiting") (t (str "device." d.kind (if d.on ".doOff" ".doOn")))))
      :onClick ~(handler device-call i)))

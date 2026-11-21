@@ -273,22 +273,28 @@
 (defn couch-choose "Chooses a tile on the couch shelf, by its id." [id]
   (set "state.couch.at" (indexOf (map :id computed.couchItems) id)))
 
-(defn couch-section "Shows a row of couch mode: your games, the store or your friends, from its first tile." [section]
+(defn couch-section "Shows a row of couch mode: your games, the store, your friends or settings, from its first tile."
+  [section]
   (set "state.couch.section" section)
   (set "state.couch.at" 0)
   (focus "#couch-shelf"))
 
 (defn couch-step "Shows the row of couch mode before or after this one." [by]
-  (let [sections ["library" "store" "friends"]
-        at (clamp (+ (indexOf sections state.couch.section) by) 0 2)]
-    (couch-section (get sections at))))
+  (let [at (clamp (+ (indexOf couch-sections state.couch.section) by) 0 (dec (count couch-sections)))]
+    (couch-section (get couch-sections at))))
+
+(defn couch-change "Steps a couch setting to its next value, round to the first after the last." [item]
+  (let [{:keys [values at key]} item
+        next (mod (inc (indexOf values at)) (count values))]
+    (setSetting key (get values next))))
 
 (defn couch-enter
-  "Does what the chosen tile's button says: plays a game of yours, opens a store game's page, or chats with a friend;
-  the last two leave couch mode."
+  "Does what the chosen tile's button says: plays a game of yours, opens a store game's page, chats with a friend (the
+  last two leave couch mode), or steps a setting to its next value."
   []
   (let [id (:id computed.couchItem)]
     (case state.couch.section
+      "settings" (couch-change computed.couchItem)
       "store" (do (leaveCouch) (openStore id))
       "friends" (do (leaveCouch) (showCommunity) (openChat id))
       (primary computed.couchGame))))

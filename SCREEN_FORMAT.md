@@ -162,7 +162,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
-| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
+| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `gradient` | The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and `radial-gradient()`: `["#1e3a5f", "#0b1220"]` (colours spread evenly from top to bottom), or `{ "kind": "linear", "angle": 90, "stops": ["@accent", { "at": 0.6, "color": "#00000000" }] }`. `angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A `radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or `{ "at": 0..1, "color" }`; two stops at one place change colour sharply. At most 32 stops. It can be set in `hover` and the other states. |
@@ -283,6 +283,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `whitespace` | `true` draws a small dot in each space, in `guideColor`, so blanks can be seen. |
 | `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
@@ -686,6 +687,7 @@ data or its size changes.
 | `fillColor` | The inside's colour; without it the path isn't filled. |
 | `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
 | `fillGradient` | The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "@accent" }] }` (1 to 32 stops; a radial one is centred, reaching the corners). |
+| `feather` | How wide the inside's edge fades out past the path, in window units: `1` (the default) anti-aliases it, `0` is a hard edge, and up to `64` a soft edge or a blurred shadow. |
 | `stroke` | The outline's colour; without it there is no outline. |
 | `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
 | `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
@@ -1277,7 +1279,8 @@ and the error names `actions.<name>.arguments.<argument>`.
 
 **Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
 is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
-variables), or a list of bindings, where the first that applies runs.
+variables), or a list of bindings, where the first that applies runs. The key `"alt"` (or `"option"`) alone is Alt
+pressed and released with no other key, modifier or click between: key hints, a menu bar's letters.
 
 **Resolution:** one walk per press.
 1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
@@ -1410,7 +1413,7 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. With `"as": "image"` it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an `image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A control step |
-| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of each node (`scale` pixels a unit, 2 by default; several nodes are written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` names them), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
 | `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |

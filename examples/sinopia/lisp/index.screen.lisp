@@ -23,6 +23,10 @@
             sinopia.parts.arrange
             sinopia.parts.content
             sinopia.parts.ribbon
+            sinopia.parts.ribbon-extras
+            sinopia.parts.key-hints
+            sinopia.parts.own-themes
+            sinopia.parts.motion-draw
             sinopia.parts.tabs
             sinopia.parts.show
             sinopia.parts.motion
@@ -49,7 +53,7 @@
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 12}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 12 :fallback [icons]}
           :slideText {:file "../../shared/fonts/Roboto-Regular.ttf" :size 48 :fallback [icons]}}
-  :persist [state.deck state.theme state.presenterView state.recentDecks]
+  :persist [state.deck state.theme state.presenterView state.recentDecks state.ownThemes]
   :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
   :theme ~state.theme
   (node#root :color @work

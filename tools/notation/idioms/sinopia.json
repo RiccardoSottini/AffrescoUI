@@ -6,7 +6,7 @@
 		"four-nested-calls": 87
 	},
 	"kept": {
-		"camel-case-name": 55,
+		"camel-case-name": 56,
 		"fn-one-parameter": 7,
 		"four-nested-calls": 4,
 		"string-function": 4

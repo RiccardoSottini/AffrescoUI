@@ -37,6 +37,12 @@
              :electric-pair-mode
              (boolean :default false
                :title ~(t "setting.electric-pair-mode") :description ~(t "setting.electric-pair-mode.about"))
+             :whitespace-mode
+             (boolean :default false
+               :title ~(t "setting.whitespace-mode") :description ~(t "setting.whitespace-mode.about"))
+             :auto-fill-mode
+             (boolean :default false
+               :title ~(t "setting.auto-fill-mode") :description ~(t "setting.auto-fill-mode.about"))
              :display-fill-column-indicator-mode
              (boolean :default false
                :title ~(t "setting.display-fill-column-indicator-mode")

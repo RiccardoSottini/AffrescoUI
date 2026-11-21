@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/format.json", "parts/shape-format.json", "parts/canvas.json", "parts/file.json", "parts/design.json", "parts/search.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/arrange.json", "parts/content.json", "parts/ribbon.json", "parts/ribbon-extras.json", "parts/key-hints.json", "parts/own-themes.json", "parts/motion-draw.json", "parts/tabs.json", "parts/show.json", "parts/motion.json", "parts/ink.json", "parts/notes-page.json", "parts/views.json", "parts/format.json", "parts/shape-format.json", "parts/canvas.json", "parts/file.json", "parts/design.json", "parts/search.json", "parts/menus.json", "parts/review.json", "../../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -52,7 +52,7 @@
 		"board": { "camera": { "x": 0, "y": 0, "zoom": 1 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } }
 	},
 
-	"persist": ["state.deck", "state.theme", "state.presenterView", "state.recentDecks"],
+	"persist": ["state.deck", "state.theme", "state.presenterView", "state.recentDecks", "state.ownThemes"],
 
 	"computed": {
 		"tabs": [
@@ -92,7 +92,7 @@
 
 	"keys": {
 		"alt+q": [{ "when": "{{!state.show.on}}", "do": [{ "focus": "#search" }] }],
-		"mod+f1": [{ "when": "{{!state.show.on}}", "do": [{ "toggle": "state.ribbon" }] }],
+		"mod+f1": [{ "when": "{{!state.show.on}}", "do": "toggleRibbon" }],
 		"mod+z": [{ "when": "{{!context.textInputFocus}}", "do": "undo" }],
 		"mod+y": [{ "when": "{{!context.textInputFocus}}", "do": "redo" }],
 		"mod+shift+z": [{ "when": "{{!context.textInputFocus}}", "do": "redo" }],
@@ -134,14 +134,14 @@
 					  "runs": [{ "icon": "presentation", "size": 16 }], "tooltip": "Sinopia" },
 					{ "type": "label", "id": "doc-title", "height": 28, "fitText": { "maxWidth": 220 }, "padding": 8, "radius": 14, "textColor": "@rbInk", "cursor": "hand",
 					  "hover": { "color": "@rbHover" }, "runs": [{ "text": "{{state.deck.title}}", "size": 13, "bold": true }], "tooltip": "Open, save or export the deck",
-					  "onClick": [{ "set": "state.tab", "to": "file" }, { "set": "state.ribbon", "to": true }] },
+					  "onClick": [{ "set": "state.tab", "to": "file" }, { "set": "state.ribbonPeek", "to": "{{!state.ribbon}}" }] },
 					{ "id": "command-divider", "width": 1, "height": 20, "color": "@rbLine" },
 					{ "id": "command-pad-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label",
-					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{concat(computed.tabs, computed.contextTabs)}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
-					  "textColor": "{{state.tab == t.id && state.ribbon ? '@onBrand' : t.contextual ? '@brandLine' : '@rbInk'}}",
+					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{concat(computed.tabs, computed.contextTabs)}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && (state.ribbon || state.ribbonPeek) ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
+					  "textColor": "{{state.tab == t.id && (state.ribbon || state.ribbonPeek) ? '@onBrand' : t.contextual ? '@brandLine' : '@rbInk'}}",
 					  "runs": [{ "text": "{{t.title}}", "size": 12, "bold": "{{t.contextual ?? false}}" }],
-					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbon", "to": true }] },
+					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbonPeek", "to": "{{!state.ribbon}}" }] },
 					{ "id": "command-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "textarea", "id": "search", "width": 200, "height": 28, "padding": 6, "radius": 14, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
 					  "textColor": "@rbInk", "bind": "state.search", "placeholder": "Search commands (Alt+Q)", "placeholderColor": "@rbMuted", "label": "Search commands",
@@ -155,7 +155,7 @@
 					{ "type": "label", "id": "qat-present", "style": "barIcon", "runs": [{ "icon": "skip-back", "size": 16 }], "tooltip": "Present from the start (F5)",
 					  "onClick": { "run": "present", "with": { "from": 0 } } },
 					{ "type": "label", "id": "ribbon-collapse", "style": "barIcon", "runs": [{ "icon": "{{state.ribbon ? 'panel-top-close' : 'panel-top-open'}}", "size": 16 }],
-					  "tooltip": "{{state.ribbon ? 'Hide the commands (Ctrl+F1)' : 'Show the commands (Ctrl+F1)'}}", "onClick": [{ "toggle": "state.ribbon" }] },
+					  "tooltip": "{{state.ribbon ? 'Hide the commands (Ctrl+F1)' : 'Show the commands (Ctrl+F1)'}}", "onClick": "toggleRibbon" },
 					{ "id": "command-pad-3", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "present-button", "style": "pillButton",
 					  "runs": [{ "icon": "play", "size": 13 }, { "text": " Present", "size": 12, "bold": true }],
@@ -166,22 +166,7 @@
 			{
 				"id": "ribbon", "height": 100, "color": "@rb", "when": "{{state.ribbon}}",
 				"children": [
-					{ "id": "ribbon-body", "y": 2, "anchors": { "left": 8, "right": 8 }, "height": 92, "color": "transparent",
-					  "children": [
-						{ "use": "tabHome", "when": "{{state.tab == 'home'}}" },
-						{ "use": "tabInsert", "when": "{{state.tab == 'insert'}}" },
-						{ "use": "tabDesign", "when": "{{state.tab == 'design'}}" },
-						{ "use": "tabTransitions", "when": "{{state.tab == 'transitions'}}" },
-						{ "use": "tabView", "when": "{{state.tab == 'view'}}" },
-						{ "use": "tabFile", "when": "{{state.tab == 'file'}}" },
-						{ "use": "tabMotion", "when": "{{state.tab == 'animations'}}" },
-						{ "use": "tabPresent", "when": "{{state.tab == 'slideShow'}}" },
-						{ "use": "tabInk", "when": "{{state.tab == 'draw'}}" },
-						{ "use": "tabRecord", "when": "{{state.tab == 'record'}}" },
-						{ "use": "tabCheck", "when": "{{state.tab == 'review'}}" },
-						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" },
-						{ "use": "tabShapeFormat", "when": "{{state.tab == 'shapeFormat'}}" }
-					  ] }
+					{ "use": "ribbonTabs", "with": { "rowId": "ribbon-body" } }
 				]
 			},
 			{ "id": "ribbon-line", "height": 1, "color": "@barLine" },
@@ -273,6 +258,7 @@
 										{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
 										  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
 										{ "use": "gridLines" },
+										{ "use": "motionPathLine" },
 										{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
 										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
 										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
@@ -280,7 +266,8 @@
 										  "onDoubleClick": { "run": "editObject", "with": { "id": "{{o.id}}", "left": "{{event.left}}", "top": "{{event.top}}", "width": "{{event.width}}", "height": "{{event.height}}" } } }
 									]
 								},
-								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" }
+								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" },
+								{ "use": "motionPathLayer", "when": "{{state.pathDrawing && !state.show.on}}" }
 							  ] },
 							{ "id": "notes-line", "height": 1, "color": "@barLine", "when": "{{state.notes}}" },
 							{ "id": "notes-pane", "height": 76, "color": "@notes", "when": "{{state.notes}}",

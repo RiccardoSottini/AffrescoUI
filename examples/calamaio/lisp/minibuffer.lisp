@@ -76,7 +76,12 @@
          (concat [value] (remove #{value} (or (get state.mb.hist kind) [])))))
   (answer kind value))
 
-(defn minibuffer-exit "RET in the minibuffer: answers what is typed, or the default if nothing is." []
+(defn minibuffer-exit
+  "RET in the minibuffer: answers what is typed, or the default if nothing is; a keyboard macro being recorded keeps the
+  answer, to give it again when it is played."
+  []
+  (when state.kmacro.on
+    (set "state.kmacro.keys" (conj state.kmacro.keys (str macro-answer-mark state.mb.text))))
   (minibuffer-done (if (= state.mb.text "") state.mb.def state.mb.text) state.mb.kind))
 
 (defn minibuffer-choose "A click on a completion: answers it." [value]

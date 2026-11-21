@@ -32,20 +32,19 @@
          :textColor @color.muted
          :text ~(if (empty? (str/trim state.problemsFilter))
                   ""
-                  (t "problems-shown" {:shown (count computed.problemRows) :all (count state.problems)}))))
-     (table#problems :when ~(and (= state.panelTab :problems) (not (empty? state.problems)))
+                  (t "problems-shown" {:shown (count computed.problemsShown) :all (count state.problems)}))))
+     (tree#problems :when ~(and (= state.panelTab :problems) (not (empty? state.problems)))
        :label ~(t "problems.label")
        :width "100%"
        :grow 1
        :items ~computed.problemRows
+       :expanded ~computed.problemsOpen
        :rowHeight 22
        :color @color.panel
        :textColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :columns [{:id message :title ~(t "problems.message") :width 420}
-                 {:id file :title ~(t "problems.file") :width 160}
-                 {:id line :title ~(t "problems.line") :width 60}]
+       :onExpand fold-problems
        :onOpen go-to-problem)
      (list#output :when ~(= state.panelTab :output)
        :role log

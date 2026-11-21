@@ -84,8 +84,9 @@ bool pressCloneSource(ImageDocument& image, Point at) {
 	if(settings.gesture == Gesture::erase) return "Eraser";
 	if(settings.gesture == Gesture::retouch) {
 		constexpr std::array<const char*, 6> names{"Dodge", "Burn", "Sponge", "Blur", "Sharpen", "Smudge"};
-		return names.at(static_cast<std::size_t>(settings.retouch) -
-		                static_cast<std::size_t>(imaging::StrokeMode::dodge));
+		const auto index =
+		    static_cast<std::size_t>(settings.retouch) - static_cast<std::size_t>(imaging::StrokeMode::dodge);
+		return index < names.size() ? names[index] : "Retouch"; // NOLINT(*-constant-array-index): checked
 	}
 	if(settings.gesture == Gesture::clone) return settings.healing ? "Healing Brush" : "Clone Stamp";
 	return "Brush";
@@ -267,8 +268,7 @@ bool pressSelectionBox(ImageDocument& image, Point at) {
 	} else if(!document.hasSelection()) {
 		image.message = "Select something to transform";
 		return true;
-	} else
-		image.boxBefore = selectionBox(document);
+	} else image.boxBefore = selectionBox(document);
 	image.boxNow = image.boxBefore;
 	image.boxAngle = 0.0f;
 	constexpr float handleReach = 6.0f; // window units around a handle
@@ -328,6 +328,68 @@ void panView(ImageDocument& image, const imaging::CanvasPointer& event) {
 	image.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
 }
 
+/// @brief Whether a tool's press goes to pressVector(): type, pen and path selection.
+/// @param gesture The tool's gesture.
+/// @return true for those.
+[[nodiscard]] bool pressesVector(Gesture gesture) noexcept {
+	return gesture == Gesture::text || gesture == Gesture::pen || gesture == Gesture::pathSelect;
+}
+
+/// @brief quick-select's, selection-box's and layer-box's press: the stroke's first point, or the box's handle.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool pressSelecting(ImageDocument& image, Point at) {
+	switch(image.settings.gesture) {
+	case Gesture::quickSelect:
+		image.path.clear();
+		addQuickPoint(image, at);
+		return true;
+	case Gesture::selectionBox:
+	case Gesture::layerBox:
+		return pressSelectionBox(image, at);
+	default:
+		return false;
+	}
+}
+
+/// @brief quick-select's, selection-box's and layer-box's drag: the stroke goes on, or the box follows the handle.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool dragSelecting(ImageDocument& image, Point at) {
+	const Gesture gesture = image.settings.gesture;
+	if(gesture == Gesture::quickSelect) {
+		addQuickPoint(image, at);
+		return true;
+	}
+	if((gesture != Gesture::selectionBox && gesture != Gesture::layerBox) || image.boxHandle < 0) return false;
+	image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
+	if(image.boxHandle == 9) image.boxAngle = turnOf(image.boxBefore, image.press.start, at);
+	return true;
+}
+
+/// @brief quick-select's, selection-box's and layer-box's release: selects what the stroke found, or transforms the
+/// selection or the layer as the box was dragged.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool releaseSelecting(ImageDocument& image, Point at) {
+	const Gesture gesture = image.settings.gesture;
+	if(gesture == Gesture::quickSelect) {
+		closeQuickSelection(image);
+		return true;
+	}
+	if((gesture != Gesture::selectionBox && gesture != Gesture::layerBox) || image.boxHandle < 0) return false;
+	const Point from = image.press.start;
+	image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
+	image.boxAngle = image.boxHandle == 9 ? turnOf(image.boxBefore, from, at) : 0.0f;
+	image.boxHandle = -1;
+	if(gesture == Gesture::layerBox) transformLayerTo(image, image.boxBefore, image.boxNow, image.boxAngle);
+	else transformSelectionTo(image, image.boxBefore, image.boxNow, image.boxAngle);
+	return true;
+}
+
 /// @brief What a tool does when a button goes down.
 /// @param image The image.
 /// @param at Where, in document pixels.
@@ -344,13 +406,6 @@ bool pressTool(ImageDocument& image, Point at) {
 		return addCorner(image, at);
 	case Gesture::magicWand:
 		return clickWand(image.canvas->document(), image.settings, image.press.mode, at);
-	case Gesture::quickSelect:
-		image.path.clear();
-		addQuickPoint(image, at);
-		return true;
-	case Gesture::selectionBox:
-	case Gesture::layerBox:
-		return pressSelectionBox(image, at);
 	case Gesture::move:
 		return image.settings.autoSelect && pickLayer(image.canvas->document(), at);
 	case Gesture::fill:
@@ -361,12 +416,8 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::zoom:
 		zoomAt(image, at, image.press.right ? 0.5 : 2.0);
 		return true;
-	case Gesture::text:
-	case Gesture::pen:
-	case Gesture::pathSelect:
-		return pressVector(image, at);
 	default:
-		return false;
+		return pressesVector(image.settings.gesture) ? pressVector(image, at) : pressSelecting(image, at);
 	}
 }
 
@@ -386,16 +437,6 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::lasso:
 		if(image.path.size() < image.limits.polygonPoints) image.path.push_back(at);
 		return false;
-	case Gesture::quickSelect:
-		addQuickPoint(image, at);
-		return true;
-	case Gesture::selectionBox:
-	case Gesture::layerBox:
-		if(image.boxHandle < 0) return false;
-		image.boxNow =
-		    draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
-		if(image.boxHandle == 9) image.boxAngle = turnOf(image.boxBefore, image.press.start, at);
-		return true;
 	case Gesture::pan:
 		panView(image, event);
 		return true;
@@ -405,7 +446,7 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::pathSelect:
 		return dragVector(image, at);
 	default:
-		return false;
+		return dragSelecting(image, at);
 	}
 }
 
@@ -486,19 +527,6 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::lasso:
 		closeLasso(image);
 		return true;
-	case Gesture::quickSelect:
-		closeQuickSelection(image);
-		return true;
-	case Gesture::selectionBox:
-	case Gesture::layerBox:
-		if(image.boxHandle < 0) return false;
-		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
-		image.boxAngle = image.boxHandle == 9 ? turnOf(image.boxBefore, from, at) : 0.0f;
-		image.boxHandle = -1;
-		if(image.settings.gesture == Gesture::layerBox)
-			transformLayerTo(image, image.boxBefore, image.boxNow, image.boxAngle);
-		else transformSelectionTo(image, image.boxBefore, image.boxNow, image.boxAngle);
-		return true;
 	case Gesture::gradient:
 		drawGradient(image, at);
 		return true;
@@ -512,7 +540,7 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::shape:
 		return releaseVector(image, at);
 	default:
-		return false;
+		return releaseSelecting(image, at);
 	}
 }
 

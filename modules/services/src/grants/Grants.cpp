@@ -7,6 +7,7 @@
 #include "affresco/core/Portable.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdlib>
 #include <iterator>
@@ -93,10 +94,10 @@ std::filesystem::path loginShell() {
 
 std::vector<std::string> stdioArguments(std::string_view name) {
 	// Servers whose standard streams are only one of their transports, so they are told which to use
-	static constexpr std::string_view stdio[] = {"pyright-langserver",         "basedpyright-langserver",
-	                                             "typescript-language-server", "vscode-json-language-server",
-	                                             "vscode-css-language-server", "vscode-html-language-server",
-	                                             "yaml-language-server"};
+	static constexpr std::array<std::string_view, 7> stdio = {
+	    "pyright-langserver",          "basedpyright-langserver",    "typescript-language-server",
+	    "vscode-json-language-server", "vscode-css-language-server", "vscode-html-language-server",
+	    "yaml-language-server"};
 	if(name == "bash-language-server") return {"start"};
 	if(std::ranges::find(stdio, name) != std::end(stdio)) return {"--stdio"};
 	return {};

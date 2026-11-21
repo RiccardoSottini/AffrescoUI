@@ -204,7 +204,7 @@ Screen unconnectedScreen(const std::string& document, const std::filesystem::pat
 void buildHeadless(Screen screen) {
 	const json settings = parseUntrusted(screen.documentJson()).value("window", json::object());
 	// Declared before the screen, so they outlive it: a screen disconnects from its window when it goes
-	affresco::detail::ManualClock clock;
+	const affresco::detail::ManualClock clock;
 	const std::unique_ptr<Window> window =
 	    affresco::detail::createHeadlessWindow(sizeIn(settings, "width", 800), sizeIn(settings, "height", 600), clock);
 	Screen built = std::move(screen);

@@ -21,6 +21,11 @@ struct Drawing {
 	/// @param y Up, in font units.
 	[[nodiscard]] VectorPoint at(float x, float y) const noexcept { return {x * scale, -y * scale}; }
 
+	/// @brief Where the pen is: the last anchor drawn (the origin before any).
+	[[nodiscard]] VectorPoint current() const noexcept {
+		return contours.empty() || contours.back().empty() ? VectorPoint{} : contours.back().back().anchor;
+	}
+
 	/// @brief Adds an anchor reached by a cubic segment from the last one.
 	/// @param out The last anchor's handle.
 	/// @param in The new anchor's handle.
@@ -33,24 +38,24 @@ struct Drawing {
 };
 
 /// @brief HarfBuzz's move-to: starts a contour.
-void moveTo(hb_draw_funcs_t*, void* data, hb_draw_state_t*, float x, float y, void*) {
+void moveTo(hb_draw_funcs_t* /*funcs*/, void* data, hb_draw_state_t* /*state*/, float x, float y, void* /*user*/) {
 	auto& drawing = *static_cast<Drawing*>(data);
 	const VectorPoint to = drawing.at(x, y);
 	drawing.contours.push_back({{to, to, to}});
 }
 
 /// @brief HarfBuzz's line-to: a straight segment.
-void lineTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float x, float y, void*) {
+void lineTo(hb_draw_funcs_t* /*funcs*/, void* data, hb_draw_state_t* /*state*/, float x, float y, void* /*user*/) {
 	auto& drawing = *static_cast<Drawing*>(data);
-	const VectorPoint from = drawing.at(state->current_x, state->current_y), to = drawing.at(x, y);
+	const VectorPoint from = drawing.current(), to = drawing.at(x, y);
 	drawing.curve(from, to, to);
 }
 
 /// @brief HarfBuzz's quadratic-to: raised to a cubic segment.
-void quadraticTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float controlX, float controlY, float x, float y,
-                 void*) {
+void quadraticTo(hb_draw_funcs_t* /*funcs*/, void* data, hb_draw_state_t* /*state*/, float controlX, float controlY,
+                 float x, float y, void* /*user*/) {
 	auto& drawing = *static_cast<Drawing*>(data);
-	const VectorPoint from = drawing.at(state->current_x, state->current_y), control = drawing.at(controlX, controlY);
+	const VectorPoint from = drawing.current(), control = drawing.at(controlX, controlY);
 	const VectorPoint to = drawing.at(x, y);
 	constexpr float third = 2.0f / 3.0f;
 	drawing.curve({from.x + (control.x - from.x) * third, from.y + (control.y - from.y) * third},
@@ -58,14 +63,14 @@ void quadraticTo(hb_draw_funcs_t*, void* data, hb_draw_state_t* state, float con
 }
 
 /// @brief HarfBuzz's cubic-to: a cubic segment.
-void cubicTo(hb_draw_funcs_t*, void* data, hb_draw_state_t*, float firstX, float firstY, float secondX, float secondY,
-             float x, float y, void*) {
+void cubicTo(hb_draw_funcs_t* /*funcs*/, void* data, hb_draw_state_t* /*state*/, float firstX, float firstY,
+             float secondX, float secondY, float x, float y, void* /*user*/) {
 	auto& drawing = *static_cast<Drawing*>(data);
 	drawing.curve(drawing.at(firstX, firstY), drawing.at(secondX, secondY), drawing.at(x, y));
 }
 
 /// @brief HarfBuzz's close-path: the last anchor, back on the first, becomes the first's arriving handle.
-void closePath(hb_draw_funcs_t*, void* data, hb_draw_state_t*, void*) {
+void closePath(hb_draw_funcs_t* /*funcs*/, void* data, hb_draw_state_t* /*state*/, void* /*user*/) {
 	auto& contours = static_cast<Drawing*>(data)->contours;
 	if(contours.empty() || contours.back().size() < 2) return;
 	std::vector<PathPoint>& points = contours.back();

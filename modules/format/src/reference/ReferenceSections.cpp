@@ -444,7 +444,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
-	 "else each node's own), `\"png\"` of one node (`scale` pixels a unit, 2 by default), or `\"gltf\"` of one `scene` "
+	 "else each node's own), `\"png\"` of each node (`scale` pixels a unit, 2 by default; several nodes are "
+	 "written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` "
+	 "names them), or `\"gltf\"` of one `scene` "
 	 "node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures "
 	 "aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, "
 	 "bytes}`, `error` `{code, message}`. A control step",

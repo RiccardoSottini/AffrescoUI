@@ -390,7 +390,7 @@ bool dragVector(ImageDocument& image, imaging::Point at);
 /// @param image The image.
 /// @param at Where, in document pixels.
 /// @return Whether the screen should hear of it.
-bool releaseVector(ImageDocument& image, imaging::Point at);
+bool releaseVector(const ImageDocument& image, imaging::Point at);
 
 /// @brief Whether the canvas types into the active type layer: the text gesture began typing there, and it is still
 /// the active layer.

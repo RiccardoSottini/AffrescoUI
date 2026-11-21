@@ -96,11 +96,11 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Shared kit components | done | the kit menu and dropdowns, themed through `kit.*` colours; the search is Haven's own |
 
 ## Left for later
-The controls that stay visible but disabled, with a tooltip saying why; each with what it needs and a priority (P1 daily, P2 occasional, P3 rare). Four in all.
+The controls that stay visible but disabled, with a tooltip saying why; each with what it needs and a priority (P1 daily, P2 occasional, P3 rare). Three in all: Add device works now (a name, a kind, a room and a connection; the device joins the home page's devices and the table, off), and the other tabs' add buttons say why they wait.
 
 | Item | Needs | Priority |
 | --- | --- | --- |
-| Devices: add device or control (`devAdd`) | JSON plus the data layer: an add dialog that inserts a record into the devices model | P3 |
+| Devices: add control, connection or utility (`devAdd` on the other tabs) | JSON: what each kind is, beside devices | P3 |
 | Rooms: add area (`areasAdd`) | JSON only: draw the floors, the plan and energy by room from the rooms model instead of four fixed rooms | P3 |
 | Profile: log out (`profileLogout`) | General library feature: an account or sign-in service in the host that a screen can call | P3 |
 | About: links (`aboutLink`) | General library feature: an `openUrl` step behind a capability prompt (security-sensitive) | P3 |
