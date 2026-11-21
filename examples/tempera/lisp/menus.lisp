@@ -47,7 +47,7 @@
    :canvasSize {:run showCanvasSize :group "2_size" :order 2}
    :rotation {:submenu imageRotation :title ~(t "menu.image.rotation") :group "2_size" :order 3}
    :crop {:run cropToSelection :title ~(t "menu.image.crop") :group "2_size" :order 4}
-   :trim {:run unavailable :title ~(t "menu.image.trim") :group "2_size" :order 5}})
+   :trim {:run trimImage :title ~(t "menu.image.trim") :group "2_size" :order 5}})
 
 (defmenu layerTransform "Edit > Transform: the active layer turned or flipped."
   {:rotate180 {:run rotateLayer180 :title ~(t "menu.layerTransform.rotate180") :group "1_rotate" :order 1}

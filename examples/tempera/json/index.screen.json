@@ -86,7 +86,7 @@
 		"theme": "dark",
 		"doc": {
 			"width": 0, "height": 0, "format": "rgba8", "profile": "sRGB", "display": "sRGB", "proof": "", "revision": 0,
-			"active": "", "layers": [], "history": [], "position": 0, "dropped": 0, "canUndo": false, "canRedo": false,
+			"active": "", "layers": [], "history": [], "snapshots": [], "position": 0, "dropped": 0, "canUndo": false, "canRedo": false,
 			"memory": 0, "selection": false, "bounds": [0, 0, 0, 0], "foreground": "#000000", "background": "#ffffff", "tool": "brush",
 			"options": { "size": 20, "hardness": 80, "spacing": 25, "opacity": 100, "flow": 100, "mode": "replace",
 			             "tolerance": 32, "contiguous": true, "allLayers": false, "fillOpacity": 100, "shape": "linear",

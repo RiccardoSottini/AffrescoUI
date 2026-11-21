@@ -263,8 +263,18 @@
 
 ;;; The panels that pop out
 
-(defview history-panel "The History panel: the steps, the current one chosen; a click goes back or forward to one." []
+(defview history-panel
+  "The History panel: the snapshots, a click restoring one; the steps, the current one chosen, a click going back or
+  forward to one; and the button that takes a snapshot."
+  []
   `(column#history :fill true
+     (column#history-snapshots :role list
+       :label ~(t "history.snapshots")
+       :when ~(not (empty? state.doc.snapshots))
+       :width "100%"
+       :height ~(inc (* 24 (count state.doc.snapshots)))
+       ~(repeat [s state.doc.snapshots :key s.index] (snapshot-row s))
+       (node :width "100%" :height 1 :color @border))
      (list#history-list :label ~(t "panel.history")
        :width "100%"
        :grow 1
@@ -284,7 +294,29 @@
        :text ~(t "history.dropped" {:n (text state.doc.dropped)})
        :width "100%"
        :height 18
-       :padding 4)))
+       :padding 4)
+     (row#history-buttons :role toolbar :label ~(t "history.actions") :width "100%" :height 28 :alignItems center
+       (node :grow 1 :height 1 :style clear)
+       (node#history-snapshot :use tIcon :with {:icon camera :tip ~(t "command.takeSnapshot") :run takeSnapshot})
+       (node :width 6 :height 1 :style clear))))
+
+(defview snapshot-row "A snapshot's row: a click puts the layers back as it kept them; its × forgets it." [s]
+  `(row :id ~(str "snapshot-" s.index)
+     :role listitem
+     :label ~s.name
+     :width "100%"
+     :height 24
+     :alignItems center
+     :gap 6
+     :cursor hand
+     :tooltip ~(t "history.restoreSnapshot" {:name s.name})
+     :hover {:color @hover}
+     :onClick ~(handler restore-snapshot {:index s.index})
+     (label :icon camera :textColor @muted :width 22 :height 24 :align center)
+     (label :text ~s.name :textColor @text :grow 1 :height 24 :align {:horizontal start :vertical center})
+     (node :id ~(str "snapshot-delete-" s.index)
+       :use tIcon
+       :with {:icon x :tip ~(t "history.deleteSnapshot" {:name s.name}) :run delete-snapshot :args {:index ~s.index}})))
 
 (defview navigator-panel "The Navigator panel: the whole image small, and the zoom." []
   `(column#navigator :fill true :gap 6 :alignItems center

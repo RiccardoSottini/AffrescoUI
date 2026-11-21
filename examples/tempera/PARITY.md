@@ -45,7 +45,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
 | Properties (context-sensitive) | done | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Shift or Cmd and a click pick layers together, and the Distribute icons (and Layer > Distribute) space three or more by their edges or middles, as one step; Quick Actions; adjustment controls |
 | Adjustments (icon grid) | done | |
-| History (states and snapshots) | partial | States only, no snapshots |
+| History (states and snapshots) | done | The states, and snapshots: the panel's camera keeps the layers under a name, a click on one restores it as a step undo takes back, its × forgets it |
 | Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
 | Brushes (presets) | partial | Presets, size, hardness and spacing in the options bar's brush picker; no Brushes panel |
 | Channels | partial | Composite and channel rows, display only |
@@ -96,7 +96,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Item | Status | Gap |
 | --- | --- | --- |
 | New document dialog with presets | done | Width, height, bit depth and six size presets |
-| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; size changes forget the history |
+| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; Image > Trim crops to the visible pixels that aren't transparent; size changes forget the history |
 | Flatten, merge down | done | Also merge visible and delete hidden layers |
 | Export as PNG/JPEG | done | Through the library's image step |
 | Open and save its own format | done | |
@@ -124,7 +124,6 @@ general feature the image step or a node needs first.
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
 | Layers: link button | P3 | Library: linked layers that move and transform together |
-| History snapshots | P2 | Library: named snapshots kept in the image's history |
 | Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
 | Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |
 | Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
@@ -135,7 +134,7 @@ general feature the image step or a node needs first.
 | Gradient: Reverse, Dither, Transparency checks | P2 | Library: those three flags on the gradient fill |
 | Healing brush and patch (Healing Tool) | P2 | Library: a texture-matching brush and patch |
 | Blur, sharpen, smudge (Blur Tool) | P2 | Library: brush modes that filter or drag pixels under the tip |
-| History brush (Restore Brush Tool) | P3 | Library: painting from a history state (needs snapshots) |
+| History brush (Restore Brush Tool) | P3 | Library: painting from a history state or a snapshot (the snapshots exist) |
 | Dodge, burn, sponge (Dodge Tool) | P3 | Library: brush modes that lighten, darken or desaturate |
 | Brush: pressure for size and opacity, smoothing, angle, airbrush | P2 | Library: brush options mapping pressure to size and opacity, stroke smoothing, a tip angle and build-up |
 | Anti-alias checks (marquee, fill) | P3 | Library: an anti-alias flag on selection edges and fills (always on now) |
@@ -144,6 +143,5 @@ general feature the image step or a node needs first.
 | Filters: more kinds | P2 | Library: further filter kinds (high pass, median, lens blur); each then a JSON dialog |
 | Edit > Stroke | P2 | Library: stroking the selection's outline |
 | Image > Mode | P2 | Library: converting the document's format (8/16 bit, greyscale) |
-| Image > Trim | P3 | Library: the bounds of the non-transparent pixels, then a crop (JSON) |
 | File > Print | P3 | The host: printing isn't offered to screens |
 | Edit the toolbar (the tools bar's … button) | P3 | JSON: a dialog that reorders `state.tools` |

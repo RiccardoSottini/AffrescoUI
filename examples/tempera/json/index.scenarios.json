@@ -3250,6 +3250,101 @@
 			]
 		},
 		{
+			"name": "tempera-trim",
+			"note": "Image > Trim crops the image to its visible pixels: with the sky hidden, the sun and the hills' box",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Trim"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Visibility of Sky"
+					}
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Trim"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 672
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-history-snapshots",
+			"note": "The History panel's camera keeps the layers as a snapshot; a click on the snapshot restores it as one step that undo takes back; its × forgets it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#history-button"
+				},
+				{
+					"click": "#history-snapshot"
+				},
+				{
+					"expect": {
+						"state": "doc.snapshots[0].name",
+						"is": "Snapshot 1"
+					}
+				},
+				{
+					"action": "clearPixels"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				},
+				{
+					"click": "#snapshot-0"
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Snapshot 1"
+					}
+				},
+				{
+					"click": "#snapshot-delete-0"
+				},
+				{
+					"expect": {
+						"state": "doc.snapshots",
+						"is": []
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-properties-transform",
 			"note": "The Properties panel's flips, X and W move, mirror and scale the active layer",
 			"steps": [

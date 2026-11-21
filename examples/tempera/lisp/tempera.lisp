@@ -82,6 +82,12 @@
 (defn deleteMask "Deletes the active layer's mask." [args]
   (image "deleteMask" :with args))
 
+(defn restore-snapshot "Puts the layers back as a snapshot kept them: args.index, which." [args]
+  (image "restoreSnapshot" :with args))
+
+(defn delete-snapshot "Forgets a snapshot: args.index, which." [args]
+  (image "deleteSnapshot" :with args))
+
 ; style: keep, named in examples/tempera/lisp/index.scenarios.json
 (defn goToHistory "Goes back, or forward, to a step of the history." [args]
   (image "history" :with args))

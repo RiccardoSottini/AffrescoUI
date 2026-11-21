@@ -540,12 +540,31 @@
 			"node": {
 				"type": "column", "id": "history", "fill": true,
 				"children": [
+					{ "type": "column", "id": "history-snapshots", "role": "list", "label": "Snapshots", "when": "{{!empty(state.doc.snapshots)}}", "width": "100%",
+					  "height": "{{24 * length(state.doc.snapshots) + 1}}",
+					  "children": [
+						{ "type": "row", "id": "snapshot-{{s.index}}", "repeat": { "for": "s", "in": "state.doc.snapshots", "key": "{{s.index}}" }, "role": "listitem", "label": "{{s.name}}",
+						  "width": "100%", "height": 24, "alignItems": "center", "gap": 6, "cursor": "hand", "tooltip": "Restore {{s.name}}", "hover": { "color": "@hover" },
+						  "onClick": { "run": "restoreSnapshot", "with": { "args": { "index": "{{s.index}}" } } },
+						  "children": [
+							{ "type": "label", "icon": "camera", "textColor": "@muted", "width": 22, "height": 24, "align": "center" },
+							{ "type": "label", "text": "{{s.name}}", "textColor": "@text", "grow": 1, "height": 24, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "snapshot-delete-{{s.index}}", "use": "tIcon", "with": { "icon": "x", "tip": "Delete {{s.name}}", "run": "deleteSnapshot", "args": { "index": "{{s.index}}" } } }
+						  ] },
+						{ "width": "100%", "height": 1, "color": "@border" }
+					  ] },
 					{ "type": "list", "id": "history-list", "label": "History", "width": "100%", "grow": 1, "color": "@panel", "rowHeight": 24,
 					  "items": "{{state.doc.history}}", "value": "{{text(state.doc.position)}}", "textColor": "@text",
 					  "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
 					  "onChange": { "run": "goToHistory", "with": { "args": { "position": "{{number(event.value)}}" } } } },
 					{ "id": "history-dropped", "style": "dim", "fitText": false, "when": "{{state.doc.dropped > 0}}", "font": "small",
-					  "text": "{{state.doc.dropped}} older steps dropped to stay within the undo memory", "width": "100%", "height": 18, "padding": 4 }
+					  "text": "{{state.doc.dropped}} older steps dropped to stay within the undo memory", "width": "100%", "height": 18, "padding": 4 },
+					{ "type": "row", "id": "history-buttons", "role": "toolbar", "label": "History actions", "width": "100%", "height": 28, "alignItems": "center",
+					  "children": [
+						{ "grow": 1, "height": 1, "style": "clear" },
+						{ "id": "history-snapshot", "use": "tIcon", "with": { "icon": "camera", "tip": "New Snapshot", "run": "takeSnapshot" } },
+						{ "width": 6, "height": 1, "style": "clear" }
+					  ] }
 				]
 			}
 		},

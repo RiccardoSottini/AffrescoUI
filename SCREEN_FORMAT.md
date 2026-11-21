@@ -1482,6 +1482,9 @@ The operations, and the keys of `with` each reads:
 | `redo` | — | Does again the step last taken back. |
 | `history` | `position` | Goes to a place in the history (0 is before the first step). |
 | `clearHistory` | — | Forgets every step of the history. |
+| `takeSnapshot` | `name` | Keeps the layers as they are under a name, to restore later (the snapshot's `snapshots`). |
+| `restoreSnapshot` | `index` | Puts the layers back as a snapshot kept them, as one step. |
+| `deleteSnapshot` | `index` | Forgets a snapshot. |
 | `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
 | `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
 | `duplicateLayer` | `id` | Duplicates a layer. |
@@ -1494,6 +1497,7 @@ The operations, and the keys of `with` each reads:
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `trim` | — | Crops the image to the box around its visible pixels that aren't transparent, and forgets the history. |
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
@@ -1581,7 +1585,7 @@ The names the operations and tool options take, and the library's limits:
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
 `lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
-an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
+an `image` node shows), `history` (`id`, `label`), `snapshots` (`name`, `index`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
 `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
 `clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
 pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give

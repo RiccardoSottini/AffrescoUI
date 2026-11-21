@@ -15,7 +15,7 @@ in JSON, also by hand: the Launcher's Settings choose which one opens, the same 
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 72 scenarios (ctest: scenarios)
+./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 74 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -37,7 +37,7 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 | `lisp/menubar.lisp`, `options.lisp`, `tools.lisp`, `canvas.lisp` | The menu bar, the options bar, the tools bar, the canvas with rulers, guides and status bar |
 | `lisp/panels.lisp`, `properties.lisp`, `layers.lisp`, `dialogs.lisp` | The dock and its panels, and the dialogs |
 | `lisp/look.lisp`, `locales/` | The palette and styles; the text in English, Spanish and French |
-| `lisp/index.scenarios.json` | 72 scenarios, an agent's proposal of a Filters panel to the program among them, run headless (they stay JSON); the slide sorter's proof plays them all |
+| `lisp/index.scenarios.json` | 74 scenarios, an agent's proposal of a Filters panel to the program among them, run headless (they stay JSON); the slide sorter's proof plays them all |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
 | `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent. The Lisp Tempera installs the sorter written as a program (`sorter.lisp`), the JSON one its JSON manifest |
 
@@ -48,7 +48,9 @@ Scenarios drive it through the `pointer` action, in document pixels.
 
 Shift or Cmd and a click in the Layers panel picks layers together (`state.pickedLayers`); Properties' Distribute icons
 and Layer > Distribute space three or more of them evenly as one step (`(image "distributeLayers" ...)`). A group of
-the dock moves when its tabs are dragged onto another group's (`state.groupOrder`, kept by a saved workspace).
+the dock moves when its tabs are dragged onto another group's (`state.groupOrder`, kept by a saved workspace). The
+History panel's camera takes a snapshot of the layers (`takeSnapshot`, listed in `doc.snapshots`), restored as one step;
+Image > Trim crops to the visible pixels (`trim`).
 
 Type and shape layers are the library's too: each keeps what it is drawn from (its text, size and style; its outline,
 fill and stroke), shown in the snapshot's layer rows as `content`, and is drawn again whenever that changes, so it stays

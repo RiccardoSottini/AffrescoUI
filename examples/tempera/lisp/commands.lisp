@@ -64,6 +64,12 @@
 
 ;;; Edit: history and the clipboard
 
+(defcommand takeSnapshot "Keeps the layers as they are, as a snapshot in the History panel, to restore later."
+  :title ~(t "command.takeSnapshot") :description ~(t "command.takeSnapshot.about") :category ~(t "category.edit")
+  :icon "camera"
+  []
+  (image "takeSnapshot"))
+
 (defcommand undo "Takes the last change back."
   :title ~(t "command.undo") :description ~(t "command.undo.about") :category ~(t "category.edit")
   :icon "undo-2" :enablement ~state.doc.canUndo
@@ -201,6 +207,12 @@
   :icon "frame"
   []
   (set "state.canvasSize" {:open true :width state.doc.width :height state.doc.height :anchor "center"}))
+
+(defcommand trimImage "Crops the image to the box around its visible pixels that aren't transparent."
+  :title ~(t "command.trimImage") :description ~(t "command.trimImage.about") :category ~(t "category.image")
+  :icon "crop"
+  []
+  (image "trim"))
 
 (defcommand cropToSelection "Crops the image to the selection's box."
   :title ~(t "command.cropToSelection") :description ~(t "command.cropToSelection.about")

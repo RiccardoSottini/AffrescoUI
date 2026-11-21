@@ -20,6 +20,7 @@
    :active ""
    :layers []
    :history []
+   :snapshots []
    :position 0
    :dropped 0
    :canUndo false

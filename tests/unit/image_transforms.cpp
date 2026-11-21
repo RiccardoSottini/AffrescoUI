@@ -212,6 +212,38 @@ TEST_CASE("format: align lines a layer's pixels up with the selection's edges, o
 	CHECK_THROWS(run(image, "alignLayer", {{"edge", "left"}}));
 }
 
+TEST_CASE("format: a snapshot keeps the layers, and restoring it is one step that undo takes back") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10
+	run(image, "takeSnapshot");
+	CHECK(editing::snapshot(image)["snapshots"][0]["name"] == "Snapshot 1");
+	run(image, "clear"); // the ink's layer cleared: its pixels show white
+	CHECK(at(image, 5, 5)[0] == 255);
+	run(image, "restoreSnapshot", {{"index", 0}});
+	CHECK(at(image, 5, 5)[0] == 0);
+	run(image, "clear"); // the snapshot's pixels stay as they were
+	run(image, "restoreSnapshot", {{"index", 0}});
+	CHECK(at(image, 5, 5)[0] == 0);
+	run(image, "undo");
+	CHECK(at(image, 5, 5)[0] == 255);
+	CHECK_THROWS(run(image, "restoreSnapshot", {{"index", 3}}));
+	run(image, "deleteSnapshot", {{"index", 0}});
+	CHECK(editing::snapshot(image)["snapshots"].empty());
+}
+
+TEST_CASE("format: trim crops the image to its visible pixels that aren't transparent") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10, over a white background
+	run(image, "trim");                           // nothing transparent: nothing changes
+	CHECK(image.canvas->document().width() == 40);
+	const json taken = editing::snapshot(image);
+	run(image, "setLayer", {{"id", taken["layers"].back()["id"]}, {"visible", false}});
+	run(image, "trim");
+	CHECK(image.canvas->document().width() == 10);
+	CHECK(image.canvas->document().height() == 30);
+	CHECK(at(image, 5, 5)[0] == 0);
+}
+
 TEST_CASE("format: distribute spaces three layers' pixels evenly between the outermost two, as one step") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10

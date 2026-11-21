@@ -1,6 +1,7 @@
 /// @file
-/// @brief format::editing: the "image" step's history and layer operations: undo, redo, history, clearHistory,
-/// addLayer, deleteLayer, duplicateLayer, selectLayer, addMask, deleteMask, moveLayer and setLayer.
+/// @brief format::editing: the "image" step's history and layer operations: undo, redo, history, clearHistory, the
+/// snapshots (takeSnapshot, restoreSnapshot, deleteSnapshot), addLayer, deleteLayer, duplicateLayer, selectLayer,
+/// addMask, deleteMask, moveLayer and setLayer.
 
 #include "ImageOperations.hpp"
 
@@ -38,6 +39,73 @@ void goToStep(ImageDocument& image, const json& with, Window*) {
 	settle(image);
 	const double position = std::clamp(numberOf(with, "position", 0.0), 0.0, farthest);
 	image.canvas->document().goTo(static_cast<std::size_t>(position));
+}
+
+/// @brief The most snapshots an image keeps: each holds its tiles alive.
+constexpr std::size_t mostSnapshots = 16;
+
+/// @brief A structure whose images are copies sharing their tiles (written again, a tile is copied first), so that
+/// later edits of either leave the other as it is.
+/// @param structure The structure.
+/// @return The copy.
+[[nodiscard]] imaging::Structure copiedStructure(const imaging::Structure& structure) {
+	imaging::Structure copy = structure;
+	for(auto& [id, made] : copy.images) {
+		if(!made) continue;
+		const imaging::Image& old = *made;
+		auto image =
+		    std::make_shared<imaging::Image>(old.width(), old.height(), old.format(), old.limits(), old.source());
+		for(const imaging::TileKey& key : old.writtenTiles()) image->setTile(key.column, key.row, old.tile(key));
+		made = std::move(image);
+	}
+	return copy;
+}
+
+/// @brief takeSnapshot: keeps the layers as they are under a name, to restore later; another document's are dropped.
+/// @param image The image.
+/// @param with name ("Snapshot n" by default).
+/// @throws DocumentError If the image already keeps the most snapshots.
+void takeSnapshot(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	const std::uint64_t generation = image.canvas->generation();
+	std::erase_if(image.snapshots, [&](const ImageSnapshot& kept) { return kept.generation != generation; });
+	if(image.snapshots.size() >= mostSnapshots) throw DocumentError("Delete a snapshot first");
+	std::string name = textOf(with, "name");
+	if(name.empty()) name = "Snapshot " + std::to_string(image.snapshots.size() + 1);
+	image.snapshots.push_back({name, copiedStructure(image.canvas->document().structure()), generation});
+}
+
+/// @brief The snapshot an argument names, of this document.
+/// @param image The image.
+/// @param with index (0 the oldest).
+/// @return Its place in the list.
+/// @throws DocumentError If there is no such snapshot.
+[[nodiscard]] std::size_t snapshotOf(const ImageDocument& image, const json& with) {
+	const double index = numberOf(with, "index", -1.0);
+	if(index < 0.0 || index >= static_cast<double>(image.snapshots.size()) ||
+	   image.snapshots[static_cast<std::size_t>(index)].generation != image.canvas->generation())
+		throw DocumentError("No such snapshot");
+	return static_cast<std::size_t>(index);
+}
+
+/// @brief restoreSnapshot: puts the layers back as a snapshot kept them, as one step.
+/// @param image The image.
+/// @param with index (0 the oldest).
+/// @throws DocumentError If there is no such snapshot.
+void restoreSnapshot(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	const ImageSnapshot& kept = image.snapshots[snapshotOf(image, with)];
+	imaging::Structure restored = copiedStructure(kept.structure);
+	image.canvas->document().changeStructure(kept.name,
+	                                         [&](imaging::Structure& changed) { changed = std::move(restored); });
+}
+
+/// @brief deleteSnapshot: forgets a snapshot.
+/// @param image The image.
+/// @param with index (0 the oldest).
+/// @throws DocumentError If there is no such snapshot.
+void deleteSnapshot(ImageDocument& image, const json& with, Window*) {
+	image.snapshots.erase(image.snapshots.begin() + static_cast<std::ptrdiff_t>(snapshotOf(image, with)));
 }
 
 /// @brief clearHistory: forgets every step, so the image as it is can't be undone.
@@ -191,6 +259,9 @@ std::vector<ImageOperation> layerOperations() {
 	    {"redo", {}, "Does again the step last taken back.", redo},
 	    {"history", {"position"}, "Goes to a place in the history (0 is before the first step).", goToStep},
 	    {"clearHistory", {}, "Forgets every step of the history.", clearHistory},
+	    {"takeSnapshot", {"name"}, "Keeps the layers as they are under a name, to restore later.", takeSnapshot},
+	    {"restoreSnapshot", {"index"}, "Puts the layers back as a snapshot kept them, as one step.", restoreSnapshot},
+	    {"deleteSnapshot", {"index"}, "Forgets a snapshot.", deleteSnapshot},
 	    {"addLayer", {"kind", "name"}, "Adds a pixel layer, a group or an adjustment layer.", addLayer},
 	    {"deleteLayer", {"id"}, "Deletes a layer (a group with its layers).", onLayer<deleteLayer>()},
 	    {"duplicateLayer", {"id"}, "Duplicates a layer.", onLayer<duplicateLayer>()},

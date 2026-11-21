@@ -38,6 +38,8 @@
 		"deleteLayer": [{ "image": "deleteLayer", "with": "{{args}}" }],
 		"duplicateLayer": [{ "image": "duplicateLayer", "with": "{{args}}" }],
 		"selectLayer": [{ "image": "selectLayer", "with": "{{args}}" }],
+		"restoreSnapshot": [{ "image": "restoreSnapshot", "with": "{{args}}" }],
+		"deleteSnapshot": [{ "image": "deleteSnapshot", "with": "{{args}}" }],
 		"addMask": [{ "image": "addMask", "with": "{{args}}" }],
 		"deleteMask": [{ "image": "deleteMask", "with": "{{args}}" }],
 		"goToHistory": [{ "image": "history", "with": "{{args}}" }],
@@ -129,6 +131,8 @@
 		"brushLarger": { "title": "Larger Brush", "category": "Edit", "icon": "plus",
 			"do": [{ "run": "setOptions", "with": { "args": { "sizeStep": 1 } } }] },
 
+		"trimImage": { "title": "Trim", "category": "Image", "icon": "crop", "description": "Crops the image to the box around its visible pixels that aren't transparent.",
+			"do": [{ "image": "trim" }] },
 		"cropToSelection": { "title": "Crop to Selection", "category": "Image", "icon": "crop",
 			"enablement": "{{state.doc.selection}}",
 			"do": [{ "run": "crop", "with": { "args": { "x": "{{state.doc.bounds[0]}}", "y": "{{state.doc.bounds[1]}}",
@@ -385,6 +389,9 @@
 		"lastFilter": { "title": "Last Filter", "category": "Filter", "icon": "repeat", "enablement": "{{!empty(state.lastFilter)}}",
 			"description": "Applies the filter last applied again, with its values.",
 			"do": [{ "image": "applyFilter", "with": "{{state.lastFilter}}" }] },
+		"takeSnapshot": { "title": "New Snapshot", "category": "Edit", "icon": "camera",
+			"description": "Keeps the layers as they are, as a snapshot in the History panel, to restore later.",
+			"do": [{ "image": "takeSnapshot" }] },
 		"showAbout": { "title": "About Tempera", "category": "Help", "icon": "info", "do": [{ "set": "state.about", "to": true }] },
 		"acceptAgentProposal": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }],
 		"measureTones": [{ "note": "Levels and Curves show the image's tones; other layers don't need them measured." },
@@ -535,7 +542,7 @@
 			"canvasSize": { "run": "showCanvasSize", "group": "2_size", "order": 2 },
 			"rotation": { "submenu": "imageRotation", "title": "Image Rotation", "group": "2_size", "order": 3 },
 			"crop": { "run": "cropToSelection", "title": "Crop", "group": "2_size", "order": 4 },
-			"trim": { "run": "unavailable", "title": "Trim...", "group": "2_size", "order": 5 }
+			"trim": { "run": "trimImage", "title": "Trim", "group": "2_size", "order": 5 }
 		},
 		"layerTransform": {
 			"rotate180": { "run": "rotateLayer180", "title": "Rotate 180°", "group": "1_rotate", "order": 1 },
