@@ -27,7 +27,7 @@
 		"field": { "dark": "#12161c", "light": "#ffffff" },
 		"text": { "dark": "#e3e8ef", "light": "#161b22" },
 		"dim": { "dark": "#93a0b0", "light": "#4f5966" },
-		"faint": { "dark": "#535e6c", "light": "#96a0ac" },
+		"faint": { "dark": "#717c8b", "light": "#7f8996" },
 		"sel": { "dark": "#1f7f74", "light": "#1f8a7d" },
 		"selRow": { "dark": "#1b3f3d", "light": "#a9dcd4" },
 		"active": { "dark": "#6ff2df", "light": "#007f72" },

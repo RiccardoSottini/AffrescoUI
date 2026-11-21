@@ -32,6 +32,19 @@ inline constexpr std::string_view vertexSource = R"glsl(
 	}
 )glsl";
 
+/// @brief The coverage curve of every fragment shader: a glyph's coverage (FreeType's, linear) raised by an enhanced
+/// contrast that grows with the text's luminance. Blending in the framebuffer's sRGB values makes a half-covered pixel
+/// of light text on a dark ground much dimmer than half its light, so such text looks thin and washed out; dark text
+/// on a light ground already looks heavier, and is raised less. Coverage 0 and 1 stay as they are, so solid
+/// rectangles (the white texel), shapes and every pixel fully inside a stem keep their exact colour.
+inline constexpr std::string_view coverageFunctions = R"glsl(
+	float textCoverage(float coverage, vec3 color) {
+		float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+		float contrast = mix(0.35, 1.4, luminance); // DirectWrite's enhanced contrast: c (k + 1) / (c k + 1)
+		return coverage * (contrast + 1.0) / (coverage * contrast + 1.0);
+	}
+)glsl";
+
 /// @brief Fragment shader for frames without shapes. The texture holds coverage: 1 for the white texel (solid
 /// rectangles), the glyph's shape for text. It reads none of the shape's inputs: some drivers (Mesa's llvmpipe) round
 /// text differently as soon as a fragment shader reads more of them, so frames without shapes keep their exact pixels.
@@ -43,7 +56,7 @@ inline constexpr std::string_view plainFragmentSource = R"glsl(
 	out vec4 fColor;
 
 	void main() {
-		fColor = vec4(vColor.rgb, vColor.a * texture(uAtlas, vTexCoord).r);
+		fColor = vec4(vColor.rgb, vColor.a * textCoverage(texture(uAtlas, vTexCoord).r, vColor.rgb));
 	}
 )glsl";
 
@@ -88,7 +101,7 @@ inline constexpr std::string_view shapeFunctions = R"glsl(
 /// @brief The main of the fragment shader with shapes.
 inline constexpr std::string_view shapeMain = R"glsl(
 	void main() {
-		float alpha = vColor.a * texture(uAtlas, vTexCoord).r;
+		float alpha = vColor.a * textCoverage(texture(uAtlas, vTexCoord).r, vColor.rgb);
 		// The same for a whole quad, so rectangles and text skip the shape's work
 		if(vShape.w > 0.0) alpha *= coverage();
 		fColor = vec4(vColor.rgb, alpha);
@@ -112,7 +125,7 @@ inline constexpr std::string_view colorFunctions = R"glsl(
 inline constexpr std::string_view colorMain = R"glsl(
 	void main() {
 		if(colorGlyph()) return;
-		fColor = vec4(vColor.rgb, vColor.a * texture(uAtlas, vTexCoord).r);
+		fColor = vec4(vColor.rgb, vColor.a * textCoverage(texture(uAtlas, vTexCoord).r, vColor.rgb));
 	}
 )glsl";
 
@@ -120,7 +133,7 @@ inline constexpr std::string_view colorMain = R"glsl(
 inline constexpr std::string_view shapeColorMain = R"glsl(
 	void main() {
 		if(colorGlyph()) return;
-		float alpha = vColor.a * texture(uAtlas, vTexCoord).r;
+		float alpha = vColor.a * textCoverage(texture(uAtlas, vTexCoord).r, vColor.rgb);
 		if(vShape.w > 0.0) alpha *= coverage();
 		fColor = vec4(vColor.rgb, alpha);
 	}
