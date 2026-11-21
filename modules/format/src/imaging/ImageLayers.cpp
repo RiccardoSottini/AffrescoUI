@@ -65,7 +65,7 @@ constexpr std::size_t mostSnapshots = 16;
 /// @param image The image.
 /// @param with name ("Snapshot n" by default).
 /// @throws DocumentError If the image already keeps the most snapshots.
-void takeSnapshot(ImageDocument& image, const json& with, Window*) {
+void takeSnapshot(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const std::uint64_t generation = image.canvas->generation();
 	std::erase_if(image.snapshots, [&](const ImageSnapshot& kept) { return kept.generation != generation; });
@@ -92,7 +92,7 @@ void takeSnapshot(ImageDocument& image, const json& with, Window*) {
 /// @param image The image.
 /// @param with index (0 the oldest).
 /// @throws DocumentError If there is no such snapshot.
-void restoreSnapshot(ImageDocument& image, const json& with, Window*) {
+void restoreSnapshot(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const ImageSnapshot& kept = image.snapshots[snapshotOf(image, with)];
 	imaging::Structure restored = copiedStructure(kept.structure);
@@ -104,7 +104,7 @@ void restoreSnapshot(ImageDocument& image, const json& with, Window*) {
 /// @param image The image.
 /// @param with index (0 the oldest).
 /// @throws DocumentError If there is no such snapshot.
-void deleteSnapshot(ImageDocument& image, const json& with, Window*) {
+void deleteSnapshot(ImageDocument& image, const json& with, Window* /*window*/) {
 	image.snapshots.erase(image.snapshots.begin() + static_cast<std::ptrdiff_t>(snapshotOf(image, with)));
 }
 

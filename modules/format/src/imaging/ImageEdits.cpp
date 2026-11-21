@@ -129,7 +129,7 @@ void cropImage(ImageDocument& image, const json& with, Window*) {
 /// @brief trim: crops the image to the box around its visible pixels that aren't transparent (and forgets the history);
 /// an image with none, or with none transparent at its edges, stays as it is.
 /// @param image The image.
-void trimImage(ImageDocument& image, const json&, Window*) {
+void trimImage(ImageDocument& image, const json& /*with*/, Window* /*window*/) {
 	settle(image);
 	const imaging::Document& document = image.canvas->document();
 	const int width = document.width(), height = document.height();

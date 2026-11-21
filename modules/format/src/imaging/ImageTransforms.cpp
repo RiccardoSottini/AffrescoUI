@@ -262,7 +262,7 @@ void reshape(ImageDocument& image, const std::string& name, int width, int heigh
 /// @param image The image.
 /// @param with format ("rgba8" or "rgba16f").
 /// @throws DocumentError If the format is unknown.
-void convertFormat(ImageDocument& image, const json& with, Window*) {
+void convertFormat(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	const std::string name = textOf(with, "format", "rgba8");
 	if(name != "rgba8" && name != "rgba16f") throw DocumentError("Unknown format " + name);
@@ -522,31 +522,27 @@ void alignLayer(ImageDocument& image, const json& with, Window*) {
 	transform(image, {{"id", std::to_string(id)}, {axis == 0 ? "x" : "y", move}}, "Align Layer");
 }
 
-/// @brief distributeLayers: spaces three or more pixel layers evenly, as one step: the boxes around their pixels keep
-/// the outermost two where they are, and the others' edges (or middles) come at equal steps between them.
+/// @brief A pixel layer that distributeLayers moves: its image, and its edge or middle on the axis.
+struct Placed {
+	std::uint64_t pixels = 0; ///< The layer's image.
+	double at = 0.0;          ///< Its edge or middle on the axis.
+};
+
+/// @brief The pixel layers distributeLayers spaces, each once, with where they are on the axis (empty ones left out).
 /// @param image The image.
-/// @param with ids (the layers, as ids), edge ("left", "center", "right", "top", "middle" or "bottom").
-/// @throws DocumentError If the edge is unknown, fewer than three layers are given, or one can't be moved.
-void distributeLayers(ImageDocument& image, const json& with, Window*) {
-	settle(image);
-	imaging::Document& document = image.canvas->document();
-	const std::string edge = textOf(with, "edge", "left");
-	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
-	const auto found = std::ranges::find(edges, edge);
-	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
-	const auto index = static_cast<std::size_t>(found - edges.begin());
-	const std::size_t axis = index < 3 ? 0 : 1, where = index % 3;
-	struct Placed {
-		std::uint64_t pixels = 0; ///< The layer's image.
-		double at = 0.0;          ///< Its edge or middle on the axis.
-	};
+/// @param ids The layers, as ids.
+/// @param axis 0 across, 1 down.
+/// @param where 0 the start, 1 the middle, 2 the end.
+/// @return The layers, sorted by where they are.
+/// @throws DocumentError If a layer isn't a plain pixel layer, or its position is locked.
+[[nodiscard]] std::vector<Placed> placedLayers(const ImageDocument& image, const json& ids, std::size_t axis,
+                                               std::size_t where) {
+	const imaging::Document& document = image.canvas->document();
 	std::vector<Placed> placed;
-	const json ids = with.contains("ids") && with.at("ids").is_array() ? with.at("ids") : json::array();
 	for(const json& each : ids) {
-		const std::uint64_t id = layerOf(image, {{"id", each.is_string() ? each.get<std::string>() : each.dump()}});
-		if(std::ranges::any_of(placed, [&](const Placed& p) { return p.pixels == document.layer(id)->pixels; }))
-			continue;
-		const imaging::Layer& layer = *document.layer(id);
+		const imaging::Layer& layer =
+		    *document.layer(layerOf(image, {{"id", each.is_string() ? each.get<std::string>() : each.dump()}}));
+		if(std::ranges::any_of(placed, [&](const Placed& kept) { return kept.pixels == layer.pixels; })) continue;
 		if(layer.kind != imaging::LayerKind::pixel || layer.content.kind != imaging::ContentKind::none)
 			throw DocumentError("Distribute pixel layers");
 		if(layer.locks.position || layer.locks.all) throw DocumentError("A layer's position is locked");
@@ -555,8 +551,27 @@ void distributeLayers(ImageDocument& image, const json& with, Window*) {
 		const double start = (*box)[axis], end = (*box)[axis + 2];
 		placed.push_back({layer.pixels, where == 0 ? start : where == 2 ? end : (start + end) / 2.0});
 	}
-	if(placed.size() < 3) throw DocumentError("Distribute three layers or more");
 	std::ranges::stable_sort(placed, {}, &Placed::at);
+	return placed;
+}
+
+/// @brief distributeLayers: spaces three or more pixel layers evenly, as one step: the boxes around their pixels keep
+/// the outermost two where they are, and the others' edges (or middles) come at equal steps between them.
+/// @param image The image.
+/// @param with ids (the layers, as ids), edge ("left", "center", "right", "top", "middle" or "bottom").
+/// @throws DocumentError If the edge is unknown, fewer than three layers are given, or one can't be moved.
+void distributeLayers(ImageDocument& image, const json& with, Window* /*window*/) {
+	settle(image);
+	imaging::Document& document = image.canvas->document();
+	const std::string edge = textOf(with, "edge", "left");
+	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
+	const auto* const found = std::ranges::find(edges, edge);
+	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
+	const auto index = static_cast<std::size_t>(found - edges.begin());
+	const std::size_t axis = index < 3 ? 0 : 1;
+	const json ids = with.contains("ids") && with.at("ids").is_array() ? with.at("ids") : json::array();
+	const std::vector<Placed> placed = placedLayers(image, ids, axis, index % 3);
+	if(placed.size() < 3) throw DocumentError("Distribute three layers or more");
 	const double first = placed.front().at, step = (placed.back().at - first) / static_cast<double>(placed.size() - 1);
 	std::vector<std::pair<std::uint64_t, std::shared_ptr<imaging::Image>>> moved;
 	for(std::size_t i = 1; i + 1 < placed.size(); ++i) {

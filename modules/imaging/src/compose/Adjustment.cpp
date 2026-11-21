@@ -54,7 +54,8 @@ namespace {
 	}
 	case AdjustmentKind::curves: { // the composite curve, then the channel's own
 		const float composite = curveAt(adjustment.curve, value);
-		const auto& own = adjustment.channelCurves.at(channel);
+		if(channel >= adjustment.channelCurves.size()) return composite;
+		const auto& own = adjustment.channelCurves[channel];
 		return own.size() < 2 ? composite : curveAt(own, composite);
 	}
 	case AdjustmentKind::colorBalance: // midtones: strongest at 0.5, none at black and white
