@@ -25,6 +25,13 @@
 (defcomputed picked "The layers picked together that the image still has."
   (let [ids (map :id state.doc.layers)] (filter #(contains ids %) state.pickedLayers)))
 
+(defcomputed curvePoints "The points of the curve the Curves editor shows: the composite's, or the channel's own."
+  (let [channel (indexOf ["red" "green" "blue"] state.curveChannel)
+        own (get computed.adjustment.channelCurves channel)]
+    (cond (< channel 0) computed.adjustment.curve
+          (empty? own) [[0 0] [1 1]]
+          :else own)))
+
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
   (t "layer.groupName" {:n (->> state.doc.layers (filter #(= (:kind %) "group")) count inc)}))
 

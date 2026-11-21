@@ -176,6 +176,7 @@
 		"blendMenu": false,
 		"brushMenu": false,
 		"brushPreset": "",
+		"curveChannel": "rgb",
 		"gradientMenu": false,
 		"workspaceMenu": false,
 		"paintModeMenu": false,

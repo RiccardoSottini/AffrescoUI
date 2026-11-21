@@ -86,7 +86,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Item | Status | Gap |
 | --- | --- | --- |
 | Levels with histogram | done | An adjustment layer; Properties draws the image's tones above its sliders, measured again as the image changes |
-| Curves | partial | The tones show behind the curve; one curve for all channels |
+| Curves | done | The tones show behind the curve; RGB, Red, Green and Blue pills choose the composite curve or a channel's own, each kept on the layer |
 | Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; no Colorize or colour ranges |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
 | Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; also Sharpen and High Pass (Filter > Other); Filter > Last Filter (Alt+Cmd+F) applies the last one again with its values; no median or lens blur |
@@ -137,7 +137,6 @@ general feature the image step or a node needs first.
 | Dodge, burn, sponge (Dodge Tool) | P3 | Library: brush modes that lighten, darken or desaturate |
 | Brush: pressure for size and opacity, smoothing, angle, airbrush | P2 | Library: brush options mapping pressure to size and opacity, stroke smoothing, a tip angle and build-up |
 | Anti-alias checks (marquee, fill) | P3 | Library: an anti-alias flag on selection edges and fills (always on now) |
-| Curves per channel | P2 | Library: per-channel curves in the adjustment (the curves node already shows channels); then JSON |
 | Hue/Saturation: Colorize and colour ranges | P3 | Library: a colorize mode and per-range hue in the adjustment |
 | Filters: more kinds | P2 | Library: further filter kinds (median, lens blur); each then a JSON dialog |
 | Edit > Stroke | P2 | Library: stroking the selection's outline |

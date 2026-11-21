@@ -189,15 +189,41 @@
             :high ~high
             :scale ~scale}))
 
-(defview curve-values "A Curves layer's curve, over the image's tones." []
-  [`(curves#adjust-curve :label ~(t "adjust.curve")
+(defview curve-values "A Curves layer's channel (the composite, red, green or blue), and its curve over the tones." []
+  [`(row#curve-channels :role group
+      :label ~(t "adjust.curveChannel")
+      :when ~(= computed.adjustmentKind "curves")
+      :width "100%"
+      :height 24
+      :gap 2
+      :alignItems center
+      ~(repeat [ch ["rgb" "red" "green" "blue"]] (curve-channel ch)))
+   `(curves#adjust-curve :label ~(t "adjust.curve")
       :when ~(= computed.adjustmentKind "curves")
       :width 200
       :height 140
-      :value ~(merge {:points []} {:points computed.adjustment.curve})
-      :accentColor @accent
+      :value ~{:points computed.curvePoints}
+      :accentColor ~(case state.curveChannel "red" "#e5484d" "green" "#46a758" "blue" "#3e8ed0" "@accent")
       :histogram ~(tones)
-      :onChange ~(handler set-curve event.value.points))])
+      :onChange ~(handler set-curve {:points event.value.points}))])
+
+(defview curve-channel "A pill choosing the channel the curve edits: rgb (the composite), red, green or blue." [ch]
+  `(label :id ~(str "curve-channel-" ch)
+     :role radio
+     :label ~(t (str "adjust.channel." ch))
+     :selected ~(= state.curveChannel ch)
+     :focusable true
+     :text ~(t (str "adjust.channel." ch))
+     :width 46
+     :height 20
+     :align center
+     :radius 999
+     :cursor hand
+     :color ~(if (= state.curveChannel ch) "@accentSoft" "transparent")
+     :textColor ~(if (= state.curveChannel ch) "@text" "@muted")
+     :hover {:textColor @text}
+     :focused {:borderWidth 1 :borderColor @accent}
+     :onClick [{:set state.curveChannel :to ~ch}]))
 
 (defview hue-values "A Hue/Saturation layer's hue, saturation and lightness." []
   [(adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)

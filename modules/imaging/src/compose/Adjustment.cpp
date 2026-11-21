@@ -52,8 +52,11 @@ namespace {
 		const float normal = std::pow(clamped((value - adjustment.inputBlack) / range), 1.0f / adjustment.gamma);
 		return adjustment.outputBlack + normal * (adjustment.outputWhite - adjustment.outputBlack);
 	}
-	case AdjustmentKind::curves:
-		return curveAt(adjustment.curve, value);
+	case AdjustmentKind::curves: { // the composite curve, then the channel's own
+		const float composite = curveAt(adjustment.curve, value);
+		const auto& own = adjustment.channelCurves.at(channel);
+		return own.size() < 2 ? composite : curveAt(own, composite);
+	}
 	case AdjustmentKind::colorBalance: // midtones: strongest at 0.5, none at black and white
 		return clamped(value + adjustment.balance[channel] * 0.5f * 4.0f * value * (1.0f - value));
 	case AdjustmentKind::brightnessContrast: {
@@ -138,13 +141,20 @@ void Adjustment::normalize() {
 	gamma = std::isfinite(gamma) ? std::clamp(gamma, 0.1f, 10.0f) : 1.0f;
 	outputBlack = clamped(outputBlack);
 	outputWhite = clamped(outputWhite);
-	if(curve.size() > maxCurvePoints) curve.resize(maxCurvePoints);
-	for(auto& [input, output] : curve) {
-		input = clamped(input);
-		output = clamped(output);
-	}
-	std::ranges::stable_sort(curve, [](const auto& left, const auto& right) { return left.first < right.first; });
+	const auto tidy = [](std::vector<std::pair<float, float>>& points) {
+		if(points.size() > maxCurvePoints) points.resize(maxCurvePoints);
+		for(auto& [input, output] : points) {
+			input = clamped(input);
+			output = clamped(output);
+		}
+		std::ranges::stable_sort(points, [](const auto& left, const auto& right) { return left.first < right.first; });
+	};
+	tidy(curve);
 	if(curve.size() < 2) curve = {{0.0f, 0.0f}, {1.0f, 1.0f}};
+	for(auto& own : channelCurves) {
+		tidy(own);
+		if(own.size() < 2) own.clear(); // straight
+	}
 	hue = std::isfinite(hue) ? std::clamp(hue, -180.0f, 180.0f) : 0.0f;
 	const auto unit = [](float& value) { value = std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f; };
 	unit(saturation);

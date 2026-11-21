@@ -80,6 +80,8 @@ struct Adjustment {
 	float contrast = 0.0f;          ///< brightnessContrast: -1 to 1.
 	float level = 0.5f;             ///< threshold: the luminosity that becomes white.
 	Gradient gradient;              ///< gradientMap: from the darkest to the lightest.
+	/// @brief curves: red's, green's and blue's own points, applied after the composite curve (none: straight).
+	std::array<std::vector<std::pair<float, float>>, 3> channelCurves{};
 
 	/// @brief Clamps every setting to its range and sorts the curve.
 	void normalize();

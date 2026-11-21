@@ -237,6 +237,8 @@
 
 (defstate brushMenu false "The brush presets are shown.")
 
+(defstate curveChannel "rgb" "The channel the Curves editor shows: rgb (the composite), red, green or blue.")
+
 (defstate brushPreset "" "The brush preset last chosen, filled in the Brushes panel.")
 
 (defstate gradientMenu false "The gradient presets are shown.")

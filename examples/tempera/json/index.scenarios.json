@@ -5011,6 +5011,79 @@
 			]
 		},
 		{
+			"name": "tempera-curves-per-channel",
+			"note": "A Curves layer edits the composite curve or red's, green's or blue's own, each kept on the layer",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+m"
+				},
+				{
+					"expect": {
+						"node": "#curve-channels",
+						"exists": true
+					}
+				},
+				{
+					"click": "#curve-channel-red"
+				},
+				{
+					"expect": {
+						"state": "curveChannel",
+						"is": "red"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setCurve",
+						"args": {
+							"points": [
+								[
+									0,
+									1
+								],
+								[
+									1,
+									0
+								]
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.channelCurves[0][0][1]",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.channelCurves[1]",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.curve[0][1]",
+						"is": 0
+					}
+				},
+				{
+					"click": "#curve-channel-rgb"
+				},
+				{
+					"expect": {
+						"state": "curveChannel",
+						"is": "rgb"
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-type-layer",
 			"note": "The Type tool adds a type layer; its text, size and style edit in place, and it rasterizes",
 			"steps": [

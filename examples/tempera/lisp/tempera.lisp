@@ -253,8 +253,13 @@ would."
         changed (map #(if (= % channel) value (get balance %)) (range 3))]
     (setLayer {:adjustment (assoc computed.adjustment :balance changed)})))
 
-(defn set-curve "The Curves layer's curve, as its editor drew it." [points]
-  (setLayer {:adjustment (assoc computed.adjustment :curve points)}))
+(defn set-curve "The Curves layer's curve for the channel chosen, as its editor drew it: args.points." [args]
+  (let [channel (indexOf ["red" "green" "blue"] state.curveChannel)
+        own computed.adjustment.channelCurves
+        channels (mapv #(if (= % channel) args.points (get own %)) [0 1 2])]
+    (setLayer {:adjustment (if (< channel 0)
+                             (assoc computed.adjustment :curve args.points)
+                             (assoc computed.adjustment :channelCurves channels))})))
 
 (defn measure-tones "Levels and Curves show the image's tones; other layers don't need them measured." []
   (when (#{:levels :curves} computed.adjustmentKind)

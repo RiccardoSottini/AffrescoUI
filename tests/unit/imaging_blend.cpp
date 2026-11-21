@@ -4,6 +4,7 @@
 
 #include "affresco/imaging/Adjustment.hpp"
 #include "affresco/imaging/Blend.hpp"
+#include "affresco/imaging/Project.hpp"
 
 #include <doctest/doctest.h>
 
@@ -118,6 +119,14 @@ TEST_CASE("imaging adjustments: settings are clamped and tables follow the formu
 	CHECK(curves.curve.front().first == 0.0f);
 	CHECK(adjustPixel(curves, Pixel{0.0f, 0.0f, 0.0f, 1.0f}).red == doctest::Approx(1.0f));
 	CHECK(adjustPixel(curves, Pixel{1.0f, 1.0f, 1.0f, 1.0f}).red == doctest::Approx(0.0f));
+	curves.curve = {{0.0f, 0.0f}, {1.0f, 1.0f}}; // straight, but red's own curve inverts it
+	curves.channelCurves[0] = {{0.0f, 1.0f}, {1.0f, 0.0f}};
+	curves.channelCurves[2] = {{0.5f, 0.5f}}; // one point: straight
+	curves.normalize();
+	CHECK(curves.channelCurves[2].empty());
+	CHECK(adjustPixel(curves, Pixel{0.0f, 0.0f, 0.0f, 1.0f}).red == doctest::Approx(1.0f));
+	CHECK(adjustPixel(curves, Pixel{0.0f, 0.0f, 0.0f, 1.0f}).green == doctest::Approx(0.0f));
+	CHECK(adjustmentFromJson(adjustmentToJson(curves)) == curves);
 
 	Gradient gradient;
 	gradient.stops.assign(40, GradientStop{2.0f, {2.0f, -1.0f, 0.5f, 1.0f}});
