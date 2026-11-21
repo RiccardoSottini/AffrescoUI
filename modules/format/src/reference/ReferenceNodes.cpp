@@ -113,8 +113,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"bottomLeft": {"$ref": "#/$defs/v2/pixels"}}}]})json",
 	 "Rounds the corners, in pixels: one number for all four (`8`), or `{ \"topLeft\", \"topRight\", \"bottomRight\", "
 	 "\"bottomLeft\" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so "
-	 "`999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the "
-	 "corners still take clicks. Default: `0`.",
+	 "`999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; "
+	 "other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`.",
 	 "look"},
     {"borderWidth", R"json({"description": "A border inside the node's edges; it doesn't change the layout",
 		"$ref": "#/$defs/v2/pixels"})json",

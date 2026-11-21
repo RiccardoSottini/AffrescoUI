@@ -257,7 +257,8 @@ void PaintRecorder::fillRect(const Rect& rect, Color color) {
 // put on a pixel row, so its glyphs' rows are the framebuffer's (a scale of 1.5 would otherwise blur them). Below 2x
 // (Font::fitsPixels) every glyph, hinted to those rows, is also drawn from a pixel column, from its bitmap moved by
 // the quarter of a pixel that puts it within an eighth of a pixel of its place (Font::fitGlyph): drawn as rasterised,
-// not resampled between columns, and still evenly spaced (widths and carets don't move)
+// not resampled between columns, and still evenly spaced (widths and carets don't move). From 2x, unhinted, each
+// glyph's pen is on the nearest column: never resampled between two either
 void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
 	const Font& raster = font.rasterAt(scale_);
 	const float scale = raster.rasterScale();
@@ -329,6 +330,47 @@ void PaintRecorder::drawImage(const Bitmap& bitmap, const Rect& rect) {
 	beginStep(PaintStep::image);
 	record_.ops.back().bitmap = &bitmap;
 	pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
+}
+
+// One quad per row of framebuffer pixels in the corners' bands, each clipped to the shape's width on that row, and one
+// for the band between them: the picture's own texels, with no mask to sample
+void PaintRecorder::drawRoundedImage(const Bitmap& bitmap, const Rect& rect, const Rect& shape,
+                                     const CornerRadii& radii) {
+	const float limit = std::max(std::min(shape.width(), shape.height()) / 2.0f, 0.0f);
+	const auto radius = [limit](float r) { return std::clamp(r, 0.0f, limit); };
+	const float topLeft = radius(radii.topLeft), topRight = radius(radii.topRight);
+	const float bottomLeft = radius(radii.bottomLeft), bottomRight = radius(radii.bottomRight);
+	if(topLeft + topRight + bottomLeft + bottomRight <= 0.0f) return drawImage(bitmap, rect);
+	beginStep(PaintStep::image);
+	record_.ops.back().bitmap = &bitmap;
+	const Rect clip = clip_;
+	// How far a corner of radius r cuts into a row whose middle is `depth` from the corner's edge
+	const auto inset = [](float r, float depth) {
+		if(depth >= r) return 0.0f;
+		const float off = r - depth;
+		return r - std::sqrt(std::max(r * r - off * off, 0.0f));
+	};
+	const float row = 1.0f / std::max(scale_, 1.0f);
+	const float topBand = std::max(topLeft, topRight), bottomBand = std::max(bottomLeft, bottomRight);
+	const auto strip = [&](float top, float bottom, float left, float right) {
+		clip_ = intersect(clip, {left, top, right, bottom});
+		if(clip_.right > clip_.left && clip_.bottom > clip_.top)
+			pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
+	};
+	const auto rows = [row](float band) { return static_cast<int>(std::ceil(band / row)); };
+	for(int index = 0, count = rows(topBand); index < count; ++index) {
+		const float y = shape.top + static_cast<float>(index) * row, depth = y + row / 2.0f - shape.top;
+		strip(y, std::min(y + row, shape.top + topBand), shape.left + inset(topLeft, depth),
+		      shape.right - inset(topRight, depth));
+	}
+	strip(shape.top + topBand, shape.bottom - bottomBand, shape.left, shape.right);
+	for(int index = 0, count = rows(bottomBand); index < count; ++index) {
+		const float y = shape.bottom - bottomBand + static_cast<float>(index) * row;
+		const float depth = shape.bottom - (y + row / 2.0f);
+		strip(y, std::min(y + row, shape.bottom), shape.left + inset(bottomLeft, depth),
+		      shape.right - inset(bottomRight, depth));
+	}
+	clip_ = clip;
 }
 
 // The framebuffer's bottom row (v = 0) is the rectangle's bottom

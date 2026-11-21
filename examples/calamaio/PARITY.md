@@ -34,14 +34,14 @@ the difference in the note) or **missing**. The words, the sample texts and the 
 | Search | isearch with lazy highlight | done | `C-s`, `C-r`, RET, `C-g` |
 | Search | `M-%` | done | Asks at each match |
 | Arguments | `C-u`, `M-<digit>` | done | Counts motions, deletions and typed characters (`C-u 3 x`, `C-u x`), and replays of a macro |
-| Macros | `F3`, `F4` | done | The keys typed in a window, `Def` in the mode line while recording; `C-g` stops it. A window's own keys (a listing's, electric pairs) and the minibuffer's aren't recorded |
+| Macros | `F3`, `F4` | done | The keys typed in a window, `Def` in the mode line while recording; `C-g` stops it. A listing's keys (a folder's `d`, `u`, `RET`...), electric pairs and each answer given in the minibuffer (`M-x` and the rest) are recorded too |
 | Rectangles | `C-x r k`, `C-x r y`, `C-x r t` | done | Between the mark's column and point's; short lines are padded with spaces |
 | Registers | `C-x r s`, `C-x r i`, `C-x r SPC`, `C-x r j` | done | Text or a position, in its buffer; kept while Calamaio runs |
 | Help | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`, `C-h e` | done | From the document's commands, keys and settings |
 | Files | `C-x b`, `C-x C-f`, `C-x C-s`, `C-x k` | partial | Files are a sample folder in the document |
 | Files | `C-x C-c` with a save prompt | partial | Asks, but the frame stays |
 | Major modes | Fundamental, Text, Lisp, Python, C, Markdown, Org | partial | Names in the mode line; colours where the host has a grammar |
-| Minor modes | Line numbers, visual line, show-paren, electric pair, menu bar, tool bar | partial | From Options and `M-x`; auto-fill and whitespace not yet |
+| Minor modes | Line numbers, visual line, show-paren, electric pair, auto-fill, whitespace, fill column indicator, menu bar, tool bar | done | From Options and `M-x`; auto-fill breaks at the last space before `fill-column` as a space is typed past it (`Fill` in the mode line); whitespace dots each space; `C-h m` lists the ones on |
 | Dired | Listing, RET, `g`, `q`, `d`, `u`, `x`, `+`, `R`, `C` | done | `C-x d`; `x` asks yes or no; a buffer visiting a renamed file follows it. The files are the sample folder's |
 | Shell | A shell buffer | missing | |
 | Customize | A buffer of the variables, set and reset | done | Each variable's state, STANDARD or SAVED and set, and Reset to Standard; changes apply at once and are kept for the next session |

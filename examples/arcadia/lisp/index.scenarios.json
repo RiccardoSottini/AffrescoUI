@@ -772,6 +772,230 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "collection-edit",
+			"note": "A collection's shelf has an edit button and its heading in the list a right click: the window opens with its name and games, saves a new name and games, and deletes it.",
+			"steps": [
+				{
+					"rightClick": "#section-coop"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "newCollection.editing",
+						"is": "coop"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.title",
+						"is": "Co-op Nights"
+					}
+				},
+				{
+					"capture": "edit-collection"
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"key": "cmd+a"
+				},
+				{
+					"type": "Friday Co-op"
+				},
+				{
+					"click": "#coll-check-ember"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[0].title",
+						"is": "Friday Co-op"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[0].games",
+						"is": [
+							"pebble",
+							"neon"
+						]
+					}
+				},
+				{
+					"rightClick": "#section-cozy"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-cozy",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "couch-settings",
+			"note": "Couch mode has a Settings row: Enter steps the chosen setting to its next value.",
+			"steps": [
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "settings"
+					}
+				},
+				{
+					"capture": "couch-settings"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": true
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.at",
+						"is": 3
+					}
+				},
+				{
+					"click": "#couch-leave"
+				}
+			]
+		},
+		{
+			"name": "compatibility",
+			"note": "A game's properties have a Compatibility page: forcing a layer and choosing which one.",
+			"steps": [
+				{
+					"with": {
+						"id": "ember",
+						"tab": "compat"
+					},
+					"command": "openProperties",
+					"as": "studio"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "compat",
+						"is": {}
+					}
+				},
+				{
+					"click": "#properties-compat-toggle"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": "bridge9"
+					}
+				},
+				{
+					"click": "#properties-compat-experimental"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": "experimental"
+					}
+				},
+				{
+					"capture": "compatibility"
+				},
+				{
+					"click": "#properties-compat-toggle"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": null
+					}
+				}
+			]
+		},
+		{
+			"name": "profile-rewards",
+			"note": "The rewards redeemed show on the profile's banner.",
+			"steps": [
+				{
+					"action": "showProfile"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#profile-reward-gem-badge",
+						"exists": true
+					}
+				},
+				{
+					"capture": "profile-rewards"
+				}
+			]
 		}
 	]
 }

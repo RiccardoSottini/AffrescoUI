@@ -1251,7 +1251,7 @@
 		},
 		{
 			"name": "sinopia-sections-and-ribbon",
-			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, and a tab shows it again",
+			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, a tab shows it over the slide, and the button pins it again",
 			"steps": [
 				{ "click": "#thumb-s3-section" },
 				{ "expect": { "state": "foldedSections", "is": ["b"] } },
@@ -1264,11 +1264,13 @@
 				{ "key": "mod+f1" },
 				{ "expect": { "node": "#ribbon", "exists": false } },
 				{ "click": "#tab-insert-label" },
-				{ "expect": { "node": "#ribbon", "exists": true } },
+				{ "expect": { "node": "#ribbon-peek", "exists": true } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": true } },
 				{ "click": "#ribbon-collapse" },
 				{ "expect": { "state": "ribbon", "is": false } },
 				{ "click": "#ribbon-collapse" },
-				{ "expect": { "state": "ribbon", "is": true } }
+				{ "expect": { "node": "#ribbon", "exists": true } }
 			]
 		},
 		{

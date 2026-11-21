@@ -1,6 +1,6 @@
 ;;; profile.lisp --- the profile page: who you are on Arcadia, what you play and who with
 ;;;
-;;; The banner with the avatar, level and status; numbers; a showcase of favourites; the games played lately with
+;;; The banner with the avatar, level, status and the rewards redeemed; numbers; a showcase of favourites; the games played lately with
 ;;; their hours and achievements; and friends.
 
 (ns arcadia.parts.profile)
@@ -27,7 +27,8 @@
          ~(profile-games)
          ~(profile-friends)))))
 
-(defview profile-banner "The banner: the avatar, the name, since when and the status, and the level in a ring." []
+(defview profile-banner
+  "The banner: the avatar, the name, since when and the status, the rewards redeemed, and the level in a ring." []
   `(row#profile-banner :height 196
      :anchors {:left 0 :right 0}
      :gap 24
@@ -35,7 +36,7 @@
      :gradient {:kind linear :angle 0 :stops [@profile.bannerStart @profile.bannerEnd]}
      (panel :color transparent :width 16 :height 1)
      (node :use avatar :with {:avatar ~state.user.avatar :presence ~state.user.status :size 132})
-     (column :grow 1 :height 84 :gap 6 :alignSelf center
+     (column :grow 1 :height ~(if (empty? state.rewardsOwned) 84 122) :gap 6 :alignSelf center
        (label#profile-name :font logo
          :text ~state.user.name
          :textColor @color.bright
@@ -47,7 +48,8 @@
          :textColor @color.muted
          :text ~(t "profile.sinceStatus"
                    {:since (t "profile.since" {:year (text state.user.since)})
-                    :status (t (str "presence." state.user.status))})))
+                    :status (t (str "presence." state.user.status))}))
+       ~(profile-rewards))
      (column#profile-level :width 140 :height 120 :gap 6 :alignItems center :alignSelf center
        (label :font small :text ~(t "profile.level") :textColor @color.muted :fitText true)
        (label :font nav
@@ -61,6 +63,28 @@
          :textColor @color.bright
          :label ~(t "profile.levelIs" {:n state.user.level})))
      (panel :color transparent :width 32 :height 1)))
+
+(defview profile-rewards "The rewards redeemed with points, each a small tile in its colours with its icon." []
+  `(row#profile-rewards :when ~(not (empty? state.rewardsOwned))
+     :height 32
+     :anchors {:left 0 :right 0}
+     :gap 8
+     :alignItems center
+     :role list
+     :label ~(t "profile.rewards")
+     ~(repeat [r (filter #(has state.rewardsOwned (:id %)) state.rewardItems) :key r.id]
+        `(label :id ~(str "profile-reward-" r.id)
+           :role listitem
+           :width 32
+           :height 32
+           :radius 8
+           :icon ~r.icon
+           :text ""
+           :align center
+           :gradient {:kind linear :angle 135 :stops [~r.a ~r.b]}
+           :textColor "#ffffffe0"
+           :label ~(t (str "rewards.item." r.id))
+           :tooltip ~(str (t (str "rewards.item." r.id)) " · " (t (str "rewards.type." r.kind)))))))
 
 (defcomponent profileStat "A number with its name, on the profile."
   {:value "" :title "" :id ""}

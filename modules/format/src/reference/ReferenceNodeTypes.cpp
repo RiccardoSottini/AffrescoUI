@@ -76,6 +76,7 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"whitespace", "flag", "`true` draws a small dot in each space, in `guideColor`, so blanks can be seen.", "editor"},
     {"foldMarkers", "flag",
 	 "`true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line "
 	 "(pointing right); a click on it folds or unfolds the line.",
@@ -255,10 +256,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"file", R"json({"type": "string",
 		"description": "image: a PNG, JPEG or SVG file, relative to the screen file and inside its folder (or one the host allows)"})json",
 	 "A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
-	 "inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is "
-	 "refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or "
-	 "decoded shows nothing (and is logged). `\"asset:<name>\"` shows an asset of the screen instead (Assets), which "
-	 "only the person accepts.",
+	 "inside it), or a folder the host allows " // a piece of its own: lizard reads "allows (" as a function
+	 "(`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a "
+	 "side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). "
+	 "`\"asset:<name>\"` shows an asset of the screen instead (Assets), which only the person accepts.",
 	 "image"},
     {"source", R"json({"type": "string",
 		"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"})json",
@@ -444,6 +445,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "
 	 "\"kind\": \"linear\" or \"radial\", \"angle\": 90, \"stops\": [{ \"at\": 0, \"color\": \"@accent\" }] }` "
 	 "(1 to 32 stops; a radial one is centred, reaching the corners).",
+	 "path"},
+    {"feather", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How wide the inside's edge fades out past the path, in window units: `1` (the default) anti-aliases it, `0` is a "
+	 "hard edge, and up to `64` a soft edge or a blurred shadow.",
 	 "path"},
     {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
     {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",

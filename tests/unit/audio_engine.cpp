@@ -503,7 +503,7 @@ TEST_CASE("audio: an equaliser turns its band's frequencies up or down, and leav
 	Engine engine(manual());
 	std::string error;
 	/// The peak of a tone through an equaliser, once the filter has settled.
-	auto peakThrough = [&](float frequency, std::vector<EqualizerBand> bands) {
+	const auto peakThrough = [&](float frequency, std::vector<EqualizerBand> bands) {
 		const auto voice = engine.play(Source::tone(frequency, 1, 0.25F), {}, error);
 		REQUIRE(voice);
 		voice->setEqualizer(bands);

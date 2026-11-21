@@ -38,7 +38,7 @@
   :strings {:default en :locale ~settings.appearance.language :keep ["Flow" "Flow: an AffrescoUI template"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons symbols]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [iconsSmall]}
-          :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 9}
+          :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 10}
           :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons symbols]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 20 :fallback [iconsLarge]}
           :display {:file "../../shared/fonts/Roboto-Regular.ttf" :size 24}

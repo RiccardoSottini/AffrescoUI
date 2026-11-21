@@ -63,6 +63,12 @@ public:
 	/// @brief The inside's gradient, if any.
 	[[nodiscard]] const std::optional<Gradient>& fillGradient() const noexcept { return fillGradient_; }
 
+	/// @brief Sets how wide the inside's edge fades out, past the path: 1 (the default) anti-aliases it, wider makes a
+	/// soft edge or a blurred shadow.
+	/// @param feather The width in window units, from 0 (a hard edge) to maxPathFeather.
+	void setFeather(float feather);
+	/// @brief How wide the inside's edge fades out.
+	[[nodiscard]] float feather() const noexcept { return feather_; }
 	/// @brief Sets the outline's colour (transparent: no outline).
 	/// @param color The colour.
 	void setStrokeColor(Color color);
@@ -94,6 +100,7 @@ private:
 	ImageFit fit_ = ImageFit::contain;        ///< See fit().
 	Color fillColor_ = colors::transparent;   ///< See fillColor().
 	FillRule fillRule_ = FillRule::nonZero;   ///< See fillRule().
+	float feather_ = 1.0f;                    ///< See feather().
 	std::optional<Gradient> fillGradient_;    ///< See fillGradient().
 	Color strokeColor_ = colors::transparent; ///< See strokeColor().
 	StrokeStyle strokeStyle_;                 ///< See strokeStyle().

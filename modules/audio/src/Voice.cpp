@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <utility>
 
 namespace affresco::audio {
@@ -38,7 +39,7 @@ Levels measure(const float* frames, std::size_t count, std::uint32_t channels) n
 
 Biquad::Biquad(const EqualizerBand& band, std::uint32_t sampleRate, std::uint32_t channels)
     : z1(channels), z2(channels) {
-	constexpr double pi = 3.14159265358979323846;
+	constexpr double pi = std::numbers::pi;
 	const double rate = std::max<double>(sampleRate, 1);
 	const double frequency = std::min<double>(band.frequency, rate * 0.45);
 	const double a = std::pow(10.0, band.gain / 40.0);
@@ -49,7 +50,7 @@ Biquad::Biquad(const EqualizerBand& band, std::uint32_t sampleRate, std::uint32_
 	b0 = static_cast<float>((1 + (alpha * a)) / a0);
 	b1 = static_cast<float>((-2 * cosine) / a0);
 	b2 = static_cast<float>((1 - (alpha * a)) / a0);
-	a1 = b1;
+	a1 = static_cast<float>((-2 * cosine) / a0);
 	a2 = static_cast<float>((1 - (alpha / a)) / a0);
 }
 

@@ -217,17 +217,21 @@ void Label::paint(Painter& painter) const {
 	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth);
 	const float textHeight = static_cast<float>(lines.size()) * f->lineHeight();
 	float top = aligned(vertical_, content.top, content.height(), textHeight);
-	const std::u32string& text = shown();
 	for(std::size_t index = 0; index < lines.size(); ++index) {
 		const std::u32string_view line = lines[index];
-		// A paragraph's last line (the text's, or one a '\n' ends) keeps its natural spacing
-		const std::size_t end = static_cast<std::size_t>(line.data() - text.data()) + line.size();
-		const bool last = index + 1 == lines.size() || end >= text.size() || text[end] == U'\n';
-		if(justify_ && wrap_ && !last && !rightToLeft())
+		if(justifies(line, index + 1 == lines.size()))
 			paintJustifiedLine(painter, *f, line, top); // words go left to right
 		else paintLine(painter, *f, line, top);
 		top += f->lineHeight();
 	}
+}
+
+bool Label::justifies(std::u32string_view line, bool lastLine) const {
+	if(!justify_ || !wrap_ || lastLine || rightToLeft()) return false;
+	// A paragraph's last line (the text's, or one a '\n' ends) keeps its natural spacing
+	const std::u32string& text = shown();
+	const std::size_t end = static_cast<std::size_t>(line.data() - text.data()) + line.size();
+	return end < text.size() && text[end] != U'\n';
 }
 
 void Label::paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const {

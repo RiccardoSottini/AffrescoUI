@@ -118,13 +118,13 @@
                   :enabled (> (count computed.selected) 1)})
                [["x" "align-horizontal-distribute-center"] ["y" "align-vertical-distribute-center"]])))
 
-(defcomputed effectItems "The Shape Effects menu: none, a shadow or a glow on the selected objects."
+(defcomputed effectItems "The Shape Effects menu: none, a shadow, a glow or soft edges on the selected objects."
   (map (fn [it]
          {:title (t (str "effect." (or-else it "none")))
           :run "setObjects"
           :with {:props {:effect it}}
           :enabled (pos? (count computed.selected))})
-       [nil "shadow" "glow"]))
+       [nil "shadow" "glow" "soft"]))
 
 ;;; Editing text on the slide
 
@@ -297,11 +297,14 @@
 ;;; The deck's design
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn setTheme "Gives the deck a theme, with its own colours and its first variant." [theme]
+(defn setTheme "Gives the deck a theme, with its own colours and its first variant (and fonts, if it saved some)."
+  [theme]
   (commit)
   (set "state.deck.theme" theme)
   (set "state.deck.variant" 0)
-  (set "state.deck.colors" nil))
+  (set "state.deck.colors" nil)
+  (when-some [fonts (:fonts (find #(= (:id %) theme) computed.themes))]
+    (set "state.deck.fonts" fonts)))
 
 (defn set-variant "Gives the deck one of its theme's variants, with its own colours." [variant]
   (commit)

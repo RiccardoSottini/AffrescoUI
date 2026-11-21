@@ -26,8 +26,8 @@
      :radius 4
      :cursor hand
      :role button
-     :label ~(t "file.newIn" {:theme (t (str "theme." theme.id))})
-     :tooltip ~(t "file.newIn" {:theme (t (str "theme." theme.id))})
+     :label ~(t "file.newIn" {:theme (theme-name theme)})
+     :tooltip ~(t "file.newIn" {:theme (theme-name theme)})
      :color ~(get theme.colors theme.background)
      :borderWidth 1
      :borderColor @rbFieldLine

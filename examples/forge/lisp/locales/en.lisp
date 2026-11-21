@@ -44,6 +44,8 @@
                 :problems-empty "No problems found in the open files so far."
                 :problems-filter.placeholder "Filter by text or file"
                 :problems-shown "{shown} of {all}"
+                :problems.row "{message}  [Ln {line}]"
+                :problems.fileRow "{name}  {path}  ({n})"
                 :problems.label "Problems"
                 :problems.message "Message"
                 :problems.file "File"

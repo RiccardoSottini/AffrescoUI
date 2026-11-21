@@ -152,12 +152,23 @@
 
 ;;; Modes and messages
 
+(def minor-modes "Each minor mode's variable, and the key of its name."
+  [["global-display-line-numbers-mode" "mode.lineNumbers"] ["visual-line-mode" "mode.lineWrapping"]
+   ["show-paren-mode" "mode.bracketMatching"] ["electric-pair-mode" "mode.electricPair"]
+   ["auto-fill-mode" "mode.autoFill"] ["whitespace-mode" "mode.whitespace"]
+   ["display-fill-column-indicator-mode" "mode.fillIndicator"]])
+
 (defcommand describe-mode "Describes the selected buffer's major mode and the minor modes that are on."
   :title ~(t "command.describe-mode") :category ~(t "category.help")
   :description ~(t "command.describe-mode.about")
   []
-  (let [{:keys [title about]} (get state.modes computed.buf.mode)]
-    (help-show (t "help.mode" {:mode title :about (or about (t "help.noModeKeys"))}))))
+  (let [{:keys [title about]} (get state.modes computed.buf.mode)
+        on (filter #(get settings (first %)) minor-modes)]
+    (help-show (str (t "help.mode" {:mode title :about (or about (t "help.noModeKeys"))}) "\n"
+                    (if (empty? on)
+                      (t "help.noMinorModes")
+                      (t "help.minorModes" {:modes (str/join ", " (map #(t (second %)) on))}))
+                    "\n"))))
 
 (defcommand show-messages "Shows the messages buffer: everything the echo area said."
   :title ~(t "command.show-messages") :category ~(t "category.help")

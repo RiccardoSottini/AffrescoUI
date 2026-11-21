@@ -85,7 +85,7 @@ TEST_CASE("a content layer refuses paint; its content and pixels change and undo
 	    document.addContentLayer("Box", content, renderShape(content, 64, 64, PixelFormat::rgba8, Limits{}));
 	const std::uint64_t pixels = document.layer(id)->pixels;
 	CHECK(document.paintable(pixels).has_value());
-	LayerContent moved = movedContent(content, 5.0f, 0.0f);
+	const LayerContent moved = movedContent(content, 5.0f, 0.0f);
 	document.setContent(id, "Edit Shape", moved, renderShape(moved, 64, 64, PixelFormat::rgba8, Limits{}));
 	CHECK(document.layer(id)->content.origin.x == doctest::Approx(15.0f));
 	CHECK(document.image(pixels)->pixel(12, 20).alpha == 0.0f);

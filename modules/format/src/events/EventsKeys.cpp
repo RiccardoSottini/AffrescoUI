@@ -194,8 +194,8 @@ Panel* findMnemonic(Reconciler& reconciler, const Panel& scope, Panel& panel, ch
 json personBindings(Engine& engine, const json& document) {
 	if(!document.contains("keyBindings") || !document["keyBindings"].is_string()) return json::array();
 	try {
-		json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
-		                                         *noVariables(), json::object(), "keyBindings");
+		const json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
+		                                               *noVariables(), json::object(), "keyBindings");
 		return bindings.is_array() ? bindings : json::array();
 	} catch(const DocumentError& error) {
 		engine.report(error.what());
@@ -213,7 +213,28 @@ bool isPersonBinding(const json& binding) {
 
 } // namespace
 
+bool Events::altReleasedAlone(const KeyEvent& event) noexcept {
+	if(event.action == affresco::Action::Repeat) return false;
+	const bool alt = event.key == Key::LeftAlt || event.key == Key::RightAlt;
+	if(!alt) {
+		if(event.action == affresco::Action::Press) altAlone_ = false;
+		return false;
+	}
+	constexpr unsigned others = 0x1U | 0x2U | 0x8U; // Shift, Control, Cmd
+	if(event.action == affresco::Action::Press) {
+		altAlone_ = (static_cast<unsigned>(event.mods.bits) & others) == 0;
+		return false;
+	}
+	const bool alone = altAlone_;
+	altAlone_ = false;
+	return alone;
+}
+
 bool Events::resolve(Panel* from, const KeyEvent& event) {
+	if(altReleasedAlone(event) && chord_.empty()) { // "alt": Alt pressed and released alone
+		bool waits = false;
+		return runPanelKeys(from, "alt", waits) || runDocumentKeys("alt", waits);
+	}
 	if(event.action == affresco::Action::Release) return false;
 	const std::string name = shortcut(event);
 	if(name.empty()) return false;

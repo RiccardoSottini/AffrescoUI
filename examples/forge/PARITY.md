@@ -15,7 +15,7 @@ P3 rarely. Each round takes the gaps a daily user would notice first.
 | Editor tabs | done | Next and Previous Editor, Close Editors to the Right, Close All, Reopen Closed Editor; a head per group with Split Editor Right and More Actions (the editor's menu, also on a right click of the tabs) |
 | Breadcrumbs | done | |
 | Minimap and overview ruler | done | The minimap is a setting (off by default); the scroll bar marks problems, breakpoints, matches and the caret |
-| Panel (Problems, Output, Debug Console, Terminal) | done | |
+| Panel (Problems, Output, Debug Console, Terminal) | done | Problems is a tree: each file with its count, its problems under it with their severity icons, errors first; a file folds |
 | Status bar | partial | P3. Files are read and written as UTF-8 only; the encoding item is disabled and says so. Needs a library feature: the `fs` service reading and writing other encodings |
 | Notifications centre | done | |
 | Sashes | done | |

@@ -88,6 +88,18 @@ public:
 		static_cast<void>(rect);
 	}
 
+	/// @brief Draws an image, stretched to a rectangle, with only the part inside a rounded shape shown (a picture with
+	/// round corners). Painters that can't clip to a rounded shape draw it square, as drawImage() does.
+	/// @param bitmap The image.
+	/// @param rect Where it goes, in window units; the part outside the panel is clipped off.
+	/// @param shape The rounded rectangle it shows through, in window units.
+	/// @param radii The shape's corners, each clamped to half its shorter side.
+	virtual void drawRoundedImage(const Bitmap& bitmap, const Rect& rect, const Rect& shape, const CornerRadii& radii) {
+		static_cast<void>(shape);
+		static_cast<void>(radii);
+		drawImage(bitmap, rect);
+	}
+
 	/// @brief Draws a panel's GPU surface, its framebuffer stretched to a rectangle. Painters that can't draw surfaces
 	/// draw nothing.
 	/// @param view The panel showing it.

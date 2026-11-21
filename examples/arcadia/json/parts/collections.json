@@ -5,7 +5,7 @@
 	"note": "The library's own collections: making one, by hand or by a rule, and removing it. A collection is a name and either the games picked for it (games) or a rule (rule: { field, value }) that keeps it filled by itself: every owned game whose field holds that value is in it, now and later. library.json shows them in the game list and as shelves on the home.",
 
 	"state": {
-		"newCollection": { "open": false, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" },
+		"newCollection": { "open": false, "title": "", "kind": "manual", "games": [], "rule": null, "error": "", "editing": null },
 		"collectionSeq": 0
 	},
 
@@ -23,7 +23,35 @@
 				{ "dismiss": true },
 				{
 					"set": "state.newCollection",
-					"to": { "open": true, "title": "", "kind": "manual", "games": [], "rule": null, "error": "" }
+					"to": { "open": true, "title": "", "kind": "manual", "games": [], "rule": null, "error": "", "editing": null }
+				}
+			]
+		},
+		"editCollection": {
+			"title": "Edit a collection",
+			"category": "Library",
+			"description": "Opens a collection in the window, to rename it, change its games or rule, or delete it.",
+			"arguments": { "id": { "type": "string", "description": "The collection's id" } },
+			"icon": "pencil",
+			"do": [
+				{
+					"if": "{{find(state.collections, it.id == id) != null}}",
+					"then": [
+						{ "dismiss": true },
+						{
+							"set": "state.newCollection",
+							"to": "{{ { open: true, title: find(state.collections, it.id == id).title, kind: find(state.collections, it.id == id).rule != null ? 'dynamic' : 'manual', games: find(state.collections, it.id == id).games ?? [], rule: find(state.collections, it.id == id).rule, error: '', editing: id } }}"
+						},
+						{
+							"if": "{{state.newCollection.rule != null}}",
+							"then": [
+								{
+									"set": "state.newCollection.rule",
+									"to": "{{find(computed.collectionRules, it.field == state.newCollection.rule.field && it.value == state.newCollection.rule.value)}}"
+								}
+							]
+						}
+					]
 				}
 			]
 		},
@@ -40,6 +68,20 @@
 							"if": "{{state.newCollection.kind == 'dynamic' && state.newCollection.rule == null}}",
 							"then": [{ "set": "state.newCollection.error", "to": "{{t('coll.error.rule')}}" }],
 							"else": [
+								{
+									"if": "{{state.newCollection.editing != null}}",
+									"then": [
+										{
+											"set": "state.collections",
+											"to": "{{map(state.collections, it.id == state.newCollection.editing ? (state.newCollection.kind == 'manual' ? { id: it.id, title: trim(state.newCollection.title), games: state.newCollection.games } : { id: it.id, title: trim(state.newCollection.title), games: [], rule: { field: state.newCollection.rule.field, value: state.newCollection.rule.value } }) : it)}}"
+										},
+										{ "set": "state.newCollection.open", "to": false },
+										{
+											"run": "notify",
+											"with": { "text": "{{t('coll.saved', { name: trim(state.newCollection.title) })}}" }
+										}
+									],
+									"else": [
 								{ "set": "state.collectionSeq", "to": "{{state.collectionSeq + 1}}" },
 								{
 									"set": "state.collections",
@@ -51,6 +93,8 @@
 									"with": {
 										"text": "{{t('coll.created', { name: trim(state.newCollection.title) })}}"
 									}
+								}
+									]
 								}
 							]
 						}
@@ -64,7 +108,14 @@
 			"description": "Removes a collection; its games stay in the library.",
 			"arguments": { "id": { "type": "string", "description": "The collection's id" } },
 			"icon": "trash-2",
-			"do": [{ "set": "state.collections", "to": "{{filter(state.collections, it.id != id)}}" }]
+			"do": [
+				{
+					"if": "{{find(state.collections, it.id == id) != null}}",
+					"then": [{ "run": "notify", "with": { "text": "{{t('coll.deleted', { name: find(state.collections, it.id == id).title })}}" } }]
+				},
+				{ "set": "state.collections", "to": "{{filter(state.collections, it.id != id)}}" },
+				{ "set": "state.newCollection.open", "to": false }
+			]
 		}
 	},
 
@@ -78,20 +129,12 @@
 					"open": "state.newCollection.open",
 					"width": 540,
 					"height": 440,
-					"title": "{{t('coll.title')}}",
+					"title": "{{state.newCollection.editing != null ? t('coll.editTitle') : t('coll.title')}}",
 					"color": "@color.panel",
 					"textColor": "@color.text",
 					"dimColor": "@color.muted",
 					"highlight": "@color.accent",
-					"buttons": [
-						{
-							"title": "{{t('coll.create')}}",
-							"run": "createCollection",
-							"default": true,
-							"keepOpen": true
-						},
-						{ "title": "{{t('dialog.cancel')}}" }
-					]
+					"buttons": "{{state.newCollection.editing != null ? [{ title: t('coll.save'), run: 'createCollection', default: true, keepOpen: true }, { title: t('coll.remove'), run: 'deleteCollection', with: { id: state.newCollection.editing } }, { title: t('dialog.cancel') }] : [{ title: t('coll.create'), run: 'createCollection', default: true, keepOpen: true }, { title: t('dialog.cancel') }]}}"
 				},
 				"children": [
 					{

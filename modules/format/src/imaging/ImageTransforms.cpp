@@ -449,7 +449,7 @@ void transformLayer(ImageDocument& image, const json& with, Window*) {
 /// @param with x and y (pixels), scaleX and scaleY (percent, 100 by default; negative flips), angle (degrees,
 /// clockwise).
 /// @throws DocumentError If there is no selection, or a scale is under 1 %.
-void transformSelection(ImageDocument& image, const json& with, Window*) {
+void transformSelection(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	imaging::Document& document = image.canvas->document();
 	if(!document.hasSelection()) throw DocumentError("There is no selection to transform");

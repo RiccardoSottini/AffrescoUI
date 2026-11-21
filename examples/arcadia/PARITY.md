@@ -75,12 +75,15 @@ Screenshots tab, a screenshot opens big, and a post opens on its thread with rep
 the game page shows your own screenshots (F12 while playing, a viewer that steps and deletes) and the controller's
 layout per game; properties browse the installed files. Three partial rows are done.
 
+Round 6 (what was left): properties have a Compatibility page (force a layer, choose which of three); couch mode has
+a Settings row (colours, language, start page, the library's order: Enter steps each to its next value); the
+profile's banner shows the rewards redeemed with points; a collection is edited (renamed, its games or rule changed)
+and deleted from its shelf's pencil or a right click on its heading in the list.
+
 ## Left for later
 
 Each partial row and each disabled control, with what it needs and a priority: P1 daily, P2 occasional, P3 rare.
 
 | What | Needs | Priority |
 | --- | --- | --- |
-| Properties: a compatibility tab | Nothing to choose with invented games | P3 |
-| TV mode: Settings inside couch mode | JSON only: a couch settings row | P3 |
 | Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |

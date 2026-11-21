@@ -447,6 +447,33 @@ struct AudioPlayers::Impl {
 		return std::nullopt;
 	}
 
+	/// @brief Runs one of a player's control operations (volume, pan, rate, eq, loop); any other does nothing.
+	/// @param player The player.
+	/// @param operation The operation.
+	/// @param to Its value.
+	/// @param ms The volume's fade, in milliseconds.
+	/// @param where Its place.
+	/// @throws DocumentError If the value is out of its range.
+	static void setControl(Player& player, const std::string& operation, const json& to, double ms,
+	                       const std::string& where) {
+		if(operation == "volume") {
+			player.volume = static_cast<float>(numberIn(to, where + ".to", 0, 4));
+			if(player.voice) player.voice->fade(player.volume, ms / 1000);
+		} else if(operation == "pan") {
+			player.pan = static_cast<float>(numberIn(to, where + ".to", -1, 1));
+			if(player.voice) player.voice->setPan(player.pan);
+		} else if(operation == "rate") {
+			player.rate = static_cast<float>(numberIn(to, where + ".to", 0.25, 4));
+			if(player.voice) player.voice->setRate(player.rate);
+		} else if(operation == "eq") {
+			player.equalizer = equalizerOf(to, where + ".to");
+			if(player.voice) player.voice->setEqualizer(player.equalizer);
+		} else if(operation == "loop") {
+			player.loop = expect::boolean(to, where + ".to");
+			if(player.voice) player.voice->setLoop(player.loop);
+		}
+	}
+
 	/// @brief Runs one operation on a player.
 	/// @param name The sound.
 	/// @param operation The operation.
@@ -478,21 +505,8 @@ struct AudioPlayers::Impl {
 			problem = ensureVoice(name, player);
 			if(!problem && !player.voice->seek(seconds)) problem = "this sound can't seek";
 			if(!problem) player.position = player.voice->position();
-		} else if(operation == "volume") {
-			player.volume = static_cast<float>(numberIn(to, where + ".to", 0, 4));
-			if(player.voice) player.voice->fade(player.volume, ms / 1000);
-		} else if(operation == "pan") {
-			player.pan = static_cast<float>(numberIn(to, where + ".to", -1, 1));
-			if(player.voice) player.voice->setPan(player.pan);
-		} else if(operation == "rate") {
-			player.rate = static_cast<float>(numberIn(to, where + ".to", 0.25, 4));
-			if(player.voice) player.voice->setRate(player.rate);
-		} else if(operation == "eq") {
-			player.equalizer = equalizerOf(to, where + ".to");
-			if(player.voice) player.voice->setEqualizer(player.equalizer);
-		} else if(operation == "loop") {
-			player.loop = expect::boolean(to, where + ".to");
-			if(player.voice) player.voice->setLoop(player.loop);
+		} else {
+			setControl(player, operation, to, ms, where);
 		}
 		player.error = problem;
 		if(problem && operation != "seek") player.status = "error";

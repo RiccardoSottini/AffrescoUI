@@ -188,6 +188,9 @@ public:
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a small dot, in the guides' colour, in the middle of each space, so blanks can be seen.
+	/// @param shown true to draw them.
+	void setVisibleWhitespace(bool shown);
 	/// @brief Draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing
 	/// right); a click on it folds or unfolds the line.
 	/// @param shown true to draw them.
@@ -736,6 +739,20 @@ private:
 	/// @param caret Its moving end.
 	void replaceLines(std::size_t first, std::size_t last, const std::vector<std::u32string>& with, Position anchor,
 	                  Position caret);
+	/// @brief Runs a command that scrolls the view: recenter, recenterTop and recenterBottom (the caret's row to the
+	/// middle, the top or the bottom of the view).
+	/// @param name The command.
+	/// @return Whether the name is one.
+	bool viewCommand(std::string_view name);
+	/// @brief insertLineBefore and insertLineAfter: a new line above or below the caret's, at its indentation, with the
+	/// caret on it (nothing in a read-only editor).
+	/// @param after Whether below.
+	void insertLine(bool after);
+	/// @brief A click in the gutter's fold markers (when shown): folds or unfolds the line beside it.
+	/// @param x Where, across (window units).
+	/// @param line The line clicked.
+	/// @return Whether it was on a marker and the line folded or unfolded.
+	bool clickFoldMarker(float x, std::size_t line);
 	/// @brief Runs a command that changes the selected lines: duplicate, delete, move, join, sort, reverse, unique.
 	/// @param name The command.
 	/// @return Whether the name is one.
@@ -845,6 +862,13 @@ private:
 	/// @param font The font.
 	/// @param layout The frame's layout.
 	void paintGutter(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws a line's fold mark in the gutter: with fold markers, a chevron beside a line that folds or is
+	/// folded; without, a short bar beside a folded line.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	/// @param line The line.
+	/// @param top Its first row's top, in window units.
+	void paintFoldMark(Painter& painter, const Layout& layout, std::size_t line, float top) const;
 	/// @brief Draws the caret, when focused, and the scroll bar's thumb.
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
@@ -1004,6 +1028,7 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	bool whitespace_ = false;         ///< See setVisibleWhitespace().
 	bool foldMarkers_ = false;        ///< See setFoldMarkers().
 	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().

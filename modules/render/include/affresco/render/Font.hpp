@@ -230,7 +230,8 @@ public:
 	/// next one when the fraction rounds to a whole pixel, and the bitmap is the glyph's outline moved right by the
 	/// fraction rounded to a quarter, rasterised the first time. So the glyph is drawn from whole pixels, at most an
 	/// eighth of a pixel from its place. A glyph that has no moved bitmap (a colour glyph, or one past the atlas limit)
-	/// is drawn from its plain bitmap, its pen on the nearest column. At 2 and above it is rasterGlyph() at @p pen.
+	/// is drawn from its plain bitmap, its pen on the nearest column. At 2 and above it is rasterGlyph() with its pen
+	/// on the nearest column too (half a pixel is a small share of a stem there), never between two.
 	/// @param glyph A glyph of the font this is a raster of, or of this font.
 	/// @param pen Where its pen is laid out, in window units.
 	/// @return The bitmap and its pen. A bitmap added to a page is uploaded like any other (atlasChangesSince()).

@@ -46,7 +46,8 @@
   [["pathRight" "move-right" (t "motion.pathRight")]
    ["pathDown" "move-down" (t "motion.pathDown")]
    ["pathArc" "redo-2" (t "motion.pathArc")]
-   ["pathCircle" "circle-dashed" (t "motion.pathCircle")]])
+   ["pathCircle" "circle-dashed" (t "motion.pathCircle")]
+   ["pathCustom" "spline" (t "motion.pathCustom")]])
 
 (defcomputed emphasisEffects "The emphasis effects of the gallery: each with its icon and its name."
   [["pulse" "heart-pulse" (t "motion.pulse")]
@@ -101,7 +102,10 @@
         sy (/ g.h (max box.h 1))]
     [(+ moved (* away sx)) (+ moved (* away sy))]))
 
-(defn path-offset "Where an object is along a motion path, the part `p` of the way done, from where it starts." [path p]
+(defn path-offset
+  "Where an object is along a motion path, the part `p` of the way done, from where it starts; a drawn path follows its
+  `points`."
+  [path p points]
   (let [turn (* 6.28318 p)
         rise (sin (* 3.14159 p))
         drop (- 1 (cos turn))]
@@ -110,7 +114,29 @@
       "pathDown" [0 (* 160 p)]
       "pathArc" [(* 240 p) (* -120 rise)]
       "pathCircle" [(* 80 (sin turn)) (* 80 drop)]
+      "pathCustom" (along points p)
       [0 0])))
+
+(defn wipe-clip
+  "The part of the slide a wiping object shows, as [x y width height]: the band from the side it wipes from, the part
+  `q` of the way across the object; the whole slide for other effects."
+  [effect side box q]
+  (if (= effect :wipe)
+    (case side
+      "right" (let [x (+ box.x (* box.w (- 1 q)))] [x 0 (- 960 x) 540])
+      "top" [0 0 960 (+ box.y (* box.h q))]
+      "bottom" (let [y (+ box.y (* box.h (- 1 q)))] [0 y 960 (- 540 y)])
+      [0 0 (+ box.x (* box.w q)) 540])
+    [0 0 960 540]))
+
+(defn side-icon "The arrow of a side a build flies or wipes from." [side]
+  (let [found (find #(= (first %) side) computed.flySides)]
+    (second (or-else found computed.flySides.0))))
+
+(defn build-side "The side a build flies or wipes from: its own, else the bottom for a fly and the left for a wipe."
+  [a]
+  (let [wipe? (= (:effect a) "wipe")]
+    (or-else (:direction a) (if wipe? "left" "bottom"))))
 
 (defn fly-offset "Where a flying object is, the part `away` of the way off the slide, by the side it flies from."
   [side box away]
@@ -280,15 +306,13 @@
          :tooltip ~(t "motion.moreRepeats")
          :onClick ~(handler animation-repeat-by 1)))
      (label#motion-side :height 22
-       :style ~(if (= a.effect "fly") "rbButton" "rbButtonOff")
+       :style ~(if (#{"fly" "wipe"} a.effect) "rbButton" "rbButtonOff")
        :padding 2
        :fitText true
-       :runs ~[{:icon (second (or-else (find #(= (first %) (or-else a.direction "bottom")) computed.flySides)
-                                        computed.flySides.0))
-                :size 14}
-               {:text (t "motion.flySide" {:side (or-else a.direction "bottom")}) :size 12}]
+       :runs ~[{:icon (side-icon (build-side a)) :size 14}
+               {:text (t "motion.flySide" {:side (build-side a)}) :size 12}]
        :tooltip ~(t "motion.theSideItFlies")
-       :disabled ~(not= a.effect "fly")
+       :disabled ~(not (#{"fly" "wipe"} a.effect))
        :onClick next-fly-side)))
 
 ;;; What the buttons do
@@ -297,10 +321,17 @@
   (contains? #{"pulse" "spin" "teeter"} effect))
 
 (defn path? "Whether an effect is a motion path." [effect]
-  (contains? #{"pathRight" "pathDown" "pathArc" "pathCircle"} effect))
+  (contains? #{"pathRight" "pathDown" "pathArc" "pathCircle" "pathCustom"} effect))
 
-(defn choose-effect "Gives the selected objects a build of an effect: an emphasis, or an entrance or exit as it was."
+(defn choose-effect
+  "Gives the selected objects a build of an effect: an emphasis, or an entrance or exit as it was; a custom path is
+  drawn on the slide first."
   [effect]
+  (if (= effect "pathCustom")
+    (start-drawing-path)
+    (choose-build effect)))
+
+(defn choose-build "Gives the selected objects a build of an effect, as choose-effect does." [effect]
   (let [a computed.animation
         kind (cond (emphasis? effect) "emphasis"
                    (path? effect) "path"
@@ -318,7 +349,7 @@
 
 (defn next-fly-side "Turns the side the selected objects fly from, or to, to the next: bottom, left, top, right." []
   (let [sides (map first computed.flySides)
-        at (indexOf sides (or-else computed.animation.direction "bottom"))]
+        at (indexOf sides (build-side computed.animation))]
     (change-animation {:direction (get sides (mod (inc at) 4))})))
 
 (defn change-build "Merges properties into one build of the slide, by its id." [id props]

@@ -52,6 +52,11 @@
 			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name + '.'}}" }],
 			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
 		],
+		"exportPngs": [
+			{ "export": "png", "pages": "{{map(computed.showOrder, 'page-' + state.deck.slides[it].id)}}", "scale": 2, "name": "{{computed.deckName}}",
+			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.pages + ' pictures, from ' + result.name + '.'}}" }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
+		],
 		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }],
 		"setBackground": [
 			{ "run": "commit" },
@@ -132,7 +137,7 @@
 						{ "type": "label", "id": "format-effects-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Effects", "size": 12 }] },
 						{ "type": "row", "id": "format-effects", "width": 236, "height": 26, "gap": 4, "color": "transparent", "children": [
 							{ "type": "label",
-							  "id": "{{'format-effect-' + fx[0]}}", "repeat": { "for": "fx", "in": [["none", "No effect"], ["shadow", "Shadow"], ["glow", "Glow"]], "key": "{{fx[0]}}" }, "style": "{{(o.effect ?? 'none') == fx[0] ? 'rbButtonOn' : 'rbButton'}}", "height": 26,
+							  "id": "{{'format-effect-' + fx[0]}}", "repeat": { "for": "fx", "in": [["none", "No effect"], ["shadow", "Shadow"], ["glow", "Glow"], ["soft", "Soft edges"]], "key": "{{fx[0]}}" }, "style": "{{(o.effect ?? 'none') == fx[0] ? 'rbButtonOn' : 'rbButton'}}", "height": 26,
 							  "fitText": true, "padding": 6, "runs": [{ "text": "{{fx[1]}}", "size": 12 }],
 							  "onClick": { "run": "setObjects", "with": { "props": { "effect": "{{fx[0] == 'none' ? null : fx[0]}}" } } } }
 						] },
