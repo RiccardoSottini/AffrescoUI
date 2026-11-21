@@ -75,7 +75,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 |---|---|---|
 | Tab into edit mode | done | Tab or the mode menu, on the active mesh: its primitive becomes an editable mesh in the scene; its edges, vertices and selected faces are drawn over it, the status bar counts its vertices, edges and faces |
 | 1/2/3 vertex, edge, face select | done | also three buttons in the header; a click picks, Shift adds or takes out, A and Alt+A select all or nothing; G, R and S move, turn and scale the selected vertices (with proportional editing) |
-| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | partial | E extrudes the selected faces as a region, I insets them, Ctrl+R cuts the loop of quads across the selected edge, Ctrl+B bevels the selected edge, X deletes vertices or faces, G, R and S move, turn and scale the selection (the selected faces follow the pointer), each undoable; E extrudes half a unit and Ctrl+B a fixed width, rather than following the pointer (G moves them on) |
+| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | partial | E extrudes the selected faces as a region, I insets them, Ctrl+R cuts the loop of quads across the selected edge, Ctrl+B bevels the selected edge, X deletes vertices or faces, G, R and S move, turn and scale the selection (the selected faces follow the pointer), each undoable; the extruded faces follow the pointer at once (Enter or a click leaves them, Escape at half a unit out); Ctrl+B bevels one edge at a fixed width |
 
 ## Other workspaces and files
 
@@ -114,7 +114,7 @@ occasionally; P3: rarely.
 
 | What | Priority | Needs |
 |---|---|---|
-| E and Ctrl+B following the pointer; bevelling several edges or vertices | P1 | JSON: the extrude starting a move of the pivot from where it was; library: `bevelEdge` over a chain of edges |
+| Ctrl+B following the pointer; bevelling several edges or vertices; extruding along the normal only | P1 | library: `bevelEdge` over a chain of edges; JSON: the bevel's width from a drag, the extrude's move locked to the normal |
 | Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
 | Textures on edited meshes; glTF import with textures and animations | P2 | library: texture coordinates on polygon meshes; `gltfScene` keeping them |
 | Camera › Depth of Field | P2 | library: depth of field in the scene renderer (Light › Shadow and Mesh › Normals are done) |

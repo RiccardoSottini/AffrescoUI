@@ -311,9 +311,32 @@
 							"title": "Extrude Faces"
 						}
 					}
+				},
+				{
+					"after": 30,
+					"do": [
+						{
+							"run": "grabExtruded"
+						}
+					]
 				}
 			]
 		},
+		"grabExtruded": [
+			{
+				"if": "{{state.mode == 'edit' && length(state.edit.faces) > 0 && state.modal == null}}",
+				"then": [
+					{
+						"run": "startTransform",
+						"with": {
+							"args": {
+								"mode": "translate"
+							}
+						}
+					}
+				]
+			}
+		],
 		"insetFaces": {
 			"title": "Inset Faces",
 			"category": "Mesh",

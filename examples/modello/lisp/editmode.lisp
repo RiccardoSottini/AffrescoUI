@@ -112,11 +112,16 @@
   (pivot-selection)
   (set "state.last" title))
 
-(defcommand extrudeFaces "Extrudes the selected faces along their normals; the new faces stay selected."
+(defcommand extrudeFaces "Extrudes the selected faces along their normals; the new faces stay selected and follow the pointer."
   :title ~(t "command.extrudeFaces") :description ~(t "command.extrudeFaces.about")
   :category ~(t "category.mesh") :enablement ~(and (= state.mode :edit) (seq state.edit.faces)) []
   (let [mesh (meshExtrude computed.editMesh state.edit.faces 0.5)]
-    (put-mesh mesh state.edit.faces (meshFaceVertices mesh state.edit.faces) (t "command.extrudeFaces"))))
+    (put-mesh mesh state.edit.faces (meshFaceVertices mesh state.edit.faces) (t "command.extrudeFaces"))
+    (after 30 grab-extruded)))
+
+(defn grab-extruded "The faces just extruded follow the pointer, once the viewport shows them: a click or Enter leaves them there."
+  []
+  (when (and (= state.mode :edit) (seq state.edit.faces) (nil? state.modal)) (start-transform "translate")))
 
 (defcommand insetFaces "Insets each selected face; the inner faces stay selected."
   :title ~(t "command.insetFaces") :description ~(t "command.insetFaces.about")

@@ -1040,6 +1040,11 @@
 				{ "expect": { "state": "edit.faces", "is": [5] } },
 				{ "expect": { "state": "view.selection", "is": ["edit-pivot"] } },
 				{ "key": "e" },
+				{ "wait": 80 },
+				{ "expect": { "state": "modal.mode", "is": "translate" } },
+				{ "key": "escape" },
+				{ "wait": 20 },
+				{ "expect": { "state": "modal", "is": null } },
 				{ "expect": { "state": "edit.faces", "is": [5] } },
 				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 1.5] } },
 				{ "key": "i" },
@@ -1186,6 +1191,25 @@
 				{ "expect": { "state": "scene.materials[0].castsShadow", "is": true } },
 				{ "key": "mod+z" },
 				{ "expect": { "state": "scene.materials[0].castsShadow", "is": false } }
+			]
+		},
+		{
+			"name": "modello-extrude-move",
+			"note": "E extrudes the cube's top face and the new face follows the pointer: Z, 1, Enter lifts it one more unit",
+			"steps": [
+				{ "key": "tab" },
+				{ "key": "3" },
+				{ "action": "pick", "event": { "type": "pick", "id": "cube", "button": "left", "shift": false, "x": 700, "y": 400, "point": [0.5, 0.3, 1] } },
+				{ "key": "e" },
+				{ "wait": 80 },
+				{ "expect": { "state": "modal.mode", "is": "translate" } },
+				{ "key": "z" },
+				{ "key": "1" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 2.5] } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 1.5] } }
 			]
 		}
 	]
