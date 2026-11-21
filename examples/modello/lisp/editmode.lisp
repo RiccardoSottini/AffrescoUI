@@ -208,27 +208,43 @@
                                    stacked))
               :nodes (map #(if (stacked? %) (assoc % :mesh (str "modified-" (:id %))) %) scene.nodes)}))))
 
-(defn edit-overlay "The scene with the edited mesh's edges, its vertices as dots, the selected faces lit, and the pivot."
+(defn from-pivot "A point of the mesh as the pivot's child sees it: less the selection's middle." [v centre]
+  (map-indexed (fn [axis x] (- x (get centre axis))) v))
+
+(defn edit-overlay
+  "The scene with the edited mesh's edges and vertices drawn over it, and the pivot that G and S move, carrying the
+  selected faces and vertices along while it moves."
   [scene]
   (let [n computed.editNode
         m computed.editMesh
-        dot (map #(/ 0.035 (if (zero? %) 1 %)) (:scale n))]
+        centre (or computed.editCentre [0 0 0])
+        part (meshFaces m state.edit.faces 0.006)
+        corners (range (count part.vertices))
+        back (map #(- %) centre)
+        picked-edge (if state.edit.edge [state.edit.edge] [])
+        dot (map #(/ 0.035 (if (zero? %) 1 %)) (:scale n))
+        size (abs (first (:scale n)))
+        bar (/ 0.012 (max 0.001 size))]
     (merge scene
-           {:meshes (concat (or scene.meshes []) [(merge (meshFaces m state.edit.faces 0.006) {:id "edit-selection"})])
+           {:meshes (concat (or scene.meshes [])
+                            [(merge (meshMove part corners back) {:id "edit-selection"})
+                             (merge (meshEdges m bar) {:id "edit-edges"})
+                             (merge (meshEdges m (* bar 2) picked-edge) {:id "edit-edge"})])
             :materials (concat scene.materials
                                [{:id "edit-selected" :baseColor [1 0.55 0.12 0.5] :emissive [0.9 0.4 0.05] :alphaMode "blend"}
                                 {:id "edit-dot" :baseColor [0.04 0.04 0.05 1] :roughness 1}])
             :nodes (concat scene.nodes
-                           [{:id "edit-wire" :parent (:id n) :mesh (:mesh n) :display "wire"}
-                            {:id "edit-faces" :parent (:id n) :mesh "edit-selection" :material "edit-selected"}
-                            {:id "edit-pivot" :parent (:id n) :translation (or computed.editCentre [0 0 0])}]
+                           [{:id "edit-pivot" :parent (:id n) :translation centre}
+                            {:id "edit-wire" :parent (:id n) :mesh "edit-edges" :material "edit-dot"}
+                            {:id "edit-edge" :parent (:id n) :mesh "edit-edge" :material "edit-selected"}
+                            {:id "edit-faces" :parent "edit-pivot" :mesh "edit-selection" :material "edit-selected"}]
                            (when (<= (count m.vertices) 600)
-                             (map-indexed (fn [i v] {:id (str "edit-v" i)
-                                                     :parent (:id n)
-                                                     :mesh "cube"
-                                                     :material (if (contains state.edit.vertices i) "edit-selected" "edit-dot")
-                                                     :translation v
-                                                     :scale dot})
+                             (map-indexed (fn [i v]
+                                            (if (contains state.edit.vertices i)
+                                              {:id (str "edit-v" i) :parent "edit-pivot" :mesh "cube" :material "edit-selected"
+                                               :translation (from-pivot v centre) :scale dot}
+                                              {:id (str "edit-v" i) :parent (:id n) :mesh "cube" :material "edit-dot"
+                                               :translation v :scale dot}))
                                           m.vertices)))})))
 
 (defcomputed viewScene "The scene the viewport draws: modifiers applied, and in Edit Mode the mesh's elements over it."

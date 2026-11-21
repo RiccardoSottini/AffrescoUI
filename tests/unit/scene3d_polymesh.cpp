@@ -147,6 +147,19 @@ TEST_CASE("scene3d: mirror, array and subdivision") {
 	CHECK(subdivide(polyPrimitive(Primitive::Cube), 3, small).faces.size() == 24); // stops at the limit
 }
 
+TEST_CASE("scene3d: a wireframe as bars along the edges") {
+	const PolyMesh cube = polyPrimitive(Primitive::Cube);
+	const PolyMesh all = edgeBars(cube, {}, 0.02f);
+	CHECK(all.vertices.size() == 12 * 8);
+	CHECK(all.faces.size() == 12 * 6);
+	const PolyMesh one = edgeBars(cube, {{0, 1}}, 0.02f);
+	CHECK(one.faces.size() == 6);
+	CHECK(closed(one));
+	CHECK(outward(one));
+	for(const Vec3 v : one.vertices) CHECK(std::abs(v.y + 1.0f) <= 0.0101f);
+	CHECK(edgeBars(cube, {{0, 99}}, 0.02f).faces.empty()); // not a vertex: skipped
+}
+
 TEST_CASE("scene3d: picking a vertex, an edge or a face of a polygon mesh") {
 	const PolyMesh cube = polyPrimitive(Primitive::Cube);
 	const auto vertex = nearestVertex(cube, {0.9f, 1.0f, 0.8f});

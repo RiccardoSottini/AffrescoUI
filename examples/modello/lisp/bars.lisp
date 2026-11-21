@@ -163,13 +163,14 @@
 
 ;;; The render window
 
-(defcomputed renderScene "The scene as a render shows it: what isn't rendered hidden."
-  (merge state.scene
+(defcomputed renderScene "The scene as a render shows it: what isn't rendered hidden, the modifiers applied."
+  (modifiers-applied
+   (merge state.scene
          {:nodes (map (fn [it]
                         (if (or (false? it.render) (contains computed.collectionsOff.render (or-else it.collection "collection")))
                           (merge it {:visible false})
                           it))
-                      state.scene.nodes)}))
+                      state.scene.nodes)})))
 
 (defview render-image "The render: the scene through its camera, lit by its lights, without what isn't rendered." []
   `(scene#render-image :anchors {:left 20 :right 20 :top 44 :bottom 56}

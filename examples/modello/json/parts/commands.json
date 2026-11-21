@@ -661,6 +661,7 @@
 			"title": "Export glTF…", "category": "File", "icon": "file-output", "enablement": "{{contains(values(state.areas), 'viewport')}}",
 			"do": [
 				{ "dismiss": true },
+				{ "run": "leaveEdit" },
 				{ "if": "{{!contains(values(state.areas), 'viewport')}}", "then": [{ "stop": true }] },
 				{ "export": "gltf", "pages": ["viewport"], "animations": "{{computed.gltfClips}}", "name": "scene",
 				  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name}}" }],

@@ -91,6 +91,12 @@ struct PolyLimits {
 /// @brief Flips every face: normals point the other way. @param mesh The mesh. @return The mesh.
 [[nodiscard]] PolyMesh flipFaces(const PolyMesh& mesh);
 
+/// @brief A mesh of thin square bars along edges: a wireframe drawn as surfaces, in any material.
+/// @param mesh The mesh. @param edges The edges (each two vertex indices); none: every edge.
+/// @param thickness The bars' width. @param limits What the result may hold: edges past it are left out.
+/// @return The bars.
+[[nodiscard]] PolyMesh edgeBars(const PolyMesh& mesh, const std::vector<std::array<std::uint32_t, 2>>& edges,
+                                float thickness, const PolyLimits& limits = {});
 /// @brief Mirrors a mesh across a plane through the origin, the vertices on the plane joined. @param mesh The mesh.
 /// @param axis 0 (x), 1 (y) or 2 (z). @return The mesh and its mirror image.
 [[nodiscard]] PolyMesh mirrorMesh(const PolyMesh& mesh, int axis);

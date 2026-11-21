@@ -93,6 +93,7 @@
   :title ~(t "command.exportGltf") :description ~(t "command.exportGltf.about")
   :category ~(t "category.file") :icon "file-output" :enablement ~(contains (vals state.areas) "viewport") []
   (dismiss)
+  (leave-edit) ; the edit overlay isn't part of the scene
   (when (contains (vals state.areas) "viewport")
     (export "gltf"
       :pages ["viewport"]

@@ -204,6 +204,25 @@ Value meshModifiers(const Call& call) {
 	return result(mesh);
 }
 
+/// @brief meshEdges(mesh, thickness, edges?): thin bars along a mesh's edges (all, or a list of [a, b]).
+/// @param call The call. @return The bars, a mesh.
+Value meshEdges(const Call& call) {
+	const PolyMesh mesh = meshAt(call, 0);
+	std::vector<std::array<std::uint32_t, 2>> edges;
+	if(call.size() > 2 && call[2].isList())
+		for(std::size_t i = 0; i < call[2].size(); ++i) {
+			const Value edge = call[2].item(i);
+			if(edge.isList() && edge.size() == 2 && edge.item(0).isNumber() && edge.item(1).isNumber() &&
+			   edge.item(0).number() >= 0 && edge.item(1).number() >= 0)
+				edges.push_back({static_cast<std::uint32_t>(edge.item(0).number()),
+				                 static_cast<std::uint32_t>(edge.item(1).number())});
+		}
+	if(call.size() > 2 && call[2].isList() && edges.empty()) return result(PolyMesh{});
+	const PolyMesh bars = scene3d::edgeBars(mesh, edges, numberOr(call, 1, 0.01f));
+	call.spend(bars.vertices.size());
+	return result(bars);
+}
+
 /// @brief meshFlip(mesh). @param call The call. @return The mesh.
 Value meshFlip(const Call& call) { return result(scene3d::flipFaces(meshAt(call, 0))); }
 
@@ -445,6 +464,12 @@ constexpr auto table = std::to_array<Function>({
 	 .fewest = 2,
 	 .most = 2,
 	 .apply = meshModifiers},
+    {.name = "meshEdges",
+	 .arguments = "mesh, thickness, edges?",
+	 .about = "Thin bars along a mesh's edges (every one, or a list of [a, b]): a wireframe to draw in any material",
+	 .fewest = 2,
+	 .most = 3,
+	 .apply = meshEdges},
     {.name = "meshFlip",
 	 .arguments = "mesh",
 	 .about = "The mesh with every face turned the other way (its normals flipped)",

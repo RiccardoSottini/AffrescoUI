@@ -388,6 +388,34 @@ PolyMesh flipFaces(const PolyMesh& mesh) {
 	return result;
 }
 
+PolyMesh edgeBars(const PolyMesh& mesh, const std::vector<std::array<std::uint32_t, 2>>& edges, float thickness,
+                  const PolyLimits& limits) {
+	PolyMesh bars;
+	const float half = std::max(thickness, 1e-5f) * 0.5f;
+	for(const auto& edge : edges.empty() ? mesh.edges() : edges) {
+		if(edge[0] >= mesh.vertices.size() || edge[1] >= mesh.vertices.size()) continue;
+		if(bars.vertices.size() + 8 > limits.vertices || bars.faces.size() + 6 > limits.faces) break;
+		const Vec3 a = mesh.vertices[edge[0]], b = mesh.vertices[edge[1]];
+		const Vec3 along = unit(b - a);
+		if(along == Vec3{}) continue;
+		const Vec3 side =
+		    unit(cross(along, std::abs(along.y) < 0.9f ? Vec3{0.0f, 1.0f, 0.0f} : Vec3{1.0f, 0.0f, 0.0f}));
+		const Vec3 up = cross(side, along);
+		const auto base = static_cast<std::uint32_t>(bars.vertices.size());
+		for(const Vec3 end : {a, b})
+			for(const auto& [s, u] : {std::pair{-1.0f, -1.0f}, {1.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 1.0f}})
+				bars.vertices.push_back(end + side * (s * half) + up * (u * half));
+		const auto at = [base](std::uint32_t i) { return base + i; };
+		bars.faces.push_back({at(0), at(1), at(2), at(3)}); // the end at a
+		bars.faces.push_back({at(4), at(7), at(6), at(5)}); // the end at b
+		for(std::uint32_t i = 0; i < 4; ++i) {
+			const std::uint32_t j = (i + 1) % 4;
+			bars.faces.push_back({at(i), at(i + 4), at(j + 4), at(j)});
+		}
+	}
+	return bars;
+}
+
 PolyMesh mirrorMesh(const PolyMesh& mesh, int axis) {
 	axis = std::clamp(axis, 0, 2);
 	PolyMesh result = mesh;
