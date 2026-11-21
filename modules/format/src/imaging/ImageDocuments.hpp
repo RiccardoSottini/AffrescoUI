@@ -121,6 +121,7 @@ struct ToolSettings {
 	float opacity = 1.0f;                      ///< fill, gradient: 0 to 1.
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
 	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
+	float cropRatio = 0.0f;                    ///< crop: the width over the height a drag keeps; 0 for any.
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
 	/// text, shape: what a new type or shape layer starts as (its font, size, shape, stroke); its fill is the
 	/// foreground colour.

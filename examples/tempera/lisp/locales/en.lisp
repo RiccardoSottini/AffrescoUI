@@ -317,6 +317,8 @@
                 :command.deleteWorkspace "Delete Workspace"
                 :command.deleteWorkspace.about "Deletes the workspace chosen, one saved, and goes back to the standard one."
                 :control.slider "{title} slider"
+                :crop.dragRatio "The ratio a crop drag keeps"
+                :crop.free "Free"
                 :crop.portrait "Portrait, 4 : 5"
                 :crop.ratio "Ratio"
                 :crop.square "Square, 1 : 1"

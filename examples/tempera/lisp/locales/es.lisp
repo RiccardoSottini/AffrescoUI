@@ -317,6 +317,8 @@
                 :command.deleteWorkspace "Eliminar espacio de trabajo"
                 :command.deleteWorkspace.about "Elimina el espacio de trabajo elegido, uno guardado, y vuelve al estándar."
                 :control.slider "Regulador de {title}"
+                :crop.dragRatio "La proporción que mantiene el arrastre del recorte"
+                :crop.free "Libre"
                 :crop.portrait "Vertical, 4 : 5"
                 :crop.ratio "Proporción"
                 :crop.square "Cuadrado, 1 : 1"

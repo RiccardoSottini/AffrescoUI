@@ -112,7 +112,8 @@ constexpr int navigatorSide = 160;
 	        {"fillOpacity", percent(settings.opacity)},
 	        {"shape", imaging::gradientShapeNames()[static_cast<std::size_t>(settings.shape)]},
 	        {"quickMask", settings.quickMask},
-	        {"autoSelect", settings.autoSelect}};
+	        {"autoSelect", settings.autoSelect},
+	        {"cropRatio", settings.cropRatio}};
 }
 
 /// @brief A hex digit pair's value.

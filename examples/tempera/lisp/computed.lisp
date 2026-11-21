@@ -9,6 +9,14 @@
 
 (defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
 
+(defcomputed cropRatios "The ratios a crop drag can keep, the width over the height: 0 for any."
+  [{:ratio 0 :title (t "crop.free")}
+   {:ratio 1 :title "1 : 1"}
+   {:ratio (/ 4 3) :title "4 : 3"}
+   {:ratio (/ 3 2) :title "3 : 2"}
+   {:ratio (/ 16 9) :title "16 : 9"}
+   {:ratio (/ 4 5) :title "4 : 5"}])
+
 (defcomputed typePair "The active type layer's last two characters, where typing goes on: the pair Kerning spaces."
   (let [text (str computed.activeLayer.content.text)
         n (count text)]

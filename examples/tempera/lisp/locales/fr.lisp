@@ -317,6 +317,8 @@
                 :command.deleteWorkspace "Supprimer l'espace de travail"
                 :command.deleteWorkspace.about "Supprime l'espace de travail choisi, un enregistré, et revient au standard."
                 :control.slider "Curseur {title}"
+                :crop.dragRatio "Le rapport que garde le glissement du recadrage"
+                :crop.free "Libre"
                 :crop.portrait "Portrait, 4 : 5"
                 :crop.ratio "Proportions"
                 :crop.square "Carré, 1 : 1"

@@ -6526,6 +6526,89 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-crop-drag-ratio",
+			"note": "The crop's drag ratio holds a drag to that shape; Free lets it go",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "c"
+				},
+				{
+					"click": "#option-crop-drag"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "1 : 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.cropRatio",
+						"is": 1
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 150,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 400,
+									"y": 200,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 300
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 300
+					}
+				},
+				{
+					"click": "#option-crop-drag"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Free"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.cropRatio",
+						"is": 0
+					}
+				}
+			]
 		}
 	]
 }

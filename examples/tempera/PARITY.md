@@ -18,7 +18,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
 | 8 (type, shapes and paths) | 34 | 24 | 5 |
 | 9 (guides, selection transform, dock, workspaces, search) | 37 | 21 | 5 |
-| 10 (quick selection, anchors, type spacing, pickers) | 40 | 18 | 5 |
+| 10 (quick selection, anchors, type spacing, pickers, crop ratio) | 41 | 17 | 5 |
 
 ## Workspace
 
@@ -68,7 +68,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
 | Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, each drag one step (undo cancels it); Numbers... opens the dialog that also flips and turns it; no rotating or skewing handles |
-| Crop with overlay grid and aspect presets | partial | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the ratios crop the largest centred part, but don't hold a drag to that shape |
+| Crop with overlay grid and aspect presets | done | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the drag ratio (Free, 1 : 1, 4 : 3, 3 : 2, 16 : 9, 4 : 5) holds a drag to that shape, and the ratios menu crops the largest centred part at once |
 | Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
 | Eyedropper | done | |

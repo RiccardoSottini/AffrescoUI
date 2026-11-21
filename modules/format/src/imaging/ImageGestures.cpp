@@ -120,13 +120,18 @@ bool startStroke(ImageDocument& image, Point at) {
 }
 
 /// @brief Sets a marquee's corners from the press to a point: a square while Shift is held, from the press as the
-/// centre while Alt is (a key held since the press only chose the selection mode).
+/// centre while Alt is (a key held since the press only chose the selection mode); a crop with a ratio keeps it.
 /// @param press The press.
 /// @param mods The keys held now.
 /// @param at Where the pointer is.
-void stretchBox(Press& press, affresco::Mods mods, Point at) noexcept {
+/// @param ratio The width over the height the box keeps, or 0 for any.
+void stretchBox(Press& press, affresco::Mods mods, Point at, float ratio) noexcept {
 	float dx = at.x - press.start.x, dy = at.y - press.start.y;
-	if(mods.shift() && !press.shiftHeld) {
+	if(ratio > 0.0f) {
+		const float height = std::max(std::abs(dy), std::abs(dx) / ratio);
+		dx = std::copysign(height * ratio, dx);
+		dy = std::copysign(height, dy);
+	} else if(mods.shift() && !press.shiftHeld) {
 		const float side = std::max(std::abs(dx), std::abs(dy));
 		dx = std::copysign(side, dx);
 		dy = std::copysign(side, dy);
@@ -597,14 +602,16 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 		case affresco::PointerKind::move:
 			if(!press.down) return false;
 			press.last = at;
-			stretchBox(press, event.pointer.mods, at);
+			stretchBox(press, event.pointer.mods, at,
+			           image.settings.gesture == Gesture::crop ? image.settings.cropRatio : 0.0f);
 			if(!press.pan) return dragTool(image, event);
 			panView(image, event);
 			return true;
 		case affresco::PointerKind::release:
 			if(!press.down) return false;
 			press.down = false;
-			stretchBox(press, event.pointer.mods, at);
+			stretchBox(press, event.pointer.mods, at,
+			           image.settings.gesture == Gesture::crop ? image.settings.cropRatio : 0.0f);
 			return press.pan || releaseTool(image, at);
 		}
 	} catch(const DocumentError& error) {

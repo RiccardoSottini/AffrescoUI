@@ -254,6 +254,8 @@
 
 (defstate cropMenu false "The crop ratios are shown.")
 
+(defstate cropDragMenu false "The ratios a crop drag can keep are shown.")
+
 (defstate zoomMenu false "The zoom choices are shown.")
 
 ;;; Settings

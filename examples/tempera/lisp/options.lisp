@@ -322,9 +322,26 @@
               :run setTool
               :args {:tool ~(if (= state.doc.tool "free-transform") "move" "marquee")}})))
 
-(defview crop-options "The crop tool's ratios: the selection's box, or a centred box of a ratio." []
+(defview crop-options
+  "The crop tool's options: the ratio a drag keeps, then crops to the selection's box or a centred box of a ratio." []
+  `(row#options-crop :when ~(= state.doc.tool "crop") :alignItems center :gap 8 :height 30 :grow 100
+     (node#option-crop-drag :use tPicker
+       :with {:title ~(:title (or (find #(= (:ratio %) (or state.doc.options.cropRatio 0)) computed.cropRatios)
+                                  (first computed.cropRatios)))
+              :tip ~(t "crop.dragRatio")
+              :width 110
+              :open state.cropDragMenu
+              :items ~(map (fn [it]
+                             {:title it.title
+                              :checked (= it.ratio (or state.doc.options.cropRatio 0))
+                              :run "setOptions"
+                              :with {:args {:cropRatio it.ratio}}})
+                           computed.cropRatios)})
+     (node :style sep)
+     ~(crop-now)))
+
+(defview crop-now "The crop tool's crops at once: to the selection's box, or to a centred box of a ratio." []
   `(node#option-crop :use tPicker
-     :when ~(= state.doc.tool "crop")
      :with {:title ~(t "crop.ratio")
             :tip ~(t "crop.tip")
             :open state.cropMenu

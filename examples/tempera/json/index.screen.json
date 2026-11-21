@@ -195,6 +195,7 @@
 		"props": { "transform": true, "align": true, "actions": true },
 		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },
 		"cropMenu": false,
+		"cropDragMenu": false,
 		"zoomMenu": false,
 		"about": false
 	},
