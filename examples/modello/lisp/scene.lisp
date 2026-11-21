@@ -70,7 +70,9 @@
   (or (= state.shading :rendered) (and (= state.shading :material) (true? state.sceneWorld))))
 
 (defcomputed stats "The counts the status bar starts with, when the overlays are on."
-  (if state.overlays (t "status.stats" {:selected (count state.view.selection) :objects (count state.scene.nodes)}) ""))
+  (cond (not state.overlays) ""
+        computed.editCounts (str (t "edit.stats" computed.editCounts) " | ")
+        :else (t "status.stats" {:selected (count state.view.selection) :objects (count state.scene.nodes)})))
 
 ;;; Moving
 
@@ -106,7 +108,9 @@
                       (= state.tool :scale) "scale"
                       (and (= state.tool :select) (some? state.objectGizmo)) state.objectGizmo
                       :else "translate")
-          :space (cond (#{:local :normal} state.orientation) "local" (= state.orientation :view) "view" :else "world")
+          :space (cond (#{:local :normal} state.orientation) "local"
+                       (#{:view :gimbal} state.orientation) (name state.orientation)
+                       :else "world")
           :snap (if state.snap computed.snapSteps {})}
          (cond (= state.pivot :individual) {:individual true}
                (= state.pivot :cursor) {:pivot state.cursor}
@@ -153,7 +157,7 @@
                                  (if (= (type it) "object")
                                    (and (= (type it.id) "string")
                                         (= (type it.name) "string")
-                                        (contains? #{:mesh :light :camera} it.kind)
+                                        (contains? #{:mesh :light :camera :empty} it.kind)
                                         (three-numbers? it.translation)
                                         (three-numbers? it.rotationDegrees)
                                         (three-numbers? it.scale))

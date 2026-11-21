@@ -1,0 +1,171 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Several scenes in one file: the top bar's picker switches between them, adds one and deletes one. The scene shown is state.scene; the others wait in state.sceneStore, each under its id. Switching leaves Edit Mode, clears the selection and starts Undo afresh for that scene.",
+	"state": {
+		"scenes": [
+			{
+				"id": "scene",
+				"name": "Scene"
+			}
+		],
+		"activeScene": "scene",
+		"sceneStore": []
+	},
+	"computed": {
+		"sceneItems": "{{concat(map(state.scenes, { title: it.name, checked: it.id == state.activeScene, run: 'switchScene', with: { args: { id: it.id } } }), [{ title: 'New Scene', icon: 'plus', run: 'addScene', group: '2' }, { title: 'Delete Scene', icon: 'trash-2', run: 'deleteScene', group: '2', enabled: length(state.scenes) > 1 }])}}"
+	},
+	"actions": {
+		"showScene": [
+			{
+				"run": "leaveEdit"
+			},
+			{
+				"set": "state.sceneStore",
+				"to": "{{concat(filter(state.sceneStore, it.id != args.id && it.id != state.activeScene), [{ id: state.activeScene, scene: state.scene }])}}"
+			},
+			{
+				"set": "state.scene",
+				"to": "{{args.scene}}"
+			},
+			{
+				"set": "state.activeScene",
+				"to": "{{args.id}}"
+			},
+			{
+				"set": "state.sceneName",
+				"to": "{{find(state.scenes, it.id == args.id).name}}"
+			},
+			{
+				"set": "state.view.selection",
+				"to": []
+			},
+			{
+				"set": "state.active",
+				"to": null
+			},
+			{
+				"set": "state.undoStack",
+				"to": []
+			},
+			{
+				"set": "state.redoStack",
+				"to": []
+			}
+		],
+		"switchScene": {
+			"title": "Switch Scene",
+			"category": "File",
+			"icon": "shapes",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"if": "{{find(state.sceneStore, it.id == args.id) != null}}",
+					"then": [
+						{
+							"run": "showScene",
+							"with": {
+								"args": {
+									"id": "{{args.id}}",
+									"scene": "{{find(state.sceneStore, it.id == args.id).scene}}"
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		"addScene": {
+			"title": "New Scene",
+			"category": "File",
+			"icon": "plus",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"increment": "state.added",
+					"by": 1
+				},
+				{
+					"set": "state.tmpName",
+					"to": "{{contains(map(state.scenes, it.name), 'Scene') ? 'Scene.' + pad(length(state.scenes), 3, '0') : 'Scene'}}"
+				},
+				{
+					"push": "state.scenes",
+					"value": {
+						"id": "scene-{{state.added}}",
+						"name": "{{state.tmpName}}"
+					}
+				},
+				{
+					"run": "showScene",
+					"with": {
+						"args": {
+							"id": "{{'scene-' + state.added}}",
+							"scene": {
+								"nodes": [],
+								"materials": "{{state.scene.materials}}",
+								"meshes": [],
+								"textures": [],
+								"collections": [
+									{
+										"id": "collection",
+										"name": "Collection"
+									}
+								]
+							}
+						}
+					}
+				}
+			]
+		},
+		"deleteScene": {
+			"title": "Delete Scene",
+			"category": "File",
+			"icon": "trash-2",
+			"enablement": "{{length(state.scenes) > 1}}",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"if": "{{length(state.scenes) <= 1}}",
+					"then": [
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"set": "state.tmpGone",
+					"to": "{{state.activeScene}}"
+				},
+				{
+					"set": "state.tmpNext",
+					"to": "{{filter(state.scenes, it.id != state.activeScene)[0].id}}"
+				},
+				{
+					"run": "showScene",
+					"with": {
+						"args": {
+							"id": "{{state.tmpNext}}",
+							"scene": "{{find(state.sceneStore, it.id == state.tmpNext).scene}}"
+						}
+					}
+				},
+				{
+					"set": "state.scenes",
+					"to": "{{filter(state.scenes, it.id != state.tmpGone)}}"
+				},
+				{
+					"set": "state.sceneStore",
+					"to": "{{filter(state.sceneStore, it.id != state.tmpGone)}}"
+				}
+			]
+		}
+	}
+}

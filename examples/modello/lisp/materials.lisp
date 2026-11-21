@@ -124,3 +124,35 @@
     (when (and (>= i 0) (not= (get-in state.scene.materials [i key]) value))
       (snapshot)
       (set (str "state.scene.materials[" i "]." key) value))))
+
+;;; Image textures: a picture the person picks becomes the active material's base colour texture
+
+(defn texture-opened "The picture read: the active material's base colour texture, kept in the scene's textures." [result]
+  (when (and state.textureImage (>= computed.activeMaterialIndex 0))
+    (let [id (str "texture-" computed.activeNode.material)]
+      (snapshot)
+      (set "state.scene.textures"
+           (concat (remove #(= (:id %) id) (or state.scene.textures [])) [{:id id :name (:name result) :image state.textureImage}]))
+      (set (str "state.scene.materials[" computed.activeMaterialIndex "].textures") {:baseColor id})
+      (set "state.fileStatus" (t "file.textured" {:name (:name result)}))))
+  (set "state.textureImage" nil))
+
+(defcommand openTexture "Picks a PNG or JPEG picture as the active material's base colour texture."
+  :title ~(t "command.openTexture") :description ~(t "command.openTexture.about")
+  :category ~(t "category.material") :icon "image-plus" :enablement ~(>= computed.activeMaterialIndex 0) []
+  (dismiss)
+  (openFile "state.textureImage" :as "image" :title (t "file.textureTitle") :onDone texture-opened :onError not-opened))
+
+(defcommand removeTexture "Takes the texture off the active material, and out of the scene when no material uses it."
+  :title ~(t "command.removeTexture") :description ~(t "command.removeTexture.about")
+  :category ~(t "category.material") :icon "image-off"
+  :enablement ~(some? (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor])) []
+  (let [id (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor])]
+    (snapshot)
+    (set (str "state.scene.materials[" computed.activeMaterialIndex "].textures") {})
+    (when-not (some #(= (get-in % [:textures :baseColor]) id) state.scene.materials)
+      (set "state.scene.textures" (remove #(= (:id %) id) (or state.scene.textures []))))))
+
+(defcomputed activeTexture "The active material's base colour texture, or nil."
+  (when (>= computed.activeMaterialIndex 0)
+    (by-id state.scene.textures (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor]))))

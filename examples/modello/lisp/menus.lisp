@@ -13,7 +13,8 @@
   {:new {:run newScene :group "1_new" :order 1}
    :open {:run openScene :group "1_new" :order 2}
    :save {:run saveScene :group "2_save"}
-   :export {:run exportGltf :group "3_export"}})
+   :import {:run importGltf :group "3_export" :order 1}
+   :export {:run exportGltf :group "3_export" :order 2}})
 
 (defmenu edit "The Edit menu."
   {:undo {:run undo :group "1_history" :order 1}
@@ -202,18 +203,16 @@
 
 ;;; The viewport header's dropdowns
 
-(defcomputed modeItems "The mode's dropdown: Object Mode, and Edit Mode to come."
-  [{:title (t "mode.object") :icon "box" :checked (= state.mode :object) :run "setMode" :with {:mode "object"}}
-   {:title (t "mode.edit") :icon "pen-tool" :enabled false :keyLabel (t "menu.notYet")}])
+(defcomputed modeItems "The mode's dropdown: Object Mode, and Edit Mode on the active mesh."
+  [{:title (t "mode.object") :icon "box" :checked (= state.mode :object) :run "setMode" :with {:mode "object"} :keyLabel "Tab"}
+   {:title (t "mode.edit") :icon "pen-tool" :checked (= state.mode :edit) :run "setMode" :with {:mode "edit"}
+    :enabled (or (= state.mode :edit) (editable? computed.activeNode)) :keyLabel "Tab"}])
 
-(defcomputed orientationItems "The transform orientations; Gimbal is to come."
-  (map (fn [it]
-         (if (= it "gimbal")
-           {:title (t (str "orientation." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "orientation." it))
-            :checked (= state.orientation it)
-            :run "setOption"
-            :with {:key "orientation" :value it}}))
+(defcomputed orientationItems "The transform orientations: Gimbal turns around the active object's Euler axes."
+  (map #(hash-map :title (t (str "orientation." %))
+                  :checked (= state.orientation %)
+                  :run "setOption"
+                  :with {:key "orientation" :value %})
        ["global" "local" "normal" "gimbal" "view" "cursor"]))
 
 (defcomputed pivotItems "The pivot points: what the selected objects turn and scale about."

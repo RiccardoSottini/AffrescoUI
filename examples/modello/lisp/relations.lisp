@@ -1,9 +1,8 @@
 ;;; relations.lisp --- parenting: the selected objects follow the active one (Ctrl P), let go of their parent (Alt P),
 ;;; or take one in the Object tab's Relations panel; each keeps its place, and the outliner nests it under its parent
 ;;;
-;;; A child's translation is in its parent's space: the viewport turns, moves and hides it with its parent. Parenting
-;;; and clearing keep where the child's origin is by its ancestors' translations (a turned or scaled parent still turns
-;;; or scales the child).
+;;; A child's transform is in its parent's space: the viewport turns, moves and hides it with its parent. Parenting
+;;; and clearing keep the child where it is, turned and scaled as it was, however its old and new parents are.
 
 (ns modello.relations)
 
@@ -21,6 +20,11 @@
               [(+ (get sum 0) x) (+ (get sum 1) y) (+ (get sum 2) z)]))
           [0 0 0]
           (cons id (ancestors-of id))))
+
+(defn world-of "An object's transform in the world: its own, taken out through each of its ancestors'." [id]
+  (reduce (fn [inner at] (transformCompose (by-id state.scene.nodes at) inner))
+          (by-id state.scene.nodes id)
+          (ancestors-of id)))
 
 (defn under? "Whether an object is another one, or below it." [id other]
   (or (= other id) (contains (ancestors-of other) id)))
@@ -54,10 +58,14 @@
   [id parent]
   (let [i (node-index id)]
     (when (and (>= i 0) (can-parent? id parent))
-      (let [[x y z] (origin-of id)
+      (let [world (world-of id)
+            kept (if-some [p parent] (transformRelative world (world-of p)) world)
+            [x y z] (origin-of id)
             [px py pz] (if-some [p parent] (origin-of p) [0 0 0])]
-        (set (str "state.scene.nodes[" i "].parent") (or-else parent ""))
-        (set (str "state.scene.nodes[" i "].translation") [(- x px) (- y py) (- z pz)])))))
+        (if (some? kept)
+          (set (str "state.scene.nodes[" i "]") (merge (get state.scene.nodes i) kept {:parent (or-else parent "")}))
+          (do (set (str "state.scene.nodes[" i "].parent") (or-else parent ""))
+              (set (str "state.scene.nodes[" i "].translation") [(- x px) (- y py) (- z pz)])))))))
 
 (defcommand parentToActive "Makes the active object the parent of the other selected objects, keeping their places."
   :title ~(t "command.parentToActive") :description ~(t "command.parentToActive.about")
