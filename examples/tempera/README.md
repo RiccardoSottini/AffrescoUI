@@ -78,7 +78,7 @@ a new image (the scenario `tempera-opens-an-agents-picture`).
 | ⌥⌫, ⌘⌫, ⇧⌫, ⌫ | Fill with the foreground or the background, Fill..., clear |
 | ⌘X ⌘C ⌘⇧C ⌘V | Cut, copy, copy merged, paste |
 | ⌘T ⌘⌥I ⌘⌥C | Free transform, image size, canvas size |
-| ⌘N ⌘O ⌘S ⌘⇧S ⌘W ⌘⌥⇧W F12 | New, open, save, save as, close, export PNG, revert |
+| ⌘N ⌘O ⌘S ⌘⇧S ⌘W ⌘⌥⇧W ⌘⌥⇧S F12 | New, open, save, save as, close, export PNG, export JPEG, revert |
 | ⌘Z ⌘⇧Z | Undo, redo |
 | ⌘A ⌘D ⌘⇧D ⌘⇧I | Select all, deselect, reselect, inverse |
 | ⌘⇧N ⌘J ⌘⇧J ⌘G ⌘⇧G ⌘⌥G | New layer, duplicate, layer via cut, group, ungroup, clipping mask |
@@ -88,4 +88,4 @@ a new image (the scenario `tempera-opens-an-agents-picture`).
 | ⌘Y | Proof colours |
 | ⌘= ⌘- ⌘0 ⌘1 | Zoom in, zoom out, fit, 100% |
 | ⌘R ⌘; ⌘F ⇧F6 | Rulers, guides, search the commands, tools and layers, feather |
-| F6 F7 ⌘⌥F F1 | The Colour panel, the Layers panel, the last filter again, about |
+| F5 F6 F7 ⌘⌥F F1 | The Brushes, Colour and Layers panels, the last filter again, about |

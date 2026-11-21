@@ -104,7 +104,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Undo/redo with the History panel | done | |
 | Copy, cut, paste, clear; layer via copy and via cut | done | Through the image's clipboard; paste centres a new layer |
 | Rename, align and arrange layers | done | Rename from a dialog; align to the selection or the image |
-| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I), fills, F6 and F7 (Colour, Layers), Cmd+; (guides), Alt+Cmd+F (Last Filter) and F1; a few menu commands still have no key |
+| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I), fills, F5, F6 and F7 (Brushes, Colour, Layers), Alt+Shift+Cmd+S (export JPEG), Cmd+; (guides), Alt+Cmd+F (Last Filter) and F1; a few menu commands still have no key |
 | Assistant chat add-on (shared) | done | The shared add-on, in Tempera's colours |
 
 ## Left for later

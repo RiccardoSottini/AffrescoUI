@@ -1452,7 +1452,7 @@
 		},
 		{
 			"name": "tempera-last-filter-and-panel-keys",
-			"note": "Filter > Last Filter (Alt+Cmd+F) applies the filter last applied again; F7 and F6 bring the Layers and Colour panels forward, Cmd+; shows or hides the guides, F1 says what Tempera is",
+			"note": "Filter > Last Filter (Alt+Cmd+F) applies the filter last applied again; F5, F7 and F6 bring the Brushes, Layers and Colour panels forward, Cmd+; shows or hides the guides, F1 says what Tempera is",
 			"steps": [
 				{
 					"note": "onLoad draws the sample at the first frame",
@@ -1542,6 +1542,15 @@
 					"expect": {
 						"state": "view.guides",
 						"is": false
+					}
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"expect": {
+						"state": "panels.properties",
+						"is": "brushes"
 					}
 				},
 				{
@@ -3075,7 +3084,7 @@
 				{
 					"click": {
 						"role": "listitem",
-						"name": "Sky"
+						"name": "Hills"
 					}
 				},
 				{
@@ -3086,9 +3095,14 @@
 					"mods": "shift"
 				},
 				{
+					"note": "with a feature at the foot of the panels, the Layers panel is shorter: its bottom row needs a scroll",
+					"scroll": "#layer-rows",
+					"dy": -40
+				},
+				{
 					"click": {
 						"role": "listitem",
-						"name": "Hills"
+						"name": "Sky"
 					},
 					"mods": "shift"
 				},
@@ -3182,6 +3196,11 @@
 						"state": "doc.width",
 						"is": 1200
 					}
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Layers panel is shorter: its bottom row needs a scroll",
+					"scroll": "#layer-rows",
+					"dy": -40
 				},
 				{
 					"click": {
