@@ -419,6 +419,7 @@ const std::vector<Case> cases = {
     {"{{meshMove(meshPrimitive('plane'), [0], [0, 1, 0]).vertices[0]}}", J("[-1.0,1.0,1.0]"), {}},
     {"{{meshScale(meshPrimitive('cube'), [0, 1], 2).vertices[0]}}", J("[-2.0,-1.0,-1.0]"), {}},
     {"{{meshFaceVertices(meshPrimitive('cube'), [3])}}", J("[2,6,7,3]"), {}},
+    {"{{meshRotate(meshPrimitive('plane'), [0], [0, 0, 0, 1]).vertices[0]}}", J("[-1.0,0.0,1.0]"), {}},
     {"{{length(meshFaces(meshPrimitive('cube'), [0, 1]).faces)}}", 2, {}},
     {"{{meshCentre(meshPrimitive('cube'), [0, 1])}}", J("[0.0,-1.0,-1.0]"), {}},
     {"{{length(meshModifiers(meshPrimitive('cube'), [{ type: 'array', count: 2, offset: [3, 0, 0] }]).faces)}}",

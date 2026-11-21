@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Modello's Edit Mode and modifiers: Tab on the active mesh copies its primitive into the scene's meshes and edits it there; 1, 2 and 3 pick vertices, edges or faces; E extrudes, I insets, Ctrl R cuts a loop, X deletes; G and S move and scale the selection through a pivot, proportional editing pulling the vertices near it along. Mirror, array and subdivision modifiers are applied when the scene is drawn. Also glTF import and image textures.",
+	"note": "Modello's Edit Mode and modifiers: Tab on the active mesh copies its primitive into the scene's meshes and edits it there; 1, 2 and 3 pick vertices, edges or faces; E extrudes, I insets, Ctrl R cuts a loop, X deletes; G, R and S move, turn and scale the selection through a pivot, proportional editing pulling the vertices near it along. Mirror, array and subdivision modifiers are applied when the scene is drawn. Also glTF import and image textures.",
 	"state": {
 		"edit": {
 			"select": "vertex",
@@ -420,6 +420,22 @@
 						"with": {
 							"args": {
 								"mesh": "{{meshScale(computed.editMesh, state.edit.vertices, event.nodes[0].scale[0], computed.proportionalRadius)}}",
+								"faces": "{{state.edit.faces}}",
+								"vertices": "{{state.edit.vertices}}",
+								"title": "{{event.text}}"
+							}
+						}
+					}
+				]
+			},
+			{
+				"if": "{{event.mode == 'rotate'}}",
+				"then": [
+					{
+						"run": "putMesh",
+						"with": {
+							"args": {
+								"mesh": "{{meshRotate(computed.editMesh, state.edit.vertices, event.nodes[0].rotation, computed.proportionalRadius)}}",
 								"faces": "{{state.edit.faces}}",
 								"vertices": "{{state.edit.vertices}}",
 								"title": "{{event.text}}"

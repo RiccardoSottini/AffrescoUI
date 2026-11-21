@@ -2,7 +2,7 @@
 ;;;
 ;;; Tab enters Edit Mode on the active mesh, whose primitive becomes an editable mesh in the scene's meshes. 1, 2 and 3
 ;;; pick vertices, edges or faces; a click selects (Shift adds), A selects all. E extrudes the faces, I insets them,
-;;; Ctrl R cuts a loop across the edge, X deletes; G and S move and scale the selection after the pointer, with
+;;; Ctrl R cuts a loop across the edge, X deletes; G, R and S move, turn and scale the selection after the pointer, with
 ;;; proportional editing pulling the vertices near it along. Every change keeps an undo snapshot first.
 
 (ns modello.editmode)
@@ -143,7 +143,7 @@
   (dismiss)
   (set "state.proportional" (not state.proportional)))
 
-(defn edit-transformed "A move or scale of the pivot confirmed: the selected vertices follow, the near ones too with proportional editing."
+(defn edit-transformed "A move, turn or scale of the pivot confirmed: the selected vertices follow, the near ones too with proportional editing."
   []
   (let [moved (first event.nodes)
         centre computed.editCentre]
@@ -156,6 +156,8 @@
         :scale (put-mesh (meshScale computed.editMesh state.edit.vertices (get (:scale moved) 0)
                                      computed.proportionalRadius)
                          state.edit.faces state.edit.vertices event.text)
+        :rotate (put-mesh (meshRotate computed.editMesh state.edit.vertices (:rotation moved) computed.proportionalRadius)
+                          state.edit.faces state.edit.vertices event.text)
         nil))))
 
 (defn set-smooth "The active mesh shaded smooth or flat: its primitive becomes an editable mesh the first time." [smooth]

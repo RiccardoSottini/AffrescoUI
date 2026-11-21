@@ -120,6 +120,10 @@ TEST_CASE("scene3d: moving vertices with a falloff, scaling and flipping") {
 	const PolyMesh grown = scaleVertices(polyPrimitive(Primitive::Cube), {0, 1}, 2.0f);
 	CHECK(grown.vertices[0].x == doctest::Approx(-2.0f));
 	CHECK(dot(faceNormal(flipFaces(plane), 0), {0.0f, 1.0f, 0.0f}) == doctest::Approx(-1.0f));
+	const PolyMesh turned = rotateVertices(polyPrimitive(Primitive::Plane), {0, 1, 2, 3},
+	                                       Quat::fromAxisAngle({0.0f, 1.0f, 0.0f}, 3.14159265f / 2.0f));
+	CHECK(turned.vertices[0].x == doctest::Approx(1.0f).epsilon(1e-4)); // (-1, 0, 1) a quarter turn about y
+	CHECK(turned.vertices[0].z == doctest::Approx(1.0f).epsilon(1e-4));
 }
 
 TEST_CASE("scene3d: mirror, array and subdivision") {

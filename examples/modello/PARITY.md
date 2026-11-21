@@ -74,8 +74,8 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | What | Status | Note |
 |---|---|---|
 | Tab into edit mode | done | Tab or the mode menu, on the active mesh: its primitive becomes an editable mesh in the scene; its edges, vertices and selected faces are drawn over it, the status bar counts its vertices, edges and faces |
-| 1/2/3 vertex, edge, face select | done | also three buttons in the header; a click picks, Shift adds or takes out, A and Alt+A select all or nothing; G and S move and scale the selected vertices (with proportional editing) |
-| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | partial | E extrudes the selected faces as a region, I insets them, Ctrl+R cuts the loop of quads across the selected edge, X deletes vertices or faces, each undoable; no bevel yet, and E extrudes a fixed half unit (G moves it on) |
+| 1/2/3 vertex, edge, face select | done | also three buttons in the header; a click picks, Shift adds or takes out, A and Alt+A select all or nothing; G, R and S move, turn and scale the selected vertices (with proportional editing) |
+| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | partial | E extrudes the selected faces as a region, I insets them, Ctrl+R cuts the loop of quads across the selected edge, X deletes vertices or faces, G, R and S move, turn and scale the selection (the selected faces follow the pointer), each undoable; no bevel yet, and E extrudes a fixed half unit (G moves it on) |
 
 ## Other workspaces and files
 

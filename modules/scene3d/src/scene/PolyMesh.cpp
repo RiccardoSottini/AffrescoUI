@@ -382,6 +382,26 @@ PolyMesh scaleVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& v
 	return result;
 }
 
+PolyMesh rotateVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& vertices, Quat rotation, float radius) {
+	Vec3 centre;
+	std::size_t count = 0;
+	for(const std::uint32_t v : vertices)
+		if(v < mesh.vertices.size()) {
+			centre = centre + mesh.vertices[v];
+			++count;
+		}
+	if(count == 0) return mesh;
+	centre = centre / static_cast<float>(count);
+	const std::vector<float> weights = falloff(mesh, vertices, radius);
+	PolyMesh result = mesh;
+	for(std::size_t i = 0; i < weights.size(); ++i) {
+		if(weights[i] <= 0.0f) continue;
+		const Quat turn = weights[i] >= 1.0f ? rotation : slerp(Quat{}, rotation, weights[i]);
+		result.vertices[i] = centre + turn.rotate(result.vertices[i] - centre);
+	}
+	return result;
+}
+
 PolyMesh flipFaces(const PolyMesh& mesh) {
 	PolyMesh result = mesh;
 	for(auto& face : result.faces) std::reverse(face.begin(), face.end());

@@ -86,6 +86,11 @@ struct PolyLimits {
 /// @return The mesh.
 [[nodiscard]] PolyMesh scaleVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& vertices, float factor,
                                      float radius = 0.0f);
+/// @brief Turns vertices about their centre, and with a radius the ones near them, less the further they are.
+/// @param mesh The mesh. @param vertices They. @param rotation The turn. @param radius 0 turns only them.
+/// @return The mesh.
+[[nodiscard]] PolyMesh rotateVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& vertices, Quat rotation,
+                                      float radius = 0.0f);
 /// @brief Every vertex of some faces, once each, in order. @param mesh The mesh. @param faces They. @return They.
 [[nodiscard]] std::vector<std::uint32_t> faceVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& faces);
 /// @brief Flips every face: normals point the other way. @param mesh The mesh. @return The mesh.

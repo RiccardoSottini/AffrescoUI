@@ -126,6 +126,17 @@ Value meshScale(const Call& call) {
 	    scene3d::scaleVertices(meshAt(call, 0), indicesAt(call, 1), numberOr(call, 2, 1), numberOr(call, 3, 0)));
 }
 
+/// @brief meshRotate(mesh, vertices, [x, y, z, w], radius?): vertices turned by a rotation about their centre.
+/// @param call The call. @return The mesh.
+Value meshRotate(const Call& call) {
+	const Value& given = call[2];
+	if(!given.isList() || given.size() != 4) call.fail("expected a rotation [x, y, z, w]");
+	scene3d::Quat rotation{static_cast<float>(given.item(0).number()), static_cast<float>(given.item(1).number()),
+	                       static_cast<float>(given.item(2).number()), static_cast<float>(given.item(3).number())};
+	rotation = scene3d::normalize(rotation);
+	return result(scene3d::rotateVertices(meshAt(call, 0), indicesAt(call, 1), rotation, numberOr(call, 3, 0)));
+}
+
 /// @brief meshFaceVertices(mesh, faces). @param call The call. @return The vertex indices.
 Value meshFaceVertices(const Call& call) {
 	json indices = json::array();
@@ -439,6 +450,13 @@ constexpr auto table = std::to_array<Function>({
 	 .fewest = 3,
 	 .most = 4,
 	 .apply = meshScale},
+    {.name = "meshRotate",
+	 .arguments = "mesh, vertices, rotation, radius?",
+	 .about = "The mesh with vertices turned by a rotation [x, y, z, w] about their centre; with a radius, the ones "
+	          "near them too",
+	 .fewest = 3,
+	 .most = 4,
+	 .apply = meshRotate},
     {.name = "meshFaceVertices",
 	 .arguments = "mesh, faces",
 	 .about = "The vertex indices of some faces, each once",
