@@ -196,7 +196,7 @@ struct ImageDocument {
 	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
-	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left corner, 8 inside to move), or -1.
+	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left, 8 inside to move), or -1.
 	int boxHandle = -1;
 	std::array<float, 4> boxBefore{}; ///< selection-box, layer-box: the box at the press, left, top, right, bottom.
 	std::array<float, 4> boxNow{};    ///< selection-box, layer-box: the box as the drag makes it.
