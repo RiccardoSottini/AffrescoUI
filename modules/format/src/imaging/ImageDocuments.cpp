@@ -113,7 +113,9 @@ constexpr int navigatorSide = 160;
 	        {"shape", imaging::gradientShapeNames()[static_cast<std::size_t>(settings.shape)]},
 	        {"quickMask", settings.quickMask},
 	        {"autoSelect", settings.autoSelect},
-	        {"cropRatio", settings.cropRatio}};
+	        {"cropRatio", settings.cropRatio},
+	        {"retouch", imaging::retouchNames()[static_cast<std::size_t>(settings.retouch) -
+	                                            static_cast<std::size_t>(imaging::StrokeMode::dodge)]}};
 }
 
 /// @brief A hex digit pair's value.

@@ -102,7 +102,8 @@
 (defcomputed toolName "The current tool's short name, on the options bar."
   (t (str "tool." computed.tool.name ".short")))
 
-(defcomputed paints "The tool paints." (contains ["brush" "pencil" "eraser" "clone"] state.doc.tool))
+(defcomputed paints "The tool paints."
+  (contains ["brush" "pencil" "eraser" "clone" "blur" "sharpen" "dodge" "burn" "sponge"] state.doc.tool))
 
 (defcomputed activeHoldsContent "The active layer is a type or shape layer."
   (contains ["text" "shape"] computed.activeLayer.kind))

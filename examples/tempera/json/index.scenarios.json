@@ -6609,6 +6609,243 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-retouch-tools",
+			"note": "Dodge (O), Burn (Shift+O), Blur (R), Sharpen and Sponge retouch the active layer's pixels with the brush, a step each",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "dodge"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 620,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 400,
+									"y": 620,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 620,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Dodge"
+					}
+				},
+				{
+					"key": "shift+o"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "burn"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 640,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 400,
+									"y": 640,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 640,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Burn"
+					}
+				},
+				{
+					"key": "r"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "blur"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 660,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 400,
+									"y": 660,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 660,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Blur"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "sharpen"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.retouch",
+						"is": "sharpen"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 680,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 400,
+									"y": 680,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 680,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[4].label",
+						"is": "Sharpen"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "sponge"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.retouch",
+						"is": "sponge"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 700,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 400,
+									"y": 700,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 500,
+									"y": 700,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[5].label",
+						"is": "Sponge"
+					}
+				}
+			]
 		}
 	]
 }

@@ -44,8 +44,16 @@ struct BrushPreset {
 enum class StrokeMode : std::uint8_t {
 	paint, ///< Lays the colour.
 	erase, ///< Takes away opacity (on a mask or the selection: hides, deselects).
-	clone, ///< Copies the image from an offset, as it was when the stroke began.
+	clone,   ///< Copies the image from an offset, as it was when the stroke began.
+	dodge,   ///< Lightens the pixels under it.
+	burn,    ///< Darkens them.
+	sponge,  ///< Takes their colour away, towards grey.
+	blur,    ///< Softens them: each towards the average of its neighbours.
+	sharpen, ///< Sharpens them: each away from the average of its neighbours.
 };
+
+/// @brief The names of the retouching modes ("dodge", "burn", "sponge", "blur", "sharpen"), from StrokeMode::dodge on.
+[[nodiscard]] std::span<const std::string_view> retouchNames() noexcept;
 
 /// @brief A point of a stroke and the pen's pressure there.
 struct StrokePoint {
@@ -121,6 +129,16 @@ private:
 	/// @param y Down.
 	/// @param coverage The stroke's coverage there.
 	[[nodiscard]] Pixel painted(const Pixel& under, int x, int y, float coverage) const;
+	/// @brief The average of a pixel's neighbours before the stroke, five by five (blur, sharpen).
+	/// @param x Across.
+	/// @param y Down.
+	[[nodiscard]] Pixel neighbourhood(int x, int y) const;
+	/// @brief A pixel as a retouching stroke (dodge, burn, sponge, blur, sharpen) leaves it.
+	/// @param under The pixel before the stroke.
+	/// @param x Across.
+	/// @param y Down.
+	/// @param coverage The stroke's coverage there.
+	[[nodiscard]] Pixel retouched(const Pixel& under, int x, int y, float coverage) const;
 
 	Document* document_;                                        ///< The document, null once ended.
 	std::uint64_t target_;                                      ///< The image painted.

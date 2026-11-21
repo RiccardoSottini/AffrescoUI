@@ -27,6 +27,11 @@
                          :pencil {:gesture paint :hardness 100}
                          :eraser {:gesture erase}
                          :clone {:gesture clone}
+                         :blur {:gesture retouch :retouch blur}
+                         :sharpen {:gesture retouch :retouch sharpen}
+                         :dodge {:gesture retouch :retouch dodge}
+                         :burn {:gesture retouch :retouch burn}
+                         :sponge {:gesture retouch :retouch sponge}
                          :gradient {:gesture gradient}
                          :fill {:gesture fill}
                          :eyedropper {:gesture sample}

@@ -69,7 +69,7 @@ a new image (the scenario `tempera-opens-an-agents-picture`).
 
 | Keys | Command |
 | --- | --- |
-| V M ⇧M L ⇧L W ⇧W C B ⇧B E S G ⇧G I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, quick selection, crop, brush, pencil, eraser, clone, gradient, fill, eyedropper, hand, zoom |
+| V M ⇧M L ⇧L W ⇧W C B ⇧B E S G ⇧G R O ⇧O I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, quick selection, crop, brush, pencil, eraser, clone, gradient, fill, blur, dodge, burn, eyedropper, hand, zoom |
 | T P A U ⇧U | Tools: type, pen, path selection, rectangle, ellipse (shapes) |
 | D, X, Q, F | Default colours, swap them, quick mask, screen mode |
 | `[` `]` (or `,` `.`) | Smaller or larger brush |

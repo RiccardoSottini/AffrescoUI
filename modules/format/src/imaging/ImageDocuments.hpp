@@ -61,6 +61,7 @@ enum class Gesture : std::uint8_t {
 	quickSelect,     ///< Selects like colours under a brush dragged over them, stopping at edges.
 	selectionBox,    ///< Moves the selection's outline, or scales it by a handle of the box around it.
 	layerBox,        ///< Moves the active pixel layer, or scales it by a handle of the box around its pixels.
+	retouch,         ///< Dodges, burns, sponges, blurs or sharpens with the brush (the "retouch" option).
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
@@ -122,6 +123,7 @@ struct ToolSettings {
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
 	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
 	float cropRatio = 0.0f;                    ///< crop: the width over the height a drag keeps; 0 for any.
+	imaging::StrokeMode retouch = imaging::StrokeMode::dodge; ///< retouch: what the brush does to the pixels.
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
 	/// text, shape: what a new type or shape layer starts as (its font, size, shape, stroke); its fill is the
 	/// foreground colour.

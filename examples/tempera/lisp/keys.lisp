@@ -19,6 +19,9 @@
 
 (defkey "w" {:do setTool :with {:args {:tool wand}}})
 (defkey "shift+w" {:do setTool :with {:args {:tool quick-select}}})
+(defkey "r" {:do setTool :with {:args {:tool blur}}})
+(defkey "o" {:do setTool :with {:args {:tool dodge}}})
+(defkey "shift+o" {:do setTool :with {:args {:tool burn}}})
 
 (defkey "c" {:do setTool :with {:args {:tool crop}}})
 

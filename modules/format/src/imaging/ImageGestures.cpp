@@ -81,6 +81,11 @@ bool pressCloneSource(ImageDocument& image, Point at) {
 [[nodiscard]] const char* strokeName(const ToolSettings& settings) noexcept {
 	if(settings.quickMask) return "Quick Mask";
 	if(settings.gesture == Gesture::erase) return "Eraser";
+	if(settings.gesture == Gesture::retouch) {
+		constexpr std::array<const char*, 5> names{"Dodge", "Burn", "Sponge", "Blur", "Sharpen"};
+		return names.at(static_cast<std::size_t>(settings.retouch) -
+		                static_cast<std::size_t>(imaging::StrokeMode::dodge));
+	}
 	return settings.gesture == Gesture::clone ? "Clone Stamp" : "Brush";
 }
 
@@ -93,9 +98,10 @@ bool startStroke(ImageDocument& image, Point at) {
 	if(settings.gesture == Gesture::clone && pressCloneSource(image, at)) return true;
 	const auto target = paintTarget(image);
 	if(!target) return true;
-	const auto mode = settings.gesture == Gesture::erase  ? imaging::StrokeMode::erase
-	                  : settings.gesture == Gesture::clone ? imaging::StrokeMode::clone
-	                                                 : imaging::StrokeMode::paint;
+	const auto mode = settings.gesture == Gesture::erase     ? imaging::StrokeMode::erase
+	                  : settings.gesture == Gesture::clone   ? imaging::StrokeMode::clone
+	                  : settings.gesture == Gesture::retouch ? settings.retouch
+	                                                         : imaging::StrokeMode::paint;
 	image.stroke = std::make_unique<imaging::Stroke>(image.canvas->document(), *target, settings.tip, mode,
 	                                                   settings.foreground, strokeName(settings));
 	if(mode == imaging::StrokeMode::clone && settings.cloneSource) {
@@ -317,6 +323,7 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		return startStroke(image, at);
 	case Gesture::lasso:
 	case Gesture::polygonLasso:
@@ -359,6 +366,7 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		if(image.stroke) image.stroke->add({at.x, at.y, image.pressure});
 		return false;
 	case Gesture::lasso:
@@ -451,6 +459,7 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		if(!image.stroke) return false;
 		image.stroke->finish();
 		image.stroke.reset();

@@ -18,7 +18,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
 | 8 (type, shapes and paths) | 34 | 24 | 5 |
 | 9 (guides, selection transform, dock, workspaces, search) | 37 | 21 | 5 |
-| 10 (quick selection, anchors, type spacing, pickers, crop ratio) | 41 | 17 | 5 |
+| 10 (quick selection, anchors, type spacing, pickers, crop ratio, retouching) | 42 | 18 | 3 |
 
 ## Workspace
 
@@ -75,8 +75,8 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Clone stamp (Alt-click source) | done | |
 | Healing brush and patch | missing | |
 | History brush | missing | |
-| Blur, sharpen, smudge | missing | |
-| Dodge, burn, sponge | missing | |
+| Blur, sharpen, smudge | partial | Blur (R) and Sharpen brush each pixel towards or away from its neighbours' average, a step per stroke; no smudge |
+| Dodge, burn, sponge | done | Dodge (O), Burn (Shift+O) and Sponge lighten, darken or take the colour from the pixels under the brush, with its size and hardness |
 | Pen and path selection | done | The Pen adds corner anchors on a click and smooth ones on a drag, and closes at the first anchor; on the path it adds an anchor on a segment (the curve kept), deletes the anchor pressed on, and Alt converts smooth and corner anchors; Path Selection drags the path or one anchor; Type > Create Work Path makes a type layer's letters paths |
 | Type tool, editable type layers | done | A click adds a type layer (or picks the one clicked) and types into it on the canvas (Backspace, Enter for a new line, Escape to stop); its text, size and style stay editable in Properties; Layer > Rasterize makes it pixels |
 | Shapes as vector layers | done | Rectangle (rounded corners), ellipse, polygon and line tools drag out shape layers with a fill and a stroke, edited in the options bar and Properties, moved with their content; Layer > Rasterize |
