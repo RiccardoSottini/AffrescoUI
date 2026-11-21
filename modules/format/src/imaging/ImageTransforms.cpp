@@ -844,15 +844,17 @@ void clear(ImageDocument& image, const json&, Window*) {
 
 } // namespace
 
-void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to) {
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                          float angle) {
 	const float width = from[2] - from[0], height = from[3] - from[1];
 	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f) return;
-	if(from == to) return;
+	if(from == to && angle == 0.0f) return;
 	transformSelection(image,
 	                   json{{"x", (to[0] + to[2] - from[0] - from[2]) / 2.0f},
 	                        {"y", (to[1] + to[3] - from[1] - from[3]) / 2.0f},
 	                        {"scaleX", (to[2] - to[0]) / width * 100.0f},
-	                        {"scaleY", (to[3] - to[1]) / height * 100.0f}},
+	                        {"scaleY", (to[3] - to[1]) / height * 100.0f},
+	                        {"angle", angle}},
 	                   nullptr);
 }
 
@@ -871,19 +873,29 @@ std::optional<std::array<float, 4>> activeLayerBox(const ImageDocument& image) {
 	return image.layerBoxCache;
 }
 
-void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to) {
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                      float angle) {
 	const float width = from[2] - from[0], height = from[3] - from[1];
-	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f || from == to) return;
+	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f) return;
+	if(from == to && angle == 0.0f) return;
 	settle(image);
 	transform(image,
 	          json{{"x", std::lround((to[0] + to[2] - from[0] - from[2]) / 2.0f)},
 	               {"y", std::lround((to[1] + to[3] - from[1] - from[3]) / 2.0f)},
 	               {"scaleX", (to[2] - to[0]) / width * 100.0f},
-	               {"scaleY", (to[3] - to[1]) / height * 100.0f}},
+	               {"scaleY", (to[3] - to[1]) / height * 100.0f},
+	               {"angle", angle}},
 	          "Free Transform");
 }
 
+imaging::Point boxRotationHandle(const std::array<float, 4>& box, float reach) noexcept {
+	return {(box[0] + box[2]) / 2.0f, box[1] - reach * 4.0f};
+}
+
 int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept {
+	if(const imaging::Point turn = boxRotationHandle(box, reach);
+	   std::abs(turn.x - at.x) <= reach && std::abs(turn.y - at.y) <= reach)
+		return 9;
 	const float middleX = (box[0] + box[2]) / 2.0f, middleY = (box[1] + box[3]) / 2.0f;
 	const std::array<imaging::Point, 8> handles{{{box[0], box[1]},
 	                                             {middleX, box[1]},
@@ -900,6 +912,7 @@ int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach)
 }
 
 std::array<float, 4> draggedBox(std::array<float, 4> box, int handle, float dx, float dy) noexcept {
+	if(handle == 9) return box; // the rotation handle turns it instead
 	if(handle == 8) return {box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy};
 	const bool left = handle == 0 || handle == 6 || handle == 7, right = handle >= 2 && handle <= 4;
 	const bool top = handle <= 2, bottom = handle >= 4 && handle <= 6;

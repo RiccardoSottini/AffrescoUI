@@ -12,6 +12,7 @@
 #include <cmath>
 #include <functional>
 #include <map>
+#include <numbers>
 #include <ranges>
 
 namespace affresco::format::editing {
@@ -238,6 +239,16 @@ void closeQuickSelection(ImageDocument& image) {
 	        static_cast<float>(y + height)};
 }
 
+/// @brief The turn about a box's centre from one point to another, degrees clockwise (the rotation handle's drag).
+/// @param box The box, left, top, right, bottom.
+/// @param from Where the drag began.
+/// @param to Where it is.
+[[nodiscard]] float turnOf(const std::array<float, 4>& box, Point from, Point to) noexcept {
+	const float centreX = (box[0] + box[2]) / 2.0f, centreY = (box[1] + box[3]) / 2.0f;
+	const double turn = std::atan2(to.y - centreY, to.x - centreX) - std::atan2(from.y - centreY, from.x - centreX);
+	return static_cast<float>(std::remainder(turn * 180.0 / std::numbers::pi, 360.0));
+}
+
 /// @brief selection-box's and layer-box's press: picks the handle of the box pressed on (the selection's, or the
 /// active layer's pixels'), or inside it to move it.
 /// @param image The image; its message says why when there is no box.
@@ -259,6 +270,7 @@ bool pressSelectionBox(ImageDocument& image, Point at) {
 	} else
 		image.boxBefore = selectionBox(document);
 	image.boxNow = image.boxBefore;
+	image.boxAngle = 0.0f;
 	constexpr float handleReach = 6.0f; // window units around a handle
 	image.boxHandle =
 	    boxHandleAt(image.boxBefore, at, handleReach / static_cast<float>(std::max(image.view.zoom, 1e-6)));
@@ -382,6 +394,7 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 		if(image.boxHandle < 0) return false;
 		image.boxNow =
 		    draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
+		if(image.boxHandle == 9) image.boxAngle = turnOf(image.boxBefore, image.press.start, at);
 		return true;
 	case Gesture::pan:
 		panView(image, event);
@@ -480,9 +493,11 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::layerBox:
 		if(image.boxHandle < 0) return false;
 		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
+		image.boxAngle = image.boxHandle == 9 ? turnOf(image.boxBefore, from, at) : 0.0f;
 		image.boxHandle = -1;
-		if(image.settings.gesture == Gesture::layerBox) transformLayerTo(image, image.boxBefore, image.boxNow);
-		else transformSelectionTo(image, image.boxBefore, image.boxNow);
+		if(image.settings.gesture == Gesture::layerBox)
+			transformLayerTo(image, image.boxBefore, image.boxNow, image.boxAngle);
+		else transformSelectionTo(image, image.boxBefore, image.boxNow, image.boxAngle);
 		return true;
 	case Gesture::gradient:
 		drawGradient(image, at);

@@ -201,10 +201,12 @@ struct ImageDocument {
 	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
-	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left, 8 inside to move), or -1.
+	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left, 8 inside to move, 9 the
+	/// rotation handle above the top), or -1.
 	int boxHandle = -1;
 	std::array<float, 4> boxBefore{}; ///< selection-box, layer-box: the box at the press, left, top, right, bottom.
 	std::array<float, 4> boxNow{};    ///< selection-box, layer-box: the box as the drag makes it.
+	float boxAngle = 0.0f;            ///< selection-box, layer-box: the rotation handle's turn, degrees clockwise.
 	/// layer-box: the active layer's box (activeLayerBox()) and the document revision and layer it was measured at.
 	mutable std::optional<std::array<float, 4>> layerBoxCache;
 	mutable std::uint64_t layerBoxRevision = ~std::uint64_t{0}; ///< @copydoc layerBoxCache
@@ -417,8 +419,10 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy);
 /// @param image The image.
 /// @param from The box it is in, left, top, right, bottom.
 /// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @param angle A turn about its centre too, degrees clockwise.
 /// @throws DocumentError If there is no selection.
-void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to);
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                          float angle = 0.0f);
 
 /// @brief The box around the active pixel layer's pixels, measured again only when the document changed.
 /// @param image The image.
@@ -430,14 +434,22 @@ void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from
 /// @param image The image.
 /// @param from The box it is in, left, top, right, bottom.
 /// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @param angle A turn about its centre too, degrees clockwise.
 /// @throws DocumentError If the layer can't be transformed.
-void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to);
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                      float angle = 0.0f);
 
-/// @brief The handle of a selection box under a point: 0 to 7 clockwise from the top left corner, 8 inside, or -1.
+/// @brief The handle of a selection box under a point: 0 to 7 clockwise from the top left corner, 8 inside, 9 the
+/// rotation handle (boxRotationHandle()), or -1.
 /// @param box The box, left, top, right, bottom, in document pixels.
 /// @param at The point.
 /// @param reach How near a handle the point must be, in document pixels.
 [[nodiscard]] int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept;
+
+/// @brief Where a box's rotation handle is: above the middle of its top, four reaches up.
+/// @param box The box, left, top, right, bottom, in document pixels.
+/// @param reach How near a handle a press must be, in document pixels.
+[[nodiscard]] imaging::Point boxRotationHandle(const std::array<float, 4>& box, float reach) noexcept;
 
 /// @brief The box a handle's drag makes: the handle follows the pointer, the opposite side stays (inside moves it).
 /// @param box The box at the press.

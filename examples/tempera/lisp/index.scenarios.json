@@ -6973,6 +6973,81 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-selection-rotation",
+			"note": "The handle above the selection's box turns the outline about its centre",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 100,
+								"y": 100
+							},
+							"to": {
+								"x": 300,
+								"y": 200
+							}
+						}
+					}
+				},
+				{
+					"action": "transformSelectionHandles"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 65,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 260,
+									"y": 90,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 150,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Transform Selection"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							150,
+							50,
+							100,
+							200
+						]
+					}
+				}
+			]
 		}
 	]
 }

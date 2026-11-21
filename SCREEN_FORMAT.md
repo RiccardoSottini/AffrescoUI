@@ -1571,7 +1571,7 @@ per contour. `quick-select` selects, at the release, the pixels like the one und
 `burn` darkens, `sponge` takes the colour away, `blur` and `sharpen` move each pixel towards or away from its
 neighbours' average, `smudge` drags the paint along the stroke. A `clone` tool with the `healing` option lays the
 source's texture in the tone of the pixels it covers (the healing brush). `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
-stays), a drag inside moves it, one step each; `layer-box` does the same to the active pixel layer, around its pixels
+stays), a drag inside moves it, the handle above the box turns it about its centre, one step each; `layer-box` does the same to the active pixel layer, around its pixels
 (a Free Transform step). The
 paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
 canvas while one is active.

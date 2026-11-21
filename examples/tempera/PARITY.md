@@ -65,9 +65,9 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | done | Shift, Alt or both at the press add, subtract or intersect (marquee, lasso, polygon, wand); during a drag Shift keeps a square and Alt draws from the centre |
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | done | Quick Selection (Shift+W) brushes over like colours, each stroke stopping at edges (its size and tolerance in the options bar); Shift adds, Alt subtracts |
-| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
+| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, the handle above turns it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
-| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, each drag one step (undo cancels it); Numbers... opens the dialog that also flips and turns it; no rotating or skewing handles |
+| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, the handle above the box turns it (the box turning as it is dragged), each drag one step (undo cancels it); Numbers... opens the dialog that also flips it; no skew |
 | Crop with overlay grid and aspect presets | done | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the drag ratio (Free, 1 : 1, 4 : 3, 3 : 2, 16 : 9, 4 : 5) holds a drag to that shape, and the ratios menu crops the largest centred part at once |
 | Gradient tool with editor | partial | Inline editor and presets; Reverse, Dither and Transparency work; its blend modes are disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
@@ -116,7 +116,7 @@ general feature the image step or a node needs first.
 
 | Item | Pri | Needs |
 | --- | --- | --- |
-| Free transform: rotating and skewing handles, a live preview of the pixels while dragging | P2 | Library: a rotation and skew term in `layer-box`, and the remapped layer drawn while the drag lasts |
+| Free transform: skewing, a live preview of the pixels while dragging | P2 | Library: a skew term in the transform's sampling, and the remapped layer drawn while the drag lasts |
 | Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
 | Character: type on a path; a glyph's synthetic bold or italic in Create Work Path (the font's own outlines are used) | P3 | Library: text laid along a path in renderText; outlines of the synthesised styles |
 | Create Work Path: a path per letter rather than per contour | P3 | Library: paths of several contours (subpaths) |

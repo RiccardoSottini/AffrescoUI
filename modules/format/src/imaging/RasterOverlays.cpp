@@ -13,6 +13,7 @@
 #include <cmath>
 #include <numbers>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace affresco::format {
@@ -201,12 +202,26 @@ void RasterView::paintSelectionBox(Painter& painter, const editing::ImageDocumen
 		       static_cast<float>(y + height)};
 	}
 	const Rect frame = between(toWindow(image, box[0], box[1]), toWindow(image, box[2], box[3]));
+	const bool turning = image.press.down && image.boxHandle == 9;
+	const double turn = turning ? image.boxAngle * std::numbers::pi / 180.0 : 0.0;
+	const float centreX = (box[0] + box[2]) / 2.0f, centreY = (box[1] + box[3]) / 2.0f;
 	VectorPath::Contour contour;
 	contour.closed = true;
-	for(const Vec2 corner : {Vec2{frame.left, frame.top}, Vec2{frame.right, frame.top}, Vec2{frame.right, frame.bottom},
-	                         Vec2{frame.left, frame.bottom}})
-		addPoint(contour, corner);
+	for(const auto& [x, y] : {std::pair{box[0], box[1]}, {box[2], box[1]}, {box[2], box[3]}, {box[0], box[3]}}) {
+		const double dx = x - centreX, dy = y - centreY; // the box turned about its centre while the handle is dragged
+		addPoint(contour, toWindow(image, centreX + dx * std::cos(turn) - dy * std::sin(turn),
+		                           centreY + dx * std::sin(turn) + dy * std::cos(turn)));
+	}
 	strokeOutline(painter, contour, look_.overlay);
+	constexpr float handleReach = 6.0f; // as the press measures it
+	const imaging::Point rotation =
+	    editing::boxRotationHandle(box, handleReach / static_cast<float>(std::max(image.view.zoom, 1e-6)));
+	const Vec2 knob = toWindow(image, rotation.x, rotation.y);
+	painter.fillRect({std::round(knob.x), knob.y, std::round(knob.x) + 1.0f, frame.top}, look_.overlay);
+	const Rect circle{knob.x - 4.0f, knob.y - 4.0f, knob.x + 4.0f, knob.y + 4.0f};
+	painter.fillRoundedRect(circle, CornerRadii::all(4.0f), Color{1.0f, 1.0f, 1.0f, 1.0f});
+	painter.strokeRoundedRect(circle, CornerRadii::all(4.0f), 1.0f, underline);
+	if(turning) return;
 	constexpr float side = 7.0f; // a handle's square, in window units
 	const float middleX = (frame.left + frame.right) / 2.0f, middleY = (frame.top + frame.bottom) / 2.0f;
 	for(const Vec2 handle : {Vec2{frame.left, frame.top}, Vec2{middleX, frame.top}, Vec2{frame.right, frame.top},
