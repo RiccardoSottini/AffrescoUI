@@ -40,7 +40,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
 | Text | Font colour and highlight | missing | done | colour-grids |
 | Text | Change case and clear formatting | missing | done | font-size-and-case |
-| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | align-text, align-a-paragraph (per paragraph while the text is edited; justified text draws flush left) |
+| Text | Paragraph alignment (left, centre, right, justify) | missing | done | align-text, align-a-paragraph (per paragraph while the text is edited; justified lines fill the box's width, the last one flush left) |
 | Text | Line spacing and columns | missing | done | paragraph-menus |
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
 | Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
@@ -56,9 +56,9 @@ with its slide show, presenter view, audience window and files on library capabi
 | Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
 | Format pane | Size and position (with lock aspect ratio) | partial | done | format-size-and-rotation, format-gradient-dash-and-text-box, shape-format-tab |
 | Format pane | Text box options (anchor, margins, wrap) | missing | done | format-gradient-dash-and-text-box (margins, wrap, autofit) |
-| Arrange | Move and resize with handles | done | partial | selected |
-| Arrange | Smart guides (centres and edges) | missing | partial | |
-| Arrange | Distance indicators (equal gaps) | missing | missing | |
+| Arrange | Move and resize with handles | done | partial | selected (Shift held as the drag starts keeps a corner resize's proportions and a move on one axis; Ctrl to copy isn't there) |
+| Arrange | Smart guides (centres and edges) | missing | done | equal-gaps (the canvas snaps to other objects' and the slide's edges and centres, and to guides, drawing the lines while dragging) |
+| Arrange | Distance indicators (equal gaps) | missing | done | equal-gaps (a move snaps to a gap the row already has, or to the middle between two objects, and marks the equal gaps) |
 | Arrange | Align (left, centre, right, top, middle, bottom) | done | done | align-and-distribute |
 | Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
 | Arrange | Group and ungroup | missing | done | group-and-ungroup (Arrange, the context menu, Ctrl+G and Ctrl+Shift+G; a click on one member selects the group) |
@@ -151,9 +151,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | Priority | Row or control | What it needs |
 |---|---|---|
 | P2 | Tools: paste a picture from another app | Library: a step that reads the system clipboard's image |
-| P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
-| P1 | Text: justified text | Library: justified wrapping in labels |
-| P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
+| P2 | Arrange: Ctrl and a drag copies | Library: the canvas's `onTransform` saying the drag was a copy |
 | P3 | Content: crop a picture by dragging | JSON: a crop mode whose handles move the crop's sides instead of the box |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
 | P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
@@ -165,7 +163,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
-| P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |

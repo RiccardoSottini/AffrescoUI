@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <span>
 #include <vector>
 
 namespace affresco {
@@ -324,15 +325,25 @@ Vec2 Label::blockOrigin() const {
 void Label::paintRuns(Painter& painter, Vec2 origin) const {
 	const TextLayout& laid = textLayout();
 	const std::u32string_view text = laid.text();
-	for(const TextLayout::Line& line : laid.lines()) {
+	const std::span<const TextLayout::Line> lines = laid.lines();
+	for(std::size_t number = 0; number < lines.size(); ++number) {
+		const TextLayout::Line& line = lines[number];
 		// Whole pixels keep glyphs sharp, as in paintLine()
 		const float baseline = std::round(origin.y + line.top + line.ascent);
+		const float share = justifiedShare(line, number + 1 == lines.size());
+		std::size_t spacesBefore = 0; // the line's spaces before the piece, each widened by the share
 		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
 			const TextLayout::Piece& piece = laid.pieces()[index];
 			const TextRun& run = runs_[piece.run];
 			const Color color = run.color.value_or(textColor_);
-			const float left = std::round(origin.x + piece.x);
-			const float right = left + piece.width;
+			const std::size_t inside = share > 0.0f ? spacesIn(text, piece.begin, std::min(piece.end, line.end)) : 0;
+			const float left = std::round(origin.x + piece.x + share * static_cast<float>(spacesBefore));
+			const float right = left + piece.width + share * static_cast<float>(inside);
+			if(share > 0.0f) {
+				paintJustifiedPiece(painter, piece, run, color, {left, baseline}, share);
+				spacesBefore += inside;
+				continue;
+			}
 			if(run.background)
 				painter.fillRect(
 				    {left, std::round(origin.y + line.top), right, std::round(origin.y + line.top + line.height)},
@@ -352,6 +363,52 @@ void Label::paintRuns(Painter& painter, Vec2 origin) const {
 				painter.fillRect({left, through, right, through + 1.0f}, color);
 			}
 		}
+	}
+}
+
+std::size_t Label::spacesIn(std::u32string_view text, std::size_t begin, std::size_t end) noexcept {
+	end = std::min(end, text.size());
+	return begin < end ? static_cast<std::size_t>(std::ranges::count(text.substr(begin, end - begin), U' ')) : 0;
+}
+
+float Label::justifiedShare(const TextLayout::Line& line, bool lastLine) const {
+	if(!justify_ || !wrap_ || rightToLeft() || lastLine) return 0.0f;
+	const std::u32string_view text(textLayout().text());
+	if(line.end >= text.size() || text[line.end] == U'\n') return 0.0f; // a paragraph's last line keeps its spacing
+	std::size_t end = line.end;
+	while(end > line.begin && text[end - 1] == U' ') --end; // the spaces it ends with aren't widened
+	const std::size_t gaps = spacesIn(text, line.begin, end);
+	if(gaps == 0) return 0.0f;
+	return std::max(0.0f, contentRect().width() - line.width) / static_cast<float>(gaps);
+}
+
+void Label::paintJustifiedPiece(Painter& painter, const TextLayout::Piece& piece, const TextRun& run, Color color,
+                                Vec2 at, float share) const {
+	const std::u32string_view part =
+	    std::u32string_view(textLayout().text()).substr(piece.begin, piece.end - piece.begin);
+	const Font& font = *piece.font;
+	const float lineTop = at.y - font.ascent(), lineBottom = lineTop + font.lineHeight();
+	std::size_t gap = 0;
+	for(std::size_t begin = 0; begin < part.size();) {
+		const std::size_t space = std::min(part.find(U' ', begin), part.size());
+		if(space > begin) {
+			const std::u32string_view word = part.substr(begin, space - begin);
+			const float left = std::round(at.x + font.measure(part.substr(0, begin)) + share * static_cast<float>(gap));
+			const float right = left + font.measure(word);
+			if(run.background) painter.fillRect({left, lineTop, right, lineBottom}, *run.background);
+			if(run.shadow) {
+				const float by = std::max(1.0f, std::round(font.pixelHeight() / 16.0f));
+				painter.drawText(font, word, {left + by, at.y + by}, *run.shadow);
+			}
+			painter.drawText(font, word, {left, at.y}, color);
+			if(run.underline || !run.link.empty()) painter.fillRect({left, at.y + 1.0f, right, at.y + 2.0f}, color);
+			if(run.strike) {
+				const float through = std::round(at.y - font.ascent() * 0.3f);
+				painter.fillRect({left, through, right, through + 1.0f}, color);
+			}
+		}
+		if(space < part.size()) ++gap;
+		begin = space + 1;
 	}
 }
 

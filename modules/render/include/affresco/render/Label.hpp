@@ -116,9 +116,9 @@ public:
 	/// @brief Turns word wrap on or off.
 	/// @param wrap true to break lines that don't fit the width.
 	void setWrap(bool wrap);
-	/// @brief Justifies wrapped plain text: every line but a paragraph's last is stretched to the full width, the room
-	/// left shared between its spaces. Lines are placed from the start otherwise; rich text (runs) and right-to-left
-	/// text are left as they are.
+	/// @brief Justifies wrapped text, plain or rich (runs): every line but a paragraph's last is stretched to the full
+	/// width, the room left shared between its spaces. Lines are placed from the start otherwise; right-to-left text is
+	/// left as it is.
 	/// @param justify true to justify.
 	void setJustify(bool justify);
 	/// @brief Whether wrapped lines are justified (setJustify()).
@@ -180,6 +180,28 @@ private:
 	/// @param painter The painter.
 	/// @param origin The block of lines' top-left.
 	void paintRuns(Painter& painter, Vec2 origin) const;
+	/// @brief How much each space of a line of rich text widens when it is justified: the room left over the line,
+	/// shared between its spaces (not those it ends with); 0 when it isn't justified or is a paragraph's last line.
+	/// @param line The line, of textLayout().
+	/// @param lastLine Whether it is the text's last line.
+	/// @return The extra room per space, in pixels.
+	[[nodiscard]] float justifiedShare(const TextLayout::Line& line, bool lastLine) const;
+	/// @brief Paints a piece of a justified line of rich text word by word, each space widened by `share`, with its
+	/// run's background, shadow and lines under each word.
+	/// @param painter Where to paint.
+	/// @param piece The piece.
+	/// @param run Its run.
+	/// @param color Its colour.
+	/// @param at Its left, already moved by the widened spaces before it, and the line's baseline.
+	/// @param share The extra room per space.
+	void paintJustifiedPiece(Painter& painter, const TextLayout::Piece& piece, const TextRun& run, Color color, Vec2 at,
+	                         float share) const;
+	/// @brief How many spaces a stretch of text holds.
+	/// @param text The text.
+	/// @param begin Its first code point.
+	/// @param end One past its last (clamped to the text).
+	/// @return The count.
+	[[nodiscard]] static std::size_t spacesIn(std::u32string_view text, std::size_t begin, std::size_t end) noexcept;
 	/// @brief Highlights the selection.
 	/// @param painter The painter.
 	/// @param origin The block of lines' top-left.

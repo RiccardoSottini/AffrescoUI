@@ -139,6 +139,24 @@ struct GuideHit {
 	return rect;
 }
 
+/// @brief A box resized by a corner with its proportions kept, as Shift does: both sides grow by the larger of their
+/// two factors, from the corner that stays.
+/// @param from The box at the press.
+/// @param rect The box the pointer made.
+/// @param edges The edges that move: one across and one down (a corner).
+/// @return The box.
+[[nodiscard]] Rect proportional(const Rect& from, const Rect& rect, const SnapEdges& edges) noexcept {
+	if(from.width() <= 0.0f || from.height() <= 0.0f) return rect;
+	const float factor = std::max(rect.width() / from.width(), rect.height() / from.height());
+	const float width = from.width() * factor, height = from.height() * factor;
+	Rect kept = rect;
+	if(edges.left) kept.left = rect.right - width;
+	else kept.right = rect.left + width;
+	if(edges.top) kept.top = rect.bottom - height;
+	else kept.bottom = rect.top + height;
+	return kept;
+}
+
 /// @brief Whether a marquee is small enough to be a click.
 /// @param marquee The marquee, on screen.
 /// @return true if it is.
@@ -383,10 +401,17 @@ void CanvasView::moved(const MouseMoveEvent& event) {
 void CanvasView::dragItems(Vec2 position) {
 	const Vec2 delta{(position.x - pressedAt_.x) / camera_.zoom, (position.y - pressedAt_.y) / camera_.zoom};
 	const SnapEdges edges = gesture_ == Gesture::move ? SnapEdges{} : edgesOf(handle_);
-	const Rect rect = draggedRect(from_, delta, edges, gesture_ == Gesture::resize);
+	// Shift held at the press keeps a corner resize's proportions, and a move to the axis it went furthest along
+	const bool corner = (edges.left || edges.right) && (edges.top || edges.bottom) && gesture_ == Gesture::resize;
+	const bool alongX = std::abs(delta.x) >= std::abs(delta.y);
+	const Vec2 moved =
+	    additive_ && gesture_ == Gesture::move ? Vec2{alongX ? delta.x : 0.0f, alongX ? 0.0f : delta.y} : delta;
+	Rect rect = draggedRect(from_, moved, edges, gesture_ == Gesture::resize);
+	if(additive_ && corner) rect = proportional(from_, rect, edges);
 	internals_->lines = {};
+	internals_->gaps = {};
 	to_ = rect;
-	if(!snap_) return;
+	if(!snap_ || (additive_ && corner)) return; // a snap would change the proportions
 	// Targets: the unselected items near the box (the nearest maximumTargets), and the unselected children
 	auto& targets = internals_->rects;
 	targets.clear();
@@ -405,12 +430,23 @@ void CanvasView::dragItems(Vec2 position) {
 	const SnapResult result = gesture_ == Gesture::move ? snapMove(rect, snapTargets, tolerance)
 	                                                    : snapResize(rect, edges, snapTargets, tolerance);
 	to_ = result.rect;
+	if(additive_ && gesture_ == Gesture::move) { // the axis held still stays still
+		if(alongX) {
+			to_.top = rect.top;
+			to_.bottom = rect.bottom;
+		} else {
+			to_.left = rect.left;
+			to_.right = rect.right;
+		}
+	}
 	internals_->lines = result.lines;
+	internals_->gaps = result.gaps;
 }
 
 void CanvasView::finish() {
 	const Gesture gesture = std::exchange(gesture_, Gesture::none);
 	internals_->lines = {};
+	internals_->gaps = {};
 	invalidate();
 	switch(gesture) {
 	case Gesture::none:

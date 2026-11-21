@@ -264,11 +264,13 @@
 
 (defview paragraph-text "Paragraph `n`'s text, wrapped to the box less its mark." [o prefix n]
   `(label :id ~(str prefix o.id "-p" n "-t")
+     :let {:room ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
+                                                  (if (and bullets (not prompt)) mark 0))
+                                               1))}
      :wrap ~(or-else o.wrap true)
-     :fitText {:maxWidth ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
-                                  (if (and bullets (not prompt)) mark 0))
-                               1))}
-     :align {:horizontal ~(case pa :center "center" :right "end" "start")}
+     :fitText {:maxWidth ~room}
+     :minWidth ~(if (and (= pa :justify) (not= o.wrap false)) room 0)
+     :align {:horizontal ~(case pa :center "center" :right "end" :justify "justify" "start")}
      :runs [{:text ~(if (= (str/trim line) "") " " (str/trim line))
              :size ~pt
              :bold ~(or-else o.bold p.bold false)

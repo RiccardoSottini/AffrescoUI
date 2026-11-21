@@ -75,3 +75,44 @@ TEST_CASE("snapping: a resize moves only the dragged edges, and never inside out
 	CHECK(snapMove({NAN, 0.0f, 1.0f, 1.0f}, {.grid = 10.0f}, 5.0f).rect.top == 0.0f);
 	CHECK(snapMove({1.0f, 1.0f, 2.0f, 2.0f}, {.grid = 10.0f}, 0.0f).rect == Rect{1.0f, 1.0f, 2.0f, 2.0f});
 }
+
+TEST_CASE("snapping: a move takes the gap two items of its row already have, and shows both gaps") {
+	// Two boxes 20 apart; a third dragged to 23 after the second lands 20 after it
+	const std::array<Rect, 2> others{Rect{0.0f, 0.0f, 50.0f, 40.0f}, Rect{70.0f, 0.0f, 120.0f, 40.0f}};
+	const SnapTargets targets{.others = others};
+	const auto result = snapMove({143.0f, 5.0f, 173.0f, 35.0f}, targets, 6.0f);
+	CHECK(result.rect.left == doctest::Approx(140.0f));
+	REQUIRE(result.gaps[0]);
+	CHECK_FALSE(result.gaps[0]->vertical); // a row's gap is measured by a horizontal segment
+	CHECK(result.gaps[0]->from == doctest::Approx(120.0f));
+	CHECK(result.gaps[0]->to == doctest::Approx(140.0f));
+	REQUIRE(result.gaps[1]);
+	CHECK(result.gaps[1]->from == doctest::Approx(50.0f));
+	CHECK(result.gaps[1]->to == doctest::Approx(70.0f));
+	CHECK_FALSE(result.gaps[2]);
+	CHECK_FALSE(result.gaps[3]);
+}
+
+TEST_CASE("snapping: a move between two items centres there, with an indicator on each side") {
+	const std::array<Rect, 2> others{Rect{0.0f, 0.0f, 50.0f, 40.0f}, Rect{150.0f, 0.0f, 200.0f, 40.0f}};
+	const SnapTargets targets{.others = others};
+	// 40 wide in a room of 100: 30 on each side, from 80 (dragged to 83)
+	const auto result = snapMove({83.0f, 10.0f, 123.0f, 30.0f}, targets, 6.0f);
+	CHECK(result.rect.left == doctest::Approx(80.0f));
+	REQUIRE(result.gaps[0]);
+	REQUIRE(result.gaps[1]);
+	CHECK(result.gaps[0]->to - result.gaps[0]->from == doctest::Approx(30.0f));
+	CHECK(result.gaps[1]->to - result.gaps[1]->from == doctest::Approx(30.0f));
+	// Out of the row (no overlap across), no gap is taken
+	const auto apart = snapMove({120.0f, 100.0f, 140.0f, 130.0f}, {.others = others}, 2.0f);
+	CHECK(apart.rect.left == doctest::Approx(120.0f));
+	CHECK_FALSE(apart.gaps[0]);
+}
+
+TEST_CASE("snapping: an edge within reach wins over an equal gap") {
+	// The gap of 20 would put the left edge at 140; the other's right edge at 143 is nearer reach and comes first
+	const std::array<Rect, 3> others{Rect{0.0f, 0.0f, 50.0f, 40.0f}, Rect{70.0f, 0.0f, 120.0f, 40.0f},
+	                                 Rect{100.0f, 60.0f, 143.0f, 90.0f}};
+	const auto result = snapMove({141.0f, 5.0f, 171.0f, 35.0f}, {.others = others}, 6.0f);
+	CHECK(result.rect.left == doctest::Approx(143.0f));
+}

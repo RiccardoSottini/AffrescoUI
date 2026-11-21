@@ -1982,6 +1982,284 @@
 				}
 			],
 			"note": "A picture's menu crops it to a square, 4:3 or 16:9 around its middle, at the same scale, and Whole Picture gives it back"
+		},
+		{
+			"name": "sinopia-equal-gaps",
+			"steps": [
+				{
+					"click": "#b-new-slide"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "delete"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects.length",
+						"is": 0
+					}
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"key": "shift+left"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[0].x",
+						"is": 105
+					}
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"key": "shift+right"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[1].x",
+						"is": 655
+					}
+				},
+				{
+					"click": "#b-ins-shapes"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rectangle"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						741,
+						421
+					]
+				},
+				{
+					"drag": [
+						741,
+						421
+					],
+					"to": [
+						717,
+						421
+					],
+					"moves": 6
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[2].x",
+						"is": 380
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[2].y",
+						"is": 195
+					}
+				}
+			],
+			"note": "A shape dragged between two others snaps to the middle, where its gaps to both are equal (the distance indicators show them while dragging)"
 		}
 	]
 }
