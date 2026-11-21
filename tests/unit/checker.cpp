@@ -423,6 +423,11 @@ TEST_CASE("checker: what can't be known is never reported") {
 	    {"an action nothing runs (a channel's, a native caller's) may read any variable",
 		 R"("actions": {"host:committed": [{"set": "state.message", "to": "{{event.message}} {{caller}}"}]})",
 		 {}},
+	    {"what a function of the program gives (a map, a list)",
+		 R"("state": {"nodes": [{"id": "a"}]},
+	        "computed": {"rows": "{{sort(map(state.nodes, lisp('outline-row', it)), it.outlinePath)}}"},
+	        "root": {"text": "{{lisp('active').name}} {{computed.rows[0].outlineDepth}}"})",
+		 {}},
 	});
 }
 
@@ -453,9 +458,9 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	    {"version", 2}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
 	CHECK(affresco::format::check(chain, json::object()));
 
-	// Over a million values: too large to check, so nothing is claimed
+	// Over four million values: too large to check, so nothing is claimed
 	json wide = {{"version", 2}, {"root", {{"text", json::array()}}}};
-	wide["root"]["text"].get_ref<json::array_t&>().resize(1100000, json::array()); // numbers cost no visit: lists do
+	wide["root"]["text"].get_ref<json::array_t&>().resize(4100000, json::array()); // numbers cost no visit: lists do
 	CHECK_FALSE(affresco::format::check(wide, json::object()));
 
 	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand

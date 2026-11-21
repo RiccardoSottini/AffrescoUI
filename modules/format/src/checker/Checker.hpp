@@ -45,7 +45,7 @@ struct Finding {
 /// @param state The state to check against (the live state of a running screen).
 /// @param nativeActions The actions the application registered (Screen::onAction): documents may name them.
 /// @return The findings, sorted by place, each once; std::nullopt if the document is too large to check within the
-/// checker's limit (a million values visited).
+/// checker's limit (four million values visited).
 [[nodiscard]] std::optional<std::vector<Finding>> check(const json& document, const json& state,
                                                         const std::set<std::string, std::less<>>& nativeActions = {});
 

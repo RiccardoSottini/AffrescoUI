@@ -141,6 +141,7 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
 	if(name == "$parseJson" || name == "$parseJsonc") return anything;
+	if(name == "$lisp") return anything; // a function of the document's program gives whatever it builds (a map, say)
 	if(name == "$qrCode") return Shape{{"size", single}, {"version", single}, {"d", single}, {"viewBox", single}};
 	if(name == "$gitStatus") // services' GitOutput.hpp, or null
 		return Shape{{"branch", {{"head", true}, {"oid", true}, {"upstream", true}, {"ahead", true}, {"behind", true}}},
