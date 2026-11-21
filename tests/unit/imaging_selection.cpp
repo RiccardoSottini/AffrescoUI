@@ -137,6 +137,20 @@ TEST_CASE("imaging selection: the magic wand and colour range") {
 	CHECK_THROWS_AS(static_cast<void>(wandCoverage(small, 5, 5, {})), affresco::DocumentError);
 }
 
+TEST_CASE("imaging selection: the quick-selection brush stops at edges and at its radius") {
+	Document document(300, 200);
+	const std::uint64_t pixels = document.activeLayer()->pixels;
+	paint(document, pixels, {0, 0, 300, 200}, {1.0f, 1.0f, 1.0f, 1.0f});
+	paint(document, pixels, {150, 0, 150, 200}, {0.0f, 0.0f, 0.0f, 1.0f});
+	const std::array<Point, 2> stroke{{{100.0f, 100.0f}, {140.0f, 100.0f}}};
+	const Coverage quick = quickCoverage(document, stroke, 20.0f, {});
+	CHECK(valueAt(quick, 100, 100) == 255);
+	CHECK(valueAt(quick, 149, 100) == 255); // white within the radius of the second point
+	CHECK(valueAt(quick, 150, 100) == 0);   // the edge: black is unlike the white pressed on
+	CHECK(valueAt(quick, 100, 130) == 0);   // beyond the radius
+	CHECK(quickCoverage(document, std::array<Point, 1>{{{-5.0f, -5.0f}}}, 20.0f, {}).empty());
+}
+
 TEST_CASE("imaging filters: blur keeps flat colour, spreads edges, and stays within the selection") {
 	Document document(512, 256);
 	const std::uint64_t pixels = document.activeLayer()->pixels;
