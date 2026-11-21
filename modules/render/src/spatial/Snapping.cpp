@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace affresco {
 namespace {
@@ -83,7 +84,8 @@ bool sameRow(const Rect& a, const Rect& b, bool vertical) noexcept {
 /// @param vertical The x axis or the y axis.
 /// @param others The other items.
 /// @param visit Called with the earlier item and the later one of each gap.
-template <typename Visit> void eachGap(const Rect& moving, bool vertical, std::span<const Rect> others, Visit&& visit) {
+template <typename Visit>
+void eachGap(const Rect& moving, bool vertical, std::span<const Rect> others, const Visit& visit) {
 	for(const Rect& a : others) {
 		if(!sameRow(a, moving, vertical)) continue;
 		const Rect* next = nullptr;
@@ -140,15 +142,16 @@ SnapLine gapLine(const Rect& a, const Rect& b, bool vertical) noexcept {
 	return SnapLine{!vertical, shared, stops(a, vertical)[2], stops(b, vertical)[0]};
 }
 
-/// @brief The distance indicators of a rectangle where it landed, along one axis: its gap to a neighbour, and the
-/// equal gap it matches (another pair's, or its other neighbour's).
+/// @brief How near two gaps must be to count as equal, in world units.
+constexpr float same = 0.5f;
+
+/// @brief A rectangle's nearest neighbours in its row (or column): the item that ends last before it, and the one
+/// that starts first after it.
 /// @param rect The rectangle.
 /// @param vertical The x axis or the y axis.
 /// @param others The other items.
-/// @param gaps The two slots to fill.
-void indicate(const Rect& rect, bool vertical, std::span<const Rect> others,
-              std::span<std::optional<SnapLine>, 2> gaps) noexcept {
-	constexpr float same = 0.5f;
+/// @return The one before and the one after (nullptr where there is none).
+std::pair<const Rect*, const Rect*> neighbours(const Rect& rect, bool vertical, std::span<const Rect> others) noexcept {
 	const std::array<float, 3> own = stops(rect, vertical);
 	const Rect* before = nullptr;
 	const Rect* after = nullptr;
@@ -158,6 +161,19 @@ void indicate(const Rect& rect, bool vertical, std::span<const Rect> others,
 		if(at[2] <= own[0] + same && (!before || at[2] > stops(*before, vertical)[2])) before = &item;
 		if(at[0] >= own[2] - same && (!after || at[0] < stops(*after, vertical)[0])) after = &item;
 	}
+	return {before, after};
+}
+
+/// @brief The distance indicators of a rectangle where it landed, along one axis: its gap to a neighbour, and the
+/// equal gap it matches (another pair's, or its other neighbour's).
+/// @param rect The rectangle.
+/// @param vertical The x axis or the y axis.
+/// @param others The other items.
+/// @param gaps The two slots to fill.
+void indicate(const Rect& rect, bool vertical, std::span<const Rect> others,
+              std::span<std::optional<SnapLine>, 2> gaps) noexcept {
+	const std::array<float, 3> own = stops(rect, vertical);
+	const auto [before, after] = neighbours(rect, vertical, others);
 	const float left = before ? own[0] - stops(*before, vertical)[2] : -1.0f;
 	const float right = after ? stops(*after, vertical)[0] - own[2] : -1.0f;
 	if(left > same && right > same && std::abs(left - right) < same) {

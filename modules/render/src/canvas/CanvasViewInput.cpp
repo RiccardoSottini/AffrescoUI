@@ -157,6 +157,54 @@ struct GuideHit {
 	return kept;
 }
 
+/// @brief What Shift held at the press does to a drag.
+struct ShiftDrag {
+	bool locked = false;    ///< A move stays on the axis it went furthest along.
+	bool keepShape = false; ///< A corner resize keeps its proportions.
+};
+
+/// @brief What Shift does to a drag: a move keeps to one axis, a corner resize keeps its proportions.
+/// @param shift Whether Shift was held at the press.
+/// @param move Whether the drag moves the selection.
+/// @param resize Whether it resizes it.
+/// @param edges The edges a resize moves.
+/// @return What it does.
+[[nodiscard]] ShiftDrag shiftDrag(bool shift, bool move, bool resize, const SnapEdges& edges) noexcept {
+	const bool corner = (edges.left || edges.right) && (edges.top || edges.bottom);
+	return {shift && move, shift && resize && corner};
+}
+
+/// @brief The box a drag makes before snapping, with what Shift does to it.
+/// @param from The box at the press.
+/// @param delta How far the pointer went, in world units.
+/// @param edges The edges that move.
+/// @param resize Whether it is a resize.
+/// @param shift What Shift does.
+/// @return The box.
+[[nodiscard]] Rect shapedRect(const Rect& from, Vec2 delta, const SnapEdges& edges, bool resize,
+                              ShiftDrag shift) noexcept {
+	const bool alongX = std::abs(delta.x) >= std::abs(delta.y);
+	const Vec2 moved = shift.locked ? Vec2{alongX ? delta.x : 0.0f, alongX ? 0.0f : delta.y} : delta;
+	const Rect rect = draggedRect(from, moved, edges, resize);
+	return shift.keepShape ? proportional(from, rect, edges) : rect;
+}
+
+/// @brief A snapped box with the axis a Shift move holds still put back where it was.
+/// @param snapped The snapped box.
+/// @param unsnapped The box before snapping.
+/// @param delta How far the pointer went: the axis it went less far along is held still.
+/// @return The box.
+[[nodiscard]] Rect onOneAxis(Rect snapped, const Rect& unsnapped, Vec2 delta) noexcept {
+	if(std::abs(delta.x) >= std::abs(delta.y)) {
+		snapped.top = unsnapped.top;
+		snapped.bottom = unsnapped.bottom;
+	} else {
+		snapped.left = unsnapped.left;
+		snapped.right = unsnapped.right;
+	}
+	return snapped;
+}
+
 /// @brief Whether a marquee is small enough to be a click.
 /// @param marquee The marquee, on screen.
 /// @return true if it is.
@@ -402,16 +450,12 @@ void CanvasView::dragItems(Vec2 position) {
 	const Vec2 delta{(position.x - pressedAt_.x) / camera_.zoom, (position.y - pressedAt_.y) / camera_.zoom};
 	const SnapEdges edges = gesture_ == Gesture::move ? SnapEdges{} : edgesOf(handle_);
 	// Shift held at the press keeps a corner resize's proportions, and a move to the axis it went furthest along
-	const bool corner = (edges.left || edges.right) && (edges.top || edges.bottom) && gesture_ == Gesture::resize;
-	const bool alongX = std::abs(delta.x) >= std::abs(delta.y);
-	const Vec2 moved =
-	    additive_ && gesture_ == Gesture::move ? Vec2{alongX ? delta.x : 0.0f, alongX ? 0.0f : delta.y} : delta;
-	Rect rect = draggedRect(from_, moved, edges, gesture_ == Gesture::resize);
-	if(additive_ && corner) rect = proportional(from_, rect, edges);
+	const ShiftDrag shift = shiftDrag(additive_, gesture_ == Gesture::move, gesture_ == Gesture::resize, edges);
+	const Rect rect = shapedRect(from_, delta, edges, gesture_ == Gesture::resize, shift);
 	internals_->lines = {};
 	internals_->gaps = {};
 	to_ = rect;
-	if(!snap_ || (additive_ && corner)) return; // a snap would change the proportions
+	if(!snap_ || shift.keepShape) return; // a snap would change the proportions
 	// Targets: the unselected items near the box (the nearest maximumTargets), and the unselected children
 	auto& targets = internals_->rects;
 	targets.clear();
@@ -429,16 +473,7 @@ void CanvasView::dragItems(Vec2 position) {
 	const float tolerance = canvas::snapPixels / camera_.zoom;
 	const SnapResult result = gesture_ == Gesture::move ? snapMove(rect, snapTargets, tolerance)
 	                                                    : snapResize(rect, edges, snapTargets, tolerance);
-	to_ = result.rect;
-	if(additive_ && gesture_ == Gesture::move) { // the axis held still stays still
-		if(alongX) {
-			to_.top = rect.top;
-			to_.bottom = rect.bottom;
-		} else {
-			to_.left = rect.left;
-			to_.right = rect.right;
-		}
-	}
+	to_ = shift.locked ? onOneAxis(result.rect, rect, delta) : result.rect; // the axis held still stays still
 	internals_->lines = result.lines;
 	internals_->gaps = result.gaps;
 }

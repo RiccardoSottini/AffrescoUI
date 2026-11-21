@@ -128,6 +128,17 @@ bool within(const Panel* panel, const Panel& scope) {
 	return false;
 }
 
+/// @brief Whether a scheduled focus gives way: the focus a closing menu or dialog gives back (a panel, no scope) yields
+/// to a node that took the focus since it was scheduled, such as an editor the chosen item opened with autofocus.
+/// @param panel The panel it would focus.
+/// @param scope The dialog whose first focusable node it would focus, if that is what it does.
+/// @param now The panel focused now.
+/// @param then The panel focused when it was scheduled (compared, never used).
+/// @return true to leave the focus where it is.
+bool givesWay(const Panel* panel, const Panel* scope, const Panel* now, const Panel* then) noexcept {
+	return panel && !scope && now && now != then;
+}
+
 } // namespace
 
 void Events::modal(Panel& overlay, bool open) {
@@ -170,10 +181,7 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 	engine_.scheduler.once(0.0, [this, frames, focusedThen] {
 		const auto target = std::exchange(focusLater_, {});
 		if(target.cancelled || !engine_.window) return;
-		// The focus given back by a closing menu or dialog yields to a node that took the focus since (an editor the
-		// chosen item opened, with autofocus)
-		const Panel* now = engine_.window->focusedPanel();
-		if(target.panel && !target.scope && now && now != focusedThen) return;
+		if(givesWay(target.panel, target.scope, engine_.window->focusedPanel(), focusedThen)) return;
 		// Deferred tasks run before the frame's layout, which is what shows an overlay just opened
 		if(target.scope && !target.scope->isShown() && target.scope->isVisible() && frames > 0) {
 			focusLater(target.panel, target.scope, frames - 1);

@@ -368,7 +368,9 @@ void Label::paintRuns(Painter& painter, Vec2 origin) const {
 
 std::size_t Label::spacesIn(std::u32string_view text, std::size_t begin, std::size_t end) noexcept {
 	end = std::min(end, text.size());
-	return begin < end ? static_cast<std::size_t>(std::ranges::count(text.substr(begin, end - begin), U' ')) : 0;
+	if(begin >= end) return 0;
+	const std::u32string_view::const_iterator first = text.begin() + static_cast<std::ptrdiff_t>(begin);
+	return static_cast<std::size_t>(std::count(first, first + static_cast<std::ptrdiff_t>(end - begin), U' '));
 }
 
 float Label::justifiedShare(const TextLayout::Line& line, bool lastLine) const {

@@ -11,6 +11,7 @@
 
 using affresco::Rect;
 using affresco::SnapEdges;
+using affresco::SnapLine;
 using affresco::snapMove;
 using affresco::snapResize;
 using affresco::SnapTargets;
@@ -83,12 +84,12 @@ TEST_CASE("snapping: a move takes the gap two items of its row already have, and
 	const auto result = snapMove({143.0f, 5.0f, 173.0f, 35.0f}, targets, 6.0f);
 	CHECK(result.rect.left == doctest::Approx(140.0f));
 	REQUIRE(result.gaps[0]);
-	CHECK_FALSE(result.gaps[0]->vertical); // a row's gap is measured by a horizontal segment
-	CHECK(result.gaps[0]->from == doctest::Approx(120.0f));
-	CHECK(result.gaps[0]->to == doctest::Approx(140.0f));
+	CHECK_FALSE(result.gaps[0].value_or(SnapLine{}).vertical); // a row's gap is measured by a horizontal segment
+	CHECK(result.gaps[0].value_or(SnapLine{}).from == doctest::Approx(120.0f));
+	CHECK(result.gaps[0].value_or(SnapLine{}).to == doctest::Approx(140.0f));
 	REQUIRE(result.gaps[1]);
-	CHECK(result.gaps[1]->from == doctest::Approx(50.0f));
-	CHECK(result.gaps[1]->to == doctest::Approx(70.0f));
+	CHECK(result.gaps[1].value_or(SnapLine{}).from == doctest::Approx(50.0f));
+	CHECK(result.gaps[1].value_or(SnapLine{}).to == doctest::Approx(70.0f));
 	CHECK_FALSE(result.gaps[2]);
 	CHECK_FALSE(result.gaps[3]);
 }
@@ -101,8 +102,8 @@ TEST_CASE("snapping: a move between two items centres there, with an indicator o
 	CHECK(result.rect.left == doctest::Approx(80.0f));
 	REQUIRE(result.gaps[0]);
 	REQUIRE(result.gaps[1]);
-	CHECK(result.gaps[0]->to - result.gaps[0]->from == doctest::Approx(30.0f));
-	CHECK(result.gaps[1]->to - result.gaps[1]->from == doctest::Approx(30.0f));
+	CHECK(result.gaps[0].value_or(SnapLine{}).to - result.gaps[0].value_or(SnapLine{}).from == doctest::Approx(30.0f));
+	CHECK(result.gaps[1].value_or(SnapLine{}).to - result.gaps[1].value_or(SnapLine{}).from == doctest::Approx(30.0f));
 	// Out of the row (no overlap across), no gap is taken
 	const auto apart = snapMove({120.0f, 100.0f, 140.0f, 130.0f}, {.others = others}, 2.0f);
 	CHECK(apart.rect.left == doctest::Approx(120.0f));
