@@ -13,9 +13,10 @@
                                                                                  [(/ 16 9) "crop.wide"]])
 
 (defn whole-size "The size the whole picture is drawn at, from its box and its crop." [o]
-  (let [[left top right bottom] (or-else (:crop o) [0 0 0 0])]
-    {:w (/ (:w o) (max (- 1 left right) 0.01))
-     :h (/ (:h o) (max (- 1 top bottom) 0.01))}))
+  (let [[left top right bottom] (or-else (:crop o) [0 0 0 0])
+        across (max (- 1 left right) 0.01)
+        down (max (- 1 top bottom) 0.01)]
+    {:w (/ (:w o) across) :h (/ (:h o) down)}))
 
 (defn cropped
   "Picture `o` cropped to the proportions `ratio` around its middle (nil: the whole picture), its box at the same
@@ -23,8 +24,10 @@
   [o ratio]
   (let [whole (whole-size o)
         wide (/ (:w whole) (max (:h whole) 0.01))
-        cut-x (if (and ratio (> wide ratio)) (/ (- 1 (/ ratio wide)) 2) 0)
-        cut-y (if (and ratio (< wide ratio)) (/ (- 1 (/ wide ratio)) 2) 0)
+        keep-x (if (and ratio (> wide ratio)) (/ ratio wide) 1)
+        keep-y (if (and ratio (< wide ratio)) (/ wide ratio) 1)
+        cut-x (/ (- 1 keep-x) 2)
+        cut-y (/ (- 1 keep-y) 2)
         w (* (:w whole) (- 1 (* 2 cut-x)))
         h (* (:h whole) (- 1 (* 2 cut-y)))
         cx (+ (:x o) (/ (:w o) 2))
@@ -36,12 +39,15 @@
            :x (round (- cx (/ w 2)))
            :y (round (- cy (/ h 2))))))
 
+(defn crop-item "The object's menu's item that crops to proportions, from a pair of crop-ratios." [pair]
+  {:title (t (second pair)) :icon "crop" :run "crop-pictures" :with {:ratio (first pair)}})
+
 (defcomputed pictureSelected "Whether a picture is among the selected objects, so the object's menu offers its crops."
   (some #(= (:kind %) "picture") computed.selected))
 
 (defcomputed cropItems "The object's menu's crops, with a picture selected: the proportions, the whole picture."
   (if computed.pictureSelected
-    (concat (map (fn [it] {:title (t it.1) :icon "crop" :run "crop-pictures" :with {:ratio it.0}}) crop-ratios)
+    (concat (map #(crop-item %) crop-ratios)
             [{:title (t "crop.reset") :icon "image" :run "crop-pictures" :with {:ratio nil}} {:separator true}])
     []))
 
