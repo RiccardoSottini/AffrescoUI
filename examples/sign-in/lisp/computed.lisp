@@ -4,6 +4,8 @@
 ;;; expression's speed (SCREEN_FORMAT.md, "Values, expressions and state"). The forms are Lisp; `it` is the item of a
 ;;; function on each item, as in (filter (fn [it] ...) list).
 
+(ns sign-in.computed)
+
 ;;; Helpers
 
 (defmacro strength-of "A password's strength, its score 0 and nothing missing while it is empty." [password]
@@ -20,27 +22,27 @@
           [["⌃" "Ctrl+"] ["⌥" "Option+"] ["⇧" "Shift+"] ["⌘" "Cmd+"]]))
 
 (defmacro key-of "The keys of a command, spelled out." [command]
-  `(:keyText (find (fn [it] (= it.name ~command)) computed.shortcuts)))
+  `(:keyText (find #(= (:name %) ~command) computed.shortcuts)))
 
 (defmacro same-email? "Two emails, the same whatever their case." [a b]
-  `(= (lower-case ~a) (lower-case ~b)))
+  `(= (str/lower-case ~a) (str/lower-case ~b)))
 
 ;;; The sign-in form
 
-(defcomputed emailValid (isEmail (trim state.email)))
+(defcomputed emailValid (isEmail (str/trim state.email)))
 
 (defcomputed passwordValid (>= (count state.password) 8))
 
 (defcomputed account "The account of the email typed, if there is one."
-  (find (fn [it] (same-email? it.email (trim state.email))) state.accounts))
+  (find #(same-email? (:email %) (str/trim state.email)) state.accounts))
 
 (defcomputed locked "Five wrong passwords in a row lock the account until its password is reset."
-  (>= (count (filter (fn [it] (= it (lower-case (trim state.email)))) state.failures)) 5))
+  (>= (count (filter #(= % (str/lower-case (str/trim state.email))) state.failures)) 5))
 
 (defcomputed errors "How many of the form's fields are wrong, once it was sent."
-  (if (not state.submitted) 0 (+ (if computed.emailValid 0 1) (if computed.passwordValid 0 1))))
+  (if-not state.submitted 0 (+ (if computed.emailValid 0 1) (if computed.passwordValid 0 1))))
 
-(defcomputed passkeys "The accounts on this device that saved a passkey." (filter (fn [it] it.passkey) state.accounts))
+(defcomputed passkeys "The accounts on this device that saved a passkey." (filter :passkey state.accounts))
 
 (defcomputed providerTitle "The provider's name, for the error it gave."
   (if (= state.providerName "exampleId") "Example ID" (t (str "provider_" state.providerName))))
@@ -59,32 +61,33 @@
 (defcomputed confirmValid (or state.showPassword (= state.confirm state.password)))
 
 (defcomputed usernameStatus "Empty, invalid, checking (until the demo server answered), taken or available."
-  (cond (= (count (trim state.username)) 0) ""
-        (or (< (count (trim state.username)) 3)
-            (> (count (trim state.username)) 20)
-            (not (every? (fn [it] (contains "abcdefghijklmnopqrstuvwxyz0123456789_." it))
-                         (split (lower-case (trim state.username)) "")))) "invalid"
-        (not= state.usernameChecked (lower-case (trim state.username))) "checking"
-        (contains ["ada" "sam" "admin"] state.usernameChecked) "taken"
-        :else "available"))
+  (let [typed (str/trim state.username)]
+    (cond (empty? typed) ""
+          (or (< (count typed) 3)
+              (> (count typed) 20)
+              (not (every? #(str/includes? "abcdefghijklmnopqrstuvwxyz0123456789_." %)
+                           (str/split (str/lower-case typed) "")))) "invalid"
+          (not= state.usernameChecked (str/lower-case typed)) "checking"
+          (#{"ada" "sam" "admin"} state.usernameChecked) "taken"
+          :else "available")))
 
-(defcomputed inviteValid (= (upper-case (trim state.invite.code)) "EXAMPLE-INVITE"))
+(defcomputed inviteValid (= (str/upper-case (str/trim state.invite.code)) "EXAMPLE-INVITE"))
 
 (defcomputed createErrors "How many of the new account's fields are wrong, once it was sent."
-  (if (not state.submitted)
+  (if-not state.submitted
       0
-      (+ (if (> (count (trim state.name)) 0) 0 1)
+      (+ (if (empty? (str/trim state.name)) 1 0)
          (if computed.emailValid 0 1)
          (if (= computed.usernameStatus "available") 0 1)
          (if computed.newPasswordValid 0 1)
          (if computed.confirmValid 0 1)
          (if state.terms 0 1)
-         (if (and state.invite.open (> (count (trim state.invite.code)) 0) (not computed.inviteValid)) 1 0))))
+         (if (and state.invite.open (not-empty (str/trim state.invite.code)) (not computed.inviteValid)) 1 0))))
 
 ;;; Codes and the new password
 
 (defcomputed trustedHere "Two-step remembers this device for the account signing in."
-  (some (fn [it] (and (same-email? it.email state.pending.email) (= it.device "this"))) state.trusted))
+  (some #(and (same-email? (:email %) state.pending.email) (= (:device %) "this")) state.trusted))
 
 (defcomputed resetStrength (strength-of state.reset.password))
 
@@ -93,7 +96,7 @@
 (defcomputed resetConfirmValid (or state.showPassword (= state.reset.confirm state.reset.password)))
 
 (defcomputed resetErrors
-  (if (not state.reset.submitted) 0 (+ (if computed.resetValid 0 1) (if computed.resetConfirmValid 0 1))))
+  (if-not state.reset.submitted 0 (+ (if computed.resetValid 0 1) (if computed.resetConfirmValid 0 1))))
 
 (defcomputed resetTime "How long the emailed code still lasts." (clock-text state.reset.left))
 
@@ -102,14 +105,23 @@
 (defcomputed sessionTime "How long until the session ends." (clock-text state.session.left))
 
 (defcomputed initials "The avatar's letter: the name's first, or the email's."
-  (upper-case (slice (if (> (count (trim state.user.name)) 0) (trim state.user.name) state.user.email) 0 1)))
+  (let [name (str/trim state.user.name)]
+    (str/upper-case (slice (if (empty? name) state.user.email name) 0 1))))
 
 (defcomputed avatarColor
-  (if (> (or-else state.user.avatar 0) 0) (str "@color.avatar" state.user.avatar) "@color.accentSoft"))
+  (if (pos? (or-else state.user.avatar 0)) (str "@color.avatar" state.user.avatar) "@color.accentSoft"))
 
-(defcomputed avatarText (if (> (or-else state.user.avatar 0) 0) "@color.avatarText" "@color.accent"))
+(defcomputed avatarText (if (pos? (or-else state.user.avatar 0)) "@color.avatarText" "@color.accent"))
 
 (defcomputed wide "The window is wide enough for the sections down the side." (>= window.width 760))
+
+(defcomputed narrow "The window is too narrow for a card: the forms sit on the page itself." (< window.width 560))
+
+(defcomputed cardStyle "A form's card: raised on a wide window, flat on the page on a narrow one."
+  (if (< window.width 560) "cardFlat" "card"))
+
+(defcomputed cardWidth "A form's card's width: 420 at most, the whole window on a narrow one."
+  (if (< window.width 560) window.width (min 420 (- window.width 32))))
 
 (defcomputed sections "The account's sections, in their order, each with its icon."
   [{:name "profile" :icon "user"}
@@ -120,7 +132,7 @@
    {:name "activity" :icon "history"}
    {:name "data" :icon "trash-2"}])
 
-(defcomputed profileErrors (cond (not state.profile.submitted) 0 (> (count (trim state.profile.name)) 0) 0 :else 1))
+(defcomputed profileErrors (if (and state.profile.submitted (empty? (str/trim state.profile.name))) 1 0))
 
 (defcomputed changeError "Why the new password in the change dialog is refused, or nothing."
   (cond (< (count state.change.password) 8) (t "min8")
@@ -129,15 +141,15 @@
         :else ""))
 
 (defcomputed newEmailError "Why the email being added is refused (invalid, taken, full), or nothing."
-  (cond (not (isEmail (trim state.newEmail.address))) "invalid"
-        (some (fn [it] (same-email? it.address (trim state.newEmail.address))) state.emails) "taken"
+  (cond (not (isEmail (str/trim state.newEmail.address))) "invalid"
+        (some #(same-email? (:address %) (str/trim state.newEmail.address)) state.emails) "taken"
         (>= (count state.emails) 5) "full"
         :else ""))
 
 (defcomputed passwordDays (or-else state.user.passwordDays 0))
 
 (defcomputed myTrusted "The devices two-step remembers for the account signed in."
-  (filter (fn [it] (same-email? it.email state.user.email)) state.trusted))
+  (filter #(same-email? (:email %) state.user.email) state.trusted))
 
 (defcomputed otpUri "The two-step setup's QR code, as the authenticator apps read it."
   (str "otpauth://totp/Example%20ID:" state.user.email "?secret=EXAMPLEEXAMPLE23&issuer=Example%20ID"))
@@ -173,7 +185,7 @@
 ;;; Keyboard shortcuts
 
 (defcomputed shortcuts "The commands, each with its keys spelled out (Cmd+J for ⌘J)."
-  (map (fn [it] (merge it {:keyText (slice (spelled-keys (or-else it.keyLabel "")) 1)})) commands))
+  (map #(merge % {:keyText (slice (spelled-keys (or-else (:keyLabel %) "")) 1)}) commands))
 
 (defcomputed themeKey (key-of "toggleTheme"))
 

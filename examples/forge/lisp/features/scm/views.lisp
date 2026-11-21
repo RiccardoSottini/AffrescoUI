@@ -4,6 +4,8 @@
 ;;; and its buttons), the branches and the history when shown. The diff tab compares a file's two texts, side by side
 ;;; or inline.
 
+(ns forge.features.scm.views)
+
 ;;; The view
 
 (defcomponent forgeScmView
@@ -21,6 +23,7 @@
      ~(scm-staged)
      ~(scm-changes-head)
      ~(scm-changes)
+     ~(scm-discard-dialog)
      ~(scm-branch-list)
      ~(scm-history)))
 
@@ -58,7 +61,7 @@
        :cursor hand
        :focusable true
        :textColor "#ffffff"
-       :color ~(if (and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0))
+       :color ~(if (and (not (empty? (str/trim state.scm.message))) (> (count state.scm.status.staged) 0))
                    "@color.accent"
                    "@color.border")
        :onClick scmCommit)))
@@ -214,7 +217,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen scmOpenDiff))
+     :onOpen scm-open-diff))
 
 (defview scm-changes-head "The changes' title and count, and Stash, Pop and Stage All." []
   `(row#scm-changes-head :visible ~computed.scmHasRepo :width "100%" :height 22 :alignItems center
@@ -231,6 +234,14 @@
        :tooltip ~(t "scm-stage.tip")
        :hover {:textColor @color.text}
        :onClick scmStage)
+     (label#scm-discard :icon undo-2
+       :padding 4
+       :fitText true
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "scm-discard.tip")
+       :hover {:textColor @color.text}
+       :onClick scmDiscard)
      (node#scm-stash :use forgeScmTool
        :with {:icon archive :tip ~(t "scm-stash.tip") :action scmStash :on ~(> state.scm.status.count 0)})
      (node#scm-stash-pop :use forgeScmTool
@@ -261,7 +272,15 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen scmOpenDiff))
+     :onOpen scm-open-diff))
+
+(defview scm-discard-dialog "Asks before a change is discarded, as it can't be undone." []
+  `(node#scm-discard-dialog :use dialog
+     :with {:open state.scm.discard.open
+            :title ~(t "scm-discard-dialog.title" {:name (base-name state.scm.discard.path)})
+            :message ~(if state.scm.discard.untracked (t "scm-discard-dialog.new") (t "scm-discard-dialog.changed"))
+            :buttons [{:title ~(t "scm-discard-dialog.discard") :run scmDiscardConfirmed}
+                      {:title ~(t "scm-discard-dialog.cancel")}]}))
 
 ;;; Branches and history
 
@@ -284,7 +303,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-branch-list-close.tip")
        :hover {:textColor @color.text}
-       :onClick scmHideBranches)))
+       :onClick scm-hide-branches)))
 
 (defview scm-branch-list "The branches, the current one checked, and a field for a new one." []
   `(column#scm-branch-list :when ~state.scm.showBranches :width "100%" :grow 1
@@ -338,11 +357,11 @@
        :selectedTextColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onOpen scmOpenCommitFile)))
+       :onOpen scm-open-commit-file)))
 
 (defview scm-history-head "The history's title and count, and the button that hides it." []
   `(row#scm-history-head :width "100%" :height 22 :alignItems center
-     (label#scm-history-title :text ~(t "scm-history-title" {:n (count (filter (fn [it] (not (empty? it.hash))) state.scm.log))})
+     (label#scm-history-title :text ~(t "scm-history-title" {:n (count (remove #(empty? (:hash %)) state.scm.log))})
        :textColor @color.muted
        :grow 1
        :padding 8
@@ -354,7 +373,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-history-close.tip")
        :hover {:textColor @color.text}
-       :onClick scmHideHistory)))
+       :onClick scm-hide-history)))
 
 ;;; The diff tab
 

@@ -4,6 +4,8 @@
 ;;; enabled only when they can run. What they do is mostly one call of tempera.lisp's functions; the keys are in
 ;;; keys.lisp, the menus in menus.lisp.
 
+(ns tempera.commands)
+
 ;;; File
 
 (defcommand showNewDialog "Opens the New dialog."
@@ -16,7 +18,7 @@
   :title ~(t "command.newSample") :description ~(t "command.newSample.about") :category ~(t "category.file")
   :icon "sparkles"
   []
-  (drawSample))
+  (draw-sample))
 
 (defcommand openFile "Opens an image or a Tempera project."
   :title ~(t "command.openFile") :description ~(t "command.openFile.about") :category ~(t "category.file")
@@ -62,6 +64,12 @@
 
 ;;; Edit: history and the clipboard
 
+(defcommand takeSnapshot "Keeps the layers as they are, as a snapshot in the History panel, to restore later."
+  :title ~(t "command.takeSnapshot") :description ~(t "command.takeSnapshot.about") :category ~(t "category.edit")
+  :icon "camera"
+  []
+  (image "takeSnapshot"))
+
 (defcommand undo "Takes the last change back."
   :title ~(t "command.undo") :description ~(t "command.undo.about") :category ~(t "category.edit")
   :icon "undo-2" :enablement ~state.doc.canUndo
@@ -76,13 +84,13 @@
 
 (defcommand cutPixels "Cuts the selected pixels of the active layer."
   :title ~(t "command.cutPixels") :description ~(t "command.cutPixels.about") :category ~(t "category.edit")
-  :icon "scissors" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scissors" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "cut"))
 
 (defcommand copyPixels "Copies the selected pixels of the active layer."
   :title ~(t "command.copyPixels") :description ~(t "command.copyPixels.about") :category ~(t "category.edit")
-  :icon "copy" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "copy" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "copy"))
 
@@ -100,7 +108,7 @@
 
 (defcommand clearPixels "Clears the selected pixels of the active layer."
   :title ~(t "command.clearPixels") :description ~(t "command.clearPixels.about") :category ~(t "category.edit")
-  :icon "delete" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "delete" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "clear"))
 
@@ -150,41 +158,47 @@
 
 ;;; Edit: the active layer's transform
 
+(defcommand freeTransformHandles "Puts handles on the box around the active layer's pixels: scale by one, move inside."
+  :title ~(t "command.freeTransformHandles") :description ~(t "command.freeTransformHandles.about")
+  :category ~(t "category.edit") :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
+  []
+  (setTool {:tool "free-transform"}))
+
 (defcommand showTransform "Opens the Free Transform dialog on the active layer."
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
-  :icon "scaling" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
   []
-  (set "state.transform" {:open true :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
+  (set "state.transform" {:open true :target :layer :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
 (defcommand rotateLayer180 "Turns the active layer half a turn."
   :title ~(t "command.rotateLayer180") :description ~(t "command.rotateLayer180.about") :category ~(t "category.edit")
   :icon "rotate-cw"
   []
-  (transformActive {:angle 180}))
+  (transform-active {:angle 180}))
 
 (defcommand rotateLayerRight "Turns the active layer a quarter turn clockwise."
   :title ~(t "command.rotateLayerRight") :description ~(t "command.rotateLayerRight.about")
   :category ~(t "category.edit") :icon "rotate-cw"
   []
-  (transformActive {:angle 90}))
+  (transform-active {:angle 90}))
 
 (defcommand rotateLayerLeft "Turns the active layer a quarter turn anticlockwise."
   :title ~(t "command.rotateLayerLeft") :description ~(t "command.rotateLayerLeft.about")
   :category ~(t "category.edit") :icon "rotate-ccw"
   []
-  (transformActive {:angle -90}))
+  (transform-active {:angle -90}))
 
 (defcommand flipLayerHorizontal "Flips the active layer left to right."
   :title ~(t "command.flipLayerHorizontal") :description ~(t "command.flipLayerHorizontal.about")
   :category ~(t "category.edit") :icon "flip-horizontal"
   []
-  (transformActive {:scaleX -100}))
+  (transform-active {:scaleX -100}))
 
 (defcommand flipLayerVertical "Flips the active layer upside down."
   :title ~(t "command.flipLayerVertical") :description ~(t "command.flipLayerVertical.about")
   :category ~(t "category.edit") :icon "flip-vertical"
   []
-  (transformActive {:scaleY -100}))
+  (transform-active {:scaleY -100}))
 
 ;;; Image
 
@@ -200,6 +214,24 @@
   []
   (set "state.canvasSize" {:open true :width state.doc.width :height state.doc.height :anchor "center"}))
 
+(defcommand mode8Bit "Converts the image to 8 bits a channel, forgetting the history."
+  :title ~(t "command.mode8Bit") :description ~(t "command.mode8Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba8")
+  []
+  (image "convertFormat" :with {:format "rgba8"}))
+
+(defcommand mode16Bit "Converts the image to 16 bits a channel (floating point), forgetting the history."
+  :title ~(t "command.mode16Bit") :description ~(t "command.mode16Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba16f")
+  []
+  (image "convertFormat" :with {:format "rgba16f"}))
+
+(defcommand trimImage "Crops the image to the box around its visible pixels that aren't transparent."
+  :title ~(t "command.trimImage") :description ~(t "command.trimImage.about") :category ~(t "category.image")
+  :icon "crop"
+  []
+  (image "trim"))
+
 (defcommand cropToSelection "Crops the image to the selection's box."
   :title ~(t "command.cropToSelection") :description ~(t "command.cropToSelection.about")
   :category ~(t "category.image") :icon "crop" :enablement ~state.doc.selection
@@ -213,14 +245,14 @@
   [args]
   (let [w state.doc.width
         h state.doc.height
-        size (if (> (* w (:height args)) (* h (:width args)))
-               [(max 1 (floor (/ (* h (:width args)) (:height args)))) h]
-               [w (max 1 (floor (/ (* w (:height args)) (:width args))))])]
+        wide (:width args)
+        high (:height args)
+        size (if (> (* w high) (* h wide))
+               [(-> h (* wide) (/ high) floor (max 1)) h]
+               [w (-> w (* high) (/ wide) floor (max 1))])
+        [width height] size]
     (set "state.cropSize" size)
-    (crop {:x (floor (/ (- w (first size)) 2))
-           :y (floor (/ (- h (second size)) 2))
-           :width (first size)
-           :height (second size)})))
+    (crop {:x (floor (/ (- w width) 2)) :y (floor (/ (- h height) 2)) :width width :height height})))
 
 (defcommand rotateCanvas180 "Turns the whole image half a turn."
   :title ~(t "command.rotateCanvas180") :description ~(t "command.rotateCanvas180.about")
@@ -325,7 +357,7 @@
 
 (defcommand deleteHidden "Deletes every hidden layer."
   :title ~(t "command.deleteHidden") :description ~(t "command.deleteHidden.about") :category ~(t "category.layer")
-  :icon "eye-off" :enablement ~(some (fn [it] (not it.visible)) state.doc.layers)
+  :icon "eye-off" :enablement ~(some #(not (:visible %)) state.doc.layers)
   []
   (image "deleteHidden"))
 
@@ -337,14 +369,14 @@
 
 (defcommand layerViaCopy "Copies the selected pixels to a new layer."
   :title ~(t "command.layerViaCopy") :description ~(t "command.layerViaCopy.about") :category ~(t "category.layer")
-  :icon "copy-plus" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "copy-plus" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "copy")
   (image "paste" :with {:name (t "layer.copyName" {:name computed.activeLayer.name})}))
 
 (defcommand layerViaCut "Cuts the selected pixels to a new layer."
   :title ~(t "command.layerViaCut") :description ~(t "command.layerViaCut.about") :category ~(t "category.layer")
-  :icon "scissors" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "scissors" :enablement ~(= computed.activeLayer.kind :pixel)
   []
   (image "cut")
   (image "paste" :with {:name (t "layer.cutName" {:name computed.activeLayer.name})}))
@@ -399,9 +431,15 @@
 
 (defcommand alignActive "Lines an edge of the active layer up with the selection's, or the image's: args.edge, which."
   :title ~(t "command.alignActive") :description ~(t "command.alignActive.about") :category ~(t "category.layer")
-  :icon "align-start-vertical" :enablement ~(= computed.activeLayer.kind "pixel")
+  :icon "align-start-vertical" :enablement ~(= computed.activeLayer.kind :pixel)
   [args]
   (image "alignLayer" :with args))
+
+(defcommand distributeLayers "Spaces the layers picked together evenly, by an edge or their middles: args.edge, which."
+  :title ~(t "command.distributeLayers") :description ~(t "command.distributeLayers.about")
+  :category ~(t "category.layer") :icon "align-horizontal-distribute-center" :enablement ~(>= (count computed.picked) 3)
+  [args]
+  (image "distributeLayers" :with {:ids computed.picked :edge args.edge}))
 
 (defcommand groupLayers "Puts the active layer in a new group."
   :title ~(t "command.groupLayers") :description ~(t "command.groupLayers.about") :category ~(t "category.layer")
@@ -416,19 +454,74 @@
   :category ~(t "category.layer") :icon "folder-output" :enablement ~(= computed.activeLayer.kind "group")
   []
   (set "state.grouping" state.doc.active)
-  (map (fn [child] (moveLayer {:id (:id child) :onto state.grouping})) (reverse computed.groupChildren))
+  (doseq [child (reverse computed.groupChildren)] (moveLayer {:id (:id child) :onto state.grouping}))
   (deleteLayer {:id state.grouping}))
+
+(defcommand rasterizeLayer "Makes the active type or shape layer a pixel layer, to paint on."
+  :title ~(t "command.rasterizeLayer") :description ~(t "command.rasterizeLayer.about")
+  :category ~(t "category.layer") :icon "grid-2x2" :enablement ~computed.activeHoldsContent
+  []
+  (rasterize {}))
+
+(defcommand newTypeLayer "Adds a type layer in the middle of the image, in the foreground colour."
+  :title ~(t "command.newTypeLayer") :description ~(t "command.newTypeLayer.about") :category ~(t "category.type")
+  :icon "type"
+  []
+  (add-text {:text (t "type.sample") :x (round (/ state.doc.width 3)) :y (round (/ state.doc.height 3))}))
+
+(defcommand createWorkPath "Adds the outlines of the active type layer's text as paths, to fill, stroke or edit."
+  :title ~(t "command.createWorkPath") :description ~(t "command.createWorkPath.about") :category ~(t "category.type")
+  :icon "spline" :enablement ~(= computed.activeLayer.kind "text")
+  []
+  (text-to-path {}))
+
+(defcommand newWorkPath "Adds an empty path for the pen to draw, and chooses the pen."
+  :title ~(t "command.newWorkPath") :description ~(t "command.newWorkPath.about") :category ~(t "category.paths")
+  :icon "pen-tool"
+  []
+  (new-path {})
+  (setTool {:tool "pen"}))
+
+(defcommand strokeActivePath "Strokes the active path on the active layer with the foreground colour."
+  :title ~(t "command.strokePath") :description ~(t "command.strokePath.about") :category ~(t "category.paths")
+  :icon "spline" :enablement ~computed.hasPath
+  []
+  (stroke-path {}))
+
+(defcommand fillActivePath "Fills the active path on the active layer with the foreground colour."
+  :title ~(t "command.fillPath") :description ~(t "command.fillPath.about") :category ~(t "category.paths")
+  :icon "paint-bucket" :enablement ~computed.hasPath
+  []
+  (fill-path {}))
+
+(defcommand selectActivePath "Selects the inside of the active path."
+  :title ~(t "command.pathToSelection") :description ~(t "command.pathToSelection.about")
+  :category ~(t "category.paths") :icon "square-dashed" :enablement ~computed.hasPath
+  []
+  (path-to-selection {}))
+
+(defcommand shapeFromPath "Makes a shape layer of the active path."
+  :title ~(t "command.pathToShape") :description ~(t "command.pathToShape.about") :category ~(t "category.paths")
+  :icon "shapes" :enablement ~computed.hasPath
+  []
+  (path-to-shape {}))
+
+(defcommand deleteActivePath "Deletes the active path."
+  :title ~(t "command.deletePath") :description ~(t "command.deletePath.about") :category ~(t "category.paths")
+  :icon "trash-2" :enablement ~computed.hasPath
+  []
+  (delete-path {}))
 
 (defcommand mergeDown "Merges the active layer into the pixel layer below it."
   :title ~(t "command.mergeDown") :description ~(t "command.mergeDown.about") :category ~(t "category.layer")
   :icon "arrow-down-to-line"
-  :enablement ~(and (= computed.layerBelow.kind "pixel") (= computed.layerBelow.depth computed.activeLayer.depth))
+  :enablement ~(and (= computed.layerBelow.kind :pixel) (= computed.layerBelow.depth computed.activeLayer.depth))
   []
   (image "mergeDown"))
 
 (defcommand mergeVisible "Merges every visible layer into one."
   :title ~(t "command.mergeVisible") :description ~(t "command.mergeVisible.about") :category ~(t "category.layer")
-  :icon "layers-2" :enablement ~(some (fn [it] (and (= it.depth 0) it.visible)) state.doc.layers)
+  :icon "layers-2" :enablement ~(some #(and (= (:depth %) 0) (:visible %)) state.doc.layers)
   []
   (image "mergeVisible"))
 
@@ -451,6 +544,24 @@
   :icon "square-x"
   []
   (select {:kind "none"}))
+
+(defcommand reselect "Selects again what the last Deselect took away."
+  :title ~(t "command.reselect") :description ~(t "command.reselect.about") :category ~(t "category.select")
+  :icon "rotate-ccw-square" :enablement ~(not state.doc.selection)
+  []
+  (select {:kind "reselect"}))
+
+(defcommand transformSelectionHandles "Puts handles on the selection's box: drag one to scale, inside to move."
+  :title ~(t "command.transformSelectionHandles") :description ~(t "command.transformSelectionHandles.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (setTool {:tool "transform-selection"}))
+
+(defcommand showTransformSelection "Opens the transform dialog on the selection: moves, scales and turns its outline."
+  :title ~(t "command.showTransformSelection") :description ~(t "command.showTransformSelection.about")
+  :category ~(t "category.select") :icon "scan" :enablement ~state.doc.selection
+  []
+  (set "state.transform" {:open true :target :selection :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}))
 
 (defcommand invertSelection "Selects what isn't selected, and nothing of what is."
   :title ~(t "command.invertSelection") :description ~(t "command.invertSelection.about")
@@ -524,13 +635,13 @@
   :title ~(t "command.cycleScreenMode") :description ~(t "command.cycleScreenMode.about")
   :category ~(t "category.view") :icon "monitor"
   []
-  (set "state.screenMode" (if (= state.screenMode "standard") "full" "standard")))
+  (set "state.screenMode" (if (= state.screenMode :standard) :full :standard)))
 
 (defcommand toggleTheme "Switches between the dark and the light colours."
   :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about") :category ~(t "category.view")
   :icon "moon"
   []
-  (set "state.theme" (if (= state.theme "dark") "light" "dark")))
+  (set "state.theme" (if (= state.theme :dark) :light :dark)))
 
 ;;; Window and Help
 
@@ -538,15 +649,33 @@
   :title ~(t "command.resetWorkspace") :description ~(t "command.resetWorkspace.about")
   :category ~(t "category.window") :icon "layout-panel-left"
   []
-  (set "state.panels" {:colour "colour" :properties "properties" :layers "layers"})
-  (set "state.popout" {:history false :navigator false})
-  (set "state.screenMode" "standard"))
+  (chooseWorkspace {:name "standard"}))
 
-(defcommand showSearch "Searches the commands, and runs the one chosen."
+(defcommand saveWorkspace "Saves the dock as it is as a new workspace."
+  :title ~(t "command.saveWorkspace") :description ~(t "command.saveWorkspace.about") :category ~(t "category.window")
+  :icon "save"
+  []
+  (save-workspace))
+
+(defcommand deleteWorkspace "Deletes the workspace chosen, one saved, and goes back to the standard one."
+  :title ~(t "command.deleteWorkspace") :description ~(t "command.deleteWorkspace.about")
+  :category ~(t "category.window") :icon "trash-2" :enablement ~computed.workspaceSaved
+  []
+  (let [left (remove #(= (:name %) state.workspace) state.workspaces)]
+    (set "state.workspaces" left))
+  (chooseWorkspace {:name "standard"}))
+
+(defcommand showSearch "Searches the commands, the tools and the layers, and runs or chooses the one picked."
   :title ~(t "command.showSearch") :description ~(t "command.showSearch.about") :category ~(t "category.help")
   :icon "search"
   []
   (set "state.quickPick.open" true))
+
+(defcommand lastFilter "Applies the filter last applied again, with its values."
+  :title ~(t "command.lastFilter") :description ~(t "command.lastFilter.about") :category ~(t "category.filter")
+  :icon "repeat" :enablement ~(not (empty? state.lastFilter))
+  []
+  (image "applyFilter" :with state.lastFilter))
 
 (defcommand showAbout "Says what Tempera is."
   :title ~(t "command.showAbout") :description ~(t "command.showAbout.about") :category ~(t "category.help")

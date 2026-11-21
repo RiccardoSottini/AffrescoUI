@@ -1,8 +1,8 @@
 ;;; tally.lisp --- a sample for the linter's configuration: a counter with hooks, in a file with an ns
 ;;;
 ;;; Not an example app: check.sh lints it and expects exactly the two mistakes marked "planted" below.
-;;; The ns is for the linter, which reads a file with one and one without: the language has no ns yet, so
-;;; affrescoui check stops at it (without that line, notes.screen.lisp and this file build).
+;;; Its ns is a label, so the linter reads a file with one (this) and one without (notes.screen.lisp, which includes
+;;; it by its path): the two build as one app.
 
 (ns app.tally)
 

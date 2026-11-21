@@ -5,8 +5,12 @@
   language itself never reads this file. A view or a command becomes a defn whose body is the code its templates work
   out (what each ~ and ~@ holds), so the code is linted and the template's data is not. A definition whose body is
   data or a template for the host (defscreen, defstate, defstyle...) becomes a def of its name, so its body is not
-  linted at all."
-  (:require [clojure.string :as string]))
+  linted at all, and a defcomputed a def of the form it works out.
+
+  Clojure's own binding forms (defn, fn, let...) keep their meaning, and read-through-paths reads a local's path
+  (task.done, with task a local) as a use of the local, so that a local read only through a path isn't unused."
+  (:require [clj-kondo.hooks-api :as api]
+            [clojure.string :as string]))
 
 (def ^:private quote-heads
   "The heads a quoted or backquoted form has, as the linter hands it over."
@@ -18,7 +22,11 @@
 
 (def ^:private binding-heads
   "The forms that bind names, whose names a dotted word inside them may start with."
-  '#{fn fn* let loop for doseq dotimes when-let if-let when-some if-some when-first letfn})
+  '#{fn fn* let loop for doseq dotimes when-let if-let when-some if-some when-first letfn defn defn- defmacro})
+
+(def ^:private literal-arguments
+  "The names a function literal, #(...), binds: % and %&, and %1 to %20 (modules/lisp/reference/reader.md)."
+  (into '#{% %&} (map #(symbol (str "%" %)) (range 1 21))))
 
 (defn- head
   "The first item of a list, or nil for anything else."
@@ -135,7 +143,50 @@
   [definition-name & _]
   (list 'def definition-name nil))
 
+(defmacro defcomputed
+  "(defcomputed name \"doc\"? form): a def of what its form works out when the form is code (a list), so the code is
+  linted; a text or a value as data, its name only."
+  [definition-name & more]
+  (let [form (last more)]
+    (list 'def definition-name (when (seq? form) (as-code form #{})))))
+
 (defmacro defkey
   "(defkey \"chord\" \"doc\"? what): the code its template works out; a word in it is an action's name, not code."
   [& arguments]
   (vec (worked-out arguments #{})))
+
+(defn- locals-inside
+  "The locals a node's children see: the arguments of a function literal, the names a binding form binds, and those
+  of the forms around it."
+  [node locals]
+  (cond
+    (= :fn (api/tag node)) (into locals literal-arguments)
+    (and (api/list-node? node) (api/token-node? (first (:children node)))
+         (contains? binding-heads (api/sexpr (first (:children node)))))
+    (into locals (bound-by (api/sexpr node)))
+    :else locals))
+
+(defn- paths-read
+  "A node with each path that reads a local's member (task.done, %.title) as the local itself, keeping its place; the
+  node itself, identical, when it holds none."
+  [node locals]
+  (let [word (when (api/token-node? node) (api/sexpr node))
+        children (:children node)]
+    (cond
+      (symbol? word) (let [read (path-to-local word locals)]
+                       (if (= read word) node (with-meta (api/token-node read) (meta node))))
+      (sequential? children) (let [inner (locals-inside node locals)
+                                   rewritten (mapv #(paths-read % inner) children)]
+                               (if (every? true? (map identical? children rewritten))
+                                 node
+                                 (assoc node :children rewritten)))
+      :else node)))
+
+(defn read-through-paths
+  "An analyze-call hook for Clojure's binding forms (defn, fn, let...): the form with each path of a local read as a
+  use of the local, or nil, which leaves the form as it is, when it reads none. Its rewritten form reads none, so a
+  second call gives nil."
+  [{:keys [node]}]
+  (let [rewritten (paths-read node #{})]
+    (when-not (identical? rewritten node)
+      {:node rewritten})))

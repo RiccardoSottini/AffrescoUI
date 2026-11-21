@@ -5,7 +5,8 @@
 ;;; accepts the proposal card that comes back, then asks for a colour and rejects that card, as a person would with
 ;;; the card's buttons.
 
-(include "assistant.lisp")
+(ns shared.assistant-e2e
+  (:require "assistant.lisp"))
 
 ;;; Definitions
 
@@ -13,7 +14,7 @@
 
 (defpart e2e "The end-to-end screen's state, its first steps and how the person decides."
   :onLoad [{:run assistant.open} {:run assistant.ask :with {:text "Is anyone there?"}} {:set state.step :to waiting}]
-  :actions {:person.decide [{:if ~(= state.step "rename")
+  :actions {:person.decide [{:if ~(= state.step :rename)
                              :then [{:run assistant.accept :with {:id ~card.id}}
                                     {:set state.step :to recolour}
                                     {:run assistant.ask :with {:text "Make the title red"}}]
@@ -31,9 +32,9 @@
       :width 1
       :height 1
       :every {:ms 100
-              :do [{:if ~(and (= state.step "waiting") (> (count peers) 0))
+              :do [{:if ~(and (= state.step :waiting) (pos? (count peers)))
                     :then [{:set state.step :to rename} {:run assistant.ask :with {:text "Rename the page to Board"}}]}
-                   {:forEach ~(filter (fn [it] (= it.kind "card")) state.assistant.messages)
+                   {:forEach ~(filter #(= (:kind %) :card) state.assistant.messages)
                     :as card
-                    :do [{:if ~(some? (find (fn [it] (= it.id card.id)) proposals))
+                    :do [{:if ~(some? (find #(= (:id %) card.id) proposals))
                           :then [{:run person.decide :with {:card ~card}}]}]}]})))

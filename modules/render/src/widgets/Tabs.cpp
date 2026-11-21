@@ -65,11 +65,40 @@ constexpr std::optional<std::size_t> steppedTab(Key key, std::size_t active, std
 Tabs::Tabs() {
 	setColor(colors::track);
 	setCursor(Cursor::Hand);
+	// The tabs' elements for assistive tools: one panel each, over its tab, that a click passes through to the strip
+	auto elements = std::make_unique<Panel>();
+	elements->setColor(colors::transparent);
+	elements->setHitThrough(true);
+	for(const Edge edge : {Edge::Left, Edge::Top, Edge::Right, Edge::Bottom}) elements->setAnchor(edge, px(0.0f));
+	elements_ = &addChild(std::move(elements));
+}
+
+void Tabs::describeTabs() {
+	constexpr std::size_t mostDescribed = 1000; // a strip of thousands is read by its first ones
+	const std::size_t count = std::min(tabs_.size(), mostDescribed);
+	if(elements_->children().size() > count) elements_->removeChildren(count);
+	while(elements_->children().size() < count) {
+		auto element = std::make_unique<Panel>();
+		element->setColor(colors::transparent);
+		element->setHitThrough(true);
+		element->setAccessibleRole("tab");
+		element->setAnchor(Edge::Top, px(0.0f));
+		element->setAnchor(Edge::Bottom, px(0.0f));
+		elements_->addChild(std::move(element));
+	}
+	for(std::size_t i = 0; i < count; ++i) {
+		Panel& element = *elements_->children()[i];
+		element.setAccessibleLabel(tabs_[i].label);
+		AccessibleState state = element.accessibleState();
+		state.selected = tabs_[i].id == active_;
+		element.setAccessibleState(state);
+	}
 }
 
 void Tabs::setTabs(std::vector<Tab> tabs) {
 	if(tabs == tabs_) return;
 	tabs_ = std::move(tabs);
+	describeTabs();
 	places_.clear();
 	hovered_ = pressed_ = tabs_.size();
 	reordering_ = false;
@@ -80,6 +109,7 @@ void Tabs::setTabs(std::vector<Tab> tabs) {
 void Tabs::setActive(std::string id) {
 	if(id == active_) return;
 	active_ = std::move(id);
+	describeTabs();
 	keepActiveInView_ = true;
 	invalidate();
 }
@@ -135,6 +165,15 @@ void Tabs::arrange() {
 		keepActiveInView_ = false;
 		keepInView(activeIndex());
 	}
+	placeElements();
+}
+
+void Tabs::placeElements() {
+	for(std::size_t i = 0; i < places_.size() && i < elements_->children().size(); ++i) {
+		Panel& element = *elements_->children()[i];
+		element.setAnchor(Edge::Left, px(places_[i].left - scroll_));
+		element.setWidth(px(places_[i].width));
+	}
 }
 
 std::size_t Tabs::activeIndex() const noexcept {
@@ -150,6 +189,7 @@ void Tabs::keepInView(std::size_t index) {
 	if(place.left + place.width - scroll_ > width) scroll_ = place.left + place.width - width;
 	scroll_ = std::min(scroll_, place.left);
 	invalidatePaint();
+	placeElements();
 }
 
 std::size_t Tabs::tabAt(Vec2 position) const noexcept {
@@ -180,6 +220,7 @@ bool Tabs::onCloseButton(std::size_t index, Vec2 position) const noexcept {
 void Tabs::activate(std::size_t index) {
 	if(index >= tabs_.size() || tabs_[index].id == active_) return;
 	active_ = tabs_[index].id;
+	describeTabs();
 	keepInView(index);
 	invalidatePaint();
 	onActivated(active_);
@@ -248,6 +289,7 @@ bool Tabs::scrollContent(Vec2 delta) {
 	scroll_ = std::clamp(scroll_ + along, 0.0f, std::max(contentWidth_ - resolvedSize().x, 0.0f));
 	if(scroll_ == before) return false;
 	invalidatePaint();
+	placeElements();
 	return true;
 }
 

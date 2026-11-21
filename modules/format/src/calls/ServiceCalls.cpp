@@ -181,8 +181,8 @@ void ServiceCalls::setServices(services::Services* services) {
 	if(!services_) return;
 	services_->onStatus([this, alive = std::weak_ptr<bool>(alive_)] {
 		if(!alive.lock()) return;
-		engine_.document.globalsChanged(); // the "services" variable
-		engine_.reconciler.requestReconcile();
+		engine_.document.markVariableChanged("services");
+		engine_.reconciler.requestStateUpdate();
 	});
 	services_->onRequest([this, alive = std::weak_ptr<bool>(alive_)](const std::string& service,
 	                                                                 const std::string& method, const json& params,
@@ -204,7 +204,7 @@ void ServiceCalls::load() {
 	loaded_ = section;
 	for(const std::string& refused : services_->load(section))
 		engine_.reportRefused("AffrescoUI screen: services: " + refused);
-	engine_.document.globalsChanged(); // the "services" variable
+	engine_.document.markVariableChanged("services");
 }
 
 ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
@@ -233,6 +233,7 @@ ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 	call.event = s.event;
 	call.locals = snapshot(s.locals);
 	call.where = s.where;
+	call.authority = keptAuthority(engine_);
 	return call;
 }
 
@@ -441,6 +442,9 @@ void ServiceCalls::runSteps(const Pending& call, const json& steps, const char* 
 	const json event = streamed ? value : call.event;
 	const auto scope = std::make_shared<const Scope>(
 	    Scope{call.locals.get(), call.locals, json{{variable, std::move(value)}}, {}, {}});
+	// The handlers run as the step that started the call did: an answer coming later lends them nothing
+	const KeptAuthority authority = call.authority; // NOLINT(performance-unnecessary-copy-initialization): as above
+	const AuthorityScope holder(engine_, authority);
 	engine_.runner.handle(handler, *sender, event, *scope, place);
 }
 

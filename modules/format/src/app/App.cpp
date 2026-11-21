@@ -3,6 +3,8 @@
 
 #include "affresco/format/App.hpp"
 
+#include "FeatureManifest.hpp" // parseRelease(): an app's release is written as a feature's
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -15,7 +17,7 @@ namespace {
 /// The keys a manifest may have.
 constexpr auto manifestKeys =
     std::to_array<std::string_view>({"$schema", "format", "version", "note", "id", "name", "description", "icon",
-	                                 "entry", "themes", "capabilities", "data", "assets"});
+	                                 "release", "entry", "themes", "capabilities", "data", "assets"});
 
 /// The kinds of capability, as "capabilities" names them.
 constexpr auto capabilityKeys = std::to_array<std::string_view>(
@@ -240,7 +242,18 @@ std::vector<std::string> paths(const json& value, const std::string& place, std:
 	return read;
 }
 
-/// @brief Reads the manifest's own fields: format, version, id, name, description, icon and entry.
+/// @brief Reads the manifest's release, if it has one: three numbers, as a feature's (parseRelease()).
+/// @param manifest The manifest.
+/// @return The release as written, or "" if it has none.
+std::string readRelease(const json& manifest) {
+	if(!manifest.contains("release")) return "";
+	const json& release = manifest["release"];
+	if(!release.is_string() || !parseRelease(release.get_ref<const std::string&>()))
+		fail("release", "expected three numbers such as 1.0.0");
+	return release.get<std::string>();
+}
+
+/// @brief Reads the manifest's own fields: format, version, id, name, description, icon, release and entry.
 /// @param manifest The manifest.
 /// @param read Receives them.
 void readHeader(const json& manifest, AppManifest& read) {
@@ -252,6 +265,7 @@ void readHeader(const json& manifest, AppManifest& read) {
 	if(manifest.contains("description"))
 		read.description = text(manifest["description"], "description", maxTextLength, true);
 	if(manifest.contains("icon")) read.icon = assetPath(manifest["icon"], "icon");
+	read.release = readRelease(manifest);
 	if(manifest.contains("entry")) read.entry = path(manifest["entry"], "entry");
 	if(!read.entry.ends_with(".json") && !read.entry.ends_with(".lisp")) // either notation
 		fail("entry", "expected a screen file (.json, or .lisp in the Lisp notation)");

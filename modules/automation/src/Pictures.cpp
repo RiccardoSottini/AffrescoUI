@@ -106,7 +106,7 @@ void compareWithGolden(const affresco::detail::RgbImage& frame, Picture& picture
 /// @param picture Filled in when they differ: the problem, with the frame drawn from scratch saved next to it.
 /// @param options Where that frame goes.
 /// @return Whether they are the same.
-bool sameAsFromScratch(Window& window, int scale, const affresco::detail::RgbImage& frame, Picture& picture,
+bool sameAsFromScratch(Window& window, float scale, const affresco::detail::RgbImage& frame, Picture& picture,
                        const Options& options) {
 	const std::vector<std::uint8_t> scratch = affresco::detail::drawFromScratch(window, scale);
 	if(std::ranges::equal(frame.rgb, scratch)) return true;

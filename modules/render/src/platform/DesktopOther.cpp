@@ -11,11 +11,18 @@ ColorScheme colorScheme() { return ColorScheme::Light; }
 
 bool reducedMotion() { return false; }
 
-void watchColorScheme() {}
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	static_cast<void>(changed); // colorScheme() and reducedMotion() never change here
+	return std::make_unique<AppearanceWatch>();
+}
 
 void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 
 void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own (glfwSetWindowIcon), or none (Wayland)
+
+std::vector<std::uint8_t> clipboardImagePng(std::size_t /*most*/) { return {}; } // none here
+
+bool setClipboardImage(const Bitmap& /*image*/) { return false; }
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* /*window*/, MenuChosen /*chosen*/) { return nullptr; }
 

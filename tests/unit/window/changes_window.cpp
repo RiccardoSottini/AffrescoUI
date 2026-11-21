@@ -1,14 +1,23 @@
 /// @file
 /// @brief The host's window on a change (apps/host/ChangesWindow.cpp): opened on a live proposal, it tells the truth
-/// whatever that proposal does to the app, and a review it saw is the only one it can accept.
+/// whatever that proposal does to the app, and a review it saw is the only one it can accept. Its Source page shows
+/// where an element is written, in either notation, with the line asked for marked and the commit that last changed it.
+/// Before it undoes an applied change, it shows what the undo would do (the host's plan), and undoes as the person.
+/// What a merge left out of a proposal it lists, each part's two sides, for the person to keep or take.
 
 #include "../../../apps/host/ChangesWindow.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/PackageFiles.hpp>
+#include <affresco/lisp/Document.hpp>
+#include <affresco/render/Accessibility.hpp>
 
 #include <doctest/doctest.h>
 
+#include <atomic>
+#include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 using affresco::json;
@@ -58,6 +67,158 @@ json stateOf(const Screen& screen) { return json::parse(screen.stateJson()); }
 /// @return Its path.
 std::filesystem::path changesScreen(const std::string& notation) {
 	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / ("changes.screen." + notation);
+}
+
+/// @brief A new folder for one test, removed with what it holds when the test ends.
+class TemporaryFolder {
+public:
+	/// @brief Creates the folder.
+	TemporaryFolder() {
+		static std::atomic<int> count{0};
+		path_ =
+		    std::filesystem::temp_directory_path() /
+		    ("affrescoui-changes-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) +
+			 "-" + std::to_string(count++));
+		std::filesystem::create_directories(path_);
+	}
+	/// @brief Removes the folder.
+	~TemporaryFolder() {
+		std::error_code ignored;
+		std::filesystem::remove_all(path_, ignored);
+	}
+	TemporaryFolder(const TemporaryFolder&) = delete;
+	TemporaryFolder& operator=(const TemporaryFolder&) = delete;
+	/// @brief The folder.
+	/// @return Its path.
+	[[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
+
+private:
+	std::filesystem::path path_; ///< The folder.
+};
+
+/// @brief Writes a text file.
+/// @param file The file.
+/// @param text What it holds.
+void writeText(const std::filesystem::path& file, const std::string& text) {
+	std::ofstream(file, std::ios::binary) << text;
+}
+
+/// A program whose card is a definition of its own, and an action that asks the host for a source.
+constexpr const char* lispApp = R"lisp((defview card "A card." []
+  `(column#card :width 120 :height 40
+     (label#cardTitle :text "Card" :width 120 :height 20)))
+
+(defpart calls "What the tests run."
+  :actions {:showSource [{:call "changes.open" :with "{{event}}"}]})
+
+(defscreen main
+  :permissions {:allow [studio] :ask [agent]}
+  :window {:title "app" :width 400 :height 300}
+  (panel#root ~(card)))
+)lisp";
+
+/// @brief A JSON app in two files: the entry, and a part whose component holds the node shown.
+/// @param folder The folder.
+/// @return The entry.
+std::filesystem::path writeJsonApp(const std::filesystem::path& folder) {
+	writeText(folder / "part.json", R"json({ "components": {
+		"card": { "node": { "id": "cardFace", "color": "#111111", "width": 120, "height": 40 } } } })json");
+	writeText(folder / "index.screen.json", R"json({
+		"format": "affrescoui-screen", "version": 2, "include": ["part.json"],
+		"permissions": { "allow": ["studio"], "ask": ["agent"] },
+		"window": { "title": "app", "width": 400, "height": 300 },
+		"actions": { "showSource": [{ "call": "changes.open", "with": "{{event}}" }] },
+		"root": { "id": "root", "children": [{ "use": "card" }] } })json");
+	return folder / "index.screen.json";
+}
+
+/// @brief Applies a revision as the person's studio.
+/// @param screen The app.
+/// @param revision What it changes: `patch` or `set`.
+void applyAsStudio(Screen& screen, json revision) {
+	revision["author"] = "studio";
+	revision["message"] = "Make the card larger";
+	const affresco::RevisionResult result = screen.submitRevision(revision.dump());
+	CAPTURE(result.error);
+	REQUIRE(result.status == affresco::RevisionStatus::Applied);
+}
+
+/// @brief The app asks for its Source page (`changes.open` with `source`), and the window follows its host.
+/// @param screen The app.
+/// @param window The app's window.
+/// @param changes The host's window on it.
+/// @param asked The call's arguments.
+/// @return The window's state once it has followed.
+json askForSource(Screen& screen, affresco::Window& window, const host::ChangesWindow& changes, const json& asked) {
+	screen.runAction("showSource", window.root(), asked.dump());
+	REQUIRE(changes.opened() != nullptr);
+	changes.opened()->runAction("changes.refresh", window.root());
+	return stateOf(*changes.opened());
+}
+
+/// A screen with a title and a subtitle, which the person's studio changes directly, and an agent only by proposal.
+constexpr const char* twoLabelsScreen = R"json({
+	"format": "affrescoui-screen", "version": 2,
+	"permissions": { "allow": ["studio"], "ask": ["agent"] },
+	"window": { "title": "app", "width": 400, "height": 300 },
+	"root": { "id": "root", "children": [
+		{ "id": "title", "type": "label", "text": "One" },
+		{ "id": "subtitle", "type": "label", "text": "Small" }] } })json";
+
+/// The same, with an assistant: the action an app's assistant starts a request with, which keeps what it was asked.
+constexpr const char* assistantScreen = R"json({
+	"format": "affrescoui-screen", "version": 2,
+	"permissions": { "allow": ["studio"], "ask": ["agent"] },
+	"window": { "title": "app", "width": 400, "height": 300 },
+	"state": { "asked": "" },
+	"actions": { "assistant.start": [{ "set": "state.asked", "to": "{{event.text}}" }] },
+	"root": { "id": "root", "children": [{ "id": "title", "type": "label", "text": "One" }] } })json";
+
+/// @brief Applies a change to one label's text as the person's studio.
+/// @param screen The app.
+/// @param index The label: 0 the title, 1 the subtitle.
+/// @param text Its text.
+/// @param message The commit's message.
+/// @return The commit's id.
+std::string applyText(Screen& screen, int index, const std::string& text, const std::string& message) {
+	const json patch = {
+	    {{"op", "replace"}, {"path", "/root/children/" + std::to_string(index) + "/text"}, {"value", text}}};
+	const affresco::RevisionResult result =
+	    screen.versions().submit({{"author", "studio"}, {"message", message}, {"patch", patch}});
+	CAPTURE(result.error);
+	REQUIRE(result.status == affresco::RevisionStatus::Applied);
+	return screen.versions().head().id;
+}
+
+/// @brief A label's text in the app as it runs.
+/// @param screen The app.
+/// @param index The label.
+/// @return Its text.
+std::string textOf(const Screen& screen, std::size_t index) {
+	return json::parse(screen.documentJson())["root"]["children"][index]["text"].get<std::string>();
+}
+
+/// @brief Opens the window on the newest applied change, as the shortcut does.
+/// @param window The app's window.
+/// @param changes The host's window on it.
+/// @return The window's screen, which has asked for what undoing that change would do.
+Screen& openOnNewest(affresco::Window& window, const host::ChangesWindow& changes) {
+	pressShortcut(window);
+	REQUIRE(changes.opened() != nullptr);
+	changes.opened()->runAction("changes.refresh", window.root());
+	return *changes.opened();
+}
+
+/// @brief Shows an applied change in the window, as a press on its row does: the change, then its undo's plan.
+/// @param own The window's screen.
+/// @param sender The panel the actions come from.
+/// @param commit The commit's id.
+/// @return The window's state.
+json showCommit(Screen& own, affresco::Panel& sender, const std::string& commit) {
+	const json list = stateOf(own)["list"]; // as the host listed it, so the next look keeps this change shown
+	own.runAction("changes.show", sender, json{{"list", list}, {"selected", {{"to", commit}}}}.dump());
+	own.runAction("changes.load", sender);
+	return stateOf(own);
 }
 
 } // namespace
@@ -152,5 +313,312 @@ TEST_CASE("changes window: a person's rejection reaches the author, with the rea
 		CHECK(screen.proposals().empty());
 		CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "One");
 		CHECK_FALSE(told.empty());
+	}
+}
+
+TEST_CASE("changes window: the Source page shows a program's definition, the line asked for, and who changed it") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(affresco::lisp::jsonText(lispApp, "index.screen.lisp"), {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const std::string address = screen.source("#cardTitle")["address"].get<std::string>();
+		const std::string larger = "(defview card \"A card.\" []\n  `(column#card :width 160 :height 40\n"
+		                           "     (label#cardTitle :text \"Card\" :width 160 :height 20)))";
+		applyAsStudio(screen, {{"set", {{address, larger}}}});
+
+		const json state = askForSource(screen, window, changes, {{"source", address}, {"line", 2}});
+		CHECK(state["view"].is_null()); // the Source page, not a change
+		const json& source = state["source"];
+		REQUIRE(source.is_object());
+		CHECK(source["notation"] == "lisp");
+		CHECK(source["kind"] == "defview");
+		CHECK(source["text"] == larger);
+		CHECK(source["marked"] == 2);
+		REQUIRE(source["blame"].is_object());
+		CHECK(source["blame"]["number"] == 1);
+		CHECK(source["blame"]["author"] == "studio");
+		CHECK(source["blame"]["message"] == "Make the card larger");
+		CHECK(state["message"] == "");
+
+		// Without a line, the definition's own is marked
+		CHECK(askForSource(screen, window, changes, {{"source", address}})["source"]["marked"] == 1);
+	}
+}
+
+TEST_CASE("changes window: the Source page shows a JSON node, from the part that holds it") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		const TemporaryFolder folder;
+		affresco::Application app({nullptr, true});
+		Screen screen =
+		    Screen::fromFile(writeJsonApp(folder.path()), folder.path() / "data", Screen::History::InMemory);
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		applyAsStudio(screen,
+		              {{"patch", {{{"op", "replace"}, {"path", "/components/card/node/width"}, {"value", 160}}}}});
+
+		const json state = askForSource(screen, window, changes, {{"source", "#cardFace"}, {"line", 3}});
+		const json& source = state["source"];
+		REQUIRE(source.is_object());
+		CHECK(source["notation"] == "json");
+		CHECK(source["address"] == "#cardFace");
+		CHECK(source["file"] == "part.json");
+		CHECK(source["text"].get<std::string>().contains("160"));
+		CHECK(source["marked"] == 3);
+		REQUIRE(source["blame"].is_object());
+		CHECK(source["blame"]["number"] == 1);
+	}
+}
+
+TEST_CASE("changes window: a source that names nothing shows the error, and the page stays") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(affresco::lisp::jsonText(lispApp, "index.screen.lisp"), {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const json state = askForSource(screen, window, changes, {{"source", "#nothing"}});
+		CHECK(state["message"].get<std::string>().contains("#nothing"));
+		REQUIRE(state["source"].is_object()); // still on the Source page, the error under it
+		CHECK(state["source"].contains("error"));
+		CHECK_FALSE(state["source"].contains("text"));
+	}
+}
+
+TEST_CASE("changes window: a source too long, or not a text, is ignored: the window opens on the change") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(affresco::lisp::jsonText(lispApp, "index.screen.lisp"), {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		for(const json& asked : {json{{"source", "#" + std::string(512, 'x')}}, json{{"source", 5}, {"line", 2}}}) {
+			CAPTURE(asked.dump().size());
+			const json state = askForSource(screen, window, changes, asked);
+			CHECK(state["list"]["sourceCount"] == 0);
+			CHECK(state["source"].is_null());
+			REQUIRE(state["view"].is_object());
+			CHECK(state["view"]["kind"] == "commit"); // nothing waits: the newest applied change, as without source
+		}
+	}
+}
+
+TEST_CASE("changes window: undoing an earlier change keeps a later change made on another node") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(twoLabelsScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const std::string first = applyText(screen, 0, "Two", "Rename the title");
+		applyText(screen, 1, "Smaller", "Rename the subtitle");
+		Screen& own = openOnNewest(window, changes);
+
+		const json state = showCommit(own, window.root(), first);
+		REQUIRE(state["view"]["commit"] == first);
+		REQUIRE(state["plan"].is_object());
+		CHECK(state["plan"]["outcome"] == "clean");
+		own.runAction("changes.undo", window.root());
+		CHECK(stateOf(own)["message"] == "");
+		CHECK(textOf(screen, 0U) == "One");
+		CHECK(textOf(screen, 1U) == "Smaller"); // the later change is still there
+	}
+}
+
+TEST_CASE("changes window: the plan of an undo says what it would do, and changes nothing") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(twoLabelsScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const std::string commit = applyText(screen, 0, "Two", "Rename the title");
+		const std::size_t commits = screen.versions().log().size();
+		const std::string document = screen.documentJson();
+
+		const json state = stateOf(openOnNewest(window, changes));
+		REQUIRE(state["plan"].is_object());
+		CHECK(state["plan"]["of"]["id"] == commit);
+		CHECK(state["plan"]["head"] == screen.versions().head().id);
+		CHECK(state["plan"]["outcome"] == "clean");
+		CHECK(state["list"]["canAsk"] == false);
+		CHECK(screen.versions().log().size() == commits);
+		CHECK(screen.documentJson() == document);
+	}
+}
+
+TEST_CASE("changes window: an undo chosen on a plan that main has moved past is refused, and the window says why") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(twoLabelsScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		applyText(screen, 0, "Two", "Rename the title");
+		Screen& own = openOnNewest(window, changes);
+		const std::string seen = stateOf(own)["plan"]["head"].get<std::string>();
+		applyText(screen, 1, "Smaller", "Rename the subtitle"); // main moves after the person read the plan
+		REQUIRE(screen.versions().head().id != seen);
+
+		own.runAction("changes.undoDropping", window.root());
+		CHECK_FALSE(stateOf(own)["message"].get<std::string>().empty());
+		CHECK(textOf(screen, 0U) == "Two");
+		CHECK(textOf(screen, 1U) == "Smaller");
+	}
+}
+
+TEST_CASE("changes window: an undo is the person's: a definition changed and undone is the file's again") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(affresco::lisp::jsonText(lispApp, "index.screen.lisp"), {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const json authors = screen.versions().programAuthors();
+		REQUIRE_FALSE(authors.empty());
+		const std::string address = screen.source("#cardTitle")["address"].get<std::string>();
+		const std::string larger = "(defview card \"A card.\" []\n  `(column#card :width 160 :height 40\n"
+		                           "     (label#cardTitle :text \"Card\" :width 160 :height 20)))";
+		applyAsStudio(screen, {{"set", {{address, larger}}}});
+		REQUIRE(screen.versions().programAuthors() != authors);
+
+		Screen& own = openOnNewest(window, changes);
+		own.runAction("changes.undo", window.root());
+		CHECK(stateOf(own)["message"] == "");
+		CHECK(screen.versions().programAuthors() == authors);
+	}
+}
+
+TEST_CASE("changes window: the app's assistant is asked to undo another way, if the app has one") {
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen plain = Screen::fromString(twoLabelsScreen, {});
+		affresco::Window& plainWindow = plain.createWindow(app);
+		const host::ChangesWindow plainChanges(app, plain, plainWindow, changesScreen(notation));
+		applyText(plain, 0, "Two", "Rename the title");
+		Screen& refusing = openOnNewest(plainWindow, plainChanges);
+		refusing.runAction("changes.askUndo", plainWindow.root());
+		CHECK(stateOf(refusing)["message"] == "this app has no assistant");
+		CHECK(stateOf(refusing)["asked"] == false);
+
+		Screen screen = Screen::fromString(assistantScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		applyText(screen, 0, "Two", "Rename the title");
+		Screen& own = openOnNewest(window, changes);
+		CHECK(stateOf(own)["list"]["canAsk"] == true);
+		own.runAction("changes.askUndo", window.root());
+		CHECK(stateOf(own)["message"] == "");
+		CHECK(stateOf(own)["asked"] == true);
+		const std::string asked = json::parse(screen.stateJson())["asked"].get<std::string>();
+		CHECK(asked.contains("Rename the title"));
+		CHECK(asked.contains("Look at the plan first"));
+		CHECK(textOf(screen, 0U) == "Two"); // asking decides nothing
+	}
+}
+
+TEST_CASE("changes window: a program's assistant is found as a JSON document's is") {
+	constexpr const char* program = R"lisp((defpart assistant "The app's assistant, as the tests need it."
+  :actions {:assistant.start [{:set "state.asked" :to "{{event.text}}"}]})
+
+(defstate asked "" "What the assistant was asked.")
+
+(defscreen main
+  :permissions {:allow [studio] :ask [agent]}
+  :window {:title "app" :width 400 :height 300}
+  (panel#root (label#title :text "One")))
+)lisp";
+	affresco::Application app({nullptr, true});
+	Screen screen = Screen::fromString(affresco::lisp::jsonText(program, "index.screen.lisp"), {});
+	affresco::Window& window = screen.createWindow(app);
+	const host::ChangesWindow changes(app, screen, window, changesScreen("lisp"));
+	CHECK(stateOf(openOnNewest(window, changes))["list"]["canAsk"] == true);
+}
+
+namespace {
+
+/// @brief Writes an app "notes" whose screen holds a program of one definition: generated test data only.
+/// @param folder Its folder, made.
+/// @return The folder.
+std::filesystem::path writeNotes(const std::filesystem::path& folder) {
+	std::filesystem::create_directories(folder);
+	writeText(folder / "app.json", R"({ "format": "affrescoui-app", "version": 1, "id": "notes", "name": "Notes",
+		"release": "1.0.0", "entry": "index.screen.json" })");
+	writeText(folder / "index.screen.json", R"json({ "format": "affrescoui-screen", "version": 2,
+		"window": { "title": "app", "width": 400, "height": 300 },
+		"program": { "app.lisp": { "count": "(defn count [] 1)" } },
+		"root": { "id": "root", "children": [{ "id": "title", "type": "label", "text": "One" }] } })json");
+	return folder;
+}
+
+/// @brief A package of "notes" whose count is 2, with a definition added, and a proposal of it on a copy whose count the person made 3.
+/// @param root Where both copies are made.
+/// @return The person's copy, with the proposal waiting.
+Screen leftOutProposal(const std::filesystem::path& root) {
+	Screen sharer = Screen::fromApp(writeNotes(root / "sharer"), root / "sharer-data", Screen::History::OnDisk);
+	const json two = {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 2)"}},
+	                  {{"op", "add"}, {"path", "/program/app.lisp/label"}, {"value", "(defn label [] \"Two\")"}}};
+	REQUIRE_FALSE(sharer.versions().commit({{"author", "studio"}, {"message", "Two"}, {"patch", two}}));
+	affresco::format::PackageOptions options;
+	options.name = "Counting";
+	options.release = "1.1.0";
+	options.engine = "1.0.0";
+	const std::string package = affresco::format::packageJson(sharer.exportPackage(options)).dump();
+
+	Screen person = Screen::fromApp(writeNotes(root / "person"), root / "person-data", Screen::History::OnDisk);
+	const json three = {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 3)"}}};
+	REQUIRE_FALSE(person.versions().commit({{"author", "user"}, {"message", "Three"}, {"patch", three}}));
+	std::string error;
+	REQUIRE_MESSAGE(person.proposePackage(package, &error).status == affresco::RevisionStatus::Proposed, error);
+	return person;
+}
+
+} // namespace
+
+TEST_CASE("changes window: what a merge left out is listed, both sides, and the person's choice settles it") {
+	for(const std::string notation : {"json", "lisp"}) {
+		CAPTURE(notation);
+		const TemporaryFolder folder;
+		affresco::Application app({nullptr, true});
+		Screen screen = leftOutProposal(folder.path());
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		pressShortcut(window);
+		Screen* own = changes.opened();
+		REQUIRE(own != nullptr);
+		own->runAction("changes.refresh", window.root());
+		json state = stateOf(*own);
+		REQUIRE(state["list"]["proposals"].size() == 1);
+		const json& part = state["list"]["proposals"][0]["leftOut"];
+		REQUIRE(part.size() == 1);
+		CHECK(part[0] == json{{"path", "/program/app.lisp/count"},
+		                      {"mine", "(defn count [] 3)"},
+		                      {"theirs", "(defn count [] 2)"}});
+		const std::string seen = state["view"]["head"].get<std::string>();
+
+		affresco::Panel* root = own->find("changesRoot");
+		REQUIRE(root != nullptr);
+		REQUIRE(root->window() != nullptr);
+		root->window()->render(); // the window draws what the host answered
+		CHECK(own->find("changesNotMerged") != nullptr);
+		affresco::Panel* useTheirs = own->find("changesUseTheirs0");
+		REQUIRE(useTheirs != nullptr);
+		REQUIRE(useTheirs->window() != nullptr);
+		CHECK(affresco::performAccessibleAction(*useTheirs->window(), *useTheirs, affresco::AccessibleAction::Press));
+		root->window()->render(); // the press runs, and the host answers
+		own->runAction("changes.refresh", window.root());
+		root->window()->render();
+		state = stateOf(*own);
+		CHECK(state["message"] == "");
+		CHECK(state["list"]["proposals"][0]["leftOut"] == json::array());
+		CHECK(state["view"]["head"] != seen); // its head moved: shown again, as it is now
+		CHECK(own->find("changesUseTheirs0") == nullptr);
+
+		own->runAction("changes.accept", window.root());
+		CHECK(stateOf(*own)["message"] == "");
+		CHECK(screen.versions().sourceDocument()["program"]["app.lisp"]["count"] == "(defn count [] 2)");
 	}
 }

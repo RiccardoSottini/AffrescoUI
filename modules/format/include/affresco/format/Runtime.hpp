@@ -4,10 +4,12 @@
 /// @brief format::Runtime: brings a screen document to life with the rendering engine.
 
 #include "affresco/core/CallProgress.hpp"
+#include "affresco/core/Commands.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Identity.hpp"
 #include "affresco/core/Network.hpp"
+#include "affresco/core/ProgramConsole.hpp"
 #include "affresco/core/Services.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
@@ -26,6 +28,8 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,12 +45,31 @@ class Store;
 
 namespace affresco::format {
 
+struct Engine;
+
+/// @brief Which file holds an entry of a JSON document, as a reviewer knows it (Runtime::setFileOf()).
+struct FileOf {
+	std::string name{};  ///< The file's name, e.g. "board.json"; empty when the host can't tell.
+	bool shared = false; ///< The file lies outside the application's folder.
+};
+
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
 struct UpdateStatistics {
-	std::uint64_t updates = 0;     ///< Updates since the runtime started.
-	double milliseconds = 0;       ///< How long the last one took.
-	std::size_t panelsApplied = 0; ///< Panels whose values the last one applied (those it rebuilt among them).
-	std::size_t panelsCreated = 0; ///< Panels it created.
+	std::uint64_t updates = 0;         ///< Updates since the runtime started.
+	double milliseconds = 0;           ///< How long the last one took.
+	std::size_t panelsApplied = 0;     ///< Panels whose values the last one applied (those it rebuilt among them).
+	std::size_t panelsCreated = 0;     ///< Panels it created.
+	std::size_t panelsVisited = 0;     ///< Panels it looked at, to update them or what lies below them.
+	std::size_t nodesEvaluated = 0;    ///< Nodes whose values it evaluated.
+	std::size_t listsExpanded = 0;     ///< Lists of children it expanded ("use", "repeat", "when"...).
+	std::size_t rowsExpanded = 0;      ///< Items of repeats those lists went over.
+	std::size_t computedEvaluated = 0; ///< "computed" values it evaluated (not those it found cached).
+	std::size_t variablesBuilt = 0;    ///< Variables the host builds that it built.
+	std::size_t alwaysReaders = 0;     ///< Panels it applied that read what no change announces (every update does).
+	bool full = false;                 ///< Whether it evaluated everything rather than what read the changes.
+	/// Why it was full: "revision", "resize", "appearance", "screen", "too many changes", "requested" or "first";
+	/// empty when it wasn't.
+	std::string_view fullReason{};
 };
 
 /// @brief Brings a screen document to life: builds it into panels, keeps them in line with it, and runs actions.
@@ -116,7 +139,8 @@ public:
 
 	/* Building */
 
-	/// @brief Creates a window from the "window" section, then builds the document into it.
+	/// @brief Creates a window from the "window" section, then builds the document into it. The image files the screen
+	/// asks for are decoded before it returns (within a short bound), so its first frame shows them.
 	/// @param app The application that owns the window.
 	/// @return The window.
 	/// @throws DocumentError If the document can't be built.
@@ -239,6 +263,13 @@ public:
 	/// for a picture, which must change nothing the person sees or what runs next.
 	/// @param suspended true to suspend them, false to go back to normal.
 	void setHandlersSuspended(bool suspended) noexcept;
+	/// @brief Turns verify mode on or off: after every partial update, a full pass over the same panels (with
+	/// handlers suspended, leaving no trace) must give the same panels, or onError gets "update check: <place>.
+	/// <property>: a partial update and a full update differ" (the two values go only to the log). For tests and
+	/// fuzzing: it makes every update cost a full one. AFFRESCOUI_VERIFY_UPDATES=1 turns it on when the runtime is
+	/// made. Nothing in a document, a revision, a channel or MCP reaches it.
+	/// @param on true to check every partial update.
+	void setVerifyUpdates(bool on) noexcept;
 
 	/// @brief Tells whether the document has an action of that name.
 	/// @param name The action.
@@ -278,6 +309,11 @@ public:
 
 	/// @brief What the last update of the panels cost.
 	[[nodiscard]] const UpdateStatistics& lastUpdate() const noexcept;
+	/// @brief The places the last update changed, as JSON Pointers into the state (and places outside it, which
+	/// start with "/~"), for the host to skip work no change asked for (a state file written only when a place it
+	/// holds changed). They tell what the screen did: the host keeps them to itself, never sends them to a peer.
+	/// @return They, valid until the next update; nullopt if that update may have changed anything.
+	[[nodiscard]] std::optional<std::span<const std::string>> lastChanges() const noexcept;
 
 	/// @brief What the document says about a panel, for an inspector: the node it was built from (the nearest
 	/// ancestor built from one, for a panel a type creates itself) and its bindings as written. Never a value: what
@@ -286,6 +322,63 @@ public:
 	/// @return `{"node": "#id" or the node's place, "type", "path", "bind"?, "bindings": {key: written}, "handlers":
 	/// [key]}`, or null if no node built it.
 	[[nodiscard]] json inspect(const Panel& panel);
+
+	/// @brief Where a node is written (SCREEN_FORMAT.md, "Pointing at a node"): its definition's exact text for a
+	/// program, the node printed as JSON for a JSON document. It reads the versioned document only, never a file.
+	/// @param at "#id", a JSON Pointer to a node, or a definition's address (`/program/<file>/<name>`).
+	/// @return `{"node"?, "pointer"?, "notation": "lisp" or "json", "address", "kind"?, "file"?, "line"?, "column"?,
+	/// "shared"?, "text", "cut"?}`; `text` is at most 16 KiB, and `cut` is true when it was cut.
+	/// @throws DocumentError Naming @p at, if nothing is there or it is longer than 512 bytes.
+	[[nodiscard]] json source(std::string_view at) const;
+	/// @brief The pick records the person made (the "pick" step) and neither removed nor sent, oldest first.
+	/// @return `[record]` (SCREEN_FORMAT.md, "Pointing at a node").
+	[[nodiscard]] json picks() const;
+	/// @brief The screen's program, for an editor connected to the app (net::EditorServer): evaluating as the person
+	/// and looking names up. Only the host's own code evaluates through it, after the person paired the editor.
+	/// @return It, owned by the runtime and valid for its life.
+	[[nodiscard]] ProgramConsole& console() noexcept;
+	/// @brief Says which file holds an entry of a JSON document, for the `file` of a pick's and a source's `source`;
+	/// without it, `file` is left out.
+	/// @param fileOf Gives the file holding a JSON Pointer of the document; must not outlive what it reads.
+	void setFileOf(std::function<FileOf(std::string_view pointer)> fileOf);
+	/// @brief Sets what opens a web address in the browser, for the openUrl step: it runs only for an http:// or
+	/// https:// address the person said yes to, in a question the window draws itself (Window::confirm()). Without
+	/// one, the step asks nothing and reports that this host opens no web addresses.
+	/// @param open Opens the address; returns whether it did (net::openWebAddress()).
+	void setWebOpener(std::function<bool(const std::string& url)> open);
+
+	/* Commands as tools */
+
+	/// @brief Sets who may run the commands as peers, and the runs that wait (vcs::Runs): the `runs` and `runGrants`
+	/// variables read it, and the allowRun and denyRun steps decide through it. Without one, those variables are empty
+	/// and those steps fail with "this screen runs no commands for peers".
+	/// @param control The run control (outlives the runtime, or is replaced first), or nullptr.
+	void setRunControl(RunControl* control);
+	/// @brief Main's commands: the actions that describe themselves; plain actions are never listed.
+	/// @return `[{name, title, category, description, arguments, enabled, key?}]`.
+	[[nodiscard]] json commandList() const;
+	/// @brief One of main's commands.
+	/// @param name Its name.
+	/// @return It, as in commandList(), or std::nullopt.
+	[[nodiscard]] std::optional<json> command(std::string_view name) const;
+	/// @brief What a command can reach, from its steps: what decides whether a peer may run it.
+	/// @param name Its name.
+	/// @return What it reaches; for no such command, a control reach.
+	[[nodiscard]] CommandReach commandReach(std::string_view name) const;
+	/// @brief Checks a run's arguments against what the command declares, and fills in their defaults.
+	/// @param name The command's name.
+	/// @param arguments An object, changed in place.
+	/// @return Why they are refused, or std::nullopt.
+	std::optional<std::string> checkCommandArguments(std::string_view name, json& arguments) const;
+	/// @brief Runs a command as its runner, whose authority every step and write is judged by; the person's yes, if
+	/// one was needed, adds none. A refusal rolls it back whole.
+	/// @param run What to run, its arguments checked (checkCommandArguments()).
+	/// @return What happened.
+	CommandOutcome runCommandAs(const CommandRun& run);
+	/// @brief Undoes a run: puts back what it changed, refused when that was changed since.
+	/// @param run The run's number.
+	/// @return What happened; `refusal` says why it was refused.
+	CommandOutcome undoCommandRun(int run);
 
 	/* Lookup */
 
@@ -357,6 +450,9 @@ public:
 
 private:
 	struct Impl;
+	/// @brief The engine, for the parts of the runtime defined in other files (RuntimeCommands.cpp).
+	/// @return It.
+	[[nodiscard]] Engine& engine() const noexcept;
 	std::unique_ptr<Impl> impl_; ///< Everything else, out of the header.
 };
 

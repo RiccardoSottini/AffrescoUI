@@ -34,7 +34,9 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "transform", "image",         "chooseFolder",  "edit",          "audio",     "insert",
 	 "update",    "delete",        "undoData",      "redoData",      "importCsv", "attach",
 	 "cancelAsk", "openWindow",    "closeWindow",   "fullscreen",    "saveFile",  "openFile",
-	 "export",    "runInTerminal", "clearTerminal", "closeTerminal", "lisp"});
+	 "export",    "runInTerminal", "clearTerminal", "closeTerminal", "lisp",      "pick",
+	 "unpick",    "allowRun",      "denyRun",       "undoRun",       "paste",     "openUrl",
+	 "copyImage"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =
@@ -520,8 +522,8 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
 		       "chooseFolder, audio, "
-		       "attach, saveFile, openFile, export, openWindow, closeWindow, fullscreen, runInTerminal, clearTerminal, "
-		       "closeTerminal or lisp");
+		       "attach, saveFile, openFile, export, openWindow, closeWindow, fullscreen, openUrl, runInTerminal, "
+		       "clearTerminal, closeTerminal or lisp");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);

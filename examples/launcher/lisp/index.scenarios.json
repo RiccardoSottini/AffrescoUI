@@ -10,8 +10,9 @@
 				{ "expect": { "state": "page", "is": "apps" } },
 				{ "expect": { "node": "#appsCount", "text": "13 apps" } },
 				{ "expect": { "node": "#cardName", "text": "Flow" } },
-				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
 				{ "capture": "apps" },
+				{ "scroll": "#appsScroll", "dy": -8 },
+				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
 				{ "note": "Calamaio, a program with only its lisp folder, is listed too" },
 				{ "click": "#appSearch" },
 				{ "type": "calamaio" },
@@ -27,11 +28,11 @@
 				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "query", "is": "" } },
-				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Example" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Productivity" } },
 				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
 				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Yours" } },
 				{ "expect": { "node": "#cardName", "nth": 0, "text": "Reading list" } },
-				{ "expect": { "node": "#cardKind", "nth": 1, "text": "Example" } },
+				{ "expect": { "node": "#cardKind", "nth": 1, "text": "Productivity" } },
 				{ "click": "#appSearch" },
 				{ "type": "reading" },
 				{ "expect": { "node": "#appsCount", "text": "1 app" } },
@@ -39,6 +40,66 @@
 				{ "click": "#appSearch" },
 				{ "type": "zzzz" },
 				{ "expect": { "node": "#appsNone", "text": "No app matches “zzzz”." } }
+			]
+		},
+		{
+			"name": "categories-and-welcome",
+			"note": "A newcomer is welcomed; the categories file the examples, and the person's own apps get one of their own",
+			"steps": [
+				{ "expect": { "node": "#welcomeTitle", "text": "Welcome to AffrescoUI" } },
+				{ "expect": { "node": "#kindChip", "nth": 0, "text": "All" } },
+				{ "click": { "role": "radio", "name": "Creative" } },
+				{ "expect": { "state": "kind", "is": "creative" } },
+				{ "expect": { "node": "#appsCount", "text": "3 apps" } },
+				{ "expect": { "node": "#cardName", "nth": 0, "text": "Sinopia" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Creative" } },
+				{ "expect": { "node": "#welcomeTitle", "exists": false } },
+				{ "click": { "role": "radio", "name": "Developer" } },
+				{ "expect": { "node": "#appsCount", "text": "3 apps" } },
+				{ "click": "#appSearch" },
+				{ "type": "forge" },
+				{ "expect": { "node": "#appsCount", "text": "1 app" } },
+				{ "key": "escape" },
+				{ "click": { "role": "radio", "name": "All" } },
+				{ "expect": { "node": "#appsCount", "text": "13 apps" } },
+				{ "expect": { "node": "#kindChip", "nth": 6, "exists": false } },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
+				{ "expect": { "node": "#welcomeTitle", "exists": false } },
+				{ "click": { "role": "radio", "name": "Your apps" } },
+				{ "expect": { "node": "#appsCount", "text": "1 app" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Yours" } }
+			]
+		},
+		{
+			"name": "welcome-new-app",
+			"steps": [
+				{ "click": "#welcomeNew" },
+				{ "expect": { "state": "page", "is": "create" } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#createName", "property": "focused", "is": true } },
+				{ "key": "mod+1" },
+				{ "key": "mod+n" },
+				{ "wait": 0 },
+				{ "expect": { "node": "#createName", "property": "focused", "is": true } }
+			]
+		},
+		{
+			"name": "commands-open-and-create",
+			"note": "An agent, or the studio, can open and create apps, as the person would: each run starts a program, so the person says yes to it first",
+			"steps": [
+				{ "command": "appOpen", "with": { "name": "flow" }, "verdict": "person" },
+				{ "command": "appCreate", "with": { "name": "Notes", "from": null, "describe": null }, "verdict": "person" },
+				{ "command": "appOpen", "with": { "name": "Reading list" }, "as": "studio", "verdict": "person" }
+			]
+		},
+		{
+			"name": "narrow-sidebar",
+			"note": "Folded to its icons, the sidebar keeps New app a filled button",
+			"steps": [
+				{ "resize": [800, 600] },
+				{ "wait": 200 },
+				{ "expect": { "node": "#sideNew", "property": "color", "is": "#5b4fe0" } },
+				{ "expect": { "node": "#sideNew", "property": "width", "is": 48 } }
 			]
 		},
 		{
@@ -138,6 +199,172 @@
 				{ "click": { "role": "radio", "name": "Español" } },
 				{ "expect": { "state": "locale", "is": "es" } },
 				{ "expect": { "node": "#settingsTitle", "text": "Ajustes" } }
+			]
+		},
+		{
+			"name": "export-dialog",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
+				{ "wait": 0 },
+				{ "click": "#mineExport" },
+				{ "wait": 0 },
+				{ "expect": { "state": "exporting.open", "is": false } },
+				{ "expect": { "state": "exporting.busy", "is": false } },
+				{ "action": "launcher.export", "event": { "id": "reading-list", "name": "Reading list", "summary": { "kind": "app", "name": "Reading list", "definitions": { "added": ["app.lisp/a", "app.lisp/b"], "changed": [], "removed": [] }, "impact": { "view": 3, "logic": 2 } }, "leftOut": { "records": 12, "commits": 4 } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "exporting.open", "is": true } },
+				{ "expect": { "node": "#exportLine", "text": "The whole app: its files and pictures" } },
+				{ "expect": { "node": "#exportLine", "nth": 1, "text": "2 definitions added, 0 changed, 0 taken away" } },
+				{ "expect": { "node": "#exportLine", "nth": 3, "text": "Left out: 12 records and 4 versions of its history" } },
+				{ "expect": { "node": "#exportNeverLine", "nth": 4, "text": "Where your files are" } },
+				{ "click": "#exportDescription" },
+				{ "type": "Books to read" },
+				{ "expect": { "state": "exporting.description", "is": "Books to read" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "exporting.open", "is": false } }
+			]
+		},
+		{
+			"name": "catalogue-hidden-without-one",
+			"steps": [
+				{ "note": "With no catalogue granted, the Launcher shows no Catalogue page" },
+				{ "expect": { "state": "catalogue.available", "is": false } },
+				{ "expect": { "node": "#navCatalogue", "exists": false } }
+			]
+		},
+		{
+			"name": "catalogue-page",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "wait": 0 },
+				{ "expect": { "node": { "role": "tab", "name": "Catalogue" }, "property": "shown", "is": true } },
+				{ "click": { "role": "tab", "name": "Catalogue" } },
+				{ "expect": { "state": "page", "is": "catalogue" } },
+				{ "expect": { "node": "#catalogueCardName", "text": "Flow, by priority" } },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "text": "Slide sorter" } },
+				{ "expect": { "node": "#catalogueCardKind", "text": "A version of flow" } },
+				{ "expect": { "node": "#catalogueCardKind", "nth": 1, "text": "Feature" } },
+				{ "expect": { "node": "#catalogueUpdated", "text": "Updated 2026-11-17" } },
+				{ "click": "#catalogueSearch" },
+				{ "type": "thumb" },
+				{ "expect": { "state": "catalogueQuery", "is": "thumb" } },
+				{ "expect": { "node": "#catalogueCardName", "text": "Slide sorter" } },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "exists": false } },
+				{ "type": "zzzz" },
+				{ "expect": { "node": "#catalogueNone", "property": "shown", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "text": "Slide sorter" } }
+			]
+		},
+		{
+			"name": "catalogue-review",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "action": "launcher.reviewListed", "event": { "id": "flow-by-priority", "release": "1.0.0", "description": "Flow with every list ordered by priority.", "listed": { "catalogue": "affrescoui", "updated": "2026-11-17", "signed": true }, "summary": { "kind": "changes", "name": "Flow, by priority", "release": "1.0.0", "author": "", "signature": "none", "base": { "app": "flow", "name": "Flow", "release": "", "exact": true }, "definitions": { "added": [], "changed": [], "removed": [] }, "impact": { "view": 0, "logic": 1, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installTitle", "text": "Flow, by priority" } },
+				{ "expect": { "node": "#installListed", "text": "Listed in the AffrescoUI catalogue, checked on 2026-11-17" } },
+				{ "expect": { "state": "install.entry.catalogue", "is": "flow-by-priority" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "state": "install.tried", "is": true } },
+				{ "expect": { "state": "install.busy", "is": false } },
+				{ "click": "#installCancel" },
+				{ "expect": { "state": "page", "is": "catalogue" } },
+				{ "expect": { "state": "install.entry", "is": {} } }
+			]
+		},
+		{
+			"name": "catalogue-feature-review",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "action": "launcher.reviewListed", "event": { "id": "slideSorter", "release": "1.0.0", "description": "Thumbnails of an ordered list of pages.", "listed": { "catalogue": "affrescoui", "updated": "2026-11-17", "signed": true }, "summary": { "kind": "feature", "name": "Slide sorter", "release": "1.0.0", "description": "Thumbnails of an ordered list of pages.", "license": "Apache-2.0", "signature": "none", "definitions": { "added": ["components.slideSorter"], "changed": [], "removed": [] }, "needs": [{ "name": "pages", "kind": "collection", "description": "The pages" }], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#reviewLine", "text": "What it needs from an app" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "pages (collection)" } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installCant", "text": "A feature is added from inside an app, which gives it what it needs: it can't be installed here." } },
+				{ "expect": { "node": "#installListed", "text": "Listed in the AffrescoUI catalogue, checked on 2026-11-17" } }
+			]
+		},
+		{
+			"name": "review-clean",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "changes", "name": "Notes that count", "release": "1.1.0", "author": "Robin", "signature": "none", "base": { "app": "notes", "name": "Notes", "release": "1.0.0", "exact": true }, "definitions": { "added": ["app.lisp/total"], "changed": ["app.lisp/count"], "removed": [] }, "impact": { "view": 1, "logic": 2, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": [] }, "package": { "format": "affrescoui-package", "description": "It counts." } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installTitle", "text": "Notes that count" } },
+				{ "expect": { "node": "#installAbout", "text": "Release 1.1.0 · It counts." } },
+				{ "expect": { "node": "#installAuthor", "text": "Says it is by Robin" } },
+				{ "expect": { "node": "#installSignature", "text": "Not signed" } },
+				{ "expect": { "node": "#reviewLine", "text": "What it was made on" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "Notes 1.0.0, as you have it" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "1 changes to what it shows" } },
+				{ "expect": { "node": "#reviewLine", "nth": 6, "text": "+ app.lisp/total" } },
+				{ "expect": { "node": "#reviewLine", "nth": 7, "text": "~ app.lisp/count" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "expect": { "node": "#installCant", "exists": false } },
+				{ "expect": { "state": "install.name", "is": "Notes that count" } },
+				{ "expect": { "node": "#installNameHint", "text": "Its folder: AffrescoUI/notes-that-count" } },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "state": "install.tried", "is": true } },
+				{ "expect": { "state": "install.busy", "is": false } },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "click": "#installCancel" },
+				{ "expect": { "state": "page", "is": "mine" } }
+			]
+		},
+		{
+			"name": "review-conflicts",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "changes", "name": "Notes, counted twice", "release": "1.1.0", "author": "Robin", "signature": "none", "base": { "app": "notes", "name": "Notes", "release": "0.9.0", "exact": false }, "definitions": { "added": ["app.lisp/total"], "changed": ["app.lisp/count"], "removed": [] }, "impact": { "view": 1, "logic": 2, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": ["/program/app.lisp/count was changed here too: it won't merge"], "conflicts": [{ "path": "/program/app.lisp/count", "reason": "changed on both sides" }] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "Notes 0.9.0, not as you have it: some parts may not merge" } },
+				{ "expect": { "node": "#reviewLine", "nth": 2, "text": "Parts that won't merge" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "/program/app.lisp/count" } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installName", "exists": false } },
+				{ "expect": { "node": "#installCant", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "review-whole-app",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "app", "name": "Field notes", "release": "2.0.0", "author": "", "signature": "unknown:0123456789abcdef", "base": { "app": "field-notes", "name": "Field notes", "release": "2.0.0", "exact": null }, "definitions": { "added": [], "changed": [], "removed": [] }, "impact": { "view": 0, "logic": 0, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "capabilities": [{ "capability": "files", "why": "Saves your notes where you choose.", "added": true }], "permissions": ["app.lisp: agent asks"], "seed": [{ "collection": "notes", "file": "seed/notes.json", "records": 3 }], "state": { "title": "Field notes" }, "assets": [{ "name": "cover.png", "type": "image/png", "size": 1200 }], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#installAuthor", "text": "Says nothing of who made it" } },
+				{ "expect": { "node": "#installSignature", "text": "Signed by a key you don't know (0123456789abcdef)" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "A whole app: nothing you have is changed" } },
+				{ "expect": { "node": "#reviewLine", "nth": 2, "text": "What it asks for" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "New: files: Saves your notes where you choose." } },
+				{ "expect": { "node": "#reviewLine", "nth": 4, "text": "Who may change it without asking" } },
+				{ "expect": { "node": "#reviewLine", "nth": 5, "text": "app.lisp: agent asks" } },
+				{ "expect": { "node": "#reviewLine", "nth": 7, "text": "title starts as \"Field notes\"" } },
+				{ "expect": { "node": "#reviewLine", "nth": 8, "text": "Picture cover.png" } },
+				{ "expect": { "node": "#reviewLine", "nth": 9, "text": "3 records in notes" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "field-notes", "name": "Field notes", "modified": 1760000000000 }] } },
+				{ "wait": 0 },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "node": "#installNameHint", "text": "You have an app with that name already." } }
+			]
+		},
+		{
+			"name": "refused-file",
+			"steps": [
+				{ "action": "launcher.review", "event": { "error": "The file isn't a version of an app: it has no format." } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installAbout", "text": "This file can't be installed" } },
+				{ "expect": { "node": "#installRefused", "text": "The file isn't a version of an app: it has no format." } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installName", "exists": false } },
+				{ "expect": { "node": "#reviewLine", "exists": false } }
 			]
 		}
 	]

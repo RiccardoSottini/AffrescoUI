@@ -12,7 +12,9 @@
 #include "affresco/render/Transform.hpp"
 #include "affresco/core/Signal.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <concepts>
 #include <functional>
@@ -144,6 +146,28 @@ public:
 	/// @return The new child.
 	/// @throws std::out_of_range If there is no child at @p index.
 	Panel& replaceChild(std::size_t index, std::unique_ptr<Panel> child);
+
+	/// @brief Adds an existing panel as a child at a position, moving the later children one place on.
+	/// @param index Its position: at most the number of children (that number adds it last).
+	/// @param child The panel; this panel takes ownership.
+	/// @return The child.
+	/// @throws std::out_of_range If @p index is past the end.
+	Panel& insertChild(std::size_t index, std::unique_ptr<Panel> child);
+
+	/// @brief Takes a child out, moving the later children one place back. It no longer has a parent or a window:
+	/// the window drops its focus, hover and capture pointers to it and to the panels inside it.
+	/// @param index Its position.
+	/// @return The child, owned by the caller now.
+	/// @throws std::out_of_range If there is no child at @p index.
+	[[nodiscard]] std::unique_ptr<Panel> takeChild(std::size_t index);
+
+	/// @brief Puts the children from a position on in another order, keeping every panel (and its focus, hover and
+	/// capture), with one change of the tree.
+	/// @param first The first child reordered; those before it stay.
+	/// @param order The current positions of those children, in their new order: a permutation of first, first + 1,
+	/// ..., the number of children - 1.
+	/// @throws std::invalid_argument If @p order isn't such a permutation.
+	void reorderChildren(std::size_t first, std::vector<std::size_t> order);
 
 	/// @brief Destroys the children from a position to the end.
 	/// @param from The first child to destroy.
@@ -441,6 +465,20 @@ public:
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Sets how opaque the panel and its children are, drawn as one group like CSS `opacity`: below 1 the
+	/// subtree is drawn into a texture (as setCached()) and that is drawn with this opacity, so overlapping children
+	/// don't show through each other. A transformed subtree is drawn directly, at full opacity.
+	/// @param opacity From 0 (invisible, still laid out and hit) to 1 (the default); clamped.
+	void setOpacity(float opacity) {
+		setLook(opacity_, std::isfinite(opacity) ? std::clamp(opacity, 0.0f, 1.0f) : 1.0f);
+	}
+	/// @brief The opacity set by setOpacity().
+	[[nodiscard]] float opacity() const noexcept { return opacity_; }
+	/// @brief The opacity the subtree is drawn with: setOpacity() times the one its own drawing asked for
+	/// (setPaintOpacity()).
+	[[nodiscard]] float drawnOpacity() const noexcept { return opacity_ * paintOpacity_; }
+	/// @brief Whether the subtree is drawn through a texture of its own: setCached(), or a drawn opacity below 1.
+	[[nodiscard]] bool isComposited() const noexcept { return cached_ || drawnOpacity() < 1.0f; }
 	/// @brief Lets the children draw and be hit outside the panel, as CSS `overflow: visible`: they are clipped to
 	/// what clips the panel instead (a slide's line or its overflowing text). A cached or scrolling panel still clips.
 	/// @param visible true to let them overflow.
@@ -450,8 +488,20 @@ public:
 	/// @brief The area the children are clipped to, absolute: bounds(), or with setOverflowVisible() what clips the
 	/// panel itself.
 	[[nodiscard]] const Rect& childClip() const noexcept { return overflows() ? childClip_ : bounds_; }
-	/// @brief Whether the children overflow now: setOverflowVisible(), unless the panel is cached or scrolls.
-	[[nodiscard]] bool overflows() const noexcept { return overflowVisible_ && !cached_ && !isScrollable(); }
+	/// @brief Sets the room kept inside the edges around the children, like CSS padding: children are placed, and
+	/// their percentages resolved, within the rest (a container's content box).
+	/// @param inset The room at each edge, in pixels: left, top, right and bottom.
+	void setContentInset(Rect inset) { setProperty(contentInset_, inset); }
+	/// @brief The room set by setContentInset().
+	[[nodiscard]] const Rect& contentInset() const noexcept { return contentInset_; }
+	/// @brief The size the children are placed in: resolvedSize() less the content inset, never below 0.
+	[[nodiscard]] Vec2 contentSize() const noexcept {
+		return {std::max(size_.x - contentInset_.left - contentInset_.right, 0.0f),
+		        std::max(size_.y - contentInset_.top - contentInset_.bottom, 0.0f)};
+	}
+	/// @brief Whether the children overflow now: setOverflowVisible(), unless the panel is composited
+	/// (isComposited()) or scrolls.
+	[[nodiscard]] bool overflows() const noexcept { return overflowVisible_ && !isComposited() && !isScrollable(); }
 	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
 	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
 	/// transforms (an overlay has only its own).
@@ -527,6 +577,13 @@ public:
 	/// @param reference The parent's width, for percentages.
 	/// @return The width.
 	[[nodiscard]] float measuredWidth(float reference);
+
+	/// @brief Lets the pointer pass through the panel to what is under it, as CSS `pointer-events: none` (its children
+	/// are still hit): an element a widget adds only to be read by assistive tools, over a part it draws itself.
+	/// @param through true to let it pass.
+	void setHitThrough(bool through) noexcept { hitThrough_ = through; }
+	/// @brief The flag set by setHitThrough().
+	[[nodiscard]] bool isHitThrough() const noexcept { return hitThrough_; }
 
 	/// @brief Finds the deepest shown panel at a point; later siblings are on top. Each level maps the point through
 	/// its inverse transform; a panel a transform flattens is never hit.
@@ -630,6 +687,12 @@ protected:
 	/// @brief Whether invalidate() was called since this panel was last laid out: what prepareLayout() keeps from
 	/// earlier passes may be out of date only then (or after Window::invalidate()).
 	[[nodiscard]] bool isLayoutDirty() const noexcept { return layoutDirty_; }
+
+	/// @brief Sets, from paint(), an opacity the panel's own drawing is drawn with as a group, over setOpacity(): a
+	/// translucent shape drawn opaque into the group texture, so the parts of its mesh that overlap aren't darker.
+	/// Painting records again when it changes, so nothing is invalidated.
+	/// @param opacity From 0 to 1; 1 (the default) asks for nothing.
+	void setPaintOpacity(float opacity) const noexcept { paintOpacity_ = opacity; }
 
 	/// @brief Stores a property's new value and calls invalidate(), unless the value is the one already there.
 	/// @tparam T The property's type; it must have ==.
@@ -815,7 +878,11 @@ private:
 	std::shared_ptr<const Gradient> gradient_;            ///< See gradient().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	float opacity_ = 1.0f;                                ///< See setOpacity().
+	mutable float paintOpacity_ = 1.0f;                   ///< See setPaintOpacity().
+	bool hitThrough_ = false;                             ///< See setHitThrough().
 	bool overflowVisible_ = false;                        ///< See setOverflowVisible().
+	Rect contentInset_;                                   ///< See setContentInset().
 	Affine2 transform_;                                   ///< See transform().
 	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
 	Affine2 parentTransform_;                             ///< See parentTransform().

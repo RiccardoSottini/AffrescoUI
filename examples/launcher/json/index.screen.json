@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"strings": { "default": "en", "locale": "{{state.locale == 'system' ? '' : state.locale}}" },
-	"note": "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (your apps and the examples as cards, each tagged Example or Yours; a search; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps.",
+	"note": "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (your apps and the examples as cards, each tagged with its category or Yours; the categories and a search filter them; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps.",
 
 	"window": { "title": "AffrescoUI", "icon": "../assets/affrescoui-icon.png", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 600,
 		"focusRing": { "color": "@c.accent", "width": 2, "offset": 2 } },
@@ -24,7 +24,8 @@
 	"services": {
 		"examples": { "provider": "fs", "root": "examples", "readOnly": true },
 		"apps": { "provider": "fs", "root": "apps", "copyFrom": ["examples"] },
-		"launch": { "provider": "process", "process": "affresco" }
+		"launch": { "provider": "process", "process": "affresco" },
+		"packages": { "provider": "packages" }
 	},
 
 	"fonts": {
@@ -51,10 +52,12 @@
 		"c.border": { "light": "#e3e1ee", "dark": "#2b2b39" },
 		"c.text": { "light": "#1b1a28", "dark": "#ececf4" },
 		"c.muted": { "light": "#5d5b72", "dark": "#a4a2b9" },
-		"c.dim": { "light": "#8d8ba2", "dark": "#6e6c84" },
+		"c.dim": { "light": "#6c6a82", "dark": "#8b89a3" },
 		"c.accent": { "light": "#5b4fe0", "dark": "#8b80ff" },
 		"c.accentHover": { "light": "#4a3fcc", "dark": "#a097ff" },
 		"c.accentSoft": { "light": "#ecebff", "dark": "#28244d" },
+		"c.primary": { "light": "#5b4fe0", "dark": "#5f52e6" },
+		"c.primaryHover": { "light": "#4a3fcc", "dark": "#6e62f0" },
 		"c.onAccent": "#ffffff",
 		"c.danger": { "light": "#cf3446", "dark": "#ff6b7a" },
 		"c.dangerSoft": { "light": "#fdecee", "dark": "#3a1d24" },
@@ -70,13 +73,13 @@
 		"kit.body": "@c.muted",
 		"kit.selection": "@c.accentSoft",
 		"kit.border": "@c.border",
-		"kit.primary": "@c.accent",
+		"kit.primary": "@c.primary",
 		"kit.onPrimary": "#ffffff",
 		"kit.secondary": "@c.raised",
 		"kit.onSecondary": "@c.text",
 		"kit.accent": "@c.accent",
 		"kit.focus": "@c.accent",
-		"intelligence.accent": "@c.accent", "intelligence.accentHover": "@c.accentHover", "intelligence.onAccent": "@c.onAccent", "intelligence.surface": "@c.surface", "intelligence.raised": "@c.raised", "intelligence.selected": "@c.accentSoft", "intelligence.border": "@c.border", "intelligence.text": "@c.text", "intelligence.dim": "@c.muted", "intelligence.success": "@c.success", "intelligence.danger": "@c.danger",
+		"intelligence.accent": "@c.primary", "intelligence.accentHover": "@c.primaryHover", "intelligence.onAccent": "@c.onAccent", "intelligence.surface": "@c.surface", "intelligence.raised": "@c.raised", "intelligence.selected": "@c.accentSoft", "intelligence.border": "@c.border", "intelligence.text": "@c.text", "intelligence.dim": "@c.muted", "intelligence.success": "@c.success", "intelligence.danger": "@c.danger",
 		"kit.radius": 8,
 		"kit.cardRadius": 14
 	},
@@ -84,6 +87,7 @@
 	"state": {
 		"page": "apps",
 		"query": "",
+		"kind": "all",
 		"theme": "system",
 		"locale": "system",
 		"notation": "lisp",
@@ -98,6 +102,10 @@
 		"confirm": { "id": "", "name": "" },
 		"toasts": [],
 		"tileColors": ["#5b4fe0", "#e0569a", "#1f9d62", "#e08a1e", "#2a86d6", "#9b4fd6"],
+		"exporting": { "open": false, "id": "", "name": "", "description": "", "author": "", "summary": {}, "leftOut": {}, "busy": false },
+		"install": { "package": {}, "summary": {}, "error": "", "name": "", "tried": false, "busy": false, "entry": {}, "listed": {} },
+		"catalogue": { "available": false, "name": "", "updated": "", "signed": false, "entries": [] },
+		"catalogueQuery": "",
 		"featureChoices": [
 			{ "id": "board", "from": "Flow", "ask": "a Kanban board with columns, cards and drag and drop, like Flow's (examples/flow)" },
 			{ "id": "palette", "from": "Flow", "ask": "a command palette (Cmd+K) listing the app's actions, like Flow's" },
@@ -110,7 +118,7 @@
 	},
 
 	"stateTypes": {
-		"page": { "enum": ["apps", "mine", "create", "settings"] },
+		"page": { "enum": ["apps", "mine", "create", "settings", "install", "catalogue"] },
 		"theme": { "enum": ["system", "light", "dark"] },
 		"locale": { "enum": ["system", "en", "es", "fr"] },
 		"notation": { "enum": ["json", "lisp"] }
@@ -119,9 +127,16 @@
 	"computed": {
 		"wide": "{{window.width >= 960}}",
 		"sideWidth": "{{computed.wide ? 232 : 72}}",
-		"columns": "{{max(1, floor((window.width - computed.sideWidth - 52) / 290))}}",
+		"columns": "{{max(1, floor((window.width - computed.sideWidth - 72) / 280))}}",
 		"everyApp": "{{concat(map(state.mine, {id: it.id, name: it.name, modified: it.modified, mine: true}), state.examples)}}",
-		"shown": "{{filter(computed.everyApp, trim(state.query) == '' || contains(lower(it.name + ' ' + (it.mine ? it.id : t('tagline.' + it.id))), lower(trim(state.query))))}}",
+		"kinds": "{{concat(['all'], length(state.mine) == 0 ? [] : ['mine'], state.categories)}}",
+		"shown": "{{filter(computed.everyApp, (state.kind == 'all' || (state.kind == 'mine' ? it.mine == true : it.category == state.kind)) && (trim(state.query) == '' || contains(lower(it.name + ' ' + (it.mine ? it.id : t('tagline.' + it.id))), lower(trim(state.query)))))}}",
+		"countShown": "{{window.width - computed.sideWidth > 860}}",
+		"welcomed": "{{length(state.mine) == 0 && trim(state.query) == '' && state.kind == 'all'}}",
+		"gridHeight": "{{ceil(length(computed.shown) / computed.columns) * 252 + max(0, ceil(length(computed.shown) / computed.columns) - 1) * 20 + 32}}",
+		"tileColumns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
+		"tilesHeight": "{{ceil((length(computed.starters) + 1) / computed.tileColumns) * 130 - 8}}",
+		"belowTiles": "{{computed.tilesHeight - 252}}",
 		"starters": "{{filter(state.examples, it.program == 'host' && it.starter != false)}}",
 		"reserved": "{{concat(map(state.examples, it.folder), ['shared', 'launcher'])}}",
 		"myIds": "{{map(state.mine, it.id)}}",
@@ -129,34 +144,73 @@
 		"askText": "{{trim(trim(state.create.describe) + (length(state.create.features) > 0 ? '\n\nAlso add these features from other apps: ' + join(map(filter(state.featureChoices, contains(state.create.features, it.id)), it.ask), '; ') + '.' : ''))}}",
 		"createError": "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : contains(state.create.name, '{' + '{') || contains(state.create.name, '}' + '}') ? 'create.error.braces' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}",
 		"fromName": "{{state.create.from == 'blank' ? t('create.blank') : (find(state.examples, it.id == state.create.from).name ?? '')}}",
+		"installSlug": "{{slice(join(filter(split(join(map(split(lower(trim(state.install.name)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789', it) ? it : ' '), ''), ' '), it != ''), '-'), 0, 40)}}",
+		"installError": "{{trim(state.install.name) == '' ? 'create.error.empty' : length(trim(state.install.name)) > 80 ? 'create.error.long' : contains(state.install.name, '{' + '{') || contains(state.install.name, '}' + '}') ? 'create.error.braces' : computed.installSlug == '' ? 'create.error.letters' : contains(computed.reserved, computed.installSlug) ? 'create.error.reserved' : contains(computed.myIds, computed.installSlug) ? 'create.error.exists' : ''}}",
+		"installable": "{{state.install.error == '' && length(state.install.summary.problems ?? []) == 0 && state.install.summary.kind != 'feature'}}",
+		"catalogueShown": "{{filter(state.catalogue.entries, trim(state.catalogueQuery) == '' || contains(lower(it.title + ' ' + it.description + ' ' + it.id), lower(trim(state.catalogueQuery))))}}",
+		"listedLine": "{{(state.install.listed.catalogue ?? '') == '' ? '' : t('review.listed', {date: (state.install.listed.updated ?? '') == '' ? t('review.undated') : state.install.listed.updated})}}",
+		"exportLines": "{{[{text: (state.exporting.summary.kind == 'changes' ? t('share.kindChanges', {base: ((state.exporting.summary.base ?? {}).name ?? '') == '' ? t('review.unnamed') : (state.exporting.summary.base ?? {}).name}) : t('share.kindApp')), tone: 'text'}, {text: t('share.definitions', {added: length((state.exporting.summary.definitions ?? {}).added ?? []), changed: length((state.exporting.summary.definitions ?? {}).changed ?? []), removed: length((state.exporting.summary.definitions ?? {}).removed ?? [])}), tone: 'text'}, {text: t('share.layers', {view: (state.exporting.summary.impact ?? {}).view ?? 0, logic: (state.exporting.summary.impact ?? {}).logic ?? 0}), tone: 'text'}, {text: t('share.leftOut', {records: (state.exporting.leftOut ?? {}).records ?? 0, commits: (state.exporting.leftOut ?? {}).commits ?? 0}), tone: 'muted'}]}}",
+		"reviewLines": "{{state.install.error != '' ? [] : concat(state.install.summary.kind != 'feature' ? [] : concat([{text: t('review.needs'), tone: 'heading'}], map(state.install.summary.needs ?? [], {text: t('review.need', {name: it.name, kind: it.kind}), tone: 'text'})), state.install.summary.kind == 'feature' ? [] : [{text: t('review.base'), tone: 'heading'}, {text: state.install.summary.kind == 'app' ? t('review.baseApp') : (state.install.summary.base ?? {}).exact == true ? t('review.baseExact', {name: ((state.install.summary.base ?? {}).name ?? '') == '' ? t('review.unnamed') : (state.install.summary.base ?? {}).name, release: (state.install.summary.base ?? {}).release ?? ''}) : t('review.baseOther', {name: ((state.install.summary.base ?? {}).name ?? '') == '' ? t('review.unnamed') : (state.install.summary.base ?? {}).name, release: (state.install.summary.base ?? {}).release ?? ''}), tone: state.install.summary.kind == 'app' || (state.install.summary.base ?? {}).exact == true ? 'text' : 'danger'}], (length(map(state.install.summary.conflicts ?? [], {text: it.path, tone: 'danger'})) == 0 ? [] : concat([{text: t('review.conflicts'), tone: 'heading'}], map(state.install.summary.conflicts ?? [], {text: it.path, tone: 'danger'}))), (length(concat(((state.install.summary.impact ?? {}).view ?? 0) > 0 ? [{text: t('review.view', {n: (state.install.summary.impact ?? {}).view}), tone: 'text'}] : [], ((state.install.summary.impact ?? {}).logic ?? 0) > 0 ? [{text: t('review.logic', {n: (state.install.summary.impact ?? {}).logic}), tone: 'text'}] : [], (state.install.summary.impact ?? {}).data && (state.install.summary.impact ?? {}).data != 'none' ? [{text: t('review.data', {effect: (state.install.summary.impact ?? {}).data}), tone: 'danger'}] : [])) == 0 ? [] : concat([{text: t('review.layers'), tone: 'heading'}], concat(((state.install.summary.impact ?? {}).view ?? 0) > 0 ? [{text: t('review.view', {n: (state.install.summary.impact ?? {}).view}), tone: 'text'}] : [], ((state.install.summary.impact ?? {}).logic ?? 0) > 0 ? [{text: t('review.logic', {n: (state.install.summary.impact ?? {}).logic}), tone: 'text'}] : [], (state.install.summary.impact ?? {}).data && (state.install.summary.impact ?? {}).data != 'none' ? [{text: t('review.data', {effect: (state.install.summary.impact ?? {}).data}), tone: 'danger'}] : []))), (length(concat(map((state.install.summary.definitions ?? {}).added ?? [], {text: t('review.added', {name: it}), tone: 'added'}), map((state.install.summary.definitions ?? {}).changed ?? [], {text: t('review.changed', {name: it}), tone: 'text'}), map((state.install.summary.definitions ?? {}).removed ?? [], {text: t('review.removed', {name: it}), tone: 'muted'}))) == 0 ? [] : concat([{text: t('review.definitions'), tone: 'heading'}], concat(map((state.install.summary.definitions ?? {}).added ?? [], {text: t('review.added', {name: it}), tone: 'added'}), map((state.install.summary.definitions ?? {}).changed ?? [], {text: t('review.changed', {name: it}), tone: 'text'}), map((state.install.summary.definitions ?? {}).removed ?? [], {text: t('review.removed', {name: it}), tone: 'muted'})))), (length(concat(map((state.install.summary.extensions ?? {}).added ?? [], {text: t('review.extension', {kind: it.kind, name: it.name, target: it.target}), tone: 'added'}), map((state.install.summary.extensions ?? {}).removed ?? [], {text: t('review.extensionRemoved', {kind: it.kind, name: it.name}), tone: 'muted'}))) == 0 ? [] : concat([{text: t('review.extensions'), tone: 'heading'}], concat(map((state.install.summary.extensions ?? {}).added ?? [], {text: t('review.extension', {kind: it.kind, name: it.name, target: it.target}), tone: 'added'}), map((state.install.summary.extensions ?? {}).removed ?? [], {text: t('review.extensionRemoved', {kind: it.kind, name: it.name}), tone: 'muted'})))), (length(concat(map(state.install.summary.writes ?? [], {text: t('review.writes', {what: it.collection ?? it.step}), tone: 'text'}), map(state.install.summary.uses ?? [], {text: t('review.uses', {what: it.use}), tone: 'text'}))) == 0 ? [] : concat([{text: t('review.effects'), tone: 'heading'}], concat(map(state.install.summary.writes ?? [], {text: t('review.writes', {what: it.collection ?? it.step}), tone: 'text'}), map(state.install.summary.uses ?? [], {text: t('review.uses', {what: it.use}), tone: 'text'})))), (length(map(state.install.summary.capabilities ?? [], {text: it.added ? t('review.capabilityNew', {what: it.capability, why: it.why}) : t('review.capability', {what: it.capability, why: it.why}), tone: it.added ? 'added' : 'text'})) == 0 ? [] : concat([{text: t('review.capabilities'), tone: 'heading'}], map(state.install.summary.capabilities ?? [], {text: it.added ? t('review.capabilityNew', {what: it.capability, why: it.why}) : t('review.capability', {what: it.capability, why: it.why}), tone: it.added ? 'added' : 'text'}))), (length(map(state.install.summary.permissions ?? [], {text: it, tone: 'text'})) == 0 ? [] : concat([{text: t('review.permissions'), tone: 'heading'}], map(state.install.summary.permissions ?? [], {text: it, tone: 'text'}))), (length(concat(map(entries(state.install.summary.state ?? {}), {text: t('review.state', {key: it.key, value: json(it.value)}), tone: 'text'}), map(state.install.summary.assets ?? [], {text: t('review.picture', {name: it.name}), tone: 'text'}), map(state.install.summary.seed ?? [], {text: t('review.seed', {collection: it.collection, n: it.records ?? 0}), tone: 'text'}))) == 0 ? [] : concat([{text: t('review.contents'), tone: 'heading'}], concat(map(entries(state.install.summary.state ?? {}), {text: t('review.state', {key: it.key, value: json(it.value)}), tone: 'text'}), map(state.install.summary.assets ?? [], {text: t('review.picture', {name: it.name}), tone: 'text'}), map(state.install.summary.seed ?? [], {text: t('review.seed', {collection: it.collection, n: it.records ?? 0}), tone: 'text'})))), (length(map(state.install.summary.problems ?? [], {text: it, tone: 'danger'})) == 0 ? [] : concat([{text: t('review.problems'), tone: 'heading'}], map(state.install.summary.problems ?? [], {text: it, tone: 'danger'}))))}}",
+		"signatureLine": "{{slice(state.install.summary.signature ?? 'none', 0, 8) == 'trusted:' ? t('review.signedTrusted', {name: slice(state.install.summary.signature, 8)}) : slice(state.install.summary.signature ?? 'none', 0, 8) == 'unknown:' ? t('review.signedUnknown', {key: slice(state.install.summary.signature, 8)}) : t('review.unsigned')}}",
+		"signedTrusted": "{{slice(state.install.summary.signature ?? '', 0, 8) == 'trusted:'}}",
+		"neverIncluded": "{{['share.never.records', 'share.never.history', 'share.never.grants', 'share.never.secrets', 'share.never.paths']}}",
 		"excluded": "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '*.py', '.*']}}"
 	},
 
 	"actions": {
 		"go": [{ "note": "with: page" }, { "set": "state.page", "to": "{{page}}" }],
+		"showKind": [{ "note": "with: kind (all, mine, or an example's category)" }, { "set": "state.kind", "to": "{{kind}}" }],
 		"toast": [
-			{ "note": "with: message, error" },
-			{ "push": "state.toasts", "value": { "message": "{{message}}", "color": "{{error ? '@c.danger' : '@c.accent'}}" } },
+			{ "note": "with: message, failed" },
+			{ "push": "state.toasts", "value": { "message": "{{message}}", "color": "{{failed ? '@c.danger' : '@c.accent'}}" } },
 			{ "debounce": 4000, "do": [{ "set": "state.toasts", "to": [] }] }
 		],
 
 		"launcher.refresh": [
 			{ "note": "Reads the apps folder again. Each read is numbered (mineRun): one started later makes an earlier one, still reading, stop, so two never fill the list together" },
 			{ "increment": "state.mineRun" },
-			{ "run": "listMine", "with": { "run": "{{state.mineRun}}" } }
+			{ "run": "listMine", "with": { "pass": "{{state.mineRun}}" } },
+			{ "run": "listCatalogue" }
+		],
+		"listCatalogue": [
+			{ "note": "Asks the packages service for the catalogue the host grants: the Catalogue page shows only when there is one" },
+			{ "invoke": "packages.catalogue", "with": {},
+			  "onDone": [{ "set": "state.catalogue", "to": { "available": true, "name": "{{result.name}}", "updated": "{{result.updated}}", "signed": "{{result.signed}}", "entries": "{{result.entries}}" } }],
+			  "onError": [{ "note": "No catalogue, or its index refused: the page stays hidden, as it starts" }] }
+		],
+		"launcher.catalogue": [
+			{ "note": "Shows a catalogue as the service gives it (event: {name, updated, signed, entries}): scenarios play its answer with it" },
+			{ "set": "state.catalogue", "to": { "available": true, "name": "{{event.name ?? ''}}", "updated": "{{event.updated ?? ''}}", "signed": "{{event.signed ?? false}}", "entries": "{{event.entries ?? []}}" } }
+		],
+		"reviewListed": [
+			{ "note": "with: id, release, description. Asks the packages service what installing a catalogue's entry would do, the same review as for a file" },
+			{ "invoke": "packages.inspect", "with": { "catalogue": "{{id}}", "release": "{{release}}" },
+			  "onDone": [{ "run": "reviewEntry", "with": { "summary": "{{result.summary}}", "why": "", "listed": "{{result.listed ?? {}}}", "id": "{{id}}", "release": "{{release}}", "description": "{{description}}" } }],
+			  "onError": [{ "run": "reviewEntry", "with": { "summary": {}, "why": "{{error.message}}", "listed": {}, "id": "{{id}}", "release": "{{release}}", "description": "{{description}}" } }] }
+		],
+		"reviewEntry": [
+			{ "note": "with: summary, why, listed, id, release, description. The review of a file, with where the entry was listed" },
+			{ "run": "review", "with": { "summary": "{{summary}}", "why": "{{why}}" } },
+			{ "set": "state.install.package", "to": { "description": "{{description}}" } },
+			{ "set": "state.install.entry", "to": { "catalogue": "{{id}}", "release": "{{release}}" } },
+			{ "set": "state.install.listed", "to": "{{listed}}" }
+		],
+		"launcher.reviewListed": [
+			{ "note": "Shows the review of a catalogue's entry as the event gives it ({summary, listed, id, release, description, error?}): scenarios play the service's answer with it" },
+			{ "run": "reviewEntry", "with": { "summary": "{{event.summary ?? {}}}", "why": "{{event.error ?? ''}}", "listed": "{{event.listed ?? {}}}", "id": "{{event.id ?? ''}}", "release": "{{event.release ?? ''}}", "description": "{{event.description ?? ''}}" } }
 		],
 		"listMine": [
-			{ "note": "with: run" },
+			{ "note": "with: pass" },
 			{ "invoke": "apps.list", "with": { "path": "." },
 			  "onDone": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "set": "state.mineScan", "to": "{{filter(result.entries, it.kind == 'folder' && it.name != 'shared' && slice(it.name, 0, 1) != '.')}}" },
 				{ "set": "state.mineNext", "to": [] },
 				{ "set": "state.mineError", "to": "" },
-				{ "run": "loadMine", "with": { "i": 0, "run": "{{run}}" } }
+				{ "run": "loadMine", "with": { "i": 0, "pass": "{{pass}}" } }
 			  ],
 			  "onError": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "set": "state.mineError", "to": "{{error.message}}" },
 				{ "set": "state.mineLoaded", "to": true }
 			  ] }
@@ -168,65 +222,67 @@
 			{ "set": "state.mineLoaded", "to": true }
 		],
 		"loadMine": [
-			{ "note": "with: i, run. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy), or a lisp folder (a copy of an example written as a program: loadMineProgram). Each call's answer runs the next action by name, so a long list nests no deeper than it must where calls are answered at once" },
-			{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+			{ "note": "with: i, pass. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy), or a lisp folder (a copy of an example written as a program: loadMineProgram). Each call's answer runs the next action by name, so a long list nests no deeper than it must where calls are answered at once" },
+			{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 			{ "if": "{{i >= length(state.mineScan)}}", "then": [
 				{ "set": "state.mine", "to": "{{sort(state.mineNext, it.modified, 'desc')}}" },
 				{ "set": "state.mineLoaded", "to": true },
 				{ "stop": true }
 			] },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineCopy'}}",
-			               "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMineCopy", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineCopy": [
-			{ "note": "with: i, run" },
+			{ "note": "with: i, pass" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/json/index.screen.json'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineProgram'}}",
-			               "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/json", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMineProgram", "with": { "i": "{{i}}", "pass": "{{pass}}" } }] }
 		],
 		"loadMineProgram": [
-			{ "note": "with: i, run. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out" },
+			{ "note": "with: i, pass. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out" },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/lisp/app.lisp'}}" },
-			  "onDone": [{ "run": "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMine'}}",
-			               "with": { "i": "{{result.exists == true && result.kind == 'file' ? i : i + 1}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
+			  "onDone": [{ "if": "{{result.exists == true && result.kind == 'file'}}", "then": [{ "run": "readMine", "with": { "i": "{{i}}", "sub": "/lisp", "modified": "{{result.modified ?? 0}}", "pass": "{{pass}}" } }], "else": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }],
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }
 		],
 
 		"readMine": [
-			{ "note": "with: i, sub, modified, run. The name is the window title of a JSON app's screen, or a program's name in its app.lisp" },
+			{ "note": "with: i, sub, modified, pass. The name is the window title of a JSON app's screen, or a program's name in its app.lisp" },
 			{ "invoke": "apps.read", "with": { "path": "{{state.mineScan[i].name + sub + (sub == '/lisp' ? '/app.lisp' : '/index.screen.json')}}" },
 			  "onDone": [
-				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "if": "{{pass != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "push": "state.mineNext", "value": { "id": "{{state.mineScan[i].name}}", "sub": "{{sub}}", "name": "{{(sub == '/lisp' ? formKeyword(result.text, 'name') : (parseJson(result.text) ?? {}).window.title) ?? state.mineScan[i].name}}", "modified": "{{modified}}" } },
-				{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }
+				{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }
 			  ],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "pass": "{{pass}}" } }] }
 		],
 		"listNew": [
 			{ "note": "with: id, sub, title. Shows an app just made at the top of the list at once, before the folder is read again (launcher.refresh, a moment later: after the calls that made it have ended, so what reads the folder doesn't nest in them)" },
 			{ "set": "state.mine", "to": "{{concat([{id: id, sub: sub, name: title, modified: now()}], filter(state.mine, it.id != id))}}" }
 		],
+		"openApp": [
+			{ "note": "with: app. The person's own, or an example" },
+			{ "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } }],
+			  "else": [{ "run": "openExample", "with": { "app": "{{app}}" } }] }
+		],
 		"openExample": [
 			{ "note": "with: app" },
 			{ "invoke": "launch.run",
 			  "with": { "arguments": "{{app.program == 'host' ? ['affrescoui_launcher', 'examples:' + app.folder + '/' + (app.notation ?? state.notation)] : [app.program]}}" },
-			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: app.name})}}", "error": false } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: app.name, why: error.message})}}", "error": true } }] }
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: app.name})}}", "failed": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: app.name, why: error.message})}}", "failed": true } }] }
 		],
 		"openMine": [
-			{ "note": "with: id, name, ask (empty for none)" },
+			{ "note": "with: id, name, firstRequest (what its assistant is asked once it opens; empty for none)" },
 			{ "invoke": "launch.run",
-			  "with": { "arguments": "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub == '/lisp' ? '/lisp' : ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json')], ask != '' ? ['--ask', ask] : [])}}" },
-			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: name})}}", "error": false } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: name, why: error.message})}}", "error": true } }] }
+			  "with": { "arguments": "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub == '/lisp' ? '/lisp' : ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json')], firstRequest != '' ? ['--ask', firstRequest] : [])}}" },
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: name})}}", "failed": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: name, why: error.message})}}", "failed": true } }] }
 		],
 		"revealMine": [
 			{ "note": "with: id ('' for the apps folder itself)" },
 			{ "invoke": "launch.run", "with": { "arguments": ["reveal", "{{'apps:' + id}}"] },
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"askDelete": [
 			{ "note": "with: id, name" },
@@ -236,10 +292,10 @@
 		"deleteMine": [
 			{ "invoke": "apps.delete", "with": { "path": "{{state.confirm.id}}" },
 			  "onDone": [
-				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "error": false } },
+				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "failed": false } },
 				{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 			  ],
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"duplicateMine": [
 			{ "note": "with: id, name. The copy's folder is the first free <id>-copy, <id>-copy-2, ..." },
@@ -249,68 +305,68 @@
 		"copyMine": [
 			{ "note": "with: id, name, to" },
 			{ "invoke": "apps.copy", "with": { "path": "{{id}}", "to": "{{to}}" },
-			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "ask": "", "then": "copied" } }],
-			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "firstRequest": "", "then": "copied" } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
 		],
 		"copied": [
 			{ "run": "listNew", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}" } },
-			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "error": false } },
+			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "failed": false } },
 			{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 		],
 		"retitle": [
 			{ "note": "with: id, sub (where the app's files are in its folder: '', '/json' or '/lisp'), title, then (an action, run with the same variables). Sets the window title of its index.screen.json, as text, so the file keeps its layout; a program's through its keywords (retitleProgram)" },
-			{ "if": "{{sub == '/lisp'}}", "then": [{ "run": "retitleProgram", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }, { "stop": true }] },
+			{ "if": "{{sub == '/lisp'}}", "then": [{ "run": "retitleProgram", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }, { "stop": true }] },
 			{ "invoke": "apps.read", "with": { "path": "{{id + sub + '/index.screen.json'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + sub + '/index.screen.json'}}",
 				            "text": "{{(parseJson(result.text) ?? {}).window.title == null ? result.text : join(split(result.text, json((parseJson(result.text) ?? {}).window.title)), json(title))}}" },
-				  "onDone": [{ "run": "reidentify", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "reidentify", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"retitleProgram": [
-			{ "note": "with: id, title, ask, then. A program copied into a lisp folder: the :window :title of the entry its app.lisp names is set, by a keyword edit that keeps every other character, then its app.lisp's :id and :name" },
+			{ "note": "with: id, title, firstRequest, then. A program copied into a lisp folder: the :window :title of the entry its app.lisp names is set, by a keyword edit that keeps every other character, then its app.lisp's :id and :name" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/app.lisp'}}" },
-			  "onDone": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "{{formKeyword(result.text, 'entry') ?? 'index.screen.lisp'}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+			  "onDone": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "{{formKeyword(result.text, 'entry') ?? 'index.screen.lisp'}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"retitleEntry": [
-			{ "note": "with: id, entry, title, ask, then. The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as index.screen.lisp, so a copy never writes outside itself" },
+			{ "note": "with: id, entry, title, firstRequest, then. The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as index.screen.lisp, so a copy never writes outside itself" },
 			{ "if": "{{type(entry) != 'string' || entry == '' || slice(entry, 0, 1) == '.' || contains(entry, '/') || contains(entry, '\\\\') || contains(entry, ':')}}",
-			  "then": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "index.screen.lisp", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }, { "stop": true }] },
+			  "then": [{ "run": "retitleEntry", "with": { "id": "{{id}}", "entry": "index.screen.lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }, { "stop": true }] },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/' + entry}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + '/lisp/' + entry}}", "text": "{{setFormKeyword(result.text, ['window', 'title'], title) ?? result.text}}" },
-				  "onDone": [{ "run": "reidentifyProgram", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "reidentifyProgram", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"reidentifyProgram": [
-			{ "note": "with: id, title, ask, then. Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json" },
+			{ "note": "with: id, title, firstRequest, then. Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + '/lisp/app.lisp'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + '/lisp/app.lisp'}}", "text": "{{setFormKeyword(setFormKeyword(result.text, 'id', id) ?? result.text, 'name', title) ?? result.text}}" },
-				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onDone": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "/lisp", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"reidentify": [
-			{ "note": "with: id, sub, title, ask, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from" },
+			{ "note": "with: id, sub, title, firstRequest, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from" },
 			{ "invoke": "apps.read", "with": { "path": "{{id + sub + '/app.json'}}" },
 			  "onDone": [
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + sub + '/app.json'}}",
 				            "text": "{{join(split(join(split(result.text, '\"id\": ' + json((parseJson(result.text) ?? {}).id)), '\"id\": ' + json(id)), '\"name\": ' + json((parseJson(result.text) ?? {}).name)), '\"name\": ' + json(title))}}" },
-				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onDone": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
-			  "onError": [{ "run": "{{then}}", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}" } }] }
+			  "onError": [{ "if": "{{then == 'copied'}}", "then": [{ "run": "copied", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }], "else": [{ "run": "createShared", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}" } }] }] }
 		],
 
 		"startFrom": [
@@ -324,48 +380,52 @@
 			{ "set": "state.create.features", "to": "{{contains(state.create.features, id) ? filter(state.create.features, it != id) : concat(state.create.features, [id])}}" }
 		],
 		"resetCreate": [
-			{ "set": "state.create", "to": { "name": "", "from": "blank", "describe": "", "features": [], "tried": false, "busy": false, "error": "" } }
+			{ "note": "field by field: a value with a key named as a step (error) would read as one to the run rules" },
+			{ "set": "state.create.name", "to": "" }, { "set": "state.create.from", "to": "blank" }, { "set": "state.create.describe", "to": "" },
+			{ "set": "state.create.features", "to": [] }, { "set": "state.create.tried", "to": false }, { "set": "state.create.busy", "to": false },
+			{ "set": "state.create.error", "to": "" }
 		],
 		"createApp": [
 			{ "set": "state.create.tried", "to": true },
 			{ "set": "state.create.error", "to": "" },
 			{ "if": "{{computed.createError != '' || state.create.busy}}", "then": [{ "focus": "#createName" }, { "stop": true }] },
 			{ "set": "state.create.busy", "to": true },
-			{ "run": "{{state.create.from == 'blank' ? 'createBlank' : 'createCopy'}}",
-			  "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "ask": "{{computed.askText}}",
-			            "folder": "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}",
-			            "sub": "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}", "then": "createShared" } }
+			{ "if": "{{state.create.from == 'blank'}}",
+			  "then": [{ "run": "createBlank", "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "firstRequest": "{{computed.askText}}", "then": "createShared" } }],
+			  "else": [{ "run": "createCopy", "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "firstRequest": "{{computed.askText}}",
+			            "exampleFolder": "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}",
+			            "sub": "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}", "then": "createShared" } }] }
 		],
 		"createBlank": [
-			{ "note": "with: id, title, ask, then. A folder, and the blank starter in it" },
+			{ "note": "with: id, title, firstRequest, then. A folder, and the blank starter in it" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
 			  "onDone": [
 				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "launcher/json/starters/blank.screen.json", "to": "{{id + '/index.screen.json'}}" },
-				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createCopy": [
-			{ "note": "with: id, title, ask, folder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there" },
+			{ "note": "with: id, title, firstRequest, exampleFolder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
 			  "onDone": [
-				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
-				  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
-				                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
-				                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }] }],
+				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
+				  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
+				                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
+				                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }] }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createShared": [
-			{ "note": "with: id, title, ask. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
+			{ "note": "with: id, title, firstRequest. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
 			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}" },
 			  "onDone": [
 				{ "run": "listNew", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}" } },
 				{ "run": "resetCreate" },
 				{ "set": "state.page", "to": "mine" },
-				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "ask": "{{ask}}" } },
+				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "firstRequest": "{{firstRequest}}" } },
 				{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
@@ -377,11 +437,44 @@
 			{ "if": "{{keep != true && id != ''}}", "then": [{ "invoke": "apps.delete", "with": { "path": "{{id}}" }, "onError": [] }] }
 		],
 
+		"exportMine": [{"note": "with: id, name. Asks the packages service for a package of an app, to show what it holds before it is saved"}, {"set": "state.exporting", "to": {"open": false, "id": "{{id}}", "name": "{{name}}", "description": "", "author": "", "summary": {}, "leftOut": {}, "busy": true}}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{id}}", "name": "{{name}}"}, "onDone": [{"if": "{{id == state.exporting.id}}", "then": [{"set": "state.exporting.summary", "to": "{{result.summary}}"}, {"set": "state.exporting.leftOut", "to": "{{result.leftOut}}"}, {"set": "state.exporting.busy", "to": false}, {"set": "state.exporting.open", "to": true}]}], "onError": [{"set": "state.exporting.busy", "to": false}, {"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
+		"launcher.export": [{"note": "Opens the export dialog on an export's answer as the event gives it ({id, name, summary, leftOut}): scenarios play the service's answer with it"}, {"set": "state.exporting", "to": {"open": true, "id": "{{event.id}}", "name": "{{event.name}}", "description": "", "author": "", "summary": "{{event.summary}}", "leftOut": "{{event.leftOut ?? {}}}", "busy": false}}],
+		"exportSave": [{"note": "Makes the package again with the name, description and author given, then asks where to save it; a note names the file saved, by its name only"}, {"invoke": "packages.export", "with": {"root": "apps", "app": "{{state.exporting.id}}", "name": "{{trim(state.exporting.name)}}", "description": "{{trim(state.exporting.description)}}", "author": "{{trim(state.exporting.author)}}"}, "onDone": [{"saveFile": "{{result.package}}", "name": "{{state.exporting.id + '.affresco.json'}}", "onDone": [{"run": "toast", "with": {"message": "{{t('toast.exported', {file: result.name})}}", "failed": false}}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
+		"installFromFile": [{"note": "Asks for a file someone gave, then asks the packages service what installing it would do"}, {"openFile": "state.install.package", "extensions": ["json"], "onDone": [{"invoke": "packages.inspect", "with": {"package": "{{state.install.package}}"}, "onDone": [{"run": "review", "with": {"summary": "{{result.summary}}", "why": ""}}], "onError": [{"run": "review", "with": {"summary": {}, "why": "{{error.message}}"}}]}], "onError": [{"run": "toast", "with": {"message": "{{error.message}}", "failed": true}}]}],
+		"review": [{"note": "with: summary, why. Shows the review: what installing the file would do, or why it can't be installed"}, {"set": "state.install.summary", "to": "{{summary}}"}, {"set": "state.install.error", "to": "{{why}}"}, {"set": "state.install.name", "to": "{{summary.name ?? ''}}"}, {"set": "state.install.tried", "to": false}, {"set": "state.install.busy", "to": false}, {"set": "state.install.entry", "to": {}}, {"set": "state.install.listed", "to": {}}, {"run": "go", "with": {"page": "install"}}],
+		"launcher.review": [{"note": "Shows the review of a file as the event gives it ({summary, package?, error?}): scenarios play the service's answer with it"}, {"set": "state.install.package", "to": "{{event.package ?? {}}}"}, {"run": "review", "with": {"summary": "{{event.summary ?? {}}}", "why": "{{event.error ?? ''}}"}}],
+		"installApp": [{"note": "Installs the file as a new app, if it can be and its name is right: its changes wait in it as a proposal. The shared files are brought as for a new app, then it is listed first and opened"}, {"set": "state.install.tried", "to": true}, {"if": "{{computed.installable && computed.installError == '' && !state.install.busy}}", "then": [{"set": "state.install.busy", "to": true}, {"if": "{{(state.install.entry.catalogue ?? '') != ''}}", "then": [{"invoke": "packages.install", "with": {"catalogue": "{{state.install.entry.catalogue}}", "release": "{{state.install.entry.release}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "failed": true}}]}], "else": [{"invoke": "packages.install", "with": {"package": "{{state.install.package}}", "id": "{{computed.installSlug}}", "name": "{{trim(state.install.name)}}"}, "onDone": [{"run": "installShared", "with": {"id": "{{result.id}}", "sub": "{{result.sub}}", "title": "{{trim(state.install.name)}}", "proposal": "{{result.proposal}}"}}], "onError": [{"set": "state.install.busy", "to": false}, {"run": "toast", "with": {"message": "{{t('toast.notInstalled', {why: error.message})}}", "failed": true}}]}]}]}],
+		"installShared": [{"note": "with: id, sub, title, proposal. The shared files brought up to date, then the new app listed first and opened"}, {"invoke": "apps.copy", "with": {"from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}"}, "onDone": [{"run": "installReady", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "proposal": "{{proposal}}"}}], "onError": [{"run": "installReady", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "proposal": "{{proposal}}"}}]}],
+		"installReady": [{"note": "with: id, sub, title, proposal"}, {"set": "state.install.busy", "to": false}, {"run": "listNew", "with": {"id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}"}}, {"set": "state.page", "to": "mine"}, {"run": "openMine", "with": {"id": "{{id}}", "name": "{{title}}", "firstRequest": ""}}, {"run": "toast", "with": {"message": "{{t(proposal ? 'toast.installedProposal' : 'toast.installed', {name: title})}}", "failed": false}}, {"after": 1, "do": [{"run": "launcher.refresh"}]}],
+		"cancelInstall": [{"note": "Leaves the review, for the page it came from: nothing is installed"}, {"set": "state.page", "to": "{{(state.install.entry.catalogue ?? '') != '' ? 'catalogue' : 'mine'}}"}, {"set": "state.install", "to": {"package": {}, "summary": {}, "error": "", "name": "", "tried": false, "busy": false, "entry": {}, "listed": {}}}],
 		"showApps": { "title": "{{t('nav.apps')}}", "category": "view", "icon": "layout-grid", "do": [{ "run": "go", "with": { "page": "apps" } }] },
 		"showMine": { "title": "{{t('nav.mine')}}", "category": "view", "icon": "folder-heart", "do": [{ "run": "go", "with": { "page": "mine" } }] },
 		"showCreate": { "title": "{{t('nav.create')}}", "category": "view", "icon": "circle-plus", "do": [{ "run": "go", "with": { "page": "create" } }, { "focus": "#createName" }] },
+		"showCatalogue": { "title": "{{t('nav.catalogue')}}", "category": "view", "icon": "library", "do": [{ "if": "{{state.catalogue.available}}", "then": [{ "run": "go", "with": { "page": "catalogue" } }] }] },
 		"showSettings": { "title": "{{t('nav.settings')}}", "category": "view", "icon": "settings", "do": [{ "run": "go", "with": { "page": "settings" } }] },
-		"findApp": { "title": "{{t('apps.search')}}", "category": "view", "icon": "search", "do": [{ "run": "go", "with": { "page": "apps" } }, { "focus": "#appSearch" }] }
+		"findApp": { "title": "{{t('apps.search')}}", "category": "view", "icon": "search", "do": [{ "run": "go", "with": { "page": "apps" } }, { "focus": "#appSearch" }] },
+		"appOpen": { "title": "{{t('command.appOpen')}}", "description": "{{t('command.appOpen.about')}}", "category": "apps", "icon": "app-window",
+			"arguments": { "name": { "type": "string", "description": "The app's name, like Flow or Reading list" } },
+			"do": [
+				{ "note": "the app of the cards with that name or folder, ignoring case; none, and a note says so" },
+				{ "if": "{{find(computed.everyApp, lower(it.name) == lower(trim(name)) || lower('' + it.id) == lower(trim(name))) == null}}",
+				  "then": [{ "run": "toast", "with": { "message": "{{t('toast.noSuchApp', {name: name})}}", "failed": true } }, { "stop": true }] },
+				{ "run": "openApp", "with": { "app": "{{find(computed.everyApp, lower(it.name) == lower(trim(name)) || lower('' + it.id) == lower(trim(name)))}}" } }
+			] },
+		"appCreate": { "title": "{{t('command.appCreate')}}", "description": "{{t('command.appCreate.about')}}", "category": "apps", "icon": "circle-plus",
+			"arguments": { "name": { "type": "string", "description": "The new app's name, like My budget" },
+			               "from": { "type": ["string", "null"], "description": "The example it starts from, like Flow; a blank app when left out" },
+			               "describe": { "type": ["string", "null"], "description": "What its assistant is asked to build first, in the person's words" } },
+			"do": [
+				{ "note": "fills in the Create page and makes the app, as Create would: a name it refuses stays there, said" },
+				{ "run": "resetCreate" },
+				{ "set": "state.create.name", "to": "{{'' + name}}" },
+				{ "set": "state.create.from", "to": "{{(find(state.examples, lower(it.name) == lower(trim(from ?? '')) || it.id == lower(trim(from ?? ''))) ?? {id: 'blank'}).id}}" },
+				{ "set": "state.create.describe", "to": "{{describe ?? ''}}" },
+				{ "run": "go", "with": { "page": "create" } },
+				{ "note": "after the update, so the name's checks and folder are worked out from the name just set" },
+				{ "after": 1, "do": [{ "run": "createApp" }] }
+			] }
 	},
 
 	"keys": {
@@ -400,8 +493,8 @@
 		"pageSub": { "type": "label", "textColor": "@c.muted", "anchors": { "left": 36, "right": 36, "top": 72 }, "height": 20 },
 		"sectionTitle": { "type": "label", "font": "heading", "textColor": "@c.text", "height": 24 },
 		"hint": { "type": "label", "font": "small", "textColor": "@c.muted", "height": 18 },
-		"primary": { "type": "label", "align": "center", "radius": 10, "color": "@c.accent", "textColor": "@c.onAccent", "font": "strong",
-			"cursor": "hand", "focusable": true, "role": "button", "hover": { "color": "@c.accentHover" }, "transition": { "color": 120 } },
+		"primary": { "type": "label", "align": "center", "radius": 10, "color": "@c.primary", "textColor": "@c.onAccent", "font": "strong",
+			"cursor": "hand", "focusable": true, "role": "button", "hover": { "color": "@c.primaryHover" }, "transition": { "color": 120 } },
 		"secondary": { "type": "label", "align": "center", "radius": 10, "color": "@c.raised", "textColor": "@c.text", "cursor": "hand",
 			"focusable": true, "role": "button", "hover": { "color": "@c.hover" }, "transition": { "color": 120 } },
 		"iconButton": { "type": "label", "align": "center", "radius": 8, "color": "transparent", "textColor": "@c.muted", "font": "bigIcons",
@@ -436,6 +529,30 @@
 			}
 		},
 
+		"catalogueCard": {
+			"params": { "entry": {} },
+			"node": {
+				"id": "catalogueCardPanel",
+				"style": "card", "height": 168, "focusable": true, "role": "button", "cursor": "hand",
+				"label": "{{t('catalogue.reviewLabel', {name: entry.title})}}",
+				"hover": { "borderColor": "@c.accent", "shadow": { "y": 8, "blur": 22, "color": "@c.shadow" } },
+				"focused": { "borderColor": "@c.accent", "borderWidth": 2 },
+				"onClick": { "run": "reviewListed", "with": { "id": "{{entry.id}}", "release": "{{entry.release}}", "description": "{{entry.description}}" } },
+				"children": [
+					{ "type": "label", "id": "catalogueCardIcon", "icon": "{{entry.kind == 'feature' ? 'puzzle' : 'package'}}", "font": "bigIcons", "align": "center",
+					  "textColor": "@c.accent", "color": "@c.accentSoft", "radius": 10, "anchors": { "left": 16, "top": 16 }, "width": 40, "height": 40 },
+					{ "type": "label", "id": "catalogueCardKind", "font": "small", "textColor": "@c.muted", "align": "end center",
+					  "text": "{{entry.installed ? t('catalogue.installed') : (entry.kind == 'feature' ? t('catalogue.kindFeature') : t('catalogue.kindVersion', {base: entry.base}))}}",
+					  "anchors": { "right": 16, "top": 16 }, "height": 22, "width": 160 },
+					{ "type": "label", "id": "catalogueCardName", "text": "{{entry.title}}", "font": "strong", "textColor": "@c.text",
+					  "anchors": { "left": 16, "right": 16, "top": 68 }, "height": 22 },
+					{ "type": "label", "id": "catalogueCardAbout", "text": "{{entry.description}}", "font": "small", "textColor": "@c.muted", "wrap": true,
+					  "anchors": { "left": 16, "right": 16, "top": 92 }, "height": 48 },
+					{ "type": "label", "id": "catalogueCardRelease", "text": "{{t('review.release', {release: entry.release})}}", "font": "small", "textColor": "@c.dim",
+					  "anchors": { "left": 16, "right": 16, "bottom": 12 }, "height": 18 }
+				]
+			}
+		},
 		"appCard": {
 			"params": { "app": {} },
 			"node": {
@@ -444,7 +561,7 @@
 				"label": "{{app.mine ? t('mine.openLabel', {name: app.name}) : t('apps.openLabel', {name: app.name, tagline: t('tagline.' + app.id)})}}",
 				"hover": { "borderColor": "@c.accent", "shadow": { "y": 8, "blur": 22, "color": "@c.shadow" } },
 				"focused": { "borderColor": "@c.accent", "borderWidth": 2 },
-				"onClick": { "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } }],
+				"onClick": { "if": "{{app.mine}}", "then": [{ "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } }],
 				             "else": [{ "run": "openExample", "with": { "app": "{{app}}" } }] },
 				"children": [
 					{ "id": "cardCoverFrame", "anchors": { "left": 10, "right": 10, "top": 10 }, "height": 156, "radius": 10, "color": "@c.raised",
@@ -459,12 +576,12 @@
 					  "text": "{{app.mine ? (app.modified > 0 ? t('mine.info', {folder: app.id, date: formatDate(app.modified, 'medium')}) : app.id) : t('tagline.' + app.id)}}", "font": "small", "textColor": "@c.muted", "wrap": true,
 					  "anchors": { "left": 16, "right": 16, "top": 202 }, "height": 32 },
 					{ "type": "label", "id": "cardKind", "font": "small",
-					  "text": "{{app.mine ? t('apps.tagMine') : t('apps.tagExample')}}",
+					  "text": "{{app.mine ? t('apps.tagMine') : t('kind.' + app.category)}}",
 					  "textColor": "#ffffff",
-					  "color": "{{app.mine ? '@c.accent' : '#16142acc'}}", "radius": 999, "padding": 5,
+					  "color": "{{app.mine ? '@c.primary' : '#16142acc'}}", "radius": 999, "padding": 5,
 					  "anchors": { "left": 18, "top": 18 }, "fitText": true, "height": 22 },
-					{ "id": "cardStart", "when": "{{!app.mine && app.program == 'host' && app.starter != false}}", "style": "iconButton", "icon": "copy-plus",
-					  "anchors": { "right": 10, "top": 172 },
+					{ "id": "cardStart", "when": "{{!app.mine && app.program == 'host' && app.starter != false}}", "style": "iconButton", "icon": "copy-plus", "font": "icons", "width": 30, "height": 30,
+					  "anchors": { "right": 12, "top": 174 },
 					  "tooltip": "{{t('apps.startFrom', {name: app.name})}}", "label": "{{t('apps.startFrom', {name: app.name})}}",
 					  "onClick": { "run": "startFrom", "with": { "id": "{{app.id}}" } } }
 				]
@@ -478,21 +595,23 @@
 				"style": "card", "height": 76, "anchors": { "left": 0, "right": 0 }, "focusable": true, "role": "button", "cursor": "hand",
 				"label": "{{t('mine.openLabel', {name: app.name})}}",
 				"hover": { "borderColor": "@c.accent" }, "focused": { "borderColor": "@c.accent", "borderWidth": 2 },
-				"onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } },
+				"onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } },
 				"keys": { "delete": { "run": "askDelete", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
 				"children": [
 					{ "type": "label", "id": "mineInitial", "text": "{{upper(slice(app.name, 0, 1))}}", "font": "initial", "align": "center",
 					  "textColor": "#ffffff", "color": "{{state.tileColors[index % 6]}}", "radius": 12,
 					  "anchors": { "left": 16, "top": 16 }, "width": 44, "height": 44 },
 					{ "type": "label", "id": "mineName", "text": "{{app.name}}", "font": "strong", "textColor": "@c.text",
-					  "anchors": { "left": 76, "right": 220, "top": 17 }, "height": 22 },
+					  "anchors": { "left": 76, "right": 258, "top": 17 }, "height": 22 },
 					{ "type": "label", "id": "mineInfo", "font": "small", "textColor": "@c.muted",
 					  "text": "{{app.modified > 0 ? t('mine.info', {folder: app.id, date: formatDate(app.modified, 'medium')}) : app.id}}",
-					  "anchors": { "left": 76, "right": 220, "top": 41 }, "height": 18 },
-					{ "type": "row", "id": "mineActions", "gap": 4, "anchors": { "right": 14, "top": 21 }, "height": 34, "width": 210, "justify": "end",
+					  "anchors": { "left": 76, "right": 258, "top": 41 }, "height": 18 },
+					{ "type": "row", "id": "mineActions", "gap": 4, "anchors": { "right": 14, "top": 21 }, "height": 34, "width": 248, "justify": "end",
 					  "children": [
 						{ "id": "mineOpen", "style": "primary", "text": "{{t('mine.open')}}", "width": 74, "height": 34,
-						  "onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } } },
+						  "onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "firstRequest": "" } } },
+						{ "id": "mineExport", "style": "iconButton", "icon": "package", "tooltip": "{{t('mine.export')}}", "label": "{{t('mine.exportLabel', {name: app.name})}}",
+						  "onClick": { "run": "exportMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
 						{ "id": "mineDuplicate", "style": "iconButton", "icon": "copy", "tooltip": "{{t('mine.duplicate')}}", "label": "{{t('mine.duplicateLabel', {name: app.name})}}",
 						  "onClick": { "run": "duplicateMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
 						{ "id": "mineReveal", "style": "iconButton", "icon": "folder-open", "tooltip": "{{t('mine.reveal')}}", "label": "{{t('mine.revealLabel', {name: app.name})}}",
@@ -532,7 +651,7 @@
 			"params": { "title": "", "icon": "", "height": 120 },
 			"node": {
 				"id": "settingsCardPanel",
-				"style": "card", "height": "{{height}}", "anchors": { "left": 0, "right": 0 },
+				"style": "card", "height": "{{height}}", "anchors": { "left": 0, "right": 16 },
 				"children": [
 					{ "type": "label", "id": "settingsCardIcon", "icon": "{{icon}}", "font": "bigIcons", "textColor": "@c.accent",
 					  "anchors": { "left": 20, "top": 18 }, "width": 24, "height": 24 },
@@ -567,7 +686,7 @@
 						"type": "column",
 						"id": "nav",
 						"anchors": { "left": 12, "right": 12, "top": 90 },
-						"height": 186,
+						"height": "{{state.catalogue.available ? 234 : 186}}",
 						"gap": 6,
 						"arrows": "vertical",
 						"role": "tablist",
@@ -576,12 +695,14 @@
 							{ "id": "navApps", "use": "navItem", "with": { "id": "apps", "icon": "layout-grid", "title": "{{t('nav.apps')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘1' : 'Ctrl+1'}}" } },
 							{ "id": "navMine", "use": "navItem", "with": { "id": "mine", "icon": "folder-heart", "title": "{{t('nav.mine')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘2' : 'Ctrl+2'}}" } },
 							{ "id": "navCreate", "use": "navItem", "with": { "id": "create", "icon": "circle-plus", "title": "{{t('nav.create')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘N' : 'Ctrl+N'}}" } },
+							{ "id": "navCatalogue", "when": "{{state.catalogue.available}}", "use": "navItem", "with": { "id": "catalogue", "icon": "library", "title": "{{t('nav.catalogue')}}", "keyLabel": "" } },
 							{ "id": "navSettings", "use": "navItem", "with": { "id": "settings", "icon": "settings", "title": "{{t('nav.settings')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘,' : 'Ctrl+,'}}" } }
 						]
 					},
 					{ "id": "sideNew", "style": "primary", "icon": "plus", "text": "{{computed.wide ? t('nav.newApp') : ''}}", "font": "{{computed.wide ? 'strong' : 'bigIcons'}}",
 					  "label": "{{t('nav.newApp')}}", "tooltip": "{{computed.wide ? '' : t('nav.newApp')}}",
 					  "anchors": { "left": 12, "right": 12, "bottom": 20 }, "height": 42,
+					  "transition": {}, "note": "no colour transition: folding the sidebar left it transparent, its icon on nothing",
 					  "onClick": "showCreate" },
 					{ "type": "label", "id": "sideNote", "when": "{{computed.wide}}", "font": "small", "textColor": "@c.dim", "wrap": true,
 					  "text": "{{t('brand.note')}}", "anchors": { "left": 20, "right": 16, "bottom": 74 }, "height": 52 }
@@ -602,31 +723,103 @@
 						"label": "{{t('nav.apps')}}",
 						"children": [
 							{ "id": "appsTitle", "style": "pageTitle", "text": "{{t('apps.title')}}", "role": "heading" },
-							{ "id": "appsSub", "style": "pageSub", "text": "{{t('apps.sub')}}", "anchors": { "left": 36, "right": 320, "top": 72 } },
 							{ "id": "appSearch", "use": "searchField",
 							  "with": { "name": "query", "placeholder": "{{t('apps.search')}}", "label": "{{t('apps.search')}}", "clearLabel": "{{t('apps.clear')}}",
+							            "width": "{{min(280, window.width - computed.sideWidth - 220)}}", "height": 38, "color": "@c.surface" },
+							  "anchors": { "right": 48, "top": 32 } },
+							{
+								"type": "column",
+								"id": "appsScroll",
+								"anchors": { "left": 0, "right": 0, "top": 84, "bottom": 0 },
+								"scroll": "vertical",
+								"gap": 0,
+								"children": [
+									{ "id": "welcome", "when": "{{computed.welcomed}}", "anchors": { "left": 36, "right": 48 }, "height": 160, "color": "transparent",
+									  "children": [
+										{ "id": "welcomeCard", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 136, "radius": 18, "color": "@c.accentSoft",
+										  "borderWidth": 1, "borderColor": "@c.border",
+										  "children": [
+											{ "type": "image", "id": "welcomeMark", "file": "../assets/affrescoui-mark.svg", "fit": "contain",
+											  "anchors": { "left": 28, "top": 32 }, "width": 72, "height": 72, "label": "AffrescoUI" },
+											{ "type": "label", "id": "welcomeTitle", "text": "{{t('apps.welcome')}}", "font": "heading", "textColor": "@c.text",
+											  "anchors": { "left": 124, "right": 224, "top": 34 }, "height": 26, "role": "heading" },
+											{ "type": "label", "id": "welcomeSub", "text": "{{t('apps.welcomeSub')}}", "textColor": "@c.muted", "wrap": true,
+											  "anchors": { "left": 124, "right": 224, "top": 66 }, "height": 42 },
+											{ "id": "welcomeNew", "style": "primary", "icon": "plus", "text": "{{t('nav.newApp')}}",
+											  "anchors": { "right": 28, "top": 46 }, "width": 168, "height": 44, "onClick": "showCreate" }
+										  ] }
+									  ] },
+									{ "id": "kinds", "anchors": { "left": 36, "right": 48 }, "height": 58, "color": "transparent",
+									  "children": [
+										{ "type": "row", "id": "kindChips", "anchors": { "left": 0, "right": "{{computed.countShown ? 120 : 0}}", "top": 0 }, "height": 40, "gap": 8, "scroll": "horizontal",
+										  "role": "radiogroup", "arrows": "horizontal", "label": "{{t('apps.kinds')}}",
+										  "children": [
+											{ "type": "label", "id": "kindChip", "repeat": { "for": "k", "in": "computed.kinds", "key": "{{k}}" },
+											  "text": "{{t('kind.' + k)}}", "font": "small", "align": "center", "fitText": true, "height": 34, "padding": 10,
+											  "radius": 999, "focusable": true, "role": "radio", "checked": "{{state.kind == k}}", "cursor": "hand",
+											  "color": "{{state.kind == k ? '@c.primary' : '@c.surface'}}",
+											  "textColor": "{{state.kind == k ? '@c.onAccent' : '@c.text'}}",
+											  "borderWidth": 1, "borderColor": "{{state.kind == k ? '@c.primary' : '@c.border'}}",
+											  "hover": { "borderColor": "@c.accent" },
+											  "onClick": { "run": "showKind", "with": { "kind": "{{k}}" } } }
+										  ] },
+										{ "type": "label", "id": "appsCount", "when": "{{computed.countShown}}", "font": "small", "textColor": "@c.dim", "align": "end center",
+										  "text": "{{t('apps.count', {n: length(computed.shown)})}}", "anchors": { "right": 0, "top": 0 }, "height": 34, "width": 120 }
+									  ] },
+									{
+										"type": "grid",
+										"id": "appsGrid",
+										"anchors": { "left": 28, "right": 40 },
+										"height": "{{computed.gridHeight}}",
+										"columns": "{{computed.columns}}",
+										"gap": 20,
+										"role": "list",
+										"label": "{{t('nav.apps')}}",
+										"children": [
+											{ "id": "appCard", "repeat": { "for": "app", "in": "computed.shown", "key": "{{app.id}}" }, "use": "appCard", "with": { "app": "{{app}}" } }
+										]
+									}
+								]
+							},
+							{ "type": "label", "id": "appsNone", "when": "{{length(computed.shown) == 0}}", "icon": "search-x", "textColor": "@c.muted", "align": "center", "wrap": true,
+							  "text": "{{trim(state.query) == '' ? t('apps.noneHere') : t('apps.none', {query: trim(state.query)})}}",
+							  "anchors": { "left": 36, "right": 48, "top": "{{computed.welcomed ? 360 : 180}}" }, "height": 48, "live": "polite" }
+						]
+					},
+
+					{
+						"id": "cataloguePage",
+						"when": "{{state.page == 'catalogue'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('nav.catalogue')}}",
+						"children": [
+							{ "id": "catalogueTitle", "style": "pageTitle", "text": "{{t('catalogue.title')}}", "role": "heading" },
+							{ "id": "catalogueSub", "style": "pageSub", "text": "{{t('catalogue.sub')}}", "anchors": { "left": 36, "right": 320, "top": 72 } },
+							{ "id": "catalogueSearch", "use": "searchField",
+							  "with": { "name": "catalogueQuery", "placeholder": "{{t('catalogue.search')}}", "label": "{{t('catalogue.search')}}", "clearLabel": "{{t('apps.clear')}}",
 							            "width": "{{min(280, window.width - computed.sideWidth - 420)}}", "height": 38, "color": "@c.surface" },
 							  "anchors": { "right": 36, "top": 36 } },
-							{ "type": "label", "id": "appsCount", "when": "{{window.width - computed.sideWidth > 860}}", "font": "small", "textColor": "@c.dim", "align": "end center",
-							  "text": "{{t('apps.count', {n: length(computed.shown)})}}", "anchors": { "right": 36, "top": 82 }, "height": 22, "width": 160 },
+							{ "type": "label", "id": "catalogueUpdated", "when": "{{window.width - computed.sideWidth > 860}}", "font": "small", "textColor": "@c.dim", "align": "end center",
+							  "text": "{{state.catalogue.updated == '' ? '' : t('catalogue.updated', {date: state.catalogue.updated})}}", "anchors": { "right": 36, "top": 82 }, "height": 22, "width": 240 },
 							{
 								"type": "grid",
-								"id": "appsGrid",
+								"id": "catalogueGrid",
 								"anchors": { "left": 24, "right": 24, "top": 116, "bottom": 0 },
 								"columns": "{{computed.columns}}",
 								"gap": 20,
 								"scroll": "vertical",
 								"role": "list",
-								"label": "{{t('nav.apps')}}",
+								"label": "{{t('nav.catalogue')}}",
 								"children": [
-									{ "id": "appCard", "repeat": { "for": "app", "in": "computed.shown", "key": "{{app.id}}" }, "use": "appCard", "with": { "app": "{{app}}" } }
+									{ "id": "catalogueCard", "repeat": { "for": "entry", "in": "computed.catalogueShown", "key": "{{entry.id}}" }, "use": "catalogueCard", "with": { "entry": "{{entry}}" } }
 								]
 							},
-							{ "type": "label", "id": "appsNone", "when": "{{length(computed.shown) == 0}}", "textColor": "@c.muted", "align": "center", "wrap": true,
-							  "text": "{{t('apps.none', {query: trim(state.query)})}}", "anchors": { "left": 36, "right": 36, "top": 180 }, "height": 48, "live": "polite" }
+							{ "type": "label", "id": "catalogueNone", "when": "{{length(computed.catalogueShown) == 0}}", "textColor": "@c.muted", "align": "center", "wrap": true,
+							  "text": "{{trim(state.catalogueQuery) == '' ? t('catalogue.empty') : t('apps.none', {query: trim(state.catalogueQuery)})}}", "anchors": { "left": 36, "right": 36, "top": 180 }, "height": 48, "live": "polite" }
 						]
 					},
-
 					{
 						"id": "minePage",
 						"when": "{{state.page == 'mine'}}",
@@ -636,15 +829,17 @@
 						"label": "{{t('nav.mine')}}",
 						"children": [
 							{ "id": "mineTitle", "style": "pageTitle", "text": "{{t('mine.title')}}", "role": "heading" },
-							{ "id": "mineSub", "style": "pageSub", "text": "{{t('mine.sub')}}", "anchors": { "left": 36, "right": 360, "top": 72 } },
-							{ "type": "row", "id": "mineButtons", "gap": 8, "anchors": { "right": 36, "top": 38 }, "height": 38, "width": 330, "justify": "end",
+							{ "id": "mineSub", "style": "pageSub", "text": "{{t('mine.sub')}}", "anchors": { "left": 36, "right": 560, "top": 72 } },
+							{ "type": "row", "id": "mineButtons", "gap": 8, "anchors": { "right": 36, "top": 38 }, "height": 38, "width": 530, "justify": "end",
 							  "children": [
+								{ "id": "mineInstall", "style": "secondary", "icon": "package-open", "text": "{{t('mine.install')}}", "width": 192, "height": 38,
+								  "onClick": "installFromFile" },
 								{ "id": "mineFolder", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}", "width": 150, "height": 38,
 								  "onClick": { "run": "revealMine", "with": { "id": "" } } },
 								{ "id": "mineNew", "style": "primary", "icon": "plus", "text": "{{t('nav.newApp')}}", "width": 130, "height": 38, "onClick": "showCreate" }
 							  ] },
 							{ "type": "label", "id": "mineUnavailable", "when": "{{state.mineError != ''}}", "font": "small", "wrap": true,
-							  "text": "{{t('mine.unavailable')}}", "textColor": "@c.muted", "color": "@c.raised", "radius": 10, "padding": 10,
+							  "text": "{{t('mine.unavailable')}}", "icon": "info", "align": "start center", "textColor": "@c.muted", "color": "@c.raised", "radius": 10, "padding": 12,
 							  "anchors": { "left": 36, "right": 36, "top": 108 }, "height": 40, "role": "status" },
 							{
 								"type": "column",
@@ -702,7 +897,7 @@
 										"id": "createForm",
 										"anchors": { "left": 36 },
 										"width": "{{min(820, window.width - computed.sideWidth - 72)}}",
-										"height": 980,
+										"height": "{{980 + computed.belowTiles}}",
 										"color": "transparent",
 										"keys": { "mod+enter": "createApp" },
 										"children": [
@@ -725,10 +920,9 @@
 												"type": "grid",
 												"id": "createFrom",
 												"anchors": { "left": 0, "right": 0, "top": 290 },
-												"height": 252,
-												"columns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
+												"height": "{{computed.tilesHeight}}",
+												"columns": "{{computed.tileColumns}}",
 												"gap": 12,
-												"scroll": "vertical",
 												"role": "radiogroup",
 												"label": "{{t('create.from')}}",
 												"arrows": "horizontal",
@@ -739,23 +933,23 @@
 												]
 											},
 
-											{ "id": "createDescribeLabel", "style": "sectionTitle", "text": "{{t('create.describe')}}", "anchors": { "left": 0, "right": 0, "top": 566 } },
-											{ "id": "createDescribeHint", "style": "hint", "text": "{{t('create.describeHint')}}", "anchors": { "left": 0, "right": 0, "top": 592 } },
+											{ "id": "createDescribeLabel", "style": "sectionTitle", "text": "{{t('create.describe')}}", "anchors": { "left": 0, "right": 0, "top": "{{566 + computed.belowTiles}}" } },
+											{ "id": "createDescribeHint", "style": "hint", "text": "{{t('create.describeHint')}}", "anchors": { "left": 0, "right": 0, "top": "{{592 + computed.belowTiles}}" } },
 											{ "type": "editor", "id": "createDescribe", "bind": "state.create.describe", "wrap": true, "label": "{{t('create.describe')}}",
 											  "color": "@c.surface", "radius": 10, "borderWidth": 1, "borderColor": "@c.border", "focused": { "borderColor": "@c.accent" },
 											  "textColor": "@c.text", "caretColor": "@c.accent", "lineColor": "transparent", "selectionColor": "@c.accentSoft",
-											  "anchors": { "left": 0, "right": 0, "top": 618 }, "height": 96 },
+											  "anchors": { "left": 0, "right": 0, "top": "{{618 + computed.belowTiles}}" }, "height": 96 },
 											{ "type": "label", "id": "createDescribePlaceholder", "when": "{{state.create.describe == ''}}", "text": "{{t('create.describePlaceholder')}}",
-											  "textColor": "@c.dim", "anchors": { "left": 12, "right": 12, "top": 626 }, "height": 20, "disabled": true },
+											  "textColor": "@c.dim", "anchors": { "left": 12, "right": 12, "top": "{{626 + computed.belowTiles}}" }, "height": 20, "disabled": true },
 
-											{ "id": "createFeaturesLabel", "style": "sectionTitle", "text": "{{t('create.features')}}", "anchors": { "left": 0, "right": 0, "top": 738 } },
-											{ "id": "createFeaturesHint", "style": "hint", "text": "{{t('create.featuresHint')}}", "anchors": { "left": 0, "right": 0, "top": 764 } },
+											{ "id": "createFeaturesLabel", "style": "sectionTitle", "text": "{{t('create.features')}}", "anchors": { "left": 0, "right": 0, "top": "{{738 + computed.belowTiles}}" } },
+											{ "id": "createFeaturesHint", "style": "hint", "text": "{{t('create.featuresHint')}}", "anchors": { "left": 0, "right": 0, "top": "{{764 + computed.belowTiles}}" } },
 											{
 												"type": "row",
 												"id": "createFeatures",
 												"wrap": true,
 												"gap": 8,
-												"anchors": { "left": 0, "right": 0, "top": 792 },
+												"anchors": { "left": 0, "right": 0, "top": "{{792 + computed.belowTiles}}" },
 												"height": 80,
 												"role": "group",
 												"label": "{{t('create.features')}}",
@@ -775,13 +969,13 @@
 
 											{ "type": "label", "id": "createSummary", "font": "small", "textColor": "@c.muted", "wrap": true,
 											  "text": "{{t('create.summary', {name: trim(state.create.name) == '' ? '…' : trim(state.create.name), from: computed.fromName})}}",
-											  "anchors": { "left": 0, "right": 240, "top": 900 }, "height": 36 },
+											  "anchors": { "left": 0, "right": 240, "top": "{{900 + computed.belowTiles}}" }, "height": 36 },
 											{ "id": "createSubmit", "style": "primary", "icon": "{{state.create.busy ? 'refresh-cw' : 'rocket'}}",
 											  "text": "{{state.create.busy ? t('create.busy') : t('create.submit')}}", "disabled": "{{state.create.busy}}",
-											  "anchors": { "right": 0, "top": 894 }, "width": 200, "height": 44, "onClick": "createApp" },
+											  "anchors": { "right": 0, "top": "{{894 + computed.belowTiles}}" }, "width": 200, "height": 44, "onClick": "createApp" },
 											{ "type": "label", "id": "createProblem", "when": "{{state.create.error != ''}}", "font": "small", "wrap": true, "role": "alert", "live": "assertive",
 											  "text": "{{state.create.error}}", "textColor": "@c.danger", "color": "@c.dangerSoft", "radius": 8, "padding": 8,
-											  "anchors": { "left": 0, "right": 0, "top": 946 }, "height": 32 }
+											  "anchors": { "left": 0, "right": 0, "top": "{{946 + computed.belowTiles}}" }, "height": 32 }
 										]
 									}
 								]
@@ -803,7 +997,7 @@
 								"type": "column",
 								"id": "settingsList",
 								"anchors": { "left": 36, "top": 112, "bottom": 0 },
-								"width": "{{min(760, window.width - computed.sideWidth - 72)}}",
+								"width": "{{min(776, window.width - computed.sideWidth - 56)}}",
 								"gap": 16,
 								"scroll": "vertical",
 								"children": [
@@ -826,7 +1020,7 @@
 										{ "type": "label", "id": "notationLabel", "text": "{{t('settings.notationLabel')}}", "textColor": "@c.muted", "anchors": { "left": 54, "top": 58 }, "width": 110, "height": 32, "align": "start center" },
 										{ "id": "notationChoice", "use": "segmentedControl", "anchors": { "left": 170, "top": 58 },
 										  "with": { "name": "notation", "label": "{{t('settings.notationLabel')}}", "height": 32, "color": "@c.raised", "selectedColor": "@c.surface", "highlight": "@c.hover",
-										            "items": [{ "id": "json", "title": "JSON", "width": 80 }, { "id": "lisp", "title": "Lisp", "width": 80 }] } },
+										            "items": [{ "id": "lisp", "title": "Lisp", "width": 80 }, { "id": "json", "title": "JSON", "width": 80 }] } },
 										{ "type": "label", "id": "notationText", "wrap": true, "textColor": "@c.muted", "text": "{{t('settings.notationText')}}",
 										  "anchors": { "left": 54, "right": 20, "top": 102 }, "height": 44 }
 									  ] },
@@ -838,14 +1032,14 @@
 										{ "id": "folderReveal", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}",
 										  "anchors": { "right": 20, "top": 62 }, "width": 160, "height": 38, "onClick": { "run": "revealMine", "with": { "id": "" } } }
 									  ] },
-									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 0 }, "height": 960, "color": "transparent",
+									{ "id": "settingsIntelligence", "style": "card", "anchors": { "left": 0, "right": 16 }, "height": 960,
 									  "children": [{ "id": "intelligenceSettingsPage", "use": "intelligenceSettings" }] },
 									{ "id": "settingsKeys", "use": "settingsCard", "with": { "title": "{{t('settings.keys')}}", "icon": "keyboard", "height": 208 },
 									  "children": [
 										{ "type": "column", "id": "keysList", "anchors": { "left": 54, "right": 20, "top": 56 }, "height": 134, "gap": 4,
 										  "children": [
 											{ "type": "row", "id": "keyRow",
-											  "repeat": { "for": "k", "in": "{{[['⌘1 · ⌘2 · ⌘4', 'settings.keyPages'], ['⌘N', 'settings.keyNew'], ['⌘F', 'settings.keySearch'], ['⌘R', 'settings.keyRefresh'], ['Delete', 'settings.keyDelete']]}}" }, "height": 22, "anchors": { "left": 0, "right": 0 }, "gap": 12,
+											  "repeat": { "for": "k", "in": "{{[['⌘1 · ⌘2 · ⌘,', 'settings.keyPages'], ['⌘N', 'settings.keyNew'], ['⌘F', 'settings.keySearch'], ['⌘R', 'settings.keyRefresh'], ['Delete', 'settings.keyDelete']]}}" }, "height": 22, "anchors": { "left": 0, "right": 0 }, "gap": 12,
 											  "children": [
 												{ "type": "label", "id": "keyCombo", "font": "small", "text": "{{context.platform == 'mac' ? k[0] : join(split(k[0], '⌘'), 'Ctrl+')}}", "textColor": "@c.text",
 												  "color": "@c.raised", "radius": 6, "width": 150, "height": 22, "align": "center" },
@@ -862,6 +1056,225 @@
 								]
 							}
 						]
+					},
+					{
+						"id": "installPage",
+						"when": "{{state.page == 'install'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('review.title')}}",
+						"children": [
+							{
+								"id": "installTitle",
+								"style": "pageTitle",
+								"text": "{{state.install.summary.name || t('review.title')}}",
+								"role": "heading"
+							},
+							{
+								"id": "installHeader",
+								"anchors": {
+									"left": 36,
+									"right": 36,
+									"top": 72
+								},
+								"height": 96,
+								"color": "transparent",
+								"children": [
+									{
+										"type": "label",
+										"id": "installAbout",
+										"text": "{{state.install.error == '' ? ((state.install.package.description || '') == '' ? t('review.release', {release: state.install.summary.release || ''}) : t('review.about', {release: state.install.summary.release || '', description: state.install.package.description})) : t('review.unreadable')}}",
+										"textColor": "@c.muted",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 0
+										},
+										"height": 20
+									},
+									{
+										"type": "label",
+										"id": "installAuthor",
+										"when": "{{state.install.error == ''}}",
+										"text": "{{(state.install.summary.author || '') != '' ? t('review.author', {author: state.install.summary.author}) : t('review.noAuthor')}}",
+										"textColor": "@c.text",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 26
+										},
+										"height": 20
+									},
+									{
+										"type": "label",
+										"id": "installSignature",
+										"when": "{{state.install.error == ''}}",
+										"text": "{{computed.signatureLine}}",
+										"textColor": "{{computed.signedTrusted ? '@c.accent' : '@c.muted'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 50
+										},
+										"height": 20
+									},
+									{
+										"type": "label",
+										"id": "installRefused",
+										"when": "{{state.install.error != ''}}",
+										"text": "{{state.install.error}}",
+										"wrap": true,
+										"textColor": "@c.danger",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 26
+										},
+										"height": 44,
+										"role": "alert"
+									},
+									{
+										"type": "label",
+										"id": "installListed",
+										"when": "{{state.install.error == '' && computed.listedLine != ''}}",
+										"text": "{{computed.listedLine}}",
+										"textColor": "@c.muted",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 74
+										},
+										"height": 20
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "reviewList",
+								"anchors": {
+									"left": 36,
+									"right": 36,
+									"top": 176,
+									"bottom": 130
+								},
+								"gap": 2,
+								"scroll": "vertical",
+								"role": "list",
+								"label": "{{t('review.title')}}",
+								"children": [
+									{
+										"type": "label",
+										"id": "reviewLine",
+										"repeat": {
+											"for": "it",
+											"in": "computed.reviewLines",
+											"index": "i"
+										},
+										"text": "{{it.text}}",
+										"height": "{{it.tone == 'heading' ? 30 : 22}}",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"font": "{{it.tone == 'heading' ? 'strong' : 'default'}}",
+										"textColor": "{{it.tone == 'muted' ? '@c.muted' : it.tone == 'added' ? '@c.accent' : it.tone == 'danger' ? '@c.danger' : '@c.text'}}"
+									},
+									{
+										"id": "reviewListEnd",
+										"height": 12,
+										"color": "transparent",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										}
+									}
+								]
+							},
+							{
+								"id": "installFooter",
+								"anchors": {
+									"left": 36,
+									"right": 36,
+									"bottom": 0
+								},
+								"height": 120,
+								"color": "transparent",
+								"children": [
+									{
+										"type": "label",
+										"id": "installCant",
+										"when": "{{!(computed.installable)}}",
+										"text": "{{state.install.summary.kind == 'feature' ? t('review.featureHere') : t('review.cant')}}",
+										"textColor": "@c.danger",
+										"anchors": {
+											"left": 0,
+											"right": 160,
+											"top": 20
+										},
+										"height": 22,
+										"role": "status"
+									},
+									{
+										"id": "installName",
+										"when": "{{computed.installable}}",
+										"style": "field",
+										"bind": "state.install.name",
+										"maxLength": 80,
+										"label": "{{t('review.name')}}",
+										"anchors": {
+											"left": 0,
+											"right": 320,
+											"top": 14
+										},
+										"height": 42,
+										"onSubmit": "installApp",
+										"borderColor": "{{state.install.tried && computed.installError != '' ? '@c.danger' : '@c.border'}}"
+									},
+									{
+										"type": "label",
+										"id": "installNameHint",
+										"when": "{{computed.installable}}",
+										"font": "small",
+										"anchors": {
+											"left": 2,
+											"right": 320,
+											"top": 62
+										},
+										"height": 18,
+										"live": "polite",
+										"textColor": "{{state.install.tried && computed.installError != '' ? '@c.danger' : '@c.muted'}}",
+										"text": "{{state.install.tried && computed.installError != '' ? t(computed.installError) : computed.installSlug != '' ? t('create.folder', {folder: computed.installSlug}) : t('create.nameHint')}}"
+									},
+									{
+										"id": "installCancel",
+										"style": "secondary",
+										"text": "{{t('delete.cancel')}}",
+										"anchors": {
+											"right": 160,
+											"top": 14
+										},
+										"width": 140,
+										"height": 42,
+										"onClick": "cancelInstall"
+									},
+									{
+										"id": "installButton",
+										"when": "{{computed.installable}}",
+										"style": "primary",
+										"icon": "package-open",
+										"text": "{{t('review.install')}}",
+										"anchors": {
+											"right": 0,
+											"top": 14
+										},
+										"width": 150,
+										"height": 42,
+										"onClick": "installApp"
+									}
+								]
+							}
+						]
 					}
 				]
 			}
@@ -869,6 +1282,198 @@
 	},
 
 	"overlays": {
+		"exportDialog": {
+			"id": "exportDialog",
+			"use": "dialog",
+			"with": {
+				"open": "state.exporting.open",
+				"title": "{{t('share.title', {name: state.exporting.name})}}",
+				"message": "",
+				"width": 560,
+				"height": 560,
+				"highlight": "@c.accent",
+				"buttons": [
+					{
+						"title": "{{t('share.save')}}",
+						"run": "exportSave",
+						"default": true
+					},
+					{
+						"title": "{{t('delete.cancel')}}"
+					}
+				]
+			},
+			"children": [
+				{
+					"id": "exportFields",
+					"anchors": {
+						"left": 20,
+						"right": 20,
+						"top": 48
+					},
+					"height": 200,
+					"color": "transparent",
+					"children": [
+						{
+							"id": "exportNameLabel",
+							"style": "hint",
+							"text": "{{t('share.name')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 0
+							}
+						},
+						{
+							"id": "exportName",
+							"style": "field",
+							"bind": "state.exporting.name",
+							"maxLength": 80,
+							"label": "{{t('share.name')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 20
+							},
+							"height": 38
+						},
+						{
+							"id": "exportDescriptionLabel",
+							"style": "hint",
+							"text": "{{t('share.description')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 66
+							}
+						},
+						{
+							"id": "exportDescription",
+							"style": "field",
+							"bind": "state.exporting.description",
+							"maxLength": 2000,
+							"label": "{{t('share.description')}}",
+							"placeholder": "{{t('share.descriptionPlaceholder')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 86
+							},
+							"height": 38
+						},
+						{
+							"id": "exportAuthorLabel",
+							"style": "hint",
+							"text": "{{t('share.author')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 132
+							}
+						},
+						{
+							"id": "exportAuthor",
+							"style": "field",
+							"bind": "state.exporting.author",
+							"maxLength": 200,
+							"label": "{{t('share.author')}}",
+							"placeholder": "{{t('share.authorPlaceholder')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 152
+							},
+							"height": 38
+						}
+					]
+				},
+				{
+					"id": "exportSummary",
+					"anchors": {
+						"left": 20,
+						"right": 20,
+						"top": 256,
+						"bottom": 52
+					},
+					"color": "transparent",
+					"children": [
+						{
+							"type": "column",
+							"id": "exportLines",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 0
+							},
+							"height": 100,
+							"gap": 4,
+							"role": "list",
+							"children": [
+								{
+									"type": "label",
+									"id": "exportLine",
+									"repeat": {
+										"for": "it",
+										"in": "computed.exportLines",
+										"index": "i"
+									},
+									"text": "{{it.text}}",
+									"font": "small",
+									"height": 20,
+									"anchors": {
+										"left": 0,
+										"right": 0
+									},
+									"textColor": "{{it.tone == 'muted' ? '@c.muted' : '@c.text'}}"
+								}
+							]
+						},
+						{
+							"id": "exportNeverTitle",
+							"style": "sectionTitle",
+							"text": "{{t('share.never')}}",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 104
+							}
+						},
+						{
+							"type": "column",
+							"id": "exportNever",
+							"anchors": {
+								"left": 0,
+								"right": 0,
+								"top": 130
+							},
+							"height": 120,
+							"gap": 2,
+							"role": "list",
+							"children": [
+								{
+									"type": "label",
+									"id": "exportNeverLine",
+									"repeat": {
+										"for": "key",
+										"in": "computed.neverIncluded",
+										"index": "i"
+									},
+									"icon": "x",
+									"text": "{{t(key)}}",
+									"font": "small",
+									"textColor": "@c.muted",
+									"height": 20,
+									"anchors": {
+										"left": 0,
+										"right": 0
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		},
 		"confirmDelete": {
 			"id": "confirmDeleteDialog",
 			"use": "dialog",

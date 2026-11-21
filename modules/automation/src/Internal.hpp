@@ -24,6 +24,8 @@ inline constexpr double maxWaitMs = 600000.0;         ///< Longest `wait`: ten m
 inline constexpr int maxDragMoves = 100;              ///< Moves of the pointer in one `drag`.
 inline constexpr int maxScale = 4;                    ///< Largest scale of a scenario's pictures.
 inline constexpr int maxWindowSide = 16384;           ///< Largest side of a `resize`, in window units.
+inline constexpr std::size_t maxCommandNameBytes = 1024; ///< The name a `command` step runs, as a peer may send it.
+inline constexpr std::size_t maxAuthorBytes = 64;        ///< The author a `command` step runs as.
 inline constexpr std::size_t maxTimerRunsPerWait = 1000000; ///< Timer runs one `wait` allows: one that keeps
                                                             ///< setting itself at no delay would never end.
 
@@ -43,6 +45,11 @@ struct KeyPress {
 /// @param text The key.
 /// @return The key, or std::nullopt if it isn't one.
 [[nodiscard]] std::optional<KeyPress> parseKey(std::string_view text);
+
+/// @brief Reads the modifier keys a pointer step holds: "shift", "alt+shift", "mod" (cmd on macOS, ctrl elsewhere).
+/// @param text The modifiers, joined by '+'.
+/// @return Their bits, or std::nullopt if one isn't a modifier.
+[[nodiscard]] std::optional<Mods> parseModifiers(std::string_view text);
 
 /// @brief The key names parseKey() knows, for error messages.
 /// @return "enter, escape, ..., a-z, 0-9, f1-f12".
@@ -70,5 +77,11 @@ struct KeyPress {
 /// @param name The name.
 /// @return true if it can.
 [[nodiscard]] bool isSafeFileName(std::string_view name);
+
+/// @brief Tells whether a value is an author a `command` step may run as: text of 1 to maxAuthorBytes printable ASCII
+/// bytes, like "agent" or "agent/helper".
+/// @param value The value.
+/// @return true if it is.
+[[nodiscard]] bool isAuthorName(const json& value);
 
 } // namespace affresco::automation::detail

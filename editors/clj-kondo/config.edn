@@ -9,15 +9,28 @@
 
  ;; Each definition form read as the plain Clojure it stands for (affrescoui/hooks.clj): a view and a command as a
  ;; defn whose body is the code their templates hold; a definition of data or of a template for the host as a def
- ;; of its name, its body not linted as code. Written for the group and again for `user`, the same hook.
+ ;; of its name, its body not linted as code; a defcomputed as a def of its form. Written for the group and again
+ ;; for `user`, the same hook. Clojure's binding forms keep their meaning, and read a local's path (task.done, %.title)
+ ;; as a use of the local: without it, a local read only through a path would be an unused binding.
  :hooks
- {:macroexpand
+ {:analyze-call
+  {clojure.core/defn affrescoui.hooks/read-through-paths
+   clojure.core/defn- affrescoui.hooks/read-through-paths
+   clojure.core/defmacro affrescoui.hooks/read-through-paths
+   clojure.core/fn affrescoui.hooks/read-through-paths
+   clojure.core/let affrescoui.hooks/read-through-paths
+   clojure.core/loop affrescoui.hooks/read-through-paths
+   clojure.core/for affrescoui.hooks/read-through-paths
+   clojure.core/doseq affrescoui.hooks/read-through-paths
+   clojure.core/when-let affrescoui.hooks/read-through-paths
+   clojure.core/if-let affrescoui.hooks/read-through-paths}
+  :macroexpand
   {affrescoui.app/defview affrescoui.hooks/defview
    affrescoui.app/defcommand affrescoui.hooks/defcommand
    affrescoui.app/defkey affrescoui.hooks/defkey
    affrescoui.app/defscreen affrescoui.hooks/definition
    affrescoui.app/defstate affrescoui.hooks/definition
-   affrescoui.app/defcomputed affrescoui.hooks/definition
+   affrescoui.app/defcomputed affrescoui.hooks/defcomputed
    affrescoui.app/defcustom affrescoui.hooks/definition
    affrescoui.app/defstyle affrescoui.hooks/definition
    affrescoui.app/defmenu affrescoui.hooks/definition
@@ -31,7 +44,7 @@
    user/defkey affrescoui.hooks/defkey
    user/defscreen affrescoui.hooks/definition
    user/defstate affrescoui.hooks/definition
-   user/defcomputed affrescoui.hooks/definition
+   user/defcomputed affrescoui.hooks/defcomputed
    user/defcustom affrescoui.hooks/definition
    user/defstyle affrescoui.hooks/definition
    user/defmenu affrescoui.hooks/definition
@@ -55,7 +68,12 @@
                                  :unresolved-symbol {:level :off}}}}
 
  :linters
- {:unresolved-symbol
+ {;; An ns is a file's label (modules/lisp/reference/namespaces.md): flow.board names lisp/board.lisp, which no
+  ;; Clojure source path gives. A required name with no alias is a file the loader reads, which Clojure's linter takes
+  ;; for one loaded for its side effects already, as long as :simple-libspec stays off.
+  :namespace-name-mismatch {:level :off}
+
+  :unresolved-symbol
   {:exclude
    [;; The definition forms and the top-level calls (LISP.md, "Definitions")
     defscreen defview defcomponent defstate defcomputed defcommand defkey defcustom defstyle defmenu deftokens defpart

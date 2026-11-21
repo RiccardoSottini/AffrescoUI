@@ -104,7 +104,7 @@ TEST_CASE("format: the images section reads images, tools and lowered limits") {
 	        "images.photo.tools.pen.tip: unknown tool option");
 	refused({{"width", 4}, {"height", 4}, {"tools", {{"pen", {{"gesture", "paint"}, {"preset", "Nope"}}}}}},
 	        "images.photo.tools.pen: Unknown brush");
-	refused({{"width", 4}, {"height", 4}, {"tool", "pen"}}, "images.photo.tool");
+	refused({{"width", 4}, {"height", 4}, {"tool", "spray"}}, "images.photo.tool");
 	refused({{"width", 4}, {"height", 4}, {"limits", {{"wishes", 3}}}}, "images.photo.limits.wishes");
 	// A document only lowers the library's limits
 	refused({{"width", 4}, {"height", 4}, {"limits", {{"side", 40000}}}},

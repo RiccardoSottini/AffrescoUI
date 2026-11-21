@@ -72,25 +72,18 @@ Color hexColor(const json& hex, const std::string& at) {
 	return *parsed;
 }
 
-/// @brief The document's "window.menuBar", for expressions ("window.menuBar"): the drawn menu bar's default.
-/// @param document The document.
-/// @return Its list of {menu, title}, or [] if it has none.
-json menuBarOf(const json& document) {
-	const auto window = document.find("window");
-	if(window == document.end() || !window->is_object()) return json::array();
-	const auto menuBar = window->find("menuBar");
-	return menuBar != window->end() && menuBar->is_array() ? *menuBar : json::array();
-}
-
 } // namespace
 
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
     : engine_(engine), baseDirectory_(std::move(baseDirectory)),
-      computedLookup_([this](std::string_view name) { return computed(name); }),
+      computedLookup_([this](std::string_view name) { return engine_.computed.computed(name); }),
       nodeLookup_([this](std::string_view id) { return node(id); }),
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
-      variableLookup_([this](std::string_view name) { return variable(name); }),
-      computedValueLookup_([this](std::string_view name) { return &computedValue(name); }),
+      variableLookup_([this](std::string_view name) {
+	      const json* global = values_.global(name);
+	      return global ? global : variable(name);
+      }),
+      computedValueLookup_([this](std::string_view name) { return &engine_.computed.value(name); }),
       programCall_([this](const std::string& name, std::vector<json> arguments, const Scope& locals, const json& event,
 	                      const std::string& where) {
 	      return engine_.programs.read(name, std::move(arguments), locals, event, where);
@@ -146,6 +139,29 @@ std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext:
 	return result;
 }
 
+void DocumentContext::readFonts(const json& doc, const NumberTable& numbers,
+                                std::map<std::string, std::shared_ptr<const Font>, std::less<>>& fonts,
+                                std::map<std::uint64_t, FontSource>& sources) {
+	for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
+		const std::string path = "fonts." + name;
+		object(value, path);
+		if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
+
+		const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
+		const float size = fontSize(value["size"], path + ".size", numbers);
+		const std::vector<std::filesystem::path> fallbacks = fallbackFiles(doc["fonts"], value, path, baseDirectory_);
+		const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
+		                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
+		try {
+			std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
+			sources[font->id()] = {file, fallbacks};
+			fonts.emplace(name, std::move(font));
+		} catch(const std::runtime_error& error) {
+			fail(path, error.what());
+		}
+	}
+}
+
 // Throws, changing nothing, if a color or a font is invalid
 void DocumentContext::readDerived() {
 	const json& doc = engine_.versions.document();
@@ -161,27 +177,7 @@ void DocumentContext::readDerived() {
 	if(languagesSource != languagesSource_)
 		newLanguages = languagesSource.is_null() ? nullptr : LanguageCatalog::read(languagesSource);
 
-	if(doc.contains("fonts")) {
-		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
-			const std::string path = "fonts." + name;
-			object(value, path);
-			if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
-
-			const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
-			const float size = fontSize(value["size"], path + ".size", newNumbers);
-			const std::vector<std::filesystem::path> fallbacks =
-			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
-			const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
-			                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
-			try {
-				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
-				newSources[font->id()] = {file, fallbacks};
-				newFonts.emplace(name, std::move(font));
-			} catch(const std::runtime_error& error) {
-				fail(path, error.what());
-			}
-		}
-	}
+	if(doc.contains("fonts")) readFonts(doc, newNumbers, newFonts, newSources);
 
 	colors_ = std::move(newColors);
 	numberTokens_ = std::move(newNumbers);
@@ -192,6 +188,7 @@ void DocumentContext::readDerived() {
 	variants_.clear();
 	strings_.read(doc);
 	changeAppearance();
+	requestUpdate("revision"); // everything is evaluated again, the readers outside the panels too (Tracker)
 	json sections = json::object();
 	for(const char* key : {"colors", "tokens", "fonts"})
 		if(doc.contains(key)) sections[key] = doc[key];
@@ -203,48 +200,14 @@ void DocumentContext::readDerived() {
 
 /* Values */
 
-const DocumentContext::Globals& DocumentContext::globals() const {
-	if(!globalsCache_) {
-		Globals& g = globalsCache_.emplace();
-		const VersionControl& versions = engine_.versions;
-		const Window* window = engine_.window;
-		g.window = window ? json{{"width", window->width()},
-		                         {"height", window->height()},
-		                         {"scale", window->contentScale()},
-		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
-		                         {"nativeMenuBar", window->nativeMenuBar()},
-		                         {"reducedMotion", window->reducedMotion()},
-		                         {"menuBar", menuBarOf(versions.document())},
-		                         {"capsLock", window->capsLock()}}
-		                  : json::object();
-		g.revision = toJson(versions.head());
-
-		json list = json::array();
-		for(const ProposalInfo& p : versions.proposals()) list.push_back(toJson(p));
-		json log = json::array();
-		for(const CommitInfo& c : versions.log()) log.push_back(toJson(c));
-
-		const auto previewing = versions.previewing();
-		g.other = {{"proposals", list},
-		           {"history", log},
-		           {"preview", previewing ? json(*previewing) : json()},
-		           {"mode", toString(versions.mode())},
-		           {"theme", theme_},
-		           {"locale", strings_.locale()},
-		           {"screen", screen_}};
-	}
-
-	return *globalsCache_;
-}
-
 Context DocumentContext::context(const Scope& locals, const json& event) const {
-	const Globals& g = globals();
+	static const json none = json::object(); // the globals are read by name, when read (HostVariables)
 	return Context{engine_.versions.state(),
-	               g.window,
-	               g.revision,
+	               none,
+	               none,
 	               event,
 	               locals,
-	               g.other,
+	               none,
 	               &nodeLookup_,
 	               &computedLookup_,
 	               budget_,
@@ -256,41 +219,22 @@ Context DocumentContext::context(const Scope& locals, const json& event) const {
 	               &programCall_};
 }
 
-void DocumentContext::addVariable(std::string name, std::function<json()> build) {
-	builders_.insert_or_assign(std::move(name), std::move(build));
-	++variablesEpoch_;
+const json* DocumentContext::variable(std::string_view name) const {
+	// The records (DataLayer): what reads them the expressions record, "/~d/<collection or query>"
+	if(name == "data") return engine_.data.variable();
+	return values_.variable(name);
 }
 
-const json* DocumentContext::variable(std::string_view name) const {
-	if(name == "data") { // the records (DataLayer): read again when the store or what the queries read changes
-		const json* value = engine_.data.variable();
-		if(reads_) {
-			reads_->addPath(dataPlaces);
-			reads_->add(engine_.data.queryReads());
-		}
-		return value;
-	}
-	const auto builder = builders_.find(name);
-	if(builder == builders_.end()) return nullptr;
-	if(building_.empty() && (builtEpoch_ != variablesEpoch_ || builtStateVersion_ != stateVersion_)) {
-		built_.clear(); // only between builds: a value read in an evaluation stays valid until it ends
-		builtEpoch_ = variablesEpoch_;
-		builtStateVersion_ = stateVersion_;
-	}
-	// a variable is built from what no state change announces (the focus, a chord): what reads it reads always
-	if(reads_) reads_->always = true;
-	if(const auto found = built_.find(name); found != built_.end()) return &found->second;
-	if(std::ranges::find(building_, name) != building_.end()) return nullptr; // it reads itself
-	building_.emplace_back(name);
-	json value;
-	try {
-		value = builder->second();
-	} catch(...) {
-		building_.pop_back();
-		throw;
-	}
-	building_.pop_back();
-	return &built_.insert_or_assign(std::string(name), std::move(value)).first->second;
+void DocumentContext::markPlaceChanged(const std::string& place) {
+	const bool hostValue = place.starts_with(places::globals) || place.starts_with(places::variables);
+	if(hostValue) ++stateVersion_; // computed values may read a global or a variable
+	changes_.add(place);
+	values_.placeMarked(place);
+}
+
+void DocumentContext::reviewChanged() {
+	for(const char* name : {"proposals", "history", "revision", "preview", "mode"}) markGlobalChanged(name);
+	markVariableChanged("peers");
 }
 
 /* The work budget */
@@ -326,43 +270,6 @@ void DocumentContext::spendBytes(const json& value, const std::string& where) co
 json DocumentContext::evaluate(const json& value, const Scope& locals, const json& event,
                                const std::string& where) const {
 	return format::evaluate(value, context(locals, event), where);
-}
-
-json DocumentContext::computed(std::string_view name) const { return computedValue(name); }
-
-const json& DocumentContext::computedValue(std::string_view name) const {
-	const json& document = engine_.versions.document();
-	const std::string key(name);
-	if(!document.contains("computed") || !document["computed"].contains(key))
-		fail("computed", "no computed value '" + key + "'");
-	if(computedVersion_ != stateVersion_ && computing_.empty()) { // only between evaluations: values read stay
-		computedValues_.clear();
-		computedReads_.clear();
-		computedVersion_ = stateVersion_;
-	}
-	if(const auto cached = computedValues_.find(key); cached != computedValues_.end()) {
-		if(reads_) reads_->add(computedReads_[key]); // what reads it reads what it read
-		return cached->second;
-	}
-	if(std::ranges::find(computing_, key) != computing_.end())
-		fail("computed." + key, "computed values refer to each other in a circle");
-	if(computing_.size() >= maxComputedDepth)
-		fail("computed." + key, "computed values read each other too deeply (more than 32 levels)");
-	computing_.push_back(key);
-	json value;
-	ReadSet read;
-	try {
-		const ReadScope scope(*this, &read);
-		const json none = json::object();
-		value = format::evaluate(document["computed"][key], context(*noVariables(), none), "computed." + key);
-	} catch(...) {
-		computing_.pop_back();
-		throw;
-	}
-	computing_.pop_back();
-	if(reads_) reads_->add(read);
-	computedReads_[key] = std::move(read);
-	return computedValues_.insert_or_assign(key, std::move(value)).first->second; // a map: its address stays
 }
 
 json DocumentContext::node(std::string_view id) const {
@@ -475,9 +382,9 @@ void DocumentContext::updateTheme() {
 	const json& document = engine_.versions.document();
 	std::string theme =
 	    document.contains("theme") ? text(evaluate(document["theme"], *noVariables(), json::object(), "theme")) : "";
-	if(document.contains("theme")) globalsChanged();
 	if(theme == theme_) return;
 	theme_ = std::move(theme);
+	markGlobalChanged("theme");
 	changeAppearance();
 	++looks_;
 }
@@ -490,7 +397,7 @@ void DocumentContext::updateLocale() {
 	strings_.select(tag);
 	if(engine_.window) engine_.window->setLocaleRightToLeft(strings_.rightToLeft());
 	if(strings_.locale() == before) return;
-	globalsChanged();
+	markGlobalChanged("locale");
 	markStateChanged(); // what t() and the format functions wrote is written again
 	changeAppearance();
 }

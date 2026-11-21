@@ -2,8 +2,8 @@
 /// @brief The assistant add-on (examples/shared/addons/assistant), through the rendering check's screen that includes
 /// it: the launcher shows by default (an app that hides it shows it again for an agent, a conversation or a request),
 /// the panel opens on the composer and says when no agent is connected, Escape gives the focus back to the launcher, a
-/// message sent is kept, and a request to a connected agent comes back as a proposal card the person accepts or
-/// rejects.
+/// message sent is kept, a request to a connected agent comes back as a proposal card the person accepts or rejects,
+/// and the person points at elements of the app for their next message.
 
 #include "AudioWav.hpp"
 #include "Headless.hpp"
@@ -15,6 +15,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -66,9 +67,12 @@ struct Built {
 
 	/// @brief Loads and builds the screen.
 	/// @param data The folder its "persist" state is kept in.
-	explicit Built(const std::filesystem::path& data)
+	/// @param before What to do with the screen before it is built (the host's calls, which its onShow steps use), or
+	/// nothing.
+	explicit Built(const std::filesystem::path& data, const std::function<void(affresco::Screen&)>& before = {})
 	    : window(createHeadlessWindow(800, 700, clock)),
 	      screen(affresco::Screen::fromFile(assistantScreen(), data, affresco::Screen::History::InMemory)) {
+		if(before) before(screen);
 		screen.build(*window);
 		window->render();
 	}
@@ -148,6 +152,27 @@ struct Built {
 	/// @brief Reads the add-on's state.
 	/// @return state.assistant.
 	[[nodiscard]] json assistant() const { return json::parse(screen.stateJson())["assistant"]; }
+
+	/// @brief Clicks the middle of the panel with this id, as the mouse does.
+	/// @param id The id.
+	void clickAt(const std::string& id) {
+		const affresco::Panel* panel = screen.find(id);
+		REQUIRE(panel != nullptr);
+		const affresco::Rect& bounds = panel->bounds();
+		const affresco::Vec2 at{(bounds.left + bounds.right) / 2.0f, (bounds.top + bounds.bottom) / 2.0f};
+		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, at});
+		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, at});
+		settle();
+	}
+
+	/// @brief Presses the add-on's point shortcut, mod+alt+a ("mod" is Cmd on macOS, Ctrl elsewhere).
+	void pressPoint() {
+#ifdef __APPLE__
+		press(affresco::Key::A, 0x0008 | 0x0004); // Super and Alt
+#else
+		press(affresco::Key::A, 0x0002 | 0x0004); // Control and Alt
+#endif
+	}
 };
 
 } // namespace
@@ -375,4 +400,153 @@ TEST_CASE("assistant add-on: the person rejects a proposal, and main stays as it
 	CHECK(chat.built.screen.proposals().empty());
 	CHECK(chat.built.screen.revision() == 0);
 	CHECK(chat.built.assistant()["decided"][id] == "rejected");
+}
+
+TEST_CASE("assistant add-on: Point steps the panel aside, a click picks without running the app, and the chip waits") {
+	const DataFolder data;
+	Built built(data.path);
+	built.run("test.online");
+	built.run("assistant.open");
+
+	built.click("assistantPanel", "Point at something");
+	CHECK(built.window->picking());
+	CHECK(built.assistant()["open"] == false); // the panel is modal: it steps aside
+	CHECK(built.assistant()["pointing"] == true);
+	CHECK_FALSE(built.shown("assistantPanel"));
+
+	built.clickAt("pageTitle");
+	CHECK_FALSE(built.window->picking());
+	const json assistant = built.assistant();
+	CHECK_FALSE(json::parse(built.screen.stateJson()).contains("titleClicks")); // the click picked, it didn't click
+	CHECK(assistant["open"] == true);
+	CHECK(assistant["pointing"] == false);
+	CHECK(assistant["justPointed"].is_null());
+	REQUIRE(assistant["pointed"].size() == 1);
+	CHECK(assistant["pointed"][0]["node"] == "#pageTitle");
+	CHECK(assistant["pointed"][0]["source"]["address"] == "#pageTitle");
+	CHECK(built.shown("assistantPointedList"));
+	CHECK(built.shown("assistantPointed0"));
+	CHECK(built.shown("assistantPointedNote"));
+	CHECK(Built::labelled(built.screen.find("assistantPointed0"), "label · #pageTitle") != nullptr);
+	CHECK(built.focusIn("assistantComposer"));
+	CHECK(built.screen.picks().size() == 1);
+
+	built.click("assistantPanel", "Point at something"); // the same element again is kept once
+	built.clickAt("pageTitle");
+	CHECK(built.assistant()["pointed"].size() == 1);
+	CHECK(built.screen.picks().size() == 1);
+
+	built.click("assistantPointed0", "Remove label · #pageTitle");
+	CHECK(built.assistant()["pointed"].empty());
+	CHECK(built.screen.picks().empty()); // the engine forgot it too
+	CHECK_FALSE(built.shown("assistantPointedRow"));
+	CHECK(built.focusIn("assistantComposer"));
+}
+
+TEST_CASE("assistant add-on: Escape cancels pointing: the panel comes back only if it was open") {
+	const DataFolder data;
+	Built built(data.path);
+	built.run("test.online");
+	built.run("assistant.open");
+	built.click("assistantPanel", "Point at something");
+	REQUIRE(built.window->picking());
+	built.press(affresco::Key::Escape);
+	CHECK_FALSE(built.window->picking());
+	CHECK(built.assistant()["pointing"] == false);
+	CHECK(built.assistant()["open"] == true);
+	CHECK(built.assistant()["pointed"].empty());
+
+	built.press(affresco::Key::Escape); // closes the panel
+	REQUIRE(built.assistant()["open"] == false);
+	built.pressPoint(); // the shortcut works with the panel closed
+	REQUIRE(built.window->picking());
+	built.press(affresco::Key::Escape);
+	CHECK_FALSE(built.window->picking());
+	CHECK(built.assistant()["open"] == false);
+	CHECK(built.assistant()["pointing"] == false);
+}
+
+TEST_CASE("assistant add-on: by keyboard alone the person points, types and sends, and the request carries it") {
+	affresco::test::MemoryChannel agent;
+	const DataFolder data;
+	Built built(data.path);
+	built.screen.connect(agent, "agent");
+
+	built.pressPoint();
+	REQUIRE(built.window->picking());
+	for(int step = 0; step < 3; ++step) built.press(affresco::Key::Down);
+	built.press(affresco::Key::Enter);
+	CHECK_FALSE(built.window->picking());
+	json assistant = built.assistant();
+	REQUIRE(assistant["pointed"].size() == 1);
+	CHECK(assistant["open"] == true);
+	CHECK(built.focusIn("assistantComposer"));
+	const json record = assistant["pointed"][0];
+
+	built.type("Make this larger");
+	built.press(affresco::Key::Enter);
+	assistant = built.assistant();
+	CHECK(assistant["pointed"].empty());
+	REQUIRE(assistant["messages"].size() == 2);
+	CHECK(assistant["messages"][0]["kind"] == "pointed");
+	CHECK(assistant["messages"][0]["items"] == json::array({record}));
+	CHECK(assistant["messages"][1]["text"] == "Make this larger");
+	CHECK(built.shown("assistantPointedSent0"));
+	CHECK(Built::labelled(built.screen.find("assistantPointedSent0"), "Show source") == nullptr); // sent: no buttons
+	CHECK(built.screen.picks().empty()); // sent once: the request has it now
+
+	std::vector<json> asked;
+	for(const json& message : agent.sent)
+		if(message.value("type", "") == "request") asked.push_back(message);
+	REQUIRE(asked.size() == 1);
+	REQUIRE(asked[0]["picks"].size() == 1);
+	CHECK(asked[0]["picks"][0]["id"] == record["id"]);
+	CHECK(asked[0]["picks"][0]["node"] == record["node"]);
+}
+
+TEST_CASE("assistant add-on: four elements at most, and Show source asks the host for where one is written") {
+	const DataFolder data;
+	json opened;
+	Built built(data.path, [&opened](affresco::Screen& screen) { // a host with a changes window
+		screen.onCall("changes.available", [](const std::string&) { return std::string("true"); });
+		screen.onCall("changes.open", [&opened](const std::string& text) {
+			opened = json::parse(text);
+			return std::string("null");
+		});
+	});
+	built.run("test.pointed");
+	built.run("assistant.open");
+	REQUIRE(built.assistant()["pointed"].size() == 4);
+	CHECK(built.shown("assistantPointed3"));
+	const affresco::Panel* point = Built::labelled(built.screen.find("assistantPanel"), "Point at something");
+	REQUIRE(point != nullptr);
+	CHECK(point->accessibleState().disabled);
+
+	built.pressPoint(); // a fifth is refused: no pick starts
+	CHECK_FALSE(built.window->picking());
+	CHECK(built.assistant()["open"] == true);
+
+	built.click("assistantPointed1", "Show source");
+	CHECK(opened.dump().find("/program/board.lisp/card-title") != std::string::npos);
+	CHECK(opened.dump().find("12") != std::string::npos); // and its line
+}
+
+TEST_CASE("assistant add-on: a commit since an element was pointed at drops it quietly, where it was having moved") {
+	const DataFolder data;
+	Built built(data.path);
+	built.run("test.online");
+	built.run("assistant.open");
+	built.click("assistantPanel", "Point at something");
+	built.clickAt("pageTitle");
+	REQUIRE(built.assistant()["pointed"].size() == 1);
+	built.press(affresco::Key::Escape);
+
+	const affresco::RevisionResult committed =
+	    built.screen.submitRevision(R"({"author": "studio", "message": "Rename", "set": {"#pageTitle/text": "Tasks"}})");
+	REQUIRE_MESSAGE(committed.status == affresco::RevisionStatus::Applied, committed.error);
+	built.settle();
+	built.run("assistant.open");
+	CHECK(built.assistant()["pointed"].empty());
+	CHECK(built.screen.picks().empty());
+	CHECK_FALSE(built.shown("assistantPointedRow"));
 }

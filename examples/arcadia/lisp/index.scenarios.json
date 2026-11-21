@@ -467,7 +467,29 @@
 					"wait": 1700
 				},
 				{
+					"click": "#properties-browse"
+				},
+				{
+					"expect": {
+						"node": "#properties-file-content-pak",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
 					"capture": "files"
+				},
+				{
+					"click": "#properties-move"
+				},
+				{
+					"expect": {
+						"node": "#properties-folder",
+						"text": "Game drive  ›  Arcadia/games/Starfall Odyssey"
+					}
+				},
+				{
+					"click": "#properties-move"
 				},
 				{
 					"key": "escape"
@@ -545,6 +567,433 @@
 				},
 				{
 					"capture": "fr"
+				}
+			]
+		},
+		{
+			"name": "collections",
+			"steps": [
+				{
+					"click": "#library-new-collection"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"node": "#coll-error",
+						"text": "Give the collection a name."
+					}
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"type": "Weekend"
+				},
+				{
+					"click": "#coll-check-driftwood"
+				},
+				{
+					"click": "#coll-check-ember"
+				},
+				{
+					"capture": "new-collection"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-mine-1",
+						"text": "WEEKEND (2)"
+					}
+				},
+				{
+					"expect": {
+						"node": "#row-mine-1-driftwood",
+						"exists": true
+					}
+				},
+				{
+					"click": "#library-new-collection"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"type": "Ready"
+				},
+				{
+					"click": "#coll-kind-dynamic"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"node": "#coll-error",
+						"text": "Choose a rule for the collection."
+					}
+				},
+				{
+					"click": "#coll-rule-installed"
+				},
+				{
+					"capture": "dynamic-collection"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[3].rule.field",
+						"is": "installed"
+					}
+				},
+				{
+					"expect": {
+						"node": "#row-mine-2-starfall",
+						"exists": true
+					}
+				},
+				{
+					"command": "deleteCollection",
+					"with": {
+						"id": "mine-1"
+					},
+					"as": "studio"
+				},
+				{
+					"expect": {
+						"node": "#section-mine-1",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "couch-rows",
+			"steps": [
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "store"
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"capture": "store"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "friends"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "chatWith",
+						"is": "f1"
+					}
+				},
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#couch-tab-store"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "collection-edit",
+			"note": "A collection's shelf has an edit button and its heading in the list a right click: the window opens with its name and games, saves a new name and games, and deletes it.",
+			"steps": [
+				{
+					"rightClick": "#section-coop"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "newCollection.editing",
+						"is": "coop"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.title",
+						"is": "Co-op Nights"
+					}
+				},
+				{
+					"capture": "edit-collection"
+				},
+				{
+					"click": "#coll-name"
+				},
+				{
+					"key": "cmd+a"
+				},
+				{
+					"type": "Friday Co-op"
+				},
+				{
+					"click": "#coll-check-ember"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"expect": {
+						"state": "newCollection.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[0].title",
+						"is": "Friday Co-op"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections[0].games",
+						"is": [
+							"pebble",
+							"neon"
+						]
+					}
+				},
+				{
+					"rightClick": "#section-cozy"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"expect": {
+						"state": "collections.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-cozy",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "couch-settings",
+			"note": "Couch mode has a Settings row: Enter steps the chosen setting to its next value.",
+			"steps": [
+				{
+					"action": "enterCouch"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "couch.section",
+						"is": "settings"
+					}
+				},
+				{
+					"capture": "couch-settings"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.open",
+						"is": true
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "couch.at",
+						"is": 3
+					}
+				},
+				{
+					"click": "#couch-leave"
+				}
+			]
+		},
+		{
+			"name": "compatibility",
+			"note": "A game's properties have a Compatibility page: forcing a layer and choosing which one.",
+			"steps": [
+				{
+					"with": {
+						"id": "ember",
+						"tab": "compat"
+					},
+					"command": "openProperties",
+					"as": "studio"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "compat",
+						"is": {}
+					}
+				},
+				{
+					"click": "#properties-compat-toggle"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": "bridge9"
+					}
+				},
+				{
+					"click": "#properties-compat-experimental"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": "experimental"
+					}
+				},
+				{
+					"capture": "compatibility"
+				},
+				{
+					"click": "#properties-compat-toggle"
+				},
+				{
+					"expect": {
+						"state": "compat.ember",
+						"is": null
+					}
+				}
+			]
+		},
+		{
+			"name": "profile-rewards",
+			"note": "The rewards redeemed show on the profile's banner.",
+			"steps": [
+				{
+					"action": "showProfile"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#profile-reward-gem-badge",
+						"exists": true
+					}
+				},
+				{
+					"capture": "profile-rewards"
 				}
 			]
 		}

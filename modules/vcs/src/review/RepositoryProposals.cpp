@@ -88,14 +88,16 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	proposal.behaviour = rules_.behaviourLines(before, after);
 	proposal.impact = rules_.impact(before, after);
 	proposal.policy = reviewNeeds(before, after, {}).first;
-	proposal.person = personNeeds(before, after, run);
-	proposal.assets = assetChanges(before, after);
 	proposal.run = std::move(run);
+	proposal.person = personNeeds(proposal, before, after);
+	proposal.assets = assetChanges(before, after);
 	return document;
 }
 
 // Rebased on main's head, with the new commit last; what was approved before no longer is
 void Repository::extend(Proposal& proposal, const json& revision, json changes) {
+	if(!proposal.undo.is_null())
+		fail("revision.proposal", "proposal #" + std::to_string(proposal.id) + " is an undo: it takes no more commits");
 	std::vector<Commit> commits = branchOf(proposal);
 	Commit added;
 	added.author = added.committer = proposal.author;
@@ -103,6 +105,8 @@ void Repository::extend(Proposal& proposal, const json& revision, json changes) 
 	added.time = detail::utcNow();
 	added.patch = std::move(changes);
 	added.run = runOf(revision);
+	added.undo = revision.value("undo", json());
+	const json undo = added.undo;
 	commits.push_back(std::move(added));
 	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
 	std::size_t operations = 0;
@@ -110,6 +114,8 @@ void Repository::extend(Proposal& proposal, const json& revision, json changes) 
 	detail::expectFewEnoughOperations(operations);
 
 	replay(proposal, std::move(commits));
+	proposal.undo = undo;
+	describeUndoProposal(proposal);
 	proposal.approvals.clear();
 	proposal.reviewedHeads.clear();
 }
@@ -156,6 +162,8 @@ std::vector<ProposalInfo> Repository::proposals() const {
 		info.run = p.run;
 		info.person = p.person;
 		info.impact = p.impact;
+		info.leftOut = p.leftOut;
+		info.undo = p.undo;
 	}
 	return result;
 }
@@ -214,6 +222,7 @@ std::optional<std::string> Repository::accept(int proposal, const Approval& appr
 		merge.proposal = proposal;
 		merge.patch = taken.patch;
 		if(!taken.run.empty()) merge.run = taken.run; // run once, now, by the host (onCommit)
+		merge.undo = taken.undo;                      // what it undid, as its branch's commit says
 		merged = land(std::move(merge), std::move(next.document), std::move(next.state)).id;
 
 		if(approval.dontAskAgain) {
@@ -244,6 +253,44 @@ bool Repository::reject(int proposal, std::string_view reason) {
 	return true;
 }
 
+// Only the person settles what a merge left out, and their value comes as the proposal's author's own commit
+std::optional<std::string> Repository::resolveLeftOut(int proposal, std::string_view path, bool theirs,
+                                                      std::string_view reviewer) {
+	Proposal* open = findProposal(proposal);
+	const std::string name = "proposal #" + std::to_string(proposal);
+	if(!open) return "AffrescoUI screen: no " + name;
+	const std::string channel = detail::channelOf(reviewer);
+	if(channel == detail::channelOf(open->author))
+		return "AffrescoUI screen: " + name + " is by '" + open->author + "': its author can't settle what it left out";
+	if(channel != personChannel)
+		return "AffrescoUI screen: only the person settles what " + name + " left out, not '" + std::string(reviewer) +
+		       "'";
+	const auto entry = std::ranges::find_if(
+	    open->leftOut, [path](const json& part) { return part.is_object() && part.value("path", "") == path; });
+	if(entry == open->leftOut.end())
+		return "AffrescoUI screen: " + name + " left nothing out at '" + std::string(path) + "'";
+	const auto index = entry - open->leftOut.begin();
+
+	if(theirs) {
+		const json& value = (*entry)["proposal"];
+		const std::string where(path);
+		const json op = value.is_null() ? json{{"op", "remove"}, {"path", where}}
+		                                : json{{"op", "set"}, {"path", where}, {"value", value}};
+		Proposal updated = *open;
+		try {
+			extend(updated, {{"author", open->author}, {"message", "Take theirs at " + where}}, json::array({op}));
+		} catch(const DocumentError& error) {
+			return error.what();
+		}
+		*open = std::move(updated);
+	}
+	open->leftOut.erase(open->leftOut.begin() + index);
+	saveHistory();
+	if(previewing_ == proposal) endPreview(); // what was shown is out of date
+	proposalsChanged();
+	return std::nullopt;
+}
+
 std::optional<std::string> Repository::preview(int proposal) {
 	const Proposal* open = findProposal(proposal);
 	if(!open) return "AffrescoUI screen: no proposal " + std::to_string(proposal);
@@ -272,6 +319,12 @@ void Repository::endPreview() {
 	state_ = std::move(committedState_);
 	documentChanged();
 	onReviewChanged();
+}
+
+std::vector<std::string> Repository::changeLines(const json& patch) {
+	std::vector<std::string> lines;
+	for(const json& op : patch) lines.push_back(summary(op));
+	return lines;
 }
 
 } // namespace affresco::vcs

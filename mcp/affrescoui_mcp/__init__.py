@@ -31,9 +31,15 @@ released CPython offers on Windows yet: there the server starts, but its tools s
 from .document import (
     compact, diff, changes_since, by_id, find_node, trees, walk_nodes, node_type, short, summary, TYPE_WORDS,
     describe_type, state_types, definition_kind, definitions, outline, locate, pruned, find_nodes, pointer_parts, apply_patch,
+    source_of,
+)
+from .commands import (
+    MAX_COMMAND_LINES, MAX_PATCH_LINES, OLDER_HOST, type_text, argument_text, command_line, command_list, patch_lines,
+    list_commands, run_command, undo_run,
 )
 from .guide import GUIDE_TOPIC, guide_sections, format_guide
-from .host import TIMEOUT, MAX_EVENTS, NO_UNIX_SOCKETS, log, default_socket_dir, check_socket_dir, connect_unix, Host
+from .host import TIMEOUT, MAX_EVENTS, MAX_RUNS, NO_UNIX_SOCKETS, printable, log, default_socket_dir, check_socket_dir, connect_unix, Host
+from .picks import picks_of, pick_lines
 from .replies import scenarios_report, DENIALS, explain_denial, describe, screen_info, malformed, client_name
 from .repository import ROOT, guide_path, find_cli, repository_path, confined_path
 from .server import OUTSIDE, USAGE, PROTOCOLS, UnknownTool, coordination_tool, Server, main
@@ -46,5 +52,7 @@ __all__ = [
     "default_socket_dir", "check_socket_dir", "connect_unix", "Host", "scenarios_report", "DENIALS", "explain_denial",
     "describe", "screen_info", "malformed", "client_name", "ROOT", "guide_path", "find_cli", "repository_path",
     "confined_path", "OUTSIDE", "USAGE", "PROTOCOLS", "UnknownTool", "coordination_tool", "Server", "main", "object_schema", "TOOLS", "COORDINATION_TOOLS",
-    "PROMPTS", "SERVE_PROMPT", "INSTRUCTIONS",
+    "PROMPTS", "SERVE_PROMPT", "INSTRUCTIONS", "picks_of", "pick_lines", "MAX_RUNS", "printable", "MAX_COMMAND_LINES",
+    "MAX_PATCH_LINES", "OLDER_HOST", "type_text", "argument_text", "command_line", "command_list", "patch_lines",
+    "list_commands", "run_command", "undo_run",
 ]

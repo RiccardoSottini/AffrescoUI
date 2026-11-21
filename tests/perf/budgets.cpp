@@ -1,11 +1,12 @@
 /// @file
 /// @brief The "budgets" group: the budgets of BENCHMARKS.md that no other workload measures. An idle second of the
-/// Kanban template, a 50 MB file opened, Forge started cold to its first frame, and Forge with 10 tabs and a terminal.
+/// Kanban template and of each template, a 50 MB file opened, Forge started cold to its first frame, and Forge with 10 tabs and a terminal.
 /// The memory budgets report "residentBytes", the whole process's memory: run.py runs each in a process of its own.
 /// Every setup happens on the first run, so selecting one workload sets up only its own.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
+#include "Templates.hpp"
 
 #include <affresco/render/TextEditor.hpp>
 
@@ -104,18 +105,22 @@ struct TempFolder {
 	}
 };
 
-/// @brief "budgets/idle": the Kanban template shown, with nothing happening, for one second of its event loop. The
-/// value is the main thread's CPU time in that second, and "processMs" every thread's (the budget: 0% CPU).
+/// @brief An idle second of a template: shown, with nothing happening, for one second of its event loop. The value is
+/// the main thread's CPU time in that second, and "processMs" every thread's (the budget: 0% CPU). After its runs its
+/// window is closed, so the event loop of a later idle workload in the same process doesn't run it too (its screen's
+/// threads keep running: budgets.py runs each budget in a process of its own).
 /// @param context The context.
+/// @param name The workload's name: "budgets/idle" for the Kanban template, "budgets/idle-<template>" for every one.
+/// @param templateName The template, as examples/templates.json names it.
 /// @return The workload.
-Workload idleWorkload(Context& context) {
+Workload idleWorkload(Context& context, std::string name, std::string templateName) {
 	const auto loaded = std::make_shared<std::optional<LoadedScreen>>();
 	const auto processMs = std::make_shared<std::vector<double>>();
-	Workload workload{.name = "budgets/idle", .unit = "ms", .runs = 3, .cpuTime = true};
-	workload.prepare = [&context, loaded] {
+	Workload workload{.name = std::move(name), .unit = "ms", .runs = 3, .cpuTime = true};
+	workload.prepare = [&context, loaded, templateName = std::move(templateName)] {
 		if(!*loaded)
 			loaded->emplace(
-			    context.load(appDocument(context.templateFolder("kanban")), context.templateFolder("kanban")));
+			    context.load(appDocument(context.templateFolder(templateName)), context.templateFolder(templateName)));
 		detail::renderWithoutPresenting((*loaded)->window);
 	};
 	workload.step = [&context, processMs] {
@@ -129,10 +134,11 @@ Workload idleWorkload(Context& context) {
 		stopper.join();
 		processMs->push_back(static_cast<double>(processTime() - start) / 1e6);
 	};
-	workload.report = [processMs](json& result) {
+	workload.report = [loaded, processMs](json& result) {
 		std::vector<double> measured(processMs->begin() + 1, processMs->end()); // the warm-up left out
 		std::ranges::sort(measured);
 		if(!measured.empty()) result["processMs"] = std::round(measured[measured.size() / 2] * 1e3) / 1e3;
+		if(*loaded) (*loaded)->window.setShouldClose(true);
 	};
 	return workload;
 }
@@ -235,7 +241,9 @@ Workload tabsWorkload(Context& context) {
 
 std::vector<Workload> budgetWorkloads(Context& context) {
 	std::vector<Workload> workloads;
-	workloads.push_back(idleWorkload(context));
+	workloads.push_back(idleWorkload(context, "budgets/idle", "kanban"));
+	for(const std::string& name : templateNames(context.examples()))
+		workloads.push_back(idleWorkload(context, "budgets/idle-" + name, name));
 	workloads.push_back(openWorkload());
 	workloads.push_back(coldStartWorkload(context));
 	workloads.push_back(tabsWorkload(context));

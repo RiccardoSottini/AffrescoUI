@@ -4,6 +4,8 @@
 ;;; signed in. Each page fills the rest of the window above the status bar. Over them: the dialogs, each over a scrim,
 ;;; and the notes in the corner. The small parts every page uses (a menu, a level bar, a note, a tab) are here too.
 
+(ns haven.shell)
+
 ;;; What the shell keeps
 
 (defstate sidebarCollapsed false "Whether the sidebar is folded to its icons.")
@@ -11,7 +13,7 @@
 (defcomputed sideWidth "The sidebar's width, open or folded." (if state.sidebarCollapsed 56 256))
 
 (defcomputed navPages "The pages the sidebar lists above its foot, where Settings is."
-  (filter (fn [it] (not= it.id "settings")) state.pages))
+  (filter #(not= (:id %) "settings") state.pages))
 
 ;;; The sidebar
 
@@ -32,7 +34,7 @@
          `(node#navItem :use sideItem
             :with {:icon ~p.icon :title ~(t (str "page." p.id)) :selected ~(= p.id state.page) :keyLabel ~p.key}
             :role tab
-            :onClick ~(handler goPage p.id))))
+            :onClick ~(handler go-page p.id))))
      ~(sidebar-foot)
      (node#sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @divider)))
 
@@ -60,7 +62,7 @@
        :role tab
        :with {:icon settings
               :title ~(t "page.settings")
-              :selected ~(and (= state.page "settings") (not= state.settingsView "profile"))
+              :selected ~(and (= state.page :settings) (not= state.settingsView "profile"))
               :keyLabel "Cmd+,"}
        :onClick goSettings)
      (node#bellButton :use sideItem
@@ -143,10 +145,10 @@
 (defview page "A page of the app, beside the sidebar and above the status bar, while it is the one shown."
   [id page use dir]
   `(node :id ~id :dir ~dir :when ~(= state.page page) :use ~use :anchors {:left ~computed.sideWidth :right 0 :top 0
-                                                                          :bottom 32}))
+                                                                          :bottom ~(if settings.window.statusBar 32 0)}))
 
 (defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
-  `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
+  `(node#statusBar :when ~settings.window.statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
      (node#panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author
                                                     :message revision.message})
@@ -164,14 +166,17 @@
 ;;; Over the pages
 
 (defview dialogs
-  "The dialogs, each over a scrim that dims the page: a light's colour, the details of a control, a card's editor."
+  "The dialogs, each over a scrim that dims the page: a light's colour, the details of a control, a card's editor, a
+  new device."
   []
   [`(node#scrim-app :use scrim :with {:open state.colourOpen})
    `(node#colourDialog :use colourDialog)
    `(node#scrim-app-2 :use scrim :with {:open state.info.open})
    `(node#moreInfo :use moreInfo)
    `(node#scrim-app-3 :use scrim :with {:open state.cardEdit.open})
-   `(node#cardEditor :use cardEditor)])
+   `(node#cardEditor :use cardEditor)
+   `(node#scrim-new-device :use scrim :with {:open state.newDevice.open})
+   `(node#newDeviceDialog :use newDeviceDialog)])
 
 (defview notes "The notes at the bottom: the last message, and the progress of a device's call while it runs." []
   [`(node#toast :dir auto :use snackbar :with {:open state.toast.open :message ~state.toast.message})
@@ -185,10 +190,13 @@
 ;;; Parts every page uses
 
 ;; Each item has a title, an icon, a run and its with, or is a separator.
-(defcomponent popMenu "An overflow menu open at the state path: a raised, rounded list of items under its button."
-  {:open "" :items [] :width 200}
-  `(node :overlay {:placement below-end :open ~open :dismiss outside :modal true}
+(defcomponent popMenu
+  "An overflow menu open at the state path: a raised, rounded list of items under its button, lined up with its end
+  (below-end) or its start (below)."
+  {:open "" :items [] :width 200 :placement below-end}
+  `(node :overlay {:placement ~placement :open ~open :dismiss outside :modal true}
      :width ~width
+     ;; style: keep, a binding's function given to sum names its item it
      :height ~(+ 16 (sum items (fn [it] (if (= it.separator true) 17 48))))
      :radius 8
      :color @card
@@ -210,7 +218,7 @@
        :focusable true
        :role menuitem
        :label ~item.title
-       :onClick ~(handler pickMenuItem open item.run item.with)
+       :onClick ~(handler pick-menu-item open item.run item.with)
        (label :icon ~item.icon :text "" :textColor @muted :anchors {:left 16 :top 12} :width 24 :height 24
          :align center)
        (label :text ~item.title
@@ -256,10 +264,11 @@
       :width 88
       :height 36
       :radius 4
-      :onClick ~(handler closeAt open)}
+      :onClick ~(handler close-at open)}
      (node :when ~(some? progress) :anchors {:left 0 :right 0 :bottom 0} :height 3 :color "#ffffff1f"
        {:anchors {:left 0 :top 0 :bottom 0}
-        :width ~(str (* (clamp (or-else progress 0) 0 1) 100) "%")
+        :width ~(str (-> (or-else progress 0) (clamp 0 1) (* 100)) "%")
+
         :color @snackAction})))
 
 (defcomponent viewTab "A view in the top bar: its title in a pill, filled while it is the one shown."

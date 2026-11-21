@@ -4,6 +4,8 @@
 ;;; tool says, in the library. A click on a ruler adds a guide there. The status bar says what the library last did,
 ;;; the zoom (type one to change it) and one fact of the document, chosen from its menu.
 
+(ns tempera.canvas)
+
 ;;; The area
 
 (defview canvas-area "The canvas area: the document's tab, the rulers, the image, the status bar." []
@@ -40,19 +42,42 @@
      :accentColor @accent
      :onClose closeDocument))
 
-(defview guides "The guides over the image, upright and level, where they are in the image." []
-  [(repeat [g state.guides.vertical]
+(defview guides
+  "The guides over the image, upright and level, where they are in the image: each drags, and dragged back onto its
+  ruler it goes. The guide being dragged out of a ruler shows too."
+  []
+  [(repeat [g state.guides.vertical :index i]
      `(node#guide-v :when ~state.view.guides
-        :x ~(+ (/ computed.canvasWidth 2) (* (- g state.doc.view.x) computed.px))
-        :width 1
+        :x ~(-> g (- state.doc.view.x) (* computed.px) (+ (/ computed.canvasWidth 2) -3))
+        :width 7
         :anchors {:top 0 :bottom 0}
-        :color @guide))
-   (repeat [g state.guides.horizontal]
+        :style clear
+        :cursor resize-horizontal
+        :onPress ~(handler guide-pressed g)
+        :onDrag ~(handler guide-moved "vertical" i)
+        :onRelease ~(handler guide-let-go "vertical" i)
+        (node :x 3 :width 1 :anchors {:top 0 :bottom 0} :color @guide)))
+   (repeat [g state.guides.horizontal :index i]
      `(node#guide-h :when ~state.view.guides
-        :y ~(+ (/ computed.canvasHeight 2) (* (- g state.doc.view.y) computed.px))
-        :height 1
+        :y ~(-> g (- state.doc.view.y) (* computed.px) (+ (/ computed.canvasHeight 2) -3))
+        :height 7
         :anchors {:left 0 :right 0}
-        :color @guide))])
+        :style clear
+        :cursor resize-vertical
+        :onPress ~(handler guide-pressed g)
+        :onDrag ~(handler guide-moved "horizontal" i)
+        :onRelease ~(handler guide-let-go "horizontal" i)
+        (node :y 3 :height 1 :anchors {:left 0 :right 0} :color @guide)))
+   `(node#guide-new-v :when ~(= state.guideDrag.axis "vertical")
+      :x ~(+ (/ computed.canvasWidth 2) (* (- state.guideDrag.at state.doc.view.x) computed.px))
+      :width 1
+      :anchors {:top 0 :bottom 0}
+      :color @guide)
+   `(node#guide-new-h :when ~(= state.guideDrag.axis "horizontal")
+      :y ~(+ (/ computed.canvasHeight 2) (* (- state.guideDrag.at state.doc.view.y) computed.px))
+      :height 1
+      :anchors {:left 0 :right 0}
+      :color @guide)])
 
 ;;; The rulers
 
@@ -65,7 +90,10 @@
        :color @ruler
        :cursor hand
        :tooltip ~(t "canvas.rulerAcross.tip")
-       :onClick guideAcross
+       :onPress ~(handler guide-pressed 0)
+       :onDrag ~(handler guide-out "horizontal")
+       :onRelease guide-dropped
+       :onClick guide-across
        ~(repeat [tick computed.rulerMinorX]
          `(node :x ~(+ (/ computed.canvasWidth 2) (* (- tick state.doc.view.x) computed.px)) :y 12 :width 1 :height 4
             :color @muted))
@@ -88,7 +116,10 @@
      :color @ruler
      :cursor hand
      :tooltip ~(t "canvas.rulerDown.tip")
-     :onClick guideDown
+     :onPress ~(handler guide-pressed 0)
+     :onDrag ~(handler guide-out "vertical")
+     :onRelease guide-dropped
+     :onClick guide-down
      ~(repeat [tick computed.rulerMinorY]
        `(node :y ~(+ (/ computed.canvasHeight 2) (* (- tick state.doc.view.y) computed.px)) :x 12 :width 4 :height 1
           :color @muted))
@@ -126,7 +157,7 @@
        :textColor @text
        :color @panel
        :hover {:color @input}
-       :onSubmit zoomTyped)
+       :onSubmit zoom-typed)
      ~@(document-facts)
      ~(status-menu)
      (node :width 4 :height 1 :style clear)))
@@ -134,7 +165,8 @@
 (defview document-facts "The facts the status bar can show, one at a time: sizes, dimensions, profile, undo memory." []
   [`(node#status-doc :style dim
       :when ~(= state.statusInfo "doc")
-      :text ~(t "status.docSize" {:size (fixed (/ (* state.doc.width state.doc.height (bytes-per-pixel)) 1048576) 2)}))
+      :text ~(t "status.docSize"
+                 {:size (-> (* state.doc.width state.doc.height (bytes-per-pixel)) (/ 1048576) (fixed 2))}))
    `(node#status-size :style dim
       :when ~(= state.statusInfo "size")
       :text ~(t "status.dimensions" {:width (text state.doc.width) :height (text state.doc.height)}))

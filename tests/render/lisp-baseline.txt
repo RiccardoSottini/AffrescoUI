@@ -1,0 +1,3 @@
+# The Lisp scenario tests that failed every time they were first played (tests/render/CMakeLists.txt marks each
+# WILL_FAIL with the label lisp-baseline). One line each: the test's name, the failing scenario, the reason in a few
+# words. Take a line off when its app is fixed.

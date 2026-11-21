@@ -4,11 +4,18 @@
 /// @brief detail::Player: plays a scenario's steps on a screen and its window, on a clock it moves by hand.
 
 #include "affresco/automation/Scenarios.hpp"
+#include "affresco/core/Channel.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Input.hpp"
 
 #include <filesystem>
+#include <functional>
+#include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace affresco {
 class Panel;
@@ -27,6 +34,33 @@ public:
 	using std::runtime_error::runtime_error;
 };
 
+/// @brief The peers a scenario's `command` steps speak as: one channel per author's channel, connected to the screen
+/// when a step first needs it, exactly as a peer on a socket would be. Declared before the screen, which keeps a
+/// reference to each channel it was connected to. Main thread only.
+class Peers {
+public:
+	/// @brief Sends a message as an author's peer, and gives the screen's answer to it.
+	/// @param screen The scenario's screen.
+	/// @param author The author: its channel, then the name the peer gives itself ("agent/helper").
+	/// @param message The message, without its "id" and "author".
+	/// @return The answer with the message's id, or a "rejected" saying none came.
+	[[nodiscard]] json ask(Screen& screen, std::string_view author, json message);
+
+private:
+	/// @brief A channel kept in memory: what the screen sends the peer, kept until the next message.
+	class Line final : public Channel {
+	public:
+		/// @brief Keeps a message the screen sent.
+		/// @param message The message.
+		void send(std::string_view message) override { sent.emplace_back(message); }
+
+		std::vector<std::string> sent; ///< What the screen sent since the last message, oldest first.
+	};
+
+	std::map<std::string, std::unique_ptr<Line>, std::less<>> lines_; ///< By channel.
+	int nextId_ = 0;                                                  ///< The last message's id.
+};
+
 /// @brief Where a scenario is played, and where its results go. The references must outlive the Player.
 struct Stage {
 	Screen& screen;                      ///< The screen, built into the window.
@@ -35,6 +69,7 @@ struct Stage {
 	const Scenario& scenario;            ///< What is played.
 	const Options& options;              ///< How.
 	std::filesystem::path scratch;       ///< A folder of the run's own, for drawn frames.
+	Peers& peers;                        ///< Who `command` steps run as; declared before the screen.
 };
 
 /// @brief Plays a scenario's steps, one at a time, the way a person would give them: input through the window's route
@@ -68,6 +103,10 @@ private:
 	/// @return Whether it was one of them.
 	/// @throws StepError If a target isn't there.
 	bool playPointer(const json& step);
+	/// @brief Presses or releases the modifier keys a pointer step holds (scenario "mods"), one key event each.
+	/// @param mods The modifiers.
+	/// @param action Press or Release.
+	void holdModifiers(Mods mods, affresco::Action action);
 	/// @brief Plays a drag: press on a target, move to the other in steps, release.
 	/// @param step The step.
 	/// @throws StepError If a target isn't there.
@@ -82,9 +121,20 @@ private:
 	/// @param milliseconds How long.
 	/// @throws StepError If timers keep coming due without the time moving.
 	void wait(double milliseconds);
+	/// @brief Copies a file of the scenario's screens folder (a fixture) into the run's own folder, for choose().
+	/// @param from Its path, relative to that folder (checked by the scenario file's reader: no '..').
+	/// @param name The name it takes in the run's own folder.
+	/// @throws StepError If it isn't a file inside that folder (a link out of it, say), or can't be copied.
+	void copyFixture(const std::string& from, const std::string& name);
 	/// @brief Answers the file dialogs that follow with a file in the run's own folder, as the person would choose it.
-	/// @param file Its name, or null to cancel them.
-	void choose(const json& file);
+	/// @param step The step: choose, the file's name or null to cancel them; from, a fixture copied in as that name
+	/// first (copyFixture()).
+	void choose(const json& step);
+	/// @brief Runs a command as an author's peer would, or checks the verdict a run would meet (Commands.cpp).
+	/// @param step `{"command", "with"?, "as"?, "verdict"?}`.
+	/// @param number The step's position, from 1.
+	/// @throws StepError If the command is refused, would wait, or fails.
+	void command(const json& step, std::size_t number);
 	/// @brief Checks an expectation, and records it if it fails.
 	/// @param expect The expectation.
 	/// @param number The step's position, from 1.

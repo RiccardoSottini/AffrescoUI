@@ -8,6 +8,7 @@
 #include "editor/TextEditorShared.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 #include <string>
 #include <utility>
@@ -74,7 +75,8 @@ const std::vector<std::string_view>& TextEditor::commandNames() {
 	                                                    "transpose",      "toggleComment",    "undo",
 	                                                    "redo",           "cut",              "copy",
 	                                                    "paste",          "selectAll",        "indentLines",
-	                                                    "outdentLines",   "unfoldAll"};
+	                                                    "outdentLines",   "unfoldAll",        "recenter",
+	                                                    "recenterTop",    "recenterBottom"};
 	return names;
 }
 
@@ -106,20 +108,36 @@ bool TextEditor::runCommand(std::string_view name) {
 		revealCaret();
 		onCaretMoved(caret_);
 	} else if(name == "insertLineBefore" || name == "insertLineAfter") {
-		if(!editable()) return true;
-		clearCursors();
-		const std::size_t line = caret_.line, indent = indentOf(line);
-		beginEdit(Edit::Other);
-		if(name == "insertLineAfter") {
-			insert({line, lines_[line].size()}, U"\n" + std::u32string(indent, U' '));
-			caret_ = anchor_ = {line + 1, indent};
-		} else {
-			insert({line, 0}, std::u32string(indent, U' ') + U"\n");
-			caret_ = anchor_ = {line, indent};
-		}
-		endEdit();
+		insertLine(name == "insertLineAfter");
 	} else if(name == "toggleComment") toggleComment("//");
-	else return lineCommand(name) || textCommand(name) || editCommand(name);
+	else return viewCommand(name) || lineCommand(name) || textCommand(name) || editCommand(name);
+	return true;
+}
+
+void TextEditor::insertLine(bool after) {
+	if(!editable()) return;
+	clearCursors();
+	const std::size_t line = caret_.line, indent = indentOf(line);
+	beginEdit(Edit::Other);
+	if(after) {
+		insert({line, lines_[line].size()}, U"\n" + std::u32string(indent, U' '));
+		caret_ = anchor_ = {line + 1, indent};
+	} else {
+		insert({line, 0}, std::u32string(indent, U' ') + U"\n");
+		caret_ = anchor_ = {line, indent};
+	}
+	endEdit();
+}
+
+bool TextEditor::viewCommand(std::string_view name) {
+	if(name != "recenter" && name != "recenterTop" && name != "recenterBottom") return false;
+	// The caret's row to the middle, the top or the bottom of the view, as far as the text lets it scroll
+	const float lh = lineHeight(), height = frame().height() - textPadding;
+	const float top = static_cast<float>(rowOf(caret_)) * lh;
+	const float y = name == "recenterTop"      ? top
+	                : name == "recenterBottom" ? top + lh - height
+	                                           : top - std::floor((height - lh) / 2.0f / lh) * lh;
+	setScroll({scroll_.x, std::max(y, 0.0f)});
 	return true;
 }
 

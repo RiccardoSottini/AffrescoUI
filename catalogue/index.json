@@ -1,0 +1,36 @@
+{
+	"format": "affrescoui-catalog",
+	"version": 2,
+	"name": "affrescoui",
+	"updated": "2026-11-17",
+	"features": {
+		"slideSorter": {
+			"title": "Slide sorter",
+			"description": "Thumbnails of an ordered list of pages: drag to reorder, click to select, and a button that duplicates the selected page.",
+			"releases": [
+				{
+					"release": "1.0.0",
+					"url": "slideSorter/1.0.0.json",
+					"digest": "sha512:ecOlrCIKXDyRDkvEaBlgdBqXjn3_OvVXAds3vYEKr1aRy_qlqlG81qz2KyUpHEerUgK5-yMyA38KMesoxLfpmg",
+					"size": 4641
+				}
+			]
+		}
+	},
+	"packages": {
+		"flow-by-priority": {
+			"title": "Flow, by priority",
+			"description": "Flow with every list ordered by priority, the most urgent first.",
+			"base": "flow",
+			"releases": [
+				{
+					"release": "1.0.0",
+					"url": "flow-by-priority/1.0.0.affresco.json",
+					"digest": "sha512:vUvT1fRicxQb779fQvLz2BSQy1X0Wt86jRG8kroeT4Q2CLXx3aK4Kwz11ZngAjjZPY7BvHaYAsEcgO1HAWXheg",
+					"size": 370352,
+					"base": { "app": "flow" }
+				}
+			]
+		}
+	}
+}

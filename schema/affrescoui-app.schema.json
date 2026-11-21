@@ -19,6 +19,12 @@
 		"name": { "$ref": "#/$defs/text", "maxLength": 100, "description": "Its name, shown by the host." },
 		"description": { "type": "string", "maxLength": 300, "description": "One line about it." },
 		"icon": { "$ref": "#/$defs/assetPath", "description": "Its icon: an image in its folder, or in ../assets for an app in a json or lisp folder." },
+		"release": {
+			"type": "string",
+			"pattern": "^[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}$",
+			"maxLength": 29,
+			"description": "Its release: three numbers, as a feature's (\"1.2.0\"). Optional: an app without one is known by its files alone."
+		},
 		"entry": {
 			"$ref": "#/$defs/path",
 			"pattern": "\\.(json|lisp)$",

@@ -3,38 +3,65 @@
   :color "#0d9488"
   :health onTrack
   :lead "RS"
+  :start "2026-02-16"
   :target "2026-04-10"
   :progress 0.62
-  :issues 13}
+  :issues 13
+  :summary "Every move on the board can be made from the keyboard, with the same undo as a drag."
+  :milestones [{:name "Moves by arrow keys" :target "2026-03-02" :done true}
+               {:name "Single-key properties" :target "2026-03-20" :done false}
+               {:name "Screen reader pass" :target "2026-04-08" :done false}]
+  :updates [{:who "RS" :health onTrack :when "2026-03-13" :text "Arrow-key moves shipped behind the flag. Single-key properties are next; no blockers."}
+            {:who "RS" :health onTrack :when "2026-03-02" :text "First milestone done a day early."}]}
  {:name "Label palette"
   :icon palette
   :color "#9333ea"
   :health atRisk
   :lead "MK"
+  :start "2026-03-02"
   :target "2026-03-27"
   :progress 0.35
-  :issues 8}
+  :issues 8
+  :summary "A colour palette for labels that reads well in light and dark themes."
+  :milestones [{:name "Contrast audit" :target "2026-03-10" :done true}
+               {:name "New palette in the picker" :target "2026-03-24" :done false}]
+  :updates [{:who "MK" :health atRisk :when "2026-03-12" :text "Two colours fail contrast in the dark theme; picking replacements may cost a week."}]}
  {:name "Public board API"
   :icon plug
   :color "#0f766e"
   :health onTrack
   :lead "AL"
+  :start "2026-03-09"
   :target "2026-05-15"
   :progress 0.18
-  :issues 21}
+  :issues 21
+  :summary "A documented API to read and change boards from other tools."
+  :milestones [{:name "Read endpoints" :target "2026-04-03" :done false}
+               {:name "Write endpoints" :target "2026-04-24" :done false}
+               {:name "Docs and examples" :target "2026-05-12" :done false}]
+  :updates []}
  {:name "Team onboarding"
   :icon rocket
   :color "#d97706"
   :health offTrack
   :lead "JD"
+  :start "2026-02-09"
   :target "2026-03-20"
   :progress 0.48
-  :issues 11}
+  :issues 11
+  :summary "A checklist and invitations that get a new team working on day one."
+  :milestones [{:name "Invite by email" :target "2026-02-27" :done true}
+               {:name "Onboarding checklist" :target "2026-03-18" :done false}]
+  :updates [{:who "JD" :health offTrack :when "2026-03-11" :text "The checklist slipped behind the invite rework; the target date needs to move."}]}
  {:name "Sharper text"
   :icon type
   :color "#2563eb"
   :health completed
   :lead "MK"
+  :start "2026-02-02"
   :target "2026-03-06"
   :progress 1
-  :issues 6}]
+  :issues 6
+  :summary "Crisp text on high-density screens."
+  :milestones [{:name "Retina glyphs" :target "2026-03-06" :done true}]
+  :updates [{:who "MK" :health completed :when "2026-03-06" :text "Shipped. Text is sharp on every screen we tested."}]}]

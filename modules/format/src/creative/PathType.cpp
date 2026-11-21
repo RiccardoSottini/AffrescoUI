@@ -134,7 +134,7 @@ StrokeStyle strokeOf(const json& values, const std::string& path) {
 	return style;
 }
 
-/// @brief Draws a path node: its data ("d"), view box and fit, fill and stroke.
+/// @brief Draws a path node: its data ("d"), view box and fit, fill (and its edge's "feather") and stroke.
 /// @param panel The panel, a PathView.
 /// @param values Its values, if given.
 /// @param reader Reads colours, through the theme.
@@ -164,6 +164,8 @@ void applyPath(Panel& panel, const json& values, const PropertyReader& reader, c
 	view->setFillRule(values.contains("fillRule")
 	                      ? choiceOf(values["fillRule"], path + ".fillRule", rules, R"("nonzero" or "evenodd")")
 						  : FillRule::nonZero);
+	view->setFeather(values.contains("feather") ? number(values["feather"], path + ".feather")
+	                                            : 1.0f);
 	view->setStrokeColor(values.contains("stroke") ? reader.color(values["stroke"], path + ".stroke")
 	                                               : colors::transparent);
 	view->setStrokeStyle(strokeOf(values, path));
@@ -179,6 +181,7 @@ void registerPathType(TypeRegistry& registry) {
 	                   {"fillColor", ValueKind::Color},
 	                   {"fillRule", ValueKind::Text},
 	                   {"fillGradient", ValueKind::Any},
+	                   {"feather", ValueKind::Number},
 	                   {"stroke", ValueKind::Color},
 	                   {"strokeWidth", ValueKind::Number},
 	                   {"strokeJoin", ValueKind::Text},

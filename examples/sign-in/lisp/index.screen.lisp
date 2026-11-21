@@ -6,23 +6,25 @@
 ;;; English, Italian and Arabic, right to left (Cmd+L). F1 lists the commands and their keys, Escape goes back from
 ;;; the inner screens, Shift+Cmd+H shows the passwords, Shift+Cmd+Q signs out.
 
-(include "locales/en.lisp"
-         "locales/it.lisp"
-         "locales/ar.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "components.lisp"
-         "chrome.lisp"
-         "dialogs.lisp"
-         "sign-in-form.lisp"
-         "create-account.lisp"
-         "codes.lisp"
-         "account.lisp"
-         "account-sections.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "sign-in.lisp"
-         "profile.lisp")
+(ns sign-in.index
+  (:require "locales/en.lisp"
+            "locales/it.lisp"
+            "locales/ar.lisp"
+            sign-in.state
+            sign-in.computed
+            sign-in.look
+            sign-in.components
+            sign-in.chrome
+            sign-in.dialogs
+            sign-in.sign-in-form
+            sign-in.create-account
+            sign-in.codes
+            sign-in.done
+            sign-in.account
+            sign-in.account-sections
+            "../../shared/addons/assistant/assistant.lisp"
+            sign-in.sign-in
+            sign-in.profile))
 
 ;;; The window, and what is in it, in the order it is drawn
 
@@ -36,11 +38,13 @@
   :strings {:default en :locale ~state.locale :keep ["EXAM PLEE XAMP LE23" "DEMO-1001" "Example ID"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons arabic]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [iconsSmall arabicSmall]}
-          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :fallback [arabicTitle]}
-          :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 19 :fallback [icons arabicHeading]}
+          :strong {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :bold true :fallback [icons arabic]}
+          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :bold true :fallback [arabicTitle]}
+          :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 19 :bold true :fallback [icons arabicHeading]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 18}
           :iconsSmall {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :logo {:file "../../shared/fonts/Lucide.ttf" :size 22}
+          :hero {:file "../../shared/fonts/Lucide.ttf" :size 30}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 15}
           :arabic {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 15}
           :arabicSmall {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 13}
@@ -48,7 +52,7 @@
           :arabicHeading {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 19}}
   :persist [state.theme state.remember state.locale]
   :theme ~state.theme
-  (node#panel-root :color @color.background
+  (node#panel-root :color ~(if computed.narrow "@color.surface" "@color.background")
     ~@(glows)
     (outlet#screens :dir auto :anchors {:left 0 :right 0 :top 56 :bottom 44})
     ~(announcer)
@@ -72,5 +76,7 @@
 (defscreen twoStep "The code a second step asks for." ~(two-step-card))
 
 (defscreen reset "A new password, after a reset code." ~(reset-card))
+
+(defscreen done "What just went right: a new password, a deleted account." ~(done-card))
 
 (defscreen signedIn "The account page, once signed in." ~(account-screen))

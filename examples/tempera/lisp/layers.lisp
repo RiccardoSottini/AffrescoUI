@@ -4,6 +4,8 @@
 ;;; first (computed.layerRows: a folded group's layers hidden, the filter applied), and the buttons that add and delete
 ;;; layers. A row is dragged onto another to move it there. The Channels panel lists the image's channels.
 
+(ns tempera.layers)
+
 ;;; The Layers panel
 
 (defview layers-panel "The Layers panel: its filter, blend and lock rows, the layers, and its buttons." []
@@ -26,13 +28,13 @@
      ~(kind-filter "pixel" "image")
      ~(kind-filter "adjustment" "contrast")
      ~(kind-filter "group" "folder")
-     (node#filter-kind-type :use tIcon :with {:icon type :tip ~(t "layers.typeLayers") :off true})
-     (node#filter-kind-shape :use tIcon :with {:icon shapes :tip ~(t "layers.shapeLayers") :off true})
+     ~(kind-filter "text" "type")
+     ~(kind-filter "shape" "shapes")
      (node :grow 1 :height 1 :style clear)
      (node#layer-filter-toggle :use tIcon
        :with {:icon ~(if state.layerFilter.on "toggle-right" "toggle-left")
               :tip ~(if state.layerFilter.on (t "layers.filterOff") (t "layers.filterOn"))
-              :run toggleLayerFilter})
+              :run toggle-layer-filter})
      (node :width 4 :height 1 :style clear)))
 
 (defview kind-filter "The filter's icon for one kind of layer: on while the filter shows that kind." [kind icon]
@@ -41,7 +43,7 @@
      :with {:icon ~icon
             :tip ~(t (str "layers.only." kind))
             :on ~(and state.layerFilter.on (contains state.layerFilter.kinds kind))
-            :run toggleLayerKind
+            :run toggle-layer-kind
             :args {:kind ~kind}}))
 
 (defview layers-blend-row "The active layer's blend mode and opacity." []
@@ -95,18 +97,18 @@
   `(row :id ~(str "layer-" layer.id)
      :role listitem
      :label ~layer.name
-     :selected ~(= layer.id state.doc.active)
+     :selected ~(or (= layer.id state.doc.active) (contains computed.picked layer.id))
      :anchors {:left 4 :right 4}
      :height 36
      :alignItems center
      :gap 5
      :cursor hand
      :radius @kit.radius
-     :color ~(if (= layer.id state.doc.active) "@selected" "transparent")
+     :color ~(if (or (= layer.id state.doc.active) (contains computed.picked layer.id)) "@selected" "transparent")
      :hover {:color @hover}
      :drag {:data {:id ~layer.id}}
-     :onDrop ~(handler moveLayer {:id event.data.id :onto layer.id})
-     :onClick ~(handler selectLayer {:id layer.id})
+     :onDrop ~(handler drop-on-layer layer.id)
+     :onClick ~(handler pick-layer {:id layer.id})
      (node :width 3 :height 22 :radius 2 :color ~(if (= layer.id state.doc.active) "@accent" "transparent"))
      (label :id ~(str "layer-eye-" layer.id)
        :role button
@@ -138,7 +140,7 @@
       :width 12
       :height 36
       :cursor hand
-      :onClick ~(handler foldGroup {:id layer.id}))
+      :onClick ~(handler fold-group {:id layer.id}))
    `(label :id ~(str "layer-clip-" layer.id)
       :when ~layer.clipped
       :icon corner-left-down
@@ -148,7 +150,7 @@
 
 (defview layer-picture "A layer's thumbnail, or its kind's icon, then its mask, linked." [layer]
   [`(image :id ~(str "layer-thumb-" layer.id)
-      :when ~(not (empty? layer.thumbnail))
+      :when ~(and (not (empty? layer.thumbnail)) (not= layer.kind "text"))
       :source ~layer.thumbnail
       :fit contain
       :width 30
@@ -157,8 +159,8 @@
       :borderWidth 1
       :borderColor @border)
    `(label :id ~(str "layer-icon-" layer.id)
-      :when ~(empty? layer.thumbnail)
-      :icon ~(if (= layer.kind "group") "folder" "contrast")
+      :when ~(or (empty? layer.thumbnail) (= layer.kind "text"))
+      :icon ~(case layer.kind "group" "folder" "text" "type" "contrast")
       :font iconsLarge
       :width 30
       :height 28
@@ -218,6 +220,56 @@
      (node#layer-new-group :use tIcon :with {:icon folder :tip ~(t "layers.newGroup") :run newGroup})
      (node#layer-new :use tIcon :with {:icon plus-square :tip ~(t "layers.newLayer") :run newLayer})
      (node#layer-delete :use tIcon :with {:icon trash-2 :tip ~(t "layers.delete") :run deleteActive})
+     (node :width 6 :height 1 :style clear)))
+
+;;; The Paths panel
+
+(defview paths-panel "The Paths panel: the document's paths, the active one chosen; its buttons use the active path."
+  []
+  `(column#paths :when ~(= state.panels.layers "paths") :role region :label ~(t "panel.paths") :fill true
+     (column#path-rows :role list :label ~(t "panel.paths") :width "100%" :grow 1 :scroll vertical
+       ~(repeat [p state.doc.paths :key p.id] (path-row p))
+       (node#paths-empty :style dim
+         :when ~(empty? state.doc.paths)
+         :anchors {:left 10}
+         :height 40
+         :text ~(t "panel.paths.none")))
+     (node :width "100%" :height 1 :color @border)
+     (row#path-buttons :role toolbar :label ~(t "paths.actions") :width "100%" :height 28 :alignItems center
+       :justify end :gap 2
+       (node#path-fill :use tIcon
+         :with {:icon paint-bucket :tip ~(t "command.fillPath") :run fillActivePath :off ~(not computed.hasPath)})
+       (node#path-stroke :use tIcon
+         :with {:icon spline :tip ~(t "command.strokePath") :run strokeActivePath :off ~(not computed.hasPath)})
+       (node#path-selection :use tIcon
+         :with {:icon square-dashed :tip ~(t "command.pathToSelection") :run selectActivePath
+                :off ~(not computed.hasPath)})
+       (node#path-shape :use tIcon
+         :with {:icon shapes :tip ~(t "command.pathToShape") :run shapeFromPath :off ~(not computed.hasPath)})
+       (node#path-new :use tIcon :with {:icon plus-square :tip ~(t "command.newWorkPath") :run newWorkPath})
+       (node#path-delete :use tIcon
+         :with {:icon trash-2 :tip ~(t "command.deletePath") :run deleteActivePath
+                :off ~(empty? state.doc.paths)})
+       (node :width 6 :height 1 :style clear))))
+
+(defview path-row "A path's row: a click makes it the active one, shown on the canvas; again hides it." [p]
+  `(row :id ~(str "path-" p.id)
+     :role listitem
+     :label ~p.name
+     :selected ~p.active
+     :anchors {:left 4 :right 4}
+     :height 32
+     :alignItems center
+     :gap 8
+     :cursor hand
+     :radius @kit.radius
+     :color ~(if p.active "@selected" "transparent")
+     :hover {:color @hover}
+     :onClick ~(handler select-path {:index (if p.active -1 p.index)})
+     (node :width 3 :height 20 :radius 2 :color ~(if p.active "@accent" "transparent"))
+     (label :icon spline :textColor @text :width 24 :height 24 :align center :color @canvasBack :radius 4)
+     (label :text ~p.name :textColor @text :grow 1 :height 20 :align {:horizontal start :vertical center})
+     (node :style dim :text ~(t "paths.anchors" {:n (str p.anchors)}))
      (node :width 6 :height 1 :style clear)))
 
 ;;; The Channels panel

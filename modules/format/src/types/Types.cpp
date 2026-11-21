@@ -131,6 +131,7 @@ void registerTextTypes(TypeRegistry& registry) {
 	label->properties.push_back({"runs", ValueKind::Any, false});
 	label->properties.push_back({"selectable", ValueKind::Boolean, false});
 	label->properties.push_back({"selectionColor", ValueKind::Color});
+	label->properties.push_back({"letterSpacing", ValueKind::Number});
 	addCore(registry, "label", "Text", [] { return std::make_unique<Label>(); }, label);
 
 	const auto textarea = std::make_shared<PropertySet>();

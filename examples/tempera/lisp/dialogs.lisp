@@ -4,6 +4,8 @@
 ;;; state.transform...), with fields bound to that part; its OK runs a function of tempera.lisp that applies it. The
 ;;; filter dialog only edits state.filter: watches preview, apply or cancel it (tempera.lisp, "The filters").
 
+(ns tempera.dialogs)
+
 ;;; What the dialogs share
 
 (defcomponent tNumberRow "A number's row in a dialog: its title, its field bound to state.<path>.<key>, its unit."
@@ -34,7 +36,7 @@
               :value ~(get state.filter key)
               :low ~low
               :high ~high
-              :run setFilterValue
+              :run set-filter-value
               :width 196})
      (textarea :label ~(t "filter.value" {:title title})
        :text ~(round (get state.filter key))
@@ -46,7 +48,7 @@
        :borderWidth 1
        :borderColor @border
        :radius @kit.radius
-       :onSubmit ~(handler typeFilterValue key low high))))
+       :onSubmit ~(handler type-filter-value key low high))))
 
 (defview dialog-host "A dialog, at no size of its own in the tree: what the kit's dialog needs around it." [dialog]
   `(node :style clear :width 0 :height 0 ~dialog))
@@ -71,7 +73,7 @@
              :when ~(and (not= state.filter.kind "add-noise") (not= state.filter.kind "motion-blur"))
              :with {:title ~(t "filter.radius") :key radius :low 1 :high 100})
           `(node :use tFilterSlider
-             :when ~(and (not= state.filter.kind "gaussian-blur") (not= state.filter.kind "motion-blur"))
+             :when ~(not (contains ["gaussian-blur" "motion-blur" "high-pass"] state.filter.kind))
              :with {:title ~(t "filter.amount") :key amount :low 1 :high 500})
           `(node :use tFilterSlider
              :when ~(= state.filter.kind "unsharp-mask")
@@ -109,7 +111,7 @@
      (node :style dim :fitText false :text ~(t "newDoc.preset") :width 70 :height 20)
      (node#new-preset :use tPicker
        :with {:title ~(t (str "preset."
-                              (or-else (:name (find (fn [it] (preset-chosen it)) state.newPresets)) "custom")))
+                              (or-else (:name (find #(preset-chosen %) state.newPresets)) "custom")))
               :tip ~(t "newDoc.presets")
               :width 200
               :open state.newPresetMenu
@@ -152,10 +154,13 @@
 
 ;;; The image and the active layer
 
-(defview transform-dialog "The Free Transform dialog: move, scale and turn the active layer." []
+(defview transform-dialog "The transform dialog: move, scale and turn the active layer, or the selection's outline." []
   (dialog-host
     `(node#transform-dialog :use dialog
-       :with {:open state.transform.open :title ~(t "transformDialog.title") :message "" :width 340 :height 270
+       :with {:open state.transform.open
+              :title ~(t (if (= state.transform.target :selection) "transformDialog.selectionTitle"
+                             "transformDialog.title"))
+              :message "" :width 340 :height 270
               :buttons ~[{:title (t "dialog.cancel")} {:title (t "dialog.ok") :run "applyTransform" :default true}]}
        ~(fields "transform-fields" 4
           (number-row "transformDialog.across" "x" "transform" "unit.px")
@@ -265,7 +270,7 @@
        (row#fill-fields :anchors {:left 20 :right 20 :top 48} :height 28 :gap 8 :alignItems center
          (node :style dim :fitText false :text ~(t "fillDialog.contents") :width 70 :height 20)
          (node#fill-contents :use tPicker
-           :with {:title ~(:title (find (fn [it] (= it.id state.fill.contents)) computed.fillContents))
+           :with {:title ~(:title (find #(= (:id %) state.fill.contents) computed.fillContents))
                   :tip ~(t "fillDialog.tip")
                   :width 200
                   :open state.fill.menu

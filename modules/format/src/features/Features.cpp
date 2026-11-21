@@ -5,6 +5,7 @@
 
 #include "FeatureCatalog.hpp"
 #include "FeatureManifest.hpp"
+#include "FeatureUpgrade.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -23,17 +24,6 @@ struct Found {
 	const CatalogIndex* index = nullptr;     ///< Its catalogue.
 	const CatalogRelease* release = nullptr; ///< The release.
 };
-
-/// @brief The record of an installed feature.
-/// @param document The document.
-/// @param name The feature.
-/// @return It, or nullptr.
-const json* installed(const json& document, std::string_view name) {
-	const auto features = document.find("features");
-	if(features == document.end() || !features->is_object()) return nullptr;
-	const auto record = features->find(name);
-	return record == features->end() ? nullptr : &*record;
-}
 
 } // namespace
 
@@ -97,7 +87,7 @@ json Features::catalog(const json& document) const {
 			   checkedRelease(newest.release) <= checkedRelease(row->second["version"].get<std::string>()))
 				continue;
 			const auto publisher = index.publishers.find(newest.publisher);
-			const json* record = installed(document, name);
+			const json* record = installedRecord(document, name);
 			rows[name] = {{"name", name},
 			              {"version", newest.release},
 			              {"publisher", publisher != index.publishers.end() && !publisher->second.empty()
@@ -113,11 +103,28 @@ json Features::catalog(const json& document) const {
 	return list;
 }
 
-json Features::installRevision(const json& document, std::string_view name, std::string_view release,
-                               std::string_view author) const {
-	if(installed(document, name)) fail(std::string(name), "is installed already (upgrade it, or remove it first)");
+json Features::releaseRecord(std::string_view name, std::string_view release, int order) const {
 	const Found found = impl_->find(name, release);
 	const json manifest = fetchManifest(*found.index, std::string(name), *found.release, impl_->trusted);
+	json record =
+	    recordFor(manifest, "catalog:" + found.index->name, found.release->digest, found.release->publisher, order);
+	record["installed"] = installedDigest(record); // so an edit made in place is told (FeatureUpgrade.hpp)
+	return record;
+}
+
+std::string Features::newestRelease(std::string_view name) const {
+	std::string newest;
+	for(const auto& [catalog, index] : impl_->indexes)
+		if(const auto feature = index.features.find(name); feature != index.features.end())
+			for(const CatalogRelease& each : feature->second.releases)
+				if(newest.empty() || checkedRelease(newest) < checkedRelease(each.release)) newest = each.release;
+	return newest;
+}
+
+json Features::installRevision(const json& document, std::string_view name, std::string_view release,
+                               std::string_view author) const {
+	if(installedRecord(document, name))
+		fail(std::string(name), "is installed already (upgrade it, or remove it first)");
 	// After the last one, in steps of 10; a peer may have written any number, so it is read in 64 bits and capped
 	std::int64_t order = 0;
 	if(const auto features = document.find("features"); features != document.end() && features->is_object())
@@ -125,38 +132,24 @@ json Features::installRevision(const json& document, std::string_view name, std:
 			if(const auto value = record.find("order"); value != record.end() && value->is_number_integer())
 				order = std::max(order, value->get<std::int64_t>());
 	const int next = static_cast<int>(std::min<std::int64_t>(order, std::numeric_limits<int>::max() - 10) + 10);
-	const json record =
-	    recordFor(manifest, "catalog:" + found.index->name, found.release->digest, found.release->publisher, next);
+	const json record = releaseRecord(name, release, next);
+	const std::string& catalog = record["source"].get_ref<const std::string&>();
 	json set = json::object();
 	if(document.contains("features"))
 		set["/features/" + std::string(name)] = record;
 	else
 		set["/features"] = {{std::string(name), record}}; // a document without the section gets it whole
 	return {{"author", author},
-	        {"message", "Install " + std::string(name) + " " + found.release->release + " from " + found.index->name},
+	        {"message", "Install " + std::string(name) + " " + record["release"].get<std::string>() + " from " +
+	                        catalog.substr(catalog.find(':') + 1)},
 	        {"set", std::move(set)}};
 }
 
 json Features::upgradeRevision(const json& document, std::string_view name, std::string_view author) const {
-	const json* record = installed(document, name);
-	if(!record) fail(std::string(name), "isn't installed");
-	const Found found = impl_->find(name, "");
-	const auto current = parseRelease(record->value("release", ""));
-	if(current && checkedRelease(found.release->release) <= *current)
-		fail(std::string(name), "is up to date (" + record->value("release", "") + ")");
-	// An upgrade never changes who the feature comes from: that takes a removal and a new install, both reviewed
-	const json publisher = record->value("publisher", json());
-	const auto installedKey = publisher.is_string() ? parsePublicKey(publisher.get_ref<const std::string&>()) : std::nullopt;
-	const auto newKey = parsePublicKey(found.release->publisher);
-	if(!installedKey || !newKey || !sameKey(*installedKey, *newKey))
-		fail(std::string(name), "its new release comes from another publisher (remove it and install that one)");
-	const json manifest = fetchManifest(*found.index, std::string(name), *found.release, impl_->trusted);
-	json upgraded = recordFor(manifest, "catalog:" + found.index->name, found.release->digest,
-	                          found.release->publisher, record->value("order", 0));
-	upgraded["enabled"] = record->value("enabled", true);
+	UpgradeParts parts = upgradeParts(*this, document, name);
 	return {{"author", author},
-	        {"message", "Upgrade " + std::string(name) + " to " + found.release->release},
-	        {"set", {{"/features/" + std::string(name), std::move(upgraded)}}}};
+	        {"message", "Upgrade " + std::string(name) + " to " + parts.to},
+	        {"set", {{"/features/" + std::string(name), std::move(parts.theirs)}}}};
 }
 
 } // namespace affresco::format

@@ -81,6 +81,7 @@ SocketChannel::~SocketChannel() {
 		std::unique_lock lock(queueMutex_);
 		stopping_ = true;
 		queueChanged_.notify_all();
+		// A deadline, not a poll: the writer notifies once done, but may be stuck in a write the peer never reads
 		queueChanged_.wait_for(lock, std::chrono::seconds(1), [this] { return writerDone_; });
 	}
 	detail::shutdownSocket(socket_); // ends the reader's read, and a write the peer never took

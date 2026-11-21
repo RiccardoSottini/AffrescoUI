@@ -11,7 +11,8 @@
 		"stroke": [],
 		"strokeFrom": [0, 0],
 		"sidePane": null,
-		"commentFocus": null
+		"commentFocus": null,
+		"naming": { "id": null, "text": "" }
 	},
 
 	"computed": {
@@ -65,7 +66,7 @@
 		],
 		"inkRelease": [
 			{ "if": "{{state.inkTool != 'eraser' && length(state.stroke) > 1}}", "then": [
-				{ "run": "addInk", "with": {
+				{ "run": "addStroke", "with": {
 					"pad": "{{computed.strokeWidth / 2 + 1}}",
 					"left": "{{min(map(state.stroke, it[0]))}}", "top": "{{min(map(state.stroke, it[1]))}}",
 					"right": "{{max(map(state.stroke, it[0]))}}", "bottom": "{{max(map(state.stroke, it[1]))}}" } }
@@ -131,6 +132,18 @@
 			{ "note": "with: id, the build to take off this slide" },
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].animations", "to": "{{filter(computed.slide.animations ?? [], it.id != id)}}" }
+		],
+		"nameObject": [
+			{ "note": "gives the object being named the name typed (an empty one gives back its default name)" },
+			{ "if": "{{state.naming.id != null}}", "then": [
+				{ "run": "setObjectName", "with": { "id": "{{state.naming.id}}", "typed": "{{trim(state.naming.text ?? '')}}" } }
+			] }
+		],
+		"setObjectName": [
+			{ "note": "with: id, the object, and typed, its new name (empty: its default name)" },
+			{ "set": "state.naming", "to": "{{ { id: null, text: '' } }}" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, it.id == id ? merge(it, { name: typed == '' ? null : typed }) : it)}}" }
 		],
 		"hideObjects": [
 			{ "note": "with: ids, the objects to show or hide, and hidden" },
@@ -207,10 +220,7 @@
 						{ "id": "b-ink-clear", "use": "rbBig", "with": { "icon": "brush-cleaning", "title": "Clear\nInk", "width": 46, "enabled": "{{computed.slideInk > 0}}" },
 						  "tooltip": "Delete every stroke on this slide", "onClick": "clearInk" }
 					] },
-					{ "id": "g-ink-convert", "use": "rbGroup", "with": { "title": "Convert" }, "children": [
-						{ "id": "b-ink-shape", "use": "rbBig", "with": { "icon": "shapes", "title": "Ink to\nShape", "width": 46, "enabled": false }, "tooltip": "Turning ink into shapes isn't available yet" },
-						{ "id": "b-ink-replay", "use": "rbBig", "with": { "icon": "history", "title": "Ink\nReplay", "width": 46, "enabled": false }, "tooltip": "Replaying ink isn't available yet" }
-					] }
+					{ "use": "inkConvert" }
 				]
 			}
 		},
@@ -374,13 +384,18 @@
 					{ "type": "label", "id": "selection-empty", "when": "{{length(computed.objects) == 0}}", "height": 24, "textColor": "@rbMuted", "runs": [{ "text": "This slide has no objects.", "size": 12 }] },
 					{ "type": "row",
 					  "id": "{{'selection-' + o.id}}", "repeat": { "for": "o", "in": "{{reverse(computed.objects)}}", "key": "{{o.id}}", "index": "n" }, "height": 26, "gap": 4, "alignItems": "center",
-					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
+					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : o.kind == 'table' ? 'Table' : o.kind == 'picture' ? 'Picture' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
 					  "color": "{{contains(state.board.selection, o.id) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
-						{ "type": "label", "id": "{{'selection-' + o.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
-						  "textColor": "{{o.hidden ?? false ? '@rbMuted' : '@rbInk'}}", "label": "{{name}}",
+						{ "type": "label", "id": "{{'selection-' + o.id + '-name'}}", "when": "{{state.naming.id != o.id}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
+						  "textColor": "{{o.hidden ?? false ? '@rbMuted' : '@rbInk'}}", "label": "{{name}}", "tooltip": "Double-click to rename",
 						  "runs": [{ "text": "{{'  ' + name}}", "size": 12, "italic": "{{o.hidden ?? false}}" }],
-						  "onClick": [{ "if": "{{!(o.hidden ?? false)}}", "then": [{ "set": "state.board.selection", "to": "{{[o.id]}}" }] }] },
+						  "onClick": [{ "if": "{{!(o.hidden ?? false)}}", "then": [{ "set": "state.board.selection", "to": "{{[o.id]}}" }] }],
+						  "onDoubleClick": { "set": "state.naming", "to": "{{ { id: o.id, text: name } }}" } },
+						{ "type": "textarea", "id": "{{'selection-' + o.id + '-rename'}}", "when": "{{state.naming.id == o.id}}", "grow": 1, "height": 22, "padding": 4, "radius": 4, "autofocus": true,
+						  "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@brand", "textColor": "@rbInk", "bind": "state.naming.text", "label": "{{'Name of ' + name}}",
+						  "keys": { "escape": { "set": "state.naming", "to": "{{ { id: null, text: '' } }}" } },
+						  "onSubmit": { "run": "nameObject" }, "onBlur": { "run": "nameObject" } },
 						{ "id": "{{'selection-' + o.id + '-eye'}}", "use": "rbSmall", "with": { "icon": "{{o.hidden ?? false ? 'eye-off' : 'eye'}}" },
 						  "tooltip": "{{o.hidden ?? false ? 'Show it' : 'Hide it'}}",
 						  "onClick": { "run": "hideObjects", "with": { "ids": "{{[o.id]}}", "hidden": "{{!(o.hidden ?? false)}}" } } }
@@ -401,15 +416,17 @@
 					] },
 					{ "type": "label", "id": "motion-empty", "when": "{{length(computed.motionRows) == 0}}", "width": 236, "height": 36, "wrap": true, "textColor": "@rbMuted",
 					  "runs": [{ "text": "No builds on this slide. Select an object and pick an effect on the Motion tab.", "size": 12 }] },
+					{ "type": "column", "id": "{{'motion-build-' + a.id}}", "repeat": { "for": "a", "in": "{{computed.motionRows}}", "key": "{{a.id}}", "index": "n" },
+					  "fitContent": "height", "alignItems": "stretch", "color": "transparent", "children": [
 					{ "type": "row",
-					  "id": "{{'motion-' + a.id}}", "repeat": { "for": "a", "in": "{{computed.motionRows}}", "key": "{{a.id}}", "index": "n" }, "height": 26, "gap": 2, "alignItems": "center",
+					  "id": "{{'motion-' + a.id}}", "height": 26, "gap": 2, "alignItems": "center",
 					  "color": "{{contains(state.board.selection, a.target) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
 						{ "type": "label", "id": "{{'motion-' + a.id + '-step'}}", "width": 20, "height": 24, "align": "center", "textColor": "@rbMuted",
 						  "runs": [{ "text": "{{a.start == 'click' ? '' + a.step : ''}}", "size": 11 }] },
 						{ "type": "label", "id": "{{'motion-' + a.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
 						  "textColor": "@rbInk", "label": "{{a.name + ', ' + a.effect + (a.kind == 'exit' ? ' exit' : '') + ', ' + a.start}}",
-						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
+						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : a.kind == 'emphasis' ? 'heart-pulse' : a.kind == 'path' ? 'route' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
 						  "onClick": [{ "set": "state.board.selection", "to": "{{[a.target]}}" }] },
 						{ "id": "{{'motion-' + a.id + '-up'}}", "use": "rbSmall", "with": { "icon": "chevron-up", "enabled": "{{n > 0}}" }, "tooltip": "Play it earlier",
 						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": -1 } } },
@@ -417,7 +434,9 @@
 						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": 1 } } },
 						{ "id": "{{'motion-' + a.id + '-remove'}}", "use": "rbSmall", "with": { "icon": "x" }, "tooltip": "Remove it",
 						  "onClick": { "run": "removeAnimation", "with": { "id": "{{a.id}}" } } }
-					  ] }
+					  ] },
+					{ "use": "motionTiming", "with": { "a": "{{a}}" } }
+					] }
 				]
 			}
 		},

@@ -30,28 +30,39 @@ GlyphAtlas::GlyphAtlas(int firstPageSize, int shelfHeight) : shelfHeight_(shelfH
 	bytes_ = first.pixels.size();
 }
 
-std::optional<GlyphAtlas::Spot> GlyphAtlas::place(AtlasKind kind, int width, int height, bool mayAddPage) {
+std::optional<GlyphAtlas::Spot> GlyphAtlas::place(AtlasKind kind, int width, int height, bool mayAddPage,
+                                                  std::uint32_t firstPage) {
 	std::vector<Page>& list = pages(kind);
-	for(std::size_t p = 0; p < list.size(); ++p)
+	for(std::size_t p = firstPage; p < list.size(); ++p)
 		if(const auto at = list[p].packer.place(width, height, shelfHeight_))
 			return Spot{static_cast<std::uint32_t>(p), (*at)[0], (*at)[1]};
 	if(!mayAddPage) return std::nullopt;
 
-	// Colour pages hold about 16 lines of glyphs, coverage pages at least as many as the first
+	Page* const page = addPage(kind, width, height, firstPage);
+	if(!page) return std::nullopt;
+	const auto at = page->packer.place(width, height, shelfHeight_);
+	if(!at) return std::nullopt; // not reached: an empty page has room for what fits in one
+	return Spot{static_cast<std::uint32_t>(list.size() - 1), (*at)[0], (*at)[1]};
+}
+
+GlyphAtlas::Page* GlyphAtlas::addPage(AtlasKind kind, int width, int height, std::uint32_t firstPage) {
+	// Colour pages hold about 16 lines of glyphs, coverage pages at least as many as the first. The first page after
+	// those left alone holds what a text draws, four bitmaps per glyph: twice the first's side
+	std::vector<Page>& list = pages(kind);
+	const int first = coveragePages_.front().size;
 	const auto lines = static_cast<int>(std::bit_ceil(16u * static_cast<unsigned>(shelfHeight_)));
-	const int wanted = kind == AtlasKind::color ? std::max(smallestColorPage, lines)
-	                                            : std::max(coveragePages_.front().size, smallestAddedPage);
+	int wanted = std::max(first, smallestAddedPage);
+	if(kind == AtlasKind::color) wanted = std::max(smallestColorPage, lines);
+	else if(firstPage > 0 && list.size() == firstPage) wanted = 2 * first;
 	const int size = std::min(wanted, largestPage);
-	if(width > size || height > size) return std::nullopt; // larger than a whole page
+	if(width > size || height > size) return nullptr; // larger than a whole page
 	const std::size_t texels = static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
 	const std::size_t added = texels * (kind == AtlasKind::color ? 4 : 1);
-	if(bytes_ + added > limitBytes) return std::nullopt;
+	if(bytes_ + added > limitBytes) return nullptr;
 
 	Page& page = list.emplace_back(size, kind);
 	bytes_ += added;
-	const auto at = page.packer.place(width, height, shelfHeight_);
-	if(!at) return std::nullopt; // not reached: an empty page has room for what fits in one
-	return Spot{static_cast<std::uint32_t>(list.size() - 1), (*at)[0], (*at)[1]};
+	return &page;
 }
 
 void GlyphAtlas::forgetChanges() noexcept {

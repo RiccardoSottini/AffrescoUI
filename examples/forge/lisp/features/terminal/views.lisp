@@ -1,23 +1,41 @@
 ;;; views.lisp --- the Terminal tab: the terminals' tabs, and the one shown
 
+(ns forge.features.terminal.views)
+
 ;;; The terminals
 
-(defcomponent forgeTerminal "The Terminal tab: a tab per terminal, then the active one's shell."
+(defcomponent forgeTerminal "The Terminal tab: a tab per terminal, then the active one's shell, and the split one beside it."
   {}
   `(column#terminal-panel :width "100%" :grow 1 :color @color.panel
      ~(terminal-head)
-     ~(repeat [session (filter (fn [it] (= it state.terminals.active)) (map (fn [it] it.id) state.terminals.list))
-               :key session]
-       `(terminal#terminal :session ~session
-          :font code
-          :width "100%"
-          :grow 1
-          :color @color.editor
-          :textColor @color.text
-          :cursorColor @color.accent
-          :scrollback 1000
-          :focusable true
-          :keys {:tab terminalKeepTab "shift+tab" terminalKeepTab}))))
+     (row#terminal-body :width "100%" :grow 1
+       ~(repeat [session (filter #(= % state.terminals.active) (map :id state.terminals.list))
+                 :key session]
+         `(terminal#terminal :session ~session
+            :font code
+            :grow 1
+            :height "100%"
+            :color @color.editor
+            :textColor @color.text
+            :cursorColor @color.accent
+            :scrollback 1000
+            :focusable true
+            :keys {:tab terminal-keep-tab "shift+tab" terminal-keep-tab}))
+       ~(repeat [session (filter #(and (= % state.terminals.split) (not= % state.terminals.active))
+                                 (map :id state.terminals.list))
+                 :key session]
+         `(row#terminal-split-pane :grow 1 :height "100%"
+            (node#terminal-split-line :width 1 :height "100%" :color @color.border)
+            (terminal#terminal-split :session ~session
+              :font code
+              :grow 1
+              :height "100%"
+              :color @color.editor
+              :textColor @color.text
+              :cursorColor @color.accent
+              :scrollback 1000
+              :focusable true
+              :keys {:tab terminal-keep-tab "shift+tab" terminal-keep-tab}))))))
 
 (defview terminal-head "The terminals' tabs, each closable, and a button for a new one." []
   `(row#terminal-head :width "100%" :height 28 :alignItems center
@@ -30,7 +48,7 @@
        :activeBackground @color.panel
        :accentColor @color.accent
        :tabs ~state.terminals.list
-       :onClose ~(handler terminalClose event.id))
+       :onClose ~(handler terminal-close event.id))
      (label#terminal-new :icon plus
        :textColor @color.muted
        :padding 8
@@ -38,4 +56,12 @@
        :cursor hand
        :tooltip ~(t "terminal-new.tip")
        :hover {:color @color.hover}
-       :onClick terminalNew)))
+       :onClick terminalNew)
+     (label#terminal-split-button :icon columns-2
+       :textColor @color.muted
+       :padding 8
+       :fitText true
+       :cursor hand
+       :tooltip ~(t "terminal-split.tip")
+       :hover {:color @color.hover}
+       :onClick terminalSplit)))

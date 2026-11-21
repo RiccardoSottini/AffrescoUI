@@ -14,7 +14,7 @@
 	"fonts": {
 		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols"] },
 		"small": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
-		"tiny": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 9 },
+		"tiny": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 10 },
 		"heading": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols"] },
 		"title": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 20, "fallback": ["iconsLarge"] },
 		"display": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 24 },
@@ -90,7 +90,8 @@
 		"ask": ["agent(/actions)"],
 		"deny": ["*(#statusBar)"],
 		"reviewers": ["studio"],
-		"budgets": [{"author": "agent", "added": 20, "removed": 5, "changed": 50}]
+		"budgets": [{"author": "agent", "added": 20, "removed": 5, "changed": 50}],
+		"run": {"allow": ["agent(cardMove)", "agent(cardAssign)", "agent(cardPriority)"]}
 	},
 
 	"state": {
@@ -182,7 +183,7 @@
 		"over": "{{map(computed.columns, it.limit != null && length(it.cards) > it.limit && length(computed.activeFilters) == 0)}}",
 		"tableColumns": "{{[{ id: 'ref', title: t('table.id'), width: state.columnWidths.ref }, { id: 'priority', title: t('table.priority'), width: state.columnWidths.priority }, { id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
-		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.keyLabel ?? '', run: it.name })}}",
+		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && slice(it.name, 0, 4) != 'card' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.keyLabel ?? '', run: it.name })}}",
 		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(computed.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.fProject < 0 || (state.projectOf[it.tag] ?? 0) == state.fProject) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
 		"filterOptions": "{{state.filterProp == 'status' ? map(computed.columns, { v: index, title: it.name, icon: state.statusIcons[index] ?? 'circle', color: it.color, on: state.fStatus == index }) : state.filterProp == 'assignee' ? map(state.members, { v: it.who, title: it.name, icon: 'circle-user', color: it.color, on: state.owner == it.who }) : state.filterProp == 'priority' ? map(state.priorities, { v: index, title: t('priority.' + index), icon: it, color: '@color.muted', on: state.fPrio == index }) : map(slice(state.filters, 1), { v: it, title: t('tag.' + it), icon: 'circle', color: '@' + it, on: state.filter == it })}}",
 		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: computed.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [], state.fProject >= 0 ? [{ prop: 'project', value: data.projects[state.fProject].name }] : [])}}",
@@ -293,13 +294,17 @@
 	},
 
 	"actions": {
+		"insertCard": [
+			{"note": "with: title, c (column), p (priority), who, tag and notes. A new card at the end of column c, with the next id, as one step undo can take back"},
+			{"run": "remember"},
+			{"insert": "issues", "value": {"id": "FLO-{{state.nextRef}}", "ref": "FLO-{{state.nextRef}}", "board": "{{state.boardId}}", "status": "{{c}}", "order": "{{max(concat([-1], map(computed.columns[c].cards, it.order))) + 1}}", "priority": "{{p}}", "title": "{{title}}", "tag": "{{tag}}", "who": "{{who}}", "points": 1, "notes": "{{notes}}"}},
+			{"run": "notify", "with": {"message": "{{t('toast.added', { title: title, column: computed.columns[c].name })}}"}},
+			{"run": "logActivity", "with": {"key": "added", "title": "{{title}}", "column": ""}},
+			{"set": "state.nextRef", "to": "{{state.nextRef + 1}}"}
+		],
 		"addCard": [
 			{"if": "{{length(trim(state.newCard)) == 0}}", "then": [{"stop": true}]},
-			{"run": "remember"},
-			{"insert": "issues", "value": {"id": "FLO-{{state.nextRef}}", "ref": "FLO-{{state.nextRef}}", "board": "{{state.boardId}}", "status": "{{state.composer.c}}", "order": "{{max(concat([-1], map(computed.columns[state.composer.c].cards, it.order))) + 1}}", "priority": "{{state.composer.p}}", "title": "{{trim(state.newCard)}}", "tag": "{{state.composer.tag}}", "who": "{{state.composer.who}}", "points": 1, "notes": "{{trim(state.composer.notes) != '' ? state.composer.notes : null}}"}},
-			{"run": "notify", "with": {"message": "{{t('toast.added', { title: trim(state.newCard), column: computed.columns[state.composer.c].name })}}"}},
-			{"run": "logActivity", "with": {"key": "added", "title": "{{trim(state.newCard)}}", "column": ""}},
-			{"set": "state.nextRef", "to": "{{state.nextRef + 1}}"},
+			{"run": "insertCard", "with": {"title": "{{trim(state.newCard)}}", "c": "{{state.composer.c}}", "p": "{{state.composer.p}}", "who": "{{state.composer.who}}", "tag": "{{state.composer.tag}}", "notes": "{{trim(state.composer.notes) != '' ? state.composer.notes : null}}"}},
 			{"set": "state.newCard", "to": ""},
 			{"set": "state.composer.notes", "to": ""},
 			{"set": "state.composer.open", "to": "{{state.composer.more}}", "note": "Create more keeps the composer open for the next one"}
@@ -337,7 +342,10 @@
 		"notify": [
 			{ "note": "with: message. A toast in the corner for a few seconds" },
 			{ "note": "the toast offers Undo when the action that sent it remembered the columns first" },
-			{ "set": "state.toast", "to": { "open": true, "message": "{{message}}", "undo": "{{state.toastUndo}}" } },
+			{ "note": "a field at a time: a value object with a key named like a step (undo) would read as that step to the run rules" },
+			{ "set": "state.toast.message", "to": "{{message}}" },
+			{ "set": "state.toast.undo", "to": "{{state.toastUndo}}" },
+			{ "set": "state.toast.open", "to": true },
 			{ "set": "state.toastUndo", "to": false },
 			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
 		],
@@ -421,6 +429,38 @@
 			"do": [{ "run": "openPropPick", "with": { "kind": "priority" } }] },
 		"changeAssignee": { "title": "Assign to…", "category": "Issue", "icon": "user", "enablement": "{{computed.card != null || length(state.marked) > 0}}",
 			"do": [{ "run": "openPropPick", "with": { "kind": "assignee" } }] },
+		"cardMove": { "title": "{{t('command.cardMove')}}", "description": "{{t('command.cardMove.about')}}", "category": "Issue", "icon": "arrow-right",
+			"arguments": { "card": { "type": "string", "description": "The card's id, like FLO-12" }, "status": { "type": "string", "description": "The column's name, like In review" } },
+			"do": [
+				{ "note": "a card, by its id, to the end of the column with that name; a card or a column that isn't there changes nothing, and the notice says so" },
+				{ "if": "{{find(computed.allCards, it.ref == upper(trim(card))) == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noCard', { ref: card })}}" } }, { "stop": true }] },
+				{ "if": "{{indexOf(map(computed.columns, lower(it.name)), lower(trim(status))) < 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noColumn', { column: status })}}" } }, { "stop": true }] },
+				{ "run": "moveCard", "with": { "from": "{{find(computed.allCards, it.ref == upper(trim(card))).c}}", "at": "{{find(computed.allCards, it.ref == upper(trim(card))).at}}", "to": "{{indexOf(map(computed.columns, lower(it.name)), lower(trim(status)))}}" } }
+			] },
+		"cardAdd": { "title": "{{t('command.cardAdd')}}", "description": "{{t('command.cardAdd.about')}}", "category": "Issue", "icon": "plus",
+			"arguments": { "title": { "type": "string", "description": "The card's title" }, "status": { "type": ["string", "null"], "description": "The column's name; the first column when left out" } },
+			"do": [
+				{ "note": "a card with that title, mine, at the end of the column with that name, or of the first one" },
+				{ "if": "{{trim(title) == ''}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noTitle')}}" } }, { "stop": true }] },
+				{ "if": "{{status != null && indexOf(map(computed.columns, lower(it.name)), lower(trim(status))) < 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noColumn', { column: status })}}" } }, { "stop": true }] },
+				{ "run": "insertCard", "with": { "title": "{{trim(title)}}", "c": "{{status == null ? 0 : indexOf(map(computed.columns, lower(it.name)), lower(trim(status)))}}", "p": 0, "who": "{{state.me}}", "tag": "feature", "notes": null } }
+			] },
+		"cardAssign": { "title": "{{t('command.cardAssign')}}", "description": "{{t('command.cardAssign.about')}}", "category": "Issue", "icon": "user",
+			"arguments": { "card": { "type": "string", "description": "The card's id, like FLO-12" }, "who": { "type": "string", "description": "A member's initials, name or first name, like MK or Maya" } },
+			"do": [
+				{ "note": "a card, by its id, to a member, by their initials, their name or their first name" },
+				{ "if": "{{find(computed.allCards, it.ref == upper(trim(card))) == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noCard', { ref: card })}}" } }, { "stop": true }] },
+				{ "if": "{{find(state.members, lower(it.who) == lower(trim(who)) || lower(it.name) == lower(trim(who)) || split(lower(it.name), ' ')[0] == lower(trim(who))) == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noMember', { who: who })}}" } }, { "stop": true }] },
+				{ "run": "remember" },
+				{ "update": "issues", "id": "{{find(computed.allCards, it.ref == upper(trim(card))).ref}}", "fields": { "who": "{{find(state.members, lower(it.who) == lower(trim(who)) || lower(it.name) == lower(trim(who)) || split(lower(it.name), ' ')[0] == lower(trim(who))).who}}" } }
+			] },
+		"cardPriority": { "title": "{{t('command.cardPriority')}}", "description": "{{t('command.cardPriority.about')}}", "category": "Issue", "icon": "chevrons-up",
+			"arguments": { "card": { "type": "string", "description": "The card's id, like FLO-12" }, "priority": { "enum": ["none", "urgent", "high", "medium", "low"], "description": "The priority" } },
+			"do": [
+				{ "if": "{{find(computed.allCards, it.ref == upper(trim(card))) == null}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.noCard', { ref: card })}}" } }, { "stop": true }] },
+				{ "run": "remember" },
+				{ "update": "issues", "id": "{{find(computed.allCards, it.ref == upper(trim(card))).ref}}", "fields": { "priority": "{{indexOf(['none', 'urgent', 'high', 'medium', 'low'], priority)}}" } }
+			] },
 		"assignToMe": { "title": "Assign to me", "category": "Issue", "icon": "user-check", "enablement": "{{computed.card != null}}",
 			"do": [{ "run": "setAssignee", "with": { "who": "{{state.me}}" } }] },
 		"newCardCommand": { "title": "New issue", "category": "Issue", "icon": "plus", "do": [{ "run": "openComposer", "with": { "c": 0 } }] },
@@ -467,7 +507,7 @@
 		"mod+right": "moveRight",
 		"mod+left": "moveLeft",
 		"mod+enter": "openIssue",
-		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "when": "{{length(state.marked) > 0}}", "do": "clearMarks" }, { "do": "clearFilters" }]
+		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "when": "{{state.page == 'projects' && state.projectOpen >= 0 && !context.textInputFocus}}", "do": "closeProjectPage" }, { "when": "{{length(state.marked) > 0}}", "do": "clearMarks" }, { "do": "clearFilters" }]
 	},
 
 	"root": {
@@ -710,7 +750,7 @@
 								"overlay": { "placement": "below-end", "open": "state.displayOpen", "dismiss": "outside" },
 								"y": 4,
 								"width": 280,
-								"height": 288,
+								"height": 308,
 								"radius": "@radius.card",
 								"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 								"borderWidth": 1,
@@ -734,20 +774,20 @@
 										]
 									},
 									{ "id": "displayGrouping", "style": "caption", "text": "{{t('display.grouping')}}", "anchors": { "left": 12, "top": 100 } },
-									{ "type": "row", "id": "groupings", "gap": 4, "anchors": { "left": 120, "right": 12, "top": 96 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+									{ "type": "row", "id": "groupings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 120 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
 										{ "id": "grouping", "repeat": { "for": "g", "in": "['status', 'assignee']" }, "let": { "on": "{{state.swimlanes == (g == 'assignee')}}" }, "style": "displayPill", "role": "radio",
 											"text": "{{t('prop.' + g)}}", "selected": "{{on}}", "disabled": "{{state.view != 'board'}}", "borderColor": "{{on ? '@color.accent' : '@color.border'}}",
 											"textColor": "{{on && state.view == 'board' ? '@color.text' : '@color.muted'}}", "tooltip": "{{g == 'assignee' ? t('view.lanes') : ''}}",
 											"onClick": [{ "if": "{{!on}}", "then": [{ "run": "toggleSwimlanes" }] }] }
 									] },
-									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 134 } },
-									{ "type": "row", "id": "orderings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 154 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 154 } },
+									{ "type": "row", "id": "orderings", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 174 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
 										{ "id": "ordering", "repeat": { "for": "o", "in": "['manual', 'priority', 'due']" }, "style": "displayPill", "role": "radio", "text": "{{t('order.' + o)}}",
 											"selected": "{{state.order == o}}", "borderColor": "{{state.order == o ? '@color.accent' : '@color.border'}}",
 											"textColor": "{{state.order == o ? '@color.text' : '@color.muted'}}", "onClick": { "set": "state.order", "to": "{{o}}" } }
 									] },
-									{ "id": "displayProperties", "style": "caption", "text": "{{t('display.properties')}}", "anchors": { "left": 12, "top": 192 } },
-									{ "type": "row", "id": "displayProps", "wrap": true, "gap": 4, "anchors": { "left": 12, "right": 12, "top": 212 }, "height": 76, "children": [
+									{ "id": "displayProperties", "style": "caption", "text": "{{t('display.properties')}}", "anchors": { "left": 12, "top": 212 } },
+									{ "type": "row", "id": "displayProps", "wrap": true, "gap": 4, "anchors": { "left": 12, "right": 12, "top": 232 }, "height": 76, "children": [
 										{ "id": "displayProp", "repeat": { "for": "prop", "in": "['id', 'priority', 'label', 'due', 'estimate', 'assignee']" }, "style": "displayPill", "role": "switch",
 											"let": { "on": "{{!contains(state.hidden, prop)}}" }, "text": "{{t('prop.' + prop)}}", "selected": "{{on}}",
 											"color": "{{on ? '@color.chipHover' : 'transparent'}}", "borderColor": "{{on ? '@color.chipHover' : '@color.border'}}",
@@ -966,7 +1006,8 @@
 				"id": "statusBar",
 				"use": "statusBar",
 				"anchors": { "left": 220, "right": 0, "bottom": 0 },
-				"with": { "height": 32, "color": "@color.surface", "textColor": "@color.muted", "highlight": "@color.chipHover", "items": [
+				"visible": "{{settings.window.statusBar}}",
+				"with": { "height": "{{settings.window.statusBar ? 32 : 0}}", "color": "@color.surface", "textColor": "@color.muted", "highlight": "@color.chipHover", "items": [
 					{ "text": "{{t('status.revision', { number: revision.number, author: revision.author, message: revision.message })}}" },
 					{ "text": "{{window.width}} × {{window.height}}", "side": "end" }
 				] }

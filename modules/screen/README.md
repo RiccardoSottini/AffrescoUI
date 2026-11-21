@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), records (`setDataFile`, `data`, `dataJson`, `allowDataDirectory`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), records (`setDataFile`, `data`, `dataJson`, `allowDataDirectory`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`, `listenEditor`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 **Assets** (VERSION_CONTROL.md, "Assets"): `assets()` (the version shown, `{name, type, size, sha256}`),
@@ -20,6 +20,11 @@ type from the name, checked against the bytes, measured; returns `Attached{attac
 takes `assets` and `run`. When a commit with `run` lands on main (a proposal merged), the screen runs its steps once,
 after the update, as an action of the root panel. `asset:<name>` reads an asset wherever a screen reads a file: an
 `image` node's `file`, a sound's `file`, an `image` step's `open` with `{"asset": name}`.
+
+**Pointing at a node** (SCREEN_FORMAT.md): `picks()` (the records the person made with a `pick` step and has neither
+sent nor removed) and `source(at)` (where a node is written), as a peer gets them with `getPicks` and `getSource`.
+The screen tells the runtime which file holds each JSON entry, so a record's `source` names it; a peer whose reads are
+limited gets requests without `picks`.
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
 without including nlohmann/json; `versions()` gives the `VersionControl` to code that needs more.
@@ -40,6 +45,13 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
   preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and
   no onShow, onHide or watch step runs.
+- **A peer's command runs as the peer, and only after the checks** (`commands/ScreenCommands`): runs switched off
+  (`allowCommandRuns(false)`); no window, a picture being drawn or a proposal previewed; no such command (with a "did
+  you mean"); its arguments; disabled; then the run control's verdict. `allow` runs at once; `ask` waits (120 s) for
+  a reviewer or the person; `person` waits for the window's own question (Run, Don't run), answered only by the
+  person's click or key, never remembered. A run allowed later is checked again from the window on. A run is never
+  allowed from its own channel, and a `personOnly` run only by the person. Undo is for the run's own channel or a
+  reviewer. Only the command's name and the verdict are logged, never its arguments or the state.
 - **Services are the host's grants:** `services()` is the screen's `services::ServiceRegistry`. The host grants
   folders (`addRoot`) and programs (`allowProcess`) and may add providers before building; the file's `services`
   section can only name them, and its services start at their first use. They stop when the screen is destroyed.
@@ -87,7 +99,9 @@ calls it at start. Everything `format::Runtime` offers, as text-based callbacks:
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
 `listen(executor, path, author)` for a socket that accepts any number of them, and
 `listenWebSocket(executor, "127.0.0.1:7420", verifier)` for remote peers, each authored as its token's verifier says
-(`modules/net/README.md`). `registerType` goes through the
+(`modules/net/README.md`), and `listenEditor(executor)` for an nREPL client on 127.0.0.1, each connection paired by the
+person's yes in the window's question and evaluating as the person (`src/ScreenEditor.cpp`; SECURITY.md, "Editors
+(nREPL)"). `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 
 ## Files
@@ -109,6 +123,10 @@ src/
     OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
     ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
     Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
+  commands/
+    ScreenCommands.hpp / .cpp    the commands as tools for peers (CommandService): a run's checks in order, the run
+                                 control's verdict, the window's question for the person, the run as its runner, its
+                                 evidence; Screen's allowCommandRuns, allowRun, denyRun and commandsJson
   features/
     FeaturesService.hpp / .cpp   the `features` provider: the catalogues, installing a feature by revision
   windows/

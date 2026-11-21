@@ -230,6 +230,9 @@ public:
 
 	/// @brief The names of everything defined, for `apropos`. @return Them, sorted.
 	[[nodiscard]] std::vector<std::string> definitionNames() const;
+	/// @brief Every name code can call or read now, for an editor's completion: the language's own functions, macros
+	/// and special forms, the host's primitives and the program's definitions. @return Them, sorted, each once.
+	[[nodiscard]] std::vector<std::string> callableNames() const;
 	/// @brief The hooks and advice defined. @return Them, in the order of their definitions.
 	[[nodiscard]] std::vector<Extension> extensions() const;
 	/// @brief Puts a host's primitive in a function's place: whatever calls that name, however, now calls it. It stands
@@ -258,6 +261,25 @@ public:
 		Sealed& operator=(const Sealed&) = delete;
 		Sealed(Sealed&&) = delete;
 		Sealed& operator=(Sealed&&) = delete;
+
+	private:
+		Machine& machine_; ///< The machine.
+		const void* ran_;  ///< What it was.
+	};
+	/// @brief While it lives, authorsThatRan() starts again from none; when it ends it goes back to what it was. For
+	/// code run on behalf of other code that may not lend it its authority, nor take its own: an app's action a
+	/// feature's code runs through what the app hands it (the feature's authority stays with the steps that run it).
+	class Apart {
+	public:
+		/// @brief Starts one.
+		/// @param interpreter The interpreter; outlives it.
+		explicit Apart(Interpreter& interpreter);
+		/// @brief Puts it back.
+		~Apart();
+		Apart(const Apart&) = delete;
+		Apart& operator=(const Apart&) = delete;
+		Apart(Apart&&) = delete;
+		Apart& operator=(Apart&&) = delete;
 
 	private:
 		Machine& machine_; ///< The machine.

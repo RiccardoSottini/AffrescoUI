@@ -117,6 +117,18 @@ void TextEditor::setIndentGuides(bool shown) {
 	invalidatePaint();
 }
 
+void TextEditor::setVisibleWhitespace(bool shown) {
+	if(shown == whitespace_) return;
+	whitespace_ = shown;
+	invalidatePaint();
+}
+
+void TextEditor::setFoldMarkers(bool shown) {
+	if(shown == foldMarkers_) return;
+	foldMarkers_ = shown;
+	invalidatePaint();
+}
+
 void TextEditor::setTabSize(std::size_t spaces) {
 	spaces = std::clamp<std::size_t>(spaces, 1, maxTabSize);
 	if(spaces == tabSize_) return;

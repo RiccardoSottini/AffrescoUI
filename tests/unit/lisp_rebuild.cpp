@@ -1,0 +1,711 @@
+/// @file
+/// @brief Unit tests for the build of a later version of a program in part (Program::rebuild()): only the definitions
+/// that changed run, and those that use them, and the result is what a build in full gives. The first case is the
+/// one that decides: every example, each changed in a few ways, built in part and in full.
+
+#include "LispApp.hpp"
+
+#include <affresco/affresco.hpp>
+#include <affresco/lisp/Document.hpp>
+#include <affresco/lisp/Interpreter.hpp>
+#include <affresco/lisp/Program.hpp>
+
+#include <doctest/doctest.h>
+
+#include <filesystem>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+
+using affresco::json;
+namespace lisp = affresco::lisp;
+
+namespace {
+
+/// @brief The limits a revision's build has (Document.hpp).
+/// @return Them.
+lisp::Limits buildLimits() {
+	lisp::Limits limits;
+	limits.budget.operations = lisp::maxBuildOperations;
+	limits.budget.bytes = lisp::maxBuildBytes;
+	return limits;
+}
+
+/// @brief What a build gave, as one value to compare: the tree and all a build says beside it.
+/// @param program The program, built.
+/// @param tree Its tree.
+/// @return It.
+json resultOf(const lisp::Program& program, const json& tree) {
+	json result = {{"tree", tree}, {"undefined", json::array()}, {"truth", json::array()}};
+	for(const bool truth : {false, true})
+		for(const lisp::UndefinedName& name : truth ? program.truthTests() : program.undefinedNames())
+			result[truth ? "truth" : "undefined"].push_back(
+			    {name.name, name.file, name.line, name.column, name.definition});
+	for(const lisp::Extension& extension : program.extensions())
+		result["extensions"].push_back(
+		    {extension.kind, extension.name, extension.targets, extension.doc, extension.author, extension.authors});
+	result["used"] = program.namesUsed();
+	for(const auto& [name, calls] : program.namedCalls()) result["named"][name] = {calls.texts, calls.otherwise};
+	result["defaulted"] = program.defaulted();
+	return result;
+}
+
+/// @brief Builds a section in full. @param section It. @return What it gave, or the error's message.
+json buildInFull(const json& section) {
+	try {
+		lisp::Program program = lisp::programOf(section);
+		const json tree = program.build(buildLimits());
+		return resultOf(program, tree);
+	} catch(const std::exception& error) {
+		return {{"error", error.what()}};
+	}
+}
+
+/// @brief Builds a section in part from an earlier build. @param previous The earlier build's record.
+/// @param section The section. @param whole Set to whether it ran every definition after all.
+/// @return What it gave, or the error's message.
+json buildFrom(const lisp::BuildRecord& previous, const json& section, bool& whole) {
+	try {
+		lisp::Program program = lisp::programOf(section);
+		const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+		const json tree = program.rebuild(previous, buildLimits());
+		whole = lisp::rebuildStatistics().inPart == before.inPart;
+		return resultOf(program, tree);
+	} catch(const std::exception& error) {
+		whole = true;
+		return {{"error", error.what()}};
+	}
+}
+
+/// @brief The `program` section of each example written as a program.
+/// @return By folder name.
+std::vector<std::pair<std::string, json>> examplePrograms() {
+	std::vector<std::pair<std::string, json>> programs;
+	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	std::vector<std::filesystem::path> folders;
+	for(const auto& folder : std::filesystem::directory_iterator(examples))
+		if(std::filesystem::is_directory(folder.path() / "lisp")) folders.push_back(folder.path());
+	std::ranges::sort(folders);
+	for(const std::filesystem::path& folder : folders) {
+		affresco::Screen app = affresco::Screen::fromApp(folder / "lisp", {}, affresco::Screen::History::InMemory);
+		const json& document = app.versions().sourceDocument();
+		if(document.contains("program")) programs.emplace_back(folder.filename().string(), document["program"]);
+	}
+	return programs;
+}
+
+/// @brief A change of a program: one entry's new text, or an entry gone.
+struct Change {
+	std::string what;                ///< What it is, for the report.
+	std::string file;                ///< The entry's file.
+	std::string name;                ///< The entry's name.
+	std::optional<std::string> text; ///< Its new text, or std::nullopt to remove it.
+};
+
+/// @brief Replaces the first time a text has a part. @param text The text. @param part The part.
+/// @param with What replaces it. @return The text, or std::nullopt if it hasn't the part.
+std::optional<std::string> replaced(std::string text, std::string_view part, std::string_view with) {
+	const std::size_t at = text.find(part);
+	if(at == std::string::npos) return std::nullopt;
+	return text.replace(at, part.size(), with);
+}
+
+/// @brief A change of a view's property, a command's title or a state's value, if an entry's text is one.
+/// @param text The text.
+/// @return What it is and the changed text, or std::nullopt.
+std::optional<std::pair<std::string, std::string>> propertyChanged(const std::string& text) {
+	if(text.starts_with("(defview ") || text.starts_with("(defcomponent ") || text.starts_with("(defscreen "))
+		if(auto changed = replaced(text, ":text \"", ":text \"Changed ")) return {{"a view's property", *changed}};
+	if(text.starts_with("(defcommand "))
+		if(auto changed = replaced(text, ":title \"", ":title \"Changed ")) return {{"a command's title", *changed}};
+	if(text.starts_with("(defstate "))
+		return {{"a state's value", text.substr(0, text.rfind(')')) + " :changed true)"}};
+	return std::nullopt;
+}
+
+/// @brief A few changes of each kind the brief names, of a program's entries: a function's body, a view's property,
+/// a command's title, an added definition and a removed one.
+/// @param section The section.
+/// @return The changes.
+std::vector<Change> changesOf(const json& section) {
+	std::vector<Change> changes;
+	std::map<std::string, int> counts;
+	const auto add = [&](const std::string& what, const std::string& file, const std::string& name,
+	                     std::optional<std::string> text) {
+		if(counts[what]++ < 3) changes.push_back({what, file, name, std::move(text)});
+	};
+	std::string firstFile;
+	for(const auto& [file, entries] : section.items())
+		for(const auto& [name, value] : entries.items()) {
+			const std::string text = value.get<std::string>();
+			if(firstFile.empty()) firstFile = file;
+			if(text.starts_with("(defn ")) {
+				const std::size_t end = text.rfind(')');
+				add("a function's body", file, name, text.substr(0, end) + " nil" + text.substr(end));
+				if(counts["a removed function"] < 1 && !name.contains('.'))
+					add("a removed function", file, name, std::nullopt);
+			}
+			if(auto change = propertyChanged(text)) add(change->first, file, name, std::move(change->second));
+		}
+	if(!firstFile.empty())
+		add("an added definition", firstFile, "rebuild-added", R"((defn rebuild-added "Added." [x] (str x "!")))");
+	return changes;
+}
+
+/// @brief A section with a change made. @param section The section. @param change The change. @return It.
+json changed(json section, const Change& change) {
+	if(change.text) section[change.file][change.name] = *change.text;
+	else section[change.file].erase(change.name);
+	return section;
+}
+
+/// @brief An interpreter that has loaded a program as Programs::load() loads it, purely, its values worked out.
+/// @param program The program.
+/// @return It, or nullptr if it can't be loaded.
+std::unique_ptr<lisp::Interpreter> loadedInterpreter(const lisp::Program& program) {
+	auto interpreter = std::make_unique<lisp::Interpreter>(buildLimits());
+	interpreter->setPure(true);
+	try {
+		program.load(*interpreter, false);
+		interpreter->workOutDefinitions();
+	} catch(const std::exception&) {
+		return nullptr;
+	}
+	interpreter->setPure(false);
+	return interpreter;
+}
+
+/// @brief What an interpreter has defined, as one value to compare: each definition, in order, what it says of
+/// itself, and the value of its name. @param interpreter It. @return It.
+json definitionsOf(lisp::Interpreter& interpreter) {
+	json definitions = json::array();
+	for(const std::string& name : interpreter.definitionNames()) {
+		const std::optional<lisp::DefinitionInfo> info = interpreter.describe(name);
+		json definition = {name};
+		if(info)
+			definition.push_back(json::array(
+			    {info->kind, info->doc, info->author, *info->place.file, info->place.line, info->place.column}));
+		if(const std::optional<lisp::Value> value = interpreter.global(name)) {
+			definition.push_back(interpreter.print(*value));
+			definition.push_back(lisp::Interpreter::authorOf(*value));
+		}
+		definitions.push_back(std::move(definition));
+	}
+	return definitions;
+}
+
+/// @brief A section split from a program's text, its one file `app.lisp`. @param text The text. @return It.
+json sectionOf(const std::string& text) { return lisp::sourceDocument(text, "app.lisp")["program"]; }
+
+/// @brief The definitions an interpreter of a version has once changed in place into the next, or nullptr if
+/// Program::redefine() declined or failed. @param before The earlier version, built. @param after The later.
+/// @return Its definitions (definitionsOf()), or null.
+json redefinedFrom(const lisp::Program& before, const json& after) {
+	const std::unique_ptr<lisp::Interpreter> interpreter = loadedInterpreter(before);
+	if(!interpreter) return nullptr;
+	try {
+		lisp::Program next = lisp::programOf(after);
+		static_cast<void>(next.rebuild(*before.record(), buildLimits()));
+		interpreter->setPure(true);
+		if(!next.redefine(*interpreter, before, *next.record(), buildLimits())) return nullptr;
+		interpreter->setPure(false);
+	} catch(const std::exception&) {
+		return nullptr;
+	}
+	return definitionsOf(*interpreter);
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: every example, changed, builds in part to what it builds in full") {
+	std::size_t inPart = 0;
+	std::size_t total = 0;
+	for(const auto& [app, section] : examplePrograms()) {
+		lisp::Program first = lisp::programOf(section);
+		static_cast<void>(first.build(buildLimits()));
+		REQUIRE(first.record());
+		for(const Change& change : changesOf(section)) {
+			INFO(app, ": ", change.what, " (", change.file, " ", change.name, ")");
+			const json after = changed(section, change);
+			bool whole = false;
+			const json part = buildFrom(*first.record(), after, whole);
+			CHECK(part == buildInFull(after));
+			++total;
+			if(!whole) ++inPart;
+		}
+	}
+	MESSAGE(inPart, " of ", total, " changes built in part");
+	CHECK(inPart * 2 > total); // most changes are of one definition and those that use it
+}
+
+TEST_CASE("lisp rebuild: an interpreter changed in place defines what a new one loading the later version defines") {
+	std::size_t inPlace = 0;
+	std::size_t total = 0;
+	for(const auto& [app, section] : examplePrograms()) {
+		lisp::Program first = lisp::programOf(section);
+		static_cast<void>(first.build(buildLimits()));
+		for(const Change& change : changesOf(section)) {
+			INFO(app, ": ", change.what, " (", change.file, " ", change.name, ")");
+			const json after = changed(section, change);
+			const lisp::Program fresh = lisp::programOf(after);
+			const std::unique_ptr<lisp::Interpreter> loaded = loadedInterpreter(fresh);
+			const json patched = redefinedFrom(first, after);
+			++total;
+			if(patched.is_null() || !loaded) continue; // declined: Programs loads a new interpreter
+			CHECK(patched == definitionsOf(*loaded));
+			++inPlace;
+		}
+	}
+	MESSAGE(inPlace, " of ", total, " changes made in place");
+	CHECK(inPlace * 2 > total);
+}
+
+namespace {
+
+/// @brief A program of many functions that nothing else uses, and a screen.
+/// @param count How many.
+/// @param changed The function whose body is other, or -1.
+/// @return Its section.
+json manyFunctions(int count, int changed) {
+	std::string text;
+	for(int i = 0; i < count; ++i)
+		text += "(defn f" + std::to_string(i) + " \"\" [] " + std::to_string(i == changed ? -1 : i) + ")\n";
+	return sectionOf(text + "(defscreen main (column#c (label#l :text \"x\")))\n");
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: one of 200 functions changed compiles that one, and redefines that one") {
+	lisp::Program first = lisp::programOf(manyFunctions(200, -1));
+	static_cast<void>(first.build(buildLimits()));
+	const json after = manyFunctions(200, 117);
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	bool whole = true;
+	const json part = buildFrom(*first.record(), after, whole);
+	CHECK(lisp::rebuildStatistics().compiled - before.compiled == 1);
+	CHECK_FALSE(whole);
+	CHECK(part == buildInFull(after));
+	const lisp::RebuildStatistics patching = lisp::rebuildStatistics();
+	const json patched = redefinedFrom(first, after);
+	REQUIRE_FALSE(patched.is_null());
+	CHECK(lisp::rebuildStatistics().redefined - patching.redefined == 1);
+	CHECK(lisp::rebuildStatistics().definedAgain - patching.definedAgain == 1);
+	CHECK(patched == definitionsOf(*loadedInterpreter(lisp::programOf(after))));
+}
+
+TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, builds the view again") {
+	const auto program = [](const std::string& word) {
+		return sectionOf(R"((defn word "" [] ")" + word + R"(")
+(defn other "" [] 1)
+(defview caption "" [] `(label#cap :text ~(word)))
+(defscreen main (column#c ~(caption) (label#l :text "x")))
+)");
+	};
+	const std::shared_ptr<const lisp::BuiltProgram> first = lisp::builtProgram(program("one"));
+	const std::size_t inPart = lisp::rebuildStatistics().inPart;
+	const std::shared_ptr<const lisp::BuiltProgram> second = lisp::builtProgram(program("two"));
+	CHECK(lisp::rebuildStatistics().inPart == inPart + 1);
+	CHECK(second->tree.dump().contains("\"two\""));
+	CHECK(resultOf(lisp::programOf(program("two")), second->tree)["tree"] == buildInFull(program("two"))["tree"]);
+	const std::vector<std::string> places = lisp::changedPlaces(*first, *second);
+	CHECK(places == std::vector<std::string>{"/root"});
+	CHECK(lisp::changedPlaces(*second, *lisp::builtProgram(program("two"))).empty());
+}
+
+TEST_CASE("lisp rebuild: a function a view's expression calls by name, gone, builds the view again") {
+	const json section =
+	    sectionOf("(defstate query \"\")\n(defn shout \"\" [x] (str x \"!\"))\n(defn other \"\" [] 1)\n"
+		          "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
+		          "(defscreen main (column#c ~(caption)))\n");
+	lisp::Program first = lisp::programOf(section);
+	const json tree = first.build(buildLimits());
+	REQUIRE(tree.dump().contains("lisp('shout'"));
+	json after = section;
+	after["app.lisp"].erase("shout");
+	bool whole = false;
+	const json part = buildFrom(*first.record(), after, whole);
+	CHECK(part == buildInFull(after));
+	CHECK(!part.dump().contains("lisp('shout'"));
+	CHECK(!whole);
+}
+
+TEST_CASE("lisp rebuild: a macro changed builds everything, and the interpreter isn't changed in place") {
+	const auto program = [](const std::string& body) {
+		return sectionOf("(defmacro twice \"\" [x] " + body +
+		                 ")\n(defn f \"\" [] (twice 1))\n"
+		                 "(defscreen main (column#c (label#l :text \"x\")))\n");
+	};
+	lisp::Program first = lisp::programOf(program("`(+ ~x ~x)"));
+	static_cast<void>(first.build(buildLimits()));
+	const json after = program("`(* ~x 2)");
+	bool whole = false;
+	CHECK(buildFrom(*first.record(), after, whole) == buildInFull(after));
+	CHECK(whole);
+	CHECK(redefinedFrom(first, after).is_null());
+}
+
+TEST_CASE("lisp rebuild: a definition that doesn't compile is refused as a build in full refuses it") {
+	const json section = sectionOf("(defn f \"\" [] 1)\n(defn g \"\" [] (f))\n"
+	                               "(defscreen main (column#c (label#l :text \"x\")))\n");
+	lisp::Program first = lisp::programOf(section);
+	static_cast<void>(first.build(buildLimits()));
+	json after = section;
+	after["app.lisp"]["f"] = "(defn f \"\" [] (let [x] x))";
+	bool whole = false;
+	const json part = buildFrom(*first.record(), after, whole);
+	REQUIRE(part.contains("error"));
+	CHECK(part == buildInFull(after));
+}
+
+TEST_CASE("lisp rebuild: a revision of a running program redefines what it changed, by its author, the rest kept") {
+	lispapp::App app(R"lisp(
+(defn reach "The app's, with a control step." [] (call "hit"))
+(defn other "" [] 1)
+(defcommand c "" :title "C" [] (reach))
+(defkey "ctrl+c" c)
+(defscreen main (panel#root))
+)lisp");
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	app.write("other", R"lisp((defn other "An agent's." [] 2))lisp");
+	CHECK(lisp::rebuildStatistics().redefined - before.redefined == 1);
+	app.press(affresco::Key::C);
+	CHECK(app.hits == 1); // reach is still the app's
+	app.write("reach", R"lisp((defn reach "An agent's." [] (call "hit") 2))lisp");
+	CHECK(lisp::rebuildStatistics().redefined - before.redefined == 2);
+	app.errors.clear();
+	app.press(affresco::Key::C);
+	CHECK(app.hits == 1); // and now the agent's, who can't reach the host
+	CHECK(app.reported("agent/x"));
+
+	// Refused as a new interpreter refuses it, and the program running is untouched
+	const std::optional<std::string> error =
+	    app.repository.commit({{"author", "agent/x"},
+		                       {"message", "m"},
+		                       {"set", {{"/program/app.lisp/other", "(defn other \"\" [] (let [x] x))"}}}});
+	CHECK(error.has_value());
+	app.write("reach", R"lisp((defn reach "The person's." [] (call "hit")))lisp", "user");
+	app.press(affresco::Key::C);
+	CHECK(app.hits == 2);
+}
+
+TEST_CASE("lisp rebuild: a function running while its program changes finishes with the code it started with") {
+	lispapp::App app(R"lisp(
+(defn value "" [] 1)
+(defcommand c "" :title "C" [] (call "hit") (set "state.got" (value)))
+(defkey "ctrl+c" c)
+(defscreen main :state {:got 0} (panel#root))
+)lisp");
+	bool once = false;
+	app.runtime->onCall("hit", [&](const json&) {
+		if(!std::exchange(once, true)) app.write("value", R"lisp((defn value "" [] 2))lisp", "app");
+		return json();
+	});
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	app.press(affresco::Key::C);
+	app.settle();
+	CHECK(app.errors.empty());
+	CHECK(app.state("got") == 1);
+	CHECK(lisp::rebuildStatistics().redefined == before.redefined); // a new interpreter: the old one was running
+	app.press(affresco::Key::C);
+	CHECK(app.state("got") == 2);
+}
+
+namespace {
+
+/// @brief A feature's program, its file `feature.lisp`: its own state, a function, a command and a view that use it.
+/// @return The program.
+json featureProgram() {
+	return {{"feature.lisp",
+	         {{"state.counter", R"((defstate counter {:count 0} "The feature's state."))"},
+	          {"counter-label", R"((defn counter-label "Its text." [n] (str "Count " n)))"},
+	          {"counter.add", R"((defcommand counter.add "Adds one." :title "Add" [] (increment "state.counter.count")))"},
+	          {"counter-view",
+	           R"((defview counter-view "Its view." [] `(label#counter-view :text ~(counter-label 1))))"}}}};
+}
+
+/// @brief The authors of a section as Programs credits them: a feature's files to the feature, the rest to the app.
+/// @param section The effective section.
+/// @return By file, then by entry.
+json featureAuthors(const json& section) {
+	json authors = json::object();
+	for(const auto& [file, entries] : section.items())
+		for(const auto& [name, text] : entries.items())
+			authors[file][name] = lisp::featureOfFile(file).empty() ? "app" : "feature:" + lisp::featureOfFile(file);
+	return authors;
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a program with a feature's joined, changed, builds in part and redefines as in full") {
+	std::size_t inPart = 0;
+	std::size_t inPlace = 0;
+	std::size_t total = 0;
+	for(const auto& [app, own] : examplePrograms()) {
+		const json document = {
+		    {"program", own},
+		    {"features", {{"counter", {{"enabled", true}, {"provides", {{"program", featureProgram()}}}}}}}};
+		const json section = lisp::effectiveProgram(document);
+		REQUIRE(section.contains(lisp::featureFiles("counter") + "feature.lisp"));
+		// The build in part compares with a record of the same authors: buildFrom() builds without any
+		lisp::Program plain = lisp::programOf(section);
+		static_cast<void>(plain.build(buildLimits()));
+		REQUIRE(plain.record());
+		lisp::Program first = lisp::programOf(section, featureAuthors(section));
+		static_cast<void>(first.build(buildLimits()));
+		REQUIRE(first.record());
+		for(const Change& change : changesOf(section)) {
+			INFO(app, ": ", change.what, " (", change.file, " ", change.name, ")");
+			const json after = changed(section, change);
+			const json authors = featureAuthors(after);
+			bool whole = false;
+			CHECK(buildFrom(*plain.record(), after, whole) == buildInFull(after));
+			++total;
+			if(!whole) ++inPart;
+			// In place, each definition by its author: a feature's stays the feature's
+			const std::unique_ptr<lisp::Interpreter> loaded = loadedInterpreter(lisp::programOf(after, authors));
+			const std::unique_ptr<lisp::Interpreter> patched = loadedInterpreter(first);
+			if(!loaded || !patched) continue;
+			lisp::Program next = lisp::programOf(after, authors);
+			try {
+				static_cast<void>(next.rebuild(*first.record(), buildLimits()));
+			} catch(const std::exception&) {
+				continue; // refused: nothing to load
+			}
+			patched->setPure(true);
+			if(!next.redefine(*patched, first, *next.record(), buildLimits())) continue;
+			patched->setPure(false);
+			CHECK(definitionsOf(*patched) == definitionsOf(*loaded));
+			++inPlace;
+		}
+	}
+	MESSAGE(inPart, " in part and ", inPlace, " in place, of ", total, " changes");
+	CHECK(inPart * 2 > total);
+	CHECK(inPlace * 2 > total);
+}
+
+namespace {
+
+/// @brief What an expression gives in an interpreter changed in place from one version into the next, and in one that
+/// loaded the next afresh. @param before The earlier version. @param after The later. @param text The expression.
+/// @return The two printed values, or the errors' messages; the first is null if Program::redefine() declined.
+std::pair<json, json> evaluatedBoth(const json& before, const json& after, const std::string& text) {
+	const auto evaluated = [&](lisp::Interpreter& interpreter) -> json {
+		try {
+			return interpreter.print(interpreter.eval(text));
+		} catch(const std::exception&) {
+			return std::string("error");
+		}
+	};
+	lisp::Program first = lisp::programOf(before);
+	static_cast<void>(first.build(buildLimits()));
+	const std::unique_ptr<lisp::Interpreter> fresh = loadedInterpreter(lisp::programOf(after));
+	const json full = fresh ? evaluated(*fresh) : json("error");
+	const std::unique_ptr<lisp::Interpreter> patched = loadedInterpreter(first);
+	lisp::Program next = lisp::programOf(after);
+	try {
+		static_cast<void>(next.rebuild(*first.record(), buildLimits()));
+		patched->setPure(true);
+		if(!next.redefine(*patched, first, *next.record(), buildLimits())) return {nullptr, full};
+		patched->setPure(false);
+	} catch(const std::exception&) {
+		return {nullptr, full};
+	}
+	return {evaluated(*patched), full};
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a function a view's expression names, defined now, builds the view again") {
+	const json section = sectionOf("(defstate query \"\")\n(defn other \"\" [] 1)\n"
+	                               "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
+	                               "(defscreen main (column#c ~(caption)))\n");
+	lisp::Program first = lisp::programOf(section);
+	const json tree = first.build(buildLimits());
+	REQUIRE(!tree.dump().contains("lisp('shout'"));
+	json after = section;
+	after["app.lisp"]["shout"] = R"((defn shout "" [x] (str x "!")))";
+	bool whole = false;
+	const json part = buildFrom(*first.record(), after, whole);
+	CHECK(part == buildInFull(after));
+	CHECK(part.dump().contains("lisp('shout'"));
+}
+
+TEST_CASE("lisp rebuild: a function a view names, gone or defined now, changes in place as a fresh load has it") {
+	const std::string with = "(defn shout \"\" [x] (str x \"!\"))\n";
+	const std::string rest = "(defn other \"\" [] 1)\n(defview caption \"\" [] `(label#cap :text ~(shout \"a\")))\n"
+	                         "(defscreen main (column#c ~(caption)))\n";
+	for(const bool adding : {false, true}) {
+		CAPTURE(adding);
+		const json one = sectionOf(rest), two = sectionOf(with + rest);
+		const auto [patched, full] = evaluatedBoth(adding ? one : two, adding ? two : one, "(caption)");
+		if(!patched.is_null()) CHECK(patched == full);
+	}
+}
+
+TEST_CASE("lisp rebuild: a macro removed isn't changed in place: what used it is compiled again") {
+	const json before = sectionOf("(defmacro twice \"\" [x] `(* 2 ~x))\n(defn f \"\" [] (twice 3))\n"
+	                              "(defn other \"\" [] 1)\n(defscreen main (column#c (label#l :text \"x\")))\n");
+	json after = before;
+	after["app.lisp"].erase("twice");
+	const auto [patched, full] = evaluatedBoth(before, after, "(f)");
+	if(!patched.is_null()) CHECK(patched == full);
+	CHECK(patched.is_null()); // Program.hpp: a macro gone refuses the change in place
+}
+
+TEST_CASE("lisp rebuild: what changes in place keeps in the heap is bounded, as one load's, before a new interpreter") {
+	lispapp::App app(R"lisp(
+(def big "" (vec (range 20000)))
+(defn other "" [] 1)
+(defscreen main (panel#root))
+)lisp");
+	// Each version keeps its value in the heap, which only grows: a load may allocate 16 MiB
+	const lisp::RebuildStatistics before = lisp::rebuildStatistics();
+	constexpr int revisions = 60; // under the count of changes in place a new interpreter is made after
+	for(int i = 0; i < revisions; ++i)
+		app.write("big", "(def big \"\" (vec (range " + std::to_string(200000 + i) + ")))");
+	const std::size_t inPlace = lisp::rebuildStatistics().redefined - before.redefined;
+	MESSAGE(inPlace << " of " << revisions << " changes made in place");
+	CHECK(inPlace > 0);
+	CHECK(inPlace < revisions);
+	CHECK(app.errors.empty());
+}
+
+namespace {
+
+/// @brief A program whose files have `ns` forms, as a document's section holds them: the entry requires `app.a` by its
+/// name, `app.b` through an alias and `x.lisp` by its path; `y.lisp` has none.
+/// @return Its section.
+json namespacedProgram() {
+	return {
+	    {"index.screen.lisp",
+		 {{"ns", R"((ns app.index (:require app.a [app.b :as b] ["x.lisp"])))"},
+		  {"main", R"((defscreen main (column#c (label#t :text ~(b/title)) (label#s :text ~(shout (named "x"))))))"}}},
+	    {"a.lisp", {{"ns", "(ns app.a)"}, {"named", R"((defn named "" [n] (str "the " n)))"}}},
+	    {"b.lisp", {{"ns", "(ns app.b (:require app.a))"}, {"title", R"((defn title "" [] (app.a/named "board")))"}}},
+	    {"x.lisp",
+		 {{"ns", "(ns app.x)"},
+		  {"shout", R"((defn shout "" [s] (str s "!")))"},
+		  {"unused", R"((defn unused "" [] 1))"}}},
+	    {"y.lisp", {{"helper", R"((defn helper "" [] 2))"}}},
+	};
+}
+
+/// @brief What a build from a record and a change in place did, as counted: whether each was made, and what the build
+/// compiled.
+struct Counted {
+	bool inPart = false;      ///< The build ran in part.
+	bool inPlace = false;     ///< The interpreter was changed in place.
+	std::size_t compiled = 0; ///< The definitions the build compiled.
+};
+
+/// @brief Builds a later version of a program from the earlier's record, and changes an interpreter of the earlier in
+/// place, checking each against a build and a load in full of the later.
+/// @param before The earlier version. @param after The later.
+/// @return What each did, by the counters.
+Counted checkedAgainstFull(const json& before, const json& after) {
+	lisp::Program first = lisp::programOf(before);
+	static_cast<void>(first.build(buildLimits()));
+	REQUIRE(first.record());
+	const lisp::RebuildStatistics start = lisp::rebuildStatistics();
+	bool whole = true;
+	const json part = buildFrom(*first.record(), after, whole);
+	const lisp::RebuildStatistics built = lisp::rebuildStatistics();
+	CHECK(part == buildInFull(after));
+	CHECK(built.inPart - start.inPart == (whole ? 0 : 1));
+	if(!part.contains("error")) CHECK(built.whole - start.whole == (whole ? 1 : 0)); // a build that fails counts none
+	const json patched = redefinedFrom(first, after);
+	const std::unique_ptr<lisp::Interpreter> fresh = loadedInterpreter(lisp::programOf(after));
+	if(!patched.is_null()) CHECK((fresh && patched == definitionsOf(*fresh)));
+	CHECK(lisp::rebuildStatistics().redefined - built.redefined == (patched.is_null() ? 0 : 1));
+	return {!whole, !patched.is_null(), built.compiled - start.compiled};
+}
+
+} // namespace
+
+TEST_CASE("lisp rebuild: a program with ns forms, a definition changed, builds in part and redefines as in full") {
+	const json section = namespacedProgram();
+	const std::string tree = buildInFull(section)["tree"].dump();
+	REQUIRE(tree.contains("the board"));
+	REQUIRE(tree.contains("the x!"));
+	struct Case {
+		std::string what;                ///< What changes.
+		std::string file;                ///< The entry's file.
+		std::string name;                ///< Its name.
+		std::optional<std::string> text; ///< Its new text, or std::nullopt to remove it.
+	};
+	const std::vector<Case> cases = {
+	    {"a function called by its file's name", "a.lisp", "named", R"((defn named "" [n] (str "a " n)))"},
+	    {"a function called through an alias", "b.lisp", "title", R"((defn title "" [] (app.a/named "table")))"},
+	    {"a function of a file required by its path", "x.lisp", "shout", R"((defn shout "" [s] (str s "?")))"},
+	    {"a function nothing uses", "x.lisp", "unused", R"((defn unused "" [] 3))"},
+	    {"a function of a file with no ns form", "y.lisp", "helper", R"((defn helper "" [] 4))"},
+	    {"a definition added to a file", "a.lisp", "other", R"((defn other "" [] (named "y")))"},
+	    {"a definition removed", "x.lisp", "unused", std::nullopt},
+	};
+	for(const Case& change : cases) {
+		INFO(change.what);
+		json after = section;
+		if(change.text) after[change.file][change.name] = *change.text;
+		else after[change.file].erase(change.name);
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK(counted.inPart);
+		CHECK(counted.inPlace);
+		if(change.name == "unused" && change.text) CHECK(counted.compiled == 1);
+	}
+}
+
+TEST_CASE("lisp rebuild: with ns forms, what a qualified name names gone or moved fails as a build in full fails") {
+	const json section = namespacedProgram();
+	json gone = section;
+	gone["a.lisp"].erase("named");
+	json moved = gone;
+	moved["x.lisp"]["named"] = section["a.lisp"]["named"];
+	for(const json& after : {gone, moved}) {
+		CHECK(buildInFull(after).contains("error")); // app.a/named: "named" isn't defined in a.lisp
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK_FALSE(counted.inPlace);
+	}
+	// A name that comes to the file another's alias names builds what calls it again, as in full
+	json named = section;
+	named["b.lisp"]["title"] = R"((defn title "" [] (app.a/later "board")))";
+	REQUIRE(buildInFull(named).contains("error"));
+	json later = named;
+	later["a.lisp"]["later"] = R"((defn later "" [n] (str "later " n)))";
+	lisp::Program first = lisp::programOf(section);
+	static_cast<void>(first.build(buildLimits()));
+	bool whole = true;
+	CHECK(buildFrom(*first.record(), later, whole) == buildInFull(later));
+	CHECK_FALSE(whole);
+}
+
+TEST_CASE("lisp rebuild: a file's ns form changed, added, removed or moved in :require builds in full, not in place") {
+	const json section = namespacedProgram();
+	const std::string entry = "index.screen.lisp";
+	std::vector<std::pair<std::string, json>> cases;
+	json changedText = section;
+	changedText["a.lisp"]["ns"] = R"((ns app.a "Names."))";
+	cases.emplace_back("an ns form's text changed", changedText);
+	json added = section;
+	added["y.lisp"]["ns"] = "(ns app.y)";
+	cases.emplace_back("an ns form added", added);
+	json removed = section;
+	removed["x.lisp"].erase("ns");
+	cases.emplace_back("an ns form removed", removed);
+	json moved = section;
+	moved[entry]["ns"] = R"((ns app.index (:require [app.b :as b] app.a ["x.lisp"])))";
+	cases.emplace_back("a file moved in :require", moved);
+	json aliased = section;
+	aliased[entry]["ns"] = R"((ns app.index (:require app.a [app.b :as board] ["x.lisp"])))";
+	aliased[entry]["main"] = section[entry]["main"].get<std::string>().replace(
+	    section[entry]["main"].get<std::string>().find("b/title"), 7, "board/title");
+	cases.emplace_back("an alias renamed with its uses", aliased);
+	for(const auto& [what, after] : cases) {
+		INFO(what);
+		REQUIRE_FALSE(buildInFull(after).contains("error"));
+		const Counted counted = checkedAgainstFull(section, after);
+		CHECK_FALSE(counted.inPart);
+		CHECK_FALSE(counted.inPlace);
+	}
+}

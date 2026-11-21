@@ -68,7 +68,7 @@ add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${af
 	${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp ${PROJECT_SOURCE_DIR}/apps/host/ChangesWindow.cpp)
 # glyphs.cpp draws with render's private gl::QuadRenderer, so it sees render's src and glad
 target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-	${PROJECT_SOURCE_DIR}/modules/render/src)
+	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/apps/shared) # idle.cpp: Templates.hpp
 target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
 target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE

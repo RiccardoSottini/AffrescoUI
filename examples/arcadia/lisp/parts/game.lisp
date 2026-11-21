@@ -4,6 +4,8 @@
 ;;; sections; what friends did in it and its news; and the side panels: friends who play it, achievements,
 ;;; screenshots, the controller, and a note of your own.
 
+(ns arcadia.parts.game)
+
 ;;; What the page shows
 
 (defcomputed lastPlayed "When the game on the page was last played: today, yesterday, a date, or never."
@@ -16,7 +18,7 @@
   ;; A macro: the list stays an expression, for a repeat and a count.
   "The records of a list (data.news, data.activity) about the game on the page."
   [records]
-  `(filter (fn [it] (= it.game g.id)) ~records))
+  `(filter #(= (:game %) g.id) ~records))
 
 ;;; The page
 
@@ -30,7 +32,7 @@
      (panel :height 1 :anchors {:left 32 :right 32} :color @color.border)
      (row#game-columns :anchors {:left 32 :right 32}
        :gap 24
-       :height ~(max 700 (+ 150 (* (count (of-game data.activity)) 96) (* (count (of-game data.news)) 120)))
+       :height ~(max 860 (+ 150 (* (count (of-game data.activity)) 96) (* (count (of-game data.news)) 120)))
        ~(activity)
        ~(side-panels))))
 
@@ -56,7 +58,7 @@
         `(node :id ~(str "section-link-" s)
            :style sectionLink
            :text ~(t (str "game.section." s))
-           :onClick ~(handler openSection g.id s)))))
+           :onClick ~(handler open-section g.id s)))))
 
 ;;; The play bar
 
@@ -100,10 +102,11 @@
      :height 48
      :font button
      :align center
-     :icon ~(cond (= g.status "ready") "play"
-                  (= g.status "running") "square"
-                  (= g.status "downloading") "pause"
-                  :else "download")
+     :icon ~(case g.status
+              :ready "play"
+              :running "square"
+              :downloading "pause"
+              "download")
      :text ~(t (str "status.button." g.status))
      :textColor @color.onAccent
      :focusable true
@@ -253,7 +256,7 @@
 (defview friend-activity
   "What a friend did in the game: their avatar, what it was, and a screenshot if they took one."
   [a]
-  `(row :let {:f ~(find (fn [it] (= it.id a.who)) data.friends)}
+  `(row :let {:f ~(find #(= (:id %) a.who) data.friends)}
      :height ~(if (= a.kind "screenshot") 168 84)
      :anchors {:left 0 :right 0}
      :style card
@@ -291,9 +294,10 @@
      :fit cover
      :radius 2
      :borderWidth 1
-     :borderColor ~(cond (= f.presence "ingame") "@color.ingame"
-                         (= f.presence "offline") "@color.offline"
-                         :else "@color.online")))
+     :borderColor ~(case f.presence
+                     :ingame "@color.ingame"
+                     :offline "@color.offline"
+                     "@color.online")))
 
 ;;; The side panels
 
@@ -304,25 +308,13 @@
      (node :slot true)))
 
 (defview side-panels
-  "The side panels: friends who play it, achievements, screenshots, the controller and your note."
+  "The side panels: friends who play it, achievements, your screenshots, the controller (game-panels.lisp) and your note."
   []
   `(column#game-side :width 312 :gap 14 :anchors {:top 16 :bottom 0}
      (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118} ~(friends-who-play))
      ~(achievements-card)
-     (node#screenshots-card :use sideCard :with {:title ~(t "game.screenshots") :height 132}
-       (row :gap 6 :anchors {:left 14 :right 14 :top 40} :height 80
-         ~(repeat [k [1 2 3]]
-            `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg")
-               :grow 1
-               :height 80
-               :fit cover
-               :radius 2))))
-     (node#controller-card :use sideCard :with {:title ~(t "game.controller") :height 74}
-       (label :icon gamepad-2
-         :text ~(t (str "controller." g.controller))
-         :textColor @color.text
-         :anchors {:left 14 :right 14 :top 42}
-         :height 20))
+     ~(your-shots-card)
+     ~(controller-card)
      (node#notes-card :use sideCard :with {:title ~(t "game.notes") :height 74}
        (label#write-note :icon pencil
          :text ~(if (empty? g.note) (t "game.writeNote") g.note)

@@ -36,8 +36,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
 | `Interpreter.hpp` | `Interpreter` (`addAppVariable`, `eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`), `NamedCalls`, `CallsByName`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
-| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `rebuild`, `redefine`, `record`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`, `recordOrigins`, `nodePlaces`), `NamedCalls`, `CallsByName`, `NodePlace`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
+| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `effectiveProgram` (`featureFiles`, `featureOfFile`), `programBuilds`, `keepFeatureBuilds`, `changedPlaces`, `nodeOrigins` (`NodeOrigin`), `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
 
 ## Values
 
@@ -226,6 +226,38 @@ one data value, a **template**.
   building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
   revision judges before and after, and a build under a document has tighter limits than running does (`maxBuildOperations`,
   `maxBuildBytes`), as every revision pays for one.
+- **One definition changes, one is built again.** A build keeps a record (`Program::record`): what each definition uses, what it
+  gave the tree, what it found. `Program::rebuild(previous)` runs only the definitions that changed and those that use them, over
+  and over, in a fresh interpreter that loads them and what they use, and puts the rest of the tree back from the record; the
+  result is the build in full's, key for key, and `record()->touched` names the places it could have changed (`changedPlaces`).
+  It builds in full when that can't be sure: a macro, `add-hook`, `remove-hook` or `advice` changed or gone, a form that isn't a
+  definition, a definition named as one of the language's, a file's `ns` form added, removed, moved or changed (with the
+  same forms, names resolve as they did), or nothing left to save (`Rebuild.cpp` lists them).
+  `builtProgram` builds each version from the one it built last. `Program::redefine(interpreter, before, record)` does the same to
+  a running interpreter: it defines again what changed and what uses it, with its entry's author, and takes away what went; where
+  it can't be sure it does nothing, and a failure leaves the interpreter for the caller to throw away.
+- **The program that runs.** `effectiveProgram(document)` is the document's own `program`, then the files of every enabled
+  `features` record whose `provides.program` holds some, each named `features/<name>/<file>`, the features in their `order`,
+  then by name (`effectiveProgram(document, names)` takes the features to add, those a composition merged). It checks
+  nothing: a malformed record is left out. A document with no `program` gives none, and with no feature program it gives
+  the document's own section, byte for byte. `buildDocument` reads the document's own program; what runs, and what judges
+  reach, reads the effective one; `featureOfFile` tells a feature's file from the document's. Once a section with features'
+  files is built (or `keepFeatureBuilds` is called, as composition does before it builds a feature's program alone),
+  `builtProgram` keeps 24 builds on that thread, so a revision on an app with eight features builds no section twice;
+  `programBuilds` counts them, for the tests.
+- **Where a node comes from.** `nodeOrigins(section)` gives, by node id, the definition that holds the form that built the node:
+  its file and name (the address `/program/<file>/<definition>`), its kind, and the line and column of the node's `(` inside the
+  definition's own text (the history keeps definitions; a file on disk may be laid out differently). A view's node comes from that
+  view, wherever it is called; a macro template's node from the macro; a node written in a call and handed to a macro from where it
+  is written; a `repeat`'s node and a component's inner node from their forms. `NodeOrigin::id` says where the id itself is: written
+  out in the form (`type#id`, or an `:id` text read from the source), written in a call that handed it to the view (`(tool "save")`:
+  the origin is then that call, at the id's text), or worked out by the form (`:id ~(str "row" i)`). A node built from a map or by a
+  function, and a node with no id, have none (a caller falls back to the nearest ancestor that has one); an id built in several
+  places has its first. It is a second build, run only when asked, under `builtProgram`'s limits: its entries start on lines of
+  their own (`programOf` reads each from line 1), and the build notes each such node's place (`Program::recordOrigins`, read with
+  `Program::nodePlaces`). An ordinary build records nothing and pays one test per node. A section that can't be built gives no
+  origin: `builtProgram` reports why. The last four results are kept per thread, as builds are. Origins live beside the tree, never
+  in it, so the document and its hashes don't change.
 - **The keyword edit.** `replaceKeyword` finds an option's value by tokens, so every other byte stays: `(defcommand c "Doc."
   :title "x" [] nil)`'s `:title`, after the name and the docstring of `defcommand` and `defscreen`, after the value of `defcustom`, and
   inside a map through further keywords. It reads no body: options stop at the first thing that isn't a key. The new value must be

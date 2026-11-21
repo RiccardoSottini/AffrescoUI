@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <initializer_list>
@@ -148,14 +150,25 @@ void checkExpectation(const json& expect, const std::string& place) {
 	}
 }
 
+/// @brief Checks the modifier keys a pointer step holds, if it names some: "shift", "alt+shift".
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If they are malformed.
+void checkModifiers(const json& step, const std::string& place) {
+	if(!step.contains("mods")) return;
+	if(!step["mods"].is_string() || !detail::parseModifiers(step["mods"].get<std::string>()))
+		fail(place + ".mods", R"(expected modifier keys joined by '+': shift, ctrl, alt, cmd, mod ("alt+shift"))");
+}
+
 /// @brief Checks a pointer step: move, click, press or release, with a target.
 /// @param step The step.
 /// @param kind Its kind.
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkPointer(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "nth", "note"}, place);
+	onlyKeys(step, {kind, "nth", "mods", "note"}, place);
 	checkTarget(step[std::string(kind)], place + "." + std::string(kind));
+	checkModifiers(step, place);
 }
 
 /// @brief Checks a drag: from a target to another, in a number of moves.
@@ -163,8 +176,9 @@ void checkPointer(const json& step, std::string_view kind, const std::string& pl
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkDrag(const json& step, const std::string& place) {
-	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "note"}, place);
+	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "mods", "note"}, place);
 	checkTarget(step["drag"], place + ".drag");
+	checkModifiers(step, place);
 	if(!step.contains("to")) fail(place, R"("drag" needs "to": where to drop)");
 	checkTarget(step["to"], place + ".to");
 	if(step.contains("toNth") && (!step["toNth"].is_number_integer() || step["toNth"].get<long long>() < 0 ||
@@ -180,8 +194,9 @@ void checkDrag(const json& step, const std::string& place) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkScroll(const json& step, const std::string& place) {
-	onlyKeys(step, {"scroll", "dx", "dy", "nth", "note"}, place);
+	onlyKeys(step, {"scroll", "dx", "dy", "nth", "mods", "note"}, place);
 	checkTarget(step["scroll"], place + ".scroll");
+	checkModifiers(step, place);
 	for(const char* axis : {"dx", "dy"})
 		if(step.contains(axis) && !step[axis].is_number()) fail(place + "." + axis, "expected a number");
 }
@@ -208,6 +223,30 @@ void checkAction(const json& step, const std::string& place) {
 	if(!step["action"].is_string() || step["action"].get<std::string>().empty())
 		fail(place + ".action", "expected the name of an action");
 	if(step.contains("event") && !step["event"].is_object()) fail(place + ".event", "expected an object");
+}
+
+/// @brief Checks a command step: the command, the arguments it runs with, the author it runs as, and the verdict it
+/// expects instead of running.
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkCommand(const json& step, const std::string& place) {
+	onlyKeys(step, {"command", "with", "as", "verdict", "note"}, place);
+	const json& name = step["command"];
+	if(!name.is_string() || name.get_ref<const std::string&>().empty() ||
+	   name.get_ref<const std::string&>().size() > detail::maxCommandNameBytes)
+		fail(place + ".command",
+		     "expected the name of a command, at most " + std::to_string(detail::maxCommandNameBytes) + " bytes");
+	if(step.contains("with") && !step["with"].is_object()) fail(place + ".with", "expected an object of arguments");
+	if(step.contains("as") && !detail::isAuthorName(step["as"]))
+		fail(place + ".as", R"(expected an author, like "agent" or "agent/helper": 1 to )" +
+		                        std::to_string(detail::maxAuthorBytes) + " printable bytes");
+	if(step.contains("verdict")) {
+		const json& verdict = step["verdict"];
+		if(!verdict.is_string() || !std::ranges::contains(std::array<std::string_view, 4>{"allow", "ask", "person", "deny"},
+		                                                     verdict.get_ref<const std::string&>()))
+			fail(place + ".verdict", R"(expected "allow", "ask", "person" or "deny")");
+	}
 }
 
 /// @brief Checks the text a `type` step types.
@@ -246,6 +285,26 @@ void checkChosen(const json& value, const std::string& at) {
 		fail(at, "expected a file name of letters, digits, '-', '_' and '.', or null to cancel");
 }
 
+/// @brief Checks a `choose` step's "from": a file inside the scenario's screens folder, copied into the run's own
+/// folder under the chosen name (a fixture, such as a picture to open).
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If it isn't a relative path that stays inside that folder, or there is nothing to name.
+void checkChosenFrom(const json& step, const std::string& place) {
+	if(!step.contains("from")) return;
+	const json& from = step["from"];
+	const std::string at = place + ".from";
+	if(step["choose"].is_null()) fail(at, "needs a file name to copy it to");
+	if(!from.is_string() || from.get_ref<const std::string&>().empty() ||
+	   from.get_ref<const std::string&>().size() > 256)
+		fail(at, "expected a path of 1 to 256 bytes");
+	const std::filesystem::path path(from.get<std::string>());
+	if(path.is_absolute() || path.has_root_name() || path.has_root_directory())
+		fail(at, "expected a path relative to the scenario's screens folder");
+	for(const std::filesystem::path& part : path)
+		if(part == "..") fail(at, "must stay inside the scenario's screens folder (no '..')");
+}
+
 /// @brief Checks the steps whose one value says it all: type, key, revision, propose, resize, wait, capture, choose,
 /// expect.
 /// @param step The step.
@@ -253,7 +312,8 @@ void checkChosen(const json& value, const std::string& at) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkValueStep(const json& step, std::string_view kind, const std::string& place) {
-	onlyKeys(step, {kind, "note"}, place);
+	if(kind == "choose") onlyKeys(step, {kind, "from", "note"}, place);
+	else onlyKeys(step, {kind, "note"}, place);
 	const json& value = step[std::string(kind)];
 	const std::string at = place + "." + std::string(kind);
 	if(kind == "type") {
@@ -270,15 +330,16 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		checkFileName(value, at);
 	} else if(kind == "choose") {
 		checkChosen(value, at);
+		checkChosenFrom(step, place);
 	} else {
 		checkExpectation(value, at);
 	}
 }
 
 /// @brief The step kinds: the key that says what a step does. Every step has exactly one, or is only a "note".
-constexpr std::array<std::string_view, 17> stepKinds = {
-    "capture", "move",     "click",   "rightClick", "press",  "release", "drag",   "scroll", "type",
-    "key",     "revision", "propose", "action",     "resize", "wait",    "choose", "expect"};
+constexpr std::array<std::string_view, 18> stepKinds = {
+    "capture", "move",   "click",  "rightClick", "press",  "release", "drag",   "scroll",  "type",
+    "key",     "revision", "propose", "action", "command", "resize", "wait", "choose", "expect"};
 
 /// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
@@ -294,12 +355,26 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
 		                ": expected one of capture, move, click, rightClick, press, release, drag, scroll, type, key, "
-		                "revision, "
-		                "propose, action, resize, wait, choose, expect");
+		                "revision, propose, action, command, resize, wait, choose, expect");
 	}
 	if(kinds.size() > 1)
 		fail(place, "one step does one thing: '" + std::string(kinds[0]) + "' and '" + std::string(kinds[1]) + "'");
 	return kinds[0];
+}
+
+/// @brief Checks what a step of a kind gives, by its kind.
+/// @param step The step, without its "error".
+/// @param kind Its kind.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkKind(const json& step, std::string_view kind, const std::string& place) {
+	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
+		checkPointer(step, kind, place);
+	else if(kind == "drag") checkDrag(step, place);
+	else if(kind == "scroll") checkScroll(step, place);
+	else if(kind == "action") checkAction(step, place);
+	else if(kind == "command") checkCommand(step, place);
+	else checkValueStep(step, kind, place);
 }
 
 /// @brief Checks one step, and tells whether it draws.
@@ -324,24 +399,25 @@ bool checkStep(const json& written, const std::string& place) {
 	if(step.size() != written.size() && (kind == "expect" || kind == "capture"))
 		fail(place + ".error", "only a step that runs handlers raises an error, not '" + std::string(kind) + "'");
 	checkNth(step, place);
-	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
-		checkPointer(step, kind, place);
-	else if(kind == "drag") checkDrag(step, place);
-	else if(kind == "scroll") checkScroll(step, place);
-	else if(kind == "action") checkAction(step, place);
-	else checkValueStep(step, kind, place);
+	checkKind(step, kind, place);
 	return kind == "capture" || (kind == "expect" && step["expect"].contains("image"));
 }
 
-/// @brief Reads a scenario's scale.
+/// @brief Reads a scenario's scale: a whole number of quarters, so a display set to 125% or 150% has its pictures and
+/// the text raster (rounded to a quarter) matches them exactly.
 /// @param value The scale.
 /// @param place Its place.
 /// @return The scale, from 1 to the limit.
-/// @throws DocumentError If it isn't such a whole number.
-int readScale(const json& value, const std::string& place) {
-	const int scale = expect::integer(value, place);
-	if(scale < 1 || scale > detail::maxScale) fail(place, "expected 1 to " + std::to_string(detail::maxScale));
-	return scale;
+/// @throws DocumentError If it isn't a number of quarters in that range.
+float readScale(const json& value, const std::string& place) {
+	const std::string expected =
+	    "expected 1 to " + std::to_string(detail::maxScale) + ", in quarters (1, 1.25, 1.5, ...)";
+	if(!value.is_number()) fail(place, expected);
+	const double scale = value.get<double>();
+	const double quarters = scale * 4.0;
+	if(!std::isfinite(scale) || scale < 1.0 || scale > detail::maxScale || quarters != std::floor(quarters))
+		fail(place, expected);
+	return static_cast<float>(scale);
 }
 
 /// @brief Checks a scenario's steps and adds them to it.

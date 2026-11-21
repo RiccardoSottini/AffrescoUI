@@ -18,7 +18,9 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
-	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
+	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and "
+	 "it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `\"fill\": true` "
+	 "(`affrescoui check` reports a container root).",
 	 "sections"},
     {"format", R"json({"const": "affrescoui-screen"})json", "`\"affrescoui-screen\"`, for tools.", "sections"},
     {"note", R"json({"type": "string"})json", "A comment.", "sections"},
@@ -179,6 +181,12 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
     {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/keyHandler"},
 		"description": "Screen-wide shortcuts: \"mod+k\" -> handler"})json",
 	 "Screen-wide shortcuts: `\"mod+k\" → handler` (see Events).", "sections"},
+    {"keyBindings", R"json({"type": "string", "pattern": "^state\\.",
+		"description": "The state path of the person's own key bindings, [{keys, command}], run before keys"})json",
+	 "`\"state.keyBindings\"`: where the person's own key bindings are, `[{ \"keys\": \"mod+alt+t\", \"command\": "
+	 "\"toggleTheme\" }]`, each running a command (an action with a title) by name. They are read before `keys`, so "
+	 "one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file.",
+	 "sections"},
     {"menus", R"json({"type": "object", "description": "menu -> item key -> item, listed by the menus variable",
 		"additionalProperties": {"type": "object", "additionalProperties": {"type": "object",
 		"additionalProperties": false, "properties": {"run": {"type": "string"}, "submenu": {"type": "string"},
@@ -253,6 +261,10 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"ask": {"type": "array", "items": {"$ref": "#/$defs/v2/permissionRule"}},
 		"deny": {"type": "array", "items": {"$ref": "#/$defs/v2/permissionRule"}},
 		"reviewers": {"type": "array", "items": {"type": "string"}},
+		"run": {"type": "object", "additionalProperties": false,
+		"description": "Who may run which of the commands as a peer (rules of their own: no change rule covers a run).",
+		"properties": {"allow": {"$ref": "#/$defs/v2/runRules"}, "ask": {"$ref": "#/$defs/v2/runRules"},
+		"deny": {"$ref": "#/$defs/v2/runRules"}}},
 		"review": {"type": "object", "additionalProperties": false,
 		"description": "What a proposal needs before it merges.",
 		"properties": {"approvals": {"type": "integer", "minimum": 1, "maximum": 20},
@@ -424,12 +436,17 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
 	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
-	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
+	 "true` it also reads the comments and trailing commas settings and theme files have. With `\"as\": \"image\"` "
+	 "it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an "
+	 "`image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A "
+	 "control step",
 	 "outsideSteps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
-	 "else each node's own), `\"png\"` of one node (`scale` pixels a unit, 2 by default), or `\"gltf\"` of one `scene` "
+	 "else each node's own), `\"png\"` of each node (`scale` pixels a unit, 2 by default; several nodes are "
+	 "written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` "
+	 "names them), or `\"gltf\"` of one `scene` "
 	 "node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures "
 	 "aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, "
 	 "bytes}`, `error` `{code, message}`. A control step",
@@ -461,6 +478,15 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
 	 "attachments (Assets). A control step",
 	 "outsideSteps"},
+    {"pick", R"json({"const": "node"})json",
+	 "`{ \"pick\": \"node\", \"hint\": \"Point at what to change\", \"into\": \"state.pointed\" }`: after the "
+	 "person's own press, they point at an element; the engine keeps its record (where it is written, never its data) "
+	 "and runs `onDone` with `result`, or `onCancel` (Pointing at a node). A control step",
+	 "outsideSteps"},
+    {"unpick", "",
+	 "`{ \"unpick\": \"{{state.pointed.id}}\" }`: forgets pick records (an id or a list); an unknown id is "
+	 "ignored. A control step",
+	 "outsideSteps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "",
@@ -472,7 +498,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"edit", "",
 	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
 	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
-	 R"("word", "selection" or "line")",
+	 R"("word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over )"
+	 R"(that range; "recenter", "recenterTop" and "recenterBottom" scroll the caret's row to the middle, the top or the bottom)",
 	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
@@ -491,6 +518,12 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"(`{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`))",
 	 "steps"},
     {"copy", "", R"(`{ "copy": "{{state.link}}" }`: to the clipboard)", "steps"},
+    {"paste", R"json({"enum": ["text", "image"]})json",
+	 R"(`{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. `{ "paste": "image", "as": "clip", "into": "state.pasted" }` takes the clipboard's image instead (macOS for now; a 64 MiB PNG and 4,096 by 4,096 pixels at most): an `image` node with `"source": "clip"` shows it, and the value is `{ "image", "width", "height" }`, or null when the clipboard holds none. A control step)",
+	 "steps"},
+    {"copyImage", "",
+	 R"(`{ "copyImage": "chart" }`: puts a named image of the screen (a `snapshot`'s, one pasted or set by the host) on the clipboard, where the system takes one (macOS for now). A control step)",
+	 "steps"},
     {"lisp", "",
 	 R"(`{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too))",
 	 "steps"},
@@ -512,7 +545,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"stop", "", "", "steps"},
     {"preview", "",
 	 "Review and history, e.g. `{ \"accept\": \"{{proposals[0].id}}\", \"head\": \"{{proposals[0].head}}\" }` "
-	 "(`accept` names the head the user reviewed; refused if the proposal moved since)",
+	 "(`accept` names the head the user reviewed; refused if the proposal moved since). `revert` undoes an earlier "
+	 "commit and keeps the later ones; where a later change conflicts, it carries the person's choice: "
+	 "`{ \"revert\": \"{{c.id}}\", \"drop\": \"all\", \"head\": \"{{state.plan.head}}\" }`, `drop` (those later "
+	 "changes are taken out too) and `keep` (they stay, and that part is not undone) each a list of conflict paths or "
+	 "`\"all\"`, `head` the head of main the plan was worked out on (refused if main moved since)",
 	 "steps"},
     {"endPreview", R"json({"const": true})json", "", "steps"},
     {"accept", "", "", "steps"},
@@ -520,6 +557,18 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"restore", "", "", "steps"},
     {"revert", "", "", "steps"},
     {"undo", R"json({"const": true})json", "", "steps"},
+    {"allowRun", "",
+	 R"(`{ "allowRun": "{{item.id}}", "always": true, "for": "8h" }`: the person allows a command run a peer asked for that waits (`runs`); `always` also lets that channel run that command without asking, for `for` or as long as the review policy says)",
+	 "steps"},
+    {"denyRun", "", R"(`{ "denyRun": "{{item.id}}", "reason": "not now" }`: the person refuses a run that waits)",
+	 "steps"},
+    {"undoRun", "",
+	 R"(`{ "undoRun": "{{item.id}}" }`: puts back what a run changed, refused when that was changed since)", "steps"},
+    {"undoPlan", "",
+	 R"(`{ "undoPlan": "{{c.id}}", "into": "state.plan" }`: what undoing that commit would do, without doing it )"
+	 R"((`of`, `head`, `outcome`, `conflicts`, `later`, `state`, ...: see "Live protocol"), from any handler; `drop` )"
+	 R"(and `keep` ask what that choice would do; `then` gets `result`, the plan, `onError` gets `error`)",
+	 "steps"},
     {"to", "", "", ""},
     {"value", "", "", ""},
     {"at", "", "", ""},
@@ -529,6 +578,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"with", "", "", ""},
     {"into", "", "", ""},
     {"attachments", "", "", ""},
+    {"picks", "", "", ""},
+    {"hint", "", "", ""},
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
@@ -536,7 +587,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"image", "", R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
-		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+		"eq", "master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
@@ -568,9 +619,18 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"from", "", "", ""},
     {"openWindow", "",
 	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
-	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 R"(`{ "closeWindow": "audience" }` closes it; `{ "closeWindow": "main" }` closes the screen's own window, which )"
+	 R"(ends the app (Quit, Exit): only from the person's own click or key, never from a load, a timer, a message or )"
+	 R"(a revision)",
 	 "steps"},
     {"closeWindow", "", "", "steps"},
+    {"openUrl", R"json({"anyOf": [{"type": "string", "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://", "maxLength": 2048},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "openUrl": "https://example.com/help" }`: opens an http:// or https:// web address in the person's browser, )"
+	 R"(only after asking them in a question the window draws itself (the whole address shown; Enter or Open says yes, )"
+	 R"(Escape or Cancel no). Nothing a screen runs can answer it, so a timer, a message or a revision's code never )"
+	 R"(opens one without the person's yes. Any other scheme is an error. A control step)",
+	 "steps"},
     {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
 	 R"(`"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the )"
@@ -603,7 +663,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"append", "", "", ""},
     {"confirm", R"json({"anyOf": [{"type": "boolean"}, {"type": "string"}]})json", "", ""},
     {"keep",
-	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"}]})json",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"},
+		{"type": "array", "maxItems": 256, "items": {"type": "string", "maxLength": 1024}}]})json",
+	 "", ""},
+    {"drop", R"json({"anyOf": [{"type": "string"}, {"type": "array", "maxItems": 256,
+		"items": {"type": "string", "maxLength": 1024}}]})json",
 	 "", ""},
     {"times", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},
@@ -621,18 +685,25 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"easing", R"json({"enum": ["linear", "in", "out", "inOut"]})json", "", ""},
     {"head", "", "", ""},
     {"reason", "", "", ""},
+    {"always", "", "", ""},
+    {"for", "", "", ""},
     {"then", "steps", "", ""},
     {"else", "steps", "", ""},
     {"do", "steps", "", ""},
     {"onError", "steps", "", ""},
     {"onEvent", "steps", "", ""},
     {"onDone", "steps", "", ""},
+    {"onCancel", "steps", "", ""},
 });
 
 /// The shared values: "$defs/v2" entries the other schemas refer to.
 constexpr auto definitionTable = std::to_array<KeyReference>({
     {"permissionRule", R"json({"type": "string", "pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 		"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""})json",
+	 "", ""},
+    {"runRules", R"json({"type": "array", "maxItems": 64, "items": {"type": "string", "maxLength": 256,
+		"pattern": "^[^() ]+(\\([^()/# ][^() ]*\\))?$",
+		"description": "\"author\" or \"author(command)\": a name, or a prefix ending in *: \"agent(moveCard)\""}})json",
 	 "", ""},
     {"characterPairs", R"json({"type": "array", "maxItems": 32, "items": {"type": "array", "minItems": 2, "maxItems": 2,
 		"items": {"type": "string", "minLength": 1, "maxLength": 1}}})json",
@@ -703,7 +774,10 @@ constexpr auto definitionTable = std::to_array<KeyReference>({
 		"description": "An action that describes itself; \"enablement\" is checked for keys, menus and palettes",
 		"properties": {"title": {"type": "string"}, "category": {"type": "string"}, "icon": {"type": "string"},
 		"enablement": {}, "description": {"type": "string"}, "do": {"$ref": "#/$defs/v2/handler"},
-		"arguments": {"type": "array", "items": {"type": "string"}}}})json",
+		"arguments": {"description": "Its arguments: names, or a type for each (the state's types)",
+		"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "object", "maxProperties": 32,
+		"propertyNames": {"pattern": "^[A-Za-z0-9_-]{1,64}$"},
+		"additionalProperties": {"$ref": "#/$defs/v2/stateType"}}]}}})json",
 	 "", ""},
     {"binding", R"json({"type": "object", "required": ["do"], "additionalProperties": false,
 		"description": "A key binding: runs \"do\" (an action name or steps) when \"when\" is true",

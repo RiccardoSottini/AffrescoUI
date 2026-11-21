@@ -239,8 +239,8 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, scrollMarks,
-/// composition, caretStyle and readOnly.
+/// indentGuides, whitespace, foldMarkers, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport,
+/// scrollMarks, composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -255,6 +255,8 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 		fail(path + ".bracketStyle", R"(expected "fill" or "underline")");
 	editor.setBracketUnderline(bracketStyle == "underline");
 	editor.setIndentGuides(flag("indentGuides"));
+	editor.setVisibleWhitespace(flag("whitespace"));
+	editor.setFoldMarkers(flag("foldMarkers"));
 	if(values.contains("tabSize")) {
 		const float spaces = number(values["tabSize"], path + ".tabSize");
 		if(!(spaces >= 1.0f && spaces <= static_cast<float>(TextEditor::maxTabSize)) || spaces != std::floor(spaces))
@@ -345,12 +347,13 @@ void showText(Panel& panel, const json* bound, const json& properties, std::opti
 	if(!editor) return;
 	if(bound) {
 		editor->setText(text(*bound));
-		return;
+	} else {
+		const std::optional<std::string> newText =
+		    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
+		if(newText != lastText) editor->setText(newText.value_or(""));
+		lastText = newText;
 	}
-	const std::optional<std::string> newText =
-	    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
-	if(newText != lastText) editor->setText(newText.value_or(""));
-	lastText = newText;
+	settleCodeKeys(*editor);
 }
 
 /// @brief Reports text the user changed.
@@ -432,6 +435,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"find", ValueKind::Any},
 	                   {"brackets", ValueKind::Boolean},
 	                   {"indentGuides", ValueKind::Boolean},
+	                   {"whitespace", ValueKind::Boolean},
+	                   {"foldMarkers", ValueKind::Boolean},
 	                   {"tabSize", ValueKind::Number},
 	                   {"readOnly", ValueKind::Boolean},
 	                   {"guideColor", ValueKind::Color},

@@ -498,3 +498,26 @@ TEST_CASE("audio: a voice's spectrum is of what it last played, and all 0 unless
 	voice->pause();
 	CHECK(voice->spectrum(16) == std::vector<float>(16, 0.0F));
 }
+
+TEST_CASE("audio: an equaliser turns its band's frequencies up or down, and leaves the others") {
+	Engine engine(manual());
+	std::string error;
+	/// The peak of a tone through an equaliser, once the filter has settled.
+	const auto peakThrough = [&](float frequency, std::vector<EqualizerBand> bands) {
+		const auto voice = engine.play(Source::tone(frequency, 1, 0.25F), {}, error);
+		REQUIRE(voice);
+		voice->setEqualizer(bands);
+		static_cast<void>(pull(engine, 9600));
+		float peak = 0;
+		for(const float sample : pull(engine, 4800)) peak = std::max(peak, std::fabs(sample));
+		voice->stop();
+		return peak;
+	};
+	CHECK(peakThrough(1000, {}) == doctest::Approx(0.25).epsilon(0.01));
+	CHECK(peakThrough(1000, {{1000, 12, 1}}) == doctest::Approx(0.25 * 3.98).epsilon(0.03)); // +12 dB at its centre
+	CHECK(peakThrough(1000, {{1000, -12, 1}}) == doctest::Approx(0.25 / 3.98).epsilon(0.03));
+	CHECK(peakThrough(8000, {{100, 12, 1}}) == doctest::Approx(0.25).epsilon(0.03)); // far from the band: as it was
+	CHECK(peakThrough(1000, {{1000, 0, 1}}) == doctest::Approx(0.25).epsilon(0.01));  // 0 dB: no filter
+	// Out of range values are clamped, and the mix stays finite
+	CHECK(std::isfinite(peakThrough(1000, {{1e9F, 1e9F, 0}, {-5, -1e9F, 1e9F}})));
+}

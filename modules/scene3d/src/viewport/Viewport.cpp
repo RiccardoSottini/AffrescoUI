@@ -62,9 +62,12 @@ namespace {
 	gizmo.visible = flagOr(value, "visible", true);
 	gizmo.mode = gizmoModeNamed(textOf(value, "mode")).value_or(GizmoMode::Translate);
 	gizmo.local = textOf(value, "space") == "local";
+	gizmo.view = textOf(value, "space") == "view";
+	gizmo.gimbal = textOf(value, "space") == "gimbal";
 	gizmo.active = gizmoAxisNamed(textOf(value, "axis")).value_or(GizmoAxis::None);
 	gizmo.pixels = std::clamp(numberOr(value, "pixels", gizmo.pixels), 10.0f, 400.0f);
 	if(const auto pivot = value.find("pivot"); pivot != value.end()) gizmo.pivot = pointFromJson(*pivot);
+	gizmo.individual = flagOr(value, "individual", false);
 	return gizmo;
 }
 
@@ -193,6 +196,16 @@ Scene sceneAtTime(const json& scene, const json& animations, float time, const S
 	return result;
 }
 
+std::array<Vec3, 3> gimbalAxes(const Mat4& world, Quat up) noexcept {
+	const auto parts = Transform::decompose(world);
+	const Quat turn = parts ? normalize(up.conjugate() * parts->rotation) : Quat{}; // in the scene's own frame
+	const Vec3 angles = turn.toEuler();                                              // applied x, then y, then z
+	const Quat aroundZ = Quat::fromAxisAngle({0.0f, 0.0f, 1.0f}, angles.z);
+	const Quat aroundZY = aroundZ * Quat::fromAxisAngle({0.0f, 1.0f, 0.0f}, angles.y);
+	return {up.rotate(aroundZY.rotate({1.0f, 0.0f, 0.0f})), up.rotate(aroundZ.rotate({0.0f, 1.0f, 0.0f})),
+	        up.rotate({0.0f, 0.0f, 1.0f})};
+}
+
 std::optional<Gizmo> gizmoFor(const Scene& scene, const ViewportSettings& settings, float viewportHeight) noexcept {
 	if(!settings.gizmo.visible || settings.selection.empty()) return std::nullopt;
 	try {
@@ -215,6 +228,10 @@ std::optional<Gizmo> gizmoFor(const Scene& scene, const ViewportSettings& settin
 		gizmo.orientation = up;
 		if(settings.gizmo.local)
 			if(const auto parts = Transform::decompose(*active)) gizmo.orientation = normalize(parts->rotation);
+		if(settings.gizmo.gimbal) gizmo.axes = gimbalAxes(*active, up);
+		if(settings.gizmo.view)
+			if(const auto eye = settings.camera.view().inverse())
+				if(const auto parts = Transform::decompose(*eye)) gizmo.orientation = normalize(parts->rotation);
 		gizmo.size = worldSizeForPixels(settings.camera, gizmo.origin, viewportHeight, settings.gizmo.pixels);
 		return gizmo;
 	} catch(const std::exception&) {

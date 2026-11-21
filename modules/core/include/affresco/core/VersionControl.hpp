@@ -52,6 +52,8 @@ struct CommitInfo {
 	/// The steps it ran once on the live screen when it landed (a revision's "run"; a merge carries its branch's), or
 	/// null. Never run again: a restore or a revert is a commit of its own, without them.
 	json run = nullptr;
+	/// What it undid, when it is an undo that kept later changes (VERSION_CONTROL.md, "History"), or null.
+	json undo = nullptr;
 };
 
 /// @brief An open proposal: a branch waiting for review, like a pull request.
@@ -84,6 +86,71 @@ struct ProposalInfo {
 	/// if any reviewer may (VERSION_CONTROL.md, "Assets").
 	std::vector<std::string> person = {};
 	json impact = nullptr; ///< The layers it touches (DocumentRules::impact()): view, logic, model, data; or null.
+	/// What a merge left out where it conflicted (`[{"path", "reason", "base", "main", "proposal"}]`, "proposal" being
+	/// the version merged in; VERSION_CONTROL.md, "Rebasing"): main's value stays there. Unlike conflicts, it doesn't
+	/// block the proposal. Empty for a proposal that isn't a merge.
+	json leftOut = json::array();
+	/// What it would undo, when it is an undo waiting for review (VERSION_CONTROL.md, "History"), or null.
+	json undo = nullptr;
+};
+
+/// @brief How to undo a commit when later commits changed what it changed (VersionControl::undoRevision()): what
+/// to do with each later change that conflicts. Read from a message by undoOptionsFrom().
+struct UndoOptions {
+	/// The conflicts whose later changes are taken out with the commit: a list of their paths, or "all".
+	json drop = json::array();
+	/// The conflicts whose later changes stay as they are (the commit's part there is not undone): a list of their
+	/// paths, or "all".
+	json keep = json::array();
+	/// A JSON Patch applied after the undo, in the same commit: e.g. an agent's rebuild of a change it took out.
+	json then = json::array();
+	/// The main head the choice was made on (VersionControl::head()'s id): when main moved since, the plan is worked
+	/// out again rather than applied to changes nobody saw. Empty: whatever the head is.
+	std::string head;
+	/// The undo commit's message. Empty: one is written for it.
+	std::string message;
+
+	/// @brief Tells whether nothing is asked beyond a plain undo.
+	/// @return true if every field is empty.
+	[[nodiscard]] bool empty() const {
+		const auto none = [](const json& list) { return list.is_null() || (list.is_array() && list.empty()); };
+		return none(drop) && none(keep) && none(then) && head.empty() && message.empty();
+	}
+};
+
+/// @brief What undoing a commit would do, worked out before it is done (VersionControl::undoPlan()), for the person
+/// who chooses. Its JSON (toJson()) crosses the live protocol as it is, in the "undoPlan" answer:
+///
+/// | Key | Value |
+/// |---|---|
+/// | of | The commit to undo, as toJson(CommitInfo) |
+/// | head | main's head id the plan was worked out on |
+/// | outcome | "clean" (it can be undone as asked), "choose" (later changes conflict and are not all named in drop or keep), "ready" (every conflict is named), "blocked" (it can't be done) |
+/// | blocked | Why, when blocked; else "" |
+/// | untouched | How many later commits stay exactly as they are |
+/// | later, laterMore | At most 64 later commits a part of which conflicts, oldest first: `{"number", "id", "short", "author", "message", "parts": [paths]}`; and how many more |
+/// | conflicts, conflictsMore | At most 64: `{"path", "reason", "then", "now", "before", "commits": [numbers], "choice": "drop", "keep" or null}`; "then" is the value as the undone commit left it, "now" as it is, "before" as it was before the commit; and how many more |
+/// | gone | Paths the commit changed that a later change removed: nothing to undo there |
+/// | state | `{"undone": [paths], "kept": [paths]}` of the live state |
+/// | changes, impact | For "clean" and "ready": the undo's operations as lines, and its impact per layer; else [] and null |
+/// | proposals | Ids of open proposals that would conflict with main after it |
+/// | warnings | Lines: a feature that would be left out, steps the commit ran once that are not undone |
+struct UndoPlan {
+	CommitInfo of;                     ///< The commit to undo.
+	std::string head;                  ///< main's head id the plan was worked out on.
+	std::string outcome = "blocked";   ///< "clean", "choose", "ready" or "blocked".
+	std::string blocked;               ///< Why it can't be done, when blocked; else "".
+	std::size_t untouched = 0;         ///< How many later commits stay exactly as they are.
+	json later = json::array();        ///< At most 64 later commits a part of which conflicts, oldest first.
+	std::size_t laterMore = 0;         ///< How many more than those in later.
+	json conflicts = json::array();    ///< At most 64 conflicts, each with its values and the choice made for it.
+	std::size_t conflictsMore = 0;     ///< How many more than those in conflicts.
+	json gone = json::array();         ///< Paths the commit changed that a later change removed.
+	json state = {{"undone", json::array()}, {"kept", json::array()}}; ///< The live state's paths undone and kept.
+	std::vector<std::string> changes;  ///< For "clean" and "ready": the undo's operations as lines; else empty.
+	json impact = nullptr;             ///< For "clean" and "ready": its impact per layer; else null.
+	std::vector<int> proposals;        ///< Ids of open proposals that would conflict with main after it.
+	std::vector<std::string> warnings; ///< A feature that would be left out, steps it ran once that aren't undone.
 };
 
 /// @brief What VersionControl::attach did: the attachment, or why it was refused.
@@ -118,6 +185,23 @@ struct Decision {
 	std::string commit;               ///< When merged: the merge commit.
 };
 
+/// @brief What a new version changed, where the version control can tell: the places of the document and of the
+/// state it changed and the sections of the document it touched, or everything.
+///
+/// Built by the version control from a patch it has checked, never by a peer, and never sent to one. It only lets
+/// the observer do less: what the observer shows after it must be what a full update shows (verify mode proves it).
+/// An empty `document` with `everything` false is a change of the live state only: the document is the same object
+/// as before.
+struct DocumentChange {
+	std::vector<std::string> document; ///< Places of the document changed, as JSON Pointers.
+	std::vector<std::string> state;    ///< Places of the state changed, as JSON Pointers.
+	std::vector<std::string> sections; ///< The document's top-level sections touched ("root", "styles"...).
+	bool everything = true;            ///< Anything may have changed (a restore, an import): the lists say nothing.
+	/// The document the observer saw before (what VersionControl::document() returned), valid only during the call;
+	/// nullptr when it isn't known, which counts as everything.
+	const json* before = nullptr;
+};
+
 /// @brief Told when the working copy of a VersionControl changes. There is one observer: the renderer.
 class VersionObserver {
 public:
@@ -126,6 +210,15 @@ public:
 	/// @brief The document or the state was replaced (commit, preview, restore, import).
 	/// @throws DocumentError To refuse the new version: it is rolled back, and this is called again for the old one.
 	virtual void documentChanged() = 0;
+	/// @brief The document or the state was replaced, with what the new version changed. By default the same as
+	/// documentChanged(), which observers that can't use the detail keep. (A name of its own: an overload would be
+	/// hidden in every observer that overrides only documentChanged().)
+	/// @param change What changed.
+	/// @throws DocumentError To refuse the new version, as documentChanged().
+	virtual void documentChangedWith(const DocumentChange& change) {
+		static_cast<void>(change);
+		documentChanged();
+	}
 
 	/// @brief Only the proposals changed.
 	virtual void proposalsChanged() = 0;
@@ -246,6 +339,34 @@ public:
 	/// @throws DocumentError If it isn't on main, or later commits changed the same parts (a conflict).
 	[[nodiscard]] virtual json revertRevision(const json& revision, std::string_view author) const = 0;
 
+	/// @brief Works out what undoing one commit on main would do, and what the person must choose first, without
+	/// changing anything (UndoPlan). The default can't plan: its outcome is "blocked".
+	/// @param revision The commit to undo.
+	/// @param author Who would undo it (whose permissions apply).
+	/// @param options The choices made so far.
+	/// @return The plan.
+	/// @throws DocumentError If there is no such commit.
+	[[nodiscard]] virtual UndoPlan undoPlan([[maybe_unused]] const json& revision,
+	                                        [[maybe_unused]] std::string_view author,
+	                                        [[maybe_unused]] const UndoOptions& options = {}) const {
+		UndoPlan plan;
+		plan.blocked = "this history can't plan an undo";
+		return plan;
+	}
+
+	/// @brief Builds a revision that undoes one commit on main and keeps the later changes the options keep, in one
+	/// commit. The default only does a plain undo, as revertRevision().
+	/// @param revision The commit to undo.
+	/// @param author The new revision's author.
+	/// @param options What to do with the later changes that conflict.
+	/// @return The revision, for submit() or commit().
+	/// @throws DocumentError If it can't be undone as asked.
+	[[nodiscard]] virtual json undoRevision(const json& revision, std::string_view author,
+	                                        const UndoOptions& options = {}) const {
+		if(!options.empty()) throw DocumentError("undo: this history can't keep later changes");
+		return revertRevision(revision, author);
+	}
+
 	/// @brief Compares two commits' documents, like `git diff`.
 	/// @param from The older commit.
 	/// @param to The newer commit.
@@ -296,6 +417,20 @@ public:
 	/// @param reason What to do differently.
 	/// @return false if there is no such proposal.
 	virtual bool reject(int proposal, std::string_view reason) = 0;
+
+	/// @brief Settles one part a merge left out of a proposal (ProposalInfo::leftOut), as the person chooses: their
+	/// value (the proposal gains the operation that sets that part to it, a commit by the proposal's own author, and
+	/// its head moves, so an approval of the head before is refused) or main's (the part just stops being listed).
+	/// @param proposal The proposal's id.
+	/// @param path The part's path, as its entry in ProposalInfo::leftOut has it.
+	/// @param theirs true for the proposal's value, false to keep main's.
+	/// @param reviewer Who settles it: a reviewer of the person's channel, never the proposal's author.
+	/// @return The error, or std::nullopt.
+	virtual std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                                  std::string_view reviewer) {
+		static_cast<void>(proposal), static_cast<void>(path), static_cast<void>(theirs), static_cast<void>(reviewer);
+		return "AffrescoUI screen: this version control leaves nothing out of a proposal";
+	}
 
 	/// @brief Shows a proposal live, as accepting it would, until endPreview() or a commit.
 	/// @param proposal The proposal's id.
@@ -433,8 +568,8 @@ inline std::optional<Mode> modeFromString(std::string_view name) {
 
 /// @brief Converts a commit to its live-protocol JSON.
 /// @param c The commit.
-/// @return `{"id", "short", "number", "parents", "author", "committer", "message", "time", "proposal"}`, and "run"
-/// when it ran steps.
+/// @return `{"id", "short", "number", "parents", "author", "committer", "message", "time", "proposal"}`, "run"
+/// when it ran steps, and "undo" when it is an undo that kept later changes.
 inline json toJson(const CommitInfo& c) {
 	json commit = {{"id", c.id},
 	               {"short", c.id.substr(0, 7)},
@@ -446,6 +581,7 @@ inline json toJson(const CommitInfo& c) {
 	               {"time", c.time},
 	               {"proposal", c.proposal ? json(c.proposal) : json()}};
 	if(!c.run.is_null()) commit["run"] = c.run;
+	if(!c.undo.is_null()) commit["undo"] = c.undo;
 	return commit;
 }
 
@@ -453,9 +589,9 @@ inline json toJson(const CommitInfo& c) {
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
 /// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour", "assets", "run",
-/// "person", "impact"}`.
+/// "person", "impact", "leftOut"}`, and "undo" when it is an undo.
 inline json toJson(const ProposalInfo& p) {
-	return {{"id", p.id},
+	json proposal = {{"id", p.id},
 	        {"branch", p.branch},
 	        {"author", p.author},
 	        {"message", p.message},
@@ -476,7 +612,10 @@ inline json toJson(const ProposalInfo& p) {
 	        {"assets", p.assets},
 	        {"run", p.run},
 	        {"person", p.person},
-	        {"impact", p.impact}};
+	        {"impact", p.impact},
+	        {"leftOut", p.leftOut}};
+	if(!p.undo.is_null()) proposal["undo"] = p.undo;
+	return proposal;
 }
 
 /// @brief Converts a grant to its live-protocol JSON.
@@ -486,6 +625,90 @@ inline json toJson(const Grant& g) {
 	json grant = {{"rule", g.rule}, {"grantedBy", g.grantedBy}, {"proposal", g.proposal}, {"time", g.time}};
 	if(!g.expires.empty()) grant["expires"] = g.expires;
 	return grant;
+}
+
+/// @brief Converts an undo's plan to its live-protocol JSON (the table in UndoPlan's description).
+/// @param plan The plan.
+/// @return `{"of", "head", "outcome", "blocked", "untouched", "later", "laterMore", "conflicts", "conflictsMore",
+/// "gone", "state", "changes", "impact", "proposals", "warnings"}`.
+inline json toJson(const UndoPlan& plan) {
+	return {{"of", toJson(plan.of)},
+	        {"head", plan.head},
+	        {"outcome", plan.outcome},
+	        {"blocked", plan.blocked},
+	        {"untouched", plan.untouched},
+	        {"later", plan.later},
+	        {"laterMore", plan.laterMore},
+	        {"conflicts", plan.conflicts},
+	        {"conflictsMore", plan.conflictsMore},
+	        {"gone", plan.gone},
+	        {"state", plan.state},
+	        {"changes", plan.changes},
+	        {"impact", plan.impact},
+	        {"proposals", plan.proposals},
+	        {"warnings", plan.warnings}};
+}
+
+/// Most paths an undo's options may name in "drop" and "keep" together: far more than a person picks by hand.
+inline constexpr std::size_t maxUndoPaths = 256;
+/// Longest path an undo's options may name, in bytes.
+inline constexpr std::size_t maxUndoPathBytes = 1024;
+
+namespace detail {
+
+/// @brief Reads an undo's "drop" or "keep": a list of conflict paths, or "all".
+/// @param value The value.
+/// @param where Where it is, for the error ("revert.drop").
+/// @param count The paths read so far in the message, increased by this list's.
+/// @return It.
+/// @throws DocumentError If it is neither, a path is too long, or there are too many.
+inline json undoPathsFrom(const json& value, const std::string& where, std::size_t& count) {
+	if(value.is_string() && value.get_ref<const std::string&>() == "all") return value;
+	if(!value.is_array()) throw DocumentError(where + ": expected a list of paths or \"all\"");
+	for(const json& path : value) {
+		if(!path.is_string()) throw DocumentError(where + ": expected a list of paths or \"all\"");
+		if(path.get_ref<const std::string&>().size() > maxUndoPathBytes)
+			throw DocumentError(where + ": a path is longer than " + std::to_string(maxUndoPathBytes) + " bytes");
+	}
+	count += value.size();
+	if(count > maxUndoPaths)
+		throw DocumentError(where + ": at most " + std::to_string(maxUndoPaths) + " paths in drop and keep together");
+	return value;
+}
+
+/// @brief Reads a text key of an undo's options.
+/// @param message The message.
+/// @param key The key.
+/// @param where Where the message is, for the error.
+/// @return Its text, or "" without it.
+/// @throws DocumentError If it isn't text.
+inline std::string undoTextFrom(const json& message, const char* key, std::string_view where) {
+	if(!message.contains(key)) return {};
+	if(!message[key].is_string()) throw DocumentError(std::string(where) + "." + key + ": expected text");
+	return message[key].get<std::string>();
+}
+
+} // namespace detail
+
+/// @brief Reads an undo's options from a message or a step: its "drop", "keep", "then", "head" and "message".
+/// @param message The message (an object; other keys are ignored).
+/// @param where Where it is, for errors ("revert").
+/// @return The options; empty if it names none.
+/// @throws DocumentError Naming the key, e.g. `revert.drop: expected a list of paths or "all"`.
+inline UndoOptions undoOptionsFrom(const json& message, std::string_view where) {
+	UndoOptions options;
+	if(!message.is_object()) return options;
+	const std::string at(where);
+	std::size_t count = 0;
+	if(message.contains("drop")) options.drop = detail::undoPathsFrom(message["drop"], at + ".drop", count);
+	if(message.contains("keep")) options.keep = detail::undoPathsFrom(message["keep"], at + ".keep", count);
+	if(message.contains("then")) {
+		if(!message["then"].is_array()) throw DocumentError(at + ".then: expected a list of operations");
+		options.then = message["then"];
+	}
+	options.head = detail::undoTextFrom(message, "head", where);
+	options.message = detail::undoTextFrom(message, "message", where);
+	return options;
 }
 
 } // namespace affresco

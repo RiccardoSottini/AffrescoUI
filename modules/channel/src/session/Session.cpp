@@ -36,11 +36,13 @@ std::string toBase64(std::string_view bytes) {
 }
 
 /// @brief Tells whether a read shows the document whole, which a peer whose data rules limit its reads may not make.
+/// Picks and sources are among them: a node's definition and its bindings tell what the masked paths hold.
+/// An undo's plan is too: it shows the values a commit and the later ones left.
 /// @param type The message's type.
-/// @return true for diff, exportChanges, render, getEvidence and blame.
+/// @return true for diff, fileChanges, exportChanges, render, getEvidence, blame, getPicks, getSource and undoPlan.
 bool showsWhole(std::string_view type) noexcept {
-	static constexpr std::array<std::string_view, 6> reads = {"diff",   "fileChanges", "exportChanges",
-	                                                          "render", "getEvidence", "blame"};
+	static constexpr std::array<std::string_view, 9> reads = {
+	    "diff", "fileChanges", "exportChanges", "render", "getEvidence", "blame", "getPicks", "getSource", "undoPlan"};
 	return std::ranges::find(reads, type) != reads.end();
 }
 
@@ -190,6 +192,20 @@ json impactOf(const VersionControl& versions, const json& message) {
 	return nullptr;
 }
 
+/// @brief The answer to an "undoPlan": what undoing the commit it names would do, with the choices it carries
+/// (VersionControl::undoPlan()).
+/// @param versions The document's version control.
+/// @param message The message: its "revision", and "drop", "keep", "then" and "head" if chosen.
+/// @param author Who asks (whose permissions the plan follows).
+/// @param id The message's id, echoed.
+/// @return `{"type": "undoPlan", "plan", "revision", "id"}`.
+/// @throws DocumentError If it names no revision or a commit there isn't, or its options are malformed.
+json undoPlanAnswer(const VersionControl& versions, const json& message, std::string_view author, const json& id) {
+	if(!message.contains("revision")) expect::fail("undoPlan.revision", "expected a revision number or a commit");
+	const UndoPlan plan = versions.undoPlan(message["revision"], author, undoOptionsFrom(message, "undoPlan"));
+	return {{"type", "undoPlan"}, {"plan", toJson(plan)}, {"revision", versions.head().number}, {"id", id}};
+}
+
 } // namespace
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
@@ -197,7 +213,8 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
     : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)), images_(images),
       limits_(limits), messageRate_(limits.messagesPerSecond, limits.messageBurst, TokenBucket::Clock::now()),
       revisionRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()),
-      pictureRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()) {
+      pictureRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()),
+      runRate_(limits.runsPerMinute / 60.0, limits.runBurst, TokenBucket::Clock::now()) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -241,6 +258,7 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 }
 
 Session::~Session() {
+	setCommands(nullptr);
 	channel_.onMessage.disconnect(messages_);
 	versions_.onDecision.disconnect(decisions_);
 	versions_.onCommit.disconnect(commits_);
@@ -259,16 +277,18 @@ json Session::reviewState() const {
 	// What a proposal changes can show values a peer's data rules hide from it
 	if(versions_.readable(author_))
 		for(json& p : proposals)
-			for(const char* key : {"changes", "touches", "conflicts", "behaviour", "impact"}) p.erase(key);
+			for(const char* key : {"changes", "touches", "conflicts", "leftOut", "behaviour", "impact"}) p.erase(key);
 	for(const Grant& g : versions_.grants()) grants.push_back(toJson(g));
 	const auto previewing = versions_.previewing();
-	return {{"type", "review"},
-	        {"proposals", proposals},
-	        {"previewing", previewing ? json(*previewing) : json()},
-	        {"mode", toString(versions_.mode())},
-	        {"grants", grants},
-	        {"coordination", versions_.coordination()},
-	        {"revision", versions_.head().number}};
+	json review = {{"type", "review"},
+	               {"proposals", proposals},
+	               {"previewing", previewing ? json(*previewing) : json()},
+	               {"mode", toString(versions_.mode())},
+	               {"grants", grants},
+	               {"coordination", versions_.coordination()},
+	               {"revision", versions_.head().number}};
+	if(commands_) review.update(commands_->pending(author_)); // the runs and the run grants
+	return review;
 }
 
 // One JSON object per line
@@ -286,6 +306,7 @@ void Session::handle(const std::string& line) {
 			json relayed = m;
 			relayed["from"] = in.author;
 			relayed.erase("source"); // only the screen says a request comes from inside the app
+			relayed.erase("picks");  // and only the screen says what the person pointed at
 			onRelay(relayed);
 		} else if(readsTooMuch(versions_, author_, in.type)) {
 			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");
@@ -295,7 +316,7 @@ void Session::handle(const std::string& line) {
 			reply["id"] = in.id;
 			send(reply);
 		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in) &&
-		          !handleConvert(in)) {
+		          !handlePickRead(in) && !handleConvert(in) && !handleCommands(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {
@@ -368,9 +389,10 @@ void Session::reply(const Incoming& in, const RevisionResult& result) {
 }
 
 // revision, restore, revert, undo: changes, which follow the author's permissions like any other, and rebuild the
-// screen, so they have a rate of their own
+// screen, so they have a rate of their own; undoPlan shares it, as it costs a merge
 bool Session::handleChange(const Incoming& in) {
-	if(in.type != "revision" && in.type != "restore" && in.type != "revert" && in.type != "undo") return false;
+	static constexpr std::array<std::string_view, 5> changes = {"revision", "restore", "revert", "undo", "undoPlan"};
+	if(std::ranges::find(changes, in.type) == changes.end()) return false;
 	if(!revisionRate_.take(TokenBucket::Clock::now())) {
 		const std::string what = "too many changes: at most " + toText(limits_.revisionsPerMinute) + " a minute";
 		overLimit(what);
@@ -393,18 +415,41 @@ bool Session::handleChange(const Incoming& in) {
 	} else if(in.type == "restore") {
 		reply(in, versions_.submitFrom(this, versions_.restoreRevision(revision(), in.author)));
 	} else if(in.type == "revert") {
-		reply(in, versions_.submitFrom(this, versions_.revertRevision(revision(), in.author)));
+		const UndoOptions options = undoOptionsFrom(m, "revert");
+		reply(in, versions_.submitFrom(this, versions_.undoRevision(revision(), in.author, options)));
+	} else if(in.type == "undoPlan") {
+		send(undoPlanAnswer(versions_, m, in.author, in.id));
 	} else { // undo
 		reply(in, versions_.submitFrom(this, versions_.revertRevision("HEAD", in.author)));
 	}
 	return true;
 }
 
-// accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
-// its own changes); inspect too, which shows how the screen is built
+namespace {
+
+/// @brief Settles a part a merge left out of a proposal, for a reviewer (VersionControl::resolveLeftOut(), which
+/// refuses anyone but the person, and the proposal's own author).
+/// @param versions The document.
+/// @param message The message: `{"type": "resolve", "proposal", "path", "take": "mine" | "theirs"}`.
+/// @param author Who sent it.
+/// @param proposal Its proposal's id.
+/// @return Why it was refused, or std::nullopt.
+/// @throws DocumentError If it is malformed.
+std::optional<std::string> resolveLeftOut(VersionControl& versions, const json& message, const std::string& author,
+                                          int proposal) {
+	const std::string path = expect::string(message.value("path", json()), "resolve.path");
+	const std::string take = expect::string(message.value("take", json()), "resolve.take");
+	if(take != "mine" && take != "theirs") return R"(AffrescoUI screen: resolve.take: expected "mine" or "theirs")";
+	return versions.resolveLeftOut(proposal, path, take == "theirs", author);
+}
+
+} // namespace
+
+// accept, reject, preview, endPreview, setMode, revoke, resolve: decisions, for reviewers only (an agent must not
+// approve its own changes); inspect too, which shows how the screen is built
 bool Session::handleReview(const Incoming& in) {
-	static constexpr std::array<std::string_view, 7> decisions = {"accept",  "reject", "preview", "endPreview",
-	                                                              "setMode", "revoke", "inspect"};
+	static constexpr std::array<std::string_view, 8> decisions = {"accept",  "reject", "preview", "endPreview",
+	                                                              "setMode", "revoke", "inspect", "resolve"};
 	if(std::ranges::find(decisions, in.type) == decisions.end()) return false;
 
 	const int at = versions_.head().number;
@@ -415,7 +460,12 @@ bool Session::handleReview(const Incoming& in) {
 		      {"id", in.id}});
 		return true;
 	}
-	if(const std::optional<std::string> error = in.type == "inspect" ? inspect(in) : decide(in))
+	const auto answer = [&] -> std::optional<std::string> {
+		if(in.type == "inspect") return inspect(in);
+		if(in.type == "resolve") return resolveLeftOut(versions_, in.message, in.author, proposalOf(in));
+		return decide(in);
+	};
+	if(const std::optional<std::string> error = answer())
 		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
 	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
 	return true;
@@ -474,22 +524,7 @@ bool Session::handleQuery(const Incoming& in) {
 	const json& m = in.message;
 
 	if(in.type == "getDocument") {
-		const json state = reviewState();
-		const std::optional<json> readable = versions_.readable(author_);
-		json reply = {{"type", "document"},
-		              {"revision", versions_.head().number},
-		              {"head", toJson(versions_.head())},
-		              {"document", readable ? *readable : versions_.document()},
-		              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
-		              {"proposals", state["proposals"]},
-		              {"previewing", state["previewing"]},
-		              {"mode", state["mode"]},
-		              {"grants", state["grants"]},
-		              {"you", author_},
-		              {"canReview", versions_.mayReview(author_)},
-		              {"id", in.id}};
-		addSource(reply, readable.has_value());
-		send(reply);
+		sendDocument(in);
 	} else if(in.type == "getCatalog") {
 		send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", in.id}});
 	} else if(in.type == "getHistory") {
@@ -527,6 +562,27 @@ bool Session::handleBlame(const Incoming& in) {
 	      {"revision", versions_.head().number},
 	      {"id", in.id}});
 	return true;
+}
+
+void Session::sendDocument(const Incoming& in) {
+	const json state = reviewState();
+	const std::optional<json> readable = versions_.readable(author_);
+	json reply = {{"type", "document"},
+	              {"revision", versions_.head().number},
+	              {"head", toJson(versions_.head())},
+	              {"document", readable ? *readable : versions_.document()},
+	              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
+	              {"proposals", state["proposals"]},
+	              {"previewing", state["previewing"]},
+	              {"mode", state["mode"]},
+	              {"grants", state["grants"]},
+	              {"you", author_},
+	              {"canReview", versions_.mayReview(author_)},
+	              {"id", in.id}};
+	for(const char* key : {"runs", "runGrants"})
+		if(state.contains(key)) reply[key] = state[key];
+	addSource(reply, readable.has_value());
+	send(reply);
 }
 
 void Session::sendImage(const Incoming& in) {

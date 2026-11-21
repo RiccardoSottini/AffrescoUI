@@ -1,7 +1,8 @@
 /// @file
 /// @brief The "lisp" workloads (RFC 0005, "Performance"): what a program's function costs in an event and in a binding,
-/// each beside the same thing written as steps or as an expression, a reload when a definition changes, and making an
-/// interpreter.
+/// each beside the same thing written as steps or as an expression, a reload when a definition changes, making an
+/// interpreter, building the largest example's program, with and without recording where its nodes come from, and
+/// finding where each of its nodes is written; and opening Orrery with a feature written as a program installed.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
@@ -9,9 +10,13 @@
 #include <affresco/lisp/Document.hpp>
 #include <affresco/lisp/Interpreter.hpp>
 
+#include <algorithm>
+#include <array>
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace affresco::bench {
 namespace {
@@ -94,14 +99,21 @@ void addStartWorkload(std::vector<Workload>& workloads) {
 	workloads.push_back(std::move(start));
 }
 
+/// The examples written as programs, each opened by "lisp/open-<app>" (and "lisp/open-<app>-json" beside its JSON
+/// version, where it has one).
+constexpr std::array openedApps{"arcadia", "calamaio", "code-editor", "flow",  "forge", "haven",  "launcher",
+                                "modello", "orrery",   "sign-in",     "sinopia", "streak", "tempera", "tempo"};
+
 /// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
 /// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
-/// written as a program costs beside its JSON version, once the process has opened it before.
+/// written as a program costs beside its JSON version, once the process has opened it before. An app with no json/
+/// folder (Calamaio) has the first only.
 /// @param context The context.
 /// @param workloads Gets them.
 void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
-	for(const char* app : {"flow", "haven", "arcadia", "orrery", "forge", "sinopia", "code-editor", "launcher"})
+	for(const char* app : openedApps)
 		for(const char* notation : {"lisp", "json"}) {
+			if(!std::filesystem::is_directory(context.examples() / app / notation)) continue;
 			// Shared, so copying a workload's function copies no path, and can't throw
 			const auto folder = std::make_shared<const std::filesystem::path>(context.examples() / app / notation);
 			const auto window = std::make_shared<Window*>(nullptr);
@@ -120,12 +132,140 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 		}
 }
 
+/// @brief "lisp/open-orrery-sorter" and "lisp/open-orrery-sorter-parts": opening the Lisp Orrery with Sinopia's slide
+/// sorter installed, as the sorter written as a program (its record holds `provides.program`, built when the screen
+/// is) and as the record of its JSON parts the app held before (master's), the rest of the document the same.
+/// @param context The context.
+/// @param workloads Gets them.
+void addFeatureWorkloads(Context& context, std::vector<Workload>& workloads) {
+	const std::filesystem::path folder = context.examples() / "orrery" / "lisp";
+	const json program = Screen::fromApp(folder, {}, Screen::History::InMemory).versions().sourceDocument();
+	if(!program["features"]["slideSorter"]["provides"].contains("program"))
+		throw std::runtime_error("lisp: Orrery's slide sorter is not written as a program");
+	json parts = program;
+	const std::filesystem::path manifest = context.examples() / "sinopia" / "json" / "features" / "slide-sorter";
+	parts["features"]["slideSorter"]["provides"] = json::parse(readFile(manifest / "feature.json"))["provides"];
+	for(const auto& [name, document] : {std::pair{"", program}, std::pair{"-parts", parts}}) {
+		// Shared, so copying a workload's function copies no text, and can't throw
+		const auto source = std::make_shared<const json>(document);
+		const auto text = std::make_shared<const std::string>(document.dump());
+		const auto base = std::make_shared<const std::filesystem::path>(folder);
+		const auto window = std::make_shared<Window*>(nullptr);
+		Workload open{.name = std::string("lisp/open-orrery-sorter") + name, .unit = "ms", .runs = 5};
+		open.prepare = [&context, source, window] { *window = &context.openWindow(*source); };
+		open.step = [text, base, window] {
+			Screen screen = Screen::fromString(*text, *base);
+			screen.build(**window);
+		};
+		workloads.push_back(std::move(open));
+	}
+}
+
+/// @brief The example whose program is the largest, as the host loads it: its entry screen, with the program files it
+/// includes.
+/// @param context The context.
+/// @return Its folder (with "lisp" and "json" inside), or an empty path if no example is written as a program.
+std::filesystem::path largestApp(const Context& context) {
+	std::filesystem::path largest;
+	std::size_t size = 0;
+	for(const auto& folder : std::filesystem::directory_iterator(context.examples())) {
+		if(!std::filesystem::is_regular_file(folder.path() / "lisp" / "app.lisp")) continue;
+		Screen screen = Screen::fromApp(folder.path() / "lisp", {}, Screen::History::InMemory);
+		const json& document = screen.versions().sourceDocument();
+		if(!document.contains("program") || document["program"].dump().size() <= size) continue;
+		size = document["program"].dump().size();
+		largest = folder.path();
+	}
+	return largest;
+}
+
+/// @brief The `program` section of the largest example written as a program (largestApp()).
+/// @param context The context.
+/// @return The section, or an empty object.
+json largestProgram(const Context& context) {
+	const std::filesystem::path app = largestApp(context);
+	if(app.empty()) return json::object();
+	Screen screen = Screen::fromApp(app / "lisp", {}, Screen::History::InMemory);
+	return screen.versions().sourceDocument()["program"];
+}
+
+/// @brief The ids of the panels in a window whose node is written in the document (Screen::source() finds it).
+/// @param loaded The screen.
+/// @param panel Where to look.
+/// @param ids Gets them, each once.
+void writtenIds(const LoadedScreen& loaded, const Panel& panel, std::vector<std::string>& ids) {
+	const std::string& id = panel.id();
+	if(!id.empty() && std::ranges::find(ids, id) == ids.end()) {
+		bool written = true;
+		try {
+			static_cast<void>(loaded.screen.source("#" + id));
+		} catch(const DocumentError&) {
+			written = false; // made by a binding, not written
+		}
+		if(written) ids.push_back(id);
+	}
+	for(const auto& child : panel.children()) writtenIds(loaded, *child, ids);
+}
+
+/// @brief "lisp/source-largest" and "lisp/source-largest-json": where each node of the largest example the window
+/// shows is written (Screen::source()), what a pick reads to describe it, once the program's origins are kept (the
+/// first pick after a change builds them: "lisp/origins-largest"). One operation is one node.
+/// @param context The context.
+/// @param workloads Gets them.
+void addSourceWorkloads(Context& context, std::vector<Workload>& workloads) {
+	const std::filesystem::path app = largestApp(context);
+	if(app.empty()) throw std::runtime_error("lisp: no example is written as a program");
+	for(const char* notation : {"lisp", "json"}) {
+		Screen opened = Screen::fromApp(app / notation, {}, Screen::History::InMemory);
+		const LoadedScreen loaded = context.load(opened.versions().sourceDocument(), app / notation);
+		const auto ids = std::make_shared<std::vector<std::string>>();
+		writtenIds(loaded, loaded.window.root(), *ids);
+		if(ids->empty()) throw std::runtime_error("lisp: the largest example shows no written node");
+		Workload source{.name = std::string("lisp/source-largest") + (std::string(notation) == "json" ? "-json" : ""),
+		                .runs = 15,
+		                .operations = static_cast<int>(ids->size())};
+		source.step = [loaded, ids] {
+			for(const std::string& id : *ids) static_cast<void>(loaded.screen.source("#" + id));
+		};
+		workloads.push_back(std::move(source));
+	}
+}
+
+/// @brief "lisp/build-largest" and "lisp/origins-largest": building the largest example's program (builtProgram()),
+/// and finding where its nodes come from (nodeOrigins()), its second, recording build, which should cost about one
+/// build. Each step changes a comment in one definition, so that neither finds the result it kept.
+/// @param context The context.
+/// @param workloads Gets them.
+void addOriginWorkloads(const Context& context, std::vector<Workload>& workloads) {
+	const auto section = std::make_shared<json>(largestProgram(context));
+	if(section->empty()) throw std::runtime_error("lisp: no example is written as a program");
+	const auto turn = std::make_shared<int>(0);
+	const auto changed = [section, turn] {
+		json copy = *section;
+		json& entries = copy.begin().value();
+		json& text = entries.back();
+		text = text.get<std::string>() + "\n; " + std::to_string(++*turn);
+		return copy;
+	};
+	Workload build{.name = "lisp/build-largest", .unit = "ms", .runs = 15};
+	build.step = [changed] { static_cast<void>(lisp::builtProgram(changed())); };
+	workloads.push_back(std::move(build));
+	Workload origins{.name = "lisp/origins-largest", .unit = "ms", .runs = 15};
+	origins.step = [changed] {
+		if(lisp::nodeOrigins(changed())->empty()) throw std::runtime_error("lisp: the largest example has no origins");
+	};
+	workloads.push_back(std::move(origins));
+}
+
 } // namespace
 
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	addStartWorkload(workloads);
 	addOpenWorkloads(context, workloads);
+	addFeatureWorkloads(context, workloads);
+	addOriginWorkloads(context, workloads);
+	addSourceWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");
 	const LoadedScreen lisp = context.load(bound, {});
 	const LoadedScreen plain = context.load(documentWithExpressions(), {});

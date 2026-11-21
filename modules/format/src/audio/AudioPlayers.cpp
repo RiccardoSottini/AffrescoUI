@@ -65,6 +65,28 @@ double numberIn(const json& value, const std::string& at, double low, double hig
 	return value.get<double>();
 }
 
+/// @brief The bands of an "eq" operation's "to": a list of {frequency, gain, q}.
+/// @param value The list.
+/// @param at Its place.
+/// @return The bands.
+/// @throws DocumentError If it isn't such a list, or a value is out of its range.
+std::vector<audio::EqualizerBand> equalizerOf(const json& value, const std::string& at) {
+	if(!value.is_array() || value.size() > audio::maxEqualizerBands)
+		fail(at, "expected a list of at most " + std::to_string(audio::maxEqualizerBands) +
+		             " bands, each {frequency, gain, q}");
+	std::vector<audio::EqualizerBand> bands;
+	for(std::size_t i = 0; i < value.size(); ++i) {
+		const json& band = value[i];
+		const std::string place = at + "[" + std::to_string(i) + "]";
+		if(!band.is_object() || !band.contains("frequency") || !band.contains("gain"))
+			fail(place, "expected a band {frequency, gain, q}");
+		bands.push_back({static_cast<float>(numberIn(band["frequency"], place + ".frequency", 20, 20000)),
+		                 static_cast<float>(numberIn(band["gain"], place + ".gain", -24, 24)),
+		                 static_cast<float>(band.contains("q") ? numberIn(band["q"], place + ".q", 0.1, 10) : 1.0)});
+	}
+	return bands;
+}
+
 } // namespace
 
 /// @brief The players, the sources the host named, and the folders files may come from.
@@ -83,10 +105,12 @@ struct AudioPlayers::Impl {
 		float pan = 0;                                ///< Its balance.
 		float rate = 1;                               ///< Its playback rate.
 		bool loop = false;                            ///< Whether it starts again at its end.
+		std::vector<audio::EqualizerBand> equalizer;  ///< Its equaliser's bands ("eq").
 		float level = 0;                              ///< Its peak over the last block.
 		std::vector<float> spectrum;                  ///< Its "bands", if it has them (see audio::spectrum).
 		std::size_t underruns = 0;                    ///< How often its stream ran dry.
 		std::uint64_t generation = 0;                 ///< Its voice's: events of an older one are ignored.
+		KeptAuthority authority; ///< Who the step that last played it came from: its actions run so.
 	};
 
 	/// @brief The players of an engine.
@@ -203,6 +227,11 @@ struct AudioPlayers::Impl {
 	void runAction(const std::string& name, const std::string& what, const json& event) {
 		const std::string action = name + ":" + what;
 		if(!runtime.window || !runtime.owner.hasAction(action)) return;
+		// As the step that played the sound did: what it sets off later lends it nothing. A copy, as the action may
+		// change the sounds.
+		const auto found = players.find(name);
+		const KeptAuthority authority = found != players.end() ? found->second.authority : std::nullopt;
+		const AuthorityScope holder(runtime, authority);
 		runtime.runner.handle(json(action), runtime.window->root(), event, Scope{}, "audio." + name);
 		if(runtime.document.stateChanged()) runtime.reconciler.requestStateUpdate();
 	}
@@ -394,6 +423,7 @@ struct AudioPlayers::Impl {
 			drop(player);
 			return error;
 		}
+		player.voice->setEqualizer(player.equalizer);
 		player.generation = voiceGeneration;
 		player.duration = player.voice->duration();
 		return std::nullopt;
@@ -417,6 +447,33 @@ struct AudioPlayers::Impl {
 		return std::nullopt;
 	}
 
+	/// @brief Runs one of a player's control operations (volume, pan, rate, eq, loop); any other does nothing.
+	/// @param player The player.
+	/// @param operation The operation.
+	/// @param to Its value.
+	/// @param ms The volume's fade, in milliseconds.
+	/// @param where Its place.
+	/// @throws DocumentError If the value is out of its range.
+	static void setControl(Player& player, const std::string& operation, const json& to, double ms,
+	                       const std::string& where) {
+		if(operation == "volume") {
+			player.volume = static_cast<float>(numberIn(to, where + ".to", 0, 4));
+			if(player.voice) player.voice->fade(player.volume, ms / 1000);
+		} else if(operation == "pan") {
+			player.pan = static_cast<float>(numberIn(to, where + ".to", -1, 1));
+			if(player.voice) player.voice->setPan(player.pan);
+		} else if(operation == "rate") {
+			player.rate = static_cast<float>(numberIn(to, where + ".to", 0.25, 4));
+			if(player.voice) player.voice->setRate(player.rate);
+		} else if(operation == "eq") {
+			player.equalizer = equalizerOf(to, where + ".to");
+			if(player.voice) player.voice->setEqualizer(player.equalizer);
+		} else if(operation == "loop") {
+			player.loop = expect::boolean(to, where + ".to");
+			if(player.voice) player.voice->setLoop(player.loop);
+		}
+	}
+
 	/// @brief Runs one operation on a player.
 	/// @param name The sound.
 	/// @param operation The operation.
@@ -430,6 +487,7 @@ struct AudioPlayers::Impl {
 		const double ms = step.contains("ms") ? numberIn(step["ms"], where + ".ms", 0, 3600000) : 0;
 		std::optional<std::string> problem;
 		if(operation == "play" || (operation == "toggle" && player.status != "playing")) {
+			player.authority = keptAuthority(runtime);
 			problem = play(name, player,
 			               step.contains("from") ? json(numberIn(step["from"], where + ".from", 0, 1e9)) : json());
 		} else if(operation == "pause" || operation == "toggle") {
@@ -447,18 +505,8 @@ struct AudioPlayers::Impl {
 			problem = ensureVoice(name, player);
 			if(!problem && !player.voice->seek(seconds)) problem = "this sound can't seek";
 			if(!problem) player.position = player.voice->position();
-		} else if(operation == "volume") {
-			player.volume = static_cast<float>(numberIn(to, where + ".to", 0, 4));
-			if(player.voice) player.voice->fade(player.volume, ms / 1000);
-		} else if(operation == "pan") {
-			player.pan = static_cast<float>(numberIn(to, where + ".to", -1, 1));
-			if(player.voice) player.voice->setPan(player.pan);
-		} else if(operation == "rate") {
-			player.rate = static_cast<float>(numberIn(to, where + ".to", 0.25, 4));
-			if(player.voice) player.voice->setRate(player.rate);
-		} else if(operation == "loop") {
-			player.loop = expect::boolean(to, where + ".to");
-			if(player.voice) player.voice->setLoop(player.loop);
+		} else {
+			setControl(player, operation, to, ms, where);
 		}
 		player.error = problem;
 		if(problem && operation != "seek") player.status = "error";

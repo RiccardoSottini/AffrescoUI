@@ -5,6 +5,7 @@
 #include "ProjectJson.hpp"
 
 #include "affresco/imaging/Project.hpp"
+#include "affresco/imaging/Shapes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -67,6 +68,15 @@ void readLists(const json& value, Adjustment& adjustment) {
 		if(!point.is_array() || point.size() != 2) project::malformed("has a curve point that is not [in, out]");
 		adjustment.curve.emplace_back(numberOf(point[0], "curve"), numberOf(point[1], "curve"));
 	}
+	const json& channels = listIn(value, "channelCurves", 3);
+	for(std::size_t channel = 0; channel < channels.size(); ++channel) {
+		if(!channels[channel].is_array() || channels[channel].size() > Adjustment::maxCurvePoints)
+			project::malformed("has a channel curve that is not a list of at most 16 points");
+		for(const json& point : channels[channel]) {
+			if(!point.is_array() || point.size() != 2) project::malformed("has a curve point that is not [in, out]");
+			adjustment.channelCurves.at(channel).emplace_back(numberOf(point[0], "curve"), numberOf(point[1], "curve"));
+		}
+	}
 	if(value.contains("gradient")) adjustment.gradient.stops.clear();
 	for(const json& stop : listIn(value, "gradient", Gradient::maxStops)) {
 		if(!stop.is_array() || stop.size() != 5) project::malformed("has a stop that is not [at, r, g, b, a]");
@@ -100,8 +110,13 @@ void readLists(const json& value, Adjustment& adjustment) {
 } // namespace
 
 json adjustmentToJson(const Adjustment& adjustment) {
-	json curve = json::array(), stops = json::array();
+	json curve = json::array(), stops = json::array(), channelCurves = json::array();
 	for(const auto& [input, output] : adjustment.curve) curve.push_back(json::array({input, output}));
+	for(const auto& own : adjustment.channelCurves) {
+		json points = json::array();
+		for(const auto& [input, output] : own) points.push_back(json::array({input, output}));
+		channelCurves.push_back(std::move(points));
+	}
 	for(const GradientStop& stop : adjustment.gradient.stops)
 		stops.push_back(
 		    json::array({stop.position, stop.color.red, stop.color.green, stop.color.blue, stop.color.alpha}));
@@ -112,9 +127,11 @@ json adjustmentToJson(const Adjustment& adjustment) {
 	            {"outputBlack", adjustment.outputBlack},
 	            {"outputWhite", adjustment.outputWhite},
 	            {"curve", std::move(curve)},
+	            {"channelCurves", std::move(channelCurves)},
 	            {"hue", adjustment.hue},
 	            {"saturation", adjustment.saturation},
 	            {"lightness", adjustment.lightness},
+	            {"colorize", adjustment.colorize},
 	            {"balance", adjustment.balance},
 	            {"brightness", adjustment.brightness},
 	            {"contrast", adjustment.contrast},
@@ -138,6 +155,8 @@ Adjustment adjustmentFromJson(const json& value) {
 	adjustment.hue = numberIn(value, "hue", adjustment.hue);
 	adjustment.saturation = numberIn(value, "saturation", adjustment.saturation);
 	adjustment.lightness = numberIn(value, "lightness", adjustment.lightness);
+	if(const auto colorize = value.find("colorize"); colorize != value.end() && colorize->is_boolean())
+		adjustment.colorize = colorize->get<bool>();
 	const json& balance = listIn(value, "balance", 3);
 	for(std::size_t index = 0; index < balance.size(); ++index)
 		adjustment.balance.at(index) = numberOf(balance[index], "balance");
@@ -170,6 +189,7 @@ json layerSettingsToJson(const Layer& layer) {
 	    {"clipped", layer.clipped},
 	    {"maskEnabled", layer.maskEnabled}};
 	if(layer.kind == LayerKind::adjustment) value["adjustment"] = adjustmentToJson(layer.adjustment);
+	if(layer.content.kind != ContentKind::none) value["content"] = contentToJson(layer.content);
 	return value;
 }
 
@@ -191,6 +211,7 @@ void readLayerSettings(const json& value, Layer& layer) {
 	layer.clipped = booleanIn(value, "clipped", false);
 	layer.maskEnabled = booleanIn(value, "maskEnabled", true);
 	if(layer.kind == LayerKind::adjustment) layer.adjustment = adjustmentFromJson(value.value("adjustment", json()));
+	if(layer.kind == LayerKind::pixel && value.contains("content")) readContent(value["content"], layer.content);
 }
 
 } // namespace project

@@ -3,19 +3,21 @@
 ;;; The name gives the app's folder; it starts blank or as a copy of an example; the person describes what they want
 ;;; and picks features of other apps, which the assistant is asked for once the app opens. Cmd+Enter creates it.
 
+(ns launcher.create)
+
 ;;; The page
 
 (defview create-page "The Create page: the form, scrolled." []
-  `(node#createPage :when ~(= state.page "create") :fill true :color transparent :role tabpanel :label ~(t "nav.create")
+  `(node#createPage :when ~(= state.page :create) :fill true :color transparent :role tabpanel :label ~(t "nav.create")
      (column#createScroll :anchors {:left 0 :right 0 :top 0 :bottom 0} :scroll vertical :gap 0
        ~(create-form))))
 
 (defview create-form "The form: the name, what to start from, the description, the features, and Create." []
   `(node#createForm :anchors {:left 36}
-     :width ~(min 820 (- (- window.width computed.sideWidth) 72))
-     :height 980
+     :width ~(min 820 (- window.width computed.sideWidth 72))
+     :height ~(+ 980 computed.belowTiles)
      :color transparent
-     :keys {"mod+enter" createApp}
+     :keys {"mod+enter" create-app}
      (label#createTitle :font title
        :text ~(t "create.title")
        :textColor @c.text
@@ -29,17 +31,17 @@
      (node#createFromLabel :style sectionTitle :text ~(t "create.from") :anchors {:left 0 :right 0 :top 236})
      (node#createFromHint :style hint :text ~(t "create.fromHint") :anchors {:left 0 :right 0 :top 262})
      ~(start-tiles)
-     (node#createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top 566})
-     (node#createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top 592})
+     (node#createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top ~(+ 566 computed.belowTiles)})
+     (node#createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top ~(+ 592 computed.belowTiles)})
      ~(description-field)
      (label#createDescribePlaceholder :when ~(= state.create.describe "")
        :text ~(t "create.describePlaceholder")
        :textColor @c.dim
-       :anchors {:left 12 :right 12 :top 626}
+       :anchors {:left 12 :right 12 :top ~(+ 626 computed.belowTiles)}
        :height 20
        :disabled true)
-     (node#createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top 738})
-     (node#createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top 764})
+     (node#createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top ~(+ 738 computed.belowTiles)})
+     (node#createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top ~(+ 764 computed.belowTiles)})
      ~(feature-chips)
      ~(create-summary)
      ~(create-button)
@@ -57,7 +59,7 @@
      :borderColor ~(if (and state.create.tried (not= computed.createError "")) "@c.danger" "@c.border")
      :anchors {:left 0 :right 0 :top 148}
      :height 42
-     :onSubmit createApp))
+     :onSubmit create-app))
 
 (defview name-hint "Under the name: what is wrong with it once Create was pressed, else the folder it makes." []
   `(label#createNameHint :font small
@@ -73,10 +75,9 @@
 
 (defview start-tiles "What the new app starts from: a blank app, or an example." []
   `(grid#createFrom :anchors {:left 0 :right 0 :top 290}
-     :height 252
-     :columns ~(max 2 (min 5 (floor (/ (+ (min 820 (- (- window.width computed.sideWidth) 72)) 12) 150))))
+     :height ~computed.tilesHeight
+     :columns ~computed.tileColumns
      :gap 12
-     :scroll vertical
      :role radiogroup
      :label ~(t "create.from")
      :arrows horizontal
@@ -97,7 +98,7 @@
      :borderWidth ~(if (= state.create.from id) 2 1)
      :borderColor ~(if (= state.create.from id) "@c.accent" "@c.border")
      :hover {:borderColor @c.accent}
-     :onClick ~(handler chooseStart id)
+     :onClick ~(handler choose-start id)
      (node#startPicture :anchors {:left 8 :right 8 :top 8} :height 72 :radius 8 :color @c.raised
        (image#startCover :when ~(not= cover "") :file ~cover :fit cover :fill true)
        (label#startBlank :when ~(= cover "") :icon file-plus :font heroIcons :align center :textColor @c.accent
@@ -124,13 +125,13 @@
      :caretColor @c.accent
      :lineColor transparent
      :selectionColor @c.accentSoft
-     :anchors {:left 0 :right 0 :top 618}
+     :anchors {:left 0 :right 0 :top ~(+ 618 computed.belowTiles)}
      :height 96))
 
 (defview feature-chips "The features of other apps, a chip each." []
   `(row#createFeatures :wrap true
      :gap 8
-     :anchors {:left 0 :right 0 :top 792}
+     :anchors {:left 0 :right 0 :top ~(+ 792 computed.belowTiles)}
      :height 80
      :role group
      :label ~(t "create.features")
@@ -155,7 +156,7 @@
      :borderWidth 1
      :borderColor ~(if (contains state.create.features f.id) "@c.accent" "@c.border")
      :hover {:borderColor @c.accent}
-     :onClick ~(handler toggleFeature f.id)))
+     :onClick ~(handler toggle-feature f.id)))
 
 ;;; Create
 
@@ -165,7 +166,7 @@
      :wrap true
      :text ~(t "create.summary"
                {:name (if (= (trim state.create.name) "") "…" (trim state.create.name)) :from computed.fromName})
-     :anchors {:left 0 :right 240 :top 900}
+     :anchors {:left 0 :right 240 :top ~(+ 900 computed.belowTiles)}
      :height 36))
 
 (defview create-button "Create, which says so while the app is being made." []
@@ -173,10 +174,10 @@
      :icon ~(if state.create.busy "refresh-cw" "rocket")
      :text ~(if state.create.busy (t "create.busy") (t "create.submit"))
      :disabled ~state.create.busy
-     :anchors {:right 0 :top 894}
+     :anchors {:right 0 :top ~(+ 894 computed.belowTiles)}
      :width 200
      :height 44
-     :onClick createApp))
+     :onClick create-app))
 
 (defview create-problem "Why the app couldn't be made, if it couldn't." []
   `(label#createProblem :when ~(not= state.create.error "")
@@ -189,5 +190,5 @@
      :color @c.dangerSoft
      :radius 8
      :padding 8
-     :anchors {:left 0 :right 0 :top 946}
+     :anchors {:left 0 :right 0 :top ~(+ 946 computed.belowTiles)}
      :height 32))

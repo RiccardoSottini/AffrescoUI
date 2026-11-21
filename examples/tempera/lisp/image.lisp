@@ -4,6 +4,8 @@
 ;;; (tempera.lisp), and after each change the library puts its snapshot in state.doc. Each tool is a gesture of the
 ;;; pointer on the canvas.
 
+(ns tempera.image)
+
 ;;; The image doc
 
 (defpart image "The image doc, 1200 × 800 to start, and the gesture each tool makes."
@@ -17,13 +19,30 @@
                          :lasso {:gesture lasso}
                          :polygon {:gesture polygon-lasso}
                          :wand {:gesture magic-wand}
+                         :quick-select {:gesture quick-select}
+                         :transform-selection {:gesture selection-box}
+                         :free-transform {:gesture layer-box}
                          :crop {:gesture crop}
                          :brush {:gesture paint}
                          :pencil {:gesture paint :hardness 100}
                          :eraser {:gesture erase}
-                         :clone {:gesture clone}
+                         :clone {:gesture clone :healing false}
+                         :healing {:gesture clone :healing true}
+                         :blur {:gesture retouch :retouch blur}
+                         :sharpen {:gesture retouch :retouch sharpen}
+                         :smudge {:gesture retouch :retouch smudge}
+                         :dodge {:gesture retouch :retouch dodge}
+                         :burn {:gesture retouch :retouch burn}
+                         :sponge {:gesture retouch :retouch sponge}
                          :gradient {:gesture gradient}
                          :fill {:gesture fill}
                          :eyedropper {:gesture sample}
+                         :type {:gesture text :vector {:size 48}}
+                         :rectangle-shape {:gesture shape :vector {:shape rectangle}}
+                         :ellipse-shape {:gesture shape :vector {:shape ellipse}}
+                         :polygon-shape {:gesture shape :vector {:shape polygon}}
+                         :line-shape {:gesture shape :vector {:shape line}}
+                         :pen {:gesture pen}
+                         :path-select {:gesture path-select}
                          :hand {:gesture pan}
                          :zoom {:gesture zoom}}}})

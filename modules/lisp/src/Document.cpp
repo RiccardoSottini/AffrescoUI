@@ -4,6 +4,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include "Rebuild.hpp"
 #include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
@@ -14,9 +15,16 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <functional>
+#include <iterator>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <string_view>
+#include <tuple>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -28,6 +36,28 @@ using notation::TokenKind;
 
 /// How many sections' builds a thread keeps: a revision judges two, a proposal's rebase two more.
 constexpr std::size_t keptBuilds = 4;
+
+/// How many a thread keeps once a section with features' files is built: a revision on an app with eight features
+/// judges each feature's program alone (Composition) and the app's effective program before and after, twice for a
+/// proposal's rebase.
+constexpr std::size_t keptFeatureBuilds = 24;
+
+/// The prefix of the files a feature's program brings into an effective program.
+constexpr std::string_view featuresPrefix = "features/";
+
+/// @brief How many sections builtProgram() built on this thread (programBuilds()).
+/// @return The count, to change.
+std::size_t& buildsMade() noexcept {
+	thread_local std::size_t made = 0;
+	return made;
+}
+
+/// @brief How many builds the thread keeps now: keptBuilds, then keptFeatureBuilds for good (keepFeatureBuilds()).
+/// @return The limit, to change.
+std::size_t& keptLimit() noexcept {
+	thread_local std::size_t limit = keptBuilds;
+	return limit;
+}
 
 /// What a program can't build: what is read when a file is, or what only a revision brings.
 constexpr std::array<std::string_view, 5> unbuildable = {"include", "assets", "features", "program", "$schema"};
@@ -163,17 +193,23 @@ void expectOneForm(std::string_view value, const std::string& where) {
 		throw problemIn(where, "a keyword's new value is exactly one form");
 }
 
-/// @brief Builds a section, under the limits.
+/// @brief Builds a section, under the limits: in part from an earlier build if it can (Program::rebuild()).
 /// @param section The section.
+/// @param previous The earlier build, or nullptr.
 /// @return What it built.
 /// @throws LispError If it can't be built, naming the definition.
-std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
+std::shared_ptr<const BuiltProgram> buildSection(const json& section, const BuiltProgram* previous) {
 	Program program = programOf(section);
 	Limits limits;
 	limits.budget.operations = maxBuildOperations;
 	limits.budget.bytes = maxBuildBytes;
 	auto built = std::make_shared<BuiltProgram>();
-	built->tree = program.build(limits);
+	built->tree = previous && previous->record ? program.rebuild(*previous->record, limits) : program.build(limits);
+	built->record = program.record();
+	for(const Entry& entry : program.entries()) // the build read each entry, so its kind is the record's
+		if(const auto at = built->record->index.find(entry.name);
+		   at != built->record->index.end() && built->record->definitions[at->second]->kind == "defmacro")
+			built->macros.push_back(entry.text);
 	built->undefined = program.undefinedNames();
 	built->truth = program.truthTests();
 	built->extensions = program.extensions();
@@ -275,13 +311,14 @@ std::string withoutFileForms(std::string_view text, const std::string& file, Fil
 	Reader reader(heap, text, file);
 	std::optional<NamespaceDeclaration> declared;
 	for(bool first = true; const auto read = reader.next(); first = false) {
-		const Value& form = read->form;
+		const ReadForm& item = *read;
+		const Value& form = item.form;
 		const std::string_view head =
 		    form.kind() == Kind::List && form.count() > 0 && form.at(0).kind() == Kind::Symbol ? form.at(0).text() : "";
 		if(head == "ns" && first) { // elsewhere, the split into entries refuses it
 			declared = readNamespaceForm(form, file);
 			const std::size_t start = text.starts_with("\xEF\xBB\xBF") ? 3 : 0;
-			const std::size_t end = pastSameLineComment(text, read->end);
+			const std::size_t end = pastSameLineComment(text, item.end);
 			forms.declaration = std::string(text.substr(start, end - start));
 			blank(kept, start, end);
 			continue;
@@ -295,7 +332,7 @@ std::string withoutFileForms(std::string_view text, const std::string& file, Fil
 			}
 			forms.includes.push_back(std::string(form.at(at).text()));
 		}
-		blank(kept, read->start, read->end);
+		blank(kept, item.start, item.end);
 	}
 	if(declared) addRequired(*declared, forms.includes);
 	return kept;
@@ -325,9 +362,61 @@ void checkProgramShape(const json& section) {
 	}
 }
 
+namespace {
+
+/// How many definitions' places are kept, about 4 MB at most: ten times every example's definitions together. Past
+/// that, the places are forgotten at once, and an error in a definition read before says its line within it.
+constexpr std::size_t keptPlaces = 1U << 16U;
+
+/// @brief Where the definitions read from files lately start in them, so that programOf() gives a definition its
+/// file's line and column back and an error in it says where it is in the file. The section holds no places: a
+/// definition's place is found by a hash of its file, name and exact text, so one a revision changed starts on its
+/// own line 1. Two texts that hash alike only misplace an error's line.
+class EntryPlaces {
+public:
+	/// @brief Notes where a file's definitions start.
+	/// @param entries The definitions.
+	void keep(const std::vector<Entry>& entries) {
+		const std::scoped_lock lock(mutex_);
+		for(const Entry& entry : entries) {
+			if(places_.size() >= keptPlaces) places_.clear();
+			places_.insert_or_assign(keyOf(entry), std::pair(entry.line, entry.column));
+		}
+	}
+	/// @brief Gives a definition its place, if one was noted for it.
+	/// @param entry The definition, its file, name and text set.
+	void place(Entry& entry) {
+		const std::scoped_lock lock(mutex_);
+		const auto found = places_.find(keyOf(entry));
+		if(found != places_.end()) std::tie(entry.line, entry.column) = found->second;
+	}
+
+private:
+	/// @brief A definition's key. @param entry It. @return The hash of its file, name and text.
+	static std::size_t keyOf(const Entry& entry) {
+		const std::hash<std::string_view> hash;
+		std::size_t key = hash(entry.file);
+		for(const std::string_view part : {std::string_view(entry.name), std::string_view(entry.text)})
+			key ^= hash(part) + 0x9e3779b97f4a7c15U + (key << 6U) + (key >> 2U);
+		return key;
+	}
+	std::mutex mutex_;                                                            ///< Files are read on any thread.
+	std::unordered_map<std::size_t, std::pair<std::size_t, std::size_t>> places_; ///< Line and column, by key.
+};
+
+/// @brief The places of the process.
+/// @return Them.
+EntryPlaces& entryPlaces() {
+	static EntryPlaces places;
+	return places;
+}
+
+} // namespace
+
 json sourceDocument(std::string_view text, const std::string& file, std::string_view declaration) {
 	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
 	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
+	entryPlaces().keep(program.entries());
 	json entries = json::object();
 	if(!declaration.empty()) entries[std::string(namespaceEntry)] = declaration; // first, as in the file
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
@@ -446,6 +535,7 @@ Program programOf(const json& section, const json& authors) {
 			entry.file = file;
 			entry.name = name;
 			entry.text = text.get<std::string>();
+			entryPlaces().place(entry); // where it is in its file, if it was read from one
 			if(const json* of = authors.is_object() && authors.contains(file) ? &authors[file] : nullptr;
 			   of && of->is_object() && of->contains(name) && (*of)[name].is_string())
 				entry.author = (*of)[name].get<std::string>();
@@ -454,6 +544,42 @@ Program programOf(const json& section, const json& authors) {
 	return program;
 }
 
+namespace {
+
+/// @brief Tells whether a section holds files a feature brought (effectiveProgram()).
+/// @param section The section.
+/// @return Whether it does.
+bool holdsFeatureFiles(const json& section) {
+	if(!section.is_object()) return false;
+	return std::ranges::any_of(section.items(), [](const auto& file) { return file.key().starts_with(featuresPrefix); });
+}
+
+/// @brief The enabled features of a "features" section that hold a program, among those named, by `order`, then by
+/// name; a record of the wrong shape is left out.
+/// @param records The section.
+/// @param features The features to take.
+/// @return `(order, name)`, sorted.
+std::vector<std::pair<long long, std::string>> featureOrder(const json& records, std::span<const std::string> features) {
+	std::vector<std::pair<long long, std::string>> order;
+	for(const std::string& name : features) {
+		const auto record = records.find(name);
+		if(record == records.end() || !record->is_object() || name.empty() || name.contains('/'))
+			continue;
+		const auto enabled = record->find("enabled");
+		const auto provides = record->find("provides");
+		if(enabled == record->end() || *enabled != true || provides == record->end() || !provides->is_object()) continue;
+		const auto program = provides->find("program");
+		if(program == provides->end() || !program->is_object()) continue;
+		const auto rank = record->find("order");
+		order.emplace_back(rank != record->end() && rank->is_number_integer() ? rank->get<long long>() : 0LL, name);
+	}
+	std::ranges::sort(order);
+	order.erase(std::ranges::unique(order).begin(), order.end());
+	return order;
+}
+
+} // namespace
+
 std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 	thread_local std::vector<std::pair<json, std::shared_ptr<const BuiltProgram>>> kept;
 	const auto found = std::ranges::find_if(kept, [&](const auto& build) { return build.first == section; });
@@ -461,10 +587,284 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 		std::rotate(kept.begin(), found, found + 1);
 		return kept.front().second;
 	}
-	std::shared_ptr<const BuiltProgram> built = buildSection(section);
-	if(kept.size() >= keptBuilds) kept.pop_back();
+	// The latest build is most likely the version before this one, which one revision changed
+	std::shared_ptr<const BuiltProgram> built =
+	    buildSection(section, kept.empty() ? nullptr : kept.front().second.get());
+	++buildsMade();
+	if(holdsFeatureFiles(section)) keepFeatureBuilds();
+	if(kept.size() >= keptLimit()) kept.pop_back();
 	kept.emplace(kept.begin(), section, built);
 	return built;
+}
+
+std::size_t programBuilds() noexcept { return buildsMade(); }
+
+void keepFeatureBuilds() noexcept { keptLimit() = keptFeatureBuilds; }
+
+std::string featureFiles(std::string_view name) { return std::string(featuresPrefix) + std::string(name) + "/"; }
+
+std::string featureOfFile(std::string_view file) {
+	if(!file.starts_with(featuresPrefix)) return {};
+	const std::string_view rest = file.substr(featuresPrefix.size());
+	const std::size_t slash = rest.find('/');
+	return slash == std::string_view::npos || slash == 0 ? std::string() : std::string(rest.substr(0, slash));
+}
+
+json effectiveProgram(const json& document) {
+	std::vector<std::string> all;
+	if(const auto features = document.is_object() ? document.find("features") : json::const_iterator();
+	   document.is_object() && features != document.end() && features->is_object())
+		for(const auto& [name, record] : features->items()) all.push_back(name);
+	return effectiveProgram(document, all);
+}
+
+json effectiveProgram(const json& document, std::span<const std::string> features) {
+	if(!document.is_object()) return nullptr;
+	const auto own = document.find("program");
+	if(own == document.end()) return nullptr;
+	json program = *own;
+	const auto records = document.find("features");
+	if(!program.is_object() || records == document.end() || !records->is_object()) return program;
+	for(const auto& [order, name] : featureOrder(*records, features))
+		for(const auto& [file, entries] : records->at(name).at("provides").at("program").items())
+			if(entries.is_object()) program[featureFiles(name) + file] = entries;
+	return program;
+}
+
+namespace {
+
+/// @brief The names two objects have, either or both.
+/// @param before One. @param after The other.
+/// @return Them, sorted.
+std::set<std::string> keysOfBoth(const json& before, const json& after) {
+	std::set<std::string> keys;
+	for(const json* tree : {&before, &after})
+		for(const auto& [key, value] : tree->items()) keys.insert(key);
+	return keys;
+}
+
+/// @brief The members of two objects that differ, as JSON pointers.
+/// @param before The earlier object.
+/// @param after The later.
+/// @param pointer Where the two are in their trees.
+/// @param places Gets them.
+void addMemberDifferences(const json& before, const json& after, const json::json_pointer& pointer,
+                          std::vector<std::string>& places) {
+	for(const std::string& member : keysOfBoth(before, after))
+		if(!before.contains(member) || !after.contains(member) || before[member] != after[member])
+			places.push_back((pointer / member).to_string());
+}
+
+/// @brief The members of two trees' objects that differ, as JSON pointers: each top-level key, or each member of
+/// one that is an object in both.
+/// @param before The earlier tree.
+/// @param after The later.
+/// @param places Gets them.
+void addDifferences(const json& before, const json& after, std::vector<std::string>& places) {
+	for(const std::string& key : keysOfBoth(before, after)) {
+		const json::json_pointer pointer = json::json_pointer() / key;
+		const bool both = before.contains(key) && after.contains(key);
+		if(both && before[key] == after[key]) continue;
+		if(!both || !before[key].is_object() || !after[key].is_object() || key == "root") {
+			places.push_back(pointer.to_string());
+			continue;
+		}
+		addMemberDifferences(before[key], after[key], pointer, places);
+	}
+}
+
+} // namespace
+
+std::vector<std::string> changedPlaces(const BuiltProgram& before, const BuiltProgram& after) {
+	std::vector<std::string> places;
+	if(!before.record || !after.record || after.record->whole || after.record->from != before.record->serial) {
+		addDifferences(before.tree, after.tree, places);
+		return places;
+	}
+	std::set<std::string> seen;
+	for(const std::string& place : after.record->touched) {
+		if(!seen.insert(place).second) continue;
+		const json::json_pointer pointer(place);
+		const bool had = before.tree.contains(pointer);
+		const bool has = after.tree.contains(pointer);
+		if(had != has || (had && before.tree[pointer] != after.tree[pointer])) places.push_back(place);
+	}
+	return places;
+}
+
+namespace {
+
+/// @brief A `program` section as a Program whose entries each start on lines of their own: in each file, an entry
+/// starts on the line after the previous one's last, so that a place names one entry (programOf() reads every entry
+/// from line 1).
+/// @param section The section, its shape checked.
+/// @return The program, each entry read (Program::addEntry()), so that its kind is known.
+/// @throws LispError If an entry isn't one form with its address, or a name is taken.
+Program programWithOwnLines(const json& section) {
+	Program program;
+	for(const auto& [file, entries] : section.items()) {
+		std::size_t line = 1;
+		for(const auto& [name, text] : entries.items()) {
+			if(name == namespaceEntry) {
+				program.declareNamespace(file, text.get<std::string>());
+				continue;
+			}
+			Entry entry;
+			entry.file = file;
+			entry.name = name;
+			entry.text = text.get<std::string>();
+			entry.line = line;
+			line += static_cast<std::size_t>(std::ranges::count(entry.text, '\n')) + 1U;
+			program.addEntry(std::move(entry));
+		}
+	}
+	return program;
+}
+
+/// @brief A program's entries by file, each file's in the order of their start lines (programWithOwnLines()).
+using EntriesByFile = std::map<std::string_view, std::vector<const Entry*>, std::less<>>;
+
+/// @brief The entry whose lines hold a place a recording build noted.
+/// @param files The program's entries by file; they start on lines of their own.
+/// @param name The place's file.
+/// @param line The place's line, as the entries' start lines count it.
+/// @return The entry, or nullptr if none holds it.
+const Entry* holderOf(const EntriesByFile& files, std::string_view name, std::size_t line) {
+	const auto file = files.find(name);
+	if(file == files.end()) return nullptr;
+	const auto after =
+	    std::ranges::upper_bound(file->second, line, std::less<>(), [](const Entry* entry) { return entry->line; });
+	if(after == file->second.begin()) return nullptr;
+	const Entry* holder = *std::prev(after);
+	const auto lines = static_cast<std::size_t>(std::ranges::count(holder->text, '\n')) + 1U;
+	return line < holder->line + lines ? holder : nullptr;
+}
+
+/// @brief Where each line of the entries' texts starts, worked out once per entry that holds a noted place, so that
+/// finding many places in one large definition costs its text once.
+class LineStarts {
+public:
+	/// @brief The byte where a line and a column of an entry's text are.
+	/// @param entry The entry.
+	/// @param line The line, from 1 at its text's first.
+	/// @param column The column, from 1, in characters.
+	/// @return The byte; the text's size if it is shorter.
+	std::size_t offset(const Entry& entry, std::size_t line, std::size_t column) {
+		auto [found, added] = starts_.try_emplace(&entry);
+		std::vector<std::size_t>& starts = found->second;
+		if(added) {
+			starts.push_back(0);
+			for(std::size_t at = 0; at < entry.text.size(); ++at)
+				if(entry.text[at] == '\n') starts.push_back(at + 1U);
+		}
+		if(line == 0 || line > starts.size()) return entry.text.size();
+		std::size_t at = starts[line - 1U];
+		for(std::size_t columns = 1; columns < column && at < entry.text.size(); ++columns) {
+			++at; // past a character: its first byte and those that continue it
+			while(at < entry.text.size() && (static_cast<unsigned char>(entry.text[at]) & 0xC0U) == 0x80U) ++at;
+		}
+		return at;
+	}
+
+private:
+	std::map<const Entry*, std::vector<std::size_t>> starts_; ///< By entry, where each line starts.
+};
+
+/// @brief How the node form at a byte of a text gives a node its id: written out, `(type#id` or `:id "id"` among its
+/// properties, which come before its children; or as an expression, `:id ~name` or `:id ~(str "row" i)`.
+/// @param text The text.
+/// @param at Where the form starts.
+/// @param id The id.
+/// @return NodeOrigin::Id::Form if it writes that id, NodeOrigin::Id::Expression if an expression gives it, or
+/// std::nullopt if no node form there has an id.
+/// @throws DocumentError If the form doesn't read as tokens; it read in the build, so it does.
+std::optional<NodeOrigin::Id> idOfForm(std::string_view text, std::size_t at, std::string_view id) {
+	Lexer lexer(text.substr(at), true);
+	if(lexer.next().kind != TokenKind::OpenNode) return std::nullopt;
+	const Token head = lexer.next();
+	if(head.kind != TokenKind::Word) return std::nullopt;
+	if(const std::size_t hash = head.text.find('#'); hash != std::string_view::npos)
+		return head.text.substr(hash + 1U) == id ? std::optional(NodeOrigin::Id::Form) : std::nullopt;
+	for(Token key = lexer.next(); key.kind == TokenKind::Key; key = lexer.next()) {
+		const Token value = lexer.next();
+		if(lexer.name(key) != "id") {
+			static_cast<void>(formEnd(lexer, value, ""));
+			continue;
+		}
+		if(value.kind != TokenKind::String) return NodeOrigin::Id::Expression;
+		return lexer.unquote(value.text, value.offset) == id ? std::optional(NodeOrigin::Id::Form) : std::nullopt;
+	}
+	return std::nullopt;
+}
+
+/// @brief Whether an id's text, in quotes, is written at a byte of a text: where a call hands it in.
+/// @param text The text.
+/// @param at Where it would start.
+/// @param id The id.
+/// @return true if it is.
+/// @throws DocumentError If the text there doesn't read as a token; it read in the build, so it does.
+bool writesText(std::string_view text, std::size_t at, std::string_view id) {
+	Lexer lexer(text.substr(at), true);
+	const Token token = lexer.next();
+	return token.kind == TokenKind::String && lexer.unquote(token.text, token.offset) == id;
+}
+
+/// @brief What nodeOrigins() gives, built anew.
+/// @param section The section.
+/// @return The origins; empty if the section can't be built.
+std::shared_ptr<const NodeOrigins> recordOrigins(const json& section) {
+	auto origins = std::make_shared<NodeOrigins>();
+	try {
+		checkProgramShape(section);
+		Program program = programWithOwnLines(section);
+		Limits limits;
+		limits.budget.operations = maxBuildOperations;
+		limits.budget.bytes = maxBuildBytes;
+		program.recordOrigins(true);
+		static_cast<void>(program.build(limits));
+		EntriesByFile files;
+		for(const Entry& entry : program.entries()) files[entry.file].push_back(&entry);
+		LineStarts lines;
+		for(const NodePlace& noted : program.nodePlaces()) {
+			const Entry* form = holderOf(files, noted.file, noted.line);
+			if(form == nullptr) continue;
+			const std::size_t line = noted.line - form->line + 1U;
+			const std::optional<NodeOrigin::Id> id =
+			    idOfForm(form->text, lines.offset(*form, line, noted.column), noted.id);
+			if(!id) continue;
+			// An expression that hands in an id's text a call wrote: the origin is that call's
+			if(const Entry* call =
+			       *id == NodeOrigin::Id::Expression ? holderOf(files, noted.idFile, noted.idLine) : nullptr) {
+				const std::size_t callLine = noted.idLine - call->line + 1U;
+				if(writesText(call->text, lines.offset(*call, callLine, noted.idColumn), noted.id)) {
+					origins->emplace(noted.id, NodeOrigin{call->file, call->name, call->kind,
+					                                      static_cast<std::uint32_t>(callLine), noted.idColumn,
+					                                      NodeOrigin::Id::Call});
+					continue;
+				}
+			}
+			origins->emplace(noted.id, NodeOrigin{form->file, form->name, form->kind, static_cast<std::uint32_t>(line),
+			                                      noted.column, *id});
+		}
+	} catch(const DocumentError&) { // a LispError too: builtProgram() reports it, with the lines the history has
+		origins->clear();
+	}
+	return origins;
+}
+
+} // namespace
+
+std::shared_ptr<const NodeOrigins> nodeOrigins(const json& section) {
+	thread_local std::vector<std::pair<json, std::shared_ptr<const NodeOrigins>>> kept;
+	const auto found = std::ranges::find_if(kept, [&](const auto& origins) { return origins.first == section; });
+	if(found != kept.end()) {
+		std::rotate(kept.begin(), found, found + 1);
+		return kept.front().second;
+	}
+	std::shared_ptr<const NodeOrigins> origins = recordOrigins(section);
+	if(kept.size() >= keptBuilds) kept.pop_back();
+	kept.emplace(kept.begin(), section, origins);
+	return origins;
 }
 
 json buildDocument(const json& source) {

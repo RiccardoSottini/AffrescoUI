@@ -1,5 +1,7 @@
 ;;; bars.lisp --- the bars: the menus, the toolbar and the status bar
 
+(ns orrery.bars)
+
 ;;; The menus
 
 (defmenu view
@@ -14,8 +16,13 @@
    :bookmark {:run addBookmark :group "4_places" :order 1}
    :deleteBookmark {:run deleteBookmark :group "4_places" :order 2}
    :eclipses {:run openEclipses :group "4_places" :order 3}
+   :tour {:run playTour :group "4_places" :order 4}
+   :north {:run goNorth :group "5_where" :order 1}
+   :south {:run goSouth :group "5_where" :order 2}
+   :find {:run findObject :group "1_go" :order 5}
    :renderOptions {:run openRender :group "2_show" :order 7}
    :theme {:run toggleTheme :group "2_show" :order 8}
+   :night {:run toggleNight :group "2_show" :order 9}
    :stars {:run toggleStars :group "2_show" :order 4}
    :shading {:run toggleShading :group "2_show" :order 5}
    :glow {:run toggleGlow :group "2_show" :order 6}
@@ -29,22 +36,26 @@
    :freeze {:run togglePlay :title ~(t "time.freeze") :group "1_rate" :order 3}
    :realTime {:run realTime :group "1_rate" :order 4}
    :reverse {:run reverse :title ~(t "time.reverseTime") :group "1_rate" :order 5}
-   :now {:run dayZero :title ~(t "time.dayZero") :group "2_set" :order 1}
-   :eclipses {:run openEclipses :group "2_set" :order 2}})
+   :now {:run day-zero :title ~(t "time.dayZero") :group "2_set" :order 1}
+   :eclipses {:run openEclipses :group "2_set" :order 2}
+   :findDay {:run ask-day :title ~(t "time.goToDay") :group "2_set" :order 3}})
 
 (defcomputed viewMenu "The View menu's items, checked as they are on."
   (map (fn [it]
          (merge it
-                {:checked (cond (= it.run "toggleTheme") (= state.theme "light")
-                                (= it.run "toggleOrbits") state.showOrbits
-                                (= it.run "toggleLabels") state.showLabels
-                                (= it.run "toggleBrowser") state.showBrowser
-                                (= it.run "toggleStars") state.showStars
-                                (= it.run "toggleShading") state.showShading
-                                (= it.run "toggleGlow") state.showGlow
-                                (= it.run "toggleMarker") (>= (indexOf state.markers state.selected) 0)
-                                (= it.run "follow") (and (not= state.follow "") (some? state.follow))
-                                :else false)}))
+                {:checked (case it.run
+                            :toggleTheme (= state.theme :light)
+                            :toggleNight (= state.theme :night)
+                            :toggleOrbits state.showOrbits
+                            :toggleLabels state.showLabels
+                            :toggleBrowser state.showBrowser
+                            :toggleStars state.showStars
+                            :toggleShading state.showShading
+                            :toggleGlow state.showGlow
+                            :toggleMarker (>= (indexOf state.markers state.selected) 0)
+                            :playTour state.touring
+                            :follow (and (not= state.follow "") (some? state.follow))
+                            false)}))
        menus.view))
 
 (defview menu-bar "The View and Time menus, drawn in the window when it has no menu bar of its own." []
@@ -57,10 +68,11 @@
                       :title (t "menu.time")
                       :items (map (fn [it]
                                     (merge it
-                                           {:checked (cond (= it.run "realTime") (and state.playing computed.realTime)
-                                                           (= it.run "reverse") (< state.speed 0)
-                                                           (= it.run "togglePlay") (not state.playing)
-                                                           :else nil)}))
+                                           {:checked (case it.run
+                                                       :realTime (and state.playing computed.realTime)
+                                                       :reverse (neg? state.speed)
+                                                       :togglePlay (not state.playing)
+                                                       nil)}))
                                   menus.time)}]
             :width 260
             :color @panel
@@ -110,7 +122,7 @@
    {:title (t "command.openRender") :icon "sliders-horizontal" :keyLabel "Ctrl+," :run "openRender"}])
 
 (defcomputed statusItems "The status bar: the day, the next event, and the selected body."
-  [{:text (t "status.day" {:day (text (/ (round (* state.time 10)) 10))}) :color "@accent"}
+  [{:text (t "status.day" {:day (-> state.time (* 10) round (/ 10) text)}) :color "@accent"}
    {:text (cond (not computed.goal) (t "status.noEvents")
                 (< state.speed 0) (t "status.previous"
                    {:event computed.goal.label
@@ -124,7 +136,7 @@
     :text (cond (not computed.selectedBody) (t "status.nothing")
                 computed.selectedBody.parent (t "status.orbits"
                    {:name computed.selectedBody.name
-                    :parent (or-else (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies))
+                    :parent (or-else (:name (find #(= (:id %) computed.selectedBody.parent) state.bodies))
                                      computed.selectedBody.parent)
                     :days (text computed.selectedBody.period)})
                 :else (t "status.centre" {:name computed.selectedBody.name}))}])

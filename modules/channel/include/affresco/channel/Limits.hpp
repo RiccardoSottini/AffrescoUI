@@ -23,6 +23,9 @@ struct PeerLimits {
 	/// own, this one: each draws the whole screen.
 	double revisionsPerMinute = 120.0;
 	double revisionBurst = 30.0; ///< Changes at once, after a quiet time; pictures too.
+	double runsPerMinute = 120.0; ///< Command runs (runCommand, undoRun), which run a command's steps.
+	double runBurst = 30.0;       ///< Command runs at once, after a quiet time.
+	std::size_t maxArgumentBytes = std::size_t{64} * 1024; ///< The largest `arguments` of a runCommand, as JSON.
 };
 
 /// @brief A token bucket: holds up to `burst` tokens, gains `perSecond` a second, and each event takes one.

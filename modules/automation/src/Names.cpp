@@ -1,5 +1,5 @@
 /// @file
-/// @brief The names scenarios use: keys, state paths, node properties and file-safe names.
+/// @brief The names scenarios use: keys, state paths, node properties, file-safe names and authors.
 
 #include "Internal.hpp"
 
@@ -13,7 +13,7 @@ namespace affresco::automation::detail {
 namespace {
 
 /// @brief The keys with a name of their own (letters, digits and f1-f12 are counted out).
-constexpr std::array<std::pair<std::string_view, Key>, 41> namedKeys = {{
+constexpr std::array<std::pair<std::string_view, Key>, 42> namedKeys = {{
     {"enter", Key::Enter},         {"escape", Key::Escape},       {"tab", Key::Tab},
     {"backspace", Key::Backspace}, {"delete", Key::Delete},       {"insert", Key::Insert},
     {"space", Key::Space},         {"left", Key::Left},           {"right", Key::Right},
@@ -27,7 +27,7 @@ constexpr std::array<std::pair<std::string_view, Key>, 41> namedKeys = {{
     {"numpad4", Key::Keypad4},     {"numpad5", Key::Keypad5},     {"numpad6", Key::Keypad6},
     {"numpad7", Key::Keypad7},     {"numpad8", Key::Keypad8},     {"numpad9", Key::Keypad9},
     {"numpadperiod", Key::KeypadDecimal}, {"numpadplus", Key::KeypadAdd}, {"numpadminus", Key::KeypadSubtract},
-    {"numpadmultiply", Key::KeypadMultiply}, {"backquote", Key::GraveAccent},
+    {"numpadmultiply", Key::KeypadMultiply}, {"backquote", Key::GraveAccent}, {"alt", Key::LeftAlt},
 }};
 
 #ifdef __APPLE__
@@ -43,10 +43,10 @@ constexpr std::array<std::pair<std::string_view, int>, 6> modifiers = {{
 }};
 
 /// @brief The properties `expect` reads from a node.
-constexpr std::array<std::string_view, 22> properties = {
-    "text",  "textColor", "color",   "borderColor", "borderWidth", "shown", "visible", "focused", "hovered",
-    "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY",
-    "role",  "name",      "description", "scrollMarks"};
+constexpr std::array<std::string_view, 23> properties = {
+    "text",    "textColor", "color",   "borderColor", "borderWidth", "shown",       "visible", "focused",
+    "hovered", "tooltip",   "checked", "value",       "x",           "y",           "width",   "height",
+    "scrollX", "scrollY",   "role",    "name",        "description", "scrollMarks", "disabled"};
 
 /// @brief Reads a function key.
 /// @param name "f1" to "f12".
@@ -130,6 +130,20 @@ std::optional<KeyPress> parseKey(std::string_view text) {
 	return press;
 }
 
+std::optional<Mods> parseModifiers(std::string_view text) {
+	Mods mods;
+	while(!text.empty()) {
+		const std::size_t plus = text.find('+');
+		const std::optional<int> bit = modifierBit(text.substr(0, plus));
+		if(!bit) return std::nullopt;
+		mods.bits |= *bit;
+		if(plus == std::string_view::npos) break;
+		text.remove_prefix(plus + 1);
+		if(text.empty()) return std::nullopt; // "shift+"
+	}
+	return mods;
+}
+
 std::string keyNames() {
 	std::string names;
 	for(const auto& [name, key] : namedKeys) names += std::string(name) + ", ";
@@ -169,6 +183,13 @@ bool isSafeFileName(std::string_view name) {
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' ||
 		       c == '.';
 	});
+}
+
+bool isAuthorName(const json& value) {
+	if(!value.is_string()) return false;
+	const std::string& name = value.get_ref<const std::string&>();
+	return !name.empty() && name.size() <= maxAuthorBytes &&
+	       std::ranges::all_of(name, [](char c) { return c >= ' ' && c <= '~'; });
 }
 
 } // namespace affresco::automation::detail

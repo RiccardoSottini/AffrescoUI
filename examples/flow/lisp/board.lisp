@@ -3,6 +3,8 @@
 ;;;
 ;;; What they run is in flow.lisp.
 
+(ns flow.board)
+
 ;;; State
 
 (defstate query "")
@@ -44,17 +46,18 @@
 
 ;;; What it works out
 
-(defcomputed remaining (sum (filter (fn [it] (not= it.c computed.lastColumn)) computed.allCards) (fn [it] it.points)))
+; style: keep, sum is the expression's own function: the function it takes names its item it
+(defcomputed remaining (sum (filter #(not= (:c %) computed.lastColumn) computed.allCards) (fn [it] it.points)))
 
 (defcomputed burndownValues (concat state.burndown [computed.remaining]))
 
 (defcomputed checklistDone
-  (if (nil? computed.card) 0 (count (filter (fn [it] it.done) (or-else computed.card.checklist [])))))
+  (if-some [card computed.card] (count (filter :done (or-else card.checklist []))) 0))
 
 (defcomputed dueDays
   (if (or (nil? computed.card) (nil? computed.card.due)) nil (daysBetween state.today computed.card.due)))
 
-(defcomputed present (filter (fn [it] (some? (get state.presence it))) (keys state.presence)))
+(defcomputed present (filter #(some? (get state.presence %)) (keys state.presence)))
 
 ;;; Keys
 
@@ -85,16 +88,25 @@
   true "Show a notice when a move puts a column over its work-in-progress limit."
   :type boolean :title ~(t "settings.wipWarnings") :description ~(t "settings.wipWarnings.about"))
 
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
+
 (defcustom board.weekStart
   1 "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker."
   :type number :minimum 0 :maximum 6 :title ~(t "settings.weekStart") :description ~(t "settings.weekStart.about"))
 
 ;;; What it adds to the screen
 
+(defn start-up "At start: the timeline, and the assistant's launcher in the sidebar's empty bottom, clear of the board." []
+  (build-timeline)
+  (set "state.assistant.side" :start)
+  (set "state.assistant.floor" 32))
+
 (defpart board "What board adds."
-  :watch {:computed.columns buildTimeline :state.members buildTimeline}
-  :onLoad buildTimeline
+  :watch {:computed.columns build-timeline :state.members build-timeline}
+  :onLoad start-up
   :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
-  :actions {"team:committed" [~(handler teamCommitted)]
-            "team:event" [~(handler teamEvent)]
-            "team:closed" [~(handler teamClosed)]})
+  :actions {"team:committed" [~(handler team-committed)]
+            "team:event" [~(handler team-event)]
+            "team:closed" [~(handler team-closed)]})

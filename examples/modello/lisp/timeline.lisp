@@ -1,18 +1,21 @@
 ;;; timeline.lisp --- the timeline: its header (editor type, menus, auto keying, the transport, the current frame and the
 ;;; range) and the timeline itself, with the selected objects' keys and the markers
 
+(ns modello.timeline)
+
 ;;; Keys
 
 (defcomputed keyTracks "The animation as glTF tracks: each keyed object's translation, rotation (as quaternions) and scale over time."
   (flat (map (fn [it]
                [{:node it.id
                  :path "translation"
-                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                 :values (flat (map (fn [it] it.translation) it.keyframes))}
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
+                 :values (flat (map :translation it.keyframes))}
                 {:node it.id
                  :path "rotation"
-                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                 ;; A rotation in degrees as a quaternion: (get (map f [x]) 0) gives f's value for x, as an expression has no let.
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
+                 ;; A rotation in degrees as a quaternion: (get (map f [x]) 0) gives f's value for x, worked out once,
+                 ;; where a binding's let would write x's text again at each of its 24 uses.
                  :values (flat (map (fn [it]
                                       (get (map (fn [it]
                                                   [(- (* (sin it.0) (cos it.1) (cos it.2))
@@ -23,31 +26,33 @@
                                                       (* (sin it.0) (sin it.1) (cos it.2)))
                                                    (+ (* (cos it.0) (cos it.1) (cos it.2))
                                                       (* (sin it.0) (sin it.1) (sin it.2)))])
-                                                [(map (fn [it] (/ (radians it) 2)) it.rotationDegrees)])
+                                                [(map #(/ (radians %) 2) it.rotationDegrees)])
                                            0))
                                     it.keyframes))}
                 {:node it.id
                  :path "scale"
-                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                 :values (flat (map (fn [it] it.scale) it.keyframes))}])
-             (filter (fn [it] (> (count (or-else it.keyframes [])) 0)) state.scene.nodes))))
+                 :times (map #(/ (dec (:frame %)) computed.fps) it.keyframes)
+                 :values (flat (map :scale it.keyframes))}])
+             (filter #(pos? (count (or-else (:keyframes %) []))) state.scene.nodes))))
+
+(defcomputed fps "The frames a second the timeline plays and the export keys at: the output's frame rate." (or-else state.render.fps 24))
 
 (defcomputed gltfClips "The clips an export holds: one, Action, if anything is keyed."
-  (if (= (count computed.keyTracks) 0) [] [{:name "Action" :tracks computed.keyTracks}]))
+  (if (empty? computed.keyTracks) [] [{:name "Action" :tracks computed.keyTracks}]))
 
 (defcomputed keyFrames "The frames the selected objects have keys at, each once, in order."
   (reduce (fn [acc it] (if (contains acc it) acc (concat acc [it])))
           []
-          (sort (flat (map (fn [it] (map (fn [it] it.frame) (or-else it.keyframes [])))
-                           (filter (fn [it] (contains state.view.selection it.id)) state.scene.nodes))))))
+          (sort (flat (map #(map :frame (or-else (:keyframes %) [])) computed.selectedNodes)))))
 
 (defcomputed keyframes "Those frames as the timeline's keyframes, at their times."
-  (map (fn [it] {:time (/ (- it 1) 24)}) computed.keyFrames))
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:time (/ (dec it) computed.fps)}) computed.keyFrames))
 
 ;;; The range
 
 (defcomputed range "The frames played: the preview range's, or the scene's."
-  (if (some? state.previewRange) [state.previewRange.start state.previewRange.end] [state.start state.end]))
+  (if-some [p state.previewRange] [p.start p.end] [state.start state.end]))
 
 ;;; The range
 
@@ -90,7 +95,7 @@
      ~(repeat [m ["Playback" "Keying" "View" "Marker"]] (timeline-menu m))
      {:grow 1 :height 1 :color transparent}
      (node#auto-key :use hButton
-       :with {:icon circle :width 24 :tooltip ~(t "timeline.autoKeyTip") :on ~(= state.autoKey true) :run toggleOption :with {:key autoKey}})
+       :with {:icon circle :width 24 :tooltip ~(t "timeline.autoKeyTip") :on ~(true? state.autoKey) :run toggleOption :with {:key autoKey}})
      (node :use gap :with {:width 6})
      ~(repeat [b computed.transport :index i] (transport-button b i))
      (node :use gap :with {:width 6})
@@ -116,11 +121,11 @@
 (defview transport-button "A transport button; Play shows Pause while playing, and the ends round the group's corners." [b i]
   `(node :id ~(str "timeline-" b.id)
      :use hButton
-     :with {:icon ~(if (and state.playing (= b.id "play")) "pause" b.icon)
+     :with {:icon ~(if (and state.playing (= b.id :play)) "pause" b.icon)
             :width 24
             :tooltip ~b.title
             :run ~b.id
-            :radius ~(cond (= i 0) {:topLeft 4 :bottomLeft 4} (= i 5) {:topRight 4 :bottomRight 4} :else 0)}))
+            :radius ~(case i 0 {:topLeft 4 :bottomLeft 4} 5 {:topRight 4 :bottomRight 4} 0)}))
 
 (defview range-fields "The preview range's switch, then the range's start and end: three nodes." []
   [`(node#preview-range :use hButton
@@ -133,12 +138,13 @@
 (defview timeline-track "The timeline: the keys, the markers, the range played; scrubbing goes to a frame, a key dragged moves." []
   `(timeline#timeline :anchors {:left 0 :right 0 :top 26 :bottom 0}
      :tracks ~[{:id "summary" :label " " :keyframes computed.keyframes}]
-     :time ~(/ (- state.frame 1) 24)
-     :duration ~(/ (+ (max state.end computed.range.1) 20) 24)
-     :fps 24
-     :timeFormat ~(if (= state.timeSeconds true) "seconds" "frames")
-     :markers ~(if (= state.hideMarkers true) [] (map (fn [it] {:time (/ (- it.frame 1) 24) :label it.label}) state.markers))
-     :playRange ~[(/ (- computed.range.0 1) 24) (/ (- computed.range.1 1) 24)]
+     :time ~(/ (dec state.frame) computed.fps)
+     :duration ~(/ (+ (max state.end computed.range.1) 20) computed.fps)
+     :fps ~computed.fps
+     :timeFormat ~(if (true? state.timeSeconds) "seconds" "frames")
+     ; style: keep, #(...) can't give a map, and a binding's function names its item it
+     :markers ~(if (true? state.hideMarkers) [] (map (fn [it] {:time (/ (dec it.frame) computed.fps) :label it.label}) state.markers))
+     :playRange ~[(/ (dec computed.range.0) computed.fps) (/ (dec computed.range.1) computed.fps)]
      :headerWidth 0
      :trackHeight 20
      :pixelsPerSecond 110
@@ -149,5 +155,5 @@
      :accentColor @sel
      :clipColor @active
      :label ~(t "editor.timeline")
-     :onScrub ~(handler scrubTo event.time)
-     :onKeyframeMove moveKeyframe))
+     :onScrub ~(handler scrub-to event.time)
+     :onKeyframeMove move-keyframe))

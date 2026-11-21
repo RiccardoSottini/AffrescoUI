@@ -4,6 +4,8 @@
 ;;; format pane at the right changes the selected objects, else the slide. The deck is saved and opened as JSON through
 ;;; the system's dialogs, and exported as a PDF of the slides shown or a PNG of one.
 
+(ns sinopia.parts.views)
+
 ;;; What the views keep
 
 (defstate formatPane false "Whether the format pane is shown.")
@@ -24,8 +26,10 @@
 
 (defcomputed outlineText "Each slide's text for the outline: its objects' text, a line each."
   (map (fn [it]
-         (join "\n"
-               (filter (fn [it] (not= it "")) (map (fn [it] (trim (or-else it.text ""))) (or-else it.objects [])))))
+         (->> (or-else it.objects [])
+              (map #(str/trim (or-else (:text %) "")))
+              (remove #(= % ""))
+              (join "\n")))
        state.deck.slides))
 
 ;;; Keys
@@ -52,7 +56,7 @@
           :tooltip ~(if (= slot "none") (t "ribbon.none") (get computed.slotTitles slot))
           :role button
           :label ~slot
-          :onClick ~(handler pickSwatch run key slot)
+          :onClick ~(handler pick-swatch run key slot)
           (label :when ~(= slot "none") :fill 0 :align center :textColor @rbMuted :runs [{:icon ban :size 12}])))))
 
 (defcomponent paneStepper "A number of the selected objects, `key`, with buttons that step it between `low` and `high`."
@@ -70,12 +74,12 @@
        :use rbSmall
        :with {:icon minus}
        :tooltip ~(t "view.less")
-       :onClick ~(handler setProperty key (clamp (- value step) low high)))
+       :onClick ~(handler set-property key (clamp (- value step) low high)))
      (node :id ~(str prefix "-more")
        :use rbSmall
        :with {:icon plus}
        :tooltip ~(t "view.more")
-       :onClick ~(handler setProperty key (clamp (+ value step) low high)))))
+       :onClick ~(handler set-property key (clamp (+ value step) low high)))))
 
 (defcomponent formatPane
   "The format pane: the selected objects' fill, line, place, lock and alt text, or the slide's background."
@@ -89,20 +93,20 @@
      :scroll vertical
      :role region
      :label ~(t "view.format")
-     :let {:o ~computed.first :box ~(if (nil? computed.first) {} (merge computed.firstPlaceholder computed.first))}
+     :let {:o ~computed.first :box ~(if (some? computed.first) (merge computed.firstPlaceholder computed.first) {})}
      (node#format-top :width 1 :height 4 :color transparent)
      (row#format-head :width 236 :height 24 :alignItems center :color transparent
        (label#format-title :grow 1
          :height 22
          :textColor @rbInk
-         :runs [{:text ~(if (nil? 'o) (t "menu.formatBackground2") (t "view.formatShape")) :size 14 :bold true}])
+         :runs [{:text ~(if (some? o) (t "view.formatShape") (t "menu.formatBackground2")) :size 14 :bold true}])
        (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close")
          :onClick [{:set state.formatPane :to false}]))
      ~(format-background)
      ~(format-object)))
 
 (defview format-background "The slide's background colour, when nothing is selected." []
-  `(column#format-slide :when ~(nil? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-slide :when ~(nil? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-background-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches
        :with {:prefix format-background
@@ -114,15 +118,18 @@
        :fitText true
        :padding 4
        :runs [{:icon rotate-ccw :size 13} {:text ~(t "view.theThemeSBackground") :size 12}]
-       :onClick ~(handler setBackground nil))))
+       :onClick ~(handler setBackground nil))
+     ~(format-own-colors)))
 
 (defview format-object "The selected objects' fill, line, effects, size and place, lock and alt text." []
-  `(column#format-object :when ~(some? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+  `(column#format-object :when ~(some? o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
      (label#format-fill-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.fill") :size 12}])
      (node :use swatches :with {:prefix format-fill :chosen ~(or-else o.fill "none") :run setObjects :key fill})
+     ~(format-gradient)
      (label#format-line-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.line") :size 12}])
      (node :use swatches :with {:prefix format-line :chosen ~(or-else o.line "none") :run setObjects :key line})
      ~(stepper "format-line-width" "view.width" 'o.lineWidth 1 " pt" "lineWidth" 0.5 0 50)
+     ~(format-dash)
      (label#format-effects-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.effects") :size 12}])
      ~(format-effects)
      (label#format-size-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.sizeAndPlace") :size 12}])
@@ -131,7 +138,9 @@
      ~(stepper "format-x" "view.left" 'box.x 0 "" "x" 10 -2000 4000)
      ~(stepper "format-y" "menu.top" 'box.y 0 "" "y" 10 -2000 4000)
      ~(stepper "format-rotate" "view.rotation" 'o.rotate 0 "°" "rotate" 15 -360 360)
+     ~(format-ratio)
      ~(format-lock)
+     ~(format-text-box)
      (label#format-alt-title :height 18 :textColor @rbMuted :runs [{:text ~(t "view.altText") :size 12}])
      ~(format-alt)))
 (defview stepper "A stepper of the format pane: a number of the selection, `value` or else `fallback`, titled by a key."
@@ -141,16 +150,17 @@
             :low ~low
             :high ~high}))
 
-(defview format-effects "No effect, a shadow or a glow, for the selected objects." []
+(defview format-effects "No effect, a shadow, a glow or soft edges, for the selected objects." []
   `(row#format-effects :width 236 :height 26 :gap 4 :color transparent
-     ~(repeat [fx [["none" (t "view.noEffect")] ["shadow" (t "effect.shadow")] ["glow" (t "effect.glow")]] :key fx.0]
+     ~(repeat [fx [["none" (t "view.noEffect")] ["shadow" (t "effect.shadow")] ["glow" (t "effect.glow")] ["soft" (t "effect.soft")]]
+                :key fx.0]
        `(label :id ~(str "format-effect-" fx.0)
           :style ~(if (= (or-else o.effect "none") fx.0) "rbButtonOn" "rbButton")
           :height 26
           :fitText true
           :padding 6
           :runs [{:text ~fx.1 :size 12}]
-          :onClick ~(handler setEffect fx.0)))))
+          :onClick ~(handler set-effect fx.0)))))
 
 (defview format-lock "Lock: a locked object stays where it is and isn't deleted." []
   `(label#format-lock :style ~(if computed.locked "rbButtonOn" "rbButton")
@@ -160,7 +170,7 @@
      :runs [{:icon ~(if computed.locked "lock" "lock-open") :size 14}
             {:text ~(if computed.locked (t "view.locked") (t "view.lock")) :size 12}]
      :tooltip ~(t "view.aLockedObjectStaysWhere")
-     :onClick toggleLock))
+     :onClick toggle-lock))
 
 (defview format-alt "The first selected object's alt text, edited in place." []
   `(editor#format-alt :height 54
@@ -169,7 +179,7 @@
      :lineColor transparent
      :textColor @rbInk
      :label ~(t "view.altTextWhatAScreen")
-     :bind ~(str "state.deck.slides[" state.current "].objects[" (indexOf (map (fn [it] it.id) computed.objects) o.id)
+     :bind ~(str "state.deck.slides[" state.current "].objects[" (indexOf (map :id computed.objects) o.id)
                  "].alt")))
 
 ;;; The sorter
@@ -187,8 +197,8 @@
        :focusable true
        :role list
        :label ~(t "bar.slides")
-       :keys {:left ~(handler pickSlide (- state.current 1))
-              :right ~(handler pickSlide (+ state.current 1))
+       :keys {:left ~(handler pick-slide (dec state.current))
+              :right ~(handler pick-slide (inc state.current))
               :enter [{:set state.view :to normal}]
               :delete deleteSlide}
        ~(repeat [s state.deck.slides :index i :key s.id]
@@ -204,11 +214,11 @@
      :cursor hand
      :role listitem
      :selected ~(= i state.current)
-     :label ~(t "slide.n" {:n (+ i 1)})
+     :label ~(t "slide.n" {:n (inc i)})
      :drag {:data {:slide ~i}}
-     :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
-     :onClick ~(handler chooseSlide i "#sorter-grid")
-     :onDoubleClick ~(handler openSlide i)
+     :onDrop ~(handler move-slide (or-else event.data.slide (- 1)) i)
+     :onClick ~(handler choose-slide i "#sorter-grid")
+     :onDoubleClick ~(handler open-slide i)
      (node :id ~(str "sorter-" s.id "-frame")
        :width 220
        :height 128
@@ -228,7 +238,7 @@
        :fitText true
        :height 16
        :textColor @rbInk
-       :runs [{:text ~(text (+ i 1)) :size 12 :bold ~(= i state.current)}])
+       :runs [{:text ~(text (inc i)) :size 12 :bold ~(= i state.current) :strike ~(or-else s.hidden false)}])
      (label :id ~(str "sorter-" s.id "-hidden")
        :when ~(or-else s.hidden false)
        :fitText true
@@ -237,7 +247,7 @@
        :runs [{:icon eye-off :size 11}]
        :tooltip ~(t "bar.hiddenInTheShow"))
      (label :id ~(str "sorter-" s.id "-star")
-       :when ~(or (not= (or-else s.transition.kind "none") "none") (> (count (or-else s.animations [])) 0))
+       :when ~(or (not= (or-else s.transition.kind "none") "none") (pos? (count (or-else s.animations []))))
        :fitText true
        :height 16
        :textColor @rbMuted
@@ -256,8 +266,8 @@
      :focusable true
      :role list
      :label ~(t "bar.outline")
-     :keys {:up ~(handler pickSlide (- state.current 1))
-            :down ~(handler pickSlide (+ state.current 1))}
+     :keys {:up ~(handler pick-slide (dec state.current))
+            :down ~(handler pick-slide (inc state.current))}
      (node#outline-top :width 1 :height 4 :color transparent)
      ~(repeat [s state.deck.slides :index i :key s.id]
        (outline-slide s i))))
@@ -271,16 +281,16 @@
      :radius 4
      :role listitem
      :selected ~(= i state.current)
-     :label ~(t "slide.n" {:n (+ i 1)})
+     :label ~(t "slide.n" {:n (inc i)})
      :color ~(if (= i state.current) "@rbChecked" "transparent")
      :hover {:color ~(if (= i state.current) "@rbChecked" "@rbHover")}
-     :onClick ~(handler chooseSlide i "#outline")
+     :onClick ~(handler choose-slide i "#outline")
      (label :id ~(str "outline-" s.id "-number")
        :width 34
        :height 18
        :padding 2
        :textColor @rbMuted
-       :runs [{:text ~(text (+ i 1)) :size 12} {:icon presentation :size 11}])
+       :runs [{:text ~(text (inc i)) :size 12} {:icon presentation :size 11}])
      (label :id ~(str "outline-" s.id "-text")
        :width 230
        :wrap true
@@ -292,83 +302,107 @@
 
 ;;; What the format pane and the views do
 
-(defn setProperty "Sets one property of the selected objects." [key value]
-  (setObjects (assoc {} key value)))
+(defn set-property "Sets one property of the selected objects; with the proportions locked a size sets both." [key value]
+  (setObjects (sized key value)))
 
-(defn pickSwatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
-  (if (= run "setBackground") (setBackground slot) (setProperty key slot)))
+(defn pick-swatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
+  (if (= run "setBackground") (setBackground slot) (set-property key slot)))
 
-(defn setEffect "Gives the selected objects an effect: none, shadow or glow." [effect]
+(defn set-effect "Gives the selected objects an effect: none, shadow, glow or soft edges." [effect]
   (setObjects {:effect (if (= effect "none") nil effect)}))
 
-(defn openSlide "Opens a slide of the sorter in the Normal view." [index]
-  (pickSlide index)
+(defn open-slide "Opens a slide of the sorter in the Normal view." [index]
+  (pick-slide index)
   (set "state.view" "normal"))
 
 ;;; Files
 
+; style: keep, named in examples/sinopia/lisp/index.scenarios.json
 (defn fileStatus "Says what the last save, open or export did, on the File tab." [text]
   (set "state.fileStatus" text))
 
-(defn saved "Says the deck was saved." [result]
+(defn saved "Says the deck was saved, and keeps it among the recent ones." [result]
+  (remember-deck result.name)
   (fileStatus (t "file.saved" {:name result.name})))
 
-(defn notSaved "Says why the deck wasn't saved." [error]
+(defn not-saved "Says why the deck wasn't saved." [error]
   (fileStatus (t "file.notSaved" {:why error.message})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn saveDeck "Saves the deck as JSON, where the person chooses." []
   (saveFile state.deck :name (str computed.deckName ".json") :title (t "view.saveTheDeck") :onDone saved
-    :onError notSaved))
+    :onError not-saved))
 
 (defn opened "Takes the deck just opened, by its file's name." [result]
-  (deckOpened result.name))
+  (deck-opened result.name))
 
-(defn notOpened "Says why no deck was opened." [error]
+(defn not-opened "Says why no deck was opened." [error]
   (fileStatus (t "file.notOpened" {:why error.message})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn openDeck "Opens a deck the person chooses." []
-  (openFile "state.opened" :extensions ["json"] :title (t "view.openADeck") :onDone opened :onError notOpened))
+  (openFile "state.opened" :extensions ["json"] :title (t "view.openADeck") :onDone opened :onError not-opened))
 
-(defn deckOpened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
-  (if (and (vector? state.opened.slides) (> (count state.opened.slides) 0) (number? state.opened.next))
+(defn deck-opened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
+  (if (and (vector? state.opened.slides) (seq state.opened.slides) (number? state.opened.next))
     (do (commit)
         (set "state.deck" state.opened)
         (set "state.current" 0)
         (set "state.board.selection" [])
+        (remember-deck name)
         (fileStatus (t "file.opened" {:name name})))
     (fileStatus (t "file.notADeck" {:name name})))
   (set "state.opened" nil))
 
-(defn pdfExported "Says the PDF was exported, and how many pages it has." [result]
+(defn pdf-exported "Says the PDF was exported, and how many pages it has." [result]
   (fileStatus (t "file.exportedPages" {:name result.name :pages result.pages})))
 
-(defn pngExported "Says the picture was exported." [result]
+(defn png-exported "Says the picture was exported." [result]
   (fileStatus (t "file.exported" {:name result.name})))
 
-(defn notExported "Says why nothing was exported." [error]
+(defn not-exported "Says why nothing was exported." [error]
   (fileStatus (t "file.notExported" {:why error.message})))
 
+(defn shown-pages "The ids of the pages of the slides the show would show, in its order." []
+  (map #(str "page-" (get-in state.deck.slides [% :id])) computed.showOrder))
+
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
   (export "pdf"
-          :pages (map (fn [it] (str "page-" (get-in state.deck.slides [it :id]))) computed.showOrder)
+          :pages (shown-pages)
           :size [720 405]
           :title computed.deckName
-          :onDone pdfExported
-          :onError notExported))
+          :onDone pdf-exported
+          :onError not-exported))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn exportPng "Exports the slide shown as a PNG picture, at twice its size." []
   (export "png"
           :pages [(str "page-" computed.slide.id)]
           :scale 2
-          :name (str computed.deckName " " (+ state.current 1))
-          :onDone pngExported
-          :onError notExported))
+          :name (str computed.deckName " " (inc state.current))
+          :onDone png-exported
+          :onError not-exported))
+
+(defn pictures-exported "Says the pictures were exported, how many, and the first one's name." [result]
+  (fileStatus (t "file.exportedPictures" {:name result.name :pages result.pages})))
+
+; style: keep, a string of the code names it, and a rename never changes a string
+(defn exportPngs "Exports every slide the show would show as a PNG picture, numbered, at twice its size." []
+  (export "png"
+          :pages (shown-pages)
+          :scale 2
+          :name computed.deckName
+          :onDone pictures-exported
+          :onError not-exported))
 
 ;;; The look
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn toggleTheme "Switches the window between light and dark." []
   (set "state.theme" (if (= state.theme "dark") "light" "dark")))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setBackground "Gives the slide a background colour, a theme slot." [slot]
   (commit)
   (set "state.deck.slides[state.current].background" slot))

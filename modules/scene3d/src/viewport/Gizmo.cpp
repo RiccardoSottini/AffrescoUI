@@ -206,6 +206,7 @@ std::optional<GizmoAxis> gizmoAxisNamed(std::string_view name) noexcept {
 }
 
 Vec3 Gizmo::axis(int index) const noexcept {
+	if(axes) return (*axes)[static_cast<std::size_t>(std::clamp(index, 0, 2))];
 	return orientation.rotate({index == 0 ? 1.0f : 0.0f, index == 1 ? 1.0f : 0.0f, index == 2 ? 1.0f : 0.0f});
 }
 

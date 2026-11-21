@@ -3,11 +3,13 @@
 ;;; Each defstate is one key of the state, with the value it starts from. The start scene has a camera, a cube and a
 ;;; light; onLoad keeps it, for New.
 
+(ns modello.state)
+
 ;;; The window and the editors
 
 (defstate theme dark "dark or light.")
 
-(defstate workspace "Layout" "The workspace shown, by its title.")
+(defstate workspace "Stage" "The workspace shown, by its name.")
 
 (defstate menuBar {} "Which of the top bar's menus is open.")
 
@@ -63,8 +65,10 @@
             :rotationDegrees [37.3 3.2 106.9]
             :scale [1 1 1]}]
    :materials [{:id material :name "Material" :baseColor [0.8 0.8 0.8 1] :roughness 0.5}]
+   :meshes []
+   :textures []
    :collections [{:id collection :name "Collection"}]}
-  "The scene: its objects (nodes), materials and collections.")
+  "The scene: its objects (nodes), materials, editable meshes, pictures and collections.")
 
 (defstate view {:camera {:target [0 0 0] :yaw 0.7 :pitch 0.58 :distance 17.5 :fieldOfView 0.68} :selection [cube]}
   "The viewport's camera and the selected objects' ids.")
@@ -87,7 +91,7 @@
 
 (defstate cursor [0 0 0] "The 3D cursor's place.")
 
-(defstate pivot median "What objects turn and scale about: median, bounds, cursor or active.")
+(defstate pivot median "What objects turn and scale about: median, bounds, cursor, active, or each its own origin (individual).")
 
 (defstate orientation global "The transform's axes: global, local, normal or cursor.")
 
@@ -122,6 +126,10 @@
 
 (defstate openedName nil "That file's name.")
 
+(defstate importing nil "A glTF file read by Import, before its objects join the scene.")
+
+(defstate textureImage nil "A picture read for the active material's texture, before it is used.")
+
 ;;; Shading, overlays and gizmos
 
 (defstate shading solid "The viewport's shading: wireframe, solid, material or rendered.")
@@ -132,7 +140,8 @@
 
 (defstate world {:color "#3a3f47"} "The world's colour.")
 
-(defstate render {:exposure 1} "The render's exposure.")
+(defstate render {:exposure 1 :resolution [1920 1080] :fps 24}
+  "The render's exposure, its resolution (the render window frames the image at its shape) and its frame rate.")
 
 (defstate xray false "Whether X-Ray is on.")
 
@@ -178,7 +187,15 @@
    :surfaceWorld true
    :restrictions true
    :dataPanel true
-   :surfaceMaterial true}
+   :surfaceMaterial true
+   :relations true
+   :dataMore true
+   :materialSettings true
+   :display true
+   :format true
+   :modifiers true
+   :texturePanel true
+   :custom true}
   "Each of the properties' panels, open or not.")
 
 (defstate sidebar false "Whether the viewport's sidebar is shown.")
@@ -213,4 +230,8 @@
 
 ;;; Starting
 
-(defpart start "The scene Modello opens with, kept for New." :onLoad {:set state.startScene :to ~state.scene})
+(defpart start "The scene Modello opens with, kept for New, and the assistant's launcher in the tab strip above the status bar."
+  :onLoad [{:set state.startScene :to ~state.scene}
+           {:set state.assistant.floor :to 22}
+           {:set state.assistant.size :to 26}
+           {:set state.assistant.inset :to 2}])

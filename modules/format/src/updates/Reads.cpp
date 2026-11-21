@@ -98,7 +98,7 @@ void ReadSet::addPath(std::string_view pointer) {
 }
 
 void ReadSet::add(const ReadSet& other) {
-	always = always || other.always;
+	if(other.always) addAlways(other.why);
 	for(const std::string& path : other.paths) addPath(path);
 }
 

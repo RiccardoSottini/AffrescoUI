@@ -109,7 +109,7 @@ std::vector<TextRun> readRuns(const json& value, const Label& label, const Prope
 	return runs;
 }
 
-/// @brief Applies "runs", "selectable" and "selectionColor" to a label.
+/// @brief Applies "runs", "selectable", "selectionColor" and "letterSpacing" to a label.
 /// @param panel The panel, a Label.
 /// @param values Those it has.
 /// @param reader Reads colours and fonts.
@@ -118,6 +118,10 @@ void applyRichText(Panel& panel, const json& values, const PropertyReader& reade
 	auto* label = dynamic_cast<Label*>(&panel);
 	if(!label) return;
 	label->setSelectable(values.contains("selectable") && boolean(values["selectable"], path + ".selectable"));
+	const float spacing =
+	    values.contains("letterSpacing") ? number(values["letterSpacing"], path + ".letterSpacing") : 0.0f;
+	if(spacing < -16.0f || spacing > 64.0f) fail(path + ".letterSpacing", "expected pixels from -16 to 64");
+	label->setLetterSpacing(spacing);
 	if(values.contains("selectionColor"))
 		label->setSelectionColor(reader.color(values["selectionColor"], path + ".selectionColor"));
 	if(!values.contains("runs")) {
@@ -135,7 +139,8 @@ void registerRichTextProperties(TypeRegistry& registry) {
 	auto set = std::make_shared<PropertySet>();
 	set->properties = {{"runs", ValueKind::Any, false},
 	                   {"selectable", ValueKind::Boolean, false},
-	                   {"selectionColor", ValueKind::Color}};
+	                   {"selectionColor", ValueKind::Color},
+	                   {"letterSpacing", ValueKind::Number}};
 	set->apply = applyRichText;
 	set->everyUpdate = true; // run colours follow the theme; the runs are set only when they change
 	// Labels and the application's subclasses of them; not text inputs, which have their own editing

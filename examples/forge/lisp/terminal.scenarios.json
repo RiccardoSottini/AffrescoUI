@@ -133,6 +133,88 @@
 				{ "expect": { "state": "panelTab", "is": "output" } },
 				{ "expect": { "node": "#terminal", "exists": false } }
 			]
+		},
+		{
+			"name": "terminal-split-beside",
+			"note": "Split Terminal (Cmd+Shift+5) opens a new shell beside the one shown and focuses it; Unsplit shows one again, the other still a tab",
+			"steps": [
+				{
+					"action": "terminalNew"
+				},
+				{
+					"key": "mod+shift+5"
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "terminals.active",
+						"is": "t1"
+					}
+				},
+				{
+					"expect": {
+						"state": "terminals.split",
+						"is": "t2"
+					}
+				},
+				{
+					"expect": {
+						"node": "#terminal",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#terminal-split",
+						"exists": true
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#terminal-split",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"action": "terminalUnsplit"
+				},
+				{
+					"expect": {
+						"node": "#terminal-split",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 2
+					}
+				},
+				{
+					"action": "terminalSplit"
+				},
+				{
+					"expect": {
+						"state": "terminals.split",
+						"is": "t3"
+					}
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 3
+					}
+				}
+			]
 		}
 	]
 }

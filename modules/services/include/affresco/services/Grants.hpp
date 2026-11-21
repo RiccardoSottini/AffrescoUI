@@ -127,10 +127,17 @@ struct AppPrograms {
 
 /// @brief Grants a program from a command-line spec: `NAME=PROGRAM ARGUMENT...` (the program found on the PATH
 /// unless absolute, the arguments split at spaces); or `NAME` alone: `shell` is the login shell (`-l`), `git` is git
-/// under gitShaper(), any other the program of that name on the PATH.
+/// under gitShaper(), any other the program of that name on the PATH (a well-known language server with the arguments
+/// stdioArguments() gives it).
 /// @param services The registry.
 /// @param spec The spec: at most 4 KiB and 32 arguments.
 /// @return Why it can't, or std::nullopt.
 [[nodiscard]] std::optional<std::string> grantProgram(ServiceRegistry& services, std::string_view spec);
+
+/// @brief The arguments a well-known language server granted by its name alone starts with, so that it speaks over its
+/// standard input and output (`pyright-langserver` and `typescript-language-server` take `--stdio`).
+/// @param name The program's name.
+/// @return Its arguments; none for a program that needs none (clangd, gopls, rust-analyzer) or isn't known.
+[[nodiscard]] std::vector<std::string> stdioArguments(std::string_view name);
 
 } // namespace affresco::services

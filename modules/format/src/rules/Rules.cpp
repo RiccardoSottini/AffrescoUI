@@ -12,10 +12,14 @@
 #include "Limits.hpp"
 #include "ProgramRules.hpp"
 #include "RulesControl.hpp"
+#include "RunRules.hpp"
+#include "CommandArguments.hpp"
 #include "StateTypes.hpp"
 
 #include <affresco/lisp/Document.hpp>
 
+#include <array>
+#include <format>
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -29,14 +33,18 @@ namespace {
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
 
-/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp).
+/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp), its program then the
+/// one that runs: the app's own and the files of the features composition merged (lisp::effectiveProgram()).
 /// @param document The document.
 /// @param storage Holds the composed screen when there is one.
 /// @return The screen.
 const json& screenOf(const json& document, json& storage) {
 	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass documents they hold
 	if(!needsComposition(document)) return document;
-	storage = compose(document).screen;
+	Composition composed = compose(document);
+	storage = std::move(composed.screen);
+	if(!composed.merged.empty() && storage.contains("program"))
+		storage["program"] = lisp::effectiveProgram(document, composed.merged);
 	return storage;
 }
 
@@ -160,9 +168,8 @@ void Rules::checkRevision(const json& patch) const {
 
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
 void Rules::validate(const json& document) const {
-	json built;
-	if(lisp::hasProgram(document)) built = lisp::buildDocument(document);
-	const json& doc = built.is_null() ? document : built; // what a program builds is judged like any document
+	const std::shared_ptr<const json> built = lisp::hasProgram(document) ? builtTree(document) : nullptr;
+	const json& doc = built ? *built : document; // what a program builds is judged like any document
 	sections_->validate(doc);
 	checkDocumentSize(doc);
 	json composed;
@@ -171,7 +178,8 @@ void Rules::validate(const json& document) const {
 		sections_->validate(composed);
 	}
 	const json& screen = composed.is_null() ? doc : composed;
-	checkDataDocument(screen); // queries read declared collections and fields
+	checkDataDocument(screen);       // queries read declared collections and fields
+	checkCommandArgumentsOf(screen); // typed, and the parameters of the function a command runs
 	const std::vector<Mismatch> mismatches = stateMismatches(screen, stateOf(screen));
 	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
 }
@@ -219,6 +227,7 @@ void readPermissions(const json& section, Permissions& result) {
 	for(const json& name : section.value("reviewers", json::array()))
 		result.reviewers.push_back(name.get<std::string>());
 	result.review = reviewPolicyOf(section.value("review", json()));
+	result.run = readRunRules(section.value("run", json()));
 }
 
 /// @brief Denies every node with "locked": true to everyone, in a node and its children.
@@ -306,6 +315,8 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 		Composition composition = compose(document);
 		lines = std::move(composition.problems);
 		composed = std::move(composition.screen);
+		if(!composition.merged.empty() && composed.contains("program"))
+			composed["program"] = lisp::effectiveProgram(document, composition.merged);
 	}
 	const json& screen = composed.is_null() ? document : composed;
 	for(const Mismatch& mismatch : stateMismatches(screen, state)) // a state kept on disk may predate its types
@@ -321,18 +332,75 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 
 void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
 
+// The program a document runs holds its features' files: their service uses and record writes are the app's
 std::vector<std::string> Rules::reviewLines(const json& before, const json& after) const {
-	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
-	std::vector<std::string> data = dataReviewLines(before, after, data_);
+	json keptBefore, keptAfter;
+	const json& ran = runningView(before, keptBefore, false);
+	const json& runs = runningView(after, keptAfter, false);
+	std::vector<std::string> lines = serviceReviewLines(ran, runs, services_);
+	std::vector<std::string> data = dataReviewLines(ran, runs, data_);
 	lines.insert(lines.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
 	addExtensionReviewLines(before, after, lines);
 	return lines;
 }
 
 json Rules::impact(const json& before, const json& after) const {
-	json impact = dataImpact(before, after, data_);
-	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after); // what the tree doesn't show
+	json keptBefore, keptAfter;
+	json impact = dataImpact(runningView(before, keptBefore, false), runningView(after, keptAfter, false), data_);
+	// What the tree doesn't show
+	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after);
 	return impact;
+}
+
+/* The rules of permissions.run (RunRules.hpp) */
+
+std::optional<PermissionRule> parseRunRule(std::string_view text) {
+	PermissionRule rule{std::string(text), std::string(text), {}};
+	if(const std::size_t open = text.find('('); open != std::string_view::npos) {
+		if(!text.ends_with(')') || open + 2 == text.size()) return std::nullopt;
+		rule.author = text.substr(0, open);
+		rule.pattern = text.substr(open + 1, text.size() - open - 2);
+		if(rule.pattern.find_first_of("() ") != std::string::npos) return std::nullopt;
+		if(rule.pattern.find('*') < rule.pattern.size() - 1) return std::nullopt; // a star ends a prefix only
+		if(rule.pattern == "*") rule.pattern.clear();
+	}
+	if(rule.author.empty() || rule.author.find_first_of("() ") != std::string::npos) return std::nullopt;
+	return rule;
+}
+
+void checkRunRules(const json& value, const std::string& place) {
+	for(const auto& [key, list] : expect::object(value, place).items()) {
+		const std::string at = std::format("{}.{}", place, key);
+		if(key != "allow" && key != "ask" && key != "deny")
+			expect::fail(at, "unknown property (expected allow, ask or deny)");
+		if(!list.is_array()) expect::fail(at, "expected a list of rules");
+		if(list.size() > maxRunRules) expect::fail(at, "at most 64 rules");
+		for(std::size_t i = 0; i < list.size(); ++i) {
+			const std::string item = at + "[" + std::to_string(i) + "]";
+			const std::string text = expect::string(list[i], item);
+			if(text.size() > maxRunRuleBytes) expect::fail(item, "a rule is at most 256 bytes");
+			if(text.starts_with("role:")) expect::fail(place, "roles aren't supported in run rules yet");
+			const std::size_t open = text.find('(');
+			if(open != std::string::npos && open + 1 < text.size() && (text[open + 1] == '/' || text[open + 1] == '#'))
+				expect::fail(item, "run rules name commands, like agent(moveCard)");
+			if(!parseRunRule(text))
+				expect::fail(item,
+				             "expected \"author\" or \"author(command)\", the command a name or a prefix ending in "
+				             "'*', like agent(moveCard)");
+		}
+	}
+}
+
+RunRules readRunRules(const json& value) {
+	RunRules rules;
+	if(!value.is_object()) return rules;
+	for(auto [key, into] : std::to_array<std::pair<const char*, std::vector<PermissionRule>*>>(
+	        {{"allow", &rules.allow}, {"ask", &rules.ask}, {"deny", &rules.deny}}))
+		for(const json& text : value.value(key, json::array()))
+			if(text.is_string())
+				if(std::optional<PermissionRule> rule = parseRunRule(text.get<std::string>()))
+					into->push_back(*std::move(rule));
+	return rules;
 }
 
 } // namespace affresco::format

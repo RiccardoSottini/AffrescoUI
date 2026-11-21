@@ -4,6 +4,7 @@
 /// copies tiles still in the file a document came from as they are.
 
 #include "affresco/imaging/Project.hpp"
+#include "affresco/imaging/Shapes.hpp"
 
 #include "ProjectJson.hpp"
 #include "Stb.hpp"
@@ -292,6 +293,22 @@ private:
 	                                  limits, format == "rgba16f" ? PixelFormat::rgba16f : PixelFormat::rgba8);
 }
 
+/// @brief Reads the paths of a manifest into a structure, at most a project's layer limit of them.
+/// @param manifest The manifest.
+/// @param structure The structure.
+void readPaths(const json& manifest, Structure& structure) {
+	const auto paths = manifest.find("paths");
+	if(paths == manifest.end()) return;
+	if(!paths->is_array() || paths->size() > maxPaths) malformed("has paths that are not a short array");
+	for(const json& path : *paths) {
+		if(!path.is_object() || !path.value("name", json()).is_string() || path["name"].get<std::string>().size() > 255)
+			malformed("has a path without a name of at most 255 bytes");
+		structure.paths.push_back(
+		    {path["name"].get<std::string>(), pointsFromJson(path.value("points", json::array())),
+		     path.value("closed", json()).is_boolean() && path["closed"].get<bool>()});
+	}
+}
+
 } // namespace
 
 bool isProject(std::span<const std::uint8_t> file) noexcept {
@@ -306,6 +323,12 @@ std::vector<std::uint8_t> saveProject(const Document& document, const std::optio
 	json layers = json::array();
 	for(const std::uint64_t id : document.structure().root) layers.push_back(layerToJson(document, id, writer));
 	manifest["layers"] = std::move(layers);
+	if(!document.structure().paths.empty()) {
+		json paths = json::array();
+		for(const VectorPath& path : document.structure().paths)
+			paths.push_back({{"name", path.name}, {"closed", path.closed}, {"points", pointsToJson(path.points)}});
+		manifest["paths"] = std::move(paths);
+	}
 	const std::string text = manifest.dump();
 	std::vector<std::uint8_t> file(projectMagic.begin(), projectMagic.end());
 	file.reserve(headerBytes + text.size() + writer.blobs().size());
@@ -333,6 +356,7 @@ LoadedProject loadProject(std::shared_ptr<const std::vector<std::uint8_t>> file,
 			structure = Structure{};
 			for(const json& layer : layers) structure.root.push_back(reader.layer(layer, 0, 0, structure));
 			if(structure.active == 0) structure.active = structure.root.back();
+			readPaths(manifest, structure);
 		});
 		loaded.document->clearHistory();
 		loaded.tiles = reader.tiles();

@@ -58,7 +58,7 @@ static_assert(std::ranges::is_sorted(hints, {}, &std::pair<std::string_view, std
 } // namespace
 
 std::string_view hintFor(std::string_view name) {
-	const auto found =
+	const decltype(hints)::const_iterator found = // an iterator, not a pointer, wherever the library wraps them
 	    std::ranges::lower_bound(hints, name, {}, &std::pair<std::string_view, std::string_view>::first);
 	return found != hints.end() && found->first == name ? found->second : std::string_view();
 }

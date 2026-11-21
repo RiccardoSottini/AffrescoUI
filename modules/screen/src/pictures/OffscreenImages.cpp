@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <memory>
 #include <utility>
 
 namespace affresco::detail {
@@ -80,6 +81,14 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 	return draw(request.scale, image);
 }
 
+std::optional<std::string> OffscreenImages::drawShown(int scale, RgbImage& pixels) {
+	if(!runtime_.window()) return "AffrescoUI screen: render: the screen has no window yet";
+	if(rendering_) return "AffrescoUI screen: render: already drawing a picture";
+	rendering_ = true; // the picture changes nothing a peer hears of
+	const std::unique_ptr<bool, void (*)(bool*)> reset{&rendering_, [](bool* flag) { *flag = false; }}; // throws too
+	return drawPixels(scale, pixels);
+}
+
 std::optional<std::string> OffscreenImages::show(std::optional<int> proposal) {
 	if(proposal) return versions_.preview(*proposal);
 	versions_.endPreview();
@@ -102,7 +111,9 @@ std::optional<std::string> OffscreenImages::drawPixels(int scale, RgbImage& pixe
 	const std::filesystem::path file = folder.path() / "screen.ppm";
 	runtime_.waitForImages(); // a picture shows every image, not those decoded so far
 	inspector_.setVisible(false); // a picture shows the screen, not the overlay
-	const bool drawn = runtime_.window()->saveScreenshot(file, scale);
+	runtime_.window()->setPickLayerVisible(false); // nor a pick in progress
+	const bool drawn = runtime_.window()->saveScreenshot(file, static_cast<float>(scale));
+	runtime_.window()->setPickLayerVisible(true);
 	inspector_.setVisible(true);
 	if(!drawn) return "AffrescoUI screen: render: could not draw the screen";
 

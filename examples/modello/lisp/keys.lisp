@@ -2,6 +2,8 @@
 ;;;
 ;;; A key that does one thing while a transform runs and another otherwise lists both, the first that applies winning.
 
+(ns modello.keys)
+
 ;;; Moving, turning and scaling after the pointer: the keys work while a transform runs
 
 (defkey "g" grab)
@@ -10,54 +12,61 @@
 
 (defkey "s" resize)
 
-(defkey "x" [{:when ~(some? state.modal) :do lockAxis :with {:axis x}} {:do deleteMenu}])
+(defkey "x" [{:when ~(some? state.modal) :do lock-axis :with {:axis x}}
+            {:when ~(= state.mode :edit) :do deleteElements}
+            {:do deleteMenu}])
 
-(defkey "y" [{:when ~(some? state.modal) :do lockAxis :with {:axis y}}])
+(defkey "y" [{:when ~(some? state.modal) :do lock-axis :with {:axis y}}])
 
 (defkey "z"
-  [{:when ~(some? state.modal) :do lockAxis :with {:axis z}} {:do openPie :with {:menu shading}}])
+  [{:when ~(some? state.modal) :do lock-axis :with {:axis z}} {:do open-pie :with {:menu shading}}])
 
-(defkey "shift+x" {:when ~(some? state.modal) :do lockAxis :with {:axis yz}})
+(defkey "shift+x" {:when ~(some? state.modal) :do lock-axis :with {:axis yz}})
 
-(defkey "shift+y" {:when ~(some? state.modal) :do lockAxis :with {:axis zx}})
+(defkey "shift+y" {:when ~(some? state.modal) :do lock-axis :with {:axis zx}})
 
-(defkey "shift+z" {:when ~(some? state.modal) :do lockAxis :with {:axis xy}})
+(defkey "shift+z" {:when ~(some? state.modal) :do lock-axis :with {:axis xy}})
 
-(defkey "0" [{:when ~(some? state.modal) :do typeDigit :with {:key "0"}}])
+(defkey "0" [{:when ~(some? state.modal) :do type-digit :with {:key "0"}}])
 
-(defkey "1" [{:when ~(some? state.modal) :do typeDigit :with {:key "1"}}])
+(defkey "1" [{:when ~(some? state.modal) :do type-digit :with {:key "1"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode vertex}}])
 
-(defkey "2" [{:when ~(some? state.modal) :do typeDigit :with {:key "2"}}])
+(defkey "2" [{:when ~(some? state.modal) :do type-digit :with {:key "2"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode edge}}])
 
-(defkey "3" [{:when ~(some? state.modal) :do typeDigit :with {:key "3"}}])
+(defkey "3" [{:when ~(some? state.modal) :do type-digit :with {:key "3"}}
+              {:when ~(= state.mode :edit) :do setSelectMode :with {:mode face}}])
 
-(defkey "4" [{:when ~(some? state.modal) :do typeDigit :with {:key "4"}}])
+(defkey "4" [{:when ~(some? state.modal) :do type-digit :with {:key "4"}}])
 
-(defkey "5" [{:when ~(some? state.modal) :do typeDigit :with {:key "5"}}])
+(defkey "5" [{:when ~(some? state.modal) :do type-digit :with {:key "5"}}])
 
-(defkey "6" [{:when ~(some? state.modal) :do typeDigit :with {:key "6"}}])
+(defkey "6" [{:when ~(some? state.modal) :do type-digit :with {:key "6"}}])
 
-(defkey "7" [{:when ~(some? state.modal) :do typeDigit :with {:key "7"}}])
+(defkey "7" [{:when ~(some? state.modal) :do type-digit :with {:key "7"}}])
 
-(defkey "8" [{:when ~(some? state.modal) :do typeDigit :with {:key "8"}}])
+(defkey "8" [{:when ~(some? state.modal) :do type-digit :with {:key "8"}}])
 
-(defkey "9" [{:when ~(some? state.modal) :do typeDigit :with {:key "9"}}])
+(defkey "9" [{:when ~(some? state.modal) :do type-digit :with {:key "9"}}])
 
-(defkey "period" [{:when ~(some? state.modal) :do typeDigit :with {:key "."}}])
+(defkey "period" [{:when ~(some? state.modal) :do type-digit :with {:key "."}}])
 
-(defkey "minus" [{:when ~(some? state.modal) :do typeDigit :with {:key "-"}}])
+(defkey "minus" [{:when ~(some? state.modal) :do type-digit :with {:key "-"}}])
 
-(defkey "backspace" [{:when ~(some? state.modal) :do typeDigit :with {:key back}}])
+(defkey "backspace" [{:when ~(some? state.modal) :do type-digit :with {:key back}}])
 
-(defkey "enter" [{:when ~(some? state.modal) :do confirmTransform}])
+(defkey "enter" [{:when ~(some? state.modal) :do confirm-transform}])
 
-(defkey "escape" [{:when ~(some? state.modal) :do cancelTransform}])
+(defkey "escape" [{:when ~(some? state.modal) :do cancel-transform}])
 
 ;;; Objects
 
 (defkey "shift+a" addMenu)
 
-(defkey "delete" [{:when ~(= (get state.areas state.hoverSlot) "shader") :do deleteShaderNodes} {:do deleteSelected}])
+(defkey "delete" [{:when ~(= (get state.areas state.hoverSlot) "shader") :do deleteShaderNodes}
+                  {:when ~(= state.mode :edit) :do deleteElements}
+                  {:do deleteSelected}])
 
 (defkey "shift+d" duplicate)
 
@@ -65,15 +74,31 @@
 
 (defkey "m" moveToCollectionMenu)
 
+(defkey "ctrl+p" {:when ~(nil? state.modal) :do parentToActive})
+
+(defkey "alt+p" {:when ~(nil? state.modal) :do clearParent})
+
 (defkey "f2" startRename)
 
 (defkey "shift+h" hideUnselected)
 
 (defkey "alt+h" revealHidden)
 
-(defkey "a" selectAll)
+(defkey "a" [{:when ~(= state.mode :edit) :do select-all-elements :with {:all true}} {:do selectAll}])
 
-(defkey "alt+a" selectNone)
+(defkey "alt+a" [{:when ~(= state.mode :edit) :do select-all-elements :with {:all false}} {:do selectNone}])
+
+;;; Edit Mode
+
+(defkey "tab" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do toggleEditMode})
+
+(defkey "e" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do extrudeFaces})
+
+(defkey "ctrl+r" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do loopCut})
+
+(defkey "ctrl+b" {:when ~(and (= state.mode :edit) (nil? state.modal)) :do bevelEdge})
+
+(defkey "o" {:when ~(nil? state.modal) :do toggleProportional})
 
 (defkey "mod+i" selectInvert)
 
@@ -93,7 +118,7 @@
 
 ;;; The view: the numpad turns it, as in other 3D modellers
 
-(defkey "grave" {:when ~(nil? state.modal) :do openPie :with {:menu view}})
+(defkey "grave" {:when ~(nil? state.modal) :do open-pie :with {:menu view}})
 
 (defkey "numpad1" viewFront)
 
@@ -115,17 +140,17 @@
 
 (defkey "home" frameAll)
 
-(defkey "numpad4" {:do orbitView :with {:orbit [-15 0]}})
+(defkey "numpad4" {:do orbit-view :with {:orbit [-15 0]}})
 
-(defkey "numpad6" {:do orbitView :with {:orbit [15 0]}})
+(defkey "numpad6" {:do orbit-view :with {:orbit [15 0]}})
 
-(defkey "numpad8" {:do orbitView :with {:orbit [0 -15]}})
+(defkey "numpad8" {:do orbit-view :with {:orbit [0 -15]}})
 
-(defkey "numpad2" {:do orbitView :with {:orbit [0 15]}})
+(defkey "numpad2" {:do orbit-view :with {:orbit [0 15]}})
 
-(defkey "numpadplus" {:do zoomView :with {:steps 1}})
+(defkey "numpadplus" {:do zoom-view :with {:steps 1}})
 
-(defkey "numpadminus" {:do zoomView :with {:steps -1}})
+(defkey "numpadminus" {:do zoom-view :with {:steps -1}})
 
 (defkey "alt+z" toggleXray)
 
@@ -139,7 +164,7 @@
 
 ;;; Animation
 
-(defkey "i" insertKeyframe)
+(defkey "i" [{:when ~(= state.mode :edit) :do insetFaces} {:do insertKeyframe}])
 
 (defkey "alt+i" deleteKeyframe)
 

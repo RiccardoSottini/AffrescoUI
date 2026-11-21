@@ -6,23 +6,26 @@
 ;;; taken by name from the variables around it (`:onClick sortTable`), or with its arguments, (handler moveCard
 ;;; event.data.from event.data.at c). The keys are in keys.lisp.
 
+(ns flow.flow)
+
 ;;; The cards
 
 (defn column "A column of the board, with its cards." [c]
   (get computed.columns c))
 
-(defn cardsOf "A column's cards, in their order." [c]
+(defn cards-of "A column's cards, in their order." [c]
   (:cards (column c)))
 
-(defn nextOrder "The order that puts a card at the end of a column." [c]
-  (inc (reduce max -1 (map :order (cardsOf c)))))
+(defn next-order "The order that puts a card at the end of a column." [c]
+  (->> (cards-of c) (map :order) (reduce max -1) inc))
 
-(defn lastCard "The card at the end of a column." [c]
-  (last (cardsOf c)))
+(defn last-card "The card at the end of a column." [c]
+  (last (cards-of c)))
 
-(defn columnOf "The column that holds a card, or -1." [ref]
-  (or (first (filter some? (map-indexed (fn [c col] (when (some (fn [card] (= (:ref card) ref)) (:cards col)) c))
-                                        computed.columns)))
+(defn column-of "The column that holds a card, or -1." [ref]
+  (or (first (keep-indexed (fn [c col]
+                              (when (some #(= (:ref %) ref) (:cards col)) c))
+                            computed.columns))
       -1))
 
 (defn remember "Marks a change for undoChange (the last 20): the records' undo takes back the event's writes." []
@@ -30,434 +33,589 @@
   (set "state.toastUndo" true)
   (when (> (count state.undoStack) 20) (remove-state "state.undoStack" :at 0)))
 
-(defn updateCard "Changes the selected card, as one step undo can take back." [fields]
+(defn update-card "Changes the selected card, as one step undo can take back." [fields]
   (remember)
   (update-record "issues" :id computed.card.id :fields fields))
 
-(defn hideToast "Hides the notice in the corner." [] (set "state.toast.open" false))
+(defn hide-toast "Hides the notice in the corner." [] (set "state.toast.open" false))
 
 (defn notify "A toast in the corner for a few seconds; it offers Undo when what sent it remembered the columns first."
   [message]
   (set "state.toast" {:open true :message message :undo state.toastUndo})
   (set "state.toastUndo" false)
-  (debounce 4000 hideToast))
+  (debounce 4000 hide-toast))
 
-(defn logActivity "The activity feed, newest first, the last 30." [key title column]
+(defn log-activity "The activity feed, newest first, the last 30." [key title column]
   (set "state.activity" (concat [{:who "RS" :key key :title title :column column}] (take 29 state.activity))))
 
-(defn checkLimit "A notice when a column is over its limit." [c]
-  (let [col (column c)]
-    (when (and settings.board.wipWarnings (some? (:limit col)) (> (count (:cards col)) (:limit col)))
-      (notify (t "toast.wip" {:column (:name col) :limit (:limit col)})))))
+(defn check-limit "A notice when a column is over its limit." [c]
+  (let [{:keys [limit cards name]} (column c)]
+    (when (and (true? settings.board.wipWarnings) (some? limit) (> (count cards) limit))
+      (notify (t "toast.wip" {:column name :limit limit})))))
 
+(defn insert-card "A new card at the end of column c, with the next id, as one step undo can take back." [title c p who tag notes]
+  (remember)
+  (insert "issues"
+    :value {:id (str "FLO-" state.nextRef) :ref (str "FLO-" state.nextRef) :board state.boardId :status c
+            :order (next-order c) :priority p :title title :tag tag :who who :points 1 :notes notes})
+  (notify (t "toast.added" {:title title :column (:name (column c))}))
+  (log-activity "added" title "")
+  (set "state.nextRef" (inc state.nextRef)))
+
+; style: keep, named in tests/unit/usage.cpp
 (defn addCard "The composer's card, at the end of its column." []
-  (let [title (trim state.newCard)
-        composer state.composer
-        c (:c composer)]
-    (when (not= title "")
-      (remember)
-      (insert "issues"
-        :value {:id (str "FLO-" state.nextRef) :ref (str "FLO-" state.nextRef) :board state.boardId :status c
-                :order (nextOrder c) :priority (:p composer) :title title :tag (:tag composer) :who (:who composer)
-                :points 1 :notes (if (not= (trim (:notes composer)) "") (:notes composer) nil)})
-      (notify (t "toast.added" {:title title :column (:name (column c))}))
-      (logActivity "added" title "")
-      (set "state.nextRef" (inc state.nextRef))
+  (let [title (str/trim state.newCard)
+        {:keys [c p who tag notes more]} state.composer]
+    (when-not (str/blank? title)
+      (insert-card title c p who tag (when-not (str/blank? notes) notes))
       (set "state.newCard" "")
       (set "state.composer.notes" "")
-      (set "state.composer.open" (:more composer)))))
+      (set "state.composer.open" more))))
 
-(defn openComposer "Opens the composer on a column." [c]
-  (set "state.composer" {:open true :c c :p 0 :who state.me :tag (if (= state.filter "all") "feature" state.filter)
+(defn open-composer "Opens the composer on a column." [c]
+  (set "state.composer" {:open true :c c :p 0 :who state.me :tag (if (= state.filter :all) "feature" state.filter)
                          :notes "" :more state.composer.more}))
 
+; style: keep, named in tests/render/lisp/changes.json, tests/render/scenarios/changes.json
 (defn moveCard "A card from one column to the end of another." [from at to]
   (when (and (not= from to) (>= to 0) (<= to computed.lastColumn))
     (remember)
-    (update-record "issues" :id (:id (get (cardsOf from) at)) :fields {:status to :order (nextOrder to)})
-    (set "state.selected" {:c to :i (dec (count (cardsOf to)))})
-    (logActivity "moved" (:title (lastCard to)) (:name (column to)))
-    (checkLimit to)))
+    (update-record "issues" :id (-> (cards-of from) (get at) :id) :fields {:status to :order (next-order to)})
+    (set "state.selected" {:c to :i (dec (count (cards-of to)))})
+    (log-activity "moved" (:title (last-card to)) (:name (column to)))
+    (check-limit to)))
 
-(defn moveSelected "The selected card one column on (1) or back (-1)." [by]
+(defn move-selected "The selected card one column on (1) or back (-1)." [by]
   (moveCard state.selected.c state.selected.i (+ state.selected.c by)))
 
-(defn reorderCard "Swaps a card with its neighbour in the column." [c i by]
-  (let [cards (cardsOf c)
-        card (get cards i)
-        other (get cards (+ i by))]
-    (when (and (>= (+ i by) 0) (< (+ i by) (count cards)))
+(defn reorder-card "Swaps a card with its neighbour in the column." [c i by]
+  (let [cards (cards-of c)
+        at (+ i by)
+        {:keys [id order]} (get cards i)
+        other (get cards at)]
+    (when (and (>= at 0) (< at (count cards)))
       (remember)
-      (update-record "issues" :id (:id card) :fields {:order (:order other)})
-      (update-record "issues" :id (:id other) :fields {:order (:order card)})
-      (set "state.selected" {:c c :i (+ i by)}))))
+      (update-record "issues" :id id :fields {:order (:order other)})
+      (update-record "issues" :id (:id other) :fields {:order order})
+      (set "state.selected" {:c c :i at}))))
 
-(defn moveToLane "A card dropped in a swimlane takes that column and that owner." [from at to who]
+(defn move-to-lane "A card dropped in a swimlane takes that column and that owner." [from at to who]
   (if (not= from to)
     (do (moveCard from at to)
-        (update-record "issues" :id (:id (lastCard to)) :fields {:who who}))
-    (let [card (get (cardsOf from) at)]
+        (update-record "issues" :id (:id (last-card to)) :fields {:who who}))
+    (let [card (get (cards-of from) at)]
       (when (not= (:who card) who)
         (remember)
         (update-record "issues" :id (:id card) :fields {:who who})))))
 
+;;; By ids and names: what the commands an agent runs (cardMove, cardAdd...) do. A card, a column or a member that
+;;; isn't there changes nothing, and the notice in the corner says so.
+
+(defn find-card "A card of this board by its id (FLO-12, in any case), with its column `c` and its place `at`; nil if
+  there is none." [ref]
+  (let [wanted (-> ref str/trim str/upper-case)]
+    (find #(= (:ref %) wanted) computed.allCards)))
+
+(defn column-named "The column of this board with that name, in any case, or -1." [name]
+  (indexOf (map #(str/lower-case (:name %)) computed.columns) (-> name str/trim str/lower-case)))
+
+(defn member-named "A member's initials, from their initials, their name or their first name, in any case; nil if
+  nobody has it." [name]
+  (let [wanted (-> name str/trim str/lower-case)]
+    (:who (find (fn [member]
+                  (let [full (str/lower-case (:name member))]
+                    (some #{wanted} [(str/lower-case (:who member)) full (first (str/split full " "))])))
+                state.members))))
+
+(defn move-card-to "Moves a card, by its id, to the end of the column with that name." [ref status]
+  (let [card (find-card ref)
+        to (column-named status)]
+    (cond (nil? card) (notify (t "toast.noCard" {:ref ref}))
+          (neg? to) (notify (t "toast.noColumn" {:column status}))
+          :else (moveCard (:c card) (:at card) to))))
+
+(defn add-card-to "A card with that title, mine, at the end of the column with that name, or of the first one." [title status]
+  (let [typed (str/trim title)
+        c (if-some [named status] (column-named named) 0)]
+    (cond (str/blank? typed) (notify (t "toast.noTitle"))
+          (neg? c) (notify (t "toast.noColumn" {:column status}))
+          :else (insert-card typed c 0 state.me "feature" nil))))
+
+(defn assign-card-to "Gives a card, by its id, to a member, by their initials or their name." [ref name]
+  (let [card (find-card ref)
+        who (member-named name)]
+    (cond (nil? card) (notify (t "toast.noCard" {:ref ref}))
+          (nil? who) (notify (t "toast.noMember" {:who name}))
+          :else (do (remember) (update-record "issues" :id (:ref card) :fields {:who who})))))
+
+(defn prioritize-card "Sets a card's priority, by its id, from its name: none, urgent, high, medium or low." [ref priority]
+  (if-some [card (find-card ref)]
+    (do (remember)
+        (update-record "issues" :id (:ref card)
+                       :fields {:priority (indexOf ["none" "urgent" "high" "medium" "low"] priority)}))
+    (notify (t "toast.noCard" {:ref ref}))))
+
 ;;; Every card
 
-(defn cardsWithPlaces
+(defn cards-with-places
   "The cards of the columns, one list, each with its column `c` and its place `at` in it."
   [columns]
-  (vec (mapcat (fn [c]
-                 (map-indexed (fn [at card]
-                                {:c c :at at :ref (:ref card) :priority (:priority card) :due (:due card)
-                                 :points (:points card) :start (:start card) :tag (:tag card) :title (:title card)
-                                 :who (:who card)})
-                              (:cards (get columns c))))
-               (range (count columns)))))
+  (for [[c column] (map-indexed vector columns)
+        [at card] (map-indexed vector (:cards column))]
+    (merge {:c c :at at} (select-keys card [:ref :priority :due :points :start :tag :title :who]))))
 
 ;;; Selecting
 
-(defn announcePresence "Tells the other people on this board which card is open." []
-  (emit "presence" :data {:who "RS" :card (if (nil? computed.card) nil computed.card.title)}))
+(defn announce-presence "Tells the other people on this board which card is open." []
+  (emit "presence" :data {:who "RS" :card (:title computed.card)}))
 
-(defn selectCard "Selects a card: c its column, i its place." [c i]
-  (when (not (and (some? state.selected) (= state.selected.c c) (= state.selected.i i)))
+(defn select-card "Selects a card: c its column, i its place." [c i]
+  (when-not (and (some? state.selected) (= state.selected.c c) (= state.selected.i i))
     (set "state.selected" {:c c :i i})
     (set "state.draft" {:editing false :notes ""})
     (set "state.dueOpen" false)
-    (announcePresence)))
+    (announce-presence)))
 
-(defn openCardMenu "A card's menu, at the pointer." [c i]
-  (selectCard c i)
+(defn open-card-menu "A card's menu, at the pointer." [c i]
+  (select-card c i)
   (set "state.menuAt" {:x event.x :y event.y})
   (set "state.cardMenu" true))
 
-(defn openColumnMenu "A column's menu, below its button; from the keyboard, at the board's top start corner." [c]
+(defn open-column-menu "A column's menu, below its button; from the keyboard, at the board's top start corner." [c]
   (set "state.menuColumn" c)
   (set "state.menuAt" {:x (or event.x 244) :y (+ (or event.y 108) 12)})
   (set "state.columnMenu" true))
 
-(defn openRow "A table row chosen: its id is column-index." []
-  (let [parts (split (or event.id event.value) "-")]
-    (selectCard (number (first parts)) (number (second parts)))))
+(defn open-row "A table row chosen: its id is column-index." []
+  (let [[c i] (map number (str/split (or event.id event.value) "-"))]
+    (select-card c i)))
 
-(defn switchBoard "Another board of the sidebar: undo keeps one board's columns." [id]
+(defn switch-board "Another board of the sidebar: undo keeps one board's columns." [id]
   (when (not= id state.boardId)
     (set "state.boardId" id)
-    (set "state.board" (:label (find (fn [board] (= (:id board) id)) state.boards)))
+    (set "state.board" (:label (find #(= (:id %) id) state.boards)))
     (set "state.selected" nil)
     (set "state.undoStack" [])))
 
 ;;; Filters
 
-(defn setFilter "A value of the Filter menu: on says it is applied, which removes it." [prop v on]
-  (cond (= prop "status") (set "state.fStatus" (if on -1 v))
-        (= prop "assignee") (set "state.owner" (if on "" v))
-        (= prop "priority") (set "state.fPrio" (if on -1 v))
-        (= prop "label") (set "state.filter" (if on "all" v)))
+(defn set-filter "A value of the Filter menu: on says it is applied, which removes it." [prop v on]
+  (case prop
+    :status (set "state.fStatus" (if on -1 v))
+    :assignee (set "state.owner" (if on "" v))
+    :priority (set "state.fPrio" (if on -1 v))
+    :label (set "state.filter" (if on :all v))
+    nil)
   (set "state.filterOpen" false)
   (set "state.filterProp" ""))
 
-(defn clearFilter "The filter a chip's x removes." [prop]
-  (cond (= prop "status") (set "state.fStatus" -1)
-        (= prop "assignee") (set "state.owner" "")
-        (= prop "priority") (set "state.fPrio" -1)
-        (= prop "label") (set "state.filter" "all")
-        (= prop "project") (set "state.fProject" -1)))
+(defn clear-filter "The filter a chip's x removes." [prop]
+  (case prop
+    :status (set "state.fStatus" -1)
+    :assignee (set "state.owner" "")
+    :priority (set "state.fPrio" -1)
+    :label (set "state.filter" :all)
+    :project (set "state.fProject" -1)
+    nil))
 
-(defn showEverything "No filter, search or scope: every card shows." []
-  (set "state.filter" "all")
+(defn show-everything "No filter, search or scope: every card shows." []
+  (set "state.filter" :all)
   (set "state.owner" "")
   (set "state.fStatus" -1)
   (set "state.fPrio" -1)
   (set "state.query" "")
   (set "state.fProject" -1)
-  (set "state.scope" "all"))
+  (set "state.scope" :all))
 
 (defcommand clearFilters "Clears the filters, the search and the scope."
   :title ~(t "command.clearFilters") :description ~(t "command.clearFilters.about") :category ~(t "category.view") []
-  (showEverything)
+  (show-everything)
   (set "state.searchOpen" false))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn goToCard "A quick pick row: from another page, back to the issues, in the board, list or table it showed."
   [item]
-  (showPage "issues")
-  (when (= state.view "timeline") (set "state.view" "board"))
-  (showEverything)
-  (selectCard (:c item) (:at item)))
+  (show-page :issues)
+  (when (= state.view :timeline) (set "state.view" :board))
+  (show-everything)
+  (select-card (:c item) (:at item)))
 
 ;;; The selected card's properties
 
-(defn openPropPick "A picker over the selected card's status, priority or assignee, on what it is now." [kind]
+(defn open-prop-pick "A picker over the selected card's status, priority or assignee, on what it is now." [kind]
   (set "state.propKind" kind)
   (set "state.propPick"
        {:open true :query "" :top 0
-        :index (cond (> (count state.marked) 0) 0
-                     (= kind "status") state.selected.c
-                     (= kind "priority") (or computed.card.priority 0)
+        :index (cond (seq state.marked) 0
+                     (= kind :status) state.selected.c
+                     (= kind :priority) (or computed.card.priority 0)
                      :else (max 0 (indexOf (map :who state.members) computed.card.who)))}))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setPriority "The priority from 0 (none) to 4 (low); every marked card while some are." [p]
-  (if (> (count state.marked) 0)
-    (bulkPriority p)
-    (when computed.card
-      (updateCard {:priority p})
+  (if (seq state.marked)
+    (bulk-priority p)
+    (when-some [_ computed.card]
+      (update-card {:priority p})
       (set "state.issuePriorityOpen" false))))
 
-(defn setEstimate "The points." [n]
+(defn set-estimate "The points." [n]
   (set "state.issueEstimateOpen" false)
-  (when computed.card (updateCard {:points n})))
+  (when-some [_ computed.card] (update-card {:points n})))
 
-(defn setTag "The issue's main label; its project follows it." [tag]
+(defn set-tag "The issue's main label; its project follows it." [tag]
   (set "state.issueTagOpen" false)
-  (when computed.card (updateCard {:tag tag})))
+  (when-some [_ computed.card] (update-card {:tag tag})))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setAssignee "A member's initials; every marked card while some are." [who]
-  (if (> (count state.marked) 0)
-    (bulkAssignee who)
-    (when computed.card
-      (updateCard {:who who})
+  (if (seq state.marked)
+    (bulk-assignee who)
+    (when-some [_ computed.card]
+      (update-card {:who who})
       (set "state.issueWhoOpen" false))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setStatus "The column the selected card moves to; every marked card while some are." [to]
   (set "state.issueStatusOpen" false)
-  (if (> (count state.marked) 0)
-    (bulkStatus to)
-    (when computed.card (moveCard state.selected.c state.selected.i to))))
+  (if (seq state.marked)
+    (bulk-status to)
+    (when-some [_ computed.card] (moveCard state.selected.c state.selected.i to))))
 
-(defn setDue "A date, or nil to clear it." [date]
-  (when computed.card
-    (updateCard {:due date})
+(defn set-due "A date, or nil to clear it." [date]
+  (when-some [_ computed.card]
+    (update-card {:due date})
     (set "state.dueOpen" false)))
 
-(defn setCardDates "A card's dates and owner, from the timeline." [c i start due who]
+(defn set-card-dates "A card's dates and owner, from the timeline." [c i start due who]
   (remember)
-  (update-record "issues" :id (:id (get (cardsOf c) i)) :fields {:start start :due due :who who}))
+  (update-record "issues" :id (-> (cards-of c) (get i) :id) :fields {:start start :due due :who who}))
 
-(defn listOf "A list field of the selected card: labels, assignees, checklist, comments, attachments." [field]
+(defn list-of "A list field of the selected card: labels, assignees, checklist, comments, attachments." [field]
   (or (get computed.card field) []))
 
-(defn toggleListItem "Adds a label or an assignee to the selected card, or removes it." [field value]
-  (when computed.card
-    (let [items (listOf field)]
-      (updateCard (assoc {} field (if (contains items value)
-                                    (filter (fn [item] (not= item value)) items)
-                                    (concat items [value])))))))
+(defn toggle-list-item "Adds a label or an assignee to the selected card, or removes it." [field value]
+  (when-some [_ computed.card]
+    (let [items (list-of field)]
+      (update-card {field (if (contains items value) (remove #{value} items) (conj items value))}))))
 
-(defn addToCard "Adds to a list of the selected card; nothing while the text typed is blank." [field value input]
-  (when (and (some? computed.card) (not= (trim (or input "")) ""))
-    (updateCard (assoc {} field (concat (listOf field) [value])))
-    (when (= field "comments") (logActivity "commented" computed.card.title ""))))
+(defn add-to-card "Adds to a list of the selected card; nothing while the text typed is blank." [field value input]
+  (when (and (some? computed.card) (not (str/blank? input)))
+    (update-card {field (conj (list-of field) value)})
+    (when (= field "comments") (log-activity "commented" computed.card.title ""))))
 
-(defn removeFromCard "Removes an item of a list of the selected card." [field at]
-  (let [items (listOf field)]
-    (updateCard (assoc {} field (concat (take at items) (drop (inc at) items))))))
+(defn remove-from-card "Removes an item of a list of the selected card." [field at]
+  (let [items (list-of field)]
+    (update-card {field (concat (take at items) (drop (inc at) items))})))
 
-(defn checkItem "Checks or unchecks an item of the checklist." [at value]
-  (updateCard {:checklist (map-indexed (fn [index item] (if (= index at) (merge item {:done value}) item))
+(defn check-item "Checks or unchecks an item of the checklist." [at value]
+  (update-card {:checklist (map-indexed (fn [index item] (if (= index at) (assoc item :done value) item))
                                        computed.card.checklist)}))
 
-(defn editNotes "Edits the chosen card's description in place." []
-  (when computed.card (set "state.draft" {:editing true :notes (or computed.card.notes "")})))
+(defn edit-notes "Edits the chosen card's description in place." []
+  (when-some [card computed.card] (set "state.draft" {:editing true :notes (or (:notes card) "")})))
 
-(defn saveNotes "Keeps the description being edited." []
-  (when computed.card
-    (updateCard {:notes state.draft.notes})
+(defn save-notes "Keeps the description being edited." []
+  (when-some [_ computed.card]
+    (update-card {:notes state.draft.notes})
     (set "state.draft.editing" false)
     (notify (t "toast.saved"))))
 
-(defn cancelNotes "Leaves the description as it was." [] (set "state.draft.editing" false))
+(defn cancel-notes "Leaves the description as it was." [] (set "state.draft.editing" false))
 
-(defn saveCard "The edit dialog's title." []
-  (let [title (trim state.edit.title)]
-    (when (and (some? computed.card) (not= title ""))
-      (updateCard {:title title})
+(defn save-card "The edit dialog's title." []
+  (let [title (str/trim state.edit.title)]
+    (when (and (some? computed.card) (not (str/blank? title)))
+      (update-card {:title title})
       (set "state.edit.open" false)
       (notify (t "toast.renamed"))
-      (logActivity "renamed" title ""))))
+      (log-activity "renamed" title ""))))
 
-(defn closeEdit "Closes the edit dialog." [] (set "state.edit.open" false))
+(defn close-edit "Closes the edit dialog." [] (set "state.edit.open" false))
 
 ;;; The timeline
 
-(defn clipOf "A card with a due date as a timeline clip, coloured as its column; days are frames." [card columns]
-  (let [from (or (:start card) (:due card))]
-    {:id (str (:c card) "-" (:at card)) :label (:title card)
-     :start (max 0 (daysBetween state.sprintStart from)) :duration (max 1 (daysBetween from (:due card)))
-     :color (:color (get columns (:c card)))}))
+(defn clip-of "A card with a due date as a timeline clip, coloured as its column; days are frames." [card columns]
+  (let [{:keys [c at title start due]} card
+        from (or start due)]
+    {:id (str c "-" at) :label title
+     :start (max 0 (daysBetween state.sprintStart from)) :duration (max 1 (daysBetween from due))
+     :color (get-in columns [c :color])}))
 
-(defn buildTimeline "One track per member, a clip per card with a start and a due date." []
+(defn build-timeline "One track per member, a clip per card with a start and a due date." []
   (let [columns computed.columns
-        cards (filter (fn [card] (some? (:due card))) computed.allCards)]
+        owned (group-by :who (filter :due computed.allCards))]
     (set "state.timelineTracks"
-         (map (fn [m]
-                {:id (:who m) :label (:name m)
-                 :clips (map (fn [card] (clipOf card columns)) (filter (fn [card] (= (:who card) (:who m))) cards))})
+         (map (fn [{:keys [who name]}]
+                {:id who :label name :clips (map #(clip-of % columns) (get owned who []))})
               state.members))))
 
-(defn changeClip "A clip moved or trimmed: its card gets the new dates, and the track's owner." []
-  (let [parts (split event.id "-")]
-    (setCardDates (number (first parts)) (number (second parts))
+(defn change-clip "A clip moved or trimmed: its card gets the new dates, and the track's owner." []
+  (let [[c i] (map number (str/split event.id "-"))]
+    (set-card-dates c i
                   (addDays state.sprintStart (round event.start))
                   (addDays state.sprintStart (round (+ event.start event.duration)))
                   event.track)))
 
 ;;; Marking several cards
 
-(defn markSelected "Marks the selected card if it isn't marked yet." []
+(defn mark-selected "Marks the selected card if it isn't marked yet." []
   (when (and (some? computed.card) (not (contains state.marked computed.card.ref)))
     (push "state.marked" computed.card.ref)))
 
-(defn bulkChanged "Says how many marked cards changed." [] (notify (t "bulk.changed" {:n (count state.marked)})))
+(defn bulk-changed "Says how many marked cards changed." [] (notify (t "bulk.changed" {:n (count state.marked)})))
 
-(defn bulkPriority "Every marked card's priority." [p]
+(defn bulk-priority "Every marked card's priority." [p]
   (remember)
   (update-record "issues" :id state.marked :fields {:priority p})
-  (bulkChanged))
+  (bulk-changed))
 
-(defn bulkAssignee "Assigns every marked card." [who]
+(defn bulk-assignee "Assigns every marked card." [who]
   (remember)
   (update-record "issues" :id state.marked :fields {:who who})
-  (bulkChanged))
+  (bulk-changed))
 
-(defn moveMarked "One card of a bulk move, without its own undo step." [ref from to]
+(defn move-marked "One card of a bulk move, without its own undo step." [ref from to]
   (when (and (>= from 0) (not= from to))
-    (update-record "issues" :id ref :fields {:status to :order (nextOrder to)})))
+    (update-record "issues" :id ref :fields {:status to :order (next-order to)})))
 
-(defn bulkStatus "Moves every marked card to the end of a column, in the order they were marked." [to]
+(defn bulk-status "Moves every marked card to the end of a column, in the order they were marked." [to]
   (remember)
-  (map (fn [ref] (moveMarked ref (columnOf ref) to)) state.marked)
+  (doseq [ref state.marked] (move-marked ref (column-of ref) to))
   (set "state.selected" nil)
-  (bulkChanged))
+  (bulk-changed))
 
 ;;; Pages and the inbox
 
-(defn showPage "issues, inbox, cycles or projects." [page]
+(defn show-page "issues, inbox, cycles or projects." [page]
   (set "state.page" page)
   (set "state.issueOpen" false))
 
-(defn openProject "A project's issues, behind a Project filter whose chip removes it." [at]
+(defn open-project "A project's issues, behind a Project filter whose chip removes it." [at]
   (set "state.fProject" at)
-  (showPage "issues"))
+  (show-page :issues))
 
-(defn pickNotification "A notification among the shown ones, marked read." [at]
+(defn open-project-page "A project's own page: its properties, milestones and updates." [at]
+  (let [project (get data.projects at)
+        health (:health project)]
+    (set "state.projectOpen" at)
+    (set "state.projectDraft" {:text "" :health (if (= health "completed") "onTrack" health)})
+    (set "state.milestoneDraft" "")
+    (set "state.projectName" (:name project))
+    (set "state.projectSummary" (or-else (:summary project) ""))
+    (show-page :projects)))
+
+(defn rename-project "Enter in the project page's title: the project takes the name typed, unless it is blank." []
+  (let [typed (str/trim state.projectName)]
+    (if (str/blank? typed)
+      (set "state.projectName" computed.project.name)
+      (update-record "projects" :id computed.project.id :fields {:name typed}))))
+
+(defn save-project-summary "Enter in the project page's summary: the project keeps what is typed." []
+  (update-record "projects" :id computed.project.id :fields {:summary (str/trim state.projectSummary)}))
+
+(defn close-project-page "Back from a project's page to the list of projects." []
+  (set "state.projectOpen" -1))
+
+(defn same-name? "Whether a typed name is this one, in any case and with spaces around it." [typed name]
+  (= (-> typed str/trim str/lower-case) (str/lower-case name)))
+
+(defn project-named "A project's place among the projects by its name, in any case; -1 if there is none." [name]
+  (let [named? (fn [i {n :name}] (when (same-name? name n) i))]
+    (or-else (first (keep-indexed named? data.projects)) -1)))
+
+(defn health-named "A health by its name or key (on track, atRisk...); nil if there is none." [name]
+  (let [wanted (str/replace name " " "")]
+    (first (filter #(same-name? wanted %) ["onTrack" "atRisk" "offTrack" "completed"]))))
+
+(defn post-project-update
+  "A project update, newest first, from the person; the project takes the update's health." [at health text]
+  (let [project (get data.projects at)
+        typed (str/trim text)
+        entry {:who state.me :health health :when state.today :text typed}
+        updates (into [entry] (:updates project))]
+    (cond (nil? project) (notify (t "toast.noProject"))
+          (str/blank? typed) (notify (t "toast.noUpdate"))
+          :else (do (update-record "projects" :id (:id project)
+                                   :fields {:health health :updates updates})
+                    (notify (t "toast.updatePosted" {:project (:name project)}))))))
+
+(defn submit-project-update "The project page's composer: posts what is typed with the health picked, then clears it." []
+  (when-not (str/blank? state.projectDraft.text)
+    (post-project-update state.projectOpen state.projectDraft.health state.projectDraft.text)
+    (set "state.projectDraft.text" "")))
+
+(defn toggle-milestone "Marks one of the open project's milestones done, or not done again." [k]
+  (let [project computed.project]
+    (update-record "projects" :id (:id project) :fields {:milestones (update-in (:milestones project) [k :done] not)})))
+
+(defn add-milestone "A milestone named as typed, due on the open project's target date." []
+  (let [project computed.project
+        typed (str/trim state.milestoneDraft)
+        milestone {:name typed :target (or-else (:target project) state.today) :done false}]
+    (when (and (some? project) (not (str/blank? typed)))
+      (update-record "projects" :id (:id project) :fields {:milestones (conj (vec (:milestones project)) milestone)})
+      (set "state.milestoneDraft" ""))))
+
+(defn change-roadmap-clip "A project's bar moved or trimmed on the roadmap: its start and target dates follow." []
+  (let [from (round event.start)
+        to (round (+ event.start event.duration))]
+    (when-some [project (get data.projects (number event.id))]
+      (update-record "projects" :id (:id project)
+                     :fields {:start (addDays state.roadmapStart from) :target (addDays state.roadmapStart to)}))))
+
+(defn pick-notification "A notification among the shown ones, marked read." [at]
   (set "state.inboxAt" at)
   (update-record "inbox" :id (:id (get computed.inboxShown at)) :fields {:read true}))
 
 ;;; What the controls of the views do
 
+; style: keep, named in benchmarks/agents/tasks/point-lisp-drawer-owner.json
 (defn toggleOwner "Shows only a member's cards, or everyone's again, and closes the members menu." [who]
   (set "state.owner" (if (= state.owner who) "" who))
   (set "state.membersOpen" false))
 
-(defn showMyIssues "The sidebar's My issues: the issues page, only the person's cards, or everyone's again." []
-  (showPage "issues")
+(defn show-my-issues "The sidebar's My issues: the issues page, only the person's cards, or everyone's again." []
+  (show-page :issues)
   (set "state.owner" (if (= state.owner state.me) "" state.me)))
 
+; style: keep, named in tests/render/scenarios/kanban.json
 (defn chooseScope "Shows every card, the active ones or the backlog." [scope]
   (set "state.scope" scope))
 
-(defn chooseProjectScope "Shows every project, or only some of them." [scope]
+(defn choose-project-scope "Shows every project, or only some of them." [scope]
   (set "state.projectScope" scope))
 
-(defn pickFilterProp "Lists the values of one property in the Filter menu." [prop]
+(defn pick-filter-prop "Lists the values of one property in the Filter menu." [prop]
   (set "state.filterProp" prop)
   (set "state.filterQuery" "")
   (focus "#filterField"))
 
-(defn submitFilter
+(defn submit-filter
   "Enter in the Filter menu's field: the first property listed, or the first value of the one chosen."
   []
-  (cond (and (= state.filterProp "") (> (count computed.filterPropsShown) 0))
-        (pickFilterProp (first (first computed.filterPropsShown)))
-        (and (not= state.filterProp "") (> (count computed.filterOptionsShown) 0))
+  (cond (and (= state.filterProp "") (seq computed.filterPropsShown))
+        (pick-filter-prop (ffirst computed.filterPropsShown))
+        (and (not= state.filterProp "") (seq computed.filterOptionsShown))
         (let [option (first computed.filterOptionsShown)]
-          (setFilter state.filterProp (:v option) (:on option)))))
+          (set-filter state.filterProp (:v option) (:on option)))))
 
+; style: keep, group-by is a word of the language or of the host
 (defn groupBy "The Display menu's grouping: the swimlanes, unless they are the grouping already." [grouped]
-  (when (not grouped) (toggleSwimlanes)))
+  (when-not grouped (toggleSwimlanes)))
 
-(defn orderBy "The Display menu's ordering: manual, by priority or by due date." [order]
+(defn order-by "The Display menu's ordering: manual, by priority or by due date." [order]
   (set "state.order" order))
 
-(defn toggleProperty "Shows or hides one property on the cards." [prop]
-  (set "state.hidden" (if (some (fn [hidden] (= hidden prop)) state.hidden)
-                        (filter (fn [hidden] (not= hidden prop)) state.hidden)
-                        (conj state.hidden prop))))
+(defn toggle-property "Shows or hides one property on the cards." [prop]
+  (set "state.hidden" (if (some #{prop} state.hidden) (remove #{prop} state.hidden) (conj state.hidden prop))))
 
-(defn sortTable "A table header clicked: sorts the table by that column." []
+(defn sort-table "A table header clicked: sorts the table by that column." []
   (set "state.tableSort" {:column event.column :descending event.descending}))
 
-(defn resizeTableColumn "A table column's edge dragged: its width is kept." []
+(defn resize-table-column "A table column's edge dragged: its width is kept." []
   (set (str "state.columnWidths." event.column) event.width))
 
-(defn nextComposerColumn "The composer's status chip: the next column, round to the first." []
+(defn next-composer-column "The composer's status chip: the next column, round to the first." []
   (set "state.composer.c" (mod (inc state.composer.c) (count computed.columns))))
 
-(defn nextComposerPriority "The composer's priority chip: the next priority, round to none." []
+(defn next-composer-priority "The composer's priority chip: the next priority, round to none." []
   (set "state.composer.p" (mod (inc state.composer.p) (count state.priorities))))
 
-(defn copyLink "A link clicked in a description: copied, and a notice says so." []
+(defn copy-link "A link clicked in a description: copied, and a notice says so." []
   (copy event.link)
   (notify (t "toast.linkCopied" {:link event.link})))
 
 ;;; What other people's Flow says, through the host's channel (board.lisp)
 
-(defn teamCommitted "Someone changed the board: the feed shows it, and its author is here." []
+(defn team-committed "Someone changed the board: the feed shows it, and its author is here." []
   (let [who (or event.author "?")]
     (set "state.activity" (concat [{:who who :key "revised" :title (or event.message "") :column ""}]
                                   (take 29 state.activity)))
     (set (str "state.presence." who) (or (get state.presence who) ""))))
 
-(defn teamEvent "Another person's Flow says which card they have open." []
+(defn team-event "Another person's Flow says which card they have open." []
   (when (and (= event.name "presence") (not= event.data.who "RS"))
     (set (str "state.presence." event.data.who) (or event.data.card ""))))
 
-(defn teamClosed "The channel closed: nobody else is here." []
+(defn team-closed "The channel closed: nobody else is here." []
   (set "state.presence" {}))
 
 ;;; Commands: the palette (Cmd+Shift+P), the menus and the keys run these
+
+(defcommand cardMove "Moves a card, by its id, to the column with that name."
+  :title ~(t "command.cardMove") :description ~(t "command.cardMove.about")
+  :category ~(t "category.issue") :icon "arrow-right"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :status {:type string :description "The column's name, like In review"}}
+  [card status]
+  (move-card-to card status))
+
+(defcommand cardAdd "Adds a card with that title to a column: the first one unless another is named."
+  :title ~(t "command.cardAdd") :description ~(t "command.cardAdd.about")
+  :category ~(t "category.issue") :icon "plus"
+  :arguments {:title {:type string :description "The card's title"}
+              :status {:type [string null] :description "The column's name; the first column when left out"}}
+  [title status]
+  (add-card-to title status))
+
+(defcommand cardAssign "Gives a card, by its id, to a member, by their initials or their name."
+  :title ~(t "command.cardAssign") :description ~(t "command.cardAssign.about")
+  :category ~(t "category.issue") :icon "user"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :who {:type string :description "A member's initials, name or first name, like MK or Maya"}}
+  [card who]
+  (assign-card-to card who))
+
+(defcommand cardPriority "Sets a card's priority, by its id."
+  :title ~(t "command.cardPriority") :description ~(t "command.cardPriority.about")
+  :category ~(t "category.issue") :icon "chevrons-up"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :priority {:enum [none urgent high medium low] :description "The priority"}}
+  [card priority]
+  (prioritize-card card priority))
 
 (defcommand columnNew "A new card in the column whose menu is open."
   :title ~(t "command.columnNew")
   :description ~(t "command.columnNew.about") :icon "plus" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
-  (openComposer state.menuColumn))
+  (open-composer state.menuColumn))
 
 (defcommand columnSelect "Marks every card shown in the column whose menu is open."
   :title ~(t "command.columnSelect")
   :description ~(t "command.columnSelect.about") :icon "list-checks" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
-  (set "state.marked" (map :ref (filter (fn [card] (= (:c card) state.menuColumn)) computed.visible))))
+  (set "state.marked" (map :ref (filter #(= (:c %) state.menuColumn) computed.visible))))
 
 (defcommand selectNext "Chooses the next card shown."
   :title ~(t "command.selectNext") :description ~(t "command.selectNext.about")
   :category ~(t "category.go") :icon "arrow-down"
   :enablement ~(some? computed.next) []
-  (selectCard computed.next.c computed.next.at))
+  (select-card computed.next.c computed.next.at))
 
 (defcommand selectPrev "Chooses the card shown before."
   :title ~(t "command.selectPrev") :description ~(t "command.selectPrev.about")
   :category ~(t "category.go") :icon "arrow-up"
   :enablement ~(some? computed.prev) []
-  (selectCard computed.prev.c computed.prev.at))
+  (select-card computed.prev.c computed.prev.at))
 
 (defcommand changeStatus "Opens the status picker for the chosen or marked cards."
   :title ~(t "command.changeStatus") :description ~(t "command.changeStatus.about")
   :category ~(t "category.issue") :icon "circle-dashed"
-  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
-  (openPropPick "status"))
+  :enablement ~(or (some? computed.card) (pos? (count state.marked))) []
+  (open-prop-pick "status"))
 
 (defcommand changePriority "Opens the priority picker for the chosen or marked cards."
   :title ~(t "command.changePriority") :description ~(t "command.changePriority.about")
   :category ~(t "category.issue") :icon "chevrons-up"
-  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
-  (openPropPick "priority"))
+  :enablement ~(or (some? computed.card) (pos? (count state.marked))) []
+  (open-prop-pick "priority"))
 
 (defcommand changeAssignee "Opens the assignee picker for the chosen or marked cards."
   :title ~(t "command.changeAssignee") :description ~(t "command.changeAssignee.about")
   :category ~(t "category.issue") :icon "user"
-  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
-  (openPropPick "assignee"))
+  :enablement ~(or (some? computed.card) (pos? (count state.marked))) []
+  (open-prop-pick "assignee"))
 
 (defcommand assignToMe "Gives the chosen or marked cards to me."
   :title ~(t "command.assignToMe") :description ~(t "command.assignToMe.about")
@@ -468,7 +626,7 @@
 (defcommand newCardCommand "Opens the composer on the first column."
   :title ~(t "command.newCardCommand") :description ~(t "command.newCardCommand.about")
   :category ~(t "category.issue") :icon "plus" []
-  (openComposer 0))
+  (open-composer 0))
 
 (defcommand goToCardCommand "Opens the list of cards, to go to one."
   :title ~(t "command.goToCardCommand") :description ~(t "command.goToCardCommand.about")
@@ -495,7 +653,7 @@
   (let [card computed.card]
     (remember)
     (notify (t "toast.deleted" {:title (:title card)}))
-    (logActivity "deleted" (:title card) "")
+    (log-activity "deleted" (:title card) "")
     (delete "issues" :id (:id card))
     (set "state.selected" nil)))
 
@@ -503,36 +661,36 @@
   :title ~(t "command.moveRight") :description ~(t "command.moveRight.about")
   :category ~(t "category.issue") :icon "arrow-right"
   :enablement ~(and (some? computed.card) (< state.selected.c computed.lastColumn)) []
-  (moveSelected 1))
+  (move-selected 1))
 
 (defcommand moveLeft "Moves the chosen card to the column before."
   :title ~(t "command.moveLeft") :description ~(t "command.moveLeft.about")
   :category ~(t "category.issue") :icon "arrow-left"
   :enablement ~(and (some? computed.card) (> state.selected.c 0)) []
-  (moveSelected -1))
+  (move-selected -1))
 
 (defcommand moveUp "Moves the chosen card up its column."
   :title ~(t "command.moveUp") :description ~(t "command.moveUp.about")
   :category ~(t "category.issue") :icon "arrow-up"
   :enablement ~(and (some? computed.card) (> state.selected.i 0)) []
-  (reorderCard state.selected.c state.selected.i -1))
+  (reorder-card state.selected.c state.selected.i -1))
 
 (defcommand moveDown "Moves the chosen card down its column."
   :title ~(t "command.moveDown") :description ~(t "command.moveDown.about")
   :category ~(t "category.issue") :icon "arrow-down"
   :enablement ~(and (some? computed.card)
-                    (< state.selected.i (- (count (get-in computed.columns [state.selected.c :cards])) 1))) []
-  (reorderCard state.selected.c state.selected.i 1))
+                    (< state.selected.i (dec (count (get-in computed.columns [state.selected.c :cards]))))) []
+  (reorder-card state.selected.c state.selected.i 1))
 
 (defcommand undoChange "Takes back the last change to the cards."
   :title ~(t "command.undoChange") :description ~(t "command.undoChange.about")
   :category ~(t "category.issue") :icon "undo-2" []
-  (if (= (count state.undoStack) 0)
+  (if (empty? state.undoStack)
     (notify (t "toast.nothingToUndo"))
     (do (undoData true)
         (remove-state "state.undoStack" :at (dec (count state.undoStack)))
         (set "state.selected" nil)
-        (logActivity "undone" "" "")
+        (log-activity "undone" "" "")
         (notify (t "toast.undone")))))
 
 (defcommand openIssue "Opens the chosen card as a page."
@@ -553,30 +711,28 @@
   :category ~(t "category.issue") :icon "square-check"
   :enablement ~(some? computed.card) []
   (let [ref computed.card.ref]
-    (set "state.marked" (if (contains state.marked ref)
-                          (filter (fn [marked] (not= marked ref)) state.marked)
-                          (concat state.marked [ref])))))
+    (set "state.marked" (if (contains state.marked ref) (remove #{ref} state.marked) (conj state.marked ref)))))
 
 (defcommand markNext "Marks the next card too."
   :title ~(t "command.markNext") :description ~(t "command.markNext.about")
   :category ~(t "category.issue") :icon "chevrons-down"
   :enablement ~(and (some? computed.card) (some? computed.next)) []
-  (markSelected)
+  (mark-selected)
   (selectNext)
-  (markSelected))
+  (mark-selected))
 
 (defcommand markPrevious "Marks the card before too."
   :title ~(t "command.markPrevious") :description ~(t "command.markPrevious.about")
   :category ~(t "category.issue") :icon "chevrons-up"
   :enablement ~(and (some? computed.card) (some? computed.prev)) []
-  (markSelected)
+  (mark-selected)
   (selectPrev)
-  (markSelected))
+  (mark-selected))
 
 (defcommand clearMarks "Unmarks every card."
   :title ~(t "command.clearMarks") :description ~(t "command.clearMarks.about")
   :category ~(t "category.issue") :icon "x"
-  :enablement ~(> (count state.marked) 0) []
+  :enablement ~(pos? (count state.marked)) []
   (set "state.marked" []))
 
 (defcommand markAll "Marks every card shown."
@@ -587,7 +743,7 @@
 (defcommand bulkDelete "Deletes every marked card."
   :title ~(t "command.bulkDelete") :description ~(t "command.bulkDelete.about")
   :category ~(t "category.issue") :icon "trash-2"
-  :enablement ~(> (count state.marked) 0) []
+  :enablement ~(pos? (count state.marked)) []
   (remember)
   (notify (t "bulk.deleted" {:n (count state.marked)}))
   (delete "issues" :id state.marked)
@@ -596,31 +752,31 @@
 
 (defcommand showBoard "Shows the cards as a board."
   :title ~(t "command.showBoard") :description ~(t "command.showBoard.about")
-  :category ~(t "category.view") :icon "kanban" [] (set "state.view" "board"))
+  :category ~(t "category.view") :icon "kanban" [] (set "state.view" :board))
 
 (defcommand showList "Shows the cards as a list."
   :title ~(t "command.showList") :description ~(t "command.showList.about")
-  :category ~(t "category.view") :icon "layout-list" [] (set "state.view" "list"))
+  :category ~(t "category.view") :icon "layout-list" [] (set "state.view" :list))
 
 (defcommand showTable "Shows the cards as a table."
   :title ~(t "command.showTable") :description ~(t "command.showTable.about")
-  :category ~(t "category.view") :icon "table" [] (set "state.view" "table"))
+  :category ~(t "category.view") :icon "table" [] (set "state.view" :table))
 
 (defcommand showTimeline "Shows the cards on a timeline."
   :title ~(t "command.showTimeline") :description ~(t "command.showTimeline.about")
   :category ~(t "category.view") :icon "chart-gantt" []
-  (set "state.view" "timeline"))
+  (set "state.view" :timeline))
 
 (defcommand toggleSwimlanes "Groups the board's cards by member, or stops."
   :title ~(t "command.toggleSwimlanes") :description ~(t "command.toggleSwimlanes.about")
   :category ~(t "category.view") :icon "rows-2" []
-  (set "state.view" "board")
+  (set "state.view" :board)
   (toggle "state.swimlanes"))
 
 (defcommand toggleTheme "Switches between the light and the dark look."
   :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about")
   :category ~(t "category.view") :icon "moon" []
-  (set "state.theme" (if (= state.theme "light") "dark" "light")))
+  (set "state.theme" (if (= state.theme :light) :dark :light)))
 
 (defcommand togglePeek "Shows the side panel, or hides it."
   :title ~(t "command.togglePeek") :description ~(t "command.togglePeek.about")
@@ -631,13 +787,13 @@
   :title ~(t "command.openSettings") :description ~(t "command.openSettings.about")
   :category ~(t "category.view") :icon "settings" [] (set "state.settingsOpen" true))
 
-(defn closeSettings "Closes the settings." [] (set "state.settingsOpen" false))
+(defn close-settings "Closes the settings." [] (set "state.settingsOpen" false))
 
 (defcommand changeLanguage "Shows Flow in the next language."
   :title ~(t "command.changeLanguage") :description ~(t "command.changeLanguage.about") :category ~(t "category.view")
   :icon "languages" []
   (set "settings.appearance.language"
-       (cond (= settings.appearance.language "en") "es" (= settings.appearance.language "es") "fr" :else "en")))
+       (case settings.appearance.language :en :es :es :fr :en)))
 
 (defcommand focusSearch "Opens the search, its field focused."
   :title ~(t "command.focusSearch") :description ~(t "command.focusSearch.about")
@@ -649,36 +805,61 @@
   :title ~(t "command.addProject") :description ~(t "command.addProject.about")
   :category ~(t "category.go") :icon "plus" []
   (insert "projects" :value {:name (t "projects.untitled" {:n (inc (count data.projects))}) :icon "box" :color "#0d9488"
-                             :health "onTrack" :lead state.me :target state.cycle.end :progress 0 :issues 0})
-  (set "state.projectScope" "all"))
+                             :health "onTrack" :lead state.me :start state.today :target state.cycle.end :progress 0
+                             :issues 0 :milestones [] :updates []})
+  (set "state.projectScope" :all)
+  (open-project-page (dec (count data.projects)))
+  (set "state.projectName" ""))
+
+(defcommand projectUpdate "Posts an update on a project, by its name, with its health."
+  :title ~(t "command.projectUpdate") :description ~(t "command.projectUpdate.about")
+  :category ~(t "category.project") :icon "megaphone"
+  :arguments {:project {:type string :description "The project's name, like Label palette"}
+              :health {:type string :description "on track, at risk, off track or completed"}
+              :text {:type string :description "What changed, in a sentence or two"}}
+  [project health text]
+  (let [at (project-named project)
+        named (health-named health)]
+    (cond (neg? at) (notify (t "toast.noProjectNamed" {:project project}))
+          (nil? named) (notify (t "toast.noHealth" {:health health}))
+          :else (post-project-update at named text))))
+
+(defcommand showRoadmap "Shows the projects on a timeline."
+  :title ~(t "command.showRoadmap") :description ~(t "command.showRoadmap.about")
+  :category ~(t "category.go") :icon "chart-gantt" []
+  (set "state.projectLayout" :roadmap)
+  (close-project-page)
+  (show-page :projects))
 
 (defcommand goToInbox "Shows the inbox."
   :title ~(t "command.goToInbox") :description ~(t "command.goToInbox.about")
-  :category ~(t "category.go") :icon "inbox" [] (showPage "inbox"))
+  :category ~(t "category.go") :icon "inbox" [] (show-page :inbox))
 
 (defcommand goToIssues "Shows the issues."
   :title ~(t "command.goToIssues") :description ~(t "command.goToIssues.about")
-  :category ~(t "category.go") :icon "copy" [] (showPage "issues"))
+  :category ~(t "category.go") :icon "copy" [] (show-page :issues))
 
 (defcommand goToCycles "Shows the sprints."
   :title ~(t "command.goToCycles") :description ~(t "command.goToCycles.about")
-  :category ~(t "category.go") :icon "timer" [] (showPage "cycles"))
+  :category ~(t "category.go") :icon "timer" [] (show-page :cycles))
 
 (defcommand goToProjects "Shows the projects."
   :title ~(t "command.goToProjects") :description ~(t "command.goToProjects.about")
-  :category ~(t "category.go") :icon "box" [] (showPage "projects"))
+  :category ~(t "category.go") :icon "box" []
+  (close-project-page)
+  (show-page :projects))
 
 (defcommand nextNotification "Chooses the next notification."
   :title ~(t "command.nextNotification") :description ~(t "command.nextNotification.about")
   :category ~(t "category.inbox") :icon "arrow-down"
-  :enablement ~(and (= state.page "inbox") (< (+ state.inboxAt 1) (count computed.inboxShown))) []
-  (pickNotification (inc state.inboxAt)))
+  :enablement ~(and (= state.page :inbox) (< (inc state.inboxAt) (count computed.inboxShown))) []
+  (pick-notification (inc state.inboxAt)))
 
 (defcommand previousNotification "Chooses the notification before."
   :title ~(t "command.previousNotification") :description ~(t "command.previousNotification.about")
   :category ~(t "category.inbox") :icon "arrow-up"
-  :enablement ~(and (= state.page "inbox") (> state.inboxAt 0)) []
-  (pickNotification (dec state.inboxAt)))
+  :enablement ~(and (= state.page :inbox) (> state.inboxAt 0)) []
+  (pick-notification (dec state.inboxAt)))
 
 (defcommand toggleRead "Marks the chosen notification read, or unread."
   :title ~(t "command.toggleRead") :description ~(t "command.toggleRead.about")
@@ -696,13 +877,13 @@
   :category ~(t "category.inbox") :icon "alarm-clock"
   :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:snoozed true})
-  (set "state.inboxAt" (max (min state.inboxAt (- (count computed.inboxShown) 2)) 0))
+  (set "state.inboxAt" (-> state.inboxAt (min (- (count computed.inboxShown) 2)) (max 0)))
   (notify (t "inbox.snoozed")))
 
 (defcommand openNotification "Opens the issue of the chosen notification."
   :title ~(t "command.openNotification") :description ~(t "command.openNotification.about")
   :category ~(t "category.inbox") :icon "maximize-2"
   :enablement ~(some? computed.notificationCard) []
-  (selectCard computed.notificationCard.c computed.notificationCard.at)
-  (set "state.page" "issues")
+  (select-card computed.notificationCard.c computed.notificationCard.at)
+  (set "state.page" :issues)
   (set "state.issueOpen" true))

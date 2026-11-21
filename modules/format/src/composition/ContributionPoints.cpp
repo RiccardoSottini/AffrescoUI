@@ -16,7 +16,7 @@ namespace {
 using expect::fail;
 
 /// The keys of a point.
-constexpr auto pointKeys = std::to_array<std::string_view>({"slot", "receives", "description", "note"});
+constexpr auto pointKeys = std::to_array<std::string_view>({"slot", "receives", "hooks", "description", "note"});
 
 /// The keys of a need.
 constexpr auto needKeys = std::to_array<std::string_view>(
@@ -173,6 +173,30 @@ std::string contractText(const json& contract) {
 	return text;
 }
 
+/// @brief Tells whether a text can name a hook point: letters, digits, '_', '-' and '.', at most maxName long.
+/// @param name The text.
+/// @return true if it can.
+bool hookName(std::string_view name) {
+	return !name.empty() && name.size() <= maxName && std::ranges::all_of(name, [](char c) {
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' ||
+		       c == '.';
+	});
+}
+
+/// @brief Checks a point's list of names: an array of at most maxFields names of a kind.
+/// @param list The list.
+/// @param valid Tells whether a name is one.
+/// @param place Its place.
+/// @param what What the names are of, for errors.
+/// @throws DocumentError If it isn't.
+void checkNameList(const json& list, bool (*valid)(std::string_view), const std::string& place,
+                   const std::string& what) {
+	if(!list.is_array() || list.size() > maxFields) fail(place, "expected a list of " + what);
+	for(const json& item : list)
+		if(!item.is_string() || !valid(item.get_ref<const std::string&>()))
+			fail(place, "expected the names of " + what);
+}
+
 } // namespace
 
 void checkPointsSection(const json& section, const std::string& name) {
@@ -185,13 +209,10 @@ void checkPointsSection(const json& section, const std::string& name) {
 		if(!entry.contains("slot") || !entry["slot"].is_string() ||
 		   !among(pointSlots, entry["slot"].get<std::string>()))
 			fail(at + ".slot", "expected a slot: dock, panel, menu or toolbar");
-		if(const auto receives = entry.find("receives"); receives != entry.end()) {
-			if(!receives->is_array() || receives->size() > maxFields)
-				fail(at + ".receives", "expected a list of exports");
-			for(const json& exported : *receives)
-				if(!exported.is_string() || !dottedName(exported.get_ref<const std::string&>()))
-					fail(at + ".receives", "expected the names of exports");
-		}
+		if(const auto receives = entry.find("receives"); receives != entry.end())
+			checkNameList(*receives, dottedName, at + ".receives", "exports");
+		if(const auto hooks = entry.find("hooks"); hooks != entry.end())
+			checkNameList(*hooks, hookName, at + ".hooks", "hook points the app declares with defhook");
 		optionalText(entry, "description", at);
 		optionalText(entry, "note", at);
 	}

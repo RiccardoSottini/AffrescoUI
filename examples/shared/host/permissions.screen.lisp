@@ -5,16 +5,17 @@
 ;;; with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows
 ;;; nothing, and the host asks again next time. It is read from the host's assets, never from the app.
 
-(include "locales/permissions.en.lisp"
-         "locales/permissions.es.lisp"
-         "locales/permissions.fr.lisp")
+(ns shared.permissions
+  (:require "locales/permissions.en.lisp"
+            "locales/permissions.es.lisp"
+            "locales/permissions.fr.lisp"))
 
 ;;; What the host asks about
 
 (defstate app {:name "" :capabilities []}
   "The app's name and the capabilities it asks for: each {key kind name why allowed}, from permissions.app.")
 
-(defn loadApp "Asks the host which app this is, and what it asks for." []
+(defn load-app "Asks the host which app this is, and what it asks for." []
   (call "permissions.app" :into "state.app"))
 
 (defn flip "Checks or unchecks the i-th capability." [i allowed]
@@ -22,10 +23,7 @@
 
 (defn decide "Gives the host the person's answer: the capabilities checked, or none, and the window closes." [all]
   (call "permissions.decide"
-        :with {:allowed (if all
-                          (map (fn [capability] (:key capability))
-                               (filter (fn [capability] (= (:allowed capability) true)) state.app.capabilities))
-                          [])}))
+        :with {:allowed (if all (->> state.app.capabilities (filter #(true? (:allowed %))) (map :key)) [])}))
 
 ;;; The look
 
@@ -91,7 +89,7 @@
 (defscreen main "The question: the app's name, a card per capability, a hint, and the two answers."
   :window {:title "Permissions" :width 560 :height 460 :minWidth 420 :minHeight 320}
   :theme ~window.colorScheme
-  :onLoad loadApp
+  :onLoad load-app
   :fonts {:default {:file "../fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
           :title {:file "../fonts/Roboto-Regular.ttf" :size 22 :bold true}
           :icons {:file "../fonts/Lucide.ttf" :size 15}}

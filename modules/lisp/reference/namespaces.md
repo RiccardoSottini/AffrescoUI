@@ -58,12 +58,30 @@ an include is, and its definitions come once; at most 1,024 files are read for o
 loader's, with its checks: in an app, a path that leaves the app's folder and the shared folder beside it
 (`["../../x.lisp"]`, or a dotted name in a file that says it is deeper than it is) is refused.
 
+## Where an error is
+
+An error in a required or included file names that file, as the program calls it (`parts/board.lisp`), and the line
+and column in it: whether the file doesn't read (`parts/board.lisp: line 7, column 28: expected a value, found ')'`),
+a form in it can't be compiled, or a function in it fails as it runs, at the build or later in an event. So do the
+entry file's own definitions, and through an include inside an include. The message names names and kinds, never
+values. A definition a revision changed has no line in a file yet: its error counts lines from the definition's own
+start, as before.
+
 ## One flat space of names
 
 Names stay global: `board/render` is the global `render`, and a file that requires nothing still reaches it by its plain
 name. The alias is a label checked against the file: `board/render` and `:refer [render]` are errors unless the file
 `board` names defines `render`, as `board/render: "render" isn't defined in parts/board.lisp`. Two files can't define the
 same name, as without `ns`.
+
+## When the program changes
+
+A changed definition is built again alone, and redefined in the running interpreter, as without `ns`
+(`Program::rebuild`, `Program::redefine`): with the same `ns` forms, in the same files and order, every alias means what
+it meant, so only what changed and what uses it compiles again. A definition that comes, goes or moves to another file
+is one that changed: what names it, `board/render` included, is compiled again, and checked against the files as the
+whole program has them. A file's `ns` form added, removed, moved or changed in any way (a `:require` reordered, an
+alias renamed, a docstring) builds the whole program and loads a new interpreter.
 
 ## At the command line
 

@@ -8,7 +8,9 @@
 #include <affresco/lisp/Interpreter.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -119,6 +121,24 @@ struct UndefinedName {
 	std::string definition; ///< The definition it is in.
 };
 
+class Machine;          // the interpreter's state (Machine.hpp)
+struct DefinitionBuilt; // what a build keeps of one definition (Rebuild.hpp)
+struct NodeNote;        // what a recording build notes as it makes a node (Machine.hpp)
+struct BuildRecord;     // what a build keeps of each definition, for the build of a later version (Rebuild.hpp)
+
+/// @brief Where a recording build (Program::recordOrigins()) made a node with an id, from a form of the source: the
+/// places of the node's form and of its id's text, as the program's entries were read. They differ when a call hands
+/// the id to the view that makes the node (`(tool-button "save")`); a computed id has no place of its own.
+struct NodePlace {
+	std::string id;             ///< The node's id.
+	std::string file;           ///< The file its form is in, as the program calls it.
+	std::uint32_t line = 0;     ///< The line its form starts on, from 1, as the entries' start lines count it.
+	std::uint32_t column = 0;   ///< The column of its '(', from 1, in characters.
+	std::string idFile;         ///< The file its id's text is in.
+	std::uint32_t idLine = 0;   ///< The line its id's text is on.
+	std::uint32_t idColumn = 0; ///< The column its id's text starts at.
+};
+
 /// The address under which a file's `(ns ...)` form is kept with its entries (reference/namespaces.md): no definition
 /// has that name, and no revision may add, change or remove it (checkNamespacesKept()).
 inline constexpr std::string_view namespaceEntry = "ns";
@@ -183,6 +203,50 @@ public:
 	/// @throws LispError If building fails or a limit runs out, naming the place.
 	[[nodiscard]] json build(const Limits& limits = {});
 
+	/// @brief Builds the tree as build() does, from the record of a build of an earlier version of the program: only
+	/// the definitions that changed, and those that use them, are run; what the others gave is taken from the record.
+	/// It gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
+	/// it can't be sure: a changed or removed macro, hook or advice, a definition named as one of the language's (a
+	/// macro of the language may call it), a form that isn't a definition (a macro's call at
+	/// the top level, `do`), a file's `ns` form added, removed, moved or changed (with the same forms, names resolve as
+	/// they did), a recording build, a definition that would use one it didn't load, and any error, which build() then
+	/// reports. The budget is the one build() has, less what the record's build spent.
+	/// @param previous The earlier build's record (record()).
+	/// @param limits The limits.
+	/// @return The tree.
+	/// @throws LispError If building fails or a limit runs out, naming the place, as build() would.
+	[[nodiscard]] json rebuild(const BuildRecord& previous, const Limits& limits = {});
+
+	/// @brief Changes an interpreter that has loaded an earlier version of the program (load(), without everything)
+	/// into one that has loaded this one: the definitions that changed are defined again, with their entries' authors,
+	/// those that went are taken away, and those that use either are defined again, so that the values they work out
+	/// are worked out again. Where it can't be sure it gives what load() gives, it changes nothing and returns false:
+	/// a changed or removed macro, hook, advice or form that isn't a definition, a definition whose kind changed or
+	/// whose name is one of the language's, a file's `ns` form added, removed, moved or changed. The interpreter must
+	/// be pure while it runs (setPure()).
+	/// @param interpreter The interpreter.
+	/// @param before The earlier version, as it was loaded.
+	/// @param built The record of this version's build (record()): who uses what.
+	/// @param limits What the change may spend.
+	/// @param bytesLeft If given, gets what is left of the budget's bytes once it is changed: the heap keeps what it
+	/// allocated, so the caller can bound what changes in place keep together.
+	/// @return true if it changed it; false if nothing was done.
+	/// @throws LispError If a definition fails: the interpreter is then half changed, for the caller to throw away.
+	[[nodiscard]] bool redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
+	                            const Limits& limits = {}, std::size_t* bytesLeft = nullptr) const;
+	/// @brief What the last build kept of each definition, for the build of a later version (rebuild()).
+	/// @return It; nullptr before a build.
+	[[nodiscard]] std::shared_ptr<const BuildRecord> record() const noexcept { return record_; }
+
+	/// @brief Makes the next builds note where they make each node with an id (nodePlaces()), or stop.
+	/// Off by default: a build that records nothing costs one test per node more than before.
+	/// @param on Whether to record.
+	void recordOrigins(bool on) noexcept { recording_ = on; }
+	/// @brief Where the last build made each node with an id, if it recorded (recordOrigins()): the first place of each
+	/// id, in the order made. A node with no id, or built from a map or by a function rather than a form, has none.
+	/// @return Them; empty if it didn't record.
+	[[nodiscard]] const std::vector<NodePlace>& nodePlaces() const noexcept { return places_; }
+
 	/// @brief The `add-hook`, `remove-hook` and `advice` definitions of the last build. @return Them, in order of the
 	/// entries.
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
@@ -208,9 +272,36 @@ public:
 	[[nodiscard]] const std::set<std::pair<std::string, std::string>>& defaulted() const noexcept { return defaulted_; }
 
 private:
+	/// @brief Keeps the first note of each id a recording build made, as nodePlaces() gives them, while the build's
+	/// interpreter still owns the files' names.
+	/// @param notes The notes.
+	void keepNodePlaces(const std::vector<NodeNote>& notes);
+	/// @brief Keeps a build in full's truth tests and the names used that nothing defined, each in its definitions'
+	/// order.
+	/// @param machine The build's machine.
+	void keepTestsAndUndefined(const Machine& machine);
+	/// @brief Builds the tree from a record, running only what changed (rebuild()).
+	/// @param previous The record.
+	/// @param limits The limits.
+	/// @return The tree, or std::nullopt where it can't be sure, or the build failed: build() then says why.
+	[[nodiscard]] std::optional<json> buildInPart(const BuildRecord& previous, const Limits& limits);
+	/// @brief Takes what a build in part's definitions found, as a build in full finds it: hooks and advice, names used
+	/// and undefined, the state's defaults; the node places, which only a recording build notes, are forgotten.
+	/// @param record The build's record.
+	void keepWhatWasDefined(const BuildRecord& record);
+	/// @brief Keeps what a build in full found (record()), and whether a later build may start from it.
+	/// @param machine The build's machine.
+	/// @param record What it kept of each definition, in its order.
+	/// @param limits Its limits.
+	void keepRecord(Machine& machine, std::vector<DefinitionBuilt> record, const Limits& limits);
+
 	std::vector<Entry> entries_;                                  ///< See entries().
 	std::map<std::string, std::size_t> names_;                    ///< Where each entry is in entries_, by its name.
 	std::vector<std::pair<std::string, std::string>> namespaces_; ///< See namespaceForms().
+	/// For a program that holds only some of a program's entries (what a build in part loads): each file's definitions
+	/// in the whole program, so that its namespaces hold what the whole program's do; empty otherwise, and load() takes
+	/// them from the entries.
+	std::map<std::string, std::set<std::string, std::less<>>, std::less<>> definedInWhole_;
 	std::vector<std::pair<std::string, Primitive>> primitives_;   ///< See definePure().
 	std::vector<Extension> extensions_;                           ///< See extensions().
 	std::vector<UndefinedName> undefined_;                        ///< See undefinedNames().
@@ -218,6 +309,22 @@ private:
 	std::map<std::string, std::vector<std::string>> used_;        ///< See namesUsed().
 	NamedCalls named_;                                            ///< See namedCalls().
 	std::set<std::pair<std::string, std::string>> defaulted_;     ///< See defaulted().
+	std::vector<NodePlace> places_;                               ///< See nodePlaces().
+	bool recording_ = false;                                      ///< See recordOrigins().
+	std::shared_ptr<BuildRecord> record_;                         ///< See record().
 };
+
+/// @brief What this thread's builds did (Program::build(), Program::rebuild()): for the tests, which take the
+/// difference of two readings.
+struct RebuildStatistics {
+	std::size_t whole = 0;        ///< Builds that ran every definition.
+	std::size_t inPart = 0;       ///< Builds in part.
+	std::size_t compiled = 0;     ///< The definitions they loaded and compiled, all of them together.
+	std::size_t redefined = 0;    ///< Interpreters changed in place (Program::redefine()).
+	std::size_t definedAgain = 0; ///< The definitions those changes defined again, all of them together.
+};
+
+/// @brief What this thread's builds did so far. @return It.
+[[nodiscard]] const RebuildStatistics& rebuildStatistics() noexcept;
 
 } // namespace affresco::lisp

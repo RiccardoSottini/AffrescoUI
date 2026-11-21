@@ -143,20 +143,48 @@ ColorScheme colorScheme() {
 
 bool reducedMotion() { return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion; }
 
-void watchColorScheme() {
-	[NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
-	                                                           object:nil
-	                                                            queue:NSOperationQueue.mainQueue
-	                                                       usingBlock:^(NSNotification*) {
-		                                                     glfwPostEmptyEvent();
-	                                                       }];
-	[NSWorkspace.sharedWorkspace.notificationCenter
-	    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
-	                object:nil
-	                 queue:NSOperationQueue.mainQueue
-	            usingBlock:^(NSNotification*) {
-		          glfwPostEmptyEvent();
-	            }];
+namespace {
+
+/// @brief The two observers of the appearance: the interface style's and the accessibility options'. Removed when
+/// destroyed, so no notification reaches a platform that has gone.
+class MacAppearanceWatch final : public AppearanceWatch {
+public:
+	/// @brief Starts observing.
+	/// @param changed Called on the main queue after each change.
+	explicit MacAppearanceWatch(std::function<void()> changed) {
+		void (^announce)(NSNotification*) = ^(NSNotification*) {
+		  changed();
+		};
+		theme_ =
+		    [NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
+		                                                               object:nil
+		                                                                queue:NSOperationQueue.mainQueue
+		                                                           usingBlock:announce];
+		motion_ = [NSWorkspace.sharedWorkspace.notificationCenter
+		    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
+		                object:nil
+		                 queue:NSOperationQueue.mainQueue
+		            usingBlock:announce];
+	}
+	/// @brief Stops observing.
+	~MacAppearanceWatch() override {
+		[NSDistributedNotificationCenter.defaultCenter removeObserver:theme_];
+		[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:motion_];
+	}
+	MacAppearanceWatch(const MacAppearanceWatch&) = delete;
+	MacAppearanceWatch& operator=(const MacAppearanceWatch&) = delete;
+	MacAppearanceWatch(MacAppearanceWatch&&) = delete;
+	MacAppearanceWatch& operator=(MacAppearanceWatch&&) = delete;
+
+private:
+	id theme_;  ///< The interface style's observer.
+	id motion_; ///< The accessibility display options' observer.
+};
+
+} // namespace
+
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	return std::make_unique<MacAppearanceWatch>(std::move(changed));
 }
 
 void keepOutOfSwitcher() { [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory]; }
@@ -184,6 +212,49 @@ void setApplicationIcon(const Bitmap* icon) {
 		NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(icon->width(), icon->height())];
 		[image addRepresentation:srgb];
 		NSApp.applicationIconImage = image;
+	}
+}
+
+std::vector<std::uint8_t> clipboardImagePng(std::size_t most) {
+	@autoreleasepool {
+		NSPasteboard* board = NSPasteboard.generalPasteboard;
+		NSData* data = [board dataForType:NSPasteboardTypePNG];
+		if(!data) { // a TIFF (what most apps copy) becomes a PNG, which the image decoder reads
+			NSData* tiff = [board dataForType:NSPasteboardTypeTIFF];
+			if(!tiff || tiff.length > most) return {};
+			NSBitmapImageRep* rep = [NSBitmapImageRep imageRepWithData:tiff];
+			data = rep ? [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}] : nil;
+		}
+		if(!data || data.length == 0 || data.length > most) return {};
+		const auto* bytes = static_cast<const std::uint8_t*>(data.bytes);
+		return {bytes, bytes + data.length};
+	}
+}
+
+bool setClipboardImage(const Bitmap& image) {
+	@autoreleasepool {
+		// As the Dock icon: the Bitmap's pixels are Cocoa's default format, premultiplied RGBA, top row first
+		NSBitmapImageRep* rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nullptr
+		                                                                pixelsWide:image.width()
+		                                                                pixelsHigh:image.height()
+		                                                             bitsPerSample:8
+		                                                           samplesPerPixel:4
+		                                                                  hasAlpha:YES
+		                                                                  isPlanar:NO
+		                                                            colorSpaceName:NSDeviceRGBColorSpace
+		                                                               bytesPerRow:image.width() * 4
+		                                                              bitsPerPixel:32];
+		if(!rep) return false;
+		std::memcpy(rep.bitmapData, image.pixels().data(), image.pixels().size());
+		NSBitmapImageRep* srgb = [rep bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace] ?: rep;
+		NSData* png = [srgb representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+		NSData* tiff = srgb.TIFFRepresentation;
+		if(!png) return false;
+		NSPasteboard* board = NSPasteboard.generalPasteboard;
+		[board clearContents];
+		[board setData:png forType:NSPasteboardTypePNG];
+		if(tiff) [board setData:tiff forType:NSPasteboardTypeTIFF];
+		return true;
 	}
 }
 

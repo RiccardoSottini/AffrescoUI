@@ -1,10 +1,12 @@
 /// @file
 /// @brief What the Launcher (examples/launcher) stands on, headless: an `fs` copy from another granted root (binary
 /// files, left-out names, a merge, read-only roots), the app-programs grant's rule (Grants.hpp) and detached runs; then
-/// the Launcher itself on temporary folders: an app created blank and from an example, listed, duplicated and deleted.
+/// the Launcher itself on temporary folders: an app created blank and from an example, listed, duplicated and deleted,
+/// and one exported to a file and installed from it through the packages service.
 
 #include "HistoryFiles.hpp" // TemporaryFolder
 
+#include <affresco/PackagesProvider.hpp>
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/services/Grants.hpp>
@@ -576,6 +578,102 @@ TEST_CASE("launcher: with Lisp chosen, every example that starts an app makes on
 	}
 	CHECK(made >= 11); // the programs (Flow, Streak, Quaderno, Haven, Tempo, Arcadia, Orrery, Tempera, Sinopia,
 	                   // Modello) and Sign in, whose lisp folder is generated
+}
+
+TEST_CASE("launcher: an app is exported to a file, reviewed and installed from it as a new app, in both notations") {
+	for(const std::string notation : {"json", "lisp"}) {
+		CAPTURE(notation);
+		const TemporaryFolder folder;
+		const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+		writeFile(apps / "pocket-notes" / "app.json", R"({ "format": "affrescoui-app", "version": 1,
+			"id": "pocket-notes", "name": "Pocket notes", "release": "1.0.0", "entry": "index.screen.json" })");
+		writeFile(apps / "pocket-notes" / "index.screen.json", R"({ "format": "affrescoui-screen", "version": 2,
+			"window": { "title": "Pocket notes" }, "root": { "type": "label", "id": "title", "text": "Notes" } })");
+		const auto grant = [&](affresco::Screen& screen) {
+			screen.services().addRoot("examples", examples, true);
+			screen.services().addRoot("apps", apps);
+			affresco::PackagesGrant packages;
+			packages.roots = {{"examples", examples}, {"apps", apps}};
+			packages.writable = "apps";
+			packages.dataDirectory = folder.path() / "data";
+			screen.services().add(affresco::makePackagesProvider(std::move(packages)));
+			screen.allowFileDialogs(true);
+		};
+		const json scenarios = json::parse(R"json([{ "name": "share", "steps": [
+			{ "key": "mod+2" },
+			{ "wait": 10 },
+			{ "expect": { "state": "mine[0].id", "is": "pocket-notes" } },
+			{ "click": { "role": "button", "name": "Export Pocket notes to share" } },
+			{ "wait": 10 },
+			{ "expect": { "state": "exporting.open", "is": true } },
+			{ "expect": { "state": "exporting.summary.kind", "is": "app" } },
+			{ "expect": { "node": "#exportLine", "text": "The whole app: its files and pictures" } },
+			{ "click": "#exportDescription" },
+			{ "type": "Short notes." },
+			{ "choose": "pocket.affresco.json" },
+			{ "click": { "role": "button", "name": "Save…" } },
+			{ "wait": 10 },
+			{ "expect": { "state": "exporting.open", "is": false } },
+			{ "expect": { "state": "toasts[0].message", "is": "Saved pocket.affresco.json." } },
+			{ "click": { "role": "button", "name": "Install from a file" } },
+			{ "wait": 10 },
+			{ "expect": { "state": "page", "is": "install" } },
+			{ "expect": { "state": "install.summary.kind", "is": "app" } },
+			{ "expect": { "node": "#installAbout", "text": "Release 1.0.0 · Short notes." } },
+			{ "click": "#installButton" },
+			{ "wait": 10 },
+			{ "expect": { "node": "#installNameHint", "text": "You have an app with that name already." } },
+			{ "click": "#installName" },
+			{ "type": " two" },
+			{ "click": "#installButton" },
+			{ "wait": 10 },
+			{ "expect": { "state": "page", "is": "mine" } },
+			{ "expect": { "state": "mine[0].id", "is": "pocket-notes-two" } },
+			{ "expect": { "state": "mine[0].sub", "is": "/json" } }
+		] }])json");
+		const automation::Report report =
+		    play(scenarios, examples / "launcher" / notation / ("index.screen." + notation), "", grant);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+		const json manifest = json::parse(readFile(apps / "pocket-notes-two" / "json" / "app.json"), nullptr, false);
+		CHECK(manifest.value("name", "") == "Pocket notes two");
+		CHECK(readFile(apps / "pocket-notes" / "index.screen.json").contains("Pocket notes")); // the original as it was
+	}
+}
+
+TEST_CASE("launcher attack: a file the service refuses, into a folder that holds something, makes nothing") {
+	const TemporaryFolder folder;
+	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	writeFile(apps / "kept" / "note.txt", "mine");
+	const auto grant = [&](affresco::Screen& screen) {
+		screen.services().addRoot("apps", apps);
+		affresco::PackagesGrant packages;
+		packages.roots = {{"apps", apps}};
+		packages.writable = "apps";
+		packages.dataDirectory = folder.path() / "data";
+		screen.services().add(affresco::makePackagesProvider(std::move(packages)));
+	};
+	// "kept" holds no app, so the screen's own name check lets it through: the service refuses it all the same
+	const json steps = {json{{"action", "launcher.review"},
+	                         {"event",
+	                          {{"summary", {{"kind", "app"}, {"name", "Kept"}, {"problems", json::array()}}},
+	                           {"package", {{"format", "affrescoui-package"}, {"kind", "app"}}}}}},
+	                    json{{"wait", 0}},
+	                    json{{"click", "#installButton"}},
+	                    json{{"wait", 10}},
+	                    json{{"expect", {{"state", "page"}, {"is", "install"}}}},
+	                    json{{"expect", {{"state", "install.busy"}, {"is", false}}}}};
+	for(const std::string notation : {"json", "lisp"}) {
+		CAPTURE(notation);
+		const automation::Report report =
+		    play(json::array({{{"name", "install"}, {"steps", steps}}}),
+			     examples / "launcher" / notation / ("index.screen." + notation), "", grant);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+	}
+	CHECK(readFile(apps / "kept" / "note.txt") == "mine");
+	CHECK_FALSE(fs::exists(apps / "kept" / "app.json"));
+	CHECK(std::distance(fs::directory_iterator(apps), fs::directory_iterator()) == 1);
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

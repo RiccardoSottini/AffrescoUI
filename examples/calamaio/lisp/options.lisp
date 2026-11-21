@@ -3,6 +3,8 @@
 ;;; Each minor mode is a variable of settings.lisp that its command of the same name toggles; Customize lists the
 ;;; variables to change and reset, and the theme is the variable custom-enabled-themes.
 
+(ns calamaio.options)
+
 ;;; Minor modes
 
 (defn mode-said "Says whether a minor mode is now on or off." [name on]
@@ -29,6 +31,13 @@
   (toggle "settings.show-paren-mode")
   (mode-said (t "mode.bracketMatching") settings.show-paren-mode))
 
+(defcommand electric-pair-mode "Types the closing bracket or quote with the opening one, or stops."
+  :title ~(t "command.electric-pair-mode") :category ~(t "category.options")
+  :description ~(t "command.electric-pair-mode.about")
+  []
+  (toggle "settings.electric-pair-mode")
+  (mode-said (t "mode.electricPair") settings.electric-pair-mode))
+
 (defcommand menu-bar-mode "Shows or hides the menu bar; F10 still opens its menus."
   :title ~(t "command.menu-bar-mode") :category ~(t "category.options")
   :description ~(t "command.menu-bar-mode.about")
@@ -42,6 +51,48 @@
   []
   (toggle "settings.tool-bar-mode")
   (mode-said (t "mode.toolBar") settings.tool-bar-mode))
+
+(defcommand whitespace-mode "Shows a dot in each space, so blanks can be seen, or stops."
+  :title ~(t "command.whitespace-mode") :category ~(t "category.options")
+  :description ~(t "command.whitespace-mode.about")
+  []
+  (toggle "settings.whitespace-mode")
+  (mode-said (t "mode.whitespace") settings.whitespace-mode))
+
+(defcommand auto-fill-mode "Breaks a line at its last space before the fill column as you type past it, or stops."
+  :title ~(t "command.auto-fill-mode") :category ~(t "category.options")
+  :description ~(t "command.auto-fill-mode.about")
+  []
+  (toggle "settings.auto-fill-mode")
+  (mode-said (t "mode.autoFill") settings.auto-fill-mode))
+
+(defcommand display-fill-column-indicator-mode "Draws a thin line at the fill column, or stops."
+  :title ~(t "command.display-fill-column-indicator-mode") :category ~(t "category.options")
+  :description ~(t "command.display-fill-column-indicator-mode.about")
+  []
+  (toggle "settings.display-fill-column-indicator-mode")
+  (mode-said (t "mode.fillIndicator") settings.display-fill-column-indicator-mode))
+
+(defn line-before-point "The selected window's line up to point." []
+  (let [{:keys [line column]} (point)
+        text (get (str/split (or computed.buf.text "") "\n" -1) (dec line) "")]
+    (subs text 0 (min (dec column) (count text)))))
+
+(defn auto-fill-space
+  "A space typed while auto-fill-mode is on: typed, then, past the fill column, the line breaks at its last space at or
+  before the fill column, point staying after the word it was typing."
+  []
+  (set "state.arg" nil)
+  (when (editable?)
+    (let [{:keys [line]} (point)
+          before (line-before-point)
+          fill (get settings "fill-column")
+          at (when (> (count before) fill) (str/last-index-of before " " fill))]
+      (edit "type" :in computed.ed :text " ")
+      (when (and (some? at) (pos? at))
+        (let [column (inc (- (count before) at))]
+          (edit "type" :in computed.ed :text "\n" :line line :column (inc at) :toLine line :toColumn (+ at 2))
+          (edit "goTo" :in computed.ed :line (inc line) :column column))))))
 
 ;;; The theme
 

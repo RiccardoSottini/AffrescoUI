@@ -72,17 +72,44 @@ private:
 	bool& flag_; ///< The flag.
 };
 
+/// @brief What the declared queries read: what their declarations read, and each collection's place. Not all of
+/// dataPlaces: that holds their own results, and marking one that differs would find them again.
+/// @param declared What their declarations read.
+/// @param store The records.
+/// @return The reads.
+ReadSet queriesReads(const ReadSet& declared, const data::Store& store) {
+	ReadSet reads = declared;
+	for(const auto& [name, model] : store.models()) reads.addPath(dataPlace(name));
+	return reads;
+}
+
 } // namespace
 
-DataLayer::DataLayer(Engine& engine) : engine_(engine), own_(std::make_unique<data::Store>()), store_(own_.get()) {
+std::string dataPlace(std::string_view name) {
+	std::string place(dataPlaces);
+	appendKey(place, name);
+	return place;
+}
+
+DataLayer::DataLayer(Engine& engine)
+    : engine_(engine), own_(std::make_unique<data::Store>()), store_(own_.get()),
+      queriesId_(engine.tracker.add(queries_)) {
 	store_->setEvaluator(evaluate);
 	watch(*store_);
 	follow();
+	ReadSet reads;
+	reads.addPath(dataPlaces);
+	engine_.tracker.setReads(queriesId_, std::move(reads));
 }
 
 DataLayer::~DataLayer() {
+	engine_.tracker.remove(queriesId_);
 	if(watched_) watched_->onChange.disconnect(connection_);
 }
+
+void DataLayer::Queries::update(const StateChanges& /*changes*/) { (void)layer_.variable(); }
+
+std::uint64_t DataLayer::Queries::order() const noexcept { return queriesOrder; }
 
 json DataLayer::evaluate(const std::string& expression, const json& variables) {
 	return evaluateExpression(json(expression), variables, "data");
@@ -91,12 +118,27 @@ json DataLayer::evaluate(const std::string& expression, const json& variables) {
 void DataLayer::watch(data::Store& store) {
 	if(watched_) watched_->onChange.disconnect(connection_);
 	watched_ = &store;
-	connection_ = store.onChange.connect([this](const std::string&) {
-		++storeVersion_;
-		engine_.document.bumpStateVersion();                        // computed values that read `data` are stale too
-		engine_.document.markPlaceChanged(std::string(dataPlaces)); // what reads `data` is evaluated again
-		engine_.reconciler.requestReconcile();
-	});
+	connection_ = store.onChange.connect([this](const std::string& collection) { recordsChanged(collection); });
+}
+
+void DataLayer::recordsChanged(const std::string& collection) {
+	if(collection.empty()) allChanged_ = true;
+	else changed_.insert(collection);
+	const std::string place = collection.empty() ? std::string(dataPlaces) : dataPlace(collection);
+	engine_.document.markPlaceChanged(place); // what reads its records, and the queries (Queries reads "/~d")
+	engine_.computed.placeChanged(place);     // computed values that read them are stale
+	for(const auto& [name, arguments] : queryArguments_) { // and those reading a query over them, read before an update
+		const json& from = arguments.is_object() ? sectionOf(arguments, "from") : arguments;
+		if(collection.empty() || !from.is_string() || from.get_ref<const std::string&>() == collection)
+			engine_.computed.placeChanged(dataPlace(name));
+	}
+	engine_.reconciler.requestStateUpdate();
+}
+
+void DataLayer::markChanged(std::string_view name) {
+	const std::string place = dataPlace(name);
+	engine_.document.markPlaceChanged(place);
+	engine_.computed.placeChanged(place);
 }
 
 void DataLayer::setStore(data::Store* store, const json* oldState) {
@@ -110,6 +152,7 @@ void DataLayer::setStore(data::Store* store, const json* oldState) {
 	watch(next); // before the old store goes: it disconnects from it
 	own_ = std::move(own);
 	++storeVersion_;
+	recordsChanged({}); // every record may differ
 }
 
 void DataLayer::groupEvent() {
@@ -146,48 +189,71 @@ void DataLayer::documentChanged() {
 
 const json* DataLayer::variable() {
 	const std::uint64_t state = engine_.document.stateVersion();
-	if(builtStore_ == storeVersion_ && builtState_ == state) return &value_;
+	const bool rebuilt = builtStore_ != storeVersion_;
+	if(!rebuilt && !allChanged_ && changed_.empty() && builtState_ == state) return &value_;
 	if(building_) return nullptr; // a query's declaration reads `data` itself
 	const Raised building(building_);
 	const data::Store& store = this->store();
-	if(builtStore_ != storeVersion_) { // every collection's records read again, every query run again
+	std::set<std::string, std::less<>> changed;
+	if(rebuilt) { // every collection's records read again, every query run again
 		value_ = json::object();
 		queryArguments_.clear();
-		for(const auto& [name, model] : store.models()) {
-			try {
-				value_[name] = store.run({{"from", name}}, "data." + name);
-			} catch(const DocumentError& error) {
-				engine_.report(error.what());
-				value_[name] = json::array();
-			}
-		}
 	}
-	builtStore_ = storeVersion_;
-	builtState_ = state;
-	queryReads_.clear();
-	const json& queries = sectionOf(engine_.versions.document(), "queries");
-	if(!queries.is_object()) return &value_;
-	for(const auto& [name, declaration] : queries.items()) {
-		if(store.models().contains(name)) continue; // a collection's name: refused by the rules
-		json arguments;
+	for(const auto& [name, model] : store.models()) {
+		if(!rebuilt && !allChanged_ && !changed_.contains(name)) continue; // its records are the same
 		try {
-			const DocumentContext::ReadScope reads(engine_.document, &queryReads_); // what the queries read
-			arguments = engine_.document.evaluate(declaration, Scope{}, json::object(), "queries." + name);
-		} catch(const DocumentError& error) {
-			engine_.report(error.what());
-			continue;
-		}
-		const auto last = queryArguments_.find(name);
-		if(last != queryArguments_.end() && last->second == arguments) continue; // the same results
-		try {
-			value_[name] = store.run(arguments, "queries." + name);
+			value_[name] = store.run({{"from", name}}, "data." + name);
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 			value_[name] = json::array();
 		}
-		queryArguments_[name] = std::move(arguments);
+		changed.insert(name);
 	}
+	changed_.clear();
+	allChanged_ = false;
+	builtStore_ = storeVersion_;
+	builtState_ = state;
+	runQueries(rebuilt, changed);
 	return &value_;
+}
+
+void DataLayer::runQueries(bool rebuilt, const std::set<std::string, std::less<>>& changed) {
+	const data::Store& store = this->store();
+	queryReads_.clear();
+	const json& queries = sectionOf(engine_.versions.document(), "queries");
+	if(queries.is_object())
+		for(const auto& [name, declaration] : queries.items()) {
+			if(store.models().contains(name)) continue; // a collection's name: refused by the rules
+			runQuery(name, declaration, rebuilt, changed);
+		}
+	engine_.tracker.setReads(queriesId_, queriesReads(queryReads_, store)); // they run again when one changes
+}
+
+void DataLayer::runQuery(const std::string& name, const json& declaration, bool rebuilt,
+                         const std::set<std::string, std::less<>>& changed) {
+	json arguments;
+	try {
+		const DocumentContext::ReadScope reads(engine_.document, &queryReads_); // what the queries read
+		arguments = engine_.document.evaluate(declaration, Scope{}, json::object(), "queries." + name);
+	} catch(const DocumentError& error) {
+		engine_.report(error.what());
+		return;
+	}
+	const json& from = arguments.is_object() ? sectionOf(arguments, "from") : arguments;
+	const bool recordsMoved = !from.is_string() || changed.contains(from.get_ref<const std::string&>());
+	const auto last = queryArguments_.find(name);
+	if(last != queryArguments_.end() && last->second == arguments && !recordsMoved) return; // the same
+	json results;
+	try {
+		results = store().run(arguments, "queries." + name);
+	} catch(const DocumentError& error) {
+		engine_.report(error.what());
+		results = json::array();
+	}
+	const bool differs = !value_.contains(name) || value_[name] != results;
+	if(differs) value_[name] = std::move(results);
+	if(differs && !rebuilt) markChanged(name);
+	queryArguments_[name] = std::move(arguments);
 }
 
 json DataLayer::outline() const {
@@ -222,19 +288,39 @@ std::filesystem::path DataLayer::allowedFile(const std::string& file, const std:
 	fail(where, "'" + file + "' isn't a file in the screen's folder or one the host allows");
 }
 
+const std::string& DataLayer::author() const noexcept {
+	// A peer's run's runner, whatever function led here; else who the step authority names first, of those who aren't
+	// the person: a record a timer of a peer's run writes later is still the runner's, whatever the host set
+	if(engine_.authority && engine_.authority->run) return engine_.authority->run->runner;
+	if(engine_.authority)
+		for(const std::string& author : engine_.authority->authors)
+			if(!isPersonsAuthor(author)) return author;
+	return author_;
+}
+
 void DataLayer::checkWrite(const std::string& collection, const std::string& where) const {
-	if(author_ == "app") return; // the person using the app
+	if(engine_.authority && engine_.authority->run && engine_.authority->run->refused)
+		throw data::DataError("denied", where + ": the run that scheduled this was refused, so it writes no record");
+	// The writer, and every other author whose code led here: a function by one may not write for another
+	checkWriteAs(author(), collection, where);
+	if(engine_.authority)
+		for(const std::string& other : engine_.authority->authors)
+			if(!isPersonsAuthor(other) && other != author()) checkWriteAs(other, collection, where);
+}
+
+void DataLayer::checkWriteAs(const std::string& writer, const std::string& collection, const std::string& where) const {
+	if(writer == "app") return; // the person using the app
 	const json& permissions = sectionOf(engine_.versions.document(), "permissions");
 	const json& rules = permissions.is_object() ? sectionOf(permissions, "data") : permissions;
 	if(!rules.is_array()) return;
 	for(const json& rule : rules) {
-		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), author_)) continue;
+		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), writer)) continue;
 		if(anyCovers(rule.value("never", json()), collection))
 			throw data::DataError(
-			    "denied", std::format("{}: data rule: '{}' may never touch /data/{}", where, author_, collection));
+			    "denied", std::format("{}: data rule: '{}' may never touch /data/{}", where, writer, collection));
 		if(rule.contains("write") && !anyCovers(rule["write"], collection))
-			throw data::DataError(
-			    "denied", std::format("{}: data rule: '{}' may not write /data/{}", where, author_, collection));
+			throw data::DataError("denied",
+			                      std::format("{}: data rule: '{}' may not write /data/{}", where, writer, collection));
 	}
 }
 

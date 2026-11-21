@@ -1,0 +1,13 @@
+{
+	"folders": [
+		"flow/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 18
+	},
+	"kept": {
+		"camel-case-name": 9,
+		"fn-one-parameter": 7,
+		"four-nested-calls": 1
+	}
+}

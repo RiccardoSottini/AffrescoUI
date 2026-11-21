@@ -222,6 +222,21 @@ TEST_CASE("scene3d: the scene round-trips through JSON and refuses bad members")
 	CHECK_THROWS_AS((void)sceneFromJson(bad), affresco::DocumentError);
 }
 
+TEST_CASE("scene3d: a node's display round-trips, solid by default, and an unknown one is refused") {
+	const nlohmann::json document = {
+	    {"nodes", nlohmann::json::array({{{"id", "a"}, {"name", "A"}, {"mesh", "cube"}, {"display", "wire"}},
+		                                 {{"id", "b"}, {"name", "B"}, {"mesh", "cube"}}})}};
+	const Scene scene = sceneFromJson(document);
+	REQUIRE(scene.nodes.size() == 2);
+	CHECK(scene.nodes[0].display == Display::Wire);
+	CHECK(scene.nodes[1].display == Display::Solid);
+	CHECK(toJson(scene)["nodes"][0]["display"] == "wire");
+	CHECK_FALSE(toJson(scene)["nodes"][1].contains("display"));
+	auto bad = document;
+	bad["nodes"][0]["display"] = "hologram";
+	CHECK_THROWS_AS((void)sceneFromJson(bad), affresco::DocumentError);
+}
+
 TEST_CASE("scene3d: tracks sample step, linear and cubic keys") {
 	Track track{.node = "box", .path = TrackPath::Translation, .times = {0, 1}, .values = {0, 0, 0, 2, 4, 6}};
 	CHECK(track.validate().empty());

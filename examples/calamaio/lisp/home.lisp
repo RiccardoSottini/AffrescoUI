@@ -3,6 +3,8 @@
 ;;; The stock host grants no file system, so the files are values. Dired (C-x d) lists the folder, C-x C-f visits
 ;;; a file and C-x C-s writes back to it. The files and their text are invented.
 
+(ns calamaio.home)
+
 ;;; The folder
 
 (defstate home "~/" "The home folder, where C-x C-f and C-x d start.")

@@ -90,7 +90,8 @@ history.
   `HEAD~2` (two back on `main`), or `proposal/3` (that proposal's newest commit).
 - `main` is append-only. Undo, restore and revert all add commits, so the history is an **audit log** nobody can
   rewrite, including the reviewer.
-- The live state (`/state`) is data, not code: commits keep the document, and state changes aren't undone.
+- The live state (`/state`) is data, not code: commits keep the document, and state changes aren't undone (an undo
+  takes back a commit's own change to it only while nothing changed that part since, in the run that made it).
 
 ## Permissions: allow, ask, deny
 The screen file decides, in a `permissions` section that no revision can change:
@@ -190,13 +191,18 @@ A `*.policy.json` file beside a screen holds example revisions, their authors an
     { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
       "expect": "allow" },
     { "name": "21 new panels", "revision": { "author": "agent", "add": { "...": {} } }, "expect": "deny",
-      "reason": "over the budget" }
+      "reason": "over the budget" },
+    { "name": "the agent moves a card", "run": { "author": "agent/claude-code", "command": "moveCard",
+      "arguments": { "card": "c1", "to": "done" } }, "expect": "allow" }
   ]
 }
 ```
 
 `affrescoui policy test <files> [--json]` judges each revision against the screen as it is (nothing is applied) and
-compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes are those of `affrescoui test`: 0 all
+compares `allow`, `ask` or `deny`, and a part of the reason if given. A case has a `revision` or a `run`, never both: a
+run names its `author`, a `command` and its `arguments`, which are checked as a peer's would be, and is judged by the
+screen's `permissions.run` (Running commands) without running; it expects `allow`, `ask`, `person` or `deny`, and an
+unknown command or wrong arguments are a `deny` that says why. Exit codes are those of `affrescoui test`: 0 all
 passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
 one. The MCP server explains a denial with the rule that matched.
 
@@ -348,6 +354,12 @@ conflict.
   can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
   rejected.
 
+An object's keys keep `main`'s order, and a key only one side added lands after the key it followed on that side, so
+a definition added in the middle of a program file stays in the middle; a definition's text is never merged inside,
+it conflicts whole. A host can also open a merge of another version of the document as a proposal (`proposeMerge`):
+what merges cleanly is its change, and each conflict is listed in its `leftOut` (in the shape of `conflicts`, `main`'s
+value kept there), which, unlike `conflicts`, never blocks accepting it and stays as recorded when it rebases.
+
 ### Evidence
 A reviewer can ask the host for a proposal's **evidence** (`{"type": "getEvidence", "proposal": 3, "scale": 1}`), and
 gets it back as `evidence`:
@@ -383,7 +395,68 @@ time and draw calls, the last update's time and panels rebuilt and created, and 
 by node, keys such as Enter or Escape (never a typed character), sends by channel (never the message), commits and
 decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
 drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
-`Screen::setInspector()` and `Screen::inspectorTrace()`.
+`Screen::setInspector()` and `Screen::inspectorTrace()`. It is the reviewer's tool. A person points at an element of
+their own app and reads its source on the changes window's Source page (below, and SCREEN_FORMAT.md, "Pointing at a node").
+
+## Running commands
+An agent can do more than change an app: it can use it, by asking the running app to run one of its commands (an
+entry of `actions` that describes itself; in Lisp, a `defcommand`). That is a **run**. A run executes under the
+runner's name (`agent/claude-code`), never the person's, even after the person said yes: it can't approve, widen a
+permission, or reach what its runner may not. A run is never a revision: it changes the live state and records, so
+it is in the `runs` log and not in the history.
+
+Who may run what is said in `permissions.run`, with lists of its own that no change rule ever sees. A rule is
+`author` or `author(command)`: the author is `*`, a channel or a full name, as in change rules (a `role:` author
+covers nobody here); the command is a name, a prefix ending in `*` (`card-*`), or left out for every command.
+
+```json
+"permissions": {
+  "allow": ["studio"], "reviewers": ["studio"],
+  "run": { "allow": ["agent(move-card)", "agent(card-*)"], "ask": ["agent(archive-*)"], "deny": ["*(clear-board)"] }
+}
+```
+
+```clojure
+:permissions {:allow [studio] :reviewers [studio]
+              :run {:allow ["agent(move-card)" "agent(card-*)"] :ask ["agent(archive-*)"] :deny ["*(clear-board)"]}}
+```
+
+A run is judged in this order; the first that applies decides, and every refusal or question says which rule or step
+decided:
+
+1. A `run.deny` rule matches: **denied** (`denied by the run rule '*(clear-board)'`).
+2. The command reaches a control or review step, a native action or a computed `run`: **denied**, for every peer
+   (`'export' reaches the control step "call", which only the person may run`).
+3. The mode is `plan` and the runner may not review: **denied** (`plan mode: commands don't run; say what you would
+   run`).
+4. The command uses a service that writes or runs (files, terminals, requests that write): **the person decides**,
+   in the window's own question, each time; no reviewer's yes counts, and it is never remembered. After the person
+   says "Don't run" three times to one channel, its runs here are refused without asking until the host restarts.
+5. The runner may review: **allowed**.
+6. A `run.ask` rule matches: **asked**.
+7. A `run.allow` rule matches, or a run grant that hasn't expired: **allowed**.
+8. The document has no `permissions` section at all: **allowed**, as changes are.
+9. Anything else: **asked**, saying the rule that would allow it (`no run rule allows 'move-card' for 'agent'; a rule
+   "agent(move-card)" in permissions.run.allow would`).
+
+**Modes.** `plan` refuses runs by authors who aren't reviewers (row 3). `acceptEdits` has no effect on runs.
+
+**Waiting runs.** An asked run waits for a reviewer or the person (the `runs` variable, the steps `allowRun` and
+`denyRun`, a reviewer's `allowRun` over the live protocol). A reviewer never allows a run from its own channel; the
+person (`user`) always may. At most 16 runs wait at once, and 4 of one channel: past that a run is refused (`too many
+runs are waiting`). A run nobody answers in 120 seconds expires, refused. The `runs` log keeps the newest 64 runs,
+waiting or done, dropping the oldest finished one first and never one that waits; each keeps its arguments cut to
+4 KiB of JSON text, a larger value shown as `"(too large to show)"`. Runs are numbered from 1, per screen and per
+start of the host.
+
+**Grants.** "Always allow" on a waiting run adds a grant for the runner's channel and that one command, shown as
+`agent(run:move-card)`. Its duration is read as an accept's `"for"` (`"30m"`, `"8h"`, `"7d"`) and capped by
+`review.grantsLast`, and by a year when that can't be read. A grant can be revoked, and lives in memory: it ends when the host quits. It never beats a
+`deny` rule, an `ask` rule, `plan` mode, a control step or a service use only the person allows (rows 1 to 4 and 6),
+and a run the person alone may allow can't be allowed "always".
+
+**State changes.** What a run changes in the state is judged by effect with the runner's data rules
+([Data rules](#data-rules)): a path outside its `write` paths, or a `never` path, rolls the whole run back.
 
 ## The changes, file by file
 
@@ -419,6 +492,15 @@ file's diff, and offers preview, accept and reject, or undo for an applied chang
 - **It adds no way to approve.** Its buttons are the person's, through the same `acceptProposal`, `rejectProposal` and
   revert the rest of the library uses, and the deny rules and review policies apply to them as ever.
 
+**The Source page.** `{"call": "changes.open", "with": {"source": at, "line": n}}` opens the window on where an element is
+written instead of on a change. `at` is a pick record's `source.address` or a node (`"#id"`, at most 512 bytes), and the
+optional `line` (from 1, within that text) is the line to mark. For a program, the page shows the definition that built
+the element. For a JSON document, it shows the node, from the file that holds it. The page also says when the text comes
+from a shared add-on, was cut at 16 KiB, or is a proposal being previewed, and it names the commit that last changed it
+(`blame`, from main) with a button that shows that change. The text comes from `Screen::source()`, the versioned document
+and never a file on disk, and the page only reads it: a read-only editor, scrolled to the marked line. A `source` that is
+not a text of at most 512 bytes is ignored, and the window opens as before. Choosing a change in the list goes back to it.
+
 ## Programs
 
 A document can hold a program (RFC 0005, [SCREEN_FORMAT.md](SCREEN_FORMAT.md), "The Lisp language"): definitions, each kept as
@@ -448,7 +530,11 @@ names the definition. So does:
 - a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
 - a section both written and built with different contents (but a `defdefaults` member or a `defstate`'s key, which the written
   one replaces, as a revision on `/state/lanes` does; and a list
-  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`;
+  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`. So what a program
+  builds is never read back as a document: a composition proof, a scenario played on a document passed in, and every
+  tool (`affrescoui check --compose`, `affrescoui contributions`, the MCP tools) take a program's source, as
+  `sourceDocument()` and the `source` of `hello` and `document` give it, and build from it what they check; a built tree
+  passed in its place is refused ("pass the source document: this one holds what its program built");
 - an `(include ...)` form: the file an app loads names its others with one, read with the file, and it is never an entry.
 
 A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
@@ -511,6 +597,15 @@ it, and `"file"` for what the file on disk had. Three things can't move a text t
   changed, the author is the first writer of that exact text on `main`.
 - **A preview**: what the proposal shown changes is its author's, for as long as it is shown.
 
+A feature's definitions are named as they run, `features/<name>/<file>` (`lisp::effectiveProgram`), and their author is whoever made
+the commit on `main` that last changed `/features/<name>/provides/program/<file>/<definition>`, or that installed the record, by the
+same three rules. What the app's own file shipped of a feature it never installed is the app's own code: its entries stay `"file"`,
+as an app that keeps its parts in `features/<name>/` files has them. A feature is installed when its record says where it came from
+(`release`, `source`, `digest`, `publisher` or `installed`, which an install from a catalogue or a package writes, and every record has
+its `release`), on `main`'s head, in the screen file or in any commit on `main`: taking those keys away later changes nothing, nor does a
+restart, since the history on disk keeps the commits. Every other entry of an installed feature that would be `"file"`, and what the
+person installed, restored or accepted, counts as `feature:<name>`.
+
 **Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
 but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a
 control or a review step. A `run` of a name written out (`(run "save")`) reaches what the run step finds by that name: the document's action,
@@ -536,6 +631,9 @@ do what a revision may add to a handler, and no more, as a proposal can't add a 
 but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
 `persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
 wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.
+An **editor the person paired** (`--nrepl`: an nREPL client such as CIDER, Calva or Conjure, after the person's yes in the
+window's question; SECURITY.md, "Editors (nREPL)") evaluates the same way: its definitions land as one revision by `user`, marked `ownInput`,
+with the message `Evaluate <name> (editor)`, and `load-file` lands only the definitions of the file that changed, in that file.
 
 **What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do; the step `evaluate` does that with what the person didn't type, in the name `plugin:evaluated`. Accepting
 doesn't move them to anyone with more authority, as with any proposal: its code has what a revision has, so a control step in it is refused when it runs, and one a key or a handler reaches is refused when it arrives. A form that isn't a definition can't be in it. So
@@ -550,7 +648,20 @@ named.
 **Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
 `importCsv`) is always reviewed, as a new write step in a handler is.
 
-**Features.** A feature's manifest can't hold a program's definitions yet: it is refused, saying so.
+**Features.** A feature may hold a program's definitions (SCREEN_FORMAT.md, "A feature written as a program"). They
+live in its record, at `/features/<name>/provides/program/<file>/<definition>`, never in the screen's `/program`: an
+edit to one is a revision of that path, blame says who wrote it, and undo takes it back, as for the record's other
+parts. Each composition builds the program again and checks it, so an edit that steps outside the feature's namespace
+or reaches past what it is given is refused like a new install.
+The program that runs is the screen's own, then the merged features' files (`lisp::effectiveProgram`): a feature switched off
+or removed is gone at the next version, with its callbacks. Installing, changing, switching on or off, or removing a feature
+is judged as a change of those definitions: review lines, behaviour, impact, the `/actions` rule and "no longer defines"
+read the effective program before and after; a hook or advice a feature adds or takes away is always reviewed; and a
+definition named like a control or a review step is refused. At run time, what a feature's definition leads to may write
+only `state.<name>`, run only `<name>.<command>` or `app.<need>` (which runs the action the app adapted for it,
+`<name>.adapted.<need>`, with neither the feature's reach nor the person's authority), and no record step, `invoke`,
+`request`, `subscribe`, `image`, control or review step: the error names the feature, the definition and the step
+([SECURITY.md](SECURITY.md), "Features that hold programs"). Anywhere else, `app.<...>` names nothing.
 
 ## Impact per layer
 
@@ -608,16 +719,16 @@ it back finds them.
 - **Evidence comes from the host.** Pictures, behaviour lines and scenario results are gathered by the host from the
   proposal itself; a revision can't carry any.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
-  parts changed later is refused as a conflict.
+  parts changed later lists them as conflicts and waits for the person's choice for each.
 
 ## History
 - **Log:** every commit on `main` with its author, committer, message, time and parents (two for a merged
   proposal). It is available to the screen (`history`) and to agents.
 - **Diff** any two revisions, or a proposal against `main`.
-- **Revert** a revision: a new commit with its inverse, keeping everything after it (`git revert`). It undoes what the
+- **Revert** a revision: one new commit that undoes it, keeping everything after it (`git revert`). It undoes what the
   commit changed in the document and, in the run that made it, in the live state (the live state starts again with
-  every run, so after a restart only the document is reverted). If a later commit, or an action, changed the same
-  parts, it is refused as a conflict. **Undo** reverts the latest revision.
+  every run, so after a restart only the document is reverted). Where a later commit changed the same parts, the
+  person chooses (below). **Undo** reverts the latest revision.
 - **Restore** a revision: a new commit that makes the whole screen equal to it again (`git restore --source`).
 - Reverts and restores made by agents follow the same permissions as any other change.
 - **Blame** a node or a value (`git blame`): the commit on `main` that last changed it, with its author, committer
@@ -626,6 +737,37 @@ it back finds them.
   or replaced along with what holds it); an item added or removed before it in a list only moves it. A path under
   `/state` gives the last commit whose patch reached that part of the live state (actions that change the state
   aren't commits). What no commit changed gives revision 0.
+
+## Undo that keeps what came later
+Undoing an earlier commit is a three-way merge: the commit's own document is the base, main's head is one side and the
+document before the commit the other, keyed by node id like a rebase (lists of nodes by id, objects key by key, a
+definition of a program whole). What no later commit touched is undone; later changes to other nodes, or to other
+properties of the same node, stay. A part a later commit changed too is a **conflict**: the undo is refused until the
+person chooses for it, and `undoPlan` (`Repository::undoPlan`, the protocol's `undoPlan`) shows the plan first.
+
+- **The plan** lists each conflict (its value as the commit left it, as it is now and as it was before, the later
+  commits that changed it, oldest first), the later commits it involves, the parts a later change removed (nothing to
+  undo there), what happens to the live state, and how many later commits stay exactly as they are. Lists stop at 64,
+  with how many more.
+- **The choices:** `drop` takes the later changes to a conflict out too, back to the part before the commit; `keep`
+  leaves them, so the commit's part there isn't undone. Each names conflict paths, or `"all"`. `then` is a JSON Patch
+  applied after, in the same commit, to rebuild a dropped change on what is left. `head` is main's head the choices
+  were made on: if main moved since, the undo is refused ("look again"). Without choices, an undo with conflicts is
+  refused, naming them.
+- **One commit.** The undo is one commit, with a message that names it (`Revert "…"`, and the later revisions whose
+  changes it drops). Its `undo` mark (`CommitInfo::undo`, in the log and the history folder, covered by its id) says
+  `of` (the commit undone), `drop` (the paths dropped) and `then` (how many of its last operations are the rebuild).
+  The mark is checked when the commit lands: its patch must be that undo of that commit on main as it is now. It gives
+  no permission of its own.
+- **Never part of a model.** If a later commit changed a model the commit changed, the undo is refused, naming that
+  revision: undo it first. The records follow "Revert and restore never touch the records" above.
+- **A rebuild or a drop is a proposal** when its author may not review (on a screen without `permissions`, where
+  everyone may, when its author isn't the person, `user`): an undo that takes out what later changes
+  built, or rebuilds one, goes to a reviewer even when the rules would allow the change, never remembered as a grant
+  (`ProposalInfo::undo`, and a reason naming what it takes out). A plain undo is judged like any other change.
+- **The live state** a commit changed is undone with it while every part is as the commit left it; otherwise it is all
+  kept as it is, and the plan says so.
+- An undo of an undo brings the change back; a merge commit is undone whole, against its first parent.
 
 ## History on disk
 A screen opened from a file (`Screen::fromFile`, which `affrescoui_launcher` uses) keeps its history in
@@ -771,23 +913,131 @@ rejected or fails is asked for again, at most three times, and then gives up unt
 every installed change set's status (`{"type": "repairs", "changeSets": [...]}`), which is also sent to every peer
 when it changes.
 
+## Sharing a version: packages
+A person's version of an app (the Kanban board with their Blocked column, a program with a definition they wrote) is
+written to one file, a **package** (`.affresco.json`, `"format": "affrescoui-package"`,
+[schema](schema/affrescoui-package.schema.json)). It holds the version and the release it grew from, and nothing about
+the person:
+
+```json
+{ "format": "affrescoui-package", "version": 1, "kind": "changes", "name": "Flow with a Blocked column",
+  "release": "1.1.0", "engine": "1.0.0",
+  "base": { "app": "flow", "name": "Flow", "release": "1.0.0", "notation": "lisp", "tree": "sha256:9f1c…",
+            "delta": [ { "op": "remove", "path": "/state/columns/1" } ] },
+  "document": { "format": "affrescoui-screen", "version": 2, ... },
+  "state": { "blockedReason": "" } }
+```
+
+- **`document`** is the version's source document as main has it now (`Repository::versionParts()`); **`base`** names
+  the release the history began with, and **`delta`** is the JSON Patch (add, remove and replace only) that turns the
+  document back into it. **`tree`** is `sha256:` and the SHA-256 of that base's canonical JSON, so a reader checks the
+  file holds the base it names, and a person who has the app learns whether theirs is exactly that release.
+- **`state`** has the keys the commits added to the state that the base doesn't have, as the last commit left each (a
+  key added then removed isn't there); **`assets`** the assets the version added, with their bytes.
+- **`kind`** is `changes`, for a person who has the app, or `app`, which also holds the app's files (`base.files`):
+  the ones its manifest reaches (the manifest, its icon, the entry and the parts it includes, themes, models, seeds and
+  asset folders) and no other file of its folder. Files the app takes from the shared folder beside it stay behind; a
+  file or a link that leads out of the folder refuses the export.
+- **Never in a package:** the records, the saved and the live state, the history (commit ids, authors, messages,
+  times), the person's paths, keys and tokens. `affrescoui pack` also scans what it would write for the person's
+  paths (home, data and app folders) and for what looks like a private key, an API key, a code host's or a chat
+  service's token, a cloud access key or a bearer token, and writes nothing if it finds one, naming only the place.
+  `author` is what the person typed, if anything, and not a proof; a signature (`affrescoui sign`) is.
+
+`affrescoui pack <app> [--whole] [-o file]` writes one (`Screen::exportPackage`); `affrescoui inspect <file> [--app
+<app>]` reads one as untrusted input and says what it holds, and whether its base is the app you have
+(`packageSummary`).
+
+### Installing a package
+`affrescoui install <app> <file> [--data DIR]` installs a version into the person's copy of its app. It never changes
+the app by itself: it checks the file, prints everything installing it would do, and opens a **proposal** that only
+the person can accept, in the host's changes window. The package is untrusted input all the way, and its code never
+gets more authority than any revision has.
+
+- **The summary** (`affrescoui inspect <file> --app <app>`, `Screen::inspectPackage`) is worked out from the content,
+  never from what the package says of itself: whether its base is exactly the person's copy (`base.exact`) and the
+  release they have (`base.installedRelease`); its impact per layer; every hook and advice it adds or takes away
+  (`extensions`, each `{kind, name, target}`); what its definitions and actions write (`writes`) and the services they
+  use (`uses`); the models it changes, with their migrations; for a kind `app` package, its capabilities (`added`
+  when the person's copy doesn't declare one), its permissions as lines, and its seed data (each collection's file and
+  record count); its `signature`: `none`, `trusted:<name>` or `unknown:<the key's first 16 characters>`; what doesn't
+  merge with the person's copy (`conflicts`); and `problems`, empty if it can be installed.
+- **What refuses it**, each problem naming its place: anything `inspect` refuses (a malformed file, a base that isn't
+  the one it names, a signature that doesn't verify); a package of changes that touches `permissions`, `channels`,
+  `persist`, `services` or `connections`, or adds or takes away the `program` as a whole (they come only with the app,
+  as a kind `app` package); one made for an app that isn't here ("made for Flow, which isn't here"); a document of a
+  newer format than the engine reads; a definition it adds or changes that holds a form that isn't a definition.
+- **The proposal** is a three-way merge (`mergeDocuments`) of the package's base, the person's main and the package's
+  document, proposed as `plugin:<name>` with the message `Install <name> <release>`, so blame and undo name it like
+  any plugin. Its assets go as the revision's assets; its state keys go as `add /state/<key>`, only where the person's
+  state has no such key. Only the person can accept it, as with assets (see "Assets"), and it is never applied as it
+  is proposed. The package's SHA-256 is recorded, so the same file again says it is already installed.
+- **What doesn't merge** is left out of the proposal, main's value staying (`leftOut`, see "Rebasing"), and listed for
+  the person in the changes window's **Not merged** section: each part's path, their text and the package's side by
+  side, and **Keep mine** or **Use theirs** (`VersionControl::resolveLeftOut`, or `resolve` over the live protocol).
+  Only a reviewer of the person's channel settles a part, never the proposal's author. Using theirs adds the operation
+  to the proposal as its author's, so a definition taken from the package is still `plugin:<name>`'s; the head moves,
+  so an approval of the head before is refused, and the person sees the change again before accepting it. Keeping
+  mine just stops the part being listed.
+- **What its code may do** is what any revision's code may: a package can't bring or add a control step, nor run a
+  function that has one, and its `:around` advice reaching one through `(proceed)` is refused as it runs (`code by
+  "plugin:..." led here`). A package's data models change only the description: migrating the records is the person's
+  to run ([Screen format](SCREEN_FORMAT.md), "Migrations").
+- **A new copy**: `affrescoui install --new <folder> <file>` writes a kind `app` package's files into a folder that
+  doesn't exist yet (`installAppFiles`), refusing a path that leaves it or is absolute, checks that they open there as
+  the base the package describes (`Screen::appFilesProblem`), removing the folder if they don't, then proposes the
+  version on it. A copy of an app that includes the shared folder beside it needs that folder there too.
+- **Trusted publishers** are the person's, in the data folder's `publishers.json`: `{"ed25519:<key>": "<name>"}`, at
+  most 64 KiB and 256 keys, each key at its fixed length, refused whole if malformed. `affrescoui trust <key> [--name
+  NAME]` adds one, `--remove` takes it out, and `--list` lists them. A trusted signature says who made the file; it
+  is never authority: the proposal is reviewed the same way.
+
+`install` opens the app with its history and refuses while another program writes that history (a host showing the
+app): close it first. It ends by saying to open the app to review the proposal; it never accepts it.
+
 ## Features: signed packages
 A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
 `/features/<name>`, so the history, blame, undo and the permission rules cover it like any other change:
 - **install** and **upgrade** go through the `features` service (`features.install {name, version}`,
   `features.upgrade {name}`): it fetches the manifest, checks its digest and signature against a publisher the host
   trusts, and submits the record as a revision by `features`, which the permissions review like any author's;
-- **enable**, **disable** and **remove** are plain revisions: `replace /features/<name>/enabled`, `remove
-  /features/<name>`.
+- **enable**, **disable** and **remove** are revisions too, through the service (`features.enable {name}`,
+  `features.disable {name}`, `features.remove {name}`: `replace /features/<name>/enabled`, `remove /features/<name>`)
+  or submitted directly. A removal the document's rules refuse is refused with their message;
+- **status**: `features.status {name}` reads `{installed, release, newest, edited, enabled}`.
 
-An upgrade never changes the publisher, and a feature can never widen a capability or bring a control step.
+**Editing in place.** An installed record is part of the document: a colour, a title or one of a program's
+definitions can be edited like anything else. The record keeps `installed`, the canonical SHA-256 of its `requires`,
+`provides` and `needs` as they were installed, so `edited` is a comparison, with no catalogue needed. A record from
+before `installed` counts as edited when it differs from its release's manifest, or when that release is gone.
+
+**How an upgrade merges.** A record that wasn't edited becomes exactly the new release's. An edited one is merged three
+ways, like a proposal: the installed release's record is the base, the record now is main, and the new release's is
+the proposal. A program merges one definition at a time, and the text of a definition is never merged. Where the record
+says where it came from (`release`, `source`, `digest`, `publisher`, `installed`) always comes from the new release.
+
+**A conflict.** Where both sides changed the same part, or the new release removed a part edited locally, the upgrade
+still applies and keeps the local version there. The commit's message lists each conflict (`Upgrade wordCount to 1.1.0,
+keeping local edits; 1 conflict, the local version kept:` then `- /features/wordCount/...: changed locally and in
+1.1.0`), and the result's `leftOut` has its path, reason and three values (`base`, `main` for the local one,
+`proposal` for the new release's).
+
+**When the base is gone.** If no catalogue lists the installed release with the record's digest any more, there is
+nothing to merge against: the upgrade is a proposal, `Upgrade <name> to <release>, dropping local edits:`, naming the
+places it changes (twenty at most, then how many more), and the result's `dropped` lists them all. Nothing lands until
+someone accepts it, so a local edit is never dropped silently.
+
+An upgrade never changes the publisher (that takes a removal and a new install), and a feature can never widen a
+capability or bring a control step: a merged record goes through the same checks as any record.
 
 ## Installing across apps
 A feature from another app (a part another app ships, such as Sinopia's slide sorter) installs the same way, with its
 needs bound to what the host offers ([Screen format](SCREEN_FORMAT.md), "Features from another app"):
 - **prove**: `affrescoui check --compose <screen> <feature> [--adapter <file>]`, the MCP tool `check_composition`, or
   `features.compose {manifest, adapter, source}` binds the needs, checks the composed document and plays the
-  scenarios. A failed proof installs nothing and names each unmet need;
+  scenarios. A failed proof installs nothing and names each unmet need. For a program, the proof works on its source:
+  the record goes in beside the `program`, and the scenarios it plays may change the definitions that build the tree
+  the feature sits in;
 - **install**: a proven composition is one revision on `/features/<name>` (or `/features`, when the section is
   missing), its message naming the proof (`Install slideSorter from app:sinopia (proof: slideSorter 1.0.0 from
   app:sinopia, passed, ...)`) and its record carrying the bindings and the proof with the base commit. It is reviewed
@@ -807,8 +1057,10 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
 | Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
-| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
+| Runs | `vcs::Runs` (`RunControl`): `judge`, `begin`, `allow`, `deny`, `finish`, `runs`, `grants`, `revoke`, `expire`, `stateDenial` | `getCommands`, `runCommand`, `undoRun`; reviewers: `allowRun`, `denyRun`, `revokeRun`; `review` carries `runs` and `runGrants` | `list_commands`, `run_command`, `undo_run` |
+| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame`; `vcs::Repository::undoPlan`, `undoRevision` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `undoPlan`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
+| Packages | `exportPackage`, `inspectPackage`, `proposePackage`; `resolveLeftOut(proposal, path, theirs, reviewer)` | reviewers: `resolve` (`proposal`, `path`, `take`: `mine` or `theirs`) | (none) |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | Programs | `sourceDocument`, `programAuthors` | `source` in `hello` and `document` | `get_screen`, `find_nodes`, `submit_revision` |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

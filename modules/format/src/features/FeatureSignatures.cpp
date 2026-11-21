@@ -12,6 +12,7 @@
 #include <charconv>
 #include <cmath>
 #include <random>
+#include <span>
 #include <system_error>
 
 namespace affresco::format {
@@ -41,13 +42,27 @@ void writeString(const std::string& text, std::string& out) {
 	out += '"';
 	for(const char c : text) {
 		switch(c) {
-		case '"': out += "\\\""; break;
-		case '\\': out += "\\\\"; break;
-		case '\b': out += "\\b"; break;
-		case '\f': out += "\\f"; break;
-		case '\n': out += "\\n"; break;
-		case '\r': out += "\\r"; break;
-		case '\t': out += "\\t"; break;
+		case '"':
+			out += "\\\"";
+			break;
+		case '\\':
+			out += "\\\\";
+			break;
+		case '\b':
+			out += "\\b";
+			break;
+		case '\f':
+			out += "\\f";
+			break;
+		case '\n':
+			out += "\\n";
+			break;
+		case '\r':
+			out += "\\r";
+			break;
+		case '\t':
+			out += "\\t";
+			break;
 		default:
 			if(static_cast<unsigned char>(c) < 0x20) {
 				constexpr std::string_view hex = "0123456789abcdef";
@@ -139,7 +154,8 @@ void writeCanonical(const json& value, std::string& out) {
 	switch(value.type()) {
 	case json::value_t::object: {
 		std::vector<std::pair<std::u16string, const json::object_t::value_type*>> members;
-		for(const auto& member : value.get_ref<const json::object_t&>()) members.emplace_back(utf16(member.first), &member);
+		for(const auto& member : value.get_ref<const json::object_t&>())
+			members.emplace_back(utf16(member.first), &member);
 		std::ranges::sort(members, {}, &decltype(members)::value_type::first);
 		out += '{';
 		for(std::size_t i = 0; i < members.size(); ++i) {
@@ -159,12 +175,20 @@ void writeCanonical(const json& value, std::string& out) {
 		}
 		out += ']';
 		return;
-	case json::value_t::string: writeString(value.get_ref<const std::string&>(), out); return;
-	case json::value_t::boolean: out += value.get<bool>() ? "true" : "false"; return;
+	case json::value_t::string:
+		writeString(value.get_ref<const std::string&>(), out);
+		return;
+	case json::value_t::boolean:
+		out += value.get<bool>() ? "true" : "false";
+		return;
 	case json::value_t::number_integer:
 	case json::value_t::number_unsigned:
-	case json::value_t::number_float: writeNumber(value.get<double>(), out); return;
-	default: out += "null"; return;
+	case json::value_t::number_float:
+		writeNumber(value.get<double>(), out);
+		return;
+	default:
+		out += "null";
+		return;
 	}
 }
 
@@ -183,7 +207,53 @@ const std::uint8_t* bytesOf(std::string_view text) noexcept {
 	return reinterpret_cast<const std::uint8_t*>(text.data()); // NOLINT(*-reinterpret-cast): char to byte
 }
 
+/// The order of Ed25519's prime subgroup, L = 2^252 + 27742317777372353535851937790883648493, little-endian.
+constexpr std::array<std::uint8_t, 32> groupOrder = {0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7,
+                                                     0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10};
+
+/// @brief Tells whether a point's encoding has its y at or above the field's prime, 2^255 - 19: another encoding of a
+/// point that has a canonical one, which a strict verifier never takes.
+/// @param point The 32 bytes, little-endian, the top bit x's sign.
+/// @return true if y >= 2^255 - 19.
+bool isNonCanonicalPoint(std::span<const std::uint8_t, 32> point) noexcept {
+	if((point[31] & 0x7fU) != 0x7fU) return false;
+	for(std::size_t i = 1; i < 31; ++i)
+		if(point[i] != 0xffU) return false;
+	return point[0] >= 0xedU;
+}
+
+/// @brief Tells whether a point has a small order (it divides 8): multiplied by a multiple of 8, it gives the identity.
+/// X25519 clears a scalar's three low bits, so the shared secret of any scalar with such a point, on its Montgomery
+/// form, is all zeros, and with a point of the prime subgroup (or of mixed order) it never is. The identity, y = -1
+/// and the points of order 4 and 8 map to u = 0, 1 or a point of order 8 there.
+/// @param point The point's encoding.
+/// @return true if its order divides 8.
+bool hasSmallOrder(std::span<const std::uint8_t, 32> point) noexcept {
+	std::array<std::uint8_t, 32> montgomery{};
+	crypto_eddsa_to_x25519(montgomery.data(), point.data());
+	std::array<std::uint8_t, 32> scalar{};
+	scalar.fill(0x5a); // any scalar: clamped, it is a multiple of 8 that the prime order doesn't divide
+	std::array<std::uint8_t, 32> shared{};
+	crypto_x25519(shared.data(), scalar.data(), montgomery.data());
+	return std::ranges::all_of(shared, [](std::uint8_t byte) { return byte == 0; });
+}
+
+/// @brief Tells whether a signature's scalar S is below the group's order: the one encoding a strict verifier takes.
+/// @param scalar S, little-endian.
+/// @return true if S < L.
+bool isCanonicalScalar(std::span<const std::uint8_t, 32> scalar) noexcept {
+	for(std::size_t i = scalar.size(); i-- > 0;) {
+		if(scalar[i] != groupOrder[i]) return scalar[i] < groupOrder[i];
+	}
+	return false;
+}
+
 } // namespace
+
+bool isWeakPoint(std::span<const std::uint8_t, 32> point) noexcept {
+	return isNonCanonicalPoint(point) || hasSmallOrder(point);
+}
 
 std::string toBase64url(std::span<const std::uint8_t> bytes) {
 	std::string text;
@@ -331,6 +401,12 @@ std::string verifySignature(const json& document, const std::string& place) {
 	if(!key) throw DocumentError(place + ".signature.publisher: expected \"ed25519:<public key>\"");
 	const auto bytes = value.is_string() ? fromBase64url(value.get_ref<const std::string&>(), 64) : std::nullopt;
 	if(!bytes) throw DocumentError(place + ".signature.value: expected a 64-byte Ed25519 signature");
+	// A small-order key verifies some signature over any content (the all-zero key and signature do), and another
+	// encoding of a key or of R would make one signature many: each is refused before the check
+	if(isWeakPoint(*key)) throw DocumentError(place + ".signature.publisher: not a key anyone holds (a weak point)");
+	const std::span<const std::uint8_t, 64> signatureBytes(bytes->data(), 64);
+	if(isWeakPoint(signatureBytes.first<32>()) || !isCanonicalScalar(signatureBytes.last<32>()))
+		throw DocumentError(place + ".signature.value: not a signature a key makes (a weak or non-canonical encoding)");
 	const std::string message = signedBytes(document);
 	if(crypto_ed25519_check(bytes->data(), key->data(), bytesOf(message), message.size()) != 0)
 		throw DocumentError(place + ": the signature doesn't match its content (it was changed after signing)");

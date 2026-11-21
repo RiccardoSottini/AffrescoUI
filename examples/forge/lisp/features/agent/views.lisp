@@ -1,5 +1,7 @@
 ;;; views.lisp --- the agent pane: the conversation, the proposals to review; and the Features view
 
+(ns forge.features.agent.views)
+
 ;;; The pane
 
 (defcomponent forgeAgentView
@@ -31,7 +33,7 @@
        :width "100%"
        :height 22
        :padding 8)
-     (label#agent-review-empty :when ~(= (count proposals) 0)
+     (label#agent-review-empty :when ~(empty? proposals)
        :wrap true
        :width "100%"
        :height 44
@@ -42,7 +44,7 @@
      (node :use forgeAgentReview :when ~(some? computed.agentCurrent))))
 
 (defview agent-empty "Before the first request: what the pane does, or how an agent joins." []
-  `(column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
+  `(column#agent-empty :when ~(empty? state.agent.log) :width "100%" :grow 2 :alignItems center :justify center :gap 8
      (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
      (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
      (label#agent-empty-text :wrap true
@@ -76,7 +78,7 @@
               :text ~(t "agentView.ask")
               :icon send
               :action agentAsk
-              :on ~(not (empty? (trim state.agent.draft)))})))
+              :on ~(not (empty? (str/trim state.agent.draft)))})))
 
 (defview agent-draft "The request, typed: Enter sends it." []
   `(textarea#agent-draft :width "100%"
@@ -207,14 +209,15 @@
          :tooltip ~(t "features-refresh.tip")
          :hover {:textColor @color.text}
          :onClick featuresRefresh))
-     (textarea#features-filter :width "100%"
-       :height 26
-       :padding 6
-       :color @color.input
-       :textColor @color.text
-       :placeholderColor @color.muted
-       :bind state.features.filter
-       :placeholder ~(t "features-filter.placeholder"))
+     (node#features-filter-row :use forgeInset :height 26
+       (textarea#features-filter :grow 1
+         :height 26
+         :padding 6
+         :color @color.input
+         :textColor @color.text
+         :placeholderColor @color.muted
+         :bind state.features.filter
+         :placeholder ~(t "features-filter.placeholder")))
      (label#features-error :when ~(not (empty? state.features.error))
        :icon circle-x
        :wrap true
@@ -222,7 +225,7 @@
        :padding 8
        :textColor @color.text
        :text ~state.features.error)
-     (label#features-empty :when ~(and (= (count state.features.catalog) 0) (empty? state.features.error))
+     (label#features-empty :when ~(and (empty? state.features.catalog) (empty? state.features.error))
        :wrap true
        :width "100%"
        :padding 8
@@ -238,31 +241,36 @@
      :role option
      :label ~(str f.title ". " f.description)
      :width "100%"
-     :height 48
+     :height 56
      :alignItems center
      :gap 8
      :focusable true
      :cursor hand
      :color ~(if (= state.features.selected f.name) "@color.selection" "@color.sideBar")
      :hover {:color @color.hover}
-     :onClick ~(handler featuresChoose f.name)
+     :onClick ~(handler features-choose f.name)
      (label :id ~(str "feature-icon-" f.name)
        :icon ~(cond (not f.installed) "download" f.enabled "circle-check" :else "circle-pause")
        :width 32
-       :height 48
+       :height 56
        :align center
        :textColor ~(if (and f.installed f.enabled) "@color.accent" "@color.muted"))
      ~(feature-text f)
      (node :id ~(str "feature-end-" f.name) :width 8)))
 
 (defview feature-text "A feature's title and release, over its description." [f]
-  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 40
+  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 48
      (label :id ~(str "feature-title-" f.name)
        :width "100%"
        :height 20
        :textColor @color.text
        :text ~(+ f.title (if (empty? f.release) "" (str "  " f.release))))
-     (label :id ~(str "feature-description-" f.name) :width "100%" :height 20 :textColor @color.muted :text ~f.description)))
+     (label :id ~(str "feature-description-" f.name)
+       :width "100%"
+       :height 26
+       :wrap true
+       :textColor @color.muted
+       :text ~f.description)))
 
 (defview features-detail "The feature chosen: its title, its description, and Install, Enable or Disable." []
   `(column#features-detail :when ~(some? computed.featureCurrent) :width "100%" :gap 4

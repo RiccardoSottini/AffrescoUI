@@ -1,0 +1,21 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The canvas's guides and gridlines. Gridlines: every 12 points over the slide, under its objects, while View > Gridlines is on. Guides: with View > Guides on, the canvas draws the deck's guides, or the slide's centre lines when it has none; objects snap to them as they move, as they do to the grid. A guide dragged out of a ruler turns the guides on (viewChanged).",
+
+	"computed": {
+		"centreGuides": { "vertical": [480], "horizontal": [270] },
+		"gridPath": "{{join(map(range(79), 'M' + (12 * (it + 1)) + ' 0V540'), '') + join(map(range(44), 'M0 ' + (12 * (it + 1)) + 'H960'), '')}}",
+		"guidesShown": "{{!state.guides ? { vertical: [], horizontal: [] } : length(state.board.guides.vertical ?? []) + length(state.board.guides.horizontal ?? []) > 0 ? state.board.guides : computed.centreGuides}}"
+	},
+
+	"components": {
+		"gridLines": {
+			"params": {},
+			"note": "The gridlines over the slide, under its objects, while View > Gridlines is on.",
+			"node": { "type": "path", "when": "{{state.gridlines}}", "x": 0, "y": 0, "width": 960, "height": 540, "viewBox": "0 0 960 540", "fit": "fill",
+			          "d": "{{computed.gridPath}}", "stroke": "#8090a040", "strokeWidth": 0.5 }
+		}
+	}
+}

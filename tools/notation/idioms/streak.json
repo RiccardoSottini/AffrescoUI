@@ -1,0 +1,13 @@
+{
+	"folders": [
+		"streak/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 43
+	},
+	"kept": {
+		"camel-case-name": 14,
+		"fn-one-parameter": 2,
+		"string-function": 3
+	}
+}

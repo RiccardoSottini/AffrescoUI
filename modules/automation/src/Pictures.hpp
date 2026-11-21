@@ -24,7 +24,7 @@ enum class PictureKind {
 /// only, for the length of one takePicture call.
 struct Camera {
 	Window& window;                       ///< The window; it must be able to draw (not headless).
-	int scale;                            ///< Pixels per window unit.
+	float scale;                          ///< Pixels per window unit (1 to 4, in quarters).
 	const std::filesystem::path& scratch; ///< A folder of this run's own, for the drawn frame.
 };
 

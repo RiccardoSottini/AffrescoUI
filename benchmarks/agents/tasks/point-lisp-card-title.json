@@ -1,0 +1,39 @@
+{
+	"id": "point-lisp-card-title",
+	"level": "edit",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Show the titles of the cards on the board in the theme's accent colour.",
+	"point": "#cardTitle",
+	"pointRequest": "Show card titles like this one in the theme's accent colour.",
+	"scenarios": [
+		{
+			"name": "accent",
+			"steps": [
+				{
+					"expect": {
+						"node": "#cardTitle",
+						"property": "textColor",
+						"is": "#0d7f63"
+					}
+				},
+				{
+					"expect": {
+						"node": "#cardTitle",
+						"nth": 5,
+						"property": "textColor",
+						"is": "#0d7f63"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": ["#topBar", "#statusBar", "#toolbar", "#columnTitle", "/program/columns.lisp/column-title"],
+	"reference": [
+		{
+			"message": "Card titles in the accent colour",
+			"set": {
+				"/program/columns.lisp/card-title": "(defview card-title \"A card's title, which Enter edits in place.\" []\n  `(label#cardTitle :text ~card.title\n     :textColor @color.accent\n     :anchors {:left 12 :right 12 :top 30}\n     :height ~(if (> (count card.title) (/ (- (/ (- window.width 260) 4) 36) 5.8)) 34 17)\n     :wrap true\n     :align {:horizontal start :vertical start}))"
+			}
+		}
+	]
+}

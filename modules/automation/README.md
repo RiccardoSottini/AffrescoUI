@@ -1,6 +1,6 @@
 # automation: scenarios, the checks a screen ships with
 
-`automation` plays scenarios: scripted input (click, type, key, drag, scroll, wait, revision, action) and
+`automation` plays scenarios: scripted input (click, type, key, drag, scroll, wait, revision, action, command) and
 expectations (a state value, a node's existence, text or property, a picture against a golden image) that a screen
 ships next to it as `<name>.scenarios.json` (SCREEN_FORMAT.md, "Scenarios"). Any app, and any agent changing one,
 proves a change with the screen's own scenarios: `affrescoui test` and the MCP tool `run_scenarios` play them, and the
@@ -32,8 +32,12 @@ rendering check (`tests/render`) is a set of scenarios whose expectations are pi
 - **Targets as a person finds them.** A target is `"#id"`, `[x, y]`, or `{ "role", "name" }`: the first shown node
   with that role and accessible name (`render`'s `Accessibility.hpp`), the way Testing Library finds elements; the
   properties `role`, `name` and `description` read them.
+- **Peers speak the protocol.** A `propose` or `command` step goes through a peer's session on the scenario's screen,
+  one in-memory channel per author's channel (`detail::Peers`), so the screen's permissions, run rules and peer limits
+  judge it as they would a live agent's. A command runs under its author's name, never the person's; one that would
+  wait for a decision ends the scenario, since nobody is there to decide it.
 - **Expectations don't stop a scenario; steps that can't be played do.** A failed expectation is recorded and the
-  scenario goes on; a target that isn't there, a refused revision or an action that throws ends it.
+  scenario goes on; a target that isn't there, a refused revision or run, or an action that throws ends it.
 - **Pictures are the rendering check's.** A picture is `Window::saveScreenshot` at the scenario's scale, compared pixel
   for pixel with `<goldens>/<scenario>-<name>.png`; one that differs is written with a diff (the golden image faded,
   changed pixels in red).

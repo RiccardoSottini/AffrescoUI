@@ -4,11 +4,13 @@
 ;;; A material without a graph shows its output node alone (computed.shaderGraph); the first change writes the graph
 ;;; into the material.
 
+(ns modello.materials)
+
 ;;; Materials
 
 (defn material-name "A name no material has: Material, then Material.001, Material.002..." []
   (loop [n 0 name "Material"]
-    (if (some (fn [m] (= (:name m) name)) state.scene.materials)
+    (if (some #(= (:name %) name) state.scene.materials)
       (recur (inc n) (str "Material." (pad (inc n) 3 "0")))
       name)))
 
@@ -17,9 +19,9 @@
 
 (defcommand newMaterial "Gives the active mesh a new material of its own."
   :title ~(t "command.newMaterial") :description ~(t "command.newMaterial.about")
-  :category ~(t "category.material") :icon "plus" :enablement ~(= computed.activeNode.kind "mesh") []
+  :category ~(t "category.material") :icon "plus" :enablement ~(= computed.activeNode.kind :mesh) []
   (dismiss)
-  (when (= computed.activeNode.kind "mesh")
+  (when (= computed.activeNode.kind :mesh)
     (snapshot)
     (increment "state.added" :by 1)
     (let [id (str "material-" state.added)]
@@ -27,9 +29,10 @@
       (set (active-node-path "material") id)
       (set "state.last" (t "command.newMaterial")))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn assignMaterial "A material chosen in the properties: the active mesh takes it." [id]
   (dismiss)
-  (when (and (= computed.activeNode.kind "mesh") (not= computed.activeNode.material id))
+  (when (and (= computed.activeNode.kind :mesh) (not= computed.activeNode.material id))
     (snapshot)
     (set (active-node-path "material") id)
     (set "state.last" (t "op.assignMaterial"))))
@@ -49,19 +52,20 @@
 
 (defn own-graph "Writes the shader graph into the active material, the first time it changes." []
   (when (and (>= computed.activeMaterialIndex 0)
-             (nil? (:graph (get state.scene.materials computed.activeMaterialIndex))))
+             (nil? (get-in state.scene.materials [computed.activeMaterialIndex :graph])))
     (set (graph-path "") computed.shaderGraph)))
 
 (defn first-value "What a new node of an operation holds: a colour, a number, or nothing." [op]
-  (cond (= op "color") {:value [0.8 0.8 0.8]}
-        (= op "number") {:value 0.5}
-        :else {}))
+  (case op
+    :color {:value [0.8 0.8 0.8]}
+    :number {:value 0.5}
+    {}))
 
 (defcommand addShaderNode "Adds a node of an operation to the graph, where it is dropped or beside the others."
   :title ~(t "command.addShaderNode") :description ~(t "command.addShaderNode.about")
   :category ~(t "category.shader") [op x y]
   (dismiss)
-  (when (and (>= computed.activeMaterialIndex 0) (some? (get computed.shaderOps op)) (not= op "output"))
+  (when (and (>= computed.activeMaterialIndex 0) (some? (get computed.shaderOps op)) (not= op :output))
     (snapshot)
     (own-graph)
     (increment "state.added" :by 1)
@@ -73,45 +77,82 @@
       (set "state.shaderSelected" [id])
       (set "state.last" (t "op.add" {:name (get-in computed.shaderOps [op :title])})))))
 
-(defn shaderConnect "A link drawn from an output to an input, which keeps one link." []
+(defn shader-connect "A link drawn from an output to an input, which keeps one link." []
   (snapshot)
   (own-graph)
   (set (graph-path ".links")
-       (concat (remove (fn [l] (and (= (:to l) event.to) (= (:input l) event.input))) computed.shaderGraph.links)
+       (concat (remove #(and (= (:to %) event.to) (= (:input %) event.input)) computed.shaderGraph.links)
                [{:from event.from :output event.output :to event.to :input event.input}]))
   (set "state.last" (t "op.linkNodes")))
 
-(defn shaderDisconnect "A link taken away." []
+(defn shader-disconnect "A link taken away." []
   (snapshot)
   (set (graph-path ".links")
        (let [links computed.shaderGraph.links] (concat (take event.index links) (drop (inc event.index) links))))
   (set "state.last" (t "op.unlinkNodes")))
 
-(defn shaderMove "Nodes dragged in the graph keep their new places, in whole pixels." []
+(defn shader-move "Nodes dragged in the graph keep their new places, in whole pixels." []
   (own-graph)
   (set (graph-path ".nodes")
-       (map (fn [n] (if (contains event.ids (:id n))
-                      (merge n {:x (round (+ (:x n) event.dx)) :y (round (+ (:y n) event.dy))})
-                      n))
+       (map (fn [{:keys [id x y] :as n}]
+              (if (contains event.ids id) (assoc n :x (round (+ x event.dx)) :y (round (+ y event.dy))) n))
             computed.shaderGraph.nodes)))
 
 (defcommand deleteShaderNodes "Deletes the selected nodes, and their links; the output stays."
   :title ~(t "command.deleteShaderNodes") :description ~(t "command.deleteShaderNodes.about")
   :category ~(t "category.shader")
-  :enablement ~(some (fn [id] (contains computed.shaderDeletable id)) state.shaderSelected) []
-  (let [gone (filter (fn [id] (contains computed.shaderDeletable id)) state.shaderSelected)]
-    (when (not (empty? gone))
+  :enablement ~(some #(contains computed.shaderDeletable %) state.shaderSelected) []
+  (let [gone (filter #(contains computed.shaderDeletable %) state.shaderSelected)]
+    (when (seq gone)
       (snapshot)
       (set (graph-path "")
-           {:nodes (remove (fn [n] (contains gone (:id n))) computed.shaderGraph.nodes)
-            :links (remove (fn [l] (or (contains gone (:from l)) (contains gone (:to l)))) computed.shaderGraph.links)})
+           {:nodes (remove #(contains gone (:id %)) computed.shaderGraph.nodes)
+            :links (remove #(or (contains gone (:from %)) (contains gone (:to %))) computed.shaderGraph.links)})
       (set "state.shaderSelected" [])
       (set "state.last" (t "command.deleteShaderNodes")))))
 
-(defn setShaderColor "A colour node's colour, picked in the Shader Editor's sidebar." [value]
-  (let [colour (colorList value)]
-    (when (and (>= computed.shaderNodeIndex 0) (some? colour))
+(defn set-shader-color "A colour node's colour, picked in the Shader Editor's sidebar." [value]
+  (when-some [colour (colorList value)]
+    (when (>= computed.shaderNodeIndex 0)
       (set (graph-path (str ".nodes[" computed.shaderNodeIndex "].value")) (slice colour 0 3)))))
 
-(defn selectShaderNodes "Nodes selected in the graph." []
+(defn select-shader-nodes "Nodes selected in the graph." []
   (set "state.shaderSelected" event.ids))
+
+(defn set-material "One of the active material's settings, such as how it uses its alpha; undoable." [key value]
+  (let [i computed.activeMaterialIndex]
+    (when (and (>= i 0) (not= (get-in state.scene.materials [i key]) value))
+      (snapshot)
+      (set (str "state.scene.materials[" i "]." key) value))))
+
+;;; Image textures: a picture the person picks becomes the active material's base colour texture
+
+(defn texture-opened "The picture read: the active material's base colour texture, kept in the scene's textures." [result]
+  (when (and state.textureImage (>= computed.activeMaterialIndex 0))
+    (let [id (str "texture-" computed.activeNode.material)]
+      (snapshot)
+      (set "state.scene.textures"
+           (concat (remove #(= (:id %) id) (or state.scene.textures [])) [{:id id :name (:name result) :image state.textureImage}]))
+      (set (str "state.scene.materials[" computed.activeMaterialIndex "].textures") {:baseColor id})
+      (set "state.fileStatus" (t "file.textured" {:name (:name result)}))))
+  (set "state.textureImage" nil))
+
+(defcommand openTexture "Picks a PNG or JPEG picture as the active material's base colour texture."
+  :title ~(t "command.openTexture") :description ~(t "command.openTexture.about")
+  :category ~(t "category.material") :icon "image-plus" :enablement ~(>= computed.activeMaterialIndex 0) []
+  (dismiss)
+  (openFile "state.textureImage" :as "image" :title (t "file.textureTitle") :onDone texture-opened :onError not-opened))
+
+(defcommand removeTexture "Takes the texture off the active material, and out of the scene when no material uses it."
+  :title ~(t "command.removeTexture") :description ~(t "command.removeTexture.about")
+  :category ~(t "category.material") :icon "image-off"
+  :enablement ~(some? (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor])) []
+  (let [id (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor])]
+    (snapshot)
+    (set (str "state.scene.materials[" computed.activeMaterialIndex "].textures") {})
+    (when-not (some #(= (get-in % [:textures :baseColor]) id) state.scene.materials)
+      (set "state.scene.textures" (remove #(= (:id %) id) (or state.scene.textures []))))))
+
+(defcomputed activeTexture "The active material's base colour texture, or nil."
+  (when (>= computed.activeMaterialIndex 0)
+    (by-id state.scene.textures (get-in state.scene.materials [computed.activeMaterialIndex :textures :baseColor]))))

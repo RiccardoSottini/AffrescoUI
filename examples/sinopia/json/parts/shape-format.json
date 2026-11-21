@@ -1,0 +1,91 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The contextual Shape Format tab, shown after Help in the brand colour while an object is selected (and while it is the tab shown): the shapes to insert, the shape styles, the order and the arrangement, and the size, with the proportions kept when they are locked (parts/format.json).",
+
+	"computed": {
+		"contextTabs": "{{computed.first != null || state.tab == 'shapeFormat' ? [{ id: 'shapeFormat', title: 'Shape Format', contextual: true }] : []}}",
+		"quickStyleCells": "{{concat(map(range(6), { id: 'accent' + (it + 1), fill: 'accent' + (it + 1), line: 'accent' + (it + 1), ink: 'light1', width: 1 }), map(range(6), { id: 'line:accent' + (it + 1), fill: 'light1', line: 'accent' + (it + 1), ink: 'accent' + (it + 1), width: 2 }))}}",
+		"menu-sf-shapes": "{{computed['menu-b-ins-shapes']}}",
+		"menu-sf-effects": "{{computed.effectItems}}",
+		"menu-sf-arrange": "{{computed.arrangeItems}}",
+		"sizeBox": "{{computed.first != null ? merge(computed.firstPlaceholder, computed.first) : {}}}"
+	},
+
+	"components": {
+		"tabShapeFormat": {
+			"params": {},
+			"note": "The Shape Format tab: insert shapes, shape styles, arrange, and size.",
+			"node": {
+				"type": "row", "id": "tab-shape-format", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
+				"children": [
+					{ "id": "g-sf-shapes", "use": "rbGroup", "with": { "title": "Insert Shapes" }, "children": [
+						{ "id": "sf-shapes", "use": "rbGallery", "with": { "width": 168, "more": "sf-shapes" }, "children": [
+							{ "type": "grid", "id": "sf-shapes-grid", "columns": 6, "width": 148, "height": 66, "gap": 1, "color": "transparent", "children": [
+								{ "type": "panel",
+								  "id": "{{'sf-shape-' + k}}", "repeat": { "for": "k", "in": "{{['textBox', 'rect', 'ellipse', 'triangle', 'rtTriangle', 'line', 'lineArrow', 'roundRect', 'rightArrow', 'downArrow', 'star5', 'curvedRightArrow', 'leftBrace', 'rightBrace', 'smileyFace', 'heart', 'cloud', 'wedgeRoundRectCallout']}}", "index": "n" }, "width": 24, "height": 21, "radius": 2, "color": "transparent", "cursor": "hand",
+								  "hover": { "color": "@rbHover" }, "tooltip": "{{k == 'textBox' ? 'Text Box' : computed.shapes[k].name ?? k}}",
+								  "onClick": [{ "if": "{{k == 'textBox'}}", "then": [{ "run": "insertTextBox" }], "else": [{ "run": "insertShape", "with": { "shape": "{{k}}" } }] }],
+								  "children": [
+									{ "type": "label", "id": "{{'sf-shape-' + k + '-tb'}}", "when": "{{k == 'textBox'}}", "fill": 0, "align": "center", "textColor": "@rbInk", "runs": [{ "icon": "text-cursor-input", "size": 14 }] },
+									{ "id": "{{'sf-shape-' + k + '-box'}}", "color": "transparent", "when": "{{k != 'textBox'}}", "x": 5, "y": 4, "width": 14, "height": 13, "overflow": "visible",
+									  "children": [{ "use": "shapePath", "with": { "o": "{{ {shape: k, w: 14, h: computed.shapes[k].line ? 0 : 13, fill: 'none', line: '#444444', lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null} }}", "name": "{{'sf-shape-' + k}}" } }] }
+								  ] }
+							] }
+						] }
+					] },
+					{ "id": "g-sf-styles", "use": "rbGroup", "with": { "title": "Shape Styles", "launcher": true }, "children": [
+						{ "type": "row", "id": "sf-styles", "width": 196, "height": 70, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 10, "alignItems": "center", "children": [
+							{ "type": "grid", "id": "sf-styles-grid", "x": 6, "columns": 6, "width": 184, "height": 60, "gap": 4, "color": "transparent", "children": [
+								{ "type": "label", "id": "{{'sf-style-' + q.id}}", "repeat": { "for": "q", "in": "{{computed.quickStyleCells}}", "key": "{{q.id}}" },
+								  "width": 27, "height": 28, "radius": 4, "align": "center", "cursor": "hand",
+								  "color": "{{computed.palette[q.fill]}}", "borderWidth": "{{q.width}}", "borderColor": "{{computed.palette[q.line]}}", "textColor": "{{computed.palette[q.ink]}}",
+								  "tooltip": "Shape Styles", "disabled": "{{computed.first == null}}", "runs": [{ "text": "Abc", "size": 10 }],
+								  "onClick": { "run": "applyColor", "with": { "id": "b-quick-styles", "value": "{{q.id}}" } } }
+							] }
+						] },
+						{ "id": "s-sf-styles", "use": "rbStack", "children": [
+							{ "id": "b-sf-fill", "use": "rbSmall", "with": { "icon": "paint-bucket", "title": "Shape Fill", "enabled": "{{computed.first != null}}" }, "tooltip": "Fill and line in the format pane", "onClick": "openFormatPane" },
+							{ "id": "b-sf-outline", "use": "rbSmall", "with": { "icon": "pen-tool", "title": "Shape Outline", "enabled": "{{computed.first != null}}" }, "tooltip": "Fill and line in the format pane", "onClick": "openFormatPane" },
+							{ "id": "sf-effects", "use": "rbSmall", "with": { "icon": "sparkles", "title": "Shape Effects", "menu": true, "enabled": "{{computed.first != null}}" }, "tooltip": "Shape Effects", "onClick": { "run": "openDrop", "with": { "id": "sf-effects" } } }
+						] }
+					] },
+					{ "id": "g-sf-arrange", "use": "rbGroup", "with": { "title": "Arrange" }, "children": [
+						{ "id": "s-sf-arrange", "use": "rbStack", "children": [
+							{ "id": "b-sf-forward", "use": "rbSmall", "with": { "icon": "arrow-up-from-line", "title": "Bring Forward", "enabled": "{{computed.first != null}}" }, "onClick": { "run": "order", "with": { "how": "forward" } } },
+							{ "id": "b-sf-backward", "use": "rbSmall", "with": { "icon": "arrow-down-to-line", "title": "Send Backward", "enabled": "{{computed.first != null}}" }, "onClick": { "run": "order", "with": { "how": "backward" } } },
+							{ "id": "b-sf-selection", "use": "rbSmall", "with": { "icon": "list", "title": "Selection Pane", "on": "{{state.sidePane == 'select'}}" }, "onClick": { "run": "openSidePane", "with": { "pane": "select" } } }
+						] },
+						{ "id": "sf-arrange", "use": "rbBig", "with": { "icon": "layers-2", "title": "Arrange", "menu": true, "width": 52, "enabled": "{{computed.first != null}}" }, "tooltip": "Arrange", "onClick": { "run": "openDrop", "with": { "id": "sf-arrange" } } }
+					] },
+					{ "id": "g-sf-size", "use": "rbGroup", "with": { "title": "Size", "launcher": true }, "children": [
+						{ "type": "column", "id": "s-sf-size", "width": 150, "height": 72, "gap": 0, "color": "transparent", "justify": "space-evenly", "children": [
+							{ "use": "sizeRow", "with": { "name": "sf-h", "icon": "move-vertical", "title": "Height", "key": "h", "value": "{{computed.sizeBox.h ?? 100}}" } },
+							{ "use": "sizeRow", "with": { "name": "sf-w", "icon": "move-horizontal", "title": "Width", "key": "w", "value": "{{computed.sizeBox.w ?? 100}}" } },
+							{ "id": "b-sf-ratio", "use": "rbSmall", "with": { "icon": "{{computed.ratioLocked ? 'link-2' : 'link-2-off'}}", "title": "Lock proportions", "on": "{{computed.ratioLocked}}", "enabled": "{{computed.first != null}}" },
+							  "tooltip": "The width and the height change together", "onClick": "toggleRatio" }
+						] }
+					] }
+				]
+			}
+		},
+
+		"sizeRow": {
+			"params": { "name": "", "icon": "", "title": "", "key": "", "value": 0 },
+			"note": "A size of the selection, key, its value and the buttons that step it by ten points.",
+			"node": {
+				"type": "row", "id": "{{name}}", "fitContent": "width", "height": 22, "gap": 2, "alignItems": "center", "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "{{name + '-icon'}}", "width": 20, "height": 22, "align": "center", "textColor": "@rbInk", "runs": [{ "icon": "{{icon}}", "size": 14 }], "tooltip": "{{title}}" },
+					{ "type": "label", "id": "{{name + '-value'}}", "width": 70, "height": 20, "radius": 4, "align": "end", "padding": 4, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+					  "textColor": "{{computed.first != null ? '@rbInk' : '@rbMuted'}}", "label": "{{title}}", "runs": [{ "text": "{{fixed(value, 1) + ' pt'}}", "size": 12 }] },
+					{ "id": "{{name + '-minus'}}", "use": "rbSmall", "with": { "icon": "minus", "enabled": "{{computed.first != null}}" }, "tooltip": "Less",
+					  "onClick": { "run": "setProperty", "with": { "key": "{{key}}", "value": "{{max(value - 10, 1)}}" } } },
+					{ "id": "{{name + '-plus'}}", "use": "rbSmall", "with": { "icon": "plus", "enabled": "{{computed.first != null}}" }, "tooltip": "More",
+					  "onClick": { "run": "setProperty", "with": { "key": "{{key}}", "value": "{{value + 10}}" } } }
+				]
+			}
+		}
+	}
+}

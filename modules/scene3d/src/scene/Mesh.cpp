@@ -36,6 +36,9 @@ std::string MeshData::validate() const {
 	if(indices.size() % 3 != 0) return "the indices aren't whole triangles";
 	for(const std::uint32_t index : indices)
 		if(index >= positions.size()) return "an index is out of range";
+	if(lines.size() % 2 != 0) return "the lines aren't whole edges";
+	for(const std::uint32_t index : lines)
+		if(index >= positions.size()) return "a line's index is out of range";
 	for(const Vec3& position : positions)
 		if(!isFinite(position)) return "a position isn't finite";
 	for(const Vec3& normal : normals)
@@ -44,6 +47,7 @@ std::string MeshData::validate() const {
 }
 
 std::vector<std::uint32_t> MeshData::edges() const {
+	if(!lines.empty()) return lines;
 	std::set<std::pair<std::uint32_t, std::uint32_t>> unique;
 	for(std::size_t i = 0; i + 2 < indices.size(); i += 3)
 		for(std::size_t corner = 0; corner < 3; ++corner) {

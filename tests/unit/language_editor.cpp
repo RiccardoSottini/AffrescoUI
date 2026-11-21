@@ -45,7 +45,9 @@ struct Built {
 	          R"json(, "keys": [], "typed": [], "go": null, "put": null, "popup": false },
 	          "actions": { "go": [{ "set": "state.go", "to": "{{event.value}}" }],
 	            "put": [{ "set": "state.put", "to": "{{event.value}}" }],
-	            "popup": [{ "set": "state.popup", "to": "{{event.value}}" }] },
+	            "popup": [{ "set": "state.popup", "to": "{{event.value}}" }],
+	            "open": [{ "set": "state.text", "to": "{{event.value.text}}" },
+	              { "set": "state.go", "to": "{{event.value.go}}" }] },
 	          "root": { "id": "root", "children": [{ "id": "code", "type": "editor", "bind": "state.text",
 	          "language": "x", "autofocus": true, "width": 380, "height": 200, )json" +
 	          extra + R"json( "popup": "{{state.popup}}", "goTo": "{{state.go}}", "insert": "{{state.put}}" }] } })json")) {
@@ -73,7 +75,7 @@ struct Built {
 		}
 	}
 
-	/// @brief Sets a state key (go, put or popup) and draws a frame.
+	/// @brief Sets a state key (go, put or popup) and draws a frame; "open" sets the text and go together.
 	/// @param key Its name, which is also its action's.
 	/// @param value Its value.
 	void set(const std::string& key, const json& value) {
@@ -149,4 +151,11 @@ TEST_CASE("language editor: a popup takes its keys, and goTo and insert apply on
 	built.set("put", json{{"text", "xyz"}, {"before", 3}, {"request", 1}});
 	built.type("?");
 	CHECK(built.state("text") == "ab\nxyz!?");
+}
+
+TEST_CASE("language editor: a goTo that comes with a new text goes to that text's line") {
+	Built built("a");
+	built.set("open", json{{"text", "1\n2\n3\n4"}, {"go", {{"line", 2}, {"column", 1}, {"request", 1}}}});
+	built.type("x");
+	CHECK(built.state("text") == "1\n2\n3x\n4"); // not at the start: the line was there once the text was
 }

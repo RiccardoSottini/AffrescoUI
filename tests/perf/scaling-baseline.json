@@ -44,6 +44,10 @@
       "n": "commits in the history",
       "target": "O(1)"
     },
+    "history/undoPlan": {
+      "n": "commits in the history",
+      "target": "O(1)"
+    },
     "history/diff": {
       "n": "commits in the history",
       "target": "O(1)"

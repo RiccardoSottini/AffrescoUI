@@ -1,0 +1,115 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The format pane's further rows: gradient fills, dashed lines, the proportion lock and the text box. A gradient is { from, to, angle } on an object (0 across, 90 down), drawn by parts/geometry.json; a dash is a name the outline knows. With lockRatio the width and the height change together. A text box keeps its margins (marginX, marginY, in points), whether its text wraps (wrap) and how it fits (autofit: shrink the text, or resize the shape to the text), which parts/slide.json honours.",
+
+	"computed": {
+		"gradientKinds": [
+			{ "id": "none", "title": "Solid fill" },
+			{ "id": "down", "title": "Gradient, downwards", "to": "light1", "angle": 90 },
+			{ "id": "across", "title": "Gradient, to the right", "to": "light1", "angle": 0 },
+			{ "id": "diagonal", "title": "Gradient, diagonal", "to": "light1", "angle": 45 },
+			{ "id": "dark", "title": "Gradient to dark", "to": "dark1", "angle": 90 }
+		],
+		"dashKinds": [
+			{ "id": "solid", "title": "Solid line", "dash": [] },
+			{ "id": "dot", "title": "Round dot", "dash": [2, 2] },
+			{ "id": "dash", "title": "Dash", "dash": [6, 4] },
+			{ "id": "dashDot", "title": "Dash dot", "dash": [6, 3, 2, 3] },
+			{ "id": "longDash", "title": "Long dash", "dash": [10, 4] }
+		],
+		"autofitKinds": [
+			{ "id": "none", "title": "Do not autofit" },
+			{ "id": "shrink", "title": "Shrink text on overflow" },
+			{ "id": "resize", "title": "Resize shape to fit text" }
+		],
+		"ratioLocked": "{{computed.first.lockRatio ?? false}}",
+		"ratioBox": "{{merge(computed.firstPlaceholder, computed.first ?? {})}}",
+		"gradientNow": "{{computed.first.gradient.kind ?? 'none'}}"
+	},
+
+	"actions": {
+		"setProperty": [
+			{ "note": "with: key and value, one property of the selected objects; with the proportions locked a size sets both" },
+			{ "run": "setObjects", "with": { "props": "{{!computed.ratioLocked || (key != 'w' && key != 'h') ? parseJson('{' + json(key) + ':' + json(value) + '}') : key == 'w' ? { w: value, h: round(value * (computed.ratioBox.h ?? 100) / max(computed.ratioBox.w ?? 100, 1) * 10) / 10 } : { h: value, w: round(value * (computed.ratioBox.w ?? 100) / max(computed.ratioBox.h ?? 100, 1) * 10) / 10 }}}" } }
+		],
+		"setGradient": [
+			{ "note": "with: kind, a gradient of computed.gradientKinds from the selection's fill colour, or none for a solid fill" },
+			{ "run": "setObjects", "with": { "props": "{{ {gradient: kind == 'none' ? null : { kind: kind, from: computed.first.fill ?? 'accent1', to: find(computed.gradientKinds, it.id == kind).to, angle: find(computed.gradientKinds, it.id == kind).angle }} }}" } }
+		],
+		"toggleRatio": [{ "run": "setObjects", "with": { "props": "{{ {lockRatio: computed.ratioLocked ? null : true} }}" } }]
+	},
+
+	"components": {
+		"formatGradient": {
+			"params": { "o": null },
+			"note": "The gradient fills, as small previews of the selection's fill: a click takes one.",
+			"node": {
+				"type": "row", "id": "format-gradient", "width": 236, "height": 24, "gap": 4, "color": "transparent",
+				"children": [
+					{ "id": "{{'format-gradient-' + g.id}}", "repeat": { "for": "g", "in": "{{computed.gradientKinds}}", "key": "{{g.id}}" },
+					  "let": { "from": "{{computed.palette[o.fill ?? 'accent1'] ?? '#2a9d8f'}}" },
+					  "width": 40, "height": 22, "radius": 4, "cursor": "hand", "role": "button", "label": "{{g.title}}", "tooltip": "{{g.title}}",
+					  "color": "{{from}}",
+					  "gradient": "{{g.id == 'none' ? [from, from] : { kind: 'linear', angle: g.angle + 90, stops: [from, computed.palette[g.to]] }}}",
+					  "borderWidth": "{{computed.gradientNow == g.id ? 2 : 1}}", "borderColor": "{{computed.gradientNow == g.id ? '@brandLine' : '@rbFieldLine'}}",
+					  "onClick": { "run": "setGradient", "with": { "kind": "{{g.id}}" } } }
+				]
+			}
+		},
+
+		"formatDash": {
+			"params": { "o": null },
+			"note": "The line's dashes, each drawn: a click takes one.",
+			"node": {
+				"type": "row", "id": "format-dash", "width": 236, "height": 24, "gap": 4, "color": "transparent",
+				"children": [
+					{ "id": "{{'format-dash-' + d.id}}", "repeat": { "for": "d", "in": "{{computed.dashKinds}}", "key": "{{d.id}}" },
+					  "width": 44, "height": 22, "radius": 4, "cursor": "hand", "role": "button", "label": "{{d.title}}", "tooltip": "{{d.title}}",
+					  "color": "@rbFieldBg",
+					  "borderWidth": "{{(o.dash ?? 'solid') == d.id ? 2 : 1}}", "borderColor": "{{(o.dash ?? 'solid') == d.id ? '@brandLine' : '@rbFieldLine'}}",
+					  "onClick": { "run": "setProperty", "with": { "key": "dash", "value": "{{d.id == 'solid' ? null : d.id}}" } },
+					  "children": [
+						{ "type": "path", "id": "{{'format-dash-' + d.id + '-line'}}", "x": 6, "y": 6, "width": 32, "height": 10, "viewBox": "0 0 32 10",
+						  "d": "M1 5L31 5", "stroke": "@rbInk", "strokeWidth": 2, "strokeDash": "{{d.dash}}" }
+					  ] }
+				]
+			}
+		},
+
+		"formatRatio": {
+			"params": {},
+			"note": "Lock the proportions: the width and the height then change together.",
+			"node": {
+				"type": "label", "id": "format-ratio", "style": "{{computed.ratioLocked ? 'rbButtonOn' : 'rbButton'}}", "height": 26, "fitText": true, "padding": 6,
+				"runs": [{ "icon": "{{computed.ratioLocked ? 'link-2' : 'link-2-off'}}", "size": 14 }, { "text": " Lock proportions", "size": 12 }],
+				"tooltip": "The width and the height change together", "onClick": "toggleRatio"
+			}
+		},
+
+		"formatTextBox": {
+			"params": { "o": null },
+			"note": "The text box: its margins, whether its text wraps, and how it fits.",
+			"node": {
+				"type": "column", "id": "format-text-box", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 6, "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "format-text-box-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Text box", "size": 12 }] },
+					{ "use": "paneStepper", "with": { "prefix": "format-margin-x", "title": "Left, right", "value": "{{o.marginX ?? 7.2}}", "unit": " pt", "key": "marginX", "step": 1.8, "low": 0, "high": 200 } },
+					{ "use": "paneStepper", "with": { "prefix": "format-margin-y", "title": "Top, bottom", "value": "{{o.marginY ?? 3.6}}", "unit": " pt", "key": "marginY", "step": 1.8, "low": 0, "high": 200 } },
+					{ "type": "label", "id": "format-wrap", "style": "{{o.wrap ?? true ? 'rbButtonOn' : 'rbButton'}}", "height": 26, "fitText": true, "padding": 6,
+					  "runs": [{ "icon": "text-wrap", "size": 14 }, { "text": " Wrap text in shape", "size": 12 }],
+					  "onClick": { "run": "setProperty", "with": { "key": "wrap", "value": "{{o.wrap ?? true ? false : null}}" } } },
+					{ "type": "column", "id": "format-autofit", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 2, "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "{{'format-autofit-' + a.id}}", "repeat": { "for": "a", "in": "{{computed.autofitKinds}}", "key": "{{a.id}}" },
+						  "style": "{{(o.autofit ?? 'none') == a.id ? 'rbButtonOn' : 'rbButton'}}", "height": 24, "padding": 6, "role": "radio",
+						  "selected": "{{(o.autofit ?? 'none') == a.id}}",
+						  "runs": [{ "icon": "{{(o.autofit ?? 'none') == a.id ? 'circle-dot' : 'circle'}}", "size": 12 }, { "text": "{{' ' + a.title}}", "size": 12 }],
+						  "onClick": { "run": "setProperty", "with": { "key": "autofit", "value": "{{a.id == 'none' ? null : a.id}}" } } }
+					  ] }
+				]
+			}
+		}
+	}
+}

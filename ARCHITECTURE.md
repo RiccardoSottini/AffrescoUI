@@ -99,6 +99,7 @@ Rules that hold across the layers:
   layer and the renderer interface, so a window's logic also runs headless, without either.
 - **One thread runs the UI.** Everything runs on the main thread, inside `Application::run`. Threads that read sockets
   or child processes only `post` what they read to the `Executor`. Each class documents the thread that owns it.
+  No thread polls: the event loop waits for input, a posted task or a timer, so an idle app uses no CPU.
 - **Owners are explicit.** `std::unique_ptr` owns; references and raw pointers never do, and each says how long it
   must live ("must outlive the session"). Callbacks that capture `this` are cancelled when their owner goes away.
 - **Errors name the place.** Document errors are `DocumentError`s like `root.children[1].anchors: unknown edge
@@ -250,7 +251,19 @@ be the same.
 Expressions are lowered once into typed nodes and run on small values that read the state in place (7.5,
 `modules/format/README.md`). Each version of a document is compiled once into nodes whose properties are typed slots
 with compiled bindings (7.6): an update evaluates only the dynamic values, and leaves alone a panel whose values,
-compiled node and theme are those it applied last. A history keeps each commit as a delta from its parent, with a snapshot every 64
+compiled node and theme are those it applied last.
+
+An update costs what it touches (4.1, `modules/format/README.md`, "Cost follows the change"). Every value a panel
+shows, every list of children, computed value, query, `watch` and scope variable is a reader that records the places
+of the state it read; an index keeps the readers by place. A step records the places it wrote, and the update after
+the event looks them up and runs only their readers, in the order of the panels: a computed value whose new value is
+the same stops there, a keyed list inserts or removes only the rows that changed, and the layout and the frame then
+follow the panels that moved. A revision keeps compiled what it didn't change and runs the lists and places it
+touched. Reads no change announces (a panel's geometry, the clock) run on every update, and a change with no place to
+look up (a resize, a new theme, a revision of styles or components) updates everything; verify mode
+(`AFFRESCOUI_VERIFY_UPDATES=1`) checks every partial update against a full one.
+
+A history keeps each commit as a delta from its parent, with a snapshot every 64
 commits, and packs its files on disk (4.8a, `modules/vcs/README.md`).
 
 Text is shaped with HarfBuzz and rasterised with FreeType (2.3b, `modules/render/README.md`): runs of one face and

@@ -3,6 +3,8 @@
 ;;; The navigation is a list of places, { tab, page, id }, and where in it you are, as a browser's history is: go
 ;;; (in arcadia.lisp) drops the places ahead and adds one; back and forward move along it.
 
+(ns arcadia.parts.places)
+
 ;;; Where you are
 
 (defstate nav [{:tab library :page home :id nil}])
@@ -12,13 +14,13 @@
 (defcomputed here "The place shown: its tab, its page and the id of what it shows." (get state.nav state.at))
 
 (defcomputed game "The game shown, or the one chosen in the library."
-  (find (fn [it] (= it.id (or-else computed.here.id state.selected))) data.games))
+  (find #(= (:id %) (or-else computed.here.id state.selected)) data.games))
 
-(defcomputed owned "The games in the library." (filter (fn [it] it.owned) data.games))
+(defcomputed owned "The games in the library." (filter :owned data.games))
 
 (defcomputed rtl "Whether the language is written right to left." (= (slice locale 0 2) "ar"))
 
-(defpart start "Arcadia opens on the page Settings choose." :onLoad openStartPage)
+(defpart start "Arcadia opens on the page Settings choose." :onLoad open-start-page)
 
 ;;; The pages
 

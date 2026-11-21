@@ -51,6 +51,15 @@ public:
 	/// @return The tree, with `program` kept; std::nullopt without a program.
 	/// @throws DocumentError If it can't be built, naming the definition.
 	[[nodiscard]] std::optional<json> built(const json& document) const override;
+	/// @brief The places of the built tree that a revision changed, from what the build in part of the later version
+	/// knew (lisp::changedPlaces()), without comparing the whole trees: for the repository to say what a revision
+	/// changed, and to redraw no more than that.
+	/// @param before The document before the revision, as versioned.
+	/// @param after The document after it.
+	/// @return JSON pointers into the built tree: a program's places, and each other section that differs, with
+	/// `/program` if it did; std::nullopt if either has no program.
+	/// @throws DocumentError If either can't be built.
+	[[nodiscard]] static std::optional<std::vector<std::string>> changedPlaces(const json& before, const json& after);
 	/// @brief Turns an edit of one keyword inside a definition (`/program/file/name/:title`) into a replace of its
 	/// text, every other byte kept (lisp::replaceKeyword()).
 	/// @param document The document before the operation.
@@ -184,6 +193,14 @@ public:
 	/// @param after The document after the change.
 	/// @return The impact.
 	[[nodiscard]] json impact(const json& before, const json& after) const override;
+
+	/// @brief The features a change would leave out: the composition problems the document after it has and the
+	/// document before it has not, as lines for the person, at most 16 (BrokenLines.cpp). Two compositions; nothing
+	/// for a document without features or imports. Never throws: a document that can't be composed gives one line.
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The lines, e.g. "the feature 'wordCount' would be left out: features.wordCount.requires.points: ...".
+	[[nodiscard]] std::vector<std::string> brokenLines(const json& before, const json& after) const override;
 
 private:
 	/// @brief What checkChange() and checkOwnChange() share.

@@ -2,10 +2,12 @@
 	"$schema": "../../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's panels: Problems (TODO and FIXME lines of the open files, a click goes to the line), Output (a log every feature writes to with the notify action), the notification centre over the status bar's bell (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state.",
+	"note": "Forge's panels: Problems (TODO and FIXME lines of the open files and the language servers' diagnostics, as a tree of files with their problems under them, errors first; opening one goes to the line), Output (a log every feature writes to with the notify action), the notification centre over the status bar's bell (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state.",
 
 	"state": {
 		"problems": [],
+		"problemsFilter": "",
+		"problemsFolded": [],
 		"output": [],
 		"notifications": [],
 		"toast": { "open": false, "message": "", "progress": null },
@@ -15,7 +17,10 @@
 	"computed": {
 		"errors": "{{count(state.problems, it.severity == 'error')}}",
 		"warnings": "{{count(state.problems, it.severity == 'warning')}}",
-		"problemRows": "{{map(state.problems, {id: index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}",
+		"problemsShown": "{{sort(filter(map(state.problems, merge(it, {index: index})), empty(trim(state.problemsFilter)) || contains(lower(it.message + ' ' + it.file), lower(trim(state.problemsFilter)))), it.severity == 'error' ? 0 : it.severity == 'warning' ? 1 : 2)}}",
+		"problemGroups": "{{reduce(computed.problemsShown, merge(acc, fromEntries([{key: it.file, value: concat(acc[it.file] ?? [], [it])}])), {})}}",
+		"problemRows": "{{map(sortText(keys(computed.problemGroups)), {id: 'file:' + it, icon: 'file-code', label: computed.problemGroups[it][0].label + '  ' + it + '  (' + length(computed.problemGroups[it]) + ')', children: map(computed.problemGroups[it], {id: it.index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', label: it.message + '  [Ln ' + it.line + ']'})})}}",
+		"problemsOpen": "{{filter(map(computed.problemRows, it.id), !contains(state.problemsFolded, it))}}",
 		"outputRows": "{{map(state.output, {id: index, label: time(it.time, 'HH:mm:ss') + '  ' + it.text})}}",
 		"notificationRows": "{{map(reverse(state.notifications), {id: index, label: it.message, icon: it.severity == 'error' ? 'circle-x' : 'bell'})}}"
 	},
@@ -28,8 +33,11 @@
 			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
 		],
 		"log": [{ "push": "state.output", "value": "{{ {time: now(), text: text} }}" }],
+		"foldProblems": [
+			{ "set": "state.problemsFolded", "to": "{{event.expanded ? filter(state.problemsFolded, it != event.id) : concat(state.problemsFolded, [event.id])}}" }
+		],
 		"goToProblem": [
-			{ "forEach": "{{[state.problems[number(event.id)]]}}", "as": "p", "do": [
+			{ "forEach": "{{slice(text(event.id), 0, 5) == 'file:' ? [] : [state.problems[number(event.id)]]}}", "as": "p", "do": [
 				{ "run": "showTab", "with": { "id": "{{p.file}}", "label": "{{p.label}}" } },
 				{ "run": "goToLine", "with": { "line": "{{p.line}}" } }
 			] }
@@ -100,12 +108,18 @@
 					  ] },
 					{ "type": "label", "id": "problems-empty", "when": "{{state.panelTab == 'problems' && empty(state.problems)}}", "width": "100%", "padding": 12,
 					  "text": "No problems found in the open files so far.", "textColor": "@color.text" },
-					{ "type": "table", "id": "problems", "when": "{{state.panelTab == 'problems' && !empty(state.problems)}}", "label": "Problems", "width": "100%", "grow": 1,
-					  "items": "{{computed.problemRows}}", "rowHeight": 22, "color": "@color.panel",
+					{ "type": "row", "id": "problems-filter-row", "when": "{{state.panelTab == 'problems' && !empty(state.problems)}}", "width": "100%", "height": 32,
+					  "alignItems": "center", "children": [
+						{ "id": "problems-filter-start", "width": 12 },
+						{ "type": "textarea", "id": "problems-filter", "width": 300, "height": 24, "padding": 5, "color": "@color.input", "textColor": "@color.text",
+						  "placeholderColor": "@color.muted", "bind": "state.problemsFilter", "placeholder": "Filter by text or file" },
+						{ "type": "label", "id": "problems-shown", "grow": 1, "height": 24, "padding": 8, "textColor": "@color.muted",
+						  "text": "{{empty(trim(state.problemsFilter)) ? '' : length(computed.problemsShown) + ' of ' + length(state.problems)}}" }
+					  ] },
+					{ "type": "tree", "id": "problems", "when": "{{state.panelTab == 'problems' && !empty(state.problems)}}", "label": "Problems", "width": "100%", "grow": 1,
+					  "items": "{{computed.problemRows}}", "expanded": "{{computed.problemsOpen}}", "rowHeight": 22, "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
-					  "columns": [{ "id": "message", "title": "Message", "width": 420 }, { "id": "file", "title": "File", "width": 160 },
-					              { "id": "line", "title": "Line", "width": 60 }],
-					  "onOpen": { "run": "goToProblem" } },
+					  "onExpand": { "run": "foldProblems" }, "onOpen": { "run": "goToProblem" } },
 					{ "type": "list", "id": "output", "when": "{{state.panelTab == 'output'}}", "role": "log", "label": "Output", "width": "100%", "grow": 1,
 					  "items": "{{computed.outputRows}}", "rowHeight": 20, "font": "code", "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection" },

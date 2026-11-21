@@ -6,6 +6,7 @@
 /// there (SECURITY.md, "The Lisp language").
 
 #include "Expression.hpp"
+#include "StepAuthority.hpp"
 #include "TypedText.hpp"
 
 #include "affresco/core/Json.hpp"
@@ -21,6 +22,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -32,6 +34,7 @@ namespace affresco::format {
 
 struct Engine;
 struct StepType;
+class RuntimeConsole;
 
 /// @brief What a step may need of whoever reaches it from a program.
 enum class StepKind : std::uint8_t {
@@ -69,10 +72,37 @@ enum class StepKind : std::uint8_t {
 /// @brief Who a program's entry that nobody is credited with counts as: no one, with the least authority.
 inline constexpr std::string_view unknownAuthor = "unknown";
 
-/// @brief Who the steps now running come from, while code of a program runs them, and later for what it scheduled.
-struct StepAuthority {
-	std::vector<std::string> authors; ///< Every author whose code led here.
-};
+/// @brief The author a feature's definitions run as: `feature:<name>`, a revision's authority, whoever installed it.
+/// @param feature The feature.
+/// @return The author.
+[[nodiscard]] std::string featureAuthor(std::string_view feature);
+
+/// @brief Tells whether a feature's code may run a step: the flow, writes written out under `state.<feature>`, and
+/// running its own commands, its own definitions and `app.<need>`.
+/// @param key The step's key.
+/// @param value Its value: the path or the name it is given.
+/// @param feature The feature.
+/// @return Whether it may.
+[[nodiscard]] bool featureMayRun(const std::string& key, const json& value, const std::string& feature);
+
+/// @brief The feature an author of running code is (featureAuthor()).
+/// @param author The author.
+/// @return The feature's name; empty for any other author.
+[[nodiscard]] std::string_view featureOfAuthor(std::string_view author) noexcept;
+
+/// @brief Credits each entry of a feature's files (`features/<name>/...`, lisp::effectiveProgram()) to the feature,
+/// except one version control credits to the app's file (`"file"`) of a feature the document has no installed record
+/// of (installedFeature()): what the app's own file shipped is the app's own code.
+/// @param source The document, as versioned.
+/// @param section The program.
+/// @param authors `{file: {name: author}}`, changed.
+void creditFeatures(const json& source, const json& section, json& authors);
+
+/// @brief Tells why a text can't be shown to the person as it is, if it can't: a character that draws nothing, or moves
+/// what is drawn around it, would let a question show other than what runs (ProgramEvaluate.cpp).
+/// @param text The text, UTF-8.
+/// @return Why; std::nullopt if every character of it shows.
+[[nodiscard]] std::optional<std::string> hiddenCharacter(std::string_view text);
 
 /// @brief The live program of a document: one interpreter per version of its `program` section, replaced whole when the
 /// section changes, so that a removed definition goes, an undo is exact, and what a run allocates goes when it ends.
@@ -94,12 +124,37 @@ public:
 	/// values worked out, purely.
 	/// @throws DocumentError If it can't be loaded: the version is refused.
 	void load();
+	/// @brief Changes the program now into a later version of it in place (lisp::Program::redefine()): the definitions
+	/// that changed are defined again, with the authors given, those that went are taken away, and those that use
+	/// either are defined again, their values worked out again. load() goes through it; an editor's "evaluate one
+	/// definition" may too. Where that can't be sure to give what a new interpreter gives, it does nothing and
+	/// returns false, for the caller to load a new one: a function running (it keeps the code it started with), hooks
+	/// or advice, a macro changed, and the cases lisp::Program::redefine() lists. On any failure the program is the
+	/// earlier version again, in a new interpreter, and it returns false.
+	/// @param section The later version's `program` section.
+	/// @param authors Who wrote each of its entries (VersionControl::programAuthors()), each given one.
+	/// @return true if the program now is the later version.
+	bool redefine(const json& section, const json& authors);
+	/// The most text one evaluation takes: what a file of a person's definitions takes (four of lisp::maxEntryBytes).
+	static constexpr std::size_t maxEvaluatedBytes = std::size_t{4} << 20U;
+	/// The file a new definition goes in when nothing names one.
+	static constexpr std::string_view defaultFile = "evaluated.lisp";
+	/// What an evaluated text is called in its errors: a place in such an error is one in the text.
+	static constexpr std::string_view evaluatedName = "evaluated";
 	/// @brief What evaluating a text gave.
 	struct Evaluated {
 		std::string printed;              ///< The last form's value, as Lisp; a definition's address.
 		std::optional<std::string> error; ///< What went wrong: names and kinds, no value.
 		std::optional<int> proposal;      ///< The proposal it became, when the person didn't type it.
+		std::vector<std::string> values;  ///< One per form, in the text's order: a definition's address, any other
+		                                  ///< form's value as Lisp; none when it went wrong or became a proposal.
+		std::size_t line = 0;             ///< Where the error is in the text, from 1; 0 when it has no place there.
+		std::size_t column = 0;           ///< Its column, in characters, from 1; 0 when it has no place there.
 	};
+	/// @brief Tells why nothing can be evaluated in the program now, if nothing can: an agent's reply is being decided,
+	/// a proposal is being previewed, or there is no program. What the step `evaluate` and the console both say.
+	/// @return Why; std::nullopt if a text can be evaluated.
+	[[nodiscard]] std::optional<std::string> refusalToEvaluate() const;
 	/// @brief Tells whether the document has a program. @return true if it has.
 	[[nodiscard]] bool hasProgram() const noexcept;
 	/// @brief Notes what the person's own keystroke did to a bound value (TypedText).
@@ -124,16 +179,23 @@ public:
 	/// @return true if it has forms and one isn't, whole, what they typed; false for a text that can't be read, which
 	/// evaluate() reports.
 	[[nodiscard]] bool untyped(const std::string& text);
-	/// @brief Evaluates a text the person said yes to, in the question the window drew (Window::confirm()): as if they
-	/// had typed it, this once. Only the step `evaluate` calls it, from their answer.
+	/// @brief Evaluates a text the person said yes to: as if they had typed it, this once. Two callers only, each
+	/// holding the person's yes: the step `evaluate`, from their answer to the question the window drew
+	/// (Window::confirm()), and the console (RuntimeConsole::evaluate()), which the host calls for an editor
+	/// connection the person paired with their own press. Nothing a document, a step, a peer or a primitive runs
+	/// reaches it otherwise.
 	/// @param text The text, exactly as the question showed it.
 	/// @param file The file for a definition no file has.
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets (e.g. "editor"); "" for none.
+	/// @param fromEditor The console's: a definition named like a control or a review step is refused, as an agent's
+	/// is (only the app's file defines one), since an editor's text may hold what someone else wrote.
 	/// @return What it gave.
 	[[nodiscard]] Evaluated evaluateConfirmed(const std::string& text, const std::string& file, Panel& sender,
-	                                          const json& event, const Scope& locals);
+	                                          const json& event, const Scope& locals, std::string_view origin = {},
+	                                          bool fromEditor = false);
 	/// @brief Remembers the question the window asks for an evaluation, so that it goes with the runtime.
 	/// @param id Window::confirm()'s id; 0 for none.
 	void setQuestion(std::uint64_t id) noexcept { question_ = id; }
@@ -205,7 +267,48 @@ public:
 	/// @throws DocumentError If they may not.
 	void checkNative(const std::string& name, const std::string& where) const;
 
+	/// @name Features that hold programs (ProgramFeatures.cpp)
+	/// A feature's definitions run as `feature:<name>`, with a revision's authority; what they reach is checked again
+	/// here, the second line after composition's (FeaturePrograms.hpp).
+	/// @{
+	/// @brief The feature whose code leads to the steps now running.
+	/// @return Its name; empty when no feature's code does.
+	[[nodiscard]] std::string featureRunning() const;
+	/// @brief Runs, for a feature's code, an action the app hands it: `app.<need>` is the feature's
+	/// `<name>.adapted.<need>`, run with neither the feature's reach nor the person's authority.
+	/// @param feature The feature.
+	/// @param need The need's name.
+	/// @param run Runs the adapted action, given its name.
+	void runForFeature(const std::string& feature, const std::string& need,
+	                   const std::function<void(const std::string&)>& run);
+	/// @}
+
 private:
+	/// @brief Whether the live interpreter may be changed in place (the caller checks that a program is loaded): one
+	/// not running anything, fewer than the changes allowed in it so far, and no hooks or advice.
+	/// @return Whether it may.
+	[[nodiscard]] bool redefinable() const;
+	/// @brief Refuses a step a feature's code leads to that it may not run (featureRunning()).
+	/// @param step The step.
+	/// @param where Its place, for the error.
+	/// @throws DocumentError If it may not.
+	void checkFeatureStep(const json& step, const std::string& where) const;
+	/// @brief Refuses a control or review primitive that a feature's code led to.
+	/// @param primitive The primitive.
+	/// @param ran The authors whose code ran (lisp::CallContext::ran), and the run's.
+	/// @throws lisp::Refusal If one is a feature.
+	static void checkFeatureCall(std::string_view primitive, std::span<const std::string> ran);
+	/// @brief The program the document runs: its own, and the programs of the features its composition merged.
+	/// @param source The document as versioned.
+	/// @return It (lisp::effectiveProgram()).
+	[[nodiscard]] json runningProgram(const json& source) const;
+	/// @brief Loads a program into a new interpreter, and makes it the live one.
+	/// @param section The program.
+	/// @throws DocumentError If it can't be loaded.
+	void loadSection(const json& section);
+	/// The console evaluates as the person through runTyped() (as evaluateConfirmed() does), and looks names up in the
+	/// live program: no other class gets either way in.
+	friend class RuntimeConsole;
 	/// @brief Where a function is called from: what its steps and reads see.
 	struct Frame {
 		Panel* sender = nullptr;       ///< The panel; nullptr for a value read, which runs no step.
@@ -215,11 +318,13 @@ private:
 	class Entered;
 	class Linked;
 	class Seeing;
+	class Reading;
 	struct Share;
 	/// @brief The forms of a text, as `evaluate` takes them.
 	struct FormsRead {
 		std::vector<std::pair<std::string, std::string>> definitions; ///< Each definition's address and text.
-		std::vector<std::string> expressions;                         ///< The rest, in order.
+		std::vector<lisp::FormAt> expressions;                        ///< The rest, in order, with their places.
+		std::vector<bool> defining;                                   ///< For each form in order, whether it defines.
 		std::string lastName;                                         ///< The last form's address, if it defines.
 	};
 	/// @brief Sorts a text's forms into definitions and the rest: a call of a macro that defines counts as defining.
@@ -241,9 +346,40 @@ private:
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @param fromEditor Whether a definition named like a control or a review step is refused (evaluateConfirmed()).
 	/// @return What it gave.
 	[[nodiscard]] Evaluated runTyped(const FormsRead& read, const std::string& file, Panel& sender, const json& event,
-	                                 const Scope& locals);
+	                                 const Scope& locals, std::string_view origin = {}, bool fromEditor = false);
+	/// @brief Evaluates a whole file of the person's definitions, as the console's "load file" (RuntimeConsole):
+	/// those whose text differs from the program's land in one revision of theirs through runTyped(). Only the console
+	/// calls it.
+	/// @param text The file's text.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @return What it gave: the definitions' addresses as its values.
+	[[nodiscard]] Evaluated evaluateFile(const std::string& text, const std::string& file, Panel& sender,
+	                                     const json& event, const Scope& locals, std::string_view origin);
+	/// @brief evaluateFile(), throwing what goes wrong.
+	/// @param text The file's text.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @return What it gave.
+	/// @throws DocumentError If the text isn't a file of definitions (a LispError naming the place).
+	[[nodiscard]] Evaluated evaluateFileForms(const std::string& text, const std::string& file, Panel& sender,
+	                                          const json& event, const Scope& locals, std::string_view origin);
+	/// @brief What `describe-form` gives of a text: whether it reads as forms of Lisp, and what
+	/// they would define. Runs nothing of it but a macro's expansion, and changes nothing.
+	/// @param interpreter The interpreter running the call.
+	/// @param text The text.
+	/// @return `{definitions, expressions, typed}`, or null for a text that isn't one.
+	[[nodiscard]] json describeForm(lisp::Interpreter& interpreter, std::string_view text);
 
 	/// @brief A hook's or an advice's function.
 	struct ExtensionEntry {
@@ -267,6 +403,11 @@ private:
 	/// @param interpreter Its interpreter.
 	/// @throws DocumentError If one names what isn't there.
 	void loadExtensions(lisp::Interpreter& interpreter);
+	/// @brief A new interpreter that has loaded a program, purely, its hooks and advice read into extensionsNext_.
+	/// @param program The program.
+	/// @return It.
+	/// @throws DocumentError If it can't be loaded.
+	[[nodiscard]] std::shared_ptr<lisp::Interpreter> loadedInterpreter(const lisp::Program& program);
 	/// @brief What a hook or advice by a stranger sees of where it is called from: only the panel.
 	/// @return It.
 	[[nodiscard]] Frame blindFrame() const;
@@ -323,7 +464,8 @@ private:
 	/// @return It, or null.
 	[[nodiscard]] json describeName(lisp::Interpreter& interpreter, const std::string& name,
 	                                const std::vector<json>& views) const;
-	/// @brief What `describe-function`, `describe-variable`, `describe-key`, `apropos` and `program-file` do.
+	/// @brief What `describe-function`, `describe-variable`, `describe-key`, `apropos`, `program-file` and
+	/// `describe-form` do.
 	/// @param what Which.
 	/// @param interpreter The interpreter.
 	/// @param arguments Its one argument.
@@ -429,6 +571,19 @@ private:
 	/// @return The value.
 	/// @throws lisp::LispError If the budget runs out.
 	static lisp::Value viewOf(lisp::Interpreter& interpreter, json value);
+	/// @brief JSON read from the app while a value is read for the screen, as a value viewing it where it lies, with
+	/// no copy: nothing can change it until the read returns, and the read's result is its own tree. It costs what
+	/// its size costs, worked out once a place per read.
+	/// @param interpreter The interpreter.
+	/// @param value The JSON, where it lies; it stays there until the read returns.
+	/// @return The value.
+	/// @throws lisp::LispError If the budget runs out.
+	lisp::Value viewInPlace(lisp::Interpreter& interpreter, const json& value);
+	/// @brief Spends what a value read from the app costs: its size in bytes, and an operation per 16 of them.
+	/// @param interpreter The interpreter.
+	/// @param size The size.
+	/// @throws lisp::LispError If the budget runs out.
+	static void charge(lisp::Interpreter& interpreter, std::size_t size);
 	/// @brief The function of a name.
 	/// @param interpreter The interpreter.
 	/// @param name The name.
@@ -470,11 +625,17 @@ private:
 		return action();
 	}
 
-	Engine& engine_;                                   ///< The runtime.
-	std::shared_ptr<lisp::Interpreter> live_;          ///< The program now; running code holds its own.
-	json loaded_;                                      ///< The section it was loaded from.
-	Frame* frame_ = nullptr;                           ///< What the running function is called from.
-	int reading_ = 0;                                  ///< Values being read: nothing but reading runs.
+	Engine& engine_;                          ///< The runtime.
+	std::shared_ptr<lisp::Interpreter> live_; ///< The program now; running code holds its own.
+	json loaded_;                             ///< The section it was loaded from.
+	std::optional<lisp::Program> program_;    ///< What live_ loaded, its entries' authors with it (redefine()).
+	int redefinitions_ = 0;                   ///< Changes made in place since live_ was made: its heap only grows.
+	std::size_t redefinedBytesLeft_ = 0;      ///< What they may still allocate together, of one load's budget.
+	Frame* frame_ = nullptr;                  ///< What the running function is called from.
+	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
+	/// The size of each structured value the running read viewed in place (viewInPlace()), so that a place read again
+	/// is charged again without being walked again. Its keys are never dereferenced, and go when the read ends.
+	std::unordered_map<const json*, std::size_t> chargedInRead_;
 	mutable WorkBudget ownBudget_;                     ///< With no event or update running (a tool).
 	bool ownInput_ = false;                            ///< What the person's own input asked to evaluate is running.
 	std::shared_ptr<const Extensions> extensions_;     ///< The hooks and advice of live_.
@@ -503,6 +664,25 @@ public:
 private:
 	Programs& programs_; ///< The programs.
 	Frame* outer_;       ///< What it was.
+};
+
+/// @brief A value read for the screen, as long as it lasts (Programs::read()): only what reads runs, and the state
+/// stays as it is, so what it reads is viewed where it lies.
+class Programs::Reading {
+public:
+	/// @brief Starts it.
+	/// @param programs The programs.
+	explicit Reading(Programs& programs) noexcept;
+	/// @brief Ends it.
+	~Reading();
+	Reading(const Reading&) = delete;
+	Reading& operator=(const Reading&) = delete;
+	Reading(Reading&&) = delete;
+	Reading& operator=(Reading&&) = delete;
+
+private:
+	Programs& programs_;                                 ///< The programs.
+	std::unordered_map<const json*, std::size_t> outer_; ///< What the read around it charged, if any.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it
@@ -561,13 +741,25 @@ private:
 	Linked linked_;                                  ///< What it spends.
 };
 
-/// @brief Sets who the steps now running come from, as long as it lives.
+/// @brief Who the steps now running come from, for a piece of work that runs after them to keep (a timer, a call's
+/// callbacks, a sound's actions): restored around it with an AuthorityScope, running later lends it nothing.
+/// @param engine The runtime.
+/// @return A copy of the authority now, or std::nullopt for the screen's own steps.
+[[nodiscard]] KeptAuthority keptAuthority(const Engine& engine);
+
+/// @brief Sets who the steps now running come from, as long as it lives. Work a peer's run scheduled is judged by
+/// its effect when it ends, as the run was (RunControl::stateDenial()): a change of the state refused so is put back.
 class AuthorityScope {
 public:
 	/// @brief Sets it.
 	/// @param engine The runtime.
 	/// @param authority Who, or nullptr for none: the screen's own steps.
-	AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept;
+	/// @param judged Whether the work of a run is judged by its effect here; false for the run itself, which judges it.
+	AuthorityScope(Engine& engine, const StepAuthority* authority, bool judged = true);
+	/// @brief Sets what a piece of later work kept (keptAuthority()).
+	/// @param engine The runtime.
+	/// @param kept What it kept; outlives the scope.
+	AuthorityScope(Engine& engine, const KeptAuthority& kept) : AuthorityScope(engine, kept ? &*kept : nullptr) {}
 	/// @brief Puts back what it was.
 	~AuthorityScope();
 	AuthorityScope(const AuthorityScope&) = delete;
@@ -576,8 +768,10 @@ public:
 	AuthorityScope& operator=(AuthorityScope&&) = delete;
 
 private:
-	Engine& engine_;             ///< The runtime.
-	const StepAuthority* outer_; ///< What it was.
+	Engine& engine_;                                ///< The runtime.
+	const StepAuthority* outer_;                    ///< What it was.
+	std::shared_ptr<const StepAuthority::Run> run_; ///< The run whose scheduled work is judged here, or null.
+	json before_;                                   ///< The state when that work began.
 };
 
 } // namespace affresco::format

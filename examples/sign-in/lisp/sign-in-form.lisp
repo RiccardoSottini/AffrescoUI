@@ -4,11 +4,13 @@
 ;;; passkey, an emailed code, Example ID and three made-up providers sign in too. What the buttons run is in
 ;;; sign-in.lisp.
 
+(ns sign-in.sign-in-form)
+
 ;;; The screen
 
 (defview sign-in-card "The sign-in screen: its card, centred, scrolling when the window is short." []
   `(node#panel-sign-in :style screen
-     (node#card :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#card :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#card-top :height 36 :color transparent)
        ~(sign-in-form)
        (node#card-end :height 36 :color transparent))))
@@ -68,14 +70,14 @@
       :style secondary
       :icon key-round
       :text ~(t "unlock")
-      :onClick openForgot)])
+      :onClick open-forgot)])
 
 ;;; The two steps
 
 (defview email-field "The first step's email field: Enter goes on to the password." []
   `(node#email :when ~(= state.step "email")
      :use checkedField
-     :with {:submit submitSignIn
+     :with {:submit submit-sign-in
             :bind state.email
             :content ~state.email
             :key email
@@ -97,7 +99,7 @@
      :color @color.input
      :borderWidth 1
      :borderColor @color.border
-     :label ~(t "signingInAs" {:email (trim state.email)})
+     :label ~(t "signingInAs" {:email (str/trim state.email)})
      (node#chip-avatar :width 32 :height 36 :color transparent
        (label#chip-initial :width 28
          :height 28
@@ -106,17 +108,22 @@
          :color @color.accent
          :textColor @color.accentText
          :font small
-         :text ~(upper-case (slice (trim state.email) 0 1))
+         :text ~(str/upper-case (slice (str/trim state.email) 0 1))
          :anchors {:left 4 :top 4}))
-     (label#label-chip-email :font small :textColor @color.text :height 20 :fitText true :text ~(trim state.email))
+     (label#label-chip-email :font small :textColor @color.text :height 20 :fitText true :text ~(str/trim state.email))
      (row#spacer-chip :grow 1 :height 1)
-     (node#changeEmail :style smallLink :height 20 :text ~(t "notYou") :onClick changeEmail)
+     (node#changeEmail :style smallLink :height 20 :text ~(t "notYou") :onClick change-email)
      (row#spacer-chip-end :width 6 :height 1)))
 
 (defview password-step "The second step: the password, Forgot password?, the Caps Lock warning and Remember me." []
   [`(row#row-password :when ~(= state.step "password") :height 18 :justify space-between :anchors {:left 0 :right 10}
-      (node#label-password :style fieldLabel :anchors {} :fitText true :text ~(t "password"))
-      (node#forgot :style smallLink :text ~(t "forgot") :onClick openForgot))
+      (node#label-password :style fieldLabel
+        :height 18
+        :align "start center"
+        :anchors {}
+        :fitText true
+        :text ~(t "password"))
+      (node#forgot :style smallLink :text ~(t "forgot") :onClick open-forgot))
    (password-field)
    `(label#capsLockWarning :when ~(and (= state.step "password") window.capsLock)
       :font small
@@ -132,7 +139,7 @@
 (defview password-field "The password, as dots unless shown: Enter signs in." []
   `(node#password :when ~(= state.step "password")
      :use checkedField
-     :with {:submit submitSignIn
+     :with {:submit submit-sign-in
             :bind state.password
             :content ~state.password
             :key password
@@ -169,7 +176,7 @@
                   (= state.step "email") (t "continue")
                   :else (t "signInButton"))
      :disabled ~(not= state.busy "")
-     :onClick submitSignIn))
+     :onClick submit-sign-in))
 
 (defview email-code-link "The second step's other way: a code sent to the email instead of the password." []
   `(node#emailCode :when ~(= state.step "password")
@@ -177,7 +184,7 @@
      :font small
      :text ~(if (= state.busy "emailCode") (t "sending") (t "emailCode"))
      :disabled ~(not= state.busy "")
-     :onClick emailCodeSignIn))
+     :onClick email-code-sign-in))
 
 (defview or-line "The first step's line with or in it, over the other ways in." []
   `(row#row-or :when ~(= state.step "email") :height 18 :gap 10 :alignItems center :anchors {:left 0 :right 10}
@@ -191,7 +198,7 @@
       :icon ~(if (= state.busy "passkey") "loader" "fingerprint-pattern")
       :text ~(t "passkey")
       :disabled ~(not= state.busy "")
-      :onClick passkeySignIn)
+      :onClick passkey-sign-in)
    `(node#provider :when ~(= state.step "email")
       :style secondary
       :icon ~(if (and (= state.busy "provider") (= state.providerName "exampleId")) "loader" "key-round")
@@ -199,7 +206,7 @@
                  (t "providerWaiting")
                  (t "provider"))
       :disabled ~(not= state.busy "")
-      :onClick providerSignIn)
+      :onClick provider-sign-in)
    `(row#row-providers :when ~(= state.step "email") :height 40 :gap 8 :anchors {:left 0 :right 10}
       ~(provider-button "wrenfield" "bird")
       ~(provider-button "mossbank" "leaf")
@@ -221,4 +228,4 @@
      :text ~(t (str "provider_" provider))
      :description ~(t "otherProviders")
      :disabled ~(not= state.busy "")
-     :onClick ~(handler otherProvider provider)))
+     :onClick ~(handler other-provider provider)))

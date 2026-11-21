@@ -115,11 +115,19 @@ private:
 	std::array<std::uint8_t, 32> seed_{}; ///< The seed: the secret.
 };
 
+/// @brief Tells whether a point's encoding is one a strict Ed25519 verifier refuses, as a public key or as a
+/// signature's R: a point of small order (the identity, y = -1, the points of order 4 and 8, which verify forged
+/// signatures), or an encoding whose y is at or above the field's prime (another name for a point).
+/// @param point The 32 bytes.
+/// @return true if it is refused.
+[[nodiscard]] bool isWeakPoint(std::span<const std::uint8_t, 32> point) noexcept;
+
 /// @brief Checks a document's signature against the key it names.
 /// @param document The signed document.
 /// @param place Its place, for errors ("catalog", "wordCount").
 /// @return The publisher's key, as the document names it ("ed25519:<key>").
-/// @throws DocumentError If it has no signature, or the signature isn't the key's over the rest.
+/// @throws DocumentError If it has no signature, its key or signature is a weak or non-canonical encoding (isWeakPoint(),
+/// S at or above the group's order), or the signature isn't the key's over the rest.
 std::string verifySignature(const json& document, const std::string& place);
 
 } // namespace affresco::format

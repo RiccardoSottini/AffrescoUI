@@ -47,10 +47,12 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerAuthSteps(registry);
 	registerAssistantSteps(registry);
 	registerAttachSteps(registry);
+	registerPickSteps(registry);
 	registerFolderSteps(registry);
 	registerFileSteps(registry);
 	registerExportSteps(registry);
 	registerReviewSteps(registry);
+	registerRunSteps(registry);
 	registerNavigationSteps(registry);
 	registerEditorSteps(registry);
 	registerKeySteps(registry);

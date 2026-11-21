@@ -147,6 +147,12 @@ bool Repository::mayReview(std::string_view author) const {
 	});
 }
 
+// Without permissions everyone may review, so only the person's channel takes out what others built unreviewed
+bool Repository::mayTakeOut(std::string_view author) const {
+	if(!rules_.permissions(rulesDocument()).configured) return detail::channelOf(author) == personChannel;
+	return mayReview(author);
+}
+
 void Repository::setMode(Mode mode) {
 	if(keptMode_ != mode) {
 		keptMode_ = mode;

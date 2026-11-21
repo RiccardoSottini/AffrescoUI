@@ -11,6 +11,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/net/Client.hpp"
+#include "affresco/net/EditorServer.hpp"
 #include "affresco/net/RemotePeers.hpp"
 #include "affresco/net/SignIn.hpp"
 #include "affresco/render/Application.hpp"
@@ -23,6 +24,7 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/format/App.hpp"
 #include "affresco/format/Features.hpp"
+#include "affresco/format/PackageFiles.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
@@ -45,6 +47,10 @@ class Store;
 } // namespace affresco::data
 
 namespace affresco {
+
+namespace format {
+struct UpdateStatistics;
+}
 
 /// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
 using ScreenError = DocumentError;
@@ -449,6 +455,36 @@ public:
 	/// "after"?}]`, or `"tooLarge": true`), `assets`, `run`, `impact`, `behaviour` and `person`.
 	/// @throws DocumentError If there is no such proposal or commit, or a proposal no longer applies.
 	[[nodiscard]] json fileChanges(const json& request) const;
+	/// @brief Where a node is written, as an agent asks for it with "getSource" (SCREEN_FORMAT.md, "Pointing at a node").
+	/// @param at "#id", a JSON Pointer to a node, or a definition's address (`/program/<file>/<name>`).
+	/// @return `{"address", "node"?, "pointer"?, "notation", "text", "cut"?, ...}`: for a program the definition that
+	/// built the node, for a JSON document the node itself; the text at most 16 KiB.
+	/// @throws DocumentError Naming @p at, if nothing is there.
+	[[nodiscard]] json source(const std::string& at) const;
+	/// @brief The elements the person pointed at ("pick") and has neither sent nor removed, oldest first.
+	/// @return `[record]`; a record says where something is written, never what the app's data is.
+	[[nodiscard]] json picks() const;
+
+	/* Commands as tools: peers list and run main's commands, under their own names and the rules of
+	   `permissions.run` (SCREEN_FORMAT.md, "Commands and keybindings") */
+
+	/// @brief Lets the peers list and run the commands, or not (by default they may, as the rules say): while not,
+	/// every command message is answered "this host runs no commands" and `review` carries no runs.
+	/// @param allow true to let them.
+	void allowCommandRuns(bool allow);
+	/// @brief The person allows a run that waits, as the allowRun step does.
+	/// @param run The run's number.
+	/// @param always Also let that channel run that command without asking.
+	/// @param error Set to why it was refused.
+	/// @return false if it was refused.
+	bool allowRun(int run, bool always, std::string& error);
+	/// @brief The person refuses a run that waits, as the denyRun step does.
+	/// @param run The run's number.
+	/// @return false if no such run waits.
+	bool denyRun(int run);
+	/// @brief Main's commands, the runs and the run grants, as the person sees them.
+	/// @return `{"commands", "runs", "runGrants"}`.
+	[[nodiscard]] json commandsJson() const;
 
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
@@ -490,6 +526,10 @@ public:
 	bool setInspector(bool on, bool statistics = true, std::string* error = nullptr);
 	/// @brief The inspector's latest events, oldest first (none while it has been off).
 	[[nodiscard]] std::vector<std::string> inspectorTrace() const;
+	/// @brief What the last update of its panels cost, and how many have run (format::Runtime::lastUpdate()), for an
+	/// inspector or a test that an idle app runs none. Valid while the Screen lives.
+	/// @return The statistics.
+	[[nodiscard]] const format::UpdateStatistics& lastUpdate() const noexcept;
 
 	/* History */
 
@@ -514,6 +554,23 @@ public:
 	/// @return true if it was reverted.
 	bool revert(int revision, std::string* error = nullptr);
 
+	/// @brief What undoing one revision would do, worked out without changing anything (VersionControl::undoPlan(),
+	/// as the person, author "user"): the later changes it keeps, those that conflict, and what is left to choose.
+	/// @param revision The revision to undo.
+	/// @param optionsJson The choices made so far, as JSON text: `{"drop", "keep", "then", "head"}` (SCREEN_FORMAT.md,
+	/// "Live protocol"); empty for none.
+	/// @return The plan as JSON text. An unknown revision or malformed choices give a plan whose outcome is "blocked"
+	/// and whose "blocked" is the error.
+	[[nodiscard]] std::string undoPlan(int revision, std::string_view optionsJson = {}) const;
+
+	/// @brief Undoes one revision with the choices made on its plan, keeping the later changes they keep, as one new
+	/// revision (VersionControl::undoRevision(), author "user"). Without choices, as revert(int, std::string*).
+	/// @param revision The revision to undo.
+	/// @param optionsJson The choices, as JSON text (see undoPlan()); empty for none.
+	/// @param error Receives the error, if any (may be nullptr): malformed choices too.
+	/// @return true if it was undone.
+	bool revert(int revision, std::string_view optionsJson, std::string* error);
+
 	/// @brief Reverts the latest revision.
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was reverted.
@@ -527,6 +584,40 @@ public:
 	/// @param name The change set's name.
 	/// @return The change set, as JSON text.
 	[[nodiscard]] std::string exportChanges(int fromRevision = 0, std::string_view name = {}) const;
+	/// @brief A version of the app as one package (VERSION_CONTROL.md, "Sharing a version: packages"): main's
+	/// document and the base its first commit holds, the state keys and assets the commits added, and for kind App the
+	/// app's files its manifest reaches. Nothing about the person goes in it: not the records, the saved or live state,
+	/// the history's commits, settings or paths. Check it with format::scrubProblems() before it is written.
+	/// @param options What the person says of it; `engine` is the AffrescoUI release writing it.
+	/// @return The package, as format::parsePackage() reads it.
+	/// @throws DocumentError If the screen wasn't loaded from an app (fromApp()), a file of the app is outside its
+	/// folder, or the package isn't valid.
+	[[nodiscard]] format::Package exportPackage(const format::PackageOptions& options) const;
+	/// @brief What installing a package on this screen would do (VERSION_CONTROL.md, "Installing a package"):
+	/// format::packageSummary(), with this screen as the person's copy, and what doesn't merge with it.
+	/// @param packageJson The package's file.
+	/// @param trustedPublishers The publishers the person trusts (format::readTrustedPublishers()).
+	/// @return The summary; its "problems" are empty if it can be installed.
+	/// @throws DocumentError If it isn't a package, naming the place.
+	[[nodiscard]] json inspectPackage(std::string_view packageJson, const json& trustedPublishers) const;
+	/// @brief Whether a package of kind App's own files are the base it describes: opened, their document must have
+	/// its base.tree, or what is installed isn't what inspecting it showed.
+	/// @param packageJson The package's file.
+	/// @param placed The folder they were written into (installAppFiles), opened there beside the shared folder the
+	/// app will include; if empty, they are written in a scratch folder, and files that don't open there (an include
+	/// of the shared folder) are checked only where they are installed.
+	/// @return "" if they are (or it is a package of changes), else why not.
+	/// @throws DocumentError If it isn't a package, naming the place.
+	[[nodiscard]] static std::string appFilesProblem(std::string_view packageJson,
+	                                                 const std::filesystem::path& placed = {});
+	/// @brief Installs a package as a proposal that only the person can accept (VERSION_CONTROL.md, "Installing a
+	/// package"): its changes since its base, merged into this screen's document as "plugin:<name>", with its assets
+	/// and the state keys this screen lacks. What doesn't merge is left out, for the person to choose. Never applied.
+	/// @param packageJson The package's file.
+	/// @param error Receives why it was refused, if it was (may be nullptr).
+	/// @return Proposed; or Rejected, with why: it isn't a package, it can't be installed (format::installProblems()),
+	/// it is already installed (the same file, accepted or not), or what proposing it refused.
+	RevisionResult proposePackage(std::string_view packageJson, std::string* error = nullptr);
 
 	/// @brief Applies a change set, all or nothing.
 	/// @param changesJson A change set from exportChanges().
@@ -609,6 +700,18 @@ public:
 	                              net::PeerServerOptions options = {}) {
 		return listenWebSocket(executor, address, std::make_shared<Verifier>(std::move(verifier)), std::move(options));
 	}
+
+	/// @brief Accepts nREPL clients (CIDER, Calva, Conjure) on 127.0.0.1, which evaluate Lisp into the screen's
+	/// program. Every connection is paired by the person, in a question the window draws, before it reaches anything;
+	/// then each evaluation is the person's change, under every rule that holds for them (see net::EditorServer). The
+	/// question shows the first text the connection wants to run; an editor's file paths are matched to the program's
+	/// files from the entry file's folder. The server goes with the screen, taking its question away. Main thread.
+	/// @param executor Delivers messages on the main thread (the Application).
+	/// @param options The port (0 picks a free one) and the limits; the version `describe` reports is the library's.
+	/// @return The port listened on.
+	/// @throws std::runtime_error If the screen has no program (a JSON screen), has no window yet, listens for an
+	/// editor already, or the port is taken.
+	std::uint16_t listenEditor(Executor& executor, net::EditorServerOptions options = {});
 
 	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).
 	/// @param mode Default, AcceptEdits (apply what no rule allows, like auto-accept) or Plan (peers only propose).

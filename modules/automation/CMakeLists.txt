@@ -6,6 +6,7 @@ affrescoui_module(automation
 	src/Names.cpp
 	src/ScenarioFile.cpp
 	src/Player.cpp
+	src/Commands.cpp
 	src/Expectations.cpp
 	src/Pictures.cpp
 	src/PngReader.cpp

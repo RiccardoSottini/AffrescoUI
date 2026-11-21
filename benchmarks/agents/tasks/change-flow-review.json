@@ -1,0 +1,40 @@
+{
+	"id": "change-flow-review",
+	"level": "edit",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Rename the In review column of the Launch board to Review.",
+	"scenarios": [
+		{
+			"name": "renamed",
+			"steps": [
+				{
+					"expect": {
+						"state": "lanes.launch[2].name",
+						"is": "Review"
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnName",
+						"text": "Review",
+						"nth": 2
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#statusBar",
+		"#toolbar"
+	],
+	"runs": 0,
+	"reference": [
+		{
+			"message": "In review is now Review",
+			"set": {
+				"/state/lanes/launch/2/name": "Review"
+			}
+		}
+	]
+}

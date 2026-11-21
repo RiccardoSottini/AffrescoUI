@@ -247,9 +247,10 @@ void SceneRenderer::render(SurfaceFrame& frame) {
 	glDepthMask(GL_TRUE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if(stats_.error.empty()) {
+		drawGrid(view); // first: the floor is a backdrop every surface covers, even below it
 		if(view.settings.shading == Shading::Wireframe) drawWireframe(view);
 		else drawSurfaces(view, shadow);
-		drawGrid(view);
+		drawWired(view);
 		drawOutline(frame, view);
 		glBindFramebuffer(GL_FRAMEBUFFER, frame.framebuffer);
 		glViewport(0, 0, frame.width, frame.height);
@@ -313,7 +314,7 @@ ShadowMap SceneRenderer::drawShadow(SurfaceFrame& frame, const FrameView& view) 
 	depth_.use();
 	setMatrix(depth_.uniform("viewProjection"), shadow.matrix);
 	for(const DrawItem& item : view.items)
-		if(!item.blended) drawPlain(item, depth_, false);
+		if(!item.blended && (item.material == nullptr || item.material->castsShadow)) drawPlain(item, depth_, false);
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	return shadow;
 }
@@ -384,6 +385,7 @@ void SceneRenderer::drawSurfaces(const FrameView& view, const ShadowMap& shadow)
 	std::unordered_map<const json*, const GlProgram*> programs; // each graph's text is built once a frame, not per item
 	for(const std::size_t index : view.inView) {
 		const DrawItem& item = view.items[index];
+		if(item.node->display != Display::Solid) continue; // drawWired() and drawLines() draw them
 		const json* graph = nullptr;
 		if(item.material != nullptr && view.settings.shading == Shading::Material)
 			if(const auto found = view.graphs.find(item.material->id); found != view.graphs.end())
@@ -455,12 +457,35 @@ void SceneRenderer::drawWireframe(const FrameView& view) {
 	const Vec3 outline = view.settings.outline;
 	for(const std::size_t index : view.inView) {
 		const DrawItem& item = view.items[index];
+		if(item.node->display != Display::Solid) continue; // drawWired() and drawLines() draw them
 		if(item.selected) glUniform4f(flat_.uniform("flatColor"), outline.x, outline.y, outline.z, 1.0f);
 		else glUniform4f(flat_.uniform("flatColor"), 0.62f, 0.63f, 0.66f, 0.85f);
 		drawPlain(item, flat_, true);
 		stats_.triangles += item.data->triangleCount();
 	}
 	glDisable(GL_BLEND);
+}
+
+void SceneRenderer::drawWired(const FrameView& view) {
+	const bool any =
+	    std::ranges::any_of(view.inView, [&](std::size_t i) { return view.items[i].node->display == Display::Wire; });
+	if(!any) return;
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	flat_.use();
+	setMatrix(flat_.uniform("viewProjection"), view.viewProjection);
+	const Vec3 outline = view.settings.outline;
+	for(const std::size_t index : view.inView) {
+		const DrawItem& item = view.items[index];
+		if(item.node->display != Display::Wire) continue;
+		if(item.selected) glUniform4f(flat_.uniform("flatColor"), outline.x, outline.y, outline.z, 1.0f);
+		else glUniform4f(flat_.uniform("flatColor"), 0.62f, 0.63f, 0.66f, 0.85f);
+		drawPlain(item, flat_, true);
+	}
+	glDisable(GL_BLEND);
+	glDepthFunc(GL_LESS);
 }
 
 void SceneRenderer::drawPlain(const DrawItem& item, const GlProgram& program, bool edges) {

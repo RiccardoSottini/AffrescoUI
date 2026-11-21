@@ -26,6 +26,10 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `nesting.cpp` | The depth limit on what revisions and steps build (`maxDocumentNesting`): revisions refused, `set`, `push` and deep places stopped |
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets, merges that no longer apply |
 | `vcs_properties.cpp` | Properties of `vcs::Repository` over random revisions from seeded generators: revert, restore, change sets, permissions by effect |
+| `vcs_undo.cpp` | Undoing an earlier commit that keeps the later changes: the options and the plan across the protocol, what is undone and what is a conflict, the choices, the undo mark, an undo only a reviewer applies |
+| `vcs_undo_properties.cpp` | Properties of that undo over random histories from seeded generators: a plan changes nothing, what no later commit touched is undone, drop and keep, the mark, an undo of the undo restores |
+| `undo_steps.cpp` | The steps of that undo on a headless window: `revert` with the person's choice, `undoPlan` from a handler, `Rules::brokenLines()` |
+| `undo_flows.cpp` | That undo end to end, a second look at the engine: programs and definitions in use, keywords byte for byte, a model with records, features, an agent's undo reviewed (drop, rebuild, stale head), the limited reader, the rate, a forged mark |
 | `history.cpp` | `vcs::Repository`'s history on disk: save and load, a changed screen file, damaged files, the lock |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log, `render`; `SocketChannel` over a socket pair: lines, the length limit (POSIX); `ProcessChannel` with small shell commands: output lines, stdin, closing ends the child's programs, no inherited pipes |
@@ -55,6 +59,7 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `registries.cpp` | The format's registries: node types (order, factories, inherited property sets, replacing a type), steps (groups, control steps, a step registered twice), sections (validation, capabilities); the catalog built from them; an application's type |
 | `scheduler.cpp` | The runtime's scheduler on a manual clock: `every`, `after`, `debounce`, `animate`, colour transitions, double clicks |
 | `window/images.cpp` | `affrescoui_window_tests`: pictures of main and of a proposal, with the person's view left as it was |
+| `window/changes_window.cpp` | `affrescoui_window_tests`: the Changes window: its proposal, accept and undo, rejection, the Source page; an undo that keeps a later change, its plan, a plan main moved past, the person's undo of a definition, the app's assistant asked to undo another way |
 | `window/glyphs.cpp` | `affrescoui_window_tests`: colour emoji add no draw call to the text around them; the GPU textures of a font that is gone are freed (it draws with OpenGL) |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main`, for both programs |
