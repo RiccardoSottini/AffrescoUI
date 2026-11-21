@@ -57,6 +57,8 @@ struct TextureData {
 	int height = 0;                   ///< In pixels.
 	std::vector<std::uint8_t> pixels; ///< width * height * 4 bytes.
 	bool srgb = true;                 ///< Colour (sRGB) or data (linear: normals, metal and roughness).
+	std::string source;               ///< The PNG or JPEG it was decoded from, as a `data:` URI, if kept (an export
+	                                  ///< writes it).
 };
 
 /// @brief The kinds of generated primitive.

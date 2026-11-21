@@ -1,6 +1,7 @@
 /// @file
 /// @brief The scene3d module's editable polygon meshes: their JSON, triangles, edit operations, modifiers and picking.
 
+#include <affresco/scene3d/Gltf.hpp>
 #include <affresco/scene3d/PolyMesh.hpp>
 #include <affresco/scene3d/SceneJson.hpp>
 #include <affresco/scene3d/Viewport.hpp>
@@ -189,12 +190,30 @@ TEST_CASE("scene3d: picking a vertex, an edge or a face of a polygon mesh") {
 }
 
 TEST_CASE("scene3d: a material that casts no shadow says so in its JSON") {
-	const Scene scene = sceneFromJson(json::parse(R"({"materials": [{"id": "m", "castsShadow": false}, {"id": "n"}]})"));
+	const Scene scene =
+	    sceneFromJson(json::parse(R"({"materials": [{"id": "m", "castsShadow": false}, {"id": "n"}]})"));
 	REQUIRE(scene.materials.size() == 2);
 	CHECK_FALSE(scene.materials[0].castsShadow);
 	CHECK(scene.materials[1].castsShadow);
 	CHECK(toJson(scene.materials[0])["castsShadow"] == false);
 	CHECK_FALSE(toJson(scene.materials[1]).contains("castsShadow"));
+}
+
+TEST_CASE("scene3d: a glTF export embeds a base colour texture whose picture was kept") {
+	Scene scene = sceneFromJson(json::parse(
+	    R"({"nodes": [{"id": "a", "mesh": "cube", "material": "m"}],
+	        "materials": [{"id": "m", "textures": {"baseColor": "t"}}, {"id": "n", "textures": {"baseColor": "u"}}]})"));
+	Assets assets;
+	assets.setMesh("cube", makeCube());
+	TextureData picture{1, 1, {255, 0, 0, 255}, true, "data:image/png;base64,AAAA"};
+	assets.setTexture("t", picture);
+	std::vector<std::string> warnings;
+	const json file = json::parse(exportGltf(scene, assets, {}, &warnings));
+	REQUIRE(file.contains("images"));
+	CHECK(file["images"][0]["uri"] == "data:image/png;base64,AAAA");
+	CHECK(file["materials"][0]["pbrMetallicRoughness"]["baseColorTexture"]["index"] == 0);
+	CHECK_FALSE(file["materials"][1]["pbrMetallicRoughness"].contains("baseColorTexture"));
+	CHECK(warnings.size() == 1); // u has no picture
 }
 
 TEST_CASE("scene3d: a gimbal's axes follow the Euler angles") {

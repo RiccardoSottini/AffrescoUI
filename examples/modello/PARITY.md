@@ -25,7 +25,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | Properties editor: tab strip | done | |
 | Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform, Visibility, Relations (the parent) and Viewport Display (solid, wire or bounds) edit; Collections, Transform Offset, Instancing, Motion Paths, Line Drawing and Custom Properties are disabled with a reason |
 | Properties: Modifiers tab | done | mirror (X, Y or Z), array (its count) and subdivision (its levels), stacked, each removable, undoable; drawn live, and left out while the object is in Edit Mode |
-| Properties: Texture tab | done | Open Image picks a PNG or JPEG as the material's base colour texture (kept in the scene, saved with it), Remove Image takes it off; a primitive maps it by its own coordinates, an edited mesh has none yet |
+| Properties: Texture tab | done | Open Image picks a PNG or JPEG as the material's base colour texture (kept in the scene, saved with it, embedded in a glTF export), Remove Image takes it off; a primitive maps it by its own coordinates, an edited mesh has none yet |
 | Properties: Data › Normals | done | Shade Smooth on or off for a mesh (its primitive becomes an editable mesh) |
 | Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; blend mode (opaque, clip, blend), alpha and whether it casts shadows; the world colour; a light's or a camera's settings, a light's shadow; exposure; the frame range; the resolution (the render window takes its shape) and the frame rate (the timeline, playback and the export follow it); search |
 | Timeline: play controls, frame, start, end | done | |
@@ -82,7 +82,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | What | Status | Note |
 |---|---|---|
 | Shading workspace: node editor, material slots | done | the Shader Editor adds, links, sets and deletes nodes of the material's graph, undoable |
-| Import and export glTF | done | File › Import glTF reads a .gltf with its data inside: its objects, materials and meshes join the scene, the meshes editable (no textures or animations from it yet); File › Export glTF writes the keyframes as an animation (no textures yet) |
+| Import and export glTF | done | File › Import glTF reads a .gltf with its data inside: its objects, materials and meshes join the scene, the meshes editable (no textures or animations from it yet); File › Export glTF writes the keyframes as an animation and embeds a material's image texture |
 | Save and open | done | Ctrl+S and Ctrl+O, and the File menu: the scene as JSON in a file the person picks, checked when it opens, undoable |
 | Render window | done | F12: the camera's view, lit, without markers; Save As Image |
 | Chat add-on | done | Window › Assistant, Ctrl+Shift+A |
@@ -116,7 +116,7 @@ occasionally; P3: rarely.
 |---|---|---|
 | E and Ctrl+B following the pointer; bevelling several edges or vertices | P1 | JSON: the extrude starting a move of the pivot from where it was; library: `bevelEdge` over a chain of edges |
 | Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
-| Textures in the glTF export and on edited meshes; glTF import with textures and animations | P2 | library: the export embedding the scene's pictures; texture coordinates on polygon meshes; `gltfScene` keeping them |
+| Textures on edited meshes; glTF import with textures and animations | P2 | library: texture coordinates on polygon meshes; `gltfScene` keeping them |
 | Camera › Depth of Field | P2 | library: depth of field in the scene renderer (Light › Shadow and Mesh › Normals are done) |
 | Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
 | Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |

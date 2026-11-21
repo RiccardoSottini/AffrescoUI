@@ -232,8 +232,9 @@ static void placeTextures(const json& scene, std::map<std::string, std::string, 
 			const auto bitmap =
 			    Bitmap::fromDataUri(image, Bitmap::Limits{std::size_t{8} << 20, 2048, std::size_t{1} << 22});
 			if(!bitmap) continue;
+			// The picture is kept as given: what a glTF export embeds
 			TextureData data{
-			    bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, true};
+			    bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, true, image};
 			for(std::size_t p = 0; p + 3 < data.pixels.size(); p += 4) { // straight alpha, as glTF's
 				const unsigned alpha = data.pixels[p + 3];
 				if(alpha == 0 || alpha == 255) continue;
