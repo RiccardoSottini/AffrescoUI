@@ -83,15 +83,15 @@
         :else (do (set "state.view.selection" (concat (without state.view.selection id) [id]))
                   (set "state.active" id))))
 
-(defcommand selectAll "Selects every object that can be picked."
+(defcommand selectAll "Selects every object that can be picked, or in Edit Mode every vertex or face."
   :title ~(t "command.selectAll") :description ~(t "command.selectAll.about")
   :category ~(t "category.select") []
-  (set "state.view.selection" computed.pickable))
+  (if (= state.mode :edit) (select-all-elements true) (set "state.view.selection" computed.pickable)))
 
 (defcommand selectNone "Selects nothing."
   :title ~(t "command.selectNone") :description ~(t "command.selectNone.about")
   :category ~(t "category.select") []
-  (set "state.view.selection" []))
+  (if (= state.mode :edit) (select-all-elements false) (set "state.view.selection" [])))
 
 (defcommand selectInvert "Selects what isn't selected, and only that."
   :title ~(t "command.selectInvert") :description ~(t "command.selectInvert.about")
@@ -175,6 +175,9 @@
   :title ~(t "command.deleteSelected") :description ~(t "command.deleteSelected.about")
   :category ~(t "category.object") :icon "trash-2" :enablement ~(pos? (count state.view.selection)) []
   (dismiss)
+  (if (= state.mode :edit) (delete-elements) (delete-objects)))
+
+(defn delete-objects "Deletes the selected objects; their children stay where they are." []
   (snapshot)
   (doseq [n state.scene.nodes]
     (when (and (not (selected? n)) (contains state.view.selection (:parent n)))

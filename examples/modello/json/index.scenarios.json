@@ -1154,6 +1154,13 @@
 				{ "expect": { "state": "edit.edge", "is": null } },
 				{ "key": "mod+z" },
 				{ "expect": { "state": "scene.meshes[0].vertices[7]", "is": [1, 1, 1] } },
+				{ "key": "1" },
+				{ "action": "selectAll" },
+				{ "expect": { "state": "edit.vertices", "is": [0, 1, 2, 3, 4, 5, 6, 7] } },
+				{ "action": "deleteSelected" },
+				{ "expect": { "state": "scene.meshes[0].vertices", "is": [] } },
+				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } },
+				{ "key": "mod+z" },
 				{ "key": "tab" },
 				{ "expect": { "state": "mode", "is": "object" } }
 			]

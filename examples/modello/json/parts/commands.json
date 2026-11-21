@@ -148,6 +148,7 @@
 			"title": "Delete", "category": "Object", "icon": "trash-2", "enablement": "{{length(state.view.selection) > 0}}",
 			"do": [
 				{ "dismiss": true },
+				{ "if": "{{state.mode == 'edit'}}", "then": [{ "run": "deleteEditElements" }, { "stop": true }] },
 				{ "run": "snapshot" },
 				{ "forEach": "{{filter(state.scene.nodes, !contains(state.view.selection, it.id) && contains(state.view.selection, it.parent))}}", "as": "n", "do": [
 					{ "run": "reparent", "with": { "args": { "id": "{{n.id}}", "parent": null } } }
@@ -192,8 +193,10 @@
 				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, merge(it, { visible: true }))}}" }
 			]
 		},
-		"selectAll": { "title": "Select All", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{computed.pickable}}" }] },
-		"selectNone": { "title": "Select None", "category": "Select", "do": [{ "set": "state.view.selection", "to": [] }] },
+		"selectAll": { "title": "Select All", "category": "Select", "do": [{ "if": "{{state.mode == 'edit'}}", "then": [{ "run": "selectAllElements", "with": { "args": { "all": true } } }],
+		               "else": [{ "set": "state.view.selection", "to": "{{computed.pickable}}" }] }] },
+		"selectNone": { "title": "Select None", "category": "Select", "do": [{ "if": "{{state.mode == 'edit'}}", "then": [{ "run": "selectAllElements", "with": { "args": { "all": false } } }],
+		                "else": [{ "set": "state.view.selection", "to": [] }] }] },
 		"selectInvert": { "title": "Invert Selection", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{filter(computed.pickable, !contains(state.view.selection, it))}}" }] },
 		"selectNode": [
 			{ "if": "{{!args.shift}}", "then": [{ "set": "state.view.selection", "to": "{{[args.id]}}" }, { "set": "state.active", "to": "{{args.id}}" }, { "stop": true }] },

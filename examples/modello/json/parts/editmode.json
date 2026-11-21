@@ -406,18 +406,31 @@
 			"enablement": "{{state.mode == 'edit' && length(state.edit.vertices) > 0}}",
 			"do": [
 				{
-					"run": "putMesh",
-					"with": {
-						"args": {
-							"mesh": "{{length(state.edit.faces) > 0 ? meshDeleteFaces(computed.editMesh, state.edit.faces) : meshDeleteVertices(computed.editMesh, state.edit.vertices)}}",
-							"faces": [],
-							"vertices": [],
-							"title": "Delete Vertices or Faces"
-						}
-					}
+					"run": "deleteEditElements"
 				}
 			]
 		},
+		"deleteEditElements": [
+			{
+				"if": "{{length(state.edit.vertices) == 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "putMesh",
+				"with": {
+					"args": {
+						"mesh": "{{length(state.edit.faces) > 0 ? meshDeleteFaces(computed.editMesh, state.edit.faces) : meshDeleteVertices(computed.editMesh, state.edit.vertices)}}",
+						"faces": [],
+						"vertices": [],
+						"title": "Delete Vertices or Faces"
+					}
+				}
+			}
+		],
 		"toggleProportional": {
 			"title": "Proportional Editing",
 			"category": "Mesh",

@@ -144,10 +144,14 @@
 (defcommand deleteElements "Deletes the selected faces, or the selected vertices and their faces."
   :title ~(t "command.deleteElements") :description ~(t "command.deleteElements.about")
   :category ~(t "category.mesh") :icon "trash-2" :enablement ~(and (= state.mode :edit) (seq state.edit.vertices)) []
-  (put-mesh (if (seq state.edit.faces)
-              (meshDeleteFaces computed.editMesh state.edit.faces)
-              (meshDeleteVertices computed.editMesh state.edit.vertices))
-            [] [] (t "command.deleteElements")))
+  (delete-elements))
+
+(defn delete-elements "Deletes the selected faces, or the selected vertices and every face using one; undoable." []
+  (when (seq state.edit.vertices)
+    (put-mesh (if (seq state.edit.faces)
+                (meshDeleteFaces computed.editMesh state.edit.faces)
+                (meshDeleteVertices computed.editMesh state.edit.vertices))
+              [] [] (t "command.deleteElements"))))
 
 (defcommand toggleProportional "Switches proportional editing: moving vertices pulls the ones near them along."
   :title ~(t "command.toggleProportional") :description ~(t "command.toggleProportional.about")
