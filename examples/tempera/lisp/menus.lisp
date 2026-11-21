@@ -41,13 +41,17 @@
 ;;; Image, its rotations and the colour profiles
 
 (defmenu image "The Image menu: adjustments, sizes, rotation and crop."
-  {:mode {:run unavailable :title ~(t "menu.image.mode") :group "1_mode"}
+  {:mode {:submenu imageMode :title ~(t "menu.image.mode") :group "1_mode"}
    :adjustments {:submenu adjustmentLayers :title ~(t "menu.image.adjustments") :group "1_mode" :order 1}
    :imageSize {:run showImageSize :group "2_size" :order 1}
    :canvasSize {:run showCanvasSize :group "2_size" :order 2}
    :rotation {:submenu imageRotation :title ~(t "menu.image.rotation") :group "2_size" :order 3}
    :crop {:run cropToSelection :title ~(t "menu.image.crop") :group "2_size" :order 4}
    :trim {:run trimImage :title ~(t "menu.image.trim") :group "2_size" :order 5}})
+
+(defmenu imageMode "Image > Mode: the bits a channel holds; the one the image is in is disabled."
+  {:eight {:run mode8Bit :order 1}
+   :sixteen {:run mode16Bit :order 2}})
 
 (defmenu layerTransform "Edit > Transform: the active layer turned or flipped."
   {:rotate180 {:run rotateLayer180 :title ~(t "menu.layerTransform.rotate180") :group "1_rotate" :order 1}

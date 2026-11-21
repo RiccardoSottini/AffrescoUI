@@ -3207,6 +3207,52 @@
 			]
 		},
 		{
+			"name": "tempera-image-mode",
+			"note": "Image > Mode converts the image to 16 bits a channel and back, its layers kept; the mode it is in is disabled",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Mode"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "16 Bits/Channel"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.format",
+						"is": "rgba16f"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"action": "mode8Bit"
+				},
+				{
+					"expect": {
+						"state": "doc.format",
+						"is": "rgba8"
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-history-snapshots",
 			"note": "The History panel's camera keeps the layers as a snapshot; a click on the snapshot restores it as one step that undo takes back; its × forgets it",
 			"steps": [

@@ -208,6 +208,18 @@
   []
   (set "state.canvasSize" {:open true :width state.doc.width :height state.doc.height :anchor "center"}))
 
+(defcommand mode8Bit "Converts the image to 8 bits a channel, forgetting the history."
+  :title ~(t "command.mode8Bit") :description ~(t "command.mode8Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba8")
+  []
+  (image "convertFormat" :with {:format "rgba8"}))
+
+(defcommand mode16Bit "Converts the image to 16 bits a channel (floating point), forgetting the history."
+  :title ~(t "command.mode16Bit") :description ~(t "command.mode16Bit.about") :category ~(t "category.image")
+  :icon "binary" :enablement ~(not= state.doc.format "rgba16f")
+  []
+  (image "convertFormat" :with {:format "rgba16f"}))
+
 (defcommand trimImage "Crops the image to the box around its visible pixels that aren't transparent."
   :title ~(t "command.trimImage") :description ~(t "command.trimImage.about") :category ~(t "category.image")
   :icon "crop"

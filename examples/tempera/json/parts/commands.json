@@ -135,6 +135,10 @@
 		"brushLarger": { "title": "Larger Brush", "category": "Edit", "icon": "plus",
 			"do": [{ "run": "setOptions", "with": { "args": { "sizeStep": 1 } } }] },
 
+		"mode8Bit": { "title": "8 Bits/Channel", "category": "Image", "icon": "binary", "enablement": "{{state.doc.format != 'rgba8'}}",
+			"description": "Converts the image to 8 bits a channel, forgetting the history.", "do": [{ "image": "convertFormat", "with": { "format": "rgba8" } }] },
+		"mode16Bit": { "title": "16 Bits/Channel", "category": "Image", "icon": "binary", "enablement": "{{state.doc.format != 'rgba16f'}}",
+			"description": "Converts the image to 16 bits a channel (floating point), forgetting the history.", "do": [{ "image": "convertFormat", "with": { "format": "rgba16f" } }] },
 		"trimImage": { "title": "Trim", "category": "Image", "icon": "crop", "description": "Crops the image to the box around its visible pixels that aren't transparent.",
 			"do": [{ "image": "trim" }] },
 		"cropToSelection": { "title": "Crop to Selection", "category": "Image", "icon": "crop",
@@ -540,13 +544,17 @@
 			"working": { "submenu": "workingSpace", "title": "Working Space", "group": "6_profiles" }
 		},
 		"image": {
-			"mode": { "run": "unavailable", "title": "Mode", "group": "1_mode" },
+			"mode": { "submenu": "imageMode", "title": "Mode", "group": "1_mode" },
 			"adjustments": { "submenu": "adjustmentLayers", "title": "Adjustments", "group": "1_mode", "order": 1 },
 			"imageSize": { "run": "showImageSize", "group": "2_size", "order": 1 },
 			"canvasSize": { "run": "showCanvasSize", "group": "2_size", "order": 2 },
 			"rotation": { "submenu": "imageRotation", "title": "Image Rotation", "group": "2_size", "order": 3 },
 			"crop": { "run": "cropToSelection", "title": "Crop", "group": "2_size", "order": 4 },
 			"trim": { "run": "trimImage", "title": "Trim", "group": "2_size", "order": 5 }
+		},
+		"imageMode": {
+			"eight": { "run": "mode8Bit", "order": 1 },
+			"sixteen": { "run": "mode16Bit", "order": 2 }
 		},
 		"layerTransform": {
 			"rotate180": { "run": "rotateLayer180", "title": "Rotate 180°", "group": "1_rotate", "order": 1 },

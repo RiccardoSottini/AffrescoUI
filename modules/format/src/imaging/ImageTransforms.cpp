@@ -1,7 +1,7 @@
 /// @file
 /// @brief format::editing: the "image" step's geometry and merges: canvasSize, imageSize, rotateCanvas, flipCanvas,
-/// transformLayer, transformSelection, alignLayer, distributeLayers, mergeDown, mergeVisible, flatten, deleteHidden,
-/// and the clipboard's copy, cut, paste and clear.
+/// convertFormat, transformLayer, transformSelection, alignLayer, distributeLayers, mergeDown, mergeVisible, flatten,
+/// deleteHidden, and the clipboard's copy, cut, paste and clear.
 ///
 /// A change of the image's size makes a new document and forgets the history, as crop does; a change that keeps the
 /// size (a flip, a half turn, a layer's transform, the merges) is one undoable step.
@@ -253,6 +253,30 @@ void reshape(ImageDocument& image, const std::string& name, int width, int heigh
 	}
 	auto made = std::make_unique<imaging::Document>(width, height, image.limits, old.format());
 	made->changeStructure(name, [&](imaging::Structure& replaced) { replaced = structure; });
+	made->clearHistory();
+	replaceDocument(image, std::move(made));
+}
+
+/// @brief convertFormat: converts the image to 8 bits a channel or to 16-bit floats, every layer's pixels (masks and
+/// the selection stay 8-bit), and forgets the history.
+/// @param image The image.
+/// @param with format ("rgba8" or "rgba16f").
+/// @throws DocumentError If the format is unknown.
+void convertFormat(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	const std::string name = textOf(with, "format", "rgba8");
+	if(name != "rgba8" && name != "rgba16f") throw DocumentError("Unknown format " + name);
+	const imaging::PixelFormat format = name == "rgba8" ? imaging::PixelFormat::rgba8 : imaging::PixelFormat::rgba16f;
+	const imaging::Document& old = image.canvas->document();
+	if(old.format() == format) return;
+	imaging::Structure structure = old.structure();
+	const Sampling same{Mapping{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}};
+	for(auto& [id, layerImage] : structure.images)
+		if(layerImage && layerImage->format() != imaging::PixelFormat::mask8)
+			layerImage = remapped(*layerImage, old.width(), old.height(), format, same, image.limits);
+	auto made = std::make_unique<imaging::Document>(old.width(), old.height(), image.limits, format);
+	made->changeStructure(name == "rgba8" ? "8 Bits/Channel" : "16 Bits/Channel",
+	                      [&](imaging::Structure& replaced) { replaced = structure; });
 	made->clearHistory();
 	replaceDocument(image, std::move(made));
 }
@@ -908,6 +932,10 @@ std::vector<ImageOperation> transformOperations() {
 		 "Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history).",
 		 rotateCanvas},
 	    {"flipCanvas", {"direction"}, "Mirrors the image horizontally or vertically.", flipCanvas},
+	    {"convertFormat",
+		 {"format"},
+		 "Converts the image to 8 bits a channel (rgba8) or 16-bit floats (rgba16f), and forgets the history.",
+		 convertFormat},
 	    {"transformLayer",
 		 {"id", "x", "y", "scaleX", "scaleY", "angle"},
 		 "Moves, scales, flips and turns a pixel layer about its centre.",

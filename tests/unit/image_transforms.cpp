@@ -231,6 +231,19 @@ TEST_CASE("format: a snapshot keeps the layers, and restoring it is one step tha
 	CHECK(editing::snapshot(image)["snapshots"].empty());
 }
 
+TEST_CASE("format: convertFormat turns the image to 16-bit floats and back, its pixels kept") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10, over white
+	run(image, "convertFormat", {{"format", "rgba16f"}});
+	CHECK(editing::snapshot(image)["format"] == "rgba16f");
+	CHECK(at(image, 5, 5)[0] == 0);
+	CHECK(at(image, 25, 5)[0] == 255);
+	run(image, "convertFormat", {{"format", "rgba8"}});
+	CHECK(editing::snapshot(image)["format"] == "rgba8");
+	CHECK(at(image, 5, 5)[0] == 0);
+	CHECK_THROWS(run(image, "convertFormat", {{"format", "cmyk"}}));
+}
+
 TEST_CASE("format: trim crops the image to its visible pixels that aren't transparent") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10, over a white background

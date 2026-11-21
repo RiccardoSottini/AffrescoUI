@@ -96,7 +96,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Item | Status | Gap |
 | --- | --- | --- |
 | New document dialog with presets | done | Width, height, bit depth and six size presets |
-| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; Image > Trim crops to the visible pixels that aren't transparent; size changes forget the history |
+| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; Image > Trim crops to the visible pixels that aren't transparent; Image > Mode converts to 8 or 16 bits a channel; size and mode changes forget the history |
 | Flatten, merge down | done | Also merge visible and delete hidden layers |
 | Export as PNG/JPEG | done | Through the library's image step |
 | Open and save its own format | done | |
@@ -140,6 +140,6 @@ general feature the image step or a node needs first.
 | Hue/Saturation: colour ranges | P3 | Library: a per-range hue in the adjustment |
 | Filters: more kinds | P2 | Library: further filter kinds (median, lens blur); each then a JSON dialog |
 | Edit > Stroke | P2 | Library: stroking the selection's outline |
-| Image > Mode | P2 | Library: converting the document's format (8/16 bit, greyscale) |
+| Image > Mode: Grayscale | P2 | Library: converting the pixels to grey with the profile (8 and 16 bits a channel convert now) |
 | File > Print | P3 | The host: printing isn't offered to screens |
 | Edit the toolbar (the tools bar's … button) | P3 | JSON: a dialog that reorders `state.tools` |

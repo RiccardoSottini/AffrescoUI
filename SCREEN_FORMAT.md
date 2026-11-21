@@ -1505,6 +1505,7 @@ The operations, and the keys of `with` each reads:
 | `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `convertFormat` | `format` | Converts the image to 8 bits a channel (`rgba8`) or 16-bit floats (`rgba16f`), and forgets the history. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
 | `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
