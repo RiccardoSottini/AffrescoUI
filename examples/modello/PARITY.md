@@ -11,7 +11,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 |---|---|---|
 | Top bar: File, Edit, Render, Window, Help menus | done | new, open, save, export glTF; undo, redo, copy, paste; render; workspaces, theme, assistant |
 | Workspace tabs | done | Modello's own five, as an icon segmented control: Stage, Shape, Surface (the Shader Editor under the viewport), Motion (a taller timeline) and Shot (rendered shading, no overlays); Ctrl+Page Up and Page Down step through them |
-| Scene and view layer pickers | partial | the names can be edited; one scene and one layer |
+| Scene and view layer pickers | partial | several scenes: the picker switches, adds (empty, its own collection) and deletes them, each with its own objects, materials and meshes, the name edited in place; one view layer, its name edited |
 | 3D viewport header: editor type, mode, View, Select, Add, Object | done | |
 | Header: orientation, pivot, snapping, proportional editing | done | every pivot, Individual Origins too; every orientation but Gimbal (View follows the camera's axes); proportional editing (O) pulls the vertices near the moved ones along in Edit Mode |
 | Header: visibility, gizmos, overlays, X-ray, four shading modes | done | X-ray sees through; look development lights with a studio light or the scene's |
@@ -103,7 +103,8 @@ the properties, glyphs that contrast with the background, a solid shading whose 
 
 Round 5 (round 2 of the revamp): 58 done, 4 partial, 1 missing (three rows added: the Modifiers and Texture tabs, Data › Normals). Edit Mode on editable polygon meshes (`scene3d`'s `PolyMesh.hpp`
 and the `mesh...` expression functions): vertex, edge and face selection, extrude, inset, loop cut, delete, proportional
-editing; the modifier stack; Shade Smooth; glTF import; image textures; a turned or scaled parent keeping its child's place.
+editing; the modifier stack; Shade Smooth; glTF import; image textures; several scenes; a turned or scaled parent keeping
+its child's place.
 
 ## Left for later
 
@@ -121,7 +122,7 @@ occasionally; P3: rarely.
 | Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
 | Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |
 | Workspaces Compose, Nodes, Script | P3 | library: a compositor, geometry nodes, a script console (the last may never fit a JSON-only app) |
-| Scene and view layer pickers, View Layer tab, outliner Scenes mode | P3 | JSON: a list of scenes and layers in state, each with its own nodes and toggles |
+| View layers, View Layer tab, outliner Scenes mode; saving every scene in one file | P3 | JSON: a list of layers in state, each with its collections' toggles; the saved file holding state.scenes and the store |
 | Outliner Orphan Data mode | P3 | JSON: materials and meshes no object uses, listed from state |
 | Orientation: Gimbal | P3 | library: gimbal axes from the object's Euler rotation in the gizmo (View is done) |
 | Rotation mode (quaternion, axis angle) | P3 | JSON: other rotation fields converted to rotationDegrees |

@@ -236,7 +236,6 @@
                 :menubar.window "Fenêtre"
                 :menubar.help "Aide"
                 :topbar.workspaces "Espaces de travail"
-                :topbar.oneScene "Modello a une seule scène : d'autres scènes ne sont pas encore disponibles"
                 :topbar.sceneName "Nom de la scène"
                 :topbar.oneLayer "Modello a un seul calque de vue : d'autres calques ne sont pas encore disponibles"
                 :topbar.layerName "Nom du calque de vue"
@@ -609,4 +608,12 @@
                 :file.textureTitle "Ouvrir une texture d'image"
                 :file.textured "Texture : {name}"
                 :panel.imageTexture "Texture d'image"
-                :properties.image "Image"}}}
+                :properties.image "Image"
+                :topbar.scenes "Scènes : en changer, en ajouter ou en supprimer une"
+                :scene.new "Nouvelle scène"
+                :scene.delete "Supprimer la scène"
+                :scene.defaultName "Scène"
+                :command.switchScene "Changer de scène"
+                :command.switchScene.about "Affiche une autre scène du fichier."
+                :command.addScene.about "Ajoute une scène vide et l'affiche."
+                :command.deleteScene.about "Supprime la scène affichée."}}}

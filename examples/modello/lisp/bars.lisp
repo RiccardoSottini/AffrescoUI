@@ -114,10 +114,11 @@
        :align center)
      (label :text ~w.title :textColor ~(if (= state.workspace w.name) "#ffffff" "@text") :fitText true :height 20)))
 
-(defview scene-picker "The scene's picker (one scene for now), then its name, typed in place: two nodes." []
+(defview scene-picker "The scene's picker (switch, add, delete), then its name, typed in place: two nodes." []
   [`(node#scene-picker
       :use hButton
-      :with {:icon shapes :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneScene")})
+      :with {:icon shapes :chevron true :width 38 :tooltip ~(t "topbar.scenes") :open state.open.scenePicker
+             :items ~computed.sceneItems})
    `(node#scene-name :width 100 :height 20 :color @field :radius 4
       (textarea#scene-name-field :anchors {:left 3 :top 1 :bottom 1 :right 2}
         :color transparent

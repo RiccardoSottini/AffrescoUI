@@ -10,7 +10,7 @@
 		"icons": { "file": "../../shared/fonts/Lucide.ttf", "size": 14 },
 		"iconsSmall": { "file": "../../shared/fonts/Lucide.ttf", "size": 12 }
 	},
-	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "parts/editmode.json", "../../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "parts/editmode.json", "parts/scenes.json", "../../shared/addons/assistant/assistant.json"],
 	"theme": "{{state.theme}}",
 	"tokens": {
 		"gap": { "dark": "#0e1116", "light": "#9aa3ae" },

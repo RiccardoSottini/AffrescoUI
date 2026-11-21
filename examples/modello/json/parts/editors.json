@@ -290,12 +290,13 @@
 						               "fitText": true, "height": 20 }]
 					  }, { "width": 1, "height": 1, "color": "transparent" }] },
 					{ "grow": 1, "height": 1, "color": "transparent" },
-					{ "id": "scene-picker", "use": "hButton", "with": { "icon": "shapes", "chevron": true, "width": 38, "disabled": true,
-					  "tooltip": "Modello has one scene: more scenes aren't available yet" } },
+					{ "id": "scene-picker", "use": "hButton", "with": { "icon": "shapes", "chevron": true, "width": 38,
+					  "tooltip": "Scenes: switch, add or delete one", "open": "state.open.scenePicker", "items": "{{computed.sceneItems}}" } },
 					{ "id": "scene-name", "width": 100, "height": 20, "color": "@field", "radius": 4, "children": [
 						{ "type": "textarea", "id": "scene-name-field", "anchors": { "left": 3, "top": 1, "bottom": 1, "right": 2 }, "color": "transparent",
 						  "text": "{{state.sceneName}}", "textColor": "@text", "label": "Scene name",
-						  "onSubmit": { "if": "{{trim(event.text) != ''}}", "then": [{ "set": "state.sceneName", "to": "{{slice(trim(event.text), 0, 63)}}" }] } }
+						  "onSubmit": { "if": "{{trim(event.text) != ''}}", "then": [{ "set": "state.sceneName", "to": "{{slice(trim(event.text), 0, 63)}}" },
+						    { "set": "state.scenes", "to": "{{map(state.scenes, it.id == state.activeScene ? merge(it, { name: slice(trim(event.text), 0, 63) }) : it)}}" }] } }
 					] },
 					{ "use": "gap", "with": { "width": 8 } },
 					{ "id": "layer-picker", "use": "hButton", "with": { "icon": "images", "chevron": true, "width": 38, "disabled": true,
@@ -519,7 +520,8 @@
 								{ "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "@field", "radius": 4, "children": [
 									{ "type": "textarea", "id": "prop-scene-name", "anchors": { "left": 6, "right": 4, "top": 1, "bottom": 1 },
 									  "text": "{{state.sceneName}}", "textColor": "@text", "color": "transparent", "label": "Scene name",
-									  "onSubmit": { "if": "{{trim(event.text) != ''}}", "then": [{ "set": "state.sceneName", "to": "{{slice(trim(event.text), 0, 63)}}" }] } }
+									  "onSubmit": { "if": "{{trim(event.text) != ''}}", "then": [{ "set": "state.sceneName", "to": "{{slice(trim(event.text), 0, 63)}}" },
+									    { "set": "state.scenes", "to": "{{map(state.scenes, it.id == state.activeScene ? merge(it, { name: slice(trim(event.text), 0, 63) }) : it)}}" }] } }
 								] }
 							] },
 							{ "use": "infoRow", "with": { "id": "scene-camera", "label": "Camera", "text": "{{find(state.scene.nodes, it.kind == 'camera').name ?? 'None'}}" } }

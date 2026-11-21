@@ -1113,6 +1113,28 @@
 				{ "click": { "role": "menuitem", "name": "None" } },
 				{ "expect": { "state": "scene.nodes[2].translation", "is": [4.08, 1, 5.9] } }
 			]
+		},
+		{
+			"name": "modello-scenes",
+			"note": "The scene picker: New Scene adds an empty scene and shows it, the first scene comes back with its cube, Delete Scene removes the one shown",
+			"steps": [
+				{ "click": "#scene-picker" },
+				{ "click": { "role": "menuitem", "name": "New Scene" } },
+				{ "expect": { "state": "activeScene", "is": "scene-1" } },
+				{ "expect": { "state": "scene.nodes", "is": [] } },
+				{ "expect": { "state": "sceneName", "is": "Scene.001" } },
+				{ "click": "#scene-picker" },
+				{ "click": { "role": "menuitem", "name": "Scene" } },
+				{ "expect": { "state": "activeScene", "is": "scene" } },
+				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } },
+				{ "click": "#scene-picker" },
+				{ "click": { "role": "menuitem", "name": "Scene.001" } },
+				{ "click": "#scene-picker" },
+				{ "click": { "role": "menuitem", "name": "Delete Scene" } },
+				{ "expect": { "state": "activeScene", "is": "scene" } },
+				{ "expect": { "state": "scenes", "is": [{ "id": "scene", "name": "Scene" }] } },
+				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } }
+			]
 		}
 	]
 }

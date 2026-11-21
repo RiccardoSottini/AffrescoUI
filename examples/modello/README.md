@@ -31,6 +31,7 @@ and review cover the scene and the workspace alike.
 | `lisp/viewport.lisp`, `lisp/sidebar.lisp` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
 | `lisp/bars.lisp`, `lisp/outliner.lisp`, `lisp/properties.lisp`, `lisp/timeline.lisp`, `lisp/dialogs.lisp`, `lisp/widgets.lisp` | The top bar, outliner, properties editor, timeline, status bar, dialogs and the widgets they share |
 | `lisp/shader.lisp` | The shader editor's nodes and materials |
+| `lisp/scenes.lisp` (`json/parts/scenes.json`) | Several scenes: the top bar's picker switches, adds and deletes them |
 | `lisp/editmode.lisp` (`json/parts/editmode.json`) | Edit Mode on editable meshes (vertices, edges, faces; extrude, inset, loop cut, delete, proportional editing) and the modifier stack (mirror, array, subdivision) |
 | `lisp/look.lisp` | The colours, dark and light |
 | `lisp/index.scenarios.json` | The scenarios, run headless (they stay JSON) |

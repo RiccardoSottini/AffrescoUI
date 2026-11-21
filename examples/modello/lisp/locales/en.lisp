@@ -236,7 +236,6 @@
                 :menubar.window "Window"
                 :menubar.help "Help"
                 :topbar.workspaces "Workspaces"
-                :topbar.oneScene "Modello has one scene: more scenes aren't available yet"
                 :topbar.sceneName "Scene name"
                 :topbar.oneLayer "Modello has one view layer: more layers aren't available yet"
                 :topbar.layerName "View layer name"
@@ -609,4 +608,12 @@
                 :file.textureTitle "Open Image Texture"
                 :file.textured "Texture: {name}"
                 :panel.imageTexture "Image Texture"
-                :properties.image "Image"}}}
+                :properties.image "Image"
+                :topbar.scenes "Scenes: switch, add or delete one"
+                :scene.new "New Scene"
+                :scene.delete "Delete Scene"
+                :scene.defaultName "Scene"
+                :command.switchScene "Switch Scene"
+                :command.switchScene.about "Shows another scene of the file."
+                :command.addScene.about "Adds an empty scene and shows it."
+                :command.deleteScene.about "Deletes the scene shown."}}}

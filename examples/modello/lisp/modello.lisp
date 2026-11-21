@@ -315,9 +315,11 @@
 (defn hover-area "The pointer over an area: Shift A, Delete and the pie menus act on its editor." [slot]
   (set "state.hoverSlot" slot))
 
-(defn rename-scene "The scene's name typed in the top bar, if it isn't empty." [text]
-  (let [name (str/trim text)]
-    (when-not (str/blank? name) (set "state.sceneName" (slice name 0 63)))))
+(defn rename-scene "The scene's name typed in the top bar, if it isn't empty; the picker lists it so." [text]
+  (let [name (slice (str/trim text) 0 63)]
+    (when-not (str/blank? name)
+      (set "state.sceneName" name)
+      (set "state.scenes" (map #(if (= (:id %) state.activeScene) (assoc % :name name) %) state.scenes)))))
 
 (defn rename-layer "The view layer's name typed in the top bar, if it isn't empty." [text]
   (let [name (str/trim text)]

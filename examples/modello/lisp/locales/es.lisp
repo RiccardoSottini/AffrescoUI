@@ -236,7 +236,6 @@
                 :menubar.window "Ventana"
                 :menubar.help "Ayuda"
                 :topbar.workspaces "Espacios de trabajo"
-                :topbar.oneScene "Modello tiene una sola escena: aún no hay más escenas"
                 :topbar.sceneName "Nombre de la escena"
                 :topbar.oneLayer "Modello tiene una sola capa de visualización: aún no hay más capas"
                 :topbar.layerName "Nombre de la capa de visualización"
@@ -609,4 +608,12 @@
                 :file.textureTitle "Abrir textura de imagen"
                 :file.textured "Textura: {name}"
                 :panel.imageTexture "Textura de imagen"
-                :properties.image "Imagen"}}}
+                :properties.image "Imagen"
+                :topbar.scenes "Escenas: cambia, añade o elimina una"
+                :scene.new "Nueva escena"
+                :scene.delete "Eliminar escena"
+                :scene.defaultName "Escena"
+                :command.switchScene "Cambiar de escena"
+                :command.switchScene.about "Muestra otra escena del archivo."
+                :command.addScene.about "Añade una escena vacía y la muestra."
+                :command.deleteScene.about "Elimina la escena mostrada."}}}

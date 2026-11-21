@@ -33,7 +33,8 @@
             modello.animation
             modello.materials
             modello.files
-            modello.editmode))
+            modello.editmode
+            modello.scenes))
 
 ;;; The window, and what is in it, in the order it is drawn
 
