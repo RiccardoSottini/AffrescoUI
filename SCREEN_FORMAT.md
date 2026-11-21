@@ -1569,7 +1569,7 @@ per contour. `quick-select` selects, at the release, the pixels like the one und
 `tolerance`) and connected to it, no farther than the brush's radius (`size`), so it stops at edges.
 `retouch` strokes with the brush and changes the pixels under it as its `retouch` option says: `dodge` lightens,
 `burn` darkens, `sponge` takes the colour away, `blur` and `sharpen` move each pixel towards or away from its
-neighbours' average. `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
+neighbours' average, `smudge` drags the paint along the stroke. `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
 stays), a drag inside moves it, one step each; `layer-box` does the same to the active pixel layer, around its pixels
 (a Free Transform step). The
 paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the

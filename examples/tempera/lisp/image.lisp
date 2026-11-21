@@ -29,6 +29,7 @@
                          :clone {:gesture clone}
                          :blur {:gesture retouch :retouch blur}
                          :sharpen {:gesture retouch :retouch sharpen}
+                         :smudge {:gesture retouch :retouch smudge}
                          :dodge {:gesture retouch :retouch dodge}
                          :burn {:gesture retouch :retouch burn}
                          :sponge {:gesture retouch :retouch sponge}

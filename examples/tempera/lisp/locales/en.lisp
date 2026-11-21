@@ -715,6 +715,8 @@
                 :tool.burn.short "Burn"
                 :tool.sponge "Sponge Tool"
                 :tool.sponge.short "Sponge"
+                :tool.smudge "Smudge Tool"
+                :tool.smudge.short "Smudge"
                 :tool.wand "Magic Wand Tool"
                 :tool.wand.short "Magic Wand"
                 :tool.zoom "Zoom Tool"

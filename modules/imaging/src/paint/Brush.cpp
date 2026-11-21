@@ -176,6 +176,11 @@ void Stroke::stamp(float x, float y, float pressure) {
 	const float radius = tip_.size / 2.0f * (tip_.pressureSize ? std::max(pressure, 0.05f) : 1.0f);
 	const float cap = tip_.opacity * (tip_.pressureOpacity ? pressure : 1.0f);
 	if(cap <= 0.0f) return;
+	if(mode_ == StrokeMode::smudge) {
+		smudgeX_ = lastStamp_ ? x - lastStamp_->x : 0.0f;
+		smudgeY_ = lastStamp_ ? y - lastStamp_->y : 0.0f;
+		lastStamp_ = StrokePoint{x, y, pressure};
+	}
 	const Image& image = *document_->image(target_);
 	if(x + radius < 0.0f || y + radius < 0.0f) return;
 	// Past the right or bottom no tile is touched; the dab still counts, and its far edge is never cast to an int
@@ -229,7 +234,7 @@ Stroke::Touched& Stroke::touched(int column, int row) {
 }
 
 std::span<const std::string_view> retouchNames() noexcept {
-	static constexpr std::array<std::string_view, 5> names{"dodge", "burn", "sponge", "blur", "sharpen"};
+	static constexpr std::array<std::string_view, 6> names{"dodge", "burn", "sponge", "blur", "sharpen", "smudge"};
 	return names;
 }
 
@@ -268,6 +273,15 @@ Pixel Stroke::retouched(const Pixel& under, int x, int y, float coverage) const 
 		return each([&](float value) { return value + (1.0f - value) * amount; });
 	case StrokeMode::burn:
 		return each([&](float value) { return value * (1.0f - amount); });
+	case StrokeMode::smudge: { // the paint from behind the stamp, as it is now, drawn along
+		const Image& image = *document_->image(target_);
+		const int fromX = std::clamp(x - static_cast<int>(std::lround(smudgeX_)), 0, image.width() - 1);
+		const int fromY = std::clamp(y - static_cast<int>(std::lround(smudgeY_)), 0, image.height() - 1);
+		const Pixel behind = image.pixel(fromX, fromY);
+		const float share = std::min(1.0f, coverage * 1.6f);
+		return {under.red + (behind.red - under.red) * share, under.green + (behind.green - under.green) * share,
+		        under.blue + (behind.blue - under.blue) * share, under.alpha + (behind.alpha - under.alpha) * share};
+	}
 	case StrokeMode::sponge: {
 		const float grey = lightness(under);
 		return each([&](float value) { return value + (grey - value) * amount; });

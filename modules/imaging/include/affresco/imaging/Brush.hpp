@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -50,9 +51,11 @@ enum class StrokeMode : std::uint8_t {
 	sponge,  ///< Takes their colour away, towards grey.
 	blur,    ///< Softens them: each towards the average of its neighbours.
 	sharpen, ///< Sharpens them: each away from the average of its neighbours.
+	smudge,  ///< Drags them along the stroke, as a finger through wet paint.
 };
 
-/// @brief The names of the retouching modes ("dodge", "burn", "sponge", "blur", "sharpen"), from StrokeMode::dodge on.
+/// @brief The names of the retouching modes ("dodge", "burn", "sponge", "blur", "sharpen", "smudge"), from
+/// StrokeMode::dodge on.
 [[nodiscard]] std::span<const std::string_view> retouchNames() noexcept;
 
 /// @brief A point of a stroke and the pen's pressure there.
@@ -153,6 +156,9 @@ private:
 	StrokePoint last_;                                          ///< The last point.
 	float travelled_ = 0.0f;                                    ///< The distance since the last stamp.
 	std::size_t stamps_ = 0;                                    ///< See stamps().
+	float smudgeX_ = 0.0f;                                      ///< smudge: how far the stamp moved, across.
+	float smudgeY_ = 0.0f;                                      ///< smudge: and down.
+	std::optional<StrokePoint> lastStamp_;                      ///< smudge: where the last stamp was.
 	std::unordered_map<TileKey, Touched, TileKeyHash> touched_; ///< The tiles the stroke touched.
 };
 

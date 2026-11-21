@@ -715,6 +715,8 @@
                 :tool.burn.short "Subexponer"
                 :tool.sponge "Herramienta Esponja"
                 :tool.sponge.short "Esponja"
+                :tool.smudge "Herramienta Dedo"
+                :tool.smudge.short "Dedo"
                 :tool.wand "Herramienta Varita mágica"
                 :tool.wand.short "Varita mágica"
                 :tool.zoom "Herramienta Zoom"

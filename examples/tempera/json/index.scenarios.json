@@ -6612,7 +6612,7 @@
 		},
 		{
 			"name": "tempera-retouch-tools",
-			"note": "Dodge (O), Burn (Shift+O), Blur (R), Sharpen and Sponge retouch the active layer's pixels with the brush, a step each",
+			"note": "Dodge (O), Burn (Shift+O), Blur (R), Sharpen, Sponge and Smudge retouch the active layer's pixels with the brush, a step each",
 			"steps": [
 				{
 					"note": "onLoad draws the sample at the first frame",
@@ -6843,6 +6843,55 @@
 					"expect": {
 						"state": "doc.history[5].label",
 						"is": "Sponge"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "smudge"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.retouch",
+						"is": "smudge"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 500,
+									"y": 480,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 520,
+									"y": 500,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 540,
+									"y": 520,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[6].label",
+						"is": "Smudge"
 					}
 				}
 			]

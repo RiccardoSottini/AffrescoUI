@@ -715,6 +715,8 @@
                 :tool.burn.short "Densité +"
                 :tool.sponge "Outil Éponge"
                 :tool.sponge.short "Éponge"
+                :tool.smudge "Outil Doigt"
+                :tool.smudge.short "Doigt"
                 :tool.wand "Outil Baguette magique"
                 :tool.wand.short "Baguette magique"
                 :tool.zoom "Outil Zoom"

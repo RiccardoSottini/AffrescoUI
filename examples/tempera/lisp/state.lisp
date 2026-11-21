@@ -69,7 +69,8 @@
    [{:name restore :icon undo-dot}]
    [{:id eraser :name eraser :icon eraser :key "E"}]
    [{:id gradient :name gradient :icon blend :key "G"} {:id fill :name fill :icon paint-bucket :key "Shift+G"}]
-   [{:id blur :name blur :icon droplet :key "R"} {:id sharpen :name sharpen :icon triangle}]
+   [{:id blur :name blur :icon droplet :key "R"} {:id sharpen :name sharpen :icon triangle}
+    {:id smudge :name smudge :icon pointer}]
    [{:id dodge :name dodge :icon sun-dim :key "O"} {:id burn :name burn :icon flame :key "Shift+O"}
     {:id sponge :name sponge :icon droplets}]
    []

@@ -82,7 +82,7 @@ bool pressCloneSource(ImageDocument& image, Point at) {
 	if(settings.quickMask) return "Quick Mask";
 	if(settings.gesture == Gesture::erase) return "Eraser";
 	if(settings.gesture == Gesture::retouch) {
-		constexpr std::array<const char*, 5> names{"Dodge", "Burn", "Sponge", "Blur", "Sharpen"};
+		constexpr std::array<const char*, 6> names{"Dodge", "Burn", "Sponge", "Blur", "Sharpen", "Smudge"};
 		return names.at(static_cast<std::size_t>(settings.retouch) -
 		                static_cast<std::size_t>(imaging::StrokeMode::dodge));
 	}

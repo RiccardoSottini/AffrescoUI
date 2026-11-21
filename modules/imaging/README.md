@@ -20,7 +20,7 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `Composite.hpp` | `Compositor` (a document flattened, one tile at a time at any mip level) and `Sampler` (pixels of a layer or of the flattened document) |
 | `Adjustment.hpp` | The 8 adjustments: levels, curves, hue/saturation, colour balance, brightness/contrast, invert, threshold and gradient map |
 | `Selection.hpp` | Shapes (rectangle, ellipse, lasso, polygon) with soft edges, combined by replace, add, subtract or intersect; the magic wand, the quick-selection brush (`quickCoverage`: like colours near a stroke, stopping at edges), colour range, invert, and the selection's bounds to the pixel |
-| `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased, cloned or retouched (dodge, burn, sponge, blur, sharpen) along a path, with pressure, as one step |
+| `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased, cloned or retouched (dodge, burn, sponge, blur, sharpen, smudge) along a path, with pressure, as one step |
 | `Filter.hpp` | Gaussian blur, motion blur, sharpen, unsharp mask and add noise, and the selection's feather, tile by tile with a halo, for a preview of the visible tiles or the whole layer |
 | `Vector.hpp` | Vector content: paths of anchors with curve handles (the document's `Structure::paths`), and the `LayerContent` a type or shape layer is drawn from (text, font, size, style, tracking, kerning, alignment; a rectangle, ellipse, polygon, line or path with fill and stroke) |
 | `Shapes.hpp` | Vector content drawn: paths flattened, strokes, type and shape layers rendered into a layer's pixels (text with a `render` font), a type layer's outlines as paths (`textOutlines`, through HarfBuzz), and their JSON |
