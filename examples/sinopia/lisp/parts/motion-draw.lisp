@@ -45,6 +45,38 @@
        :strokeCap round
        :strokeJoin round)))
 
+;;; The drawn path on the slide
+
+(defcomputed drawnPath
+  "The selected object's drawn motion path on the Motion tab, as path data from its centre in slide points, or nil."
+  (let [a computed.animation
+        o computed.first
+        ph computed.firstPlaceholder
+        w (or-else o.w ph.w 0)
+        h (or-else o.h ph.h 0)
+        x (+ (or-else o.x ph.x 0) (/ w 2))
+        y (+ (or-else o.y ph.y 0) (/ h 2))
+        points (or-else (:points a) [])]
+    (when (and (= state.tab "animations") (= (:effect a) "pathCustom") (> (count points) 1))
+      (str "M " (join " L " (map #(path-point x y %) points))))))
+
+(defn path-point "A point of a drawn path, an offset from the centre at x and y, as path data." [x y [dx dy]]
+  (str (+ x dx) " " (+ y dy)))
+
+(defview motion-path-line "The selected object's drawn motion path, under the objects, while the Motion tab is shown." []
+  `(path :when ~(some? computed.drawnPath)
+     :x 0
+     :y 0
+     :width 960
+     :height 540
+     :viewBox "0 0 960 540"
+     :fit fill
+     :d ~(or-else computed.drawnPath "")
+     :stroke "#0e7c6b"
+     :strokeWidth 2
+     :strokeDash [6 4]
+     :strokeJoin round))
+
 ;;; What a drag does
 
 (defn canvas-point "A point of the slide where the canvas shows it, as path data." [[x y]]

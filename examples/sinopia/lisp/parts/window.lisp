@@ -456,6 +456,7 @@
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
        (node :use slideBackground :with {:slide ~computed.slide :prefix e-}))
      ~(grid-lines)
+     ~(motion-path-line)
      ~(repeat [o computed.objects :key o.id]
        `(node :use slideObject
           :with {:o ~o :prefix "" :layout ~computed.layout :edit true}

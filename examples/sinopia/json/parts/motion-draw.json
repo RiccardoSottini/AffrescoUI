@@ -10,10 +10,17 @@
 	},
 
 	"computed": {
+		"drawnPath": "{{state.tab == 'animations' && computed.animation.effect == 'pathCustom' && length(computed.animation.points ?? []) > 1 ? 'M ' + join(map(computed.animation.points, ((computed.first.x ?? computed.firstPlaceholder.x ?? 0) + (computed.first.w ?? computed.firstPlaceholder.w ?? 0) / 2 + it[0]) + ' ' + ((computed.first.y ?? computed.firstPlaceholder.y ?? 0) + (computed.first.h ?? computed.firstPlaceholder.h ?? 0) / 2 + it[1])), ' L ') : null}}",
 		"livePath": "{{'M ' + join(map(state.pathPoints, fixed((it[0] - computed.view.camera.x) * computed.view.camera.zoom, 1) + ' ' + fixed((it[1] - computed.view.camera.y) * computed.view.camera.zoom, 1)), ' L ')}}"
 	},
 
 	"components": {
+		"motionPathLine": {
+			"params": {},
+			"note": "The selected object's drawn motion path, under the objects, while the Motion tab is shown.",
+			"node": { "type": "path", "when": "{{computed.drawnPath != null}}", "x": 0, "y": 0, "width": 960, "height": 540, "viewBox": "0 0 960 540", "fit": "fill",
+			          "d": "{{computed.drawnPath ?? ''}}", "stroke": "#0e7c6b", "strokeWidth": 2, "strokeDash": [6, 4], "strokeJoin": "round" }
+		},
 		"motionPathLayer": {
 			"params": {},
 			"note": "Over the slide while a custom path is drawn: a press, a drag and a release draw it.",

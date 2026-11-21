@@ -103,7 +103,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Animations | Entrance effects | partial | done | add-an-animation |
 | Animations | Emphasis effects | missing | done | emphasis-and-timing (pulse, spin, teeter) |
 | Animations | Exit effects | missing | done | add-an-animation, emphasis-and-timing (fly to any side), wipe-from-every-side (wipe from any side, in or out) |
-| Animations | Motion paths | missing | done | emphasis-and-timing (four preset paths: right, down, arc, circle), custom-motion-path (a path drawn by hand on the slide) |
+| Animations | Motion paths | missing | done | emphasis-and-timing (four preset paths: right, down, arc, circle), custom-motion-path (a path drawn by hand on the slide, shown as a dashed line from the selected object on the Motion tab) |
 | Animations | Animation pane | missing | done | animation-pane (the order, reorder, remove, select) |
 | Animations | Timing (on click, with, after; duration, delay) | missing | done | add-an-animation, emphasis-and-timing (delay and repeat on the Motion tab and in the Animation Pane) |
 | Animations | Preview | missing | done | preview (each build once the one before has played) |
@@ -165,7 +165,6 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
 | P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
 | P3 | Shell: key hints' second level (a key on every ribbon button) | JSON: badges on each tab's buttons once its letter is pressed |
-| P3 | Animations: a drawn motion path's line on the canvas | JSON: the path drawn over the slide while its object is selected |
 | P3 | Design: variants of one's own | JSON: save a variant of a theme (themes of one's own are done) |
 | P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |
 | P3 | Slide show: record and export to video (Record > Record, Record > Export to Video) | Library: audio and video capture and encoding |
