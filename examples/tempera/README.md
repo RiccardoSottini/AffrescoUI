@@ -48,7 +48,8 @@ Scenarios drive it through the `pointer` action, in document pixels.
 
 Shift or Cmd and a click in the Layers panel picks layers together (`state.pickedLayers`); Properties' Distribute icons
 and Layer > Distribute space three or more of them evenly as one step (`(image "distributeLayers" ...)`). A group of
-the dock moves when its tabs are dragged onto another group's (`state.groupOrder`, kept by a saved workspace). The
+the dock moves when its tabs are dragged onto another group's, or with Alt+Up and Alt+Down on them
+(`state.groupOrder`, kept by a saved workspace). The
 History panel's camera takes a snapshot of the layers (`takeSnapshot`, listed in `doc.snapshots`), restored as one step;
 Image > Trim crops to the visible pixels (`trim`), and Image > Mode converts to 8 or 16 bits a channel
 (`convertFormat`).

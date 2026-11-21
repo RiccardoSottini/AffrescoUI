@@ -617,7 +617,7 @@
                 :panels.label "Panels"
                 :panels.collapse "Collapse the group"
                 :panels.expand "Expand the group"
-                :panels.move "Drag these tabs onto another group's to move the group there"
+                :panels.move "Drag these tabs onto another group's, or press Alt+Up or Alt+Down on them, to move the group"
                 :panels.resize "Resize the group"
                 :paths.actions "Path actions"
                 :paths.anchors "{n} anchors"

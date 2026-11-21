@@ -6065,7 +6065,7 @@
 		},
 		{
 			"name": "tempera-dock-group-move",
-			"note": "A group's tabs dragged onto another group's move the group there; a saved workspace keeps the order, and the standard one puts it back",
+			"note": "A group's tabs dragged onto another group's move the group there, as Alt+Up and Alt+Down on them do; a saved workspace keeps the order, and the standard one puts it back",
 			"steps": [
 				{
 					"note": "onLoad draws the sample at the first frame",
@@ -6107,6 +6107,27 @@
 					"expect": {
 						"state": "groupOrder[2]",
 						"is": "colour"
+					}
+				},
+				{
+					"click": "#panel-tab-properties"
+				},
+				{
+					"key": "alt+up"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "properties"
+					}
+				},
+				{
+					"key": "alt+down"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[1]",
+						"is": "properties"
 					}
 				},
 				{

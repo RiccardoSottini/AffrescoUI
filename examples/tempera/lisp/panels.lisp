@@ -24,6 +24,8 @@
        :tooltip ~(t "panels.move")
        :drag {:data {:group ~slot}}
        :onDrop ~(handler move-group event.data.group slot)
+       :keys {"alt+up" {:do move-group-by :with {:slot ~slot :by -1}}
+              "alt+down" {:do move-group-by :with {:slot ~slot :by 1}}}
        (node :width 4 :height 1 :style clear)
        ~(repeat [tab tabs] (panel-tab tab))
        (node :grow 1 :height 1 :style clear)

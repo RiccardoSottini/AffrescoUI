@@ -617,7 +617,7 @@
                 :panels.label "Paneles"
                 :panels.collapse "Contraer el grupo"
                 :panels.expand "Expandir el grupo"
-                :panels.move "Arrastra estas pestañas sobre las de otro grupo para mover el grupo allí"
+                :panels.move "Arrastra estas pestañas sobre las de otro grupo, o pulsa Alt+Arriba o Alt+Abajo en ellas, para mover el grupo"
                 :panels.resize "Cambiar el tamaño del grupo"
                 :paths.actions "Acciones de trazado"
                 :paths.anchors "{n} puntos"

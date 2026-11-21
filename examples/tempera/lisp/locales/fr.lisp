@@ -617,7 +617,7 @@
                 :panels.label "Panneaux"
                 :panels.collapse "Réduire le groupe"
                 :panels.expand "Développer le groupe"
-                :panels.move "Faites glisser ces onglets sur ceux d'un autre groupe pour y déplacer le groupe"
+                :panels.move "Faites glisser ces onglets sur ceux d'un autre groupe, ou appuyez sur Alt+Haut ou Alt+Bas, pour déplacer le groupe"
                 :panels.resize "Redimensionner le groupe"
                 :paths.actions "Actions de tracé"
                 :paths.anchors "{n} points"

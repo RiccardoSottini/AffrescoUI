@@ -390,6 +390,12 @@ would."
          :collapsed {:colour false :properties true :layers false}
          :groupHeights {:colour 260 :properties 236}))
 
+(defn move-group-by "Alt+Up or Alt+Down on a group's tabs: the group a place up (by -1) or down (by 1) in the dock."
+  [slot by]
+  (let [at (+ (indexOf state.groupOrder slot) by)]
+    (when (and (>= at 0) (< at (count state.groupOrder)))
+      (move-group slot (get state.groupOrder at)))))
+
 (defn drop-on-layer
   "A layer's row dropped onto another's: it takes that layer's place. A dock group dropped there does nothing."
   [onto]

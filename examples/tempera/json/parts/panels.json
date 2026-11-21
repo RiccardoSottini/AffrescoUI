@@ -22,8 +22,12 @@
 				"type": "column", "id": "group-{{slot}}", "width": "100%", "color": "@panel", "radius": "@kit.cardRadius",
 				"children": [
 					{ "type": "row", "id": "panel-tabs-{{slot}}", "role": "tablist", "label": "Panels", "width": "100%", "height": 32,
-					  "alignItems": "center", "arrows": "horizontal", "tooltip": "Drag these tabs onto another group's to move the group there",
+					  "alignItems": "center", "arrows": "horizontal", "tooltip": "Drag these tabs onto another group's, or press Alt+Up or Alt+Down on them, to move the group",
 					  "drag": { "data": { "group": "{{slot}}" } }, "onDrop": { "run": "moveGroup", "with": { "args": { "from": "{{event.data.group}}", "onto": "{{slot}}" } } },
+					  "keys": {
+						"alt+up": [{ "when": "{{indexOf(state.groupOrder, slot) > 0}}", "run": "moveGroup", "with": { "args": { "from": "{{slot}}", "onto": "{{state.groupOrder[indexOf(state.groupOrder, slot) - 1]}}" } } }],
+						"alt+down": [{ "when": "{{indexOf(state.groupOrder, slot) < length(state.groupOrder) - 1}}", "run": "moveGroup", "with": { "args": { "from": "{{slot}}", "onto": "{{state.groupOrder[indexOf(state.groupOrder, slot) + 1]}}" } } }]
+					  },
 					  "children": [
 						{ "width": 4, "height": 1, "style": "clear" },
 						{ "type": "label", "id": "panel-tab-{{t.id}}", "repeat": { "for": "t", "in": "{{tabs}}" }, "role": "tab", "label": "{{t.label}}",

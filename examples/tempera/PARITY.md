@@ -32,7 +32,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Dark grey pasteboard, checkerboard for transparency | done | |
 | Status bar: zoom field and document size | done | One information item at a time, chosen from its › menu |
 | Search (commands), workspace switcher, screen modes | done | Searches the commands, the tools and the layers; Standard and Painting workspaces, Save Workspace keeps the dock's tabs, folds, heights and pop-outs (kept between runs), Delete and Reset; also in Window > Workspace; standard and full screen with menu bar |
-| Panels docked right in tabbed groups, collapsible to icons | done | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it), the sash under a group drags its height, and a group's tabs dragged onto another group's move the group there (a saved workspace keeps the order) |
+| Panels docked right in tabbed groups, collapsible to icons | done | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it), the sash under a group drags its height, and a group's tabs dragged onto another group's (or Alt+Up and Alt+Down on them) move the group there; a saved workspace keeps the order |
 | Light and dark interface, locales, keyboard focus, accessible names | partial | Keep and extend every round |
 
 ## Panels
