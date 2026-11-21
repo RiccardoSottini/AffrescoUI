@@ -10,4 +10,9 @@
                 :crop.square "Crop to Square"
                 :crop.standard "Crop to 4:3"
                 :crop.wide "Crop to 16:9"
-                :crop.reset "Whole Picture"}}}
+                :crop.reset "Whole Picture"
+                :chart.editData "Edit Data"
+                :chart.described.column "Column chart of {series}"
+                :chart.described.bar "Bar chart of {series}"
+                :chart.described.line "Line chart of {series}"
+                :chart.described.pie "Pie chart of {series}"}}}

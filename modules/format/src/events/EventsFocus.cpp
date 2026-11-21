@@ -166,9 +166,14 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 	focusLater_.scope = scope;
 	focusLater_.cancelled = false;
 	if(std::exchange(focusLater_.pending, true)) return; // one is scheduled already, and does this instead
-	engine_.scheduler.once(0.0, [this, frames] {
+	const Panel* focusedThen = engine_.window ? engine_.window->focusedPanel() : nullptr; // compared, never used
+	engine_.scheduler.once(0.0, [this, frames, focusedThen] {
 		const auto target = std::exchange(focusLater_, {});
 		if(target.cancelled || !engine_.window) return;
+		// The focus given back by a closing menu or dialog yields to a node that took the focus since (an editor the
+		// chosen item opened, with autofocus)
+		const Panel* now = engine_.window->focusedPanel();
+		if(target.panel && !target.scope && now && now != focusedThen) return;
 		// Deferred tasks run before the frame's layout, which is what shows an overlay just opened
 		if(target.scope && !target.scope->isShown() && target.scope->isVisible() && frames > 0) {
 			focusLater(target.panel, target.scope, frames - 1);

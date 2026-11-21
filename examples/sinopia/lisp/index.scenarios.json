@@ -2260,6 +2260,73 @@
 				}
 			],
 			"note": "A shape dragged between two others snaps to the middle, where its gaps to both are equal (the distance indicators show them while dragging)"
+		},
+		{
+			"name": "sinopia-edit-chart-data",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Bar"
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-chart",
+						"property": "name",
+						"is": "Bar chart of Series 1, Series 2, Series 3"
+					}
+				},
+				{
+					"click": "#b-ins-chart"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Edit Data"
+					}
+				},
+				{
+					"wait": 100
+				},
+				{
+					"expect": {
+						"state": "editing",
+						"is": "o40"
+					}
+				},
+				{
+					"expect": {
+						"state": "cell",
+						"is": [
+							1,
+							1
+						]
+					}
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": "5"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].cells[1][1]",
+						"is": "4.35"
+					}
+				}
+			],
+			"note": "A chart is named by its kind and series for screen readers, and Insert > Chart > Edit Data opens its data with the first value in an editor"
 		}
 	]
 }

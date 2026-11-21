@@ -5,7 +5,8 @@
 	"note": "Insert > Chart: a chart object drawn from a small table of data. Its cells are rows of texts, like a table's: the first row names the series, the first column the categories, and the other cells are numbers. Its chart is how it is drawn: columns, bars, a line or a pie (the first series only). Insert > Chart offers the four; a double click shows the data as a table to edit, and the chart is drawn again when the edit ends.",
 	"computed": {
 		"chartSelected": "{{find(computed.selected, it.kind == 'chart').chart}}",
-		"menu-b-ins-chart": "{{map([{id: 'column', icon: 'chart-column-decreasing', title: 'Column'}, {id: 'bar', icon: 'chart-bar-decreasing', title: 'Bar'}, {id: 'line', icon: 'chart-line', title: 'Line'}, {id: 'pie', icon: 'chart-pie', title: 'Pie'}], { title: it.title, icon: it.icon, checked: computed.chartSelected == it.id, run: computed.chartSelected ? 'setChartKind' : 'insertChart', with: { kind: it.id } })}}"
+		"menu-b-ins-chart": "{{concat(map([{id: 'column', icon: 'chart-column-decreasing', title: 'Column'}, {id: 'bar', icon: 'chart-bar-decreasing', title: 'Bar'}, {id: 'line', icon: 'chart-line', title: 'Line'}, {id: 'pie', icon: 'chart-pie', title: 'Pie'}], { title: it.title, icon: it.icon, checked: computed.chartSelected == it.id, run: computed.chartSelected ? 'setChartKind' : 'insertChart', with: { kind: it.id } }), computed.chartSelected ? [{ separator: true }, { title: 'Edit Data', icon: 'table', run: 'editChartData', with: { id: computed.chartId } }] : [])}}",
+		"chartId": "{{find(computed.selected, it.kind == 'chart').id}}"
 	},
 	"components": {
 		"slideChart": {
@@ -18,6 +19,8 @@
 			"note": "A chart object, in a box w by h: its legend, axis and gridlines, then its columns, bars, line or pie; while it is edited, the slide shows its data as a table instead.",
 			"node": {
 				"id": "{{prefix + o.id + '-chart'}}",
+				"role": "img",
+				"label": "{{((o.chart ?? 'column') == 'bar' ? 'Bar chart of ' : (o.chart ?? 'column') == 'line' ? 'Line chart of ' : (o.chart ?? 'column') == 'pie' ? 'Pie chart of ' : 'Column chart of ') + join(slice(o.cells[0] ?? [], 1), ', ')}}",
 				"x": 0,
 				"y": 0,
 				"width": "{{w}}",
@@ -315,6 +318,23 @@
 						"to": "{{map(computed.objects, contains(state.board.selection, it.id) && it.kind == 'chart' ? merge(it, { chart: kind }) : it)}}"
 					}
 				]
+			}
+		],
+		"editChartData": [
+			{
+				"note": "with: id: opens the chart's data as a table, its first value in an editor"
+			},
+			{
+				"set": "state.drop.open",
+				"to": false
+			},
+			{
+				"run": "editCell",
+				"with": {
+					"id": "{{id}}",
+					"r": 1,
+					"c": 1
+				}
 			}
 		]
 	}

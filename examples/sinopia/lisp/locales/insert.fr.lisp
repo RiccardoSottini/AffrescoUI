@@ -10,4 +10,9 @@
                 :crop.square "Rogner en carré"
                 :crop.standard "Rogner en 4:3"
                 :crop.wide "Rogner en 16:9"
-                :crop.reset "Image entière"}}}
+                :crop.reset "Image entière"
+                :chart.editData "Modifier les données"
+                :chart.described.column "Histogramme de {series}"
+                :chart.described.bar "Graphique en barres de {series}"
+                :chart.described.line "Graphique en courbes de {series}"
+                :chart.described.pie "Graphique en secteurs de {series}"}}}

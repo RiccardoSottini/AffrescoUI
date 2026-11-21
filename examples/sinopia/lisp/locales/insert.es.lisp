@@ -10,4 +10,9 @@
                 :crop.square "Recortar a cuadrado"
                 :crop.standard "Recortar a 4:3"
                 :crop.wide "Recortar a 16:9"
-                :crop.reset "Imagen completa"}}}
+                :crop.reset "Imagen completa"
+                :chart.editData "Editar datos"
+                :chart.described.column "Gráfico de columnas de {series}"
+                :chart.described.bar "Gráfico de barras de {series}"
+                :chart.described.line "Gráfico de líneas de {series}"
+                :chart.described.pie "Gráfico circular de {series}"}}}

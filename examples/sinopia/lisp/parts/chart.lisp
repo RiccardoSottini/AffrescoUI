@@ -114,6 +114,11 @@
                           {:id (str i) :text (text name) :x (+ a.x (* i band)) :y (+ a.y a.h 4) :w band :h 20}))
                       d.cats))))
 
+(defn chart-series-names "The series' names of a chart's cells, in a list for its label." [cells]
+  (->> (or-else (first cells) [])
+       rest
+       (str/join ", ")))
+
 (defn chart-legend "The legend's entries: the series, or a pie's categories." [d pie]
   (vec (map-indexed (fn [i name] {:id (str i) :text (or-else name "") :color (accent i)})
                     (if pie d.cats d.series))))
@@ -126,20 +131,32 @@
        first
        :chart))
 
-(defcomputed menu-b-ins-chart "The Chart menu: a chart of each kind, or, with a chart selected, its kind changed."
-  (map (fn [it]
-         {:title (t (str "chart." it.0))
-          :icon it.1
-          :checked (= computed.chartSelected it.0)
-          :run (if computed.chartSelected "set-chart-kind" "insert-chart")
-          :with {:kind it.0}})
-       chart-kinds))
+(defcomputed chartId "The first selected chart's id, whose data Edit Data opens."
+  (->> computed.selected
+       (filter #(= (:kind %) "chart"))
+       first
+       :id))
+
+(defcomputed menu-b-ins-chart
+  "The Chart menu: a chart of each kind, or, with a chart selected, its kind changed and its data to edit."
+  (concat (map (fn [it]
+                 {:title (t (str "chart." it.0))
+                  :icon it.1
+                  :checked (= computed.chartSelected it.0)
+                  :run (if computed.chartSelected "set-chart-kind" "insert-chart")
+                  :with {:kind it.0}})
+               chart-kinds)
+          (if computed.chartSelected
+            [{:separator true} {:title (t "chart.editData") :icon "table" :run "edit-chart-data" :with {:id computed.chartId}}]
+            [])))
 
 (defcomponent slideChart
   "A chart object, in a box `w` by `h`: its legend, axis and gridlines, then its columns, bars, line or pie. While it
   is edited, the slide shows its data as a table instead."
   {:o nil :prefix "" :w 100 :h 100}
   `(node :id ~(str prefix o.id "-chart")
+     :role img
+     :label ~(t (str "chart.described." (or-else o.chart "column")) {:series (chart-series-names o.cells)})
      :x 0
      :y 0
      :width ~w
@@ -246,3 +263,7 @@
   (when (some #(= (:kind %) "chart") computed.selected)
     (commit)
     (set-objects (map #(if (and (selected? %) (= (:kind %) "chart")) (assoc % :chart kind) %) computed.objects))))
+
+(defn edit-chart-data "Opens a chart's data as a table, its first value in an editor." [id]
+  (set "state.drop.open" false)
+  (edit-cell id 1 1))
