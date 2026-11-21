@@ -225,6 +225,14 @@ void QuadRenderer::replayContent(const Panel& panel, const detail::PaintRecord& 
 void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth,
                                const Affine2& parentWorld) {
 	if(!panel.isShown()) return;
+	// A translucent group (Panel::drawnOpacity()) is drawn as a full frame draws it, through its texture: drawn
+	// directly its parts would blend one by one. Its texture is made from the records of the frame drawn before
+	const detail::PanelGeometry* geometry = panel.geometry_.get();
+	if(panel.drawnOpacity() < 1.0f && geometry && geometry->recorded && geometry->cached && geometry->world.isIdentity() &&
+	   !geometry->subtreeTransformed && replayCached(panel, *geometry)) {
+		scratchColor_ = true;
+		return;
+	}
 	if(scratch_.size() <= depth) scratch_.emplace_back();
 	detail::PaintRecord& record = scratch_[depth];
 	record.clear();

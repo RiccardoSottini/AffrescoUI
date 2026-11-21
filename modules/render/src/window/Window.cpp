@@ -14,11 +14,15 @@
 #include "platform/Accessibility.hpp"
 #include "platform/Platform.hpp"
 
+#include "affresco/core/Log.hpp"
+#include "affresco/render/Bitmap.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <iterator>
 #include <ranges>
 #include <string>
@@ -315,6 +319,27 @@ std::string Window::clipboardText() const { return capped(native_ ? native_->cli
 void Window::setClipboardText(const std::string& utf8) {
 	if(native_) native_->setClipboardText(utf8);
 	else clipboard_ = utf8;
+}
+
+// Decoded within the default limits: what another app copied is input like any file
+std::shared_ptr<const Bitmap> Window::clipboardImage() const {
+	if(!native_) return clipboardImage_;
+	const Bitmap::Limits limits;
+	const std::vector<std::uint8_t> png = native_->clipboardImagePng(limits.fileBytes);
+	if(png.empty()) return nullptr;
+	try {
+		return Bitmap::decode(png, limits);
+	} catch(const std::exception& error) {
+		log(LogLevel::Warning, std::string("AffrescoUI: the clipboard's image can't be read: ") + error.what());
+		return nullptr;
+	}
+}
+
+bool Window::setClipboardImage(const std::shared_ptr<const Bitmap>& image) {
+	if(!image) return false;
+	if(native_) return native_->setClipboardImage(*image);
+	clipboardImage_ = image;
+	return true;
 }
 
 void Window::setDefaultFont(std::shared_ptr<const Font> font) {

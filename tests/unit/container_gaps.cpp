@@ -1,19 +1,21 @@
 /// @file
 /// @brief General capabilities apps waited for: `padding` on rows, columns and grids (Panel::setContentInset()),
 /// subtree `opacity` (Panel::setOpacity()), letter spacing in wrapped text (Font::wrap()), an element per tab for
-/// assistive tools, the `openUrl` step (asked of the person, http and https only) and `closeWindow: "main"` (only
-/// from the person's own click or key).
+/// assistive tools, the `openUrl` step (asked of the person, http and https only), `closeWindow: "main"` (only
+/// from the person's own click or key) and clipboard images.
 
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/net/SignIn.hpp>
 #include <affresco/render/Accessibility.hpp>
+#include <affresco/render/Bitmap.hpp>
 #include <affresco/render/Font.hpp>
 #include <affresco/render/Tabs.hpp>
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -214,4 +216,29 @@ TEST_CASE("closeWindow main: a load or a timer doesn't end the app; the person's
 	CHECK_FALSE(built.window->shouldClose());
 	built.click({10.0f, 10.0f});
 	CHECK(built.window->shouldClose());
+}
+
+TEST_CASE("clipboard images: paste one under a name on the person's click, and copy a named one") {
+	const json root = {{"id", "root"}, {"onClick", "paste"}};
+	Built built(screenOf(root, {{"state", {{"pasted", nullptr}}},
+	                            {"actions",
+	                             {{"paste", {{{"paste", "image"}, {"as", "clip"}, {"into", "state.pasted"}}}},
+	                              {"copy", {{{"copyImage", "clip"}}}}}}}));
+	built.click({10.0f, 10.0f}); // nothing on the clipboard yet
+	CHECK(json::parse(built.screen.stateJson())["pasted"].is_null());
+
+	const std::vector<std::uint8_t> red = {255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
+	                                       255, 0, 0, 255, 255, 0, 0, 255};
+	const auto image = affresco::Bitmap::fromPixels(3, 2, red, affresco::Bitmap::Limits{});
+	REQUIRE(built.window->setClipboardImage(image));
+	built.screen.runAction("paste", built.window->root()); // the host's, not the person's: refused
+	CHECK(json::parse(built.screen.stateJson())["pasted"].is_null());
+	built.click({10.0f, 10.0f});
+	CHECK(json::parse(built.screen.stateJson())["pasted"] == json({{"image", "clip"}, {"width", 3}, {"height", 2}}));
+
+	REQUIRE(built.window->setClipboardImage(affresco::Bitmap::fromPixels(1, 1, std::vector<std::uint8_t>{0, 0, 0, 255},
+	                                                                     affresco::Bitmap::Limits{})));
+	built.screen.runAction("copy", built.window->root());
+	REQUIRE(built.window->clipboardImage() != nullptr);
+	CHECK(built.window->clipboardImage()->width() == 3);
 }

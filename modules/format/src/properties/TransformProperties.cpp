@@ -1,5 +1,5 @@
 /// @file
-/// @brief "rotate", "scale", "skew", "translate" and "transformOrigin", properties of every panel: how it is drawn
+/// @brief "rotate", "scale", "skew", "translate", "transformOrigin" and "opacity", properties of every panel: how it is drawn
 /// turned, scaled, skewed or moved after layout (Panel::setTransform). Layout doesn't see them. And "opacity", also
 /// of every panel: the subtree drawn as one translucent group (Panel::setOpacity()).
 
@@ -85,7 +85,7 @@ void applyTransform(Panel& panel, const json& values, const PropertyReader& read
 /// @param path The node's place, for errors.
 void applyOpacity(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
 	static_cast<void>(reader);
-	const json& value = values.contains("opacity") ? values["opacity"] : json(1.0);
+	const json& value = values.contains("opacity") && !values["opacity"].is_null() ? values["opacity"] : json(1.0);
 	const float opacity = number(value, path + ".opacity");
 	if(opacity < 0.0f || opacity > 1.0f) fail(path + ".opacity", "expected a number from 0 to 1");
 	panel.setOpacity(opacity);
@@ -99,18 +99,15 @@ void registerTransformProperties(TypeRegistry& registry) {
 	                   {"scale", ValueKind::Any},
 	                   {"skew", ValueKind::Any},
 	                   {"translate", ValueKind::Any},
-	                   {"transformOrigin", ValueKind::Any}};
-	set->apply = applyTransform;
+	                   {"transformOrigin", ValueKind::Any},
+	                   {"opacity", ValueKind::Number}}; // one set: a panel inherits a bounded number of them
+	set->apply = [](Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+		applyTransform(panel, values, reader, path);
+		applyOpacity(panel, values, reader, path);
+	};
 	set->everyUpdate = true; // setTransform() does nothing when it is the same; it also clears keys removed
 	set->appliesTo = [](const Panel&) { return true; }; // every panel; a timeline's zoom is "pixelsPerSecond"
 	registry.addProperties(std::move(set));
-
-	auto opacity = std::make_shared<PropertySet>();
-	opacity->properties = {{"opacity", ValueKind::Number, true, false}};
-	opacity->apply = applyOpacity;
-	opacity->everyUpdate = true; // setOpacity() does nothing when it is the same; it also resets a removed key
-	opacity->appliesTo = [](const Panel&) { return true; };
-	registry.addProperties(std::move(opacity));
 }
 
 } // namespace affresco::format

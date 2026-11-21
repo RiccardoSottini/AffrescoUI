@@ -237,6 +237,10 @@ public:
 		return text ? text : "";
 	}
 	void setClipboardText(const std::string& utf8) override { glfwSetClipboardString(handle_, utf8.c_str()); }
+	[[nodiscard]] std::vector<std::uint8_t> clipboardImagePng(std::size_t most) const override {
+		return desktop::clipboardImagePng(most);
+	}
+	bool setClipboardImage(const Bitmap& image) override { return desktop::setClipboardImage(image); }
 	void setCursor(Cursor cursor) override;
 
 	[[nodiscard]] PixelSize framebufferSize() const override {
