@@ -6,4 +6,8 @@
                 :chart.category "Category {n}"
                 :chart.insertTip "Insert a chart: columns, bars, a line or a pie, from a table of data"
                 :pane.renameTip "Double-click to rename"
-                :pane.renameObject "Name of {name}"}}}
+                :pane.renameObject "Name of {name}"
+                :crop.square "Crop to Square"
+                :crop.standard "Crop to 4:3"
+                :crop.wide "Crop to 16:9"
+                :crop.reset "Whole Picture"}}}

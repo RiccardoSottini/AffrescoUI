@@ -97,12 +97,7 @@
 				]
 			}
 		},
-		"slidePicture": {
-			"params": { "o": null, "prefix": "", "w": 100, "h": 100 },
-			"note": "A picture object: its image, filling its box w by h.",
-			"node": { "type": "image", "id": "{{prefix + o.id + '-picture'}}", "x": 0, "y": 0, "width": "{{w}}", "height": "{{h}}",
-			          "source": "{{o.src ?? ''}}", "fit": "fill", "label": "{{o.alt ?? 'Picture'}}" }
-		}
+		"slidePicture": {"params": {"o": null, "prefix": "", "w": 100, "h": 100}, "note": "A picture object: what its crop leaves of its image, filling its box w by h (the whole image drawn under a clip).", "node": {"id": "{{prefix + o.id + '-crop'}}", "x": 0, "y": 0, "width": "{{w}}", "height": "{{h}}", "overflow": "clip", "color": "transparent", "let": {"cut": "{{o.crop ?? [0, 0, 0, 0]}}", "whole": "{{ { w: w / max(1 - cut[0] - cut[2], 0.01), h: h / max(1 - cut[1] - cut[3], 0.01) } }}"}, "children": [{"type": "image", "id": "{{prefix + o.id + '-picture'}}", "x": "{{-(whole.w * cut[0])}}", "y": "{{-(whole.h * cut[1])}}", "width": "{{whole.w}}", "height": "{{whole.h}}", "source": "{{o.src ?? ''}}", "fit": "fill", "label": "{{o.alt ?? 'Picture'}}"}]}}
 	},
 
 	"overlays": {

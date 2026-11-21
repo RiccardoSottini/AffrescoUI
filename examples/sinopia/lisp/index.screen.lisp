@@ -27,6 +27,7 @@
             sinopia.parts.arrange
             sinopia.parts.content
             sinopia.parts.chart
+            sinopia.parts.picture
             sinopia.parts.ribbon
             sinopia.parts.tabs
             sinopia.parts.show

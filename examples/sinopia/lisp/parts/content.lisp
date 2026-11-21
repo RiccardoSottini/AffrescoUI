@@ -152,16 +152,26 @@
        :selectionColor "#2a9d8f55"
        :label ~(t "table.cell" {:row (inc r) :col (inc c)}))))
 
-(defcomponent slidePicture "A picture object: its image, filling its box `w` by `h`."
+(defcomponent slidePicture
+  "A picture object: what its crop leaves of its image, filling its box `w` by `h` (the whole image drawn under a clip)."
   {:o nil :prefix "" :w 100 :h 100}
-  `(image :id ~(str prefix o.id "-picture")
+  `(node :id ~(str prefix o.id "-crop")
      :x 0
      :y 0
      :width ~w
      :height ~h
-     :source ~(or-else o.src "")
-     :fit fill
-     :label ~(or-else o.alt (t "picture.name"))))
+     :overflow clip
+     :color transparent
+     :let {:cut ~(or-else o.crop [0 0 0 0])
+           :whole ~{:w (/ w (max (- 1 cut.0 cut.2) 0.01)) :h (/ h (max (- 1 cut.1 cut.3) 0.01))}}
+     (image :id ~(str prefix o.id "-picture")
+       :x ~(- (* whole.w cut.0))
+       :y ~(- (* whole.h cut.1))
+       :width ~whole.w
+       :height ~whole.h
+       :source ~(or-else o.src "")
+       :fit fill
+       :label ~(or-else o.alt (t "picture.name")))))
 
 (defpart content "Insert > Table's grid of sizes, over the window."
          :overlays {:zTable (node :use tableGrid :when ~state.tablePick.open)})

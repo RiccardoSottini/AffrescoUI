@@ -1893,6 +1893,95 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sinopia-crop-a-picture",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#tab-insert-label"
+				},
+				{
+					"choose": "dusk.png",
+					"from": "fixtures/picture.png"
+				},
+				{
+					"click": "#b-ins-pictures"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 160
+					}
+				},
+				{
+					"rightClick": "#o40"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Crop to Square"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 90
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].h",
+						"is": 90
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].x",
+						"is": 435
+					}
+				},
+				{
+					"expect": {
+						"node": "#o40-picture",
+						"property": "width",
+						"is": 160
+					}
+				},
+				{
+					"rightClick": "#o40"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Whole Picture"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].w",
+						"is": 160
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].crop",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[7].x",
+						"is": 400
+					}
+				}
+			],
+			"note": "A picture's menu crops it to a square, 4:3 or 16:9 around its middle, at the same scale, and Whole Picture gives it back"
 		}
 	]
 }

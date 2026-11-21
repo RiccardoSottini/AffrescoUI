@@ -6,4 +6,8 @@
                 :chart.category "Catégorie {n}"
                 :chart.insertTip "Insérer un graphique : histogramme, barres, courbes ou secteurs, à partir d'un tableau de données"
                 :pane.renameTip "Double-cliquez pour renommer"
-                :pane.renameObject "Nom de {name}"}}}
+                :pane.renameObject "Nom de {name}"
+                :crop.square "Rogner en carré"
+                :crop.standard "Rogner en 4:3"
+                :crop.wide "Rogner en 16:9"
+                :crop.reset "Image entière"}}}

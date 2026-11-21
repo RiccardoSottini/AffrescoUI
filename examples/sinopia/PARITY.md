@@ -67,7 +67,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Selection pane (names, show and hide) | missing | done | selection-pane (Home > Select > Selection Pane), rename-in-selection-pane (a double click renames) |
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | done | insert-a-picture (a PNG or JPEG, at most 640 by 400 in its proportions, kept in the deck so the saved file carries it) |
-| Content | Crop a picture | missing | missing | |
+| Content | Crop a picture | missing | partial | crop-a-picture (the picture's menu crops to a square, 4:3 or 16:9 around its middle, and Whole Picture undoes it; no crop handles to drag) |
 | Content | Tables | missing | done | insert-a-table (Insert > Table's size grid; a double click edits a cell, Tab and Shift+Tab move, Tab in the last cell adds a row) |
 | Content | Table styles | missing | done | insert-a-table (an accent of the theme for the selected table, under Insert > Table) |
 | Content | Charts (column, bar, line, pie) | missing | done | insert-a-chart (Insert > Chart: sample data drawn as columns, bars, a line or a pie with a legend and a value axis; a double click edits the data as a table) |
@@ -154,7 +154,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: justified text | Library: justified wrapping in labels |
 | P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
-| P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
+| P3 | Content: crop a picture by dragging | JSON: a crop mode whose handles move the crop's sides instead of the box |
 | P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
 | P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
 | P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |

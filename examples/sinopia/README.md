@@ -48,7 +48,8 @@ as an entrance or an exit, `pulse`, `spin` or `teeter` as an emphasis, or a moti
 one before, with a `delay` and a `repeat` count) and objects, back to front: text, shapes from
 [`parts/geometry.lisp`](lisp/parts/geometry.lisp)'s presets, lines, tables (`cells`: rows of texts, the first the
 header, in a `tint`), charts (`chart`: `column`, `bar`, `line` or `pie`, drawn from `cells` like a table's: the
-series across the first row, the categories down the first column) and pictures (`src`: the PNG or JPEG as a data URI, so the saved deck carries it). Objects with
+series across the first row, the categories down the first column) and pictures (`src`: the PNG or JPEG as a data URI, so the saved deck carries it; `crop`: the fractions cut off
+its left, top, right and bottom). Objects with
 the same `group` are selected and moved as one. Saved, it is that JSON; opened, it is checked to
 be a deck before it replaces the one on screen, as a change undo takes back.
 
@@ -63,6 +64,7 @@ be a deck before it replaces the one on screen, as a change undo takes back.
 | [`arrange.lisp`](lisp/parts/arrange.lisp) | Groups (selected as one), and rotating and flipping the selection |
 | [`content.lisp`](lisp/parts/content.lisp) | Tables (the size grid, the banded cells, the cell editor and its Tab) and pictures |
 | [`clipboard.lisp`](lisp/parts/clipboard.lisp) | Cut, copy and paste with other apps: the objects' text to the system clipboard, another app's text back as a text box |
+| [`picture.lisp`](lisp/parts/picture.lisp) | Cropping a picture to a square, 4:3 or 16:9 around its middle, and back to the whole picture |
 | [`chart.lisp`](lisp/parts/chart.lisp) | Charts: columns, bars, a line or a pie drawn from a table of data, the legend and the value axis |
 | [`ribbon.lisp`](lisp/parts/ribbon.lisp), [`tabs.lisp`](lisp/parts/tabs.lisp) | The ribbon's buttons, galleries and groups, and its tabs |
 | [`show.lisp`](lisp/parts/show.lisp) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
