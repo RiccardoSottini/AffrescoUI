@@ -208,7 +208,7 @@ std::string normalizeChord(std::string_view text) {
 	std::string chord;
 	for(const std::string& press : presses) {
 		std::string normal = normalizeShortcut(press);
-		if(normal == "alt+") normal = "alt"; // Alt pressed and released alone
+		if(normal == "alt+") normal = "alt";                              // Alt pressed and released alone
 		if(!normal.empty()) chord += (chord.empty() ? "" : " ") + normal; // "x+" names no key: nothing to press
 	}
 	return chord;
