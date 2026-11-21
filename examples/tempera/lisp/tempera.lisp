@@ -484,6 +484,15 @@ A review step runs from a step that the person's input or a scenario plays, not 
   (when-not (empty? action)
     (run action :with {:args args})))
 
+(defn pick-colour
+  "A colour picked in a chip's picker: the foreground or background, the active layer's fill or stroke, or new shapes'."
+  [target value]
+  (cond
+    (contains? #{"fill" "stroke"} target) (edit-content {target value})
+    (= target "vectorFill") (do (setOptions {:foreground value}) (set-vector {:fill value}))
+    (= target "vectorStroke") (set-vector {:stroke value})
+    :else (setOptions {target value})))
+
 (defn toggle-open "Opens what a path of the state says is open, or closes it: a menu, a section, a slider." [path]
   (toggle path))
 
@@ -536,8 +545,15 @@ A review step runs from a step that the person's input or a scenario plays, not 
   (when (= computed.activeLayer.kind (if (= state.doc.gesture "text") "text" "shape"))
     (edit-content args)))
 
+(defn set-kerning "The Kerning field: the space between the active type layer's last two characters." [args]
+  (edit-content {:kerning (assoc (or computed.activeLayer.content.kerning {}) computed.typePair (:kerning args))}))
+
 (defn set-text "The Character panel's text typed: the active type layer's text." [text]
   (edit-content {:text text}))
+
+(defn text-to-path "Adds the outlines of the active type layer's text as paths, one per contour of each glyph."
+  [args]
+  (image "textToPath" :with args))
 
 (defn new-path "Adds an empty path for the pen, the active one." [args]
   (image "newPath" :with args))

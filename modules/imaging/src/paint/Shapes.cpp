@@ -4,6 +4,8 @@
 
 #include "affresco/imaging/Shapes.hpp"
 
+#include "GlyphOutline.hpp"
+
 #include "affresco/render/Font.hpp"
 #include "affresco/render/RichText.hpp"
 
@@ -136,6 +138,42 @@ void unite(Coverage& into, const Coverage& more) {
 		else if(codepoint != U'\r') lines.back().push_back(codepoint);
 	}
 	return lines;
+}
+
+/// @brief How far tracking and kerning move each character of a line, and the line's end.
+/// @param content The content: its size, tracking and kerning.
+/// @param line The line.
+/// @return For each code point the distance it moves right, in pixels, then the line's added width.
+[[nodiscard]] std::vector<float> spacingOf(const LayerContent& content, const std::u32string& line) {
+	std::vector<float> moved(line.size() + 1, 0.0f);
+	if(content.tracking == 0.0f && content.kerning.empty()) return moved;
+	std::map<std::pair<char32_t, char32_t>, float> pairs;
+	for(const auto& [key, amount] : content.kerning)
+		if(const std::u32string both = codepointsOf(key); both.size() == 2) pairs[{both[0], both[1]}] = amount;
+	const float unit = content.size / 1000.0f;
+	float total = 0.0f;
+	for(std::size_t index = 1; index <= line.size(); ++index) {
+		total += content.tracking * unit;
+		if(index < line.size())
+			if(const auto found = pairs.find({line[index - 1], line[index]}); found != pairs.end())
+				total += found->second * unit;
+		moved[index] = total;
+	}
+	moved.back() = line.empty() ? 0.0f : moved[line.size() - 1]; // no space after the last character
+	return moved;
+}
+
+/// @brief The code point a glyph of shaped text starts, from where it is placed.
+/// @param shaped The shaped text.
+/// @param x The glyph's pen position.
+/// @return Its index.
+[[nodiscard]] std::size_t codepointAt(const Font::ShapedText& shaped, float x) {
+	float start = 0.0f;
+	for(std::size_t index = 0; index < shaped.advances.size(); ++index) {
+		if(x < start + shaped.advances[index] * 0.5f) return index;
+		start += shaped.advances[index];
+	}
+	return shaped.advances.empty() ? 0 : shaped.advances.size() - 1;
 }
 
 /// @brief Where a line starts across, after its alignment.
@@ -355,7 +393,8 @@ std::array<float, 4> textBounds(const LayerContent& content, const Font& font) {
 	const float advance = content.size * std::max(content.leading, 0.1f);
 	float left = content.origin.x, right = content.origin.x;
 	for(const std::u32string& line : lines) {
-		const float width = font.shape(line).width * scale, start = lineStart(content, width);
+		const float width = font.shape(line).width * scale + spacingOf(content, line).back();
+		const float start = lineStart(content, width);
 		left = std::min(left, start);
 		right = std::max(right, start + width);
 	}
@@ -375,16 +414,18 @@ std::shared_ptr<Image> renderText(const LayerContent& content, const Font& font,
 	float baseline = content.origin.y + font.ascent() * scale;
 	for(const std::u32string& line : lines) {
 		const Font::ShapedText& shaped = font.shape(line);
-		const float start = lineStart(content, shaped.width * scale);
+		const std::vector<float> spacing = spacingOf(content, line);
+		const float start = lineStart(content, shaped.width * scale + spacing.back());
 		for(const Font::ShapedGlyph& placed : shaped.glyphs) {
 			const Font::Glyph& glyph = *placed.glyph;
 			if(glyph.color) continue; // colour glyphs aren't drawn into a layer yet
 			const int side = font.atlasSize(glyph.page);
 			const auto pixels = font.atlasPixels(glyph.page);
 			if(side <= 0 || pixels.empty()) continue;
-			const float x0 = start + (placed.x + glyph.quad.left) * scale;
+			const float shift = spacing[std::min(codepointAt(shaped, placed.x), spacing.size() - 1)];
+			const float x0 = start + shift + (placed.x + glyph.quad.left) * scale;
 			const float y0 = baseline + (placed.y + glyph.quad.top) * scale;
-			const float x1 = start + (placed.x + glyph.quad.right) * scale;
+			const float x1 = start + shift + (placed.x + glyph.quad.right) * scale;
 			const float y1 = baseline + (placed.y + glyph.quad.bottom) * scale;
 			if(!(x1 > x0) || !(y1 > y0)) continue;
 			const float u0 = glyph.uv.left * static_cast<float>(side), v0 = glyph.uv.top * static_cast<float>(side);
@@ -409,6 +450,44 @@ std::shared_ptr<Image> renderText(const LayerContent& content, const Font& font,
 		baseline += advance;
 	}
 	return image;
+}
+
+std::vector<VectorPath> textOutlines(const LayerContent& content, const Font& font, const std::string& name) {
+	if(content.text.size() > maxTextBytes)
+		throw DocumentError("A type layer holds at most " + std::to_string(maxTextBytes) + " bytes of text");
+	const std::vector<Font::FaceSource> faces = font.faceSources();
+	const float advance = content.size * std::max(content.leading, 0.1f);
+	const float scale = content.size / std::max(font.pixelHeight(), 1.0f);
+	float baseline = content.origin.y + font.ascent() * scale;
+	std::vector<VectorPath> paths;
+	for(const std::u32string& line : linesOf(content.text)) {
+		const Font::ShapedText& shaped = font.shape(line);
+		const std::vector<float> spacing = spacingOf(content, line);
+		const float start = lineStart(content, shaped.width * scale + spacing.back());
+		for(const Font::ShapedGlyph& placed : shaped.glyphs) {
+			const std::optional<Font::GlyphSource> source = font.glyphSource(*placed.glyph);
+			if(!source || source->face >= faces.size() || faces[source->face].color) continue;
+			const Font::FaceSource& face = faces[source->face];
+			const float x =
+			    start + spacing[std::min(codepointAt(shaped, placed.x), spacing.size() - 1)] + placed.x * scale;
+			const float y = baseline + placed.y * scale;
+			for(std::vector<PathPoint>& contour :
+			    detail::glyphContours(face.bytes, source->index, face.scale * scale)) {
+				if(paths.size() >= maxPaths)
+					throw DocumentError("The text has more than " + std::to_string(maxPaths) + " outlines");
+				if(contour.size() > maxPathPoints)
+					throw DocumentError("A glyph has more than " + std::to_string(maxPathPoints) + " anchors");
+				for(PathPoint& point : contour)
+					for(VectorPoint* moved : {&point.anchor, &point.in, &point.out}) {
+						moved->x += x;
+						moved->y += y;
+					}
+				paths.push_back({name, std::move(contour), true});
+			}
+		}
+		baseline += advance;
+	}
+	return paths;
 }
 
 LayerContent movedContent(LayerContent content, float dx, float dy) {
@@ -468,7 +547,9 @@ json contentToJson(const LayerContent& content) {
 		              {"leading", content.leading},
 		              {"bold", content.bold},
 		              {"italic", content.italic},
-		              {"align", alignNames.at(static_cast<std::size_t>(content.align))}});
+		              {"align", alignNames.at(static_cast<std::size_t>(content.align))},
+		              {"tracking", content.tracking}});
+		if(!content.kerning.empty()) value["kerning"] = content.kerning;
 	}
 	if(content.kind != ContentKind::text) {
 		value.update({{"shape", shapeNames.at(static_cast<std::size_t>(content.shape))},
@@ -487,8 +568,27 @@ json contentToJson(const LayerContent& content) {
 
 namespace {
 
-/// @brief Reads the type fields of a layer's content (text, font, size, leading, bold, italic, align), each kept
-/// when absent.
+/// @brief Reads the spacing of a layer's text (tracking, kerning), each kept when absent.
+/// @param value The content's JSON object.
+/// @param content The content to update.
+/// @throws DocumentError If a field is invalid.
+void readSpacingFields(const json& value, LayerContent& content) {
+	content.tracking = numberIn(value, "tracking", -500.0f, 2000.0f, content.tracking);
+	const auto kerning = value.find("kerning");
+	if(kerning == value.end()) return;
+	if(!kerning->is_object() || kerning->size() > maxKerningPairs)
+		throw DocumentError("kerning maps pairs of characters to amounts, at most " + std::to_string(maxKerningPairs));
+	content.kerning.clear();
+	for(const auto& [pair, amount] : kerning->items()) {
+		if(pair.size() > 8 || codepointsOf(pair).size() != 2 || !amount.is_number())
+			throw DocumentError("kerning's keys are two characters and its values numbers");
+		const auto added = amount.get<float>();
+		if(added != 0.0f) content.kerning[pair] = std::clamp(added, -500.0f, 2000.0f);
+	}
+}
+
+/// @brief Reads the type fields of a layer's content (text, font, size, leading, bold, italic, align, tracking,
+/// kerning), each kept when absent.
 /// @param value The content's JSON object.
 /// @param content The content to update.
 /// @throws DocumentError If a field is invalid.
@@ -510,6 +610,7 @@ void readTextFields(const json& value, LayerContent& content) {
 		content.italic = italic->get<bool>();
 	if(value.contains("align"))
 		content.align = static_cast<TextAlign>(indexIn(alignNames, value["align"], "alignment"));
+	readSpacingFields(value, content);
 }
 
 /// @brief Reads the shape fields of a layer's content (shape, radius, sides, strokeWidth, closed, points), each kept

@@ -106,9 +106,8 @@ void RasterView::paint(Painter& painter) const {
 	if(shown->press.down && !shown->press.pan && gesture == Gesture::crop) paintCrop(painter, *shown);
 	paintOutline(painter, *shown);
 	paintPaths(painter, *shown);
-	if(hovered_ && !shown->spaceHeld && !shown->press.pan &&
-	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone))
-		paintBrush(painter, *shown);
+	paintSelectionBox(painter, *shown);
+	if(hovered_ && !shown->spaceHeld && !shown->press.pan) paintBrush(painter, *shown);
 }
 
 Vec2 RasterView::toWindow(const editing::ImageDocument& image, double x, double y) const noexcept {
@@ -148,7 +147,8 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 		const Rect box =
 		    between(toWindow(image, press.boxFrom.x, press.boxFrom.y), toWindow(image, press.boxTo.x, press.boxTo.y));
 		contour = marqueeContour(box, ellipse);
-	} else if(!image.path.empty() && (gesture == Gesture::lasso || gesture == Gesture::polygonLasso)) {
+	} else if(!image.path.empty() &&
+	          (gesture == Gesture::lasso || gesture == Gesture::polygonLasso || gesture == Gesture::quickSelect)) {
 		for(const imaging::Point& point : image.path) addPoint(contour, toWindow(image, point.x, point.y));
 		if(gesture == Gesture::polygonLasso && hovered_) addPoint(contour, pointer_); // the edge being placed
 	}
@@ -210,7 +210,60 @@ void RasterView::paintAnchors(Painter& painter, const editing::ImageDocument& im
 	}
 }
 
+void RasterView::paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const {
+	if(image.settings.gesture != editing::Gesture::selectionBox && image.settings.gesture != editing::Gesture::layerBox)
+		return;
+	std::array<float, 4> box = image.boxNow;
+	if((!image.press.down || image.boxHandle < 0) && image.settings.gesture == editing::Gesture::layerBox) {
+		const auto layerBox = editing::activeLayerBox(image);
+		if(!layerBox) return;
+		box = *layerBox;
+	} else if(!image.press.down || image.boxHandle < 0) {
+		const imaging::Document& document = image.canvas->document();
+		if(!document.hasSelection()) return;
+		const auto [x, y, width, height] = imaging::selectionBounds(document);
+		box = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width),
+		       static_cast<float>(y + height)};
+	}
+	const Rect frame = between(toWindow(image, box[0], box[1]), toWindow(image, box[2], box[3]));
+	const bool turning = image.press.down && image.boxHandle == 9;
+	const double turn = turning ? image.boxAngle * std::numbers::pi / 180.0 : 0.0;
+	const float centreX = (box[0] + box[2]) / 2.0f, centreY = (box[1] + box[3]) / 2.0f;
+	VectorPath::Contour contour;
+	contour.closed = true;
+	for(const auto& [x, y] : {std::pair{box[0], box[1]}, {box[2], box[1]}, {box[2], box[3]}, {box[0], box[3]}}) {
+		const double dx = x - centreX, dy = y - centreY; // the box turned about its centre while the handle is dragged
+		addPoint(contour, toWindow(image, centreX + dx * std::cos(turn) - dy * std::sin(turn),
+		                           centreY + dx * std::sin(turn) + dy * std::cos(turn)));
+	}
+	strokeOutline(painter, contour, look_.overlay);
+	constexpr float handleReach = 6.0f; // as the press measures it
+	const imaging::Point rotation =
+	    editing::boxRotationHandle(box, handleReach / static_cast<float>(std::max(image.view.zoom, 1e-6)));
+	const Vec2 knob = toWindow(image, rotation.x, rotation.y);
+	painter.fillRect({std::round(knob.x), knob.y, std::round(knob.x) + 1.0f, frame.top}, look_.overlay);
+	const Rect circle{knob.x - 4.0f, knob.y - 4.0f, knob.x + 4.0f, knob.y + 4.0f};
+	painter.fillRoundedRect(circle, CornerRadii::all(4.0f), Color{1.0f, 1.0f, 1.0f, 1.0f});
+	painter.strokeRoundedRect(circle, CornerRadii::all(4.0f), 1.0f, underline);
+	if(turning) return;
+	constexpr float side = 7.0f; // a handle's square, in window units
+	const float middleX = (frame.left + frame.right) / 2.0f, middleY = (frame.top + frame.bottom) / 2.0f;
+	for(const Vec2 handle : {Vec2{frame.left, frame.top}, Vec2{middleX, frame.top}, Vec2{frame.right, frame.top},
+	                         Vec2{frame.right, middleY}, Vec2{frame.right, frame.bottom}, Vec2{middleX, frame.bottom},
+	                         Vec2{frame.left, frame.bottom}, Vec2{frame.left, middleY}}) {
+		const Rect square{std::round(handle.x - side / 2.0f), std::round(handle.y - side / 2.0f),
+		                  std::round(handle.x + side / 2.0f), std::round(handle.y + side / 2.0f)};
+		painter.fillRect(square, Color{1.0f, 1.0f, 1.0f, 1.0f});
+		painter.strokeRoundedRect(square, {}, 1.0f, underline);
+	}
+}
+
 void RasterView::paintBrush(Painter& painter, const editing::ImageDocument& image) const {
+	using editing::Gesture;
+	const Gesture gesture = image.settings.gesture;
+	if(gesture != Gesture::paint && gesture != Gesture::erase && gesture != Gesture::clone &&
+	   gesture != Gesture::retouch && gesture != Gesture::quickSelect)
+		return;
 	const float diameter =
 	    std::max(smallestBrush, static_cast<float>(image.settings.tip.size * image.view.zoom / scale()));
 	const Rect circle{pointer_.x - diameter / 2.0f, pointer_.y - diameter / 2.0f, pointer_.x + diameter / 2.0f,

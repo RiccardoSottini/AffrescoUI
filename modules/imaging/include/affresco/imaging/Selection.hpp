@@ -71,6 +71,16 @@ struct SampleOptions {
 /// @throws DocumentError when a contiguous region reaches floodPixels.
 [[nodiscard]] Coverage wandCoverage(const Document& document, int x, int y, const SampleOptions& options);
 
+/// @brief The pixels a quick-selection brush finds along a stroke: from each point, the pixels like the one under it
+/// (within the tolerance) and connected to it, no farther from it than the radius, so the selection stops at edges.
+/// @param document The document.
+/// @param points The stroke's points.
+/// @param radius The brush's radius, in pixels.
+/// @param options Tolerance and what is sampled (contiguity is always on).
+/// @throws DocumentError when the pixels found reach floodPixels.
+[[nodiscard]] Coverage quickCoverage(const Document& document, std::span<const Point> points, float radius,
+                                     const SampleOptions& options);
+
 /// @brief The pixels near a colour, softly: 1 at the colour, falling to 0 at the fuzziness (colour range).
 /// @param document The document.
 /// @param colour The colour.

@@ -39,25 +39,29 @@ namespace imaging = affresco::imaging;
 
 /// @brief What a tool does on the canvas: the library's gestures, which a document's tools are named after.
 enum class Gesture : std::uint8_t {
-	move,             ///< Moves the active layer's pixels.
-	selectRectangle,  ///< Selects a rectangle.
-	selectEllipse,    ///< Selects an ellipse.
-	lasso,            ///< Selects a freehand shape.
-	polygonLasso,     ///< Selects a polygon, click by click, closed at its first point.
-	magicWand,        ///< Selects similar colours.
-	crop,             ///< Crops the image to a rectangle.
-	paint,            ///< Paints with the brush.
-	erase,            ///< Erases with the brush.
-	clone,            ///< Paints the image from an offset; the right button sets the source.
-	gradient,         ///< Draws a gradient from the press to the release.
-	fill,             ///< Fills similar colours.
-	sample,           ///< Picks the foreground colour (the background's with the right button).
-	pan,              ///< Pans the view.
-	zoom,             ///< Zooms in, out with the right button.
-	text,             ///< Adds a type layer where pressed, or makes the type layer pressed on the active one.
-	shape,            ///< Draws a shape layer from the press to the release (the tool's "vector" options).
-	pen,              ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
-	pathSelect,       ///< Drags the active path, or the anchor pressed on.
+	move,            ///< Moves the active layer's pixels.
+	selectRectangle, ///< Selects a rectangle.
+	selectEllipse,   ///< Selects an ellipse.
+	lasso,           ///< Selects a freehand shape.
+	polygonLasso,    ///< Selects a polygon, click by click, closed at its first point.
+	magicWand,       ///< Selects similar colours.
+	crop,            ///< Crops the image to a rectangle.
+	paint,           ///< Paints with the brush.
+	erase,           ///< Erases with the brush.
+	clone,           ///< Paints the image from an offset; the right button sets the source.
+	gradient,        ///< Draws a gradient from the press to the release.
+	fill,            ///< Fills similar colours.
+	sample,          ///< Picks the foreground colour (the background's with the right button).
+	pan,             ///< Pans the view.
+	zoom,            ///< Zooms in, out with the right button.
+	text,            ///< Adds a type layer where pressed, or makes the type layer pressed on the active one.
+	shape,           ///< Draws a shape layer from the press to the release (the tool's "vector" options).
+	pen,             ///< Adds anchors to the active path (a drag pulls the handles); the first anchor closes it.
+	pathSelect,      ///< Drags the active path, or the anchor pressed on.
+	quickSelect,     ///< Selects like colours under a brush dragged over them, stopping at edges.
+	selectionBox,    ///< Moves the selection's outline, or scales it by a handle of the box around it.
+	layerBox,        ///< Moves the active pixel layer, or scales it by a handle of the box around its pixels.
+	retouch,         ///< Dodges, burns, sponges, blurs or sharpens with the brush (the "retouch" option).
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
@@ -115,9 +119,13 @@ struct ToolSettings {
 	imaging::SampleOptions sample;                                 ///< magic-wand, fill: tolerance and contiguity.
 	imaging::GradientShape shape = imaging::GradientShape::linear; ///< gradient: its shape.
 	std::optional<imaging::Gradient> gradient; ///< gradient: its stops; none: foreground to background.
+	imaging::GradientOptions gradientOptions;  ///< gradient: reverse, dither and transparency.
 	float opacity = 1.0f;                      ///< fill, gradient: 0 to 1.
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
 	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
+	float cropRatio = 0.0f;                    ///< crop: the width over the height a drag keeps; 0 for any.
+	imaging::StrokeMode retouch = imaging::StrokeMode::dodge; ///< retouch: what the brush does to the pixels.
+	bool healing = false; ///< clone: the source's texture is laid in the covered pixels' tone (the healing brush).
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
 	/// text, shape: what a new type or shape layer starts as (its font, size, shape, stroke); its fill is the
 	/// foreground colour.
@@ -185,7 +193,7 @@ struct ImageDocument {
 	std::optional<imaging::Point> cloneOffset;                     ///< clone: from the point painted to the one copied.
 	float pressure = 1.0f;                                 ///< The pen's pressure of the event played (a mouse's is 1).
 	bool spaceHeld = false;                                ///< The space bar is held: a press pans the view.
-	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso: the points so far.
+	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso, quick-select: the points so far.
 	imaging::SelectionMode pathMode{};                     ///< polygon-lasso: the mode of the press that began it.
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
@@ -201,6 +209,16 @@ struct ImageDocument {
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
 	std::vector<ImageSnapshot> snapshots; ///< takeSnapshot: the snapshots, the oldest first.
+	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left, 8 inside to move, 9 the
+	/// rotation handle above the top), or -1.
+	int boxHandle = -1;
+	std::array<float, 4> boxBefore{}; ///< selection-box, layer-box: the box at the press, left, top, right, bottom.
+	std::array<float, 4> boxNow{};    ///< selection-box, layer-box: the box as the drag makes it.
+	float boxAngle = 0.0f;            ///< selection-box, layer-box: the rotation handle's turn, degrees clockwise.
+	/// layer-box: the active layer's box (activeLayerBox()) and the document revision and layer it was measured at.
+	mutable std::optional<std::array<float, 4>> layerBoxCache;
+	mutable std::uint64_t layerBoxRevision = ~std::uint64_t{0}; ///< @copydoc layerBoxCache
+	mutable std::uint64_t layerBoxLayer = 0;                     ///< @copydoc layerBoxCache
 };
 
 /// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.
@@ -404,6 +422,49 @@ void typeText(ImageDocument& image, std::string_view added);
 /// @param dy Down.
 /// @throws DocumentError If the active layer can't be moved.
 void moveActiveLayer(imaging::Document& document, int dx, int dy);
+
+/// @brief Moves and scales the selection's outline from the box around it to another, as one step.
+/// @param image The image.
+/// @param from The box it is in, left, top, right, bottom.
+/// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @param angle A turn about its centre too, degrees clockwise.
+/// @throws DocumentError If there is no selection.
+void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                          float angle = 0.0f);
+
+/// @brief The box around the active pixel layer's pixels, measured again only when the document changed.
+/// @param image The image.
+/// @return Left, top, right and bottom; nothing when the active layer isn't a pixel layer or has no pixels.
+[[nodiscard]] std::optional<std::array<float, 4>> activeLayerBox(const ImageDocument& image);
+
+/// @brief Moves and scales the active pixel layer from the box around its pixels to another, as one step (Free
+/// Transform).
+/// @param image The image.
+/// @param from The box it is in, left, top, right, bottom.
+/// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @param angle A turn about its centre too, degrees clockwise.
+/// @throws DocumentError If the layer can't be transformed.
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to,
+                      float angle = 0.0f);
+
+/// @brief The handle of a selection box under a point: 0 to 7 clockwise from the top left corner, 8 inside, 9 the
+/// rotation handle (boxRotationHandle()), or -1.
+/// @param box The box, left, top, right, bottom, in document pixels.
+/// @param at The point.
+/// @param reach How near a handle the point must be, in document pixels.
+[[nodiscard]] int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept;
+
+/// @brief Where a box's rotation handle is: above the middle of its top, four reaches up.
+/// @param box The box, left, top, right, bottom, in document pixels.
+/// @param reach How near a handle a press must be, in document pixels.
+[[nodiscard]] imaging::Point boxRotationHandle(const std::array<float, 4>& box, float reach) noexcept;
+
+/// @brief The box a handle's drag makes: the handle follows the pointer, the opposite side stays (inside moves it).
+/// @param box The box at the press.
+/// @param handle The handle (boxHandleAt()).
+/// @param dx How far the pointer moved across.
+/// @param dy How far it moved down.
+[[nodiscard]] std::array<float, 4> draggedBox(std::array<float, 4> box, int handle, float dx, float dy) noexcept;
 
 /// @brief Crops the document to a rectangle; the history starts again, since a crop changes the size.
 /// @param image The image.

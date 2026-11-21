@@ -96,7 +96,8 @@
      ~@(shape-values)
      ~(layer-sections)))
 
-(defview type-values "A type layer's Character: its text, size, style, alignment and colour, each change drawn again."
+(defview type-values
+  "A type layer's Character: its text, font, size, style, spacing, alignment and colour, each change drawn again."
   []
   [`(editor#type-text :label ~(t "character.text")
       :when ~(= computed.activeLayer.kind "text")
@@ -122,7 +123,30 @@
                :args {:italic ~(not computed.activeLayer.content.italic)}})
       (node#type-colour :role button :label ~(t "character.colour") :tooltip ~(t "character.colour.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
-        :borderColor @border :cursor hand :onClick ~(handler edit-content {:fill state.doc.foreground})))
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.fill")
+        ~(colour-pop "type-colour" "fill" 'computed.activeLayer.content.fill)))
+   `(row#type-font :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-family :use tPicker
+        :with {:title ~(:title (or (find #(= (:id %) (or computed.activeLayer.content.font "default")) state.typeFonts)
+                                   (first state.typeFonts)))
+               :tip ~(t "character.font")
+               :width 150
+               :open state.typeFontMenu
+               :items ~(map (fn [it]
+                              {:title it.title
+                               :checked (= it.id (or computed.activeLayer.content.font "default"))
+                               :run "edit-content"
+                               :with {:args {:font it.id}}})
+                            state.typeFonts)}))
+   `(row#type-spacing :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-tracking :use tField
+        :with {:title ~(t "character.tracking") :tip ~(t "character.tracking.tip") :key tracking
+               :value ~(or computed.activeLayer.content.tracking 0) :low -500 :high 2000 :unit "" :width 40 :pop false
+               :run edit-content})
+      (node#type-kerning :use tField
+        :with {:title ~(t "character.kerning") :tip ~(t "character.kerning.tip" {:pair computed.typePair})
+               :key kerning :value ~(or (get computed.activeLayer.content.kerning computed.typePair) 0) :low -500
+               :high 2000 :unit "" :width 40 :pop false :off ~(= computed.typePair "") :run set-kerning}))
    `(row#type-paragraph :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 2 :alignItems center
       (node :style dim :text ~(str (t "character.paragraph") ":") :width 74 :height 20 :fitText false)
       ~@(map (fn [it]
@@ -144,11 +168,13 @@
       (node :style dim :text ~(str (t "option.shapeFill") ":"))
       (node#shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
-        :borderColor @border :cursor hand :onClick ~(handler edit-content {:fill state.doc.foreground}))
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.fill")
+        ~(colour-pop "shape-fill" "fill" 'computed.activeLayer.content.fill))
       (node :style dim :text ~(str (t "option.shapeStroke") ":"))
       (node#shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
         :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.stroke :borderWidth 1
-        :borderColor @border :cursor hand :onClick ~(handler edit-content {:stroke state.doc.background})))
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.stroke")
+        ~(colour-pop "shape-stroke" "stroke" 'computed.activeLayer.content.stroke)))
    `(row#shape-sizes :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
       (node#shape-stroke-width :use tField
         :with {:title ~(t "option.strokeWidth") :key strokeWidth :value ~computed.activeLayer.content.strokeWidth

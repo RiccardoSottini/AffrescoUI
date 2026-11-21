@@ -169,7 +169,8 @@ void addPath(im::Structure& structure, std::string name) {
 
 /// @brief addText: adds a type layer.
 /// @param image The image.
-/// @param with text, x, y, size, font, bold, italic, align, leading, fill (the foreground's when absent).
+/// @param with text, x, y, size, font, bold, italic, align, leading, tracking, kerning, fill (the foreground's when
+/// absent).
 void addText(ImageDocument& image, const json& with, Window* /*window*/) {
 	settle(image);
 	im::LayerContent content = image.settings.vector;
@@ -231,6 +232,30 @@ void rasterize(ImageDocument& image, const json& with, Window* /*window*/) {
 void newPath(ImageDocument& image, const json& with, Window* /*window*/) {
 	const std::string name = nameOf(with, "name");
 	changePaths(image, "New Path", [&](im::Structure& structure) { addPath(structure, name); });
+}
+
+/// @brief textToPath: adds the outlines of a type layer's text as paths (Create Work Path), one per contour of each
+/// glyph, named after the layer; the last becomes the active one.
+/// @param image The image.
+/// @param with id (the active layer when absent).
+void textToPath(ImageDocument& image, const json& with, Window* /*window*/) {
+	settle(image);
+	const im::Layer& layer = contentLayer(image, with);
+	if(layer.content.kind != im::ContentKind::text) throw DocumentError("Choose a type layer");
+	const im::LayerContent content = layer.content;
+	const std::string name = layer.name;
+	const auto fonts = image.fonts.lock();
+	std::shared_ptr<const Font> font;
+	if(fonts && *fonts) font = (*fonts)(content.font, rasterSizeOf(content.size), {content.bold, content.italic});
+	if(!font) throw DocumentError("No font draws type here: the screen declares no fonts");
+	std::vector<im::VectorPath> outlines = im::textOutlines(content, *font, name);
+	if(outlines.empty()) throw DocumentError("The text has no outlines");
+	changePaths(image, "Create Work Path", [&](im::Structure& structure) {
+		if(structure.paths.size() + outlines.size() > im::maxPaths)
+			throw DocumentError("A document has at most " + std::to_string(im::maxPaths) + " paths");
+		for(im::VectorPath& path : outlines) structure.paths.push_back(std::move(path));
+		structure.activePath = static_cast<int>(structure.paths.size()) - 1;
+	});
 }
 
 /// @brief selectPath: makes a path the active one (-1 for none: the paths hide).
@@ -371,21 +396,143 @@ void pathToShape(ImageDocument& image, const json& /*with*/, Window* /*window*/)
 	return -1;
 }
 
-/// @brief pen's press: closes the active path at its first anchor, else adds an anchor (a new path if none is
-/// active or the active one is closed).
+/// @brief A point along a cubic segment of a path.
+/// @param from The segment's first anchor (its out handle starts the curve).
+/// @param to Its last anchor (its in handle ends the curve).
+/// @param t Where along it, 0 to 1.
+[[nodiscard]] Point pointOnSegment(const im::PathPoint& from, const im::PathPoint& to, float t) noexcept {
+	const float u = 1.0f - t;
+	const float a = u * u * u, b = 3.0f * u * u * t, c = 3.0f * u * t * t, d = t * t * t;
+	return {a * from.anchor.x + b * from.out.x + c * to.in.x + d * to.anchor.x,
+	        a * from.anchor.y + b * from.out.y + c * to.in.y + d * to.anchor.y};
+}
+
+/// @brief The segment of the active path near a point, and where along it (within grabDistance on screen).
+/// @param image The image.
+/// @param at The point.
+/// @return The index of the segment's first anchor and the place along it, or -1 for none.
+[[nodiscard]] std::pair<int, float> segmentNear(const ImageDocument& image, Point at) {
+	const im::Structure& structure = image.canvas->document().structure();
+	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size())
+		return {-1, 0.0f};
+	const im::VectorPath& path = structure.paths[static_cast<std::size_t>(structure.activePath)];
+	const std::size_t count = path.points.size();
+	const std::size_t segments = path.closed ? count : (count > 0 ? count - 1 : 0);
+	const double reach = grabDistance / std::max(image.view.zoom, 1e-6);
+	constexpr int samples = 48;
+	std::pair<int, float> best{-1, 0.0f};
+	double nearest = reach;
+	for(std::size_t index = 0; count >= 2 && index < segments; ++index)
+		for(int step = 1; step < samples; ++step) {
+			const float t = static_cast<float>(step) / samples;
+			const Point on = pointOnSegment(path.points[index], path.points[(index + 1) % count], t);
+			if(const double distance = std::hypot(on.x - at.x, on.y - at.y); distance <= nearest) {
+				nearest = distance;
+				best = {static_cast<int>(index), t};
+			}
+		}
+	return best;
+}
+
+/// @brief Splits a path's segment at a place along it with a new anchor, keeping the curve's shape (de Casteljau).
+/// @param path The path.
+/// @param index The segment's first anchor.
+/// @param t Where along it, 0 to 1.
+void splitSegment(im::VectorPath& path, std::size_t index, float t) {
+	if(path.points.size() >= im::maxPathPoints)
+		throw DocumentError("A path has at most " + std::to_string(im::maxPathPoints) + " anchors");
+	im::PathPoint& from = path.points[index];
+	im::PathPoint& to = path.points[(index + 1) % path.points.size()];
+	const auto mix = [t](im::VectorPoint a, im::VectorPoint b) {
+		return im::VectorPoint{a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
+	};
+	const im::VectorPoint ab = mix(from.anchor, from.out), bc = mix(from.out, to.in), cd = mix(to.in, to.anchor);
+	const im::VectorPoint abc = mix(ab, bc), bcd = mix(bc, cd), middle = mix(abc, bcd);
+	from.out = ab;
+	to.in = cd;
+	path.points.insert(path.points.begin() + static_cast<std::ptrdiff_t>(index) + 1, im::PathPoint{middle, abc, bcd});
+}
+
+/// @brief Whether an anchor is smooth: a handle pulled away from it.
+/// @param point The anchor.
+[[nodiscard]] bool smooth(const im::PathPoint& point) noexcept {
+	const auto apart = [&](im::VectorPoint handle) {
+		return std::abs(handle.x - point.anchor.x) > 0.01f || std::abs(handle.y - point.anchor.y) > 0.01f;
+	};
+	return apart(point.in) || apart(point.out);
+}
+
+/// @brief pen's press with Alt on an anchor: makes a smooth anchor a corner one; a corner one becomes smooth as the
+/// drag pulls its handles out.
+/// @param image The image.
+/// @param anchor The anchor's index.
+bool convertAnchor(ImageDocument& image, int anchor) {
+	const auto index = static_cast<std::size_t>(anchor);
+	if(!smooth(activePath(image.canvas->document()).points[index])) {
+		image.pathAnchor = anchor; // the drag pulls its handles
+		image.pathMoved = true;    // as a conversion
+		return true;
+	}
+	changePaths(image, "Convert Point", [&](im::Structure& changed) {
+		im::PathPoint& point = activePath(changed).points[index];
+		point.in = point.anchor;
+		point.out = point.anchor;
+	});
+	image.pathAnchor = -2;
+	return true;
+}
+
+/// @brief pen's press on the active path: Alt on an anchor converts it, a press on the first anchor of an open path
+/// closes it, on another anchor deletes it, and on a segment adds an anchor there.
 /// @param image The image.
 /// @param at Where.
-bool pressPen(ImageDocument& image, Point at) {
+/// @return Whether the press edited the path; false when it should add an anchor at the end.
+bool editPath(ImageDocument& image, Point at) {
 	const int near = anchorNear(image, at);
 	const im::Structure& structure = image.canvas->document().structure();
-	const bool open = structure.activePath >= 0 &&
-	                  static_cast<std::size_t>(structure.activePath) < structure.paths.size() &&
-	                  !structure.paths[static_cast<std::size_t>(structure.activePath)].closed;
-	if(open && near == 0 && structure.paths[static_cast<std::size_t>(structure.activePath)].points.size() > 2) {
+	if(structure.activePath < 0 || static_cast<std::size_t>(structure.activePath) >= structure.paths.size())
+		return false;
+	const im::VectorPath& path = structure.paths[static_cast<std::size_t>(structure.activePath)];
+	if(near >= 0 && image.press.altHeld) return convertAnchor(image, near);
+	if(!path.closed && near == 0 && path.points.size() > 2) {
 		changePaths(image, "Close Path", [](im::Structure& changed) { activePath(changed).closed = true; });
 		image.pathAnchor = -2; // a drag pulls nothing
 		return true;
 	}
+	if(near >= 0 && (path.closed || static_cast<std::size_t>(near) + 1 != path.points.size())) {
+		changePaths(image, "Delete Anchor Point", [&](im::Structure& changed) {
+			auto& points = activePath(changed).points;
+			points.erase(points.begin() + near);
+			if(points.size() < 3) activePath(changed).closed = false;
+		});
+		image.pathAnchor = -2;
+		return true;
+	}
+	if(const std::pair<int, float> found = segmentNear(image, at); found.first >= 0) {
+		changePaths(image, "Add Anchor Point", [&](im::Structure& changed) {
+			splitSegment(activePath(changed), static_cast<std::size_t>(found.first), found.second);
+		});
+		image.pathAnchor = -2;
+		return true;
+	}
+	if(near >= 0) { // the last anchor of an open path: a drag pulls its handles again
+		image.pathAnchor = near;
+		image.pathMoved = true; // as a conversion
+		return true;
+	}
+	return false;
+}
+
+/// @brief pen's press: edits the active path where pressed on it (editPath), else adds an anchor at its end (a new
+/// path if none is active or the active one is closed).
+/// @param image The image.
+/// @param at Where.
+bool pressPen(ImageDocument& image, Point at) {
+	if(editPath(image, at)) return true;
+	const im::Structure& structure = image.canvas->document().structure();
+	const bool open = structure.activePath >= 0 &&
+	                  static_cast<std::size_t>(structure.activePath) < structure.paths.size() &&
+	                  !structure.paths[static_cast<std::size_t>(structure.activePath)].closed;
 	changePaths(image, "Add Anchor Point", [&](im::Structure& changed) {
 		if(!open) addPath(changed, "Work Path");
 		im::VectorPath& path = activePath(changed);
@@ -398,14 +545,14 @@ bool pressPen(ImageDocument& image, Point at) {
 	return true;
 }
 
-/// @brief pen's drag: pulls the new anchor's handles, symmetric about it (a smooth point).
+/// @brief pen's drag: pulls the new (or converted) anchor's handles, symmetric about it (a smooth point).
 /// @param image The image.
 /// @param at Where.
 bool dragPen(const ImageDocument& image, Point at) {
 	if(image.pathAnchor < 0) return false;
 	const auto index = static_cast<std::size_t>(image.pathAnchor);
 	image.canvas->document().changeStructure(
-	    "Add Anchor Point",
+	    image.pathMoved ? "Convert Point" : "Add Anchor Point",
 	    [&](im::Structure& changed) {
 		    im::VectorPath& path = activePath(changed);
 		    if(index >= path.points.size()) return;
@@ -564,7 +711,7 @@ json pathsJson(const imaging::Document& document) {
 std::vector<ImageOperation> vectorOperations() {
 	return {
 	    {"addText",
-		 {"text", "x", "y", "size", "font", "bold", "italic", "align", "leading", "fill"},
+		 {"text", "x", "y", "size", "font", "bold", "italic", "align", "leading", "tracking", "kerning", "fill"},
 		 "Adds a type layer.",
 		 addText},
 	    {"addShape",
@@ -572,12 +719,17 @@ std::vector<ImageOperation> vectorOperations() {
 		 "Adds a shape layer.",
 		 addShape},
 	    {"editContent",
-		 {"id",    "text",    "x",     "y",      "x2",    "y2",     "size",   "font", "bold",   "italic",
-		  "align", "leading", "shape", "radius", "sides", "points", "closed", "fill", "stroke", "strokeWidth"},
+		 {"id",    "text",   "x",      "y",       "x2",       "y2",         "size",  "font",
+		  "bold",  "italic", "align",  "leading", "tracking", "kerning",    "shape", "radius",
+		  "sides", "points", "closed", "fill",    "stroke",   "strokeWidth"},
 		 "Changes a type or shape layer's content, and draws it again.",
 		 editContent},
 	    {"rasterize", {"id"}, "Makes a type or shape layer a pixel layer of the same pixels.", rasterize},
 	    {"newPath", {"name"}, "Adds an empty path, the active one, for the pen.", newPath},
+	    {"textToPath",
+		 {"id"},
+		 "Adds the outlines of a type layer's text as paths, one per contour of each glyph (Create Work Path).",
+		 textToPath},
 	    {"selectPath", {"index"}, "Makes a path the active one (-1 for none).", selectPath},
 	    {"deletePath", {"index"}, "Deletes a path (the active one when no index).", deletePath},
 	    {"renamePath", {"index", "name"}, "Renames a path.", renamePath},

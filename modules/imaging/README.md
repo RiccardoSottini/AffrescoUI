@@ -19,12 +19,12 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `Blend.hpp` | The 12 blend modes (normal, multiply, screen, overlay, soft light, darken, lighten, difference, hue, saturation, colour, luminosity), on the CPU and as GLSL, tested against each other |
 | `Composite.hpp` | `Compositor` (a document flattened, one tile at a time at any mip level) and `Sampler` (pixels of a layer or of the flattened document) |
 | `Adjustment.hpp` | The 8 adjustments: levels, curves (a composite curve and one per channel), hue/saturation (or colorize), colour balance, brightness/contrast, invert, threshold and gradient map |
-| `Selection.hpp` | Shapes (rectangle, ellipse, lasso, polygon) with soft edges, combined by replace, add, subtract or intersect; the magic wand, colour range, invert, and the selection's bounds to the pixel |
-| `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased or cloned along a path, with pressure, as one step |
+| `Selection.hpp` | Shapes (rectangle, ellipse, lasso, polygon) with soft edges, combined by replace, add, subtract or intersect; the magic wand, the quick-selection brush (`quickCoverage`: like colours near a stroke, stopping at edges), colour range, invert, and the selection's bounds to the pixel |
+| `Brush.hpp` | `BrushTip`, presets, and `Stroke`: stamps painted, erased, cloned or retouched (dodge, burn, sponge, blur, sharpen, smudge) or healed along a path, with pressure, as one step |
 | `Filter.hpp` | Gaussian blur, motion blur, sharpen, unsharp mask, add noise and high pass, and the selection's feather, tile by tile with a halo, for a preview of the visible tiles or the whole layer |
-| `Vector.hpp` | Vector content: paths of anchors with curve handles (the document's `Structure::paths`), and the `LayerContent` a type or shape layer is drawn from (text, font, size, style, alignment; a rectangle, ellipse, polygon, line or path with fill and stroke) |
-| `Shapes.hpp` | Vector content drawn: paths flattened, strokes, type and shape layers rendered into a layer's pixels (text with a `render` font), and their JSON |
-| `Gradient.hpp` | Linear, radial, angle, reflected and diamond gradients, and a fill by colour (the paint bucket) |
+| `Vector.hpp` | Vector content: paths of anchors with curve handles (the document's `Structure::paths`), and the `LayerContent` a type or shape layer is drawn from (text, font, size, style, tracking, kerning, alignment; a rectangle, ellipse, polygon, line or path with fill and stroke) |
+| `Shapes.hpp` | Vector content drawn: paths flattened, strokes, type and shape layers rendered into a layer's pixels (text with a `render` font), a type layer's outlines as paths (`textOutlines`, through HarfBuzz), and their JSON |
+| `Gradient.hpp` | Linear, radial, angle, reflected and diamond gradients (reversed, dithered or opaque by `GradientOptions`), and a fill by colour (the paint bucket) |
 | `Color.hpp` | `ColorProfile` (sRGB, Display P3, a wide RGB, grey, or parsed from bytes), `ColorTransform`, soft proofing, and the 3D table the canvas converts to the display through |
 | `Codec.hpp` | PNG and JPEG read into tiled images (16-bit PNG to `rgba16f`) with their embedded profile, and written |
 | `Project.hpp` | The project file: a header, a JSON manifest, then each tile deflated; opened by reading the manifest only, each tile inflated on first use |
@@ -74,7 +74,7 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
 | `tiles/` | Tiles, images and their mips (`Image.cpp`), and GPU residency (`Residency.cpp`) |
 | `document/` | The document's layers, masks and selection (`Document.cpp`) and the undo history (`History.cpp`) |
 | `compose/` | Blend modes, adjustments, and the CPU compositor and sampler (`Composite.cpp`) |
-| `paint/` | Brushes, gradients and the bucket, selections, the shape rasterizer they share (`Rasterize.cpp`), and vector content drawn (`Shapes.cpp`) |
+| `paint/` | Brushes, gradients and the bucket, selections, the shape rasterizer they share (`Rasterize.cpp`), and vector content drawn (`Shapes.cpp`, glyph outlines in `GlyphOutline.cpp`) |
 | `filters/` | Filter runs over tiles with a halo (`Filter.cpp`) and their kernels (`Kernels.cpp`) |
 | `io/` | PNG and JPEG (`Codec.cpp`, over stb in `Stb.cpp`), colour profiles (`Color.cpp`) and the project file (`Project.cpp`, `ProjectJson.cpp`) |
 | `gpu/` | The canvas surface (`Canvas.cpp`) and its shaders (`CanvasShaders.cpp`) |

@@ -161,13 +161,23 @@ float gradientPosition(GradientShape shape, Point from, Point to, float x, float
 }
 
 void drawGradient(Document& document, std::uint64_t target, const Gradient& gradient, GradientShape shape, Point from,
-                  Point to, float opacity) {
+                  Point to, float opacity, const GradientOptions& options) {
 	Gradient normalized = gradient;
 	normalized.normalize();
 	const float laid = clamped(std::isfinite(opacity) ? opacity : 1.0f);
 	lay(document, target, "Gradient", everywhere(document, target), [&](int x, int y) {
-		Pixel colour = normalized.at(
-		    gradientPosition(shape, from, to, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f));
+		const float position =
+		    gradientPosition(shape, from, to, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f);
+		Pixel colour = normalized.at(options.reverse ? 1.0f - position : position);
+		if(!options.transparency) colour.alpha = 1.0f;
+		if(options.dither) { // a hash of the place, from -half to +half a level of eight bits
+			auto hash = static_cast<std::uint32_t>(x) * 0x9E3779B1U ^ static_cast<std::uint32_t>(y) * 0x85EBCA77U;
+			hash ^= hash >> 15U;
+			hash *= 0x2C1B3C6DU;
+			hash ^= hash >> 12U;
+			const float noise = (static_cast<float>(hash & 0xFFFFU) / 65535.0f - 0.5f) / 255.0f;
+			colour = clamped(Pixel{colour.red + noise, colour.green + noise, colour.blue + noise, colour.alpha});
+		}
 		colour.alpha *= laid;
 		return colour;
 	});

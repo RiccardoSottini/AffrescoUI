@@ -5,6 +5,7 @@
 	"note": "Tempera's workspace: the menu bar, the options bar of the current tool, the tools bar (one column of tool groups, a right click opening a group's other tools) with the colours and the quick mask, the document tab, the canvas with its rulers and guides, and the status bar under it. The canvas is the host's temperaCanvas surface: the pointer on it paints, selects and pans in the host, which sends temperaChanged.",
 
 	"computed": {
+		"cropRatios": "{{[{ratio: 0, title: 'Free'}, {ratio: 1, title: '1 : 1'}, {ratio: 4 / 3, title: '4 : 3'}, {ratio: 3 / 2, title: '3 : 2'}, {ratio: 16 / 9, title: '16 : 9'}, {ratio: 4 / 5, title: '4 : 5'}]}}",
 		"canvasWidth": "{{(nodes.canvas.width ?? 0) > 0 ? nodes.canvas.width : window.width - 6 - 40 - 6 - 6 - 304 - 6 - (state.view.rulers ? 16 : 0)}}",
 		"canvasHeight": "{{(nodes.canvas.height ?? 0) > 0 ? nodes.canvas.height : window.height - 24 - 6 - 36 - 6 - 6 - 26 - 24 - (state.view.rulers ? 16 : 0)}}",
 		"rulerStep": "{{find([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], it * computed.px >= 64) ?? 10000}}",
@@ -13,9 +14,9 @@
 		"rulerMinorX": "{{map(range(min(400, 5 * length(computed.rulerTicksX))), computed.rulerTicksX[0] + it * computed.rulerStep / 5)}}",
 		"rulerMinorY": "{{map(range(min(400, 5 * length(computed.rulerTicksY))), computed.rulerTicksY[0] + it * computed.rulerStep / 5)}}",
 		"px": "{{state.doc.view.zoom / (window.scale ?? 1)}}",
-		"paints": "{{contains(['brush', 'pencil', 'eraser', 'clone'], state.doc.tool)}}",
-		"selects": "{{contains(['marquee', 'ellipse', 'lasso', 'polygon', 'wand'], state.doc.tool)}}",
-		"tool": "{{find(find(state.tools, some(it, it.id == state.doc.tool)) ?? [], it.id == state.doc.tool) ?? {}}}",
+		"paints": "{{contains(['brush', 'pencil', 'eraser', 'clone', 'healing', 'blur', 'sharpen', 'smudge', 'dodge', 'burn', 'sponge'], state.doc.tool)}}",
+		"selects": "{{contains(['marquee', 'ellipse', 'lasso', 'polygon', 'wand', 'quick-select'], state.doc.tool)}}",
+		"tool": "{{find(find(state.tools, some(it, it.id == state.doc.tool)) ?? [], it.id == state.doc.tool) ?? state.modeTools[state.doc.tool] ?? {}}}",
 		"toolName": "{{split(computed.tool.title ?? '', ' Tool')[0]}}",
 		"mode": "{{(contains(state.doc.profile, 'Grey') ? 'Gray' : 'RGB') + (state.doc.format == 'rgba16f' ? '/16' : '/8')}}"
 	},
@@ -29,6 +30,19 @@
 	},
 
 	"components": {
+		"tColourPop": {
+			"params": { "id": "", "target": "", "value": "#000000" },
+			"node": {
+				"overlay": { "placement": "right", "open": "{{'state.pop.' + target}}", "dismiss": "outside", "flip": true },
+				"width": 236, "height": 268, "color": "@panel", "radius": "@kit.cardRadius", "borderWidth": 1, "borderColor": "@border",
+				"shadow": { "y": 3, "blur": 10, "color": "#00000060" },
+				"children": [
+					{ "type": "colorPicker", "id": "{{id}}-picker", "label": "Colour picker", "anchors": { "left": 8, "right": 8, "top": 8, "bottom": 8 },
+					  "value": "{{value}}", "alpha": false, "textColor": "@text", "accentColor": "@accent",
+					  "onChange": { "run": "pickColour", "with": { "args": { "target": "{{target}}", "value": "{{event.value}}" } } } }
+				]
+			}
+		},
 		"tIcon": {
 			"params": { "icon": "", "tip": "", "run": "", "args": {}, "on": false, "off": false },
 			"node": {
@@ -266,12 +280,14 @@
 						  "tabs": [{ "id": "replace", "icon": "square", "title": "New selection" }, { "id": "add", "icon": "copy-plus", "title": "Add to selection (Shift)" },
 						           { "id": "subtract", "icon": "copy-minus", "title": "Subtract from selection (Alt)" }, { "id": "intersect", "icon": "copy-x", "title": "Intersect with selection" }] } },
 						{ "style": "sep" },
-						{ "id": "option-wand-tolerance", "use": "tField", "when": "{{state.doc.tool == 'wand'}}",
+						{ "id": "option-quick-size", "use": "tField", "when": "{{state.doc.tool == 'quick-select'}}",
+						  "with": { "title": "Size", "key": "size", "value": "{{state.doc.options.size}}", "max": 500, "unit": " px", "width": 40 } },
+						{ "id": "option-wand-tolerance", "use": "tField", "when": "{{contains(['wand', 'quick-select'], state.doc.tool)}}",
 						  "with": { "title": "Tolerance", "key": "tolerance", "value": "{{state.doc.options.tolerance}}", "max": 255, "unit": "", "pop": false, "width": 36 } },
 						{ "id": "option-anti-alias", "use": "tCheck", "with": { "title": "Anti-alias", "checked": true, "off": true } },
 						{ "id": "option-wand-contiguous", "use": "tCheck", "when": "{{state.doc.tool == 'wand'}}",
 						  "with": { "title": "Contiguous", "key": "contiguous", "checked": "{{state.doc.options.contiguous}}" } },
-						{ "id": "option-wand-all", "use": "tCheck", "when": "{{state.doc.tool == 'wand'}}",
+						{ "id": "option-wand-all", "use": "tCheck", "when": "{{contains(['wand', 'quick-select'], state.doc.tool)}}",
 						  "with": { "title": "Sample All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
 						{ "id": "option-feather", "use": "tButton", "with": { "title": "Feather 8 px", "tip": "Feather the selection by 8 pixels (Shift+F6)", "run": "featherSelection",
 						  "off": "{{!state.doc.selection}}" } },
@@ -304,9 +320,9 @@
 						{ "id": "gradient-mode", "use": "tPicker", "with": { "title": "Normal", "tip": "Mode: other modes aren't available yet", "width": 84, "open": "state.paintModeMenu",
 						  "items": [{ "title": "Normal", "checked": true }] } },
 						{ "id": "option-gradient-opacity", "use": "tField", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}" } },
-						{ "id": "gradient-reverse", "use": "tCheck", "with": { "title": "Reverse", "checked": false, "off": true } },
-						{ "id": "gradient-dither", "use": "tCheck", "with": { "title": "Dither", "checked": false, "off": true } },
-						{ "id": "gradient-transparency", "use": "tCheck", "with": { "title": "Transparency", "checked": true, "off": true } }
+						{ "id": "gradient-reverse", "use": "tCheck", "with": { "title": "Reverse", "key": "reverse", "checked": "{{state.doc.options.reverse}}" } },
+						{ "id": "gradient-dither", "use": "tCheck", "with": { "title": "Dither", "key": "dither", "checked": "{{state.doc.options.dither}}" } },
+						{ "id": "gradient-transparency", "use": "tCheck", "with": { "title": "Transparency", "key": "transparency", "checked": "{{state.doc.options.transparency}}" } }
 					  ] },
 
 					{ "type": "row", "id": "options-type", "grow": 100, "when": "{{state.doc.gesture == 'text'}}", "alignItems": "center", "gap": 8, "height": 30, "children": [
@@ -326,13 +342,15 @@
 					  ] },
 					{ "type": "row", "id": "options-shape", "grow": 100, "when": "{{state.doc.gesture == 'shape'}}", "alignItems": "center", "gap": 8, "height": 30, "children": [
 						{ "style": "dim", "text": "Fill:" },
-						{ "id": "option-shape-fill", "role": "button", "label": "Fill", "tooltip": "The foreground colour fills new shapes: a click gives it to the active one",
+						{ "id": "option-shape-fill", "role": "button", "label": "Fill", "tooltip": "Opens a picker for the fill: the foreground colour fills new shapes",
 						  "width": 22, "height": 22, "radius": "@kit.radius", "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
-						  "onClick": { "run": "setVector", "with": { "args": { "fill": "{{state.doc.foreground}}" } } } },
+						  "onClick": { "toggle": "state.pop.vectorFill" },
+						  "children": [{ "use": "tColourPop", "with": { "id": "option-shape-fill", "target": "vectorFill", "value": "{{state.doc.foreground}}" } }] },
 						{ "style": "dim", "text": "Stroke:" },
-						{ "id": "option-shape-stroke", "role": "button", "label": "Stroke", "tooltip": "A click strokes with the background colour; a width of 0 strokes nothing",
+						{ "id": "option-shape-stroke", "role": "button", "label": "Stroke", "tooltip": "Opens a picker for the stroke; a width of 0 strokes nothing",
 						  "width": 22, "height": 22, "radius": "@kit.radius", "color": "{{state.doc.vector.stroke}}", "borderWidth": 1, "borderColor": "@border", "cursor": "hand",
-						  "onClick": { "run": "setVector", "with": { "args": { "stroke": "{{state.doc.background}}" } } } },
+						  "onClick": { "toggle": "state.pop.vectorStroke" },
+						  "children": [{ "use": "tColourPop", "with": { "id": "option-shape-stroke", "target": "vectorStroke", "value": "{{state.doc.vector.stroke}}" } }] },
 						{ "id": "option-stroke-width", "use": "tField", "with": { "title": "", "key": "strokeWidth", "value": "{{state.doc.vector.strokeWidth}}", "max": 200,
 						  "unit": " px", "width": 48, "pop": false, "run": "setVector", "tip": "Width" } },
 						{ "id": "option-shape-radius", "use": "tField", "when": "{{state.doc.vector.shape == 'rectangle'}}", "with": { "title": "Radius", "key": "radius",
@@ -351,13 +369,29 @@
 						  "text": "{{state.doc.gesture == 'pen' ? 'Click to add anchors, drag to curve, click the first to close' : 'Drag the path, or one of its anchors'}}" }
 					  ] },
 
-					{ "id": "option-crop", "use": "tPicker", "when": "{{state.doc.tool == 'crop'}}",
+					{ "type": "row", "id": "options-selection-box", "when": "{{contains(['transform-selection', 'free-transform'], state.doc.tool)}}", "alignItems": "center", "gap": 8, "height": 30, "grow": 100, "children": [
+						{ "style": "dim", "text": "Drag a handle to scale, inside to move", "fitText": true },
+						{ "id": "option-selection-box-numbers", "use": "tButton", "when": "{{state.doc.tool == 'transform-selection'}}",
+						  "with": { "title": "Numbers...", "tip": "Moves, scales and turns the selection's outline, not its pixels.", "run": "showTransformSelection", "off": "{{!state.doc.selection}}" } },
+						{ "id": "option-layer-box-numbers", "use": "tButton", "when": "{{state.doc.tool == 'free-transform'}}",
+						  "with": { "title": "Numbers...", "tip": "Moves, scales and turns the active layer by numbers.", "run": "showTransform" } },
+						{ "id": "option-selection-box-done", "use": "tButton", "with": { "title": "Done",
+						  "tip": "{{state.doc.tool == 'free-transform' ? 'Back to the Move tool' : 'Back to the Rectangular Marquee'}}", "run": "setTool",
+						  "args": { "tool": "{{state.doc.tool == 'free-transform' ? 'move' : 'marquee'}}" } } }
+					] },
+					{ "type": "row", "id": "options-crop", "when": "{{state.doc.tool == 'crop'}}", "alignItems": "center", "gap": 8, "height": 30, "grow": 100, "children": [
+						{ "id": "option-crop-drag", "use": "tPicker", "with": { "title": "{{(find(computed.cropRatios, it.ratio == (state.doc.options.cropRatio ?? 0)) ?? computed.cropRatios[0]).title}}",
+						  "tip": "The ratio a crop drag keeps", "width": 110, "open": "state.cropDragMenu",
+						  "items": "{{map(computed.cropRatios, {title: it.title, checked: it.ratio == (state.doc.options.cropRatio ?? 0), run: 'setOptions', with: {args: {cropRatio: it.ratio}}})}}" } },
+						{ "style": "sep" },
+						{ "id": "option-crop", "use": "tPicker",
 					  "with": { "title": "Ratio", "tip": "Crop", "open": "state.cropMenu", "items": [{ "title": "Crop to Selection", "run": "cropToSelection" },
 					    { "title": "Square, 1 : 1", "run": "cropToRatio", "with": { "args": { "width": 1, "height": 1 } } },
 					    { "title": "4 : 3", "run": "cropToRatio", "with": { "args": { "width": 4, "height": 3 } } },
 					    { "title": "3 : 2", "run": "cropToRatio", "with": { "args": { "width": 3, "height": 2 } } },
 					    { "title": "16 : 9", "run": "cropToRatio", "with": { "args": { "width": 16, "height": 9 } } },
-					    { "title": "Portrait, 4 : 5", "run": "cropToRatio", "with": { "args": { "width": 4, "height": 5 } } }] } },
+					    { "title": "Portrait, 4 : 5", "run": "cropToRatio", "with": { "args": { "width": 4, "height": 5 } } }] } }
+					] },
 					{ "id": "option-sample-all", "use": "tCheck", "when": "{{state.doc.tool == 'eyedropper'}}",
 					  "with": { "title": "Sample All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
 					{ "id": "option-auto-select", "use": "tCheck", "when": "{{state.doc.tool == 'move'}}",
@@ -419,11 +453,13 @@
 					  "children": [
 						{ "id": "background-colour", "role": "button", "label": "Background colour", "x": 11, "y": 12, "width": 19, "height": 19, "radius": 999,
 						  "color": "{{state.doc.background}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Background colour",
-						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
+						  "cursor": "hand", "onClick": { "toggle": "state.pop.background" },
+						  "children": [{ "use": "tColourPop", "with": { "id": "background-colour", "target": "background", "value": "{{state.doc.background}}" } }] },
 						{ "x": 1, "y": 2, "width": 21, "height": 21, "color": "@panel", "radius": 999 },
 						{ "id": "foreground-colour", "role": "button", "label": "Foreground colour", "x": 2, "y": 3, "width": 19, "height": 19, "radius": 999,
 						  "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Foreground colour",
-						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
+						  "cursor": "hand", "onClick": { "toggle": "state.pop.foreground" },
+						  "children": [{ "use": "tColourPop", "with": { "id": "foreground-colour", "target": "foreground", "value": "{{state.doc.foreground}}" } }] },
 						{ "type": "label", "id": "colour-swap", "role": "button", "label": "Swap colours", "icon": "arrow-left-right", "font": "small",
 						  "x": 22, "y": 0, "width": 10, "height": 10, "cursor": "hand", "tooltip": "Switch Foreground and Background Colours (X)",
 						  "textColor": "@muted", "hover": { "textColor": "@text" }, "onClick": { "run": "swapColours" } },

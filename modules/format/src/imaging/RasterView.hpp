@@ -127,7 +127,7 @@ private:
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintOutline(Painter& painter, const editing::ImageDocument& image) const;
-	/// @brief Draws the brush's outline under the pointer.
+	/// @brief Draws the brush's outline under the pointer, for a tool that paints with it.
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintBrush(Painter& painter, const editing::ImageDocument& image) const;
@@ -145,6 +145,11 @@ private:
 	/// @param image The image shown.
 	/// @param path The path.
 	void paintAnchors(Painter& painter, const editing::ImageDocument& image, const imaging::VectorPath& path) const;
+	/// @brief Draws the box around the selection (selection-box) or the active layer's pixels (layer-box), and its eight
+	/// handles, as the drag makes it; nothing for the other gestures.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const;
 
 	std::weak_ptr<editing::ImageDocuments> images_; ///< The runtime's images.
 	std::string name_;                              ///< See imageName().

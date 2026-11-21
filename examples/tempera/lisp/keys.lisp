@@ -18,6 +18,11 @@
 (defkey "shift+l" {:do setTool :with {:args {:tool polygon}}})
 
 (defkey "w" {:do setTool :with {:args {:tool wand}}})
+(defkey "shift+w" {:do setTool :with {:args {:tool quick-select}}})
+(defkey "r" {:do setTool :with {:args {:tool blur}}})
+(defkey "j" {:do setTool :with {:args {:tool healing}}})
+(defkey "o" {:do setTool :with {:args {:tool dodge}}})
+(defkey "shift+o" {:do setTool :with {:args {:tool burn}}})
 
 (defkey "c" {:do setTool :with {:args {:tool crop}}})
 
@@ -117,7 +122,7 @@
 
 (defkey "delete" clearPixels)
 
-(defkey "mod+t" showTransform)
+(defkey "mod+t" freeTransformHandles)
 
 ;;; Image
 

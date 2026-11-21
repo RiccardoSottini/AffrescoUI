@@ -18,6 +18,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
 | 8 (type, shapes and paths) | 34 | 24 | 5 |
 | 9 (guides, selection transform, dock, workspaces, search) | 37 | 21 | 5 |
+| 10 (quick selection, anchors, type spacing, pickers, crop ratio, retouching; multi-select, snapshots, Brushes panel, channel curves) | 49 | 13 | 2 |
 
 ## Workspace
 
@@ -46,13 +47,13 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Properties (context-sensitive) | done | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Shift or Cmd and a click pick layers together, and the Distribute icons (and Layer > Distribute) space three or more by their edges or middles, as one step; Quick Actions; adjustment controls |
 | Adjustments (icon grid) | done | |
 | History (states and snapshots) | done | The states, and snapshots: the panel's camera keeps the layers under a name, a click on one restores it as a step undo takes back, its × forgets it |
-| Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
+| Colour, Palette, Gradients and Patterns | partial | Foreground/background chips, each opening a picker beside it (as do the type and shape colours), and a square with a horizontal hue strip; no patterns |
 | Brushes (presets) | done | Presets, size, hardness and spacing in the options bar's brush picker, and a Brushes panel (beside Properties and Adjust; the options bar's Brush settings button and Window > Brushes open it) |
 | Channels | partial | Composite and channel rows, display only |
 | Paths | done | The document's paths (kept in the project file and the history): click one to show it on the canvas, and fill, stroke, make a selection or a shape layer of it, add or delete one |
 | Navigator | done | |
 | Info (pointer position, colour under the pointer) | missing | |
-| Character and Paragraph | partial | Properties edits a type layer's text, size, bold, italic, colour, alignment and leading; one font (the document's), no tracking or kerning |
+| Character and Paragraph | done | Properties edits a type layer's text, font family (Roboto or JetBrains Mono), size, bold, italic, colour (a picker), tracking, the kerning of the pair where typing goes on, alignment and leading; no type on a path |
 
 ## Tools
 
@@ -63,20 +64,20 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Pencil | done | A hard painting tool (Shift+B); the brush keeps its own hardness |
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | done | Shift, Alt or both at the press add, subtract or intersect (marquee, lasso, polygon, wand); during a drag Shift keeps a square and Alt draws from the centre |
 | Lasso and polygonal lasso | done | |
-| Magic wand with tolerance, quick selection | partial | No quick selection |
-| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection moves, scales, flips and turns the outline (a dialog, not on-canvas handles); Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
+| Magic wand with tolerance, quick selection | done | Quick Selection (Shift+W) brushes over like colours, each stroke stopping at edges (its size and tolerance in the options bar); Shift adds, Alt subtracts |
+| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, the handle above turns it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
-| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
-| Crop with overlay grid and aspect presets | partial | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the ratios crop the largest centred part, but don't hold a drag to that shape |
-| Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
+| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, the handle above the box turns it (the box turning as it is dragged), each drag one step (undo cancels it); Numbers... opens the dialog that also flips it; no skew |
+| Crop with overlay grid and aspect presets | done | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the drag ratio (Free, 1 : 1, 4 : 3, 3 : 2, 16 : 9, 4 : 5) holds a drag to that shape, and the ratios menu crops the largest centred part at once |
+| Gradient tool with editor | partial | Inline editor and presets; Reverse, Dither and Transparency work; its blend modes are disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
 | Eyedropper | done | |
 | Clone stamp (Alt-click source) | done | |
-| Healing brush and patch | missing | |
+| Healing brush and patch | partial | The Healing Brush (J) clones from the source a right click sets, in the tone of the pixels it covers; no Patch tool |
 | History brush | missing | |
-| Blur, sharpen, smudge | missing | |
-| Dodge, burn, sponge | missing | |
-| Pen and path selection | partial | The Pen adds corner anchors on a click and smooth ones on a drag, and closes at the first anchor; Path Selection drags the path or one anchor; no adding or converting anchors in the middle |
+| Blur, sharpen, smudge | done | Blur (R) and Sharpen brush each pixel towards or away from its neighbours' average, and Smudge drags the paint along the stroke, a step each |
+| Dodge, burn, sponge | done | Dodge (O), Burn (Shift+O) and Sponge lighten, darken or take the colour from the pixels under the brush, with its size and hardness |
+| Pen and path selection | done | The Pen adds corner anchors on a click and smooth ones on a drag, and closes at the first anchor; on the path it adds an anchor on a segment (the curve kept), deletes the anchor pressed on, and Alt converts smooth and corner anchors; Path Selection drags the path or one anchor; Type > Create Work Path makes a type layer's letters paths |
 | Type tool, editable type layers | done | A click adds a type layer (or picks the one clicked) and types into it on the canvas (Backspace, Enter for a new line, Escape to stop); its text, size and style stay editable in Properties; Layer > Rasterize makes it pixels |
 | Shapes as vector layers | done | Rectangle (rounded corners), ellipse, polygon and line tools drag out shape layers with a fill and a stroke, edited in the options bar and Properties, moved with their content; Layer > Rasterize |
 | Hand (and space to pan), zoom | done | |
@@ -115,10 +116,10 @@ general feature the image step or a node needs first.
 
 | Item | Pri | Needs |
 | --- | --- | --- |
-| Free transform: on-canvas handles, skew | P1 | Library: transform handles in the raster overlay that preview and commit `transformBox`, and a skew term |
+| Free transform: skewing, a live preview of the pixels while dragging | P2 | Library: a skew term in the transform's sampling, and the remapped layer drawn while the drag lasts |
 | Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
-| Pen: add, delete and convert anchors in a path's middle; Type > Create Work Path | P2 | Library: anchor editing in the pen gesture; glyph outlines as paths (the font's outlines through FreeType) |
-| Character: font family, tracking, kerning; type on a path | P3 | Library: more `LayerContent` text keys, a document font list |
+| Character: type on a path; a glyph's synthetic bold or italic in Create Work Path (the font's own outlines are used) | P3 | Library: text laid along a path in renderText; outlines of the synthesised styles |
+| Create Work Path: a path per letter rather than per contour | P3 | Library: paths of several contours (subpaths) |
 | Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
 | Light and dark interface, locales, focus, names | P2 | JSON: a light token set, and keep each new control named and focusable |
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |

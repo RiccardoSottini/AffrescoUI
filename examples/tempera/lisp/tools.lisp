@@ -92,9 +92,9 @@
 
 (defview colour-chips "The foreground over the background colour; the arrows swap them, the small pair resets them." []
   `(node#colours :role group :label ~(t "tools.colours") :style clear :width 32 :height 36
-     ~(colour-chip "background-colour" 'state.doc.background 11 12 "colour.background")
+     ~(colour-chip "background-colour" "background" 'state.doc.background 11 12 "colour.background")
      (node :x 1 :y 2 :width 21 :height 21 :color @panel :radius 999)
-     ~(colour-chip "foreground-colour" 'state.doc.foreground 2 3 "colour.foreground")
+     ~(colour-chip "foreground-colour" "foreground" 'state.doc.foreground 2 3 "colour.foreground")
      (label#colour-swap :role button
        :label ~(t "tools.swapColours")
        :icon arrow-left-right
@@ -121,8 +121,9 @@
        (node :x 3 :y 3 :width 6 :height 6 :radius 999 :color "#ffffff" :borderWidth 1 :borderColor @muted)
        (node :width 6 :height 6 :radius 999 :color "#000000" :borderWidth 1 :borderColor @muted))))
 
-(defview colour-chip "A colour's round chip at x, y, value its path, title a text key: a click shows the Colour panel."
-  [id value x y title]
+(defview colour-chip
+  "A colour's round chip at x, y, value its path, target its option, title a text key: a click opens its picker."
+  [id target value x y title]
   `(node :id ~id
      :role button
      :label ~(t title)
@@ -136,7 +137,8 @@
      :borderColor @muted
      :tooltip ~(t title)
      :cursor hand
-     :onClick {:run show-panel :with {:args {:slot colour :id colour}}}))
+     :onClick ~(handler toggle-open (str "state.pop." target))
+     ~(colour-pop id target value)))
 
 (defview screen-mode-button "The screen mode: a click changes it; a right click shows both modes." []
   `(label#screen-mode :role button
