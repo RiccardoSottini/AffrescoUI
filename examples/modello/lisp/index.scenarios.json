@@ -1174,6 +1174,19 @@
 				{ "wait": 20 },
 				{ "expect": { "state": "scene.nodes[1].rotationDegrees", "is": [90, 0, 90] } }
 			]
+		},
+		{
+			"name": "modello-material-shadow",
+			"note": "Material › Settings: Cast Shadows off and on again for the cube's material, undoable",
+			"steps": [
+				{ "click": "#prop-tab-material" },
+				{ "click": "#prop-material-shadow" },
+				{ "expect": { "state": "scene.materials[0].castsShadow", "is": false } },
+				{ "click": "#prop-material-shadow" },
+				{ "expect": { "state": "scene.materials[0].castsShadow", "is": true } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.materials[0].castsShadow", "is": false } }
+			]
 		}
 	]
 }

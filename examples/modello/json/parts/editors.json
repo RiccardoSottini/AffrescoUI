@@ -633,7 +633,7 @@
 							  "value": "{{state.scene.materials[max(computed.activeMaterialIndex, 0)].roughness ?? 0.5}}", "step": 0.005, "min": 0, "max": 1,
 							  "first": true, "last": true, "text": "{{fixed(state.scene.materials[max(computed.activeMaterialIndex, 0)].roughness ?? 0.5, 3)}}" } }
 						] },
-						{ "when": "{{contains(computed.propShown, 'materialSettings') && computed.activeMaterialIndex >= 0}}", "use": "propPanel", "with": { "key": "materialSettings", "body": 56 }, "children": [
+						{ "when": "{{contains(computed.propShown, 'materialSettings') && computed.activeMaterialIndex >= 0}}", "use": "propPanel", "with": { "key": "materialSettings", "body": 80 }, "children": [
 							{ "height": 20, "width": "100%", "color": "transparent", "children": [
 								{ "type": "label", "text": "Blend Mode", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
 								  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
@@ -650,7 +650,10 @@
 							] },
 							{ "use": "numberField", "with": { "label": "Alpha", "path": "{{'scene.materials[' + computed.activeMaterialIndex + '].baseColor[3]'}}",
 							  "value": "{{(state.scene.materials[max(computed.activeMaterialIndex, 0)].baseColor ?? [0.8, 0.8, 0.8, 1])[3]}}", "step": 0.005, "min": 0, "max": 1,
-							  "first": true, "last": true, "text": "{{fixed((state.scene.materials[max(computed.activeMaterialIndex, 0)].baseColor ?? [0.8, 0.8, 0.8, 1])[3], 3)}}" } }
+							  "first": true, "last": true, "text": "{{fixed((state.scene.materials[max(computed.activeMaterialIndex, 0)].baseColor ?? [0.8, 0.8, 0.8, 1])[3], 3)}}" } },
+							{ "use": "checkRow", "with": { "id": "prop-material-shadow", "label": "Cast Shadows",
+							  "checked": "{{state.scene.materials[max(computed.activeMaterialIndex, 0)].castsShadow != false}}",
+							  "run": "setMaterial", "with": { "args": { "key": "castsShadow", "value": "{{state.scene.materials[max(computed.activeMaterialIndex, 0)].castsShadow == false}}" } } } }
 						] },
 						{ "repeat": { "for": "p", "in": "{{filter(computed.propPanels, it.needs != '' && contains(computed.propShown, it.key) && !contains(['dataPanel', 'surfaceMaterial', 'materialSettings'], it.key))}}" },
 						  "use": "panelHeader", "with": { "title": "{{p.title}}", "key": "{{p.key}}", "needs": "{{p.needs}}" } },

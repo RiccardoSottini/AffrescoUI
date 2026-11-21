@@ -2,6 +2,7 @@
 /// @brief The scene3d module's editable polygon meshes: their JSON, triangles, edit operations, modifiers and picking.
 
 #include <affresco/scene3d/PolyMesh.hpp>
+#include <affresco/scene3d/SceneJson.hpp>
 #include <affresco/scene3d/Viewport.hpp>
 
 #include <doctest/doctest.h>
@@ -185,6 +186,15 @@ TEST_CASE("scene3d: picking a vertex, an edge or a face of a polygon mesh") {
 	REQUIRE(face);
 	CHECK(*face == 3);
 	CHECK_FALSE(nearestVertex(PolyMesh{}, {}).has_value());
+}
+
+TEST_CASE("scene3d: a material that casts no shadow says so in its JSON") {
+	const Scene scene = sceneFromJson(json::parse(R"({"materials": [{"id": "m", "castsShadow": false}, {"id": "n"}]})"));
+	REQUIRE(scene.materials.size() == 2);
+	CHECK_FALSE(scene.materials[0].castsShadow);
+	CHECK(scene.materials[1].castsShadow);
+	CHECK(toJson(scene.materials[0])["castsShadow"] == false);
+	CHECK_FALSE(toJson(scene.materials[1]).contains("castsShadow"));
 }
 
 TEST_CASE("scene3d: a gimbal's axes follow the Euler angles") {

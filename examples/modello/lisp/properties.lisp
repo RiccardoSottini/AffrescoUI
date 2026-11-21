@@ -639,7 +639,7 @@
   `(node
      :when ~(and (contains computed.propShown "materialSettings") (>= computed.activeMaterialIndex 0))
      :use propPanel
-     :with {:key materialSettings :body 56}
+     :with {:key materialSettings :body 80}
      (node :height 20 :width "100%" :color transparent
        ~(caption "properties.blendMode")
        (row
@@ -658,7 +658,13 @@
               :max 1
               :first true
               :last true
-              :text ~(fixed (get (material-value :baseColor [0.8 0.8 0.8 1]) 3) 3)})))
+              :text ~(fixed (get (material-value :baseColor [0.8 0.8 0.8 1]) 3) 3)})
+     (node :use checkRow
+       :with {:id prop-material-shadow
+              :label ~(t "properties.castShadow")
+              :checked ~(not (false? (material-value :castsShadow true)))
+              :run set-material
+              :with {:key castsShadow :value ~(false? (material-value :castsShadow true))}})))
 
 (defview blend-mode-button "One way a material uses its alpha; the ends round the row's corners." [mode]
   `(node :id ~(str "blend-mode-" mode)

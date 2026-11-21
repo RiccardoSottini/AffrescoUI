@@ -142,6 +142,7 @@ Material materialFromJson(const json& value, const std::string& where) {
 		material.alphaMode = static_cast<AlphaMode>(named(alphaModes, text(value, "alphaMode", where), where));
 	material.alphaCutoff = number(value, "alphaCutoff", material.alphaCutoff, where);
 	material.doubleSided = flag(value, "doubleSided", material.doubleSided, where);
+	material.castsShadow = flag(value, "castsShadow", material.castsShadow, where);
 	if(const auto textures = value.find("textures"); textures != value.end() && textures->is_object()) {
 		material.baseColorTexture = text(*textures, "baseColor", where + ".textures");
 		material.metallicRoughnessTexture = text(*textures, "metallicRoughness", where + ".textures");
@@ -239,6 +240,7 @@ json toJson(const Material& material) {
 	if(!material.normalTexture.empty()) textures["normal"] = material.normalTexture;
 	if(!material.emissiveTexture.empty()) textures["emissive"] = material.emissiveTexture;
 	if(!textures.empty()) value["textures"] = std::move(textures);
+	if(!material.castsShadow) value["castsShadow"] = false;
 	return value;
 }
 

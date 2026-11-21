@@ -240,8 +240,9 @@
                              (merge (meshEdges m bar) {:id "edit-edges"})
                              (merge (meshEdges m (* bar 2) picked-edge) {:id "edit-edge"})])
             :materials (concat scene.materials
-                               [{:id "edit-selected" :baseColor [1 0.55 0.12 0.5] :emissive [0.9 0.4 0.05] :alphaMode "blend"}
-                                {:id "edit-dot" :baseColor [0.04 0.04 0.05 1] :roughness 1}])
+                               [{:id "edit-selected" :baseColor [1 0.55 0.12 0.5] :emissive [0.9 0.4 0.05] :alphaMode "blend"
+                                 :castsShadow false}
+                                {:id "edit-dot" :baseColor [0.04 0.04 0.05 1] :roughness 1 :castsShadow false}])
             :nodes (concat scene.nodes
                            [{:id "edit-pivot" :parent (:id n) :translation centre}
                             {:id "edit-wire" :parent (:id n) :mesh "edit-edges" :material "edit-dot"}

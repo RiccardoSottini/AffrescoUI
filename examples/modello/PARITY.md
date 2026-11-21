@@ -27,7 +27,7 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | Properties: Modifiers tab | done | mirror (X, Y or Z), array (its count) and subdivision (its levels), stacked, each removable, undoable; drawn live, and left out while the object is in Edit Mode |
 | Properties: Texture tab | done | Open Image picks a PNG or JPEG as the material's base colour texture (kept in the scene, saved with it), Remove Image takes it off; a primitive maps it by its own coordinates, an edited mesh has none yet |
 | Properties: Data › Normals | done | Shade Smooth on or off for a mesh (its primitive becomes an editable mesh) |
-| Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; blend mode (opaque, clip, blend) and alpha; the world colour; a light's or a camera's settings, a light's shadow; exposure; the frame range; the resolution (the render window takes its shape) and the frame rate (the timeline, playback and the export follow it); search |
+| Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; blend mode (opaque, clip, blend), alpha and whether it casts shadows; the world colour; a light's or a camera's settings, a light's shadow; exposure; the frame range; the resolution (the render window takes its shape) and the frame rate (the timeline, playback and the export follow it); search |
 | Timeline: play controls, frame, start, end | done | |
 | Timeline: keyframe diamonds | done | |
 | Keyframes animate (playback, next and previous key, dragging keys) | done | translation, rotation and scale, in frame order |
@@ -103,8 +103,8 @@ the properties, glyphs that contrast with the background, a solid shading whose 
 
 Round 5 (round 2 of the revamp): 58 done, 4 partial, 1 missing (three rows added: the Modifiers and Texture tabs, Data › Normals). Edit Mode on editable polygon meshes (`scene3d`'s `PolyMesh.hpp`
 and the `mesh...` expression functions): vertex, edge and face selection, extrude, inset, loop cut, delete, proportional
-editing; the modifier stack; Shade Smooth; glTF import; image textures; several scenes; the Gimbal orientation; a turned or
-scaled parent keeping its child's place.
+editing; the modifier stack; Shade Smooth; glTF import; image textures; several scenes; the Gimbal orientation; materials that
+cast no shadow; a turned or scaled parent keeping its child's place.
 
 ## Left for later
 
@@ -117,7 +117,6 @@ occasionally; P3: rarely.
 | E and Ctrl+B following the pointer; bevelling several edges or vertices | P1 | JSON: the extrude starting a move of the pivot from where it was; library: `bevelEdge` over a chain of edges |
 | Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
 | Textures in the glTF export and on edited meshes; glTF import with textures and animations | P2 | library: the export embedding the scene's pictures; texture coordinates on polygon meshes; `gltfScene` keeping them |
-| Material › Settings: shadow | P2 | library: shadow casting per material (blend mode and alpha are done) |
 | Camera › Depth of Field | P2 | library: depth of field in the scene renderer (Light › Shadow and Mesh › Normals are done) |
 | Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
 | Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |
