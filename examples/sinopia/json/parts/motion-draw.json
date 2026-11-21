@@ -10,7 +10,7 @@
 	},
 
 	"computed": {
-		"drawnPath": "{{state.tab == 'animations' && computed.animation.effect == 'pathCustom' && length(computed.animation.points ?? []) > 1 ? 'M ' + join(map(computed.animation.points, ((computed.first.x ?? computed.firstPlaceholder.x ?? 0) + (computed.first.w ?? computed.firstPlaceholder.w ?? 0) / 2 + it[0]) + ' ' + ((computed.first.y ?? computed.firstPlaceholder.y ?? 0) + (computed.first.h ?? computed.firstPlaceholder.h ?? 0) / 2 + it[1])), ' L ') : null}}",
+		"drawnPath": "{{state.tab == 'animations' && computed.animation.effect == 'pathCustom' && length(computed.animation.points ?? []) > 1 ? 'M ' + join(map(computed.animation.points, '' + (number(computed.first.x ?? (computed.firstPlaceholder.x ?? 0)) + number(computed.first.w ?? (computed.firstPlaceholder.w ?? 0)) / 2 + number(it[0])) + ' ' + (number(computed.first.y ?? (computed.firstPlaceholder.y ?? 0)) + number(computed.first.h ?? (computed.firstPlaceholder.h ?? 0)) / 2 + number(it[1]))), ' L ') : null}}",
 		"livePath": "{{'M ' + join(map(state.pathPoints, fixed((it[0] - computed.view.camera.x) * computed.view.camera.zoom, 1) + ' ' + fixed((it[1] - computed.view.camera.y) * computed.view.camera.zoom, 1)), ' L ')}}"
 	},
 
