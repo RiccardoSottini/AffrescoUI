@@ -105,6 +105,15 @@ json point(const json& value, const std::string& at) {
 	return value;
 }
 
+/// @brief Checks a gizmo's space: "world", "local", "view" or "gimbal".
+/// @param value The value. @param at Its place, for errors.
+/// @throws DocumentError If it isn't one of them.
+void gizmoSpace(const json& value, const std::string& at) {
+	const std::string space = string(value, at);
+	if(space != "world" && space != "local" && space != "view" && space != "gimbal")
+		fail(at, R"(expected "world", "local", "view" or "gimbal")");
+}
+
 /// @brief Reads "gizmo": {visible, mode, space (world, local, view or gimbal), pixels, pivot, individual, snap: {translate, rotate, scale}}, checked.
 /// @param value The value. @param at Its place, for errors. @return It.
 /// @throws DocumentError If a member is of the wrong kind or out of range.
@@ -113,11 +122,7 @@ json readGizmo(const json& value, const std::string& at) {
 	if(gizmo.contains("visible")) boolean(gizmo["visible"], at + ".visible");
 	if(gizmo.contains("mode") && !scene3d::gizmoModeNamed(string(gizmo["mode"], at + ".mode")))
 		fail(at + ".mode", R"(expected "translate", "rotate" or "scale")");
-	if(gizmo.contains("space")) {
-		const std::string space = string(gizmo["space"], at + ".space");
-		if(space != "world" && space != "local" && space != "view" && space != "gimbal")
-			fail(at + ".space", R"(expected "world", "local", "view" or "gimbal")");
-	}
+	if(gizmo.contains("space")) gizmoSpace(gizmo["space"], at + ".space");
 	if(gizmo.contains("individual")) boolean(gizmo["individual"], at + ".individual");
 	if(gizmo.contains("pixels")) within(gizmo["pixels"], at + ".pixels", 10.0f, 400.0f);
 	if(gizmo.contains("pivot") && !gizmo["pivot"].is_null()) point(gizmo["pivot"], at + ".pivot");

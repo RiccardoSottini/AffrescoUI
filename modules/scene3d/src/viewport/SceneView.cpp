@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <optional>
 #include <set>
 #include <string_view>
 
@@ -190,24 +191,60 @@ void SceneView::setScene(const json& scene, const json& animations, float time) 
 	place(scene, animations, time);
 }
 
+namespace {
+
+/// @brief A scene's list of things by a key. @param scene The scene. @param key The key.
+/// @return The list, or null when the scene has none.
+const json* sceneList(const json& scene, const char* key) {
+	if(!scene.is_object()) return nullptr;
+	const auto list = scene.find(key);
+	return list != scene.end() && list->is_array() ? &*list : nullptr;
+}
+
+/// @brief Whether a thing has a text member. @param item The thing. @param key The member. @return Whether it has.
+bool hasText(const json& item, const char* key) { return item.contains(key) && item[key].is_string(); }
+
+/// @brief The id of a scene's mesh or picture: a text of 1 to 64 characters without ':'.
+/// @param item The mesh or picture. @return The id, or nothing when it has none of those.
+std::optional<std::string> placeableId(const json& item) {
+	if(!item.is_object() || !hasText(item, "id")) return std::nullopt;
+	std::string id = item["id"].get<std::string>();
+	if(id.empty() || id.size() > 64 || id.contains(':')) return std::nullopt;
+	return id;
+}
+
+/// @brief A decoded picture as a texture, its colours made straight alpha, as glTF's, and the picture kept as given:
+/// what a glTF export embeds.
+/// @param bitmap The decoded picture. @param image The picture as given. @return The texture.
+TextureData straightTexture(const Bitmap& bitmap, const std::string& image) {
+	TextureData data{bitmap.width(), bitmap.height(), {bitmap.pixels().begin(), bitmap.pixels().end()}, true, image};
+	for(std::size_t p = 0; p + 3 < data.pixels.size(); p += 4) {
+		const unsigned alpha = data.pixels[p + 3];
+		if(alpha == 0 || alpha == 255) continue;
+		for(std::size_t c = 0; c < 3; ++c)
+			data.pixels[p + c] =
+			    static_cast<std::uint8_t>(std::min(255u, (data.pixels[p + c] * 255u + alpha / 2) / alpha));
+	}
+	return data;
+}
+
 /// @brief Puts a scene's polygon meshes ("meshes": [{id, vertices, faces, smooth}]) into the store, triangulated, the
 /// ones that changed only; an id a primitive or a file's mesh has (with ':') is skipped, as is a malformed mesh.
 /// @param scene The scene. @param given The meshes put last time, updated. @param assets The store.
-static void placeMeshes(const json& scene, std::map<std::string, json, std::less<>>& given, Assets& assets) {
+void placeMeshes(const json& scene, std::map<std::string, json, std::less<>>& given, Assets& assets) {
 	constexpr std::size_t maxMeshes = 256;
-	const auto meshes = scene.is_object() ? scene.find("meshes") : scene.end();
-	if(!scene.is_object() || meshes == scene.end() || !meshes->is_array()) return;
+	const json* meshes = sceneList(scene, "meshes");
+	if(!meshes) return;
 	for(std::size_t i = 0; i < meshes->size() && i < maxMeshes; ++i) {
 		const json& mesh = (*meshes)[i];
-		if(!mesh.is_object() || !mesh.contains("id") || !mesh["id"].is_string()) continue;
-		const std::string id = mesh["id"].get<std::string>();
-		if(id.empty() || id.size() > 64 || id.find(':') != std::string::npos || primitiveNamed(id)) continue;
-		if(const auto found = given.find(id); found != given.end() && found->second == mesh) continue;
+		const std::optional<std::string> id = placeableId(mesh);
+		if(!id || primitiveNamed(*id)) continue;
+		if(const auto found = given.find(*id); found != given.end() && found->second == mesh) continue;
 		try {
-			assets.setMesh(id, triangulate(polyMeshFromJson(mesh)));
-			given[id] = mesh;
+			assets.setMesh(*id, triangulate(polyMeshFromJson(mesh)));
+			given[*id] = mesh;
 		} catch(const std::exception& failure) {
-			log(LogLevel::Warning, "scene: the mesh \"" + id + "\" wasn't placed: " + failure.what());
+			log(LogLevel::Warning, "scene: the mesh \"" + *id + "\" wasn't placed: " + failure.what());
 		}
 	}
 }
@@ -215,40 +252,30 @@ static void placeMeshes(const json& scene, std::map<std::string, json, std::less
 /// @brief Puts a scene's pictures ("textures": [{id, image}], each a PNG or JPEG `data:` URI of at most 8 MiB and
 /// 2048 pixels a side) into the store for its materials, the ones that changed only; a malformed one is skipped.
 /// @param scene The scene. @param given The pictures put last time, updated. @param assets The store.
-static void placeTextures(const json& scene, std::map<std::string, std::string, std::less<>>& given, Assets& assets) {
+void placeTextures(const json& scene, std::map<std::string, std::string, std::less<>>& given, Assets& assets) {
 	constexpr std::size_t maxTextures = 32;
-	const auto textures = scene.is_object() ? scene.find("textures") : scene.end();
-	if(!scene.is_object() || textures == scene.end() || !textures->is_array()) return;
+	const json* textures = sceneList(scene, "textures");
+	if(!textures) return;
 	for(std::size_t i = 0; i < textures->size() && i < maxTextures; ++i) {
 		const json& texture = (*textures)[i];
-		if(!texture.is_object() || !texture.contains("id") || !texture["id"].is_string() ||
-		   !texture.contains("image") || !texture["image"].is_string())
-			continue;
-		const std::string id = texture["id"].get<std::string>();
+		if(!texture.is_object() || !hasText(texture, "id") || !hasText(texture, "image")) continue;
+		const std::optional<std::string> id = placeableId(texture);
+		if(!id) continue;
 		const std::string& image = texture["image"].get_ref<const std::string&>();
-		if(id.empty() || id.size() > 64 || id.find(':') != std::string::npos) continue;
-		if(const auto found = given.find(id); found != given.end() && found->second == image) continue;
+		if(const auto found = given.find(*id); found != given.end() && found->second == image) continue;
 		try {
 			const auto bitmap =
 			    Bitmap::fromDataUri(image, Bitmap::Limits{std::size_t{8} << 20, 2048, std::size_t{1} << 22});
 			if(!bitmap) continue;
-			// The picture is kept as given: what a glTF export embeds
-			TextureData data{
-			    bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, true, image};
-			for(std::size_t p = 0; p + 3 < data.pixels.size(); p += 4) { // straight alpha, as glTF's
-				const unsigned alpha = data.pixels[p + 3];
-				if(alpha == 0 || alpha == 255) continue;
-				for(std::size_t c = 0; c < 3; ++c)
-					data.pixels[p + c] =
-					    static_cast<std::uint8_t>(std::min(255u, (data.pixels[p + c] * 255u + alpha / 2) / alpha));
-			}
-			assets.setTexture(id, std::move(data));
-			given[id] = image;
+			assets.setTexture(*id, straightTexture(*bitmap, image));
+			given[*id] = image;
 		} catch(const std::exception& failure) {
-			log(LogLevel::Warning, "scene: the texture \"" + id + "\" wasn't placed: " + failure.what());
+			log(LogLevel::Warning, "scene: the texture \"" + *id + "\" wasn't placed: " + failure.what());
 		}
 	}
 }
+
+} // namespace
 
 void SceneView::place(const json& scene, const json& animations, float time) {
 	placeMeshes(scene, internals_->meshes, *internals_->assets);

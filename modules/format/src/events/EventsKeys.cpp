@@ -243,9 +243,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const std::string press = chording ? chord_ + " " + name : name;
 	bool waits = false; // some key starts with this press
 	// The focused panel and its ancestors, then the document's; a focused text input keeps plain keys for typing
-	const bool ran = runPanelKeys(from, press, waits) ||
-	                 (!typesKey(from, event, name, chording) && !movesWith(engine_.reconciler, from, event) &&
-	                  runDocumentKeys(press, waits));
+	const bool ran = runPress(from, event, name, press, waits);
 	if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
 	else chord_.clear();              // it ran, or ends a chord, which drops it
 	if(chording || !chord_.empty()) engine_.document.contextChanged();
@@ -253,6 +251,13 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const bool taken = ran || waits || chording;
 	if(taken && engine_.window) engine_.window->takeKey();
 	return taken;
+}
+
+bool Events::runPress(Panel* from, const KeyEvent& event, const std::string& name, const std::string& press,
+                      bool& waits) {
+	return runPanelKeys(from, press, waits) ||
+	       (!typesKey(from, event, name, !chord_.empty()) && !movesWith(engine_.reconciler, from, event) &&
+	        runDocumentKeys(press, waits));
 }
 
 bool Events::escape(bool chording) {

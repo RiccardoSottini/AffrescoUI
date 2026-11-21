@@ -4,7 +4,10 @@
 
 #include "Engine.hpp"
 
+#include "affresco/core/Log.hpp"
+
 #include <algorithm>
+#include <exception>
 #include <string>
 #include <string_view>
 
@@ -68,7 +71,12 @@ void openUrlStep(const Running& s) {
 		 .decline = "Cancel"},
 	    [&engine, url](bool yes) {
 		    engine.webQuestion = 0;
-		    if(yes && engine.openWebAddress) engine.openWebAddress(url);
+		    if(!yes || !engine.openWebAddress) return;
+		    try {
+			    engine.openWebAddress(url);
+		    } catch(const std::exception& error) { // the answer comes from the window's input: nothing may escape
+			    log(LogLevel::Warning, std::string("AffrescoUI screen: the web address didn't open: ") + error.what());
+		    }
 	    });
 	if(engine.webQuestion == 0) engine.report("AffrescoUI screen: " + s.where + ": a question is shown already");
 }

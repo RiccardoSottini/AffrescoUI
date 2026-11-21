@@ -9,6 +9,7 @@
 #include <doctest/doctest.h>
 
 #include <cmath>
+#include <numbers>
 
 using namespace affresco::scene3d;
 using affresco::json;
@@ -131,7 +132,7 @@ TEST_CASE("scene3d: moving vertices with a falloff, scaling and flipping") {
 	CHECK(grown.vertices[0].x == doctest::Approx(-2.0f));
 	CHECK(dot(faceNormal(flipFaces(plane), 0), {0.0f, 1.0f, 0.0f}) == doctest::Approx(-1.0f));
 	const PolyMesh turned = rotateVertices(polyPrimitive(Primitive::Plane), {0, 1, 2, 3},
-	                                       Quat::fromAxisAngle({0.0f, 1.0f, 0.0f}, 3.14159265f / 2.0f));
+	                                       Quat::fromAxisAngle({0.0f, 1.0f, 0.0f}, std::numbers::pi_v<float> / 2.0f));
 	CHECK(turned.vertices[0].x == doctest::Approx(1.0f).epsilon(1e-4)); // (-1, 0, 1) a quarter turn about y
 	CHECK(turned.vertices[0].z == doctest::Approx(1.0f).epsilon(1e-4));
 }
@@ -200,12 +201,12 @@ TEST_CASE("scene3d: a material that casts no shadow says so in its JSON") {
 }
 
 TEST_CASE("scene3d: a glTF export embeds a base colour texture whose picture was kept") {
-	Scene scene = sceneFromJson(json::parse(
+	const Scene scene = sceneFromJson(json::parse(
 	    R"({"nodes": [{"id": "a", "mesh": "cube", "material": "m"}],
 	        "materials": [{"id": "m", "textures": {"baseColor": "t"}}, {"id": "n", "textures": {"baseColor": "u"}}]})"));
 	Assets assets;
 	assets.setMesh("cube", makeCube());
-	TextureData picture{1, 1, {255, 0, 0, 255}, true, "data:image/png;base64,AAAA"};
+	const TextureData picture{1, 1, {255, 0, 0, 255}, true, "data:image/png;base64,AAAA"};
 	assets.setTexture("t", picture);
 	std::vector<std::string> warnings;
 	const json file = json::parse(exportGltf(scene, assets, {}, &warnings));
@@ -218,13 +219,14 @@ TEST_CASE("scene3d: a glTF export embeds a base colour texture whose picture was
 
 TEST_CASE("scene3d: a gimbal's axes follow the Euler angles") {
 	const auto near = [](Vec3 a, Vec3 b) { return length(a - b) < 1e-4f; };
+	constexpr float quarter = std::numbers::pi_v<float> / 2.0f;
 	Transform turned;
-	turned.rotation = Quat::fromEuler({0.0f, 0.0f, 3.14159265f / 2.0f}); // a quarter turn about z
+	turned.rotation = Quat::fromEuler({0.0f, 0.0f, quarter}); // a quarter turn about z
 	const auto axes = gimbalAxes(turned.matrix(), Quat{});
 	CHECK(near(axes[0], {0.0f, 1.0f, 0.0f})); // x turns with z
 	CHECK(near(axes[1], {-1.0f, 0.0f, 0.0f}));
-	CHECK(near(axes[2], {0.0f, 0.0f, 1.0f}));                            // z stays
-	turned.rotation = Quat::fromEuler({3.14159265f / 2.0f, 0.0f, 0.0f}); // about x only: y and z don't follow it
+	CHECK(near(axes[2], {0.0f, 0.0f, 1.0f}));                 // z stays
+	turned.rotation = Quat::fromEuler({quarter, 0.0f, 0.0f}); // about x only: y and z don't follow it
 	const auto still = gimbalAxes(turned.matrix(), Quat{});
 	CHECK(near(still[1], {0.0f, 1.0f, 0.0f}));
 	CHECK(near(still[2], {0.0f, 0.0f, 1.0f}));

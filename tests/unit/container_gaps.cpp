@@ -42,7 +42,7 @@ struct Built {
 
 	/// @brief Clicks a point as the person does.
 	/// @param at The point.
-	void click(affresco::Vec2 at) {
+	void click(affresco::Vec2 at) const {
 		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, at});
 		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, at});
 		window->render();
@@ -53,7 +53,7 @@ struct Built {
 /// @param root The root node.
 /// @param more Other sections.
 /// @return The document.
-json screenOf(json root, json more = json::object()) {
+json screenOf(json root, const json& more = json::object()) {
 	json document = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", std::move(root)}};
 	document.update(more);
 	return document;
@@ -180,8 +180,8 @@ TEST_CASE("openUrl: asks the person with the whole address, opens nothing on a n
 	REQUIRE(question != nullptr);
 	bool shown = false;
 	const std::function<void(const affresco::AccessibleNode&)> look = [&](const affresco::AccessibleNode& node) {
-		shown = shown || node.value.find("https://example.com/help?topic=1") != std::string::npos ||
-		        node.name.find("https://example.com/help?topic=1") != std::string::npos;
+		shown = shown || node.value.contains("https://example.com/help?topic=1") ||
+		        node.name.contains("https://example.com/help?topic=1");
 		for(const auto& child : node.children) look(child);
 	};
 	look(affresco::accessibilityTree(*question));

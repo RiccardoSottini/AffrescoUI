@@ -135,6 +135,15 @@ private:
 	/// @param chording Whether a chord is in progress.
 	/// @return true if it ended a chord, so the press is taken.
 	bool escape(bool chording);
+	/// @brief Runs the bindings of a press: the focused panel's and its ancestors', then the document's unless a
+	/// focused text input types the key or a focused node moves with it.
+	/// @param from The focused panel, or nullptr.
+	/// @param event The event.
+	/// @param name The key's name (shortcut()).
+	/// @param press The press, with the chord in progress before it.
+	/// @param waits Set when a key starts with the press.
+	/// @return true if a binding ran.
+	bool runPress(Panel* from, const KeyEvent& event, const std::string& name, const std::string& press, bool& waits);
 	/// @brief Runs the "keys" binding of a press on the focused panel or its nearest ancestor that has one.
 	/// @param from The focused panel, or nullptr.
 	/// @param press The press, with the chord in progress before it.

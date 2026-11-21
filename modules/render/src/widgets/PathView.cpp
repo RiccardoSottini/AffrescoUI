@@ -121,7 +121,7 @@ void PathView::build(Vec2 size) const {
 float PathView::groupOpacity() const {
 	const float fill = fillMesh_.empty() ? 0.0f : fillColor_.a, stroke = strokeMesh_.empty() ? 0.0f : strokeColor_.a;
 	const float most = std::max(fill, stroke);
-	if(!(most > 0.0f && most < 1.0f) || !gradientBands_.empty() || !children().empty() || color().a > 0.0f ||
+	if(most <= 0.0f || most >= 1.0f || !gradientBands_.empty() || !children().empty() || color().a > 0.0f ||
 	   borderWidth() > 0.0f || shadow().isVisible())
 		return 1.0f;
 	for(const Panel* panel = this; panel; panel = panel->parent())

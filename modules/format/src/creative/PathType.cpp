@@ -164,7 +164,7 @@ void applyPath(Panel& panel, const json& values, const PropertyReader& reader, c
 	view->setFillRule(values.contains("fillRule")
 	                      ? choiceOf(values["fillRule"], path + ".fillRule", rules, R"("nonzero" or "evenodd")")
 						  : FillRule::nonZero);
-	view->setFeather(values.contains("feather") ? static_cast<float>(number(values["feather"], path + ".feather"))
+	view->setFeather(values.contains("feather") ? number(values["feather"], path + ".feather")
 	                                            : 1.0f);
 	view->setStrokeColor(values.contains("stroke") ? reader.color(values["stroke"], path + ".stroke")
 	                                               : colors::transparent);

@@ -50,6 +50,25 @@ std::uint16_t toUnorm16(float value) noexcept {
 	return static_cast<std::uint16_t>(std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f));
 }
 
+/// @brief Whether a panel is a translucent group whose texture, made from the records of the frame before, can be
+/// drawn as laid out.
+/// @param opacity The panel's drawn opacity.
+/// @param geometry The panel's geometry, or null.
+/// @return Whether it is.
+bool translucentCached(float opacity, const detail::PanelGeometry* geometry) noexcept {
+	return opacity < 1.0f && geometry && geometry->recorded && geometry->cached && geometry->world.isIdentity() &&
+	       !geometry->subtreeTransformed;
+}
+
+/// @brief A parent's clip for its children, in a child's own space.
+/// @param parent The parent.
+/// @param child The child.
+/// @return The clip, bounding the transformed one when the child is transformed.
+Rect clipInChild(const Panel& parent, const Panel& child) {
+	const std::optional<Affine2> inverse = child.isTransformed() ? child.localTransform().inverse() : std::nullopt;
+	return inverse ? inverse->boundingBox(parent.childClip()) : parent.childClip();
+}
+
 } // namespace
 
 QuadRenderer::QuadRenderer()
@@ -231,8 +250,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 	// A translucent group (Panel::drawnOpacity()) is drawn as a full frame draws it, through its texture: drawn
 	// directly its parts would blend one by one. Its texture is made from the records of the frame drawn before
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
-	if(panel.drawnOpacity() < 1.0f && geometry && geometry->recorded && geometry->cached &&
-	   geometry->world.isIdentity() && !geometry->subtreeTransformed && replayCached(panel, *geometry)) {
+	if(translucentCached(panel.drawnOpacity(), geometry) && replayCached(panel, *geometry)) {
 		scratchColor_ = true;
 		return;
 	}
@@ -253,9 +271,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 	for(const auto& child : panel.children()) {
 		if(child->isOverlay()) continue;
 		const bool clipped = clipChild(panel, *child, world, ClipStep::push);
-		const std::optional<Affine2> inverse =
-		    child->isTransformed() ? child->localTransform().inverse() : std::nullopt;
-		scratchTree(*child, inverse ? inverse->boundingBox(panel.childClip()) : panel.childClip(), depth + 1, world);
+		scratchTree(*child, clipInChild(panel, *child), depth + 1, world);
 		if(clipped) clipChild(panel, *child, world, ClipStep::pop);
 	}
 	world_ = world;

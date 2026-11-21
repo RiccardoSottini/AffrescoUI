@@ -187,6 +187,42 @@ Value meshCentre(const Call& call) {
 	return Value::ownJson(json::array({round(centre.x), round(centre.y), round(centre.z)}));
 }
 
+/// @brief A modifier's number. @param modifier The modifier. @param key The member. @param fallback When it has
+/// none, or one that isn't a finite number. @return The number.
+double modifierNumber(const Value& modifier, const char* key, double fallback) {
+	const std::optional<Value> v = modifier.member(key);
+	return v && v->isNumber() && std::isfinite(v->number()) ? v->number() : fallback;
+}
+
+/// @brief An array modifier's offset: its "offset" when it is [dx, dy, dz], else [2, 0, 0].
+/// @param modifier The modifier. @return The offset.
+Vec3 arrayOffset(const Value& modifier) {
+	Vec3 offset{2.0f, 0.0f, 0.0f};
+	if(const std::optional<Value> given = modifier.member("offset"); given && given->isList() && given->size() == 3)
+		for(int axis = 0; axis < 3; ++axis)
+			offset[axis] = static_cast<float>(given->item(static_cast<std::size_t>(axis)).number());
+	return offset;
+}
+
+/// @brief Applies one modifier of meshModifiers() to a mesh: mirror, array or subdivision; others leave it as it is.
+/// @param mesh The mesh. @param modifier The modifier. @param type Its type. @return The mesh.
+PolyMesh applyModifier(PolyMesh mesh, const Value& modifier, std::string_view type) {
+	if(type == "mirror") {
+		const std::optional<Value> axis = modifier.member("axis");
+		const std::string_view name = axis && axis->isText() ? axis->text() : "x";
+		return scene3d::mirrorMesh(mesh, name == "y" ? 1 : name == "z" ? 2 : 0);
+	}
+	if(type == "array")
+		return scene3d::arrayMesh(mesh, std::clamp(static_cast<int>(modifierNumber(modifier, "count", 2)), 1, 64),
+		                          arrayOffset(modifier));
+	if(type == "subdivision") {
+		const bool smooth = mesh.smooth;
+		mesh = scene3d::subdivide(mesh, std::clamp(static_cast<int>(modifierNumber(modifier, "levels", 1)), 0, 3));
+		mesh.smooth = smooth || modifierNumber(modifier, "levels", 1) > 0;
+	}
+	return mesh;
+}
+
 /// @brief meshModifiers(mesh, modifiers): a stack of modifiers applied in order: {type: 'mirror', axis},
 /// {type: 'array', count, offset} and {type: 'subdivision', levels}; others are skipped. @param call The call.
 /// @return The mesh.
@@ -197,26 +233,7 @@ Value meshModifiers(const Call& call) {
 		const Value modifier = stack.item(i);
 		const std::optional<Value> type = modifier.member("type");
 		if(!type || !type->isText()) continue;
-		const auto number = [&](const char* key, double fallback) {
-			const std::optional<Value> v = modifier.member(key);
-			return v && v->isNumber() && std::isfinite(v->number()) ? v->number() : fallback;
-		};
-		if(type->text() == "mirror") {
-			const std::optional<Value> axis = modifier.member("axis");
-			const std::string_view name = axis && axis->isText() ? axis->text() : "x";
-			mesh = scene3d::mirrorMesh(mesh, name == "y" ? 1 : name == "z" ? 2 : 0);
-		} else if(type->text() == "array") {
-			Vec3 offset{2.0f, 0.0f, 0.0f};
-			if(const std::optional<Value> given = modifier.member("offset");
-			   given && given->isList() && given->size() == 3)
-				for(int axis = 0; axis < 3; ++axis)
-					offset[axis] = static_cast<float>(given->item(static_cast<std::size_t>(axis)).number());
-			mesh = scene3d::arrayMesh(mesh, std::clamp(static_cast<int>(number("count", 2)), 1, 64), offset);
-		} else if(type->text() == "subdivision") {
-			const bool smooth = mesh.smooth;
-			mesh = scene3d::subdivide(mesh, std::clamp(static_cast<int>(number("levels", 1)), 0, 3));
-			mesh.smooth = smooth || number("levels", 1) > 0;
-		}
+		mesh = applyModifier(std::move(mesh), modifier, type->text());
 		call.spend(mesh.vertices.size() + mesh.faces.size());
 	}
 	return result(mesh);

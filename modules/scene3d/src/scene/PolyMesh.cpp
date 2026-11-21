@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <ranges>
 #include <set>
 #include <unordered_set>
 
@@ -86,6 +87,255 @@ Vec3 unit(Vec3 v) {
 	return l > 1e-12f ? v / l : Vec3{};
 }
 
+/// @brief Reads one vertex of a mesh's JSON. @param v It, [x, y, z]. @return The point.
+/// @throws DocumentError If it isn't three finite numbers.
+Vec3 readVertex(const json& v) {
+	if(!v.is_array() || v.size() != 3) fail("vertices: expected [x, y, z]");
+	Vec3 point;
+	for(int axis = 0; axis < 3; ++axis) {
+		const json& coordinate = v[static_cast<std::size_t>(axis)];
+		if(!coordinate.is_number() || !std::isfinite(coordinate.get<double>())) fail("vertices: expected numbers");
+		point[axis] = coordinate.get<float>();
+	}
+	return point;
+}
+
+/// @brief Reads one face of a mesh's JSON. @param f It, a list of vertex indices. @param limits Its sides at most.
+/// @param vertexCount How many vertices the mesh has. @return The face.
+/// @throws DocumentError If it has too few or too many sides, or an index names no vertex.
+std::vector<std::uint32_t> readFace(const json& f, const PolyLimits& limits, std::size_t vertexCount) {
+	if(!f.is_array() || f.size() < 3 || f.size() > limits.sides) fail("faces: expected 3 or more indices");
+	std::vector<std::uint32_t> face;
+	for(const json& index : f) {
+		if(!index.is_number_integer() || index.get<std::int64_t>() < 0 || index.get<std::uint64_t>() >= vertexCount)
+			fail("faces: an index names no vertex");
+		face.push_back(index.get<std::uint32_t>());
+	}
+	return face;
+}
+
+using Owners = std::map<Edge, std::vector<std::uint32_t>>; ///< Each edge, to the faces holding it.
+
+/// @brief Each edge of a mesh, to the faces holding it. @param mesh The mesh. @return The map.
+Owners edgeOwners(const PolyMesh& mesh) {
+	Owners owners;
+	for(std::size_t f = 0; f < mesh.faces.size(); ++f) {
+		const auto& face = mesh.faces[f];
+		for(std::size_t i = 0; i < face.size(); ++i)
+			owners[edgeKey(face[i], face[(i + 1) % face.size()])].push_back(static_cast<std::uint32_t>(f));
+	}
+	return owners;
+}
+
+/// @brief Where a quad holds an edge. @param quad The quad. @param e The edge. @return Its position, 0 if none.
+std::size_t quadPosition(const std::vector<std::uint32_t>& quad, Edge e) {
+	for(std::size_t i = 0; i < 4; ++i)
+		if(edgeKey(quad[i], quad[(i + 1) % 4]) == e) return i;
+	return 0;
+}
+
+/// @brief Walks a ring of quads from an edge, each to the quad across, recording where each quad is cut.
+/// @param mesh The mesh. @param owners Each edge's faces. @param edge The edge to start from.
+/// @param cuts Each quad of the ring so far, to the position of its cut edge; added to.
+void walkRing(const PolyMesh& mesh, const Owners& owners, Edge edge, std::map<std::uint32_t, std::size_t>& cuts) {
+	for(;;) {
+		const auto found = owners.find(edge);
+		if(found == owners.end()) return;
+		std::optional<std::uint32_t> next;
+		for(const std::uint32_t f : found->second)
+			if(mesh.faces[f].size() == 4 && !cuts.contains(f)) next = f;
+		if(!next) return;
+		const auto& quad = mesh.faces[*next];
+		const std::size_t at = quadPosition(quad, edge);
+		cuts[*next] = at;
+		edge = edgeKey(quad[(at + 2) % 4], quad[(at + 3) % 4]);
+	}
+}
+
+/// @brief A face with the middle of each of its cut edges inserted. @param face It.
+/// @param middles Each cut edge, to its middle vertex. @return The new face.
+std::vector<std::uint32_t> withMiddles(const std::vector<std::uint32_t>& face,
+                                       const std::map<Edge, std::uint32_t>& middles) {
+	std::vector<std::uint32_t> with;
+	for(std::size_t i = 0; i < face.size(); ++i) {
+		with.push_back(face[i]);
+		if(const auto found = middles.find(edgeKey(face[i], face[(i + 1) % face.size()])); found != middles.end())
+			with.push_back(found->second);
+	}
+	return with;
+}
+
+/// @brief The faces holding an edge, once per time they hold it. @param mesh The mesh. @param a One end.
+/// @param b The other. @return Their indices.
+std::vector<std::size_t> edgeHolders(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b) {
+	std::vector<std::size_t> holders;
+	for(std::size_t f = 0; f < mesh.faces.size(); ++f) {
+		const auto& face = mesh.faces[f];
+		for(std::size_t i = 0; i < face.size(); ++i)
+			if(edgeKey(face[i], face[(i + 1) % face.size()]) == edgeKey(a, b)) holders.push_back(f);
+	}
+	return holders;
+}
+
+/// @brief In a bevel's holder, a vertex of the edge moved towards its other neighbour in that face.
+struct Moved {
+	std::uint32_t from;      ///< The edge's vertex.
+	std::uint32_t neighbour; ///< Its other neighbour in the face.
+	std::uint32_t to;        ///< The new vertex.
+};
+
+/// @brief The four moved vertices of a bevel: each end of the edge, in each holder.
+struct BevelEnds {
+	Moved a1; ///< End a in holder 0.
+	Moved b1; ///< End b in holder 0.
+	Moved a2; ///< End a in holder 1.
+	Moved b2; ///< End b in holder 1.
+};
+
+/// @brief Moves the edge's vertices in each holder towards their other neighbours, as new vertices.
+/// @param mesh The mesh as it was (read). @param result The mesh being made (written). @param holders The faces.
+/// @param a One end. @param b The other. @param t How far, 0 to 0.5. @return The moved vertices, in holder order.
+std::vector<Moved> moveHolderEnds(const PolyMesh& mesh, PolyMesh& result, const std::vector<std::size_t>& holders,
+                                  std::uint32_t a, std::uint32_t b, float t) {
+	std::vector<Moved> moved;
+	for(const std::size_t f : holders) {
+		const auto& face = mesh.faces[f]; // read from the mesh as it was, written into the result
+		const std::size_t n = face.size();
+		for(std::size_t i = 0; i < n; ++i) {
+			if(face[i] != a && face[i] != b) continue;
+			const std::uint32_t before = face[(i + n - 1) % n], after = face[(i + 1) % n];
+			const std::uint32_t other = face[i] == a ? b : a;
+			const std::uint32_t neighbour = before == other ? after : before;
+			const auto to = static_cast<std::uint32_t>(result.vertices.size());
+			result.vertices.push_back(lerp(mesh.vertices[face[i]], mesh.vertices[neighbour], t));
+			moved.push_back({face[i], neighbour, to});
+			result.faces[f][i] = to;
+		}
+	}
+	return moved;
+}
+
+/// @brief The vertex moved from an end in a holder. @param moved The moved vertices. @param from The end.
+/// @param holder 0 or 1. @return It, or the first if none.
+Moved movedOf(const std::vector<Moved>& moved, std::uint32_t from, std::size_t holder) {
+	for(std::size_t k = 0; k < moved.size(); ++k)
+		if(moved[k].from == from && k / 2 == holder) return moved[k];
+	return moved.front();
+}
+
+/// @brief Gives a face around an end of the bevelled edge both new vertices, each beside the face it came from.
+/// @param face The face. @param a One end. @param b The other. @param ends The moved vertices.
+void splitEnds(std::vector<std::uint32_t>& face, std::uint32_t a, std::uint32_t b, const BevelEnds& ends) {
+	for(std::size_t i = 0; i < face.size(); ++i) {
+		if(face[i] != a && face[i] != b) continue;
+		const Moved& first = face[i] == a ? ends.a1 : ends.b1;
+		const Moved& second = face[i] == a ? ends.a2 : ends.b2;
+		const std::uint32_t before = face[(i + face.size() - 1) % face.size()];
+		const bool firstBefore = before == first.neighbour;
+		face[i] = firstBefore ? first.to : second.to;
+		face.insert(face.begin() + static_cast<std::ptrdiff_t>(i) + 1, firstBefore ? second.to : first.to);
+		++i;
+	}
+}
+
+/// @brief Whether a face runs from one vertex straight to another. @param face The face. @param a The first.
+/// @param b The second. @return Whether b follows a, true if a isn't in it.
+bool runsForward(const std::vector<std::uint32_t>& face, std::uint32_t a, std::uint32_t b) {
+	for(std::size_t i = 0; i < face.size(); ++i)
+		if(face[i] == a) return face[(i + 1) % face.size()] == b;
+	return true;
+}
+
+/// @brief What one Catmull-Clark step builds: the new mesh, its edge points, and sums per old vertex.
+struct Subdivision {
+	PolyMesh next;                           ///< The mesh being made.
+	std::map<Edge, std::uint32_t> edgeIndex; ///< Each old edge, to its edge point.
+	std::vector<Vec3> edgeSums;              ///< Per old vertex, the sum of its edges' middles.
+	std::vector<Vec3> boundarySums;          ///< Per old vertex, the sum of its boundary edges' middles.
+	std::vector<Vec3> faceSums;              ///< Per old vertex, the sum of its faces' points.
+	std::vector<int> valence;                ///< Per old vertex, its edges.
+	std::vector<int> boundary;               ///< Per old vertex, its boundary edges.
+	std::vector<int> faceCounts;             ///< Per old vertex, its faces.
+};
+
+/// @brief Adds the edge points, and sums each old vertex's edge middles. @param current The mesh.
+/// @param edges Its edges. @param facePoints Its face points. @param s The step; added to.
+void addEdgePoints(const PolyMesh& current, const std::vector<Edge>& edges, const std::vector<Vec3>& facePoints,
+                   Subdivision& s) {
+	Owners owners = edgeOwners(current);
+	for(const Edge& e : edges) {
+		const auto& by = owners[e];
+		const Vec3 mid = lerp(current.vertices[e[0]], current.vertices[e[1]], 0.5f);
+		Vec3 point = mid;
+		if(by.size() == 2)
+			point = (current.vertices[e[0]] + current.vertices[e[1]] + facePoints[by[0]] + facePoints[by[1]]) * 0.25f;
+		s.edgeIndex[e] = static_cast<std::uint32_t>(s.next.vertices.size());
+		s.next.vertices.push_back(point);
+		for(const std::uint32_t v : e) {
+			s.edgeSums[v] = s.edgeSums[v] + mid;
+			++s.valence[v];
+			if(by.size() != 2) {
+				s.boundarySums[v] = s.boundarySums[v] + mid;
+				++s.boundary[v];
+			}
+		}
+	}
+}
+
+/// @brief An old vertex's new place. @param p Where it was. @param s The step. @param v Its index.
+/// @return Where it goes: by its boundary, by its faces and edges, or where it was.
+Vec3 smoothedVertex(Vec3 p, const Subdivision& s, std::uint32_t v) {
+	if(s.boundary[v] >= 2) return p * 0.5f + s.boundarySums[v] * (0.5f / static_cast<float>(s.boundary[v]));
+	if(s.valence[v] >= 3 && s.faceCounts[v] > 0) {
+		const auto n = static_cast<float>(s.valence[v]);
+		const Vec3 f = s.faceSums[v] / static_cast<float>(s.faceCounts[v]), r = s.edgeSums[v] / n;
+		return (f + r * 2.0f + p * (n - 3.0f)) / n;
+	}
+	return p;
+}
+
+/// @brief Adds each face's point and its quads, one per corner. @param current The mesh.
+/// @param facePoints Its face points. @param s The step; added to.
+void addFaceQuads(const PolyMesh& current, const std::vector<Vec3>& facePoints, Subdivision& s) {
+	for(std::size_t f = 0; f < current.faces.size(); ++f) {
+		const auto& face = current.faces[f];
+		const auto centre = static_cast<std::uint32_t>(s.next.vertices.size());
+		s.next.vertices.push_back(facePoints[f]);
+		for(std::size_t i = 0; i < face.size(); ++i) {
+			const std::uint32_t before = face[(i + face.size() - 1) % face.size()];
+			const std::uint32_t after = face[(i + 1) % face.size()];
+			s.next.faces.push_back(
+			    {face[i], s.edgeIndex[edgeKey(face[i], after)], centre, s.edgeIndex[edgeKey(before, face[i])]});
+		}
+	}
+}
+
+/// @brief One Catmull-Clark step. @param current The mesh. @param edges Its edges. @return The subdivided mesh.
+PolyMesh subdivideOnce(const PolyMesh& current, const std::vector<Edge>& edges) {
+	const auto vertexCount = static_cast<std::uint32_t>(current.vertices.size());
+	std::vector<Vec3> facePoints;
+	facePoints.reserve(current.faces.size());
+	for(std::size_t f = 0; f < current.faces.size(); ++f) facePoints.push_back(faceCentre(current, f));
+	Subdivision s;
+	s.next.smooth = current.smooth;
+	s.next.vertices.resize(vertexCount);
+	s.edgeSums.resize(vertexCount);
+	s.boundarySums.resize(vertexCount);
+	s.faceSums.resize(vertexCount);
+	s.valence.assign(vertexCount, 0);
+	s.boundary.assign(vertexCount, 0);
+	s.faceCounts.assign(vertexCount, 0);
+	addEdgePoints(current, edges, facePoints, s);
+	for(std::size_t f = 0; f < current.faces.size(); ++f)
+		for(const std::uint32_t v : current.faces[f]) {
+			s.faceSums[v] = s.faceSums[v] + facePoints[f];
+			++s.faceCounts[v];
+		}
+	for(std::uint32_t v = 0; v < vertexCount; ++v) s.next.vertices[v] = smoothedVertex(current.vertices[v], s, v);
+	addFaceQuads(current, facePoints, s);
+	return std::move(s.next);
+}
+
 } // namespace
 
 std::vector<std::array<std::uint32_t, 2>> PolyMesh::edges() const {
@@ -103,27 +353,10 @@ PolyMesh polyMeshFromJson(const json& value, const PolyLimits& limits) {
 	if(vertices == value.end() || !vertices->is_array()) fail("vertices: expected a list of [x, y, z]");
 	if(faces == value.end() || !faces->is_array()) fail("faces: expected a list of vertex lists");
 	if(vertices->size() > limits.vertices || faces->size() > limits.faces) fail("too large");
-	for(const json& v : *vertices) {
-		if(!v.is_array() || v.size() != 3) fail("vertices: expected [x, y, z]");
-		Vec3 point;
-		for(int axis = 0; axis < 3; ++axis) {
-			const json& coordinate = v[static_cast<std::size_t>(axis)];
-			if(!coordinate.is_number() || !std::isfinite(coordinate.get<double>())) fail("vertices: expected numbers");
-			point[axis] = coordinate.get<float>();
-		}
-		mesh.vertices.push_back(point);
-	}
-	for(const json& f : *faces) {
-		if(!f.is_array() || f.size() < 3 || f.size() > limits.sides) fail("faces: expected 3 or more indices");
-		std::vector<std::uint32_t> face;
-		for(const json& index : f) {
-			if(!index.is_number_integer() || index.get<std::int64_t>() < 0 ||
-			   index.get<std::uint64_t>() >= mesh.vertices.size())
-				fail("faces: an index names no vertex");
-			face.push_back(index.get<std::uint32_t>());
-		}
-		mesh.faces.push_back(std::move(face));
-	}
+	mesh.vertices.reserve(vertices->size());
+	mesh.faces.reserve(faces->size());
+	for(const json& v : *vertices) mesh.vertices.push_back(readVertex(v));
+	for(const json& f : *faces) mesh.faces.push_back(readFace(f, limits, mesh.vertices.size()));
 	if(const auto smooth = value.find("smooth"); smooth != value.end() && smooth->is_boolean())
 		mesh.smooth = smooth->get<bool>();
 	return mesh;
@@ -296,36 +529,11 @@ PolyMesh deleteVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& 
 }
 
 PolyMesh loopCut(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b) {
-	std::map<Edge, std::vector<std::uint32_t>> owners; // each edge, to the faces holding it
-	for(std::size_t f = 0; f < mesh.faces.size(); ++f) {
-		const auto& face = mesh.faces[f];
-		for(std::size_t i = 0; i < face.size(); ++i)
-			owners[edgeKey(face[i], face[(i + 1) % face.size()])].push_back(static_cast<std::uint32_t>(f));
-	}
+	const Owners owners = edgeOwners(mesh);
 	std::map<std::uint32_t, std::size_t> cuts; // each quad of the ring, to the position of its cut edge
-	const auto positionOf = [&](std::uint32_t f, Edge e) -> std::size_t {
-		const auto& face = mesh.faces[f];
-		for(std::size_t i = 0; i < 4; ++i)
-			if(edgeKey(face[i], face[(i + 1) % 4]) == e) return i;
-		return 0;
-	};
-	const auto walk = [&](Edge edge) {
-		for(;;) {
-			const auto found = owners.find(edge);
-			if(found == owners.end()) return;
-			std::optional<std::uint32_t> next;
-			for(const std::uint32_t f : found->second)
-				if(mesh.faces[f].size() == 4 && !cuts.contains(f)) next = f;
-			if(!next) return;
-			const std::size_t at = positionOf(*next, edge);
-			cuts[*next] = at;
-			const auto& quad = mesh.faces[*next];
-			edge = edgeKey(quad[(at + 2) % 4], quad[(at + 3) % 4]);
-		}
-	};
 	const Edge start = edgeKey(a, b);
-	walk(start);
-	walk(start); // the other way round, from the start edge's other quad
+	walkRing(mesh, owners, start, cuts);
+	walkRing(mesh, owners, start, cuts); // the other way round, from the start edge's other quad
 	if(cuts.empty()) return mesh;
 	PolyMesh result = mesh;
 	std::map<Edge, std::uint32_t> middles;
@@ -342,81 +550,26 @@ PolyMesh loopCut(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b) {
 		result.faces[f] = {q0, m1, m2, q3};
 		result.faces.push_back({m1, q1, q2, m2});
 	}
-	for(std::size_t f = 0; f < mesh.faces.size(); ++f) { // other faces on a cut edge take its middle too
-		if(cuts.contains(static_cast<std::uint32_t>(f))) continue;
-		const auto& face = mesh.faces[f];
-		std::vector<std::uint32_t> with;
-		for(std::size_t i = 0; i < face.size(); ++i) {
-			with.push_back(face[i]);
-			if(const auto found = middles.find(edgeKey(face[i], face[(i + 1) % face.size()])); found != middles.end())
-				with.push_back(found->second);
-		}
-		result.faces[f] = std::move(with);
-	}
+	for(std::size_t f = 0; f < mesh.faces.size(); ++f) // other faces on a cut edge take its middle too
+		if(!cuts.contains(static_cast<std::uint32_t>(f))) result.faces[f] = withMiddles(mesh.faces[f], middles);
 	return result;
 }
 
 PolyMesh bevelEdge(const PolyMesh& mesh, std::uint32_t a, std::uint32_t b, float amount) {
 	const float t = std::clamp(amount, 0.0f, 0.5f);
-	std::vector<std::size_t> holders; // the faces holding the edge
-	for(std::size_t f = 0; f < mesh.faces.size(); ++f) {
-		const auto& face = mesh.faces[f];
-		for(std::size_t i = 0; i < face.size(); ++i)
-			if(edgeKey(face[i], face[(i + 1) % face.size()]) == edgeKey(a, b)) holders.push_back(f);
-	}
+	const std::vector<std::size_t> holders = edgeHolders(mesh, a, b); // the faces holding the edge
 	if(holders.size() != 2 || t <= 0.0f) return mesh;
 	PolyMesh result = mesh;
 	// In each holder, the vertex of the edge moves towards its other neighbour in that face
-	struct Moved {
-		std::uint32_t from;      ///< The edge's vertex.
-		std::uint32_t neighbour; ///< Its other neighbour in the face.
-		std::uint32_t to;        ///< The new vertex.
-	};
-	std::vector<Moved> moved;
-	for(const std::size_t f : holders) {
-		const auto& face = mesh.faces[f]; // read from the mesh as it was, written into the result
-		const std::size_t n = face.size();
-		for(std::size_t i = 0; i < n; ++i) {
-			if(face[i] != a && face[i] != b) continue;
-			const std::uint32_t before = face[(i + n - 1) % n], after = face[(i + 1) % n];
-			const std::uint32_t other = face[i] == a ? b : a;
-			const std::uint32_t neighbour = before == other ? after : before;
-			const auto to = static_cast<std::uint32_t>(result.vertices.size());
-			result.vertices.push_back(lerp(mesh.vertices[face[i]], mesh.vertices[neighbour], t));
-			moved.push_back({face[i], neighbour, to});
-			result.faces[f][i] = to;
-		}
-	}
-	const auto movedOf = [&](std::uint32_t from, std::size_t holder) {
-		for(std::size_t k = 0; k < moved.size(); ++k)
-			if(moved[k].from == from && k / 2 == holder) return moved[k];
-		return moved.front();
-	};
+	const std::vector<Moved> moved = moveHolderEnds(mesh, result, holders, a, b, t);
 	// The new face, wound against both holders: b1, a1 (holder 0), then a2, b2 (holder 1)
-	const Moved a1 = movedOf(a, 0), b1 = movedOf(b, 0), a2 = movedOf(a, 1), b2 = movedOf(b, 1);
+	const BevelEnds ends{movedOf(moved, a, 0), movedOf(moved, b, 0), movedOf(moved, a, 1), movedOf(moved, b, 1)};
 	// Every other face around an end takes both new vertices, each beside the face it came from
-	for(std::size_t f = 0; f < result.faces.size(); ++f) {
-		if(f == holders[0] || f == holders[1]) continue;
-		auto& face = result.faces[f];
-		for(std::size_t i = 0; i < face.size(); ++i) {
-			if(face[i] != a && face[i] != b) continue;
-			const Moved& first = face[i] == a ? a1 : b1;
-			const Moved& second = face[i] == a ? a2 : b2;
-			const std::uint32_t before = face[(i + face.size() - 1) % face.size()];
-			const bool firstBefore = before == first.neighbour;
-			face[i] = firstBefore ? first.to : second.to;
-			face.insert(face.begin() + static_cast<std::ptrdiff_t>(i) + 1, firstBefore ? second.to : first.to);
-			++i;
-		}
-	}
-	const bool forward = [&] { // whether holder 0 runs a then b
-		const auto& face = mesh.faces[holders[0]];
-		for(std::size_t i = 0; i < face.size(); ++i)
-			if(face[i] == a) return face[(i + 1) % face.size()] == b;
-		return true;
-	}();
-	if(forward) result.faces.push_back({b1.to, a1.to, a2.to, b2.to});
-	else result.faces.push_back({a1.to, b1.to, b2.to, a2.to});
+	for(std::size_t f = 0; f < result.faces.size(); ++f)
+		if(f != holders[0] && f != holders[1]) splitEnds(result.faces[f], a, b, ends);
+	if(runsForward(mesh.faces[holders[0]], a, b))
+		result.faces.push_back({ends.b1.to, ends.a1.to, ends.a2.to, ends.b2.to});
+	else result.faces.push_back({ends.a1.to, ends.b1.to, ends.b2.to, ends.a2.to});
 	return compact(std::move(result));
 }
 
@@ -468,7 +621,7 @@ PolyMesh rotateVertices(const PolyMesh& mesh, const std::vector<std::uint32_t>& 
 
 PolyMesh flipFaces(const PolyMesh& mesh) {
 	PolyMesh result = mesh;
-	for(auto& face : result.faces) std::reverse(face.begin(), face.end());
+	for(auto& face : result.faces) std::ranges::reverse(face);
 	return result;
 }
 
@@ -517,7 +670,7 @@ PolyMesh mirrorMesh(const PolyMesh& mesh, int axis) {
 	for(const auto& face : mesh.faces) {
 		if(std::ranges::all_of(face, [&](std::uint32_t v) { return image[v] == v; })) continue; // on the plane
 		std::vector<std::uint32_t> mirrored;
-		for(auto v = face.rbegin(); v != face.rend(); ++v) mirrored.push_back(image[*v]);
+		for(const std::uint32_t v : std::views::reverse(face)) mirrored.push_back(image[v]);
 		result.faces.push_back(std::move(mirrored));
 	}
 	return result;
@@ -546,66 +699,7 @@ PolyMesh subdivide(const PolyMesh& mesh, int levels, const PolyLimits& limits) {
 		const std::vector<Edge> edges = current.edges();
 		if(corners > limits.faces || current.vertices.size() + edges.size() + current.faces.size() > limits.vertices)
 			break;
-		const auto vertexCount = static_cast<std::uint32_t>(current.vertices.size());
-		std::map<Edge, std::vector<std::uint32_t>> owners;
-		for(std::size_t f = 0; f < current.faces.size(); ++f) {
-			const auto& face = current.faces[f];
-			for(std::size_t i = 0; i < face.size(); ++i)
-				owners[edgeKey(face[i], face[(i + 1) % face.size()])].push_back(static_cast<std::uint32_t>(f));
-		}
-		std::vector<Vec3> facePoints;
-		for(std::size_t f = 0; f < current.faces.size(); ++f) facePoints.push_back(faceCentre(current, f));
-		PolyMesh next;
-		next.smooth = current.smooth;
-		next.vertices.resize(vertexCount);
-		std::map<Edge, std::uint32_t> edgeIndex;
-		std::vector<Vec3> edgeSums(vertexCount), boundarySums(vertexCount), faceSums(vertexCount);
-		std::vector<int> valence(vertexCount, 0), boundary(vertexCount, 0), faceCounts(vertexCount, 0);
-		for(const Edge& e : edges) {
-			const auto& by = owners[e];
-			const Vec3 mid = lerp(current.vertices[e[0]], current.vertices[e[1]], 0.5f);
-			Vec3 point = mid;
-			if(by.size() == 2)
-				point =
-				    (current.vertices[e[0]] + current.vertices[e[1]] + facePoints[by[0]] + facePoints[by[1]]) * 0.25f;
-			edgeIndex[e] = static_cast<std::uint32_t>(next.vertices.size());
-			next.vertices.push_back(point);
-			for(const std::uint32_t v : e) {
-				edgeSums[v] = edgeSums[v] + mid;
-				++valence[v];
-				if(by.size() != 2) {
-					boundarySums[v] = boundarySums[v] + mid;
-					++boundary[v];
-				}
-			}
-		}
-		for(std::size_t f = 0; f < current.faces.size(); ++f)
-			for(const std::uint32_t v : current.faces[f]) {
-				faceSums[v] = faceSums[v] + facePoints[f];
-				++faceCounts[v];
-			}
-		for(std::uint32_t v = 0; v < vertexCount; ++v) {
-			const Vec3 p = current.vertices[v];
-			if(boundary[v] >= 2)
-				next.vertices[v] = p * 0.5f + boundarySums[v] * (0.5f / static_cast<float>(boundary[v]));
-			else if(valence[v] >= 3 && faceCounts[v] > 0) {
-				const auto n = static_cast<float>(valence[v]);
-				const Vec3 f = faceSums[v] / static_cast<float>(faceCounts[v]), r = edgeSums[v] / n;
-				next.vertices[v] = (f + r * 2.0f + p * (n - 3.0f)) / n;
-			} else next.vertices[v] = p;
-		}
-		for(std::size_t f = 0; f < current.faces.size(); ++f) {
-			const auto& face = current.faces[f];
-			const auto centre = static_cast<std::uint32_t>(next.vertices.size());
-			next.vertices.push_back(facePoints[f]);
-			for(std::size_t i = 0; i < face.size(); ++i) {
-				const std::uint32_t before = face[(i + face.size() - 1) % face.size()];
-				const std::uint32_t after = face[(i + 1) % face.size()];
-				next.faces.push_back(
-				    {face[i], edgeIndex[edgeKey(face[i], after)], centre, edgeIndex[edgeKey(before, face[i])]});
-			}
-		}
-		current = std::move(next);
+		current = subdivideOnce(current, edges);
 	}
 	return current;
 }

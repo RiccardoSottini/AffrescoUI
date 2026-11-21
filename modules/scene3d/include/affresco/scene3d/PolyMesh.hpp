@@ -50,9 +50,9 @@ struct PolyLimits {
 /// @param primitive Which. @return The mesh.
 [[nodiscard]] PolyMesh polyPrimitive(Primitive primitive);
 /// @brief A triangle mesh as polygons: its triangles as faces, the vertices at one place (seams, poles) joined.
-/// @param mesh It. @param limits What the result may hold. @return The mesh, shaded smooth.
+/// @param data It. @param limits What the result may hold. @return The mesh, shaded smooth.
 /// @throws DocumentError If it holds more than the limits.
-[[nodiscard]] PolyMesh polyFromMesh(const MeshData& mesh, const PolyLimits& limits = {});
+[[nodiscard]] PolyMesh polyFromMesh(const MeshData& data, const PolyLimits& limits = {});
 /// @brief A face's centre (the mean of its vertices). @param mesh The mesh. @param face Its index. @return It.
 [[nodiscard]] Vec3 faceCentre(const PolyMesh& mesh, std::size_t face);
 /// @brief A face's unit normal (Newell's method). @param mesh The mesh. @param face Its index. @return It.
