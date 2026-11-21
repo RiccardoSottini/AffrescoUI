@@ -158,13 +158,13 @@
   `(row#tab-design :fitContent width :height 92 :gap 4 :color transparent
      (node#g-themes :use rbGroup :with {:title ~(t "ribbon.themes")}
        (node#gal-themes :use rbGallery :with {:width 490 :more gal-themes}
-         ~(repeat [theme (slice computed.themes 0 6) :key theme.id]
+         ~(repeat [theme computed.galleryThemes :key theme.id]
            (theme-choice theme))))
      (node#g-variants :use rbGroup :with {:title ~(t "ribbon.variants")}
        (node#gal-variants :use rbGallery :with {:width 290}
          ~(repeat [v computed.theme.variants :index n]
            (variant-choice v n)))
-       (column#variants-col :width 76 :height 72 :gap 2 :alignItems stretch :color transparent
+       (column#variants-col :width 96 :height 72 :gap 0 :alignItems stretch :color transparent
          (node#b-colors :use rbSmall
            :with {:icon palette :title ~(t "ribbon.colors") :menu true}
            :tooltip ~(t "ribbon.anotherThemeSColoursFor")
@@ -172,7 +172,11 @@
          (node#b-fonts :use rbSmall
            :with {:icon type :title ~(t "ribbon.fonts") :menu true}
            :tooltip ~(t "ribbon.theFontsOfTheTitles")
-           :onClick ~(handler open-drop "b-fonts"))))
+           :onClick ~(handler open-drop "b-fonts"))
+         (node#b-save-theme :use rbSmall
+           :with {:icon bookmark-plus :title ~(t "design.saveTheme")}
+           :tooltip ~(t "design.saveThisDeckSLook")
+           :onClick save-theme)))
      (node#g-customize :use rbGroup :with {:title ~(t "ribbon.customize")}
        (node#b-slide-size :use rbBig
          :with {:icon rectangle-horizontal :title ~(t "ribbon.slideSize") :width 46 :enabled false}
@@ -240,7 +244,11 @@
        (node#b-export-png :use rbBig
          :with {:icon file-image :title ~(t "ribbon.picture") :width 50}
          :tooltip ~(t "ribbon.thisSlideAsAPng")
-         :onClick exportPng))
+         :onClick exportPng)
+       (node#b-export-pngs :use rbBig
+         :with {:icon images :title ~(t "ribbon.allSlides") :width 50}
+         :tooltip ~(t "ribbon.everySlideShownAPng")
+         :onClick exportPngs))
      ~(g-file-recent)
      (node#g-file-info :use rbGroup :with {:title ~(t "ribbon.last")}
        (label#file-status :width 220
@@ -503,7 +511,7 @@
      :height 60
      :radius 2
      :cursor hand
-     :tooltip ~(t (str "theme." theme.id))
+     :tooltip ~(theme-name theme)
      :color ~(get theme.colors theme.background)
      :borderWidth ~(if (= state.deck.theme theme.id) 2 1)
      :borderColor ~(if (= state.deck.theme theme.id) "@brand" "@rbFieldLine")
@@ -547,7 +555,7 @@
 
 (defview g-transition-to "The transitions, and the side the transition comes from." []
   `(node#g-transition-to :use rbGroup :with {:title ~(t "ribbon.transitionToThisSlide")}
-     (node#gal-transitions :use rbGallery :with {:width 520}
+     (node#gal-transitions :use rbGallery :with {:width 520 :more gal-transitions}
        ~(repeat [k computed.transitionKinds]
          `(label :id ~(str "tr-" k.0)
             :width 60
@@ -619,10 +627,10 @@
                       "emphasis" (t "motion.emphasis")
                       "path" (t "motion.motionPath")
                       (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 692}
+     (node#gal-effects :use rbGallery :with {:width 692 :more gal-effects}
        ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 50
+            :width 42
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}

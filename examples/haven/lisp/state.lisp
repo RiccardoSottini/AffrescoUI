@@ -108,17 +108,27 @@
   :type (array :items (object :properties {:name (string) :key (string) :action (string) :icon (string)})))
 
 (defstate devices
-  [{:id door :name "Front door" :icon lock :iconOff lock-open :on true :busy false :progress 0}
-   {:id vacuum :name "Vacuum" :icon bot :iconOff bot :on false :busy false :progress 0}
-   {:id speaker :name "Speaker" :icon speaker :iconOff speaker :on false :busy false :progress 0}]
-  "The devices whose calls take a while: on or off, and the progress of a call."
+  [{:id door :kind door :name "Front door" :icon lock :iconOff lock-open :on true :busy false :progress 0}
+   {:id vacuum :kind vacuum :name "Vacuum" :icon bot :iconOff bot :on false :busy false :progress 0}
+   {:id speaker :kind speaker :name "Speaker" :icon speaker :iconOff speaker :on false :busy false :progress 0}]
+  "The devices whose calls take a while: what kind each is (its words come from it), on or off, and the progress of a
+  call; one added in Settings also keeps its maker, its room and how it is connected."
   :type (array :items (object :properties {:id (string)
+                                           :kind (string)
+                                           :maker (string)
+                                           :room (integer)
+                                           :link (string)
                                            :name (string)
                                            :icon (string)
                                            :iconOff (string)
                                            :on (boolean)
                                            :busy (boolean)
                                            :progress (number)})))
+
+(defstate newDevice {:open false :name "" :kind plug :room 0 :link "Wi-Fi" :error ""}
+  "The add device dialog: whether it is open, the name typed, the kind, room (its place) and connection chosen."
+  :type (object :properties {:open (boolean) :name (string) :kind (string) :room (integer) :link (string)
+                             :error (string)}))
 
 ;;; Energy
 

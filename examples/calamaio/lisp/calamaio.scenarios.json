@@ -3160,7 +3160,7 @@
 					"wait": 80
 				},
 				{
-					"type": "display-line-numbers-mode"
+					"type": "electric-pair-mode"
 				},
 				{
 					"key": "enter"
@@ -3204,7 +3204,7 @@
 				{
 					"expect": {
 						"state": "echo",
-						"is": "global-display-line-numbers-mode is back to its standard value"
+						"is": "electric-pair-mode is back to its standard value"
 					}
 				}
 			]
@@ -3330,6 +3330,293 @@
 					"expect": {
 						"state": "win.w1.view.first",
 						"is": 12
+					}
+				}
+			]
+		},
+		{
+			"name": "auto-fill-and-whitespace",
+			"note": "auto-fill-mode breaks a line at its last space before the fill column when a space is typed past it; whitespace-mode dots the spaces; C-h m lists the minor modes that are on.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "p"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "auto-fill-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Auto fill on"
+					}
+				},
+				{
+					"type": "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod\ntempor "
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.line",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "win.w1.caret.column",
+						"is": 8
+					}
+				},
+				{
+					"type": "x"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod\ntempor x "
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "whitespace-mode"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Whitespace on"
+					}
+				},
+				{
+					"capture": "whitespace"
+				},
+				{
+					"key": "ctrl+h"
+				},
+				{
+					"key": "m"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.bh.text",
+						"is": "The major mode is Fundamental mode.\n\nIt has no keys of its own.\n\nMinor modes on: Bracket matching, Auto fill, Whitespace.\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "macro-in-a-listing",
+			"note": "A keyboard macro records a listing's own keys: d recorded in a folder's listing flags the next file when the macro is played.",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "d"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"key": "ctrl+n"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f3"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "d"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"expect": {
+						"state": "kmacro.last",
+						"is": [
+							"d"
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.flagged",
+						"is": [
+							"~/hello.py"
+						]
+					}
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.bd.flagged.length",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "macro-answers-the-minibuffer",
+			"note": "A keyboard macro keeps what was answered in the minibuffer (M-x open-line here) and gives the answer again when it is played",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "p"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f3"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "a"
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "open-line"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "kmacro.last",
+						"is": [
+							"a",
+							"alt+x",
+							"minibuffer:open-line"
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "a\n"
+					}
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "aa\n\n"
 					}
 				}
 			]

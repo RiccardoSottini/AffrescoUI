@@ -9,7 +9,8 @@
 
 ;;; Definitions
 
-(defcomputed themes "The themes: their colour slots, variants, background, and the decorations drawn under every slide."
+(defcomputed builtInThemes
+  "The app's own themes: their colour slots, variants, background, and the decorations drawn under every slide."
   '[{:id default
      :background light1
      :colors {:dark1 "#000000"
@@ -247,6 +248,9 @@
             {:to "#ffffff" :by 0.4 :name (t "theme.lighter40")}
             {:to "#000000" :by 0.25 :name (t "theme.darker25")}
             {:to "#000000" :by 0.5 :name (t "theme.darker50")}]})
+
+(defcomputed themes "Every theme: the app's own, then those the person saved (parts/own-themes.lisp)."
+  (concat computed.builtInThemes (or-else state.ownThemes [])))
 
 (defcomputed theme "The deck's theme."
   (or-else (find #(= (:id %) state.deck.theme) computed.themes) computed.themes.0))

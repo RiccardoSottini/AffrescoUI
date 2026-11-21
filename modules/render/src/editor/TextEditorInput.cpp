@@ -201,6 +201,12 @@ void TextEditor::charEvent(const CharEvent& event) {
 	endEdit();
 }
 
+bool TextEditor::clickFoldMarker(float x, std::size_t line) {
+	// With fold markers, a click on one folds or unfolds its line
+	const float markerLeft = frame().left + gutterWidth() - 20.0f;
+	return foldMarkers_ && x >= markerLeft && x < markerLeft + 16.0f && (unfold(line) || fold(line));
+}
+
 void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	Panel::mouseButtonEvent(event);
 	hoverAt(std::nullopt);
@@ -222,11 +228,7 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 		addCursor({at, at});
 		return;
 	}
-	// With fold markers, a click on one folds or unfolds its line
-	const float markerLeft = frame().left + gutterWidth() - 20.0f;
-	if(foldMarkers_ && event.position.x >= markerLeft && event.position.x < markerLeft + 16.0f &&
-	   (unfold(at.line) || fold(at.line)))
-		return;
+	if(clickFoldMarker(event.position.x, at.line)) return;
 	if(event.position.x < frame().left + gutterWidth() - 8.0f && unfold(at.line)) return;
 	if(event.position.x < frame().left + gutterWidth() && !onGutterClicked.empty())
 		return onGutterClicked(at.line, event.mods);

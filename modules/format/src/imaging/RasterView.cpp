@@ -133,17 +133,21 @@ void RasterView::scrollEvent(const ScrollEvent& event) {
 	play({PointerKind::scroll, event.position, MouseButton::Left, event.offset, mods_});
 }
 
+bool RasterView::typeKey(const KeyEvent& event) {
+	editing::ImageDocument* shown = image();
+	if(shown == nullptr || !editing::typingInto(*shown) || event.action == Action::Release || event.mods.super() ||
+	   event.mods.control())
+		return false;
+	const bool erase = event.key == Key::Backspace, newline = event.key == Key::Enter || event.key == Key::KeypadEnter;
+	if(event.key == Key::Escape) shown->typing = false; // done typing: the tool's clicks add or pick type again
+	if(erase || newline) type(*shown, erase ? "" : "\n");
+	if(!erase && !newline && event.key != Key::Escape) return false;
+	invalidatePaint();
+	return true;
+}
+
 void RasterView::keyEvent(const KeyEvent& event) {
-	if(editing::ImageDocument* shown = image(); shown != nullptr && editing::typingInto(*shown) &&
-	   event.action != Action::Release && !event.mods.super() && !event.mods.control()) {
-		const bool erase = event.key == Key::Backspace, newline = event.key == Key::Enter || event.key == Key::KeypadEnter;
-		if(event.key == Key::Escape) shown->typing = false; // done typing: the tool's clicks add or pick type again
-		if(erase || newline) type(*shown, erase ? "" : "\n");
-		if(erase || newline || event.key == Key::Escape) {
-			invalidatePaint();
-			return;
-		}
-	}
+	if(typeKey(event)) return;
 	if(event.key == Key::Space)
 		if(editing::ImageDocument* shown = image()) {
 			shown->spaceHeld = event.action != Action::Release;

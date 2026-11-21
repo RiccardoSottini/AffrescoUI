@@ -94,6 +94,20 @@ std::optional<std::string> writeBytes(const std::string& path, const std::vector
 	return std::nullopt;
 }
 
+/// @brief The path of one file of a numbered series beside the chosen one: "Deck.png" becomes "Deck-3.png".
+/// @param chosen The chosen file (UTF-8).
+/// @param number The file's number, from 1.
+/// @return Its path (UTF-8), in the chosen file's folder.
+std::string numberedPath(const std::string& chosen, std::size_t number) {
+	std::filesystem::path path(std::u8string(chosen.begin(), chosen.end()));
+	const std::u8string stem = path.stem().u8string();
+	const std::u8string extension = path.extension().u8string();
+	const std::string suffix = "-" + std::to_string(number);
+	path.replace_filename(stem + std::u8string(suffix.begin(), suffix.end()) + extension);
+	const std::u8string text = path.u8string();
+	return {text.begin(), text.end()};
+}
+
 /// @brief Reads a file of at most @p limit bytes.
 /// @param path The file (UTF-8).
 /// @param bytes Filled in with its text.
@@ -217,7 +231,7 @@ bool openFile(const Running& s) {
 	bool image = false;
 	if(s.step.contains("as")) {
 		const std::string as = string(s.value("as"), s.where + ".as");
-		if(as != "json" && as != "image") fail(s.where + ".as", "must be \"json\" or \"image\"");
+		if(as != "json" && as != "image") fail(s.where + ".as", R"(must be "json" or "image")");
 		image = as == "image";
 	}
 	std::vector<std::string> extensions = extensionsOf(s, image);
@@ -291,24 +305,37 @@ std::string suggestedFileName(std::string_view text, std::string_view fallback) 
 
 void saveAfterEvent(const Running& s, std::vector<std::uint8_t> bytes, std::string name, FileFilter filter,
                     json result) {
+	std::vector<std::vector<std::uint8_t>> files;
+	files.push_back(std::move(bytes));
+	saveSeriesAfterEvent(s, std::move(files), std::move(name), std::move(filter), std::move(result));
+}
+
+void saveSeriesAfterEvent(const Running& s, std::vector<std::vector<std::uint8_t>> files, std::string name,
+                          FileFilter filter, json result) {
 	std::string title = titleOf(s, "Save");
 	Engine& engine = s.steps.engine();
 	if(!engine.window || dialogRefused(s)) return; // a check or a preview: nothing to show
 	// The dialog is modal: it waits for the event to end, so the steps around it run first
 	engine.scheduler.defer([&engine, alive = std::weak_ptr<bool>(engine.alive), title = std::move(title),
-	                        bytes = std::move(bytes), name = std::move(name), filter = std::move(filter),
+	                        files = std::move(files), name = std::move(name), filter = std::move(filter),
 	                        result = std::move(result), followers = followersOf(s)]() mutable {
 		if(!alive.lock() || !engine.window) return;
 		const std::vector<std::string> chosen =
 		    engine.window->chooseFiles({FileDialogKind::Save, title, {filter}, "", name, false});
 		if(!alive.lock() || chosen.empty()) return; // cancelled, or the screen went away meanwhile
-		if(const std::optional<std::string> error = writeBytes(chosen.front(), bytes)) {
-			engine.report("AffrescoUI screen: saving '" + fileNameOf(chosen.front()) + "': " + *error);
-			followers.outcome->vars = json{{"error", {{"code", "save"}, {"message", *error}}}};
-			followers.failed();
-			return;
+		json names = json::array();
+		for(std::size_t i = 0; i < files.size(); ++i) {
+			const std::string path = files.size() == 1 ? chosen.front() : numberedPath(chosen.front(), i + 1);
+			if(const std::optional<std::string> error = writeBytes(path, files[i])) {
+				engine.report("AffrescoUI screen: saving '" + fileNameOf(path) + "': " + *error);
+				followers.outcome->vars = json{{"error", {{"code", "save"}, {"message", *error}}}};
+				followers.failed();
+				return;
+			}
+			names.push_back(fileNameOf(path));
 		}
-		result["name"] = fileNameOf(chosen.front());
+		result["name"] = names.front();
+		if(files.size() > 1) result["files"] = std::move(names);
 		followers.outcome->vars = json{{"result", std::move(result)}};
 		followers.succeeded();
 	});

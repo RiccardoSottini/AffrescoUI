@@ -167,6 +167,12 @@ private:
 	/// @param line The line, without the spaces it ends with.
 	/// @param top The line's top.
 	void paintJustifiedLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
+	/// @brief Whether a wrapped line is drawn justified: justify and wrap are on, the text reads left to right, and
+	/// the line doesn't end a paragraph (the text's last line, or one a '\n' ends, keeps its natural spacing).
+	/// @param line The line, a view into shown().
+	/// @param lastLine Whether it is the last of the lines.
+	/// @return Whether it is.
+	[[nodiscard]] bool justifies(std::u32string_view line, bool lastLine) const;
 	/// @brief Whether plain text is drawn with letterSpacing(): wrapped or not, no runs.
 	[[nodiscard]] bool spaced() const noexcept;
 	/// @brief A line's width with letterSpacing() when spaced(), else the font's.

@@ -5,7 +5,8 @@
 	"note": "Sinopia's design data: the themes (twelve colour slots, four variants, a background and decorations drawn under every slide, and where a title slide's text goes beside them), the slide layouts and their placeholders on a 960 by 540 page (points: 13.33 by 7.5 inches), and the colour picker's standard colours. A deck names its theme and variant; its objects name colours by slot (accent1, dark1, accent1.2 for a tint) or by value.",
 
 	"computed": {
-		"themes": [
+		"themes": "{{concat(computed.builtInThemes, state.ownThemes ?? [])}}",
+		"builtInThemes": [
 			{ "id": "default", "name": "Default", "background": "light1",
 			  "colors": { "dark1": "#000000", "light1": "#ffffff", "dark2": "#44546a", "light2": "#e7e6e6", "accent1": "#4472c4", "accent2": "#ed7d31", "accent3": "#a5a5a5", "accent4": "#ffc000", "accent5": "#5b9bd5", "accent6": "#70ad47" },
 			  "variants": [{}, { "accent1": "#0f6fc6", "accent2": "#009dd9", "accent3": "#0bd0d9", "accent4": "#10cf9b", "accent5": "#7cca62", "accent6": "#a5c249" },

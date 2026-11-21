@@ -239,8 +239,8 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, foldMarkers, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, scrollMarks,
-/// composition, caretStyle and readOnly.
+/// indentGuides, whitespace, foldMarkers, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport,
+/// scrollMarks, composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -255,6 +255,7 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 		fail(path + ".bracketStyle", R"(expected "fill" or "underline")");
 	editor.setBracketUnderline(bracketStyle == "underline");
 	editor.setIndentGuides(flag("indentGuides"));
+	editor.setVisibleWhitespace(flag("whitespace"));
 	editor.setFoldMarkers(flag("foldMarkers"));
 	if(values.contains("tabSize")) {
 		const float spaces = number(values["tabSize"], path + ".tabSize");
@@ -434,6 +435,7 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"find", ValueKind::Any},
 	                   {"brackets", ValueKind::Boolean},
 	                   {"indentGuides", ValueKind::Boolean},
+	                   {"whitespace", ValueKind::Boolean},
 	                   {"foldMarkers", ValueKind::Boolean},
 	                   {"tabSize", ValueKind::Number},
 	                   {"readOnly", ValueKind::Boolean},

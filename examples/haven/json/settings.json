@@ -9,6 +9,7 @@
 		"devQuery": "",
 		"devFilter": "",
 		"devFilterOpen": false,
+		"newDevice": { "open": false, "name": "", "kind": "plug", "room": 0, "link": "Wi-Fi", "error": "" },
 		"settingsGroups": [
 			{ "id": "home", "rows": [
 				{ "id": "devices", "icon": "cpu", "color": "#4a50b8" },
@@ -32,6 +33,22 @@
 	"actions": {
 		"pickSetting": [{ "note": "with: key, a settings key, and value" }, { "set": "{{'settings.' + key}}", "to": "{{value}}" }],
 		"pickLanguage": [{ "note": "with: lang, a language code" }, { "set": "settings.ui.language", "to": "{{lang}}" }],
+		"openNewDevice": [
+			{ "note": "Opens the dialog that adds a device, empty" },
+			{ "set": "state.newDevice", "to": { "open": true, "name": "", "kind": "plug", "room": 0, "link": "Wi-Fi", "error": "" } }
+		],
+		"addDevice": [
+			{ "note": "Adds the device the dialog describes, off, to the home's devices; it needs a name" },
+			{
+				"if": "{{trim(state.newDevice.name) == ''}}",
+				"then": [{ "set": "state.newDevice.error", "to": "{{t('dev.new.needName')}}" }],
+				"else": [
+					{ "push": "state.devices", "value": "{{ { id: state.newDevice.kind + '-' + length(state.devices), kind: state.newDevice.kind, name: trim(state.newDevice.name), icon: state.newDevice.kind == 'plug' ? 'plug-zap' : 'fan', iconOff: state.newDevice.kind == 'plug' ? 'plug' : 'fan', maker: t('dev.new.maker'), room: state.newDevice.room, link: state.newDevice.link, on: false, busy: false, progress: 0 } }}" },
+					{ "set": "state.newDevice.open", "to": false },
+					{ "run": "showToast", "with": { "message": "{{t('dev.new.added', { name: trim(state.newDevice.name) })}}" } }
+				]
+			}
+		],
 		"pickDeviceFilter": [{ "note": "with: filter, a room's name or a connection, or empty for all" }, { "set": "state.devFilter", "to": "{{filter}}" }]
 	},
 
@@ -41,14 +58,60 @@
 		"devTop": "{{computed.devInBar ? 56 : 104}}",
 		"deviceMakers": "{{ { door: ['Keystead', 0, 'Zigbee'], vacuum: ['Tidyworks', 1, 'Wi-Fi'], speaker: ['Aurelle', 0, 'Wi-Fi'] } }}",
 		"connections": "{{['Zigbee', 'Wi-Fi']}}",
+		"newDeviceChoices": "{{ { kind: map(['plug', 'fan'], { v: it, title: t('kind.' + it) }), room: map(state.rooms, { v: index, title: it.name }), link: map(computed.connections, { v: it, title: it }) } }}",
 		"deviceFilters": "{{concat([{ title: t('dev.filterAll'), icon: state.devFilter == '' ? 'check' : '', run: 'pickDeviceFilter', with: { filter: '' } }, { separator: true }], map(state.rooms, { title: it.name, icon: state.devFilter == it.name ? 'check' : '', run: 'pickDeviceFilter', with: { filter: it.name } }), [{ separator: true }], map(computed.connections, { title: it, icon: state.devFilter == it ? 'check' : '', run: 'pickDeviceFilter', with: { filter: it } }))}}",
-		"deviceRows": "{{filter(map(state.devices, { id: it.id, cells: [it.name, computed.deviceMakers[it.id][0], t('kind.' + it.id), state.rooms[computed.deviceMakers[it.id][1]].name, computed.deviceMakers[it.id][2]] }), contains(lower(it.cells[0]), lower(state.devQuery)) && (state.devFilter == '' || it.cells[3] == state.devFilter || it.cells[4] == state.devFilter))}}",
+		"deviceRows": "{{filter(map(state.devices, { id: it.id, cells: [it.name, computed.deviceMakers[it.id][0] ?? it.maker, t('kind.' + it.kind), state.rooms[computed.deviceMakers[it.id][1] ?? it.room].name, computed.deviceMakers[it.id][2] ?? it.link] }), contains(lower(it.cells[0]), lower(state.devQuery)) && (state.devFilter == '' || it.cells[3] == state.devFilter || it.cells[4] == state.devFilter))}}",
 		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: floor((window.width - computed.sideWidth - 48) * 0.28) }, { id: 'maker', title: t('table.maker'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'kind', title: t('table.model'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'area', title: t('table.area'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }, { id: 'via', title: t('table.integration'), width: floor((window.width - computed.sideWidth - 48) * 0.18) }]}}",
 		"roomEntityRows": "{{filter(map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] }), contains(lower(it.cells[0]), lower(state.devQuery)) && (state.devFilter == '' || contains(computed.connections, state.devFilter) || it.cells[0] == state.devFilter))}}",
 		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: floor((window.width - computed.sideWidth - 48) * 0.4) }, { id: 'lights', title: t('lights.title'), width: floor((window.width - computed.sideWidth - 48) * 0.3) }, { id: 'climate', title: t('climate.title'), width: floor((window.width - computed.sideWidth - 48) * 0.3) }]}}"
 	},
 
 	"components": {
+		"newDeviceDialog": {
+			"note": "Adds a device: its name, its kind, its room and how it is connected.",
+			"params": {},
+			"node": { "dir": "auto", "overlay": { "placement": "center", "open": "state.newDevice.open", "dismiss": "outside", "modal": true },
+			  "width": 440, "height": 404, "radius": 28, "color": "@card", "shadow": { "y": 8, "blur": 24, "color": "#00000040" },
+			  "role": "dialog", "label": "{{t('dev.new.title')}}", "children": [
+				{ "type": "label", "id": "newDeviceTitle", "font": "heading", "textColor": "@text", "text": "{{t('dev.new.title')}}", "anchors": { "left": 24, "top": 20 }, "fitText": true },
+				{ "type": "textarea", "id": "newDeviceName", "anchors": { "left": 24, "right": 24, "top": 60 }, "height": 40, "padding": 10, "radius": 10, "color": "@raised",
+				  "textColor": "@text", "placeholderColor": "@muted", "bind": "state.newDevice.name", "maxLength": 40, "placeholder": "{{t('dev.new.name')}}",
+				  "label": "{{t('dev.new.name')}}", "autofocus": true, "onSubmit": { "run": "addDevice" } },
+				{ "type": "label", "id": "newDeviceError", "when": "{{state.newDevice.error != '' && trim(state.newDevice.name) == ''}}", "font": "small",
+				  "text": "{{state.newDevice.error}}", "textColor": "@alert", "anchors": { "left": 24, "top": 104 }, "fitText": true, "live": "assertive" },
+				{ "type": "column", "anchors": { "left": 24, "right": 24, "top": 124 }, "height": 70, "gap": 6, "children": [
+					{ "style": "caption", "text": "{{t('dev.new.kind')}}", "fitText": true },
+					{ "type": "row", "height": 40, "anchors": { "left": 0, "right": 0 }, "gap": 8, "role": "radiogroup", "label": "{{t('dev.new.kind')}}", "children": [
+						{ "id": "{{'newDevice-kind-' + o.v}}", "repeat": { "for": "o", "in": "{{computed.newDeviceChoices.kind}}" },
+						  "style": "{{state.newDevice.kind == o.v ? 'choiceOn' : 'choice'}}", "role": "radio", "selected": "{{state.newDevice.kind == o.v}}",
+						  "text": "{{o.title}}", "fitText": true, "padding": 11,
+						  "onClick": { "set": "state.newDevice.kind", "to": "{{o.v}}" } }
+					] }
+				] },
+				{ "type": "column", "anchors": { "left": 24, "right": 24, "top": 196 }, "height": 70, "gap": 6, "children": [
+					{ "style": "caption", "text": "{{t('dev.new.room')}}", "fitText": true },
+					{ "type": "row", "height": 40, "anchors": { "left": 0, "right": 0 }, "gap": 8, "role": "radiogroup", "label": "{{t('dev.new.room')}}", "children": [
+						{ "id": "{{'newDevice-room-' + o.v}}", "repeat": { "for": "o", "in": "{{computed.newDeviceChoices.room}}" },
+						  "style": "{{state.newDevice.room == o.v ? 'choiceOn' : 'choice'}}", "role": "radio", "selected": "{{state.newDevice.room == o.v}}",
+						  "text": "{{o.title}}", "fitText": true, "padding": 11,
+						  "onClick": { "set": "state.newDevice.room", "to": "{{o.v}}" } }
+					] }
+				] },
+				{ "type": "column", "anchors": { "left": 24, "right": 24, "top": 268 }, "height": 70, "gap": 6, "children": [
+					{ "style": "caption", "text": "{{t('dev.new.link')}}", "fitText": true },
+					{ "type": "row", "height": 40, "anchors": { "left": 0, "right": 0 }, "gap": 8, "role": "radiogroup", "label": "{{t('dev.new.link')}}", "children": [
+						{ "id": "{{'newDevice-link-' + o.v}}", "repeat": { "for": "o", "in": "{{computed.newDeviceChoices.link}}" },
+						  "style": "{{state.newDevice.link == o.v ? 'choiceOn' : 'choice'}}", "role": "radio", "selected": "{{state.newDevice.link == o.v}}",
+						  "text": "{{o.title}}", "fitText": true, "padding": 11,
+						  "onClick": { "set": "state.newDevice.link", "to": "{{o.v}}" } }
+					] }
+				] },
+				{ "id": "newDeviceCancel", "style": "button", "text": "{{t('dev.new.cancel')}}", "anchors": { "right": 132, "bottom": 20 }, "width": 100, "height": 36,
+				  "onClick": { "set": "state.newDevice.open", "to": false } },
+				{ "id": "newDeviceAdd", "style": "choiceOn", "text": "{{t('dev.new.add')}}", "anchors": { "right": 24, "bottom": 20 }, "width": 100, "height": 36,
+				  "onClick": { "run": "addDevice" } }
+			  ] }
+		},
 		"settingsRow": {
 			"note": "One row of a settings card: an icon in a circle of colour, a title and a line under it, a chevron.",
 			"params": { "row": {} },
@@ -182,10 +245,6 @@
 								"anchors": { "left": 0, "right": 0, "top": 32 }, "height": 48, "align": "center" },
 							{ "type": "label", "text": "{{t('dev.empty.' + state.devTab)}}", "textColor": "@muted", "anchors": { "left": 24, "right": 24, "top": 96 }, "height": 24, "align": "center" }
 						] },
-					{ "id": "devAdd", "when": "{{state.settingsView == 'devices'}}", "style": "button", "icon": "plus", "text": " {{t('dev.add.' + state.devTab)}}", "color": "@raised",
-						"hover": { "color": "@raised" }, "textColor": "@muted", "anchors": { "right": 72, "bottom": 32 }, "width": 200, "height": 52, "radius": 16,
-						"shadow": { "y": 4, "blur": 12, "color": "#00000040" }, "role": "button", "label": "{{t('dev.add.' + state.devTab)}}",
-						"tooltip": "{{t('dev.addSoon')}}", "cursor": "arrow", "disabled": true },
 					{
 						"type": "column",
 						"id": "settingsDevices",
@@ -213,6 +272,11 @@
 								] }
 						]
 					},
+					{ "id": "devAdd", "when": "{{state.settingsView == 'devices'}}", "let": { "can": "{{state.devTab == 'devices'}}" }, "style": "button", "icon": "plus", "text": " {{t('dev.add.' + state.devTab)}}",
+						"color": "{{can ? '@accentSoft' : '@raised'}}", "hover": { "color": "{{can ? '@accentSoft' : '@raised'}}" }, "textColor": "{{can ? '@accent' : '@muted'}}",
+						"anchors": { "right": 72, "bottom": 32 }, "width": 200, "height": 52, "radius": 16,
+						"shadow": { "y": 4, "blur": 12, "color": "#00000040" }, "role": "button", "label": "{{t('dev.add.' + state.devTab)}}",
+						"tooltip": "{{can ? '' : t('dev.addSoon')}}", "cursor": "{{can ? 'hand' : 'arrow'}}", "disabled": "{{!can}}", "onClick": { "run": "openNewDevice" } },
 					{
 						"id": "settingsUser",
 						"when": "{{state.settingsView == 'profile'}}",
