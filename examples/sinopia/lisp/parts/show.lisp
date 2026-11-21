@@ -385,7 +385,7 @@
      :width ~clip.2
      :height ~clip.3
      :translate ~(cond (= effect :fly) (fly-offset (or-else a.direction "bottom") box away)
-                       (= a.kind :path) (path-offset effect p)
+                       (= a.kind :path) (path-offset effect p a.points)
                        (some? g) (glide-offset g box moved)
                        :else [0 0])
      :scale ~(cond (= effect :zoom) (max q 0.01)

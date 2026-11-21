@@ -26,6 +26,7 @@
             sinopia.parts.ribbon-extras
             sinopia.parts.key-hints
             sinopia.parts.own-themes
+            sinopia.parts.motion-draw
             sinopia.parts.tabs
             sinopia.parts.show
             sinopia.parts.motion

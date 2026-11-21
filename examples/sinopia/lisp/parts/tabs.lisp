@@ -630,7 +630,7 @@
      (node#gal-effects :use rbGallery :with {:width 692 :more gal-effects}
        ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 50
+            :width 42
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}

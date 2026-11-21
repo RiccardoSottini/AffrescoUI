@@ -1,0 +1,56 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Motion paths drawn by hand: Motion > Custom Path, then a drag on the slide draws the path the selected objects follow in the show, from where they are. The path is kept in the build as up to 48 points, each an offset from the first in slide points; the show moves the object along them. Escape gives up the drawing.",
+
+	"state": {
+		"pathDrawing": false,
+		"pathPoints": []
+	},
+
+	"computed": {
+		"livePath": "{{'M ' + join(map(state.pathPoints, fixed((it[0] - computed.view.camera.x) * computed.view.camera.zoom, 1) + ' ' + fixed((it[1] - computed.view.camera.y) * computed.view.camera.zoom, 1)), ' L ')}}"
+	},
+
+	"components": {
+		"motionPathLayer": {
+			"params": {},
+			"note": "Over the slide while a custom path is drawn: a press, a drag and a release draw it.",
+			"node": {
+				"id": "motion-path-layer", "fill": 0, "color": "#0e7c6b10", "role": "region", "label": "Draw the motion path",
+				"focusable": true, "autofocus": true,
+				"keys": { "escape": "stopDrawingPath" },
+				"onPress": { "run": "pathPress", "with": { "x": "{{computed.view.camera.x + event.left / computed.view.camera.zoom}}", "y": "{{computed.view.camera.y + event.top / computed.view.camera.zoom}}" } },
+				"onDrag": { "run": "pathDrag", "with": { "dx": "{{event.dx / computed.view.camera.zoom}}", "dy": "{{event.dy / computed.view.camera.zoom}}" } },
+				"onRelease": "pathRelease",
+				"children": [
+					{ "type": "label", "id": "motion-path-hint", "anchors": { "left": 12, "top": 12 }, "fitText": true, "padding": 8, "radius": 8, "color": "@card", "borderWidth": 1, "borderColor": "@rbLine", "textColor": "@rbInk",
+					  "runs": [{ "icon": "spline", "size": 13 }, { "text": " Drag on the slide to draw the path; Escape gives up", "size": 12 }] },
+					{ "type": "path", "id": "motion-path-live", "when": "{{length(state.pathPoints) > 1}}", "fill": 0, "d": "{{computed.livePath}}",
+					  "stroke": "#0e7c6b", "strokeWidth": 2, "strokeDash": [6, 4], "strokeCap": "round", "strokeJoin": "round" }
+				]
+			}
+		}
+	},
+
+	"actions": {
+		"startDrawingPath": [
+			{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.pathPoints", "to": [] }, { "set": "state.pathDrawing", "to": true }] }
+		],
+		"stopDrawingPath": [{ "set": "state.pathPoints", "to": [] }, { "set": "state.pathDrawing", "to": false }],
+		"pathPress": [{ "set": "state.pathPoints", "to": "{{[[x, y]]}}" }],
+		"pathDrag": [
+			{ "if": "{{length(state.pathPoints) > 0 && length(state.pathPoints) < 2000}}",
+			  "then": [{ "push": "state.pathPoints", "value": "{{[state.pathPoints[0][0] + dx, state.pathPoints[0][1] + dy]}}" }] }
+		],
+		"pathRelease": [
+			{ "if": "{{length(state.pathPoints) > 1}}", "then": [
+				{ "set": "state.pathPoints", "to": "{{concat(filter(state.pathPoints, index % max(1, ceil(length(state.pathPoints) / 47)) == 0), [state.pathPoints[length(state.pathPoints) - 1]])}}" },
+				{ "run": "chooseBuild", "with": { "effect": "pathCustom" } },
+				{ "run": "changeAnimation", "with": { "props": { "points": "{{map(state.pathPoints, [round(it[0] - state.pathPoints[0][0]), round(it[1] - state.pathPoints[0][1])])}}" } } }
+			] },
+			{ "run": "stopDrawingPath" }
+		]
+	}
+}

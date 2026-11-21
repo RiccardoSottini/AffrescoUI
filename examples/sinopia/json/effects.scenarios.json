@@ -376,6 +376,101 @@
 					"capture": "shadow"
 				}
 			]
+		},
+		{
+			"name": "sinopia-custom-motion-path",
+			"note": "Motion > Custom: a drag on the slide draws the path the subtitle follows in the show, kept as offsets from where it starts; Escape gives up a drawing",
+			"steps": [
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#tab-animations-label"
+				},
+				{
+					"click": "#fx-pathCustom"
+				},
+				{
+					"expect": {
+						"node": "#motion-path-layer",
+						"exists": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "pathDrawing",
+						"is": false
+					}
+				},
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#fx-pathCustom"
+				},
+				{
+					"drag": [
+						640,
+						400
+					],
+					"to": [
+						900,
+						300
+					],
+					"moves": 10
+				},
+				{
+					"expect": {
+						"state": "pathDrawing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].effect",
+						"is": "pathCustom"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].kind",
+						"is": "path"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].points[0]",
+						"is": [
+							0,
+							0
+						]
+					}
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"wait": 500
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 1
+					}
+				},
+				{
+					"wait": 600
+				},
+				{
+					"key": "escape"
+				}
+			]
 		}
 	]
 }

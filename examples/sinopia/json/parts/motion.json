@@ -32,7 +32,8 @@
 			["pathRight", "move-right", "Right"],
 			["pathDown", "move-down", "Down"],
 			["pathArc", "redo-2", "Arc"],
-			["pathCircle", "circle-dashed", "Circle"]
+			["pathCircle", "circle-dashed", "Circle"],
+			["pathCustom", "spline", "Custom"]
 		]
 	},
 	"keys": {
@@ -64,15 +65,18 @@
 	"actions": {
 		"chooseEffect": [
 			{
-				"note": "with: effect; an emphasis, or an entrance or exit as the build was"
+				"note": "with: effect; an emphasis, or an entrance or exit as the build was; a custom path is drawn on the slide first"
 			},
+			{ "if": "{{effect == 'pathCustom'}}", "then": [{ "run": "startDrawingPath" }], "else": [{ "run": "chooseBuild", "with": { "effect": "{{effect}}" } }] }
+		],
+		"chooseBuild": [
 			{
 				"run": "setAnimation",
 				"with": {
 					"effect": "{{effect}}",
-					"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : contains(['pathRight', 'pathDown', 'pathArc', 'pathCircle'], effect) ? 'path' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
+					"kind": "{{contains(['pulse', 'spin', 'teeter'], effect) ? 'emphasis' : contains(['pathRight', 'pathDown', 'pathArc', 'pathCircle', 'pathCustom'], effect) ? 'path' : computed.animation.kind == 'exit' ? 'exit' : 'entrance'}}",
 					"start": "{{computed.animation.start ?? 'click'}}",
-					"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter', 'pathRight', 'pathDown', 'pathArc', 'pathCircle'], effect) ? 1000 : 500)}}"
+					"ms": "{{computed.animation.ms ?? (contains(['pulse', 'spin', 'teeter', 'pathRight', 'pathDown', 'pathArc', 'pathCircle', 'pathCustom'], effect) ? 1000 : 500)}}"
 				}
 			}
 		],

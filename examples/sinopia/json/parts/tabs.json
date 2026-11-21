@@ -321,7 +321,7 @@
 					{ "id": "g-effects", "use": "rbGroup", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : a.kind == 'emphasis' ? 'Emphasis' : a.kind == 'path' ? 'Motion Path' : 'Entrance'}}" }, "children": [
 						{ "id": "gal-effects", "use": "rbGallery", "with": { "width": 692, "more": "gal-effects" }, "children": [
 							{ "type": "label",
-							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 50, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "id": "{{'fx-' + e[0]}}", "repeat": { "for": "e", "in": "{{concat([['none', 'ban', 'None'], ['appear', 'square', 'Appear'], ['fade', 'sun-dim', 'Fade'], ['wipe', 'chevrons-right', 'Wipe'], ['fly', 'move-up', 'Fly'], ['zoom', 'zoom-in', 'Zoom']], computed.emphasisEffects, computed.pathEffects)}}" }, "width": 42, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
 							  "style": "{{!on ? 'rbButtonOff' : (a.effect ?? 'none') == e[0] ? 'rbButtonOn' : 'rbButton'}}",
 							  "runs": "{{[{ icon: e[1], size: 24 }, { text: '\n' + e[2], size: 11 }]}}",
 							  "onClick": { "run": "chooseEffect", "with": { "effect": "{{e[0]}}" } } }

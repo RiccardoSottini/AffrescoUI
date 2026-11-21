@@ -46,7 +46,8 @@
   [["pathRight" "move-right" (t "motion.pathRight")]
    ["pathDown" "move-down" (t "motion.pathDown")]
    ["pathArc" "redo-2" (t "motion.pathArc")]
-   ["pathCircle" "circle-dashed" (t "motion.pathCircle")]])
+   ["pathCircle" "circle-dashed" (t "motion.pathCircle")]
+   ["pathCustom" "spline" (t "motion.pathCustom")]])
 
 (defcomputed emphasisEffects "The emphasis effects of the gallery: each with its icon and its name."
   [["pulse" "heart-pulse" (t "motion.pulse")]
@@ -101,7 +102,10 @@
         sy (/ g.h (max box.h 1))]
     [(+ moved (* away sx)) (+ moved (* away sy))]))
 
-(defn path-offset "Where an object is along a motion path, the part `p` of the way done, from where it starts." [path p]
+(defn path-offset
+  "Where an object is along a motion path, the part `p` of the way done, from where it starts; a drawn path follows its
+  `points`."
+  [path p points]
   (let [turn (* 6.28318 p)
         rise (sin (* 3.14159 p))
         drop (- 1 (cos turn))]
@@ -110,6 +114,7 @@
       "pathDown" [0 (* 160 p)]
       "pathArc" [(* 240 p) (* -120 rise)]
       "pathCircle" [(* 80 (sin turn)) (* 80 drop)]
+      "pathCustom" (along points p)
       [0 0])))
 
 (defn wipe-clip
@@ -316,10 +321,17 @@
   (contains? #{"pulse" "spin" "teeter"} effect))
 
 (defn path? "Whether an effect is a motion path." [effect]
-  (contains? #{"pathRight" "pathDown" "pathArc" "pathCircle"} effect))
+  (contains? #{"pathRight" "pathDown" "pathArc" "pathCircle" "pathCustom"} effect))
 
-(defn choose-effect "Gives the selected objects a build of an effect: an emphasis, or an entrance or exit as it was."
+(defn choose-effect
+  "Gives the selected objects a build of an effect: an emphasis, or an entrance or exit as it was; a custom path is
+  drawn on the slide first."
   [effect]
+  (if (= effect "pathCustom")
+    (start-drawing-path)
+    (choose-build effect)))
+
+(defn choose-build "Gives the selected objects a build of an effect, as choose-effect does." [effect]
   (let [a computed.animation
         kind (cond (emphasis? effect) "emphasis"
                    (path? effect) "path"

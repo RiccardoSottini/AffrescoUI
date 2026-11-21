@@ -431,7 +431,8 @@
   `(column#centre :when ~(not (#{"sorter" "notesPage"} state.view)) :grow 1 :color @work :alignItems stretch
      (node#board-area :grow 1 :color @work
        ~(board)
-       (node :use inkLayer :when ~(and (some? state.inkTool) (not state.show.on))))
+       (node :use inkLayer :when ~(and (some? state.inkTool) (not state.show.on)))
+       (node :use motionPathLayer :when ~(and state.pathDrawing (not state.show.on))))
      (node#notes-line :height 1 :color @barLine :when ~state.notes)
      ~(notes-pane)))
 
