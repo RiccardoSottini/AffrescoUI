@@ -4,6 +4,8 @@
 ;;; their own state beside their views: the floor plan's in plan.lisp, the automations' and security's in
 ;;; automations.lisp, the more-info dialog's in moreinfo.lisp, the settings' in settings.lisp.
 
+(ns haven.state)
+
 ;;; The page shown
 
 (defstate theme light "Light, dark, or auto to follow the system." :type {:enum [auto dark light]})
@@ -34,6 +36,7 @@
 (defstate rooms
   [{:name "Living room"
     :image "../assets/images/living-room.svg"
+    :tint "#1e3a5f"
     :temp 21.5
     :target 22
     :humidity 44
@@ -45,6 +48,7 @@
              {:name "Shelf strip" :on false :level 60 :color "#ff9ad5ff"}]}
    {:name "Kitchen"
     :image "../assets/images/kitchen.svg"
+    :tint "#134e4a"
     :temp 20.5
     :target 21
     :humidity 51
@@ -54,6 +58,7 @@
              {:name "Under cabinet" :on false :level 70 :color "#ffe082ff"}]}
    {:name "Bedroom"
     :image "../assets/images/bedroom.svg"
+    :tint "#312e81"
     :temp 19
     :target 18.5
     :humidity 47
@@ -64,6 +69,7 @@
              {:name "Wardrobe" :on false :level 100 :color "#ffe082ff"}]}
    {:name "Office"
     :image "../assets/images/office.svg"
+    :tint "#1f2937"
     :temp 22
     :target 22
     :humidity 40
@@ -71,9 +77,10 @@
     :kwh 11.6
     :lights [{:name "Desk lamp" :on true :level 100 :color "#ffe082ff"}
              {:name "Ceiling" :on false :level 70 :color "#ffe082ff"}]}]
-  "Each room: its picture, its temperature and target, its blinds, its energy this week, and its lights."
+  "Each room: its picture and the colour shown while it loads, its temperature and target, its blinds, its energy this week, and its lights."
   :type (array :items (object :properties {:name (string)
                                            :image (string)
+                                           :tint (string)
                                            :temp (number)
                                            :target (number)
                                            :humidity (number)
@@ -101,17 +108,27 @@
   :type (array :items (object :properties {:name (string) :key (string) :action (string) :icon (string)})))
 
 (defstate devices
-  [{:id door :name "Front door" :icon lock :iconOff lock-open :on true :busy false :progress 0}
-   {:id vacuum :name "Vacuum" :icon bot :iconOff bot :on false :busy false :progress 0}
-   {:id speaker :name "Speaker" :icon speaker :iconOff speaker :on false :busy false :progress 0}]
-  "The devices whose calls take a while: on or off, and the progress of a call."
+  [{:id door :kind door :name "Front door" :icon lock :iconOff lock-open :on true :busy false :progress 0}
+   {:id vacuum :kind vacuum :name "Vacuum" :icon bot :iconOff bot :on false :busy false :progress 0}
+   {:id speaker :kind speaker :name "Speaker" :icon speaker :iconOff speaker :on false :busy false :progress 0}]
+  "The devices whose calls take a while: what kind each is (its words come from it), on or off, and the progress of a
+  call; one added in Settings also keeps its maker, its room and how it is connected."
   :type (array :items (object :properties {:id (string)
+                                           :kind (string)
+                                           :maker (string)
+                                           :room (integer)
+                                           :link (string)
                                            :name (string)
                                            :icon (string)
                                            :iconOff (string)
                                            :on (boolean)
                                            :busy (boolean)
                                            :progress (number)})))
+
+(defstate newDevice {:open false :name "" :kind plug :room 0 :link "Wi-Fi" :error ""}
+  "The add device dialog: whether it is open, the name typed, the kind, room (its place) and connection chosen."
+  :type (object :properties {:open (boolean) :name (string) :kind (string) :room (integer) :link (string)
+                             :error (string)}))
 
 ;;; Energy
 

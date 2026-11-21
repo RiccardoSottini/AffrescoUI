@@ -3,11 +3,13 @@
 ;;; Most keys act on the selected objects while no text field has the focus; the slide show's own keys are in
 ;;; parts/show.lisp, and the panes' in parts/views.lisp.
 
+(ns sinopia.parts.keys)
+
 ;;; Keys
 
 (defkey "alt+q" {:when ~(not state.show.on) :do [{:focus "#search"}]})
 
-(defkey "mod+f1" {:when ~(not state.show.on) :do [{:toggle state.ribbon}]})
+(defkey "mod+f1" {:when ~(not state.show.on) :do toggle-ribbon})
 
 (defkey "mod+z" {:when ~(not context.textInputFocus) :do undo})
 
@@ -17,7 +19,7 @@
 
 (defkey "mod+m" {:when ~(not context.textInputFocus) :do newSlide :with {:layout content}})
 
-(defkey "mod+d" {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do duplicateObjects})
+(defkey "mod+d" {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do duplicateObjects})
 
 (defkey "mod+c" {:when ~(not context.textInputFocus) :do copyObjects})
 
@@ -27,46 +29,59 @@
 
 (defkey "mod+a" {:when ~(not context.textInputFocus) :do selectAll})
 
-(defkey "mod+b" {:when ~(not context.textInputFocus) :do toggleText :with {:key bold}})
+(defkey "mod+g" {:when ~(not context.textInputFocus) :do group-objects})
 
-(defkey "mod+i" {:when ~(not context.textInputFocus) :do toggleText :with {:key italic}})
+(defkey "mod+shift+g" {:when ~(not context.textInputFocus) :do ungroup-objects})
 
-(defkey "mod+u" {:when ~(not context.textInputFocus) :do toggleText :with {:key underline}})
+(defkey "mod+b" {:when ~(not context.textInputFocus) :do toggle-text :with {:key bold}})
 
-(defkey "mod+l" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align left}}})
+(defkey "mod+i" {:when ~(not context.textInputFocus) :do toggle-text :with {:key italic}})
 
-(defkey "mod+e" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align center}}})
+(defkey "mod+u" {:when ~(not context.textInputFocus) :do toggle-text :with {:key underline}})
 
-(defkey "mod+r" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align right}}})
+(defkey "mod+l"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align left}}
+   {:when ~(some? state.editing) :do set-align :with {:align left}}])
 
-(defkey "mod+j" {:when ~(not context.textInputFocus) :do setObjects :with {:props {:align justify}}})
+(defkey "mod+e"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align center}}
+   {:when ~(some? state.editing) :do set-align :with {:align center}}])
 
-(defkey "mod+shift+." {:when ~(not context.textInputFocus) :do growText :with {:by 1}})
+(defkey "mod+r"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align right}}
+   {:when ~(some? state.editing) :do set-align :with {:align right}}])
 
-(defkey "mod+shift+," {:when ~(not context.textInputFocus) :do growText :with {:by -1}})
+(defkey "mod+j"
+  [{:when ~(not context.textInputFocus) :do set-align :with {:align justify}}
+   {:when ~(some? state.editing) :do set-align :with {:align justify}}])
 
-(defkey "delete" {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do deleteObjects})
+(defkey "mod+shift+." {:when ~(not context.textInputFocus) :do grow-text :with {:by 1}})
+
+(defkey "mod+shift+," {:when ~(not context.textInputFocus) :do grow-text :with {:by -1}})
+
+(defkey "delete" {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects})
 
 (defkey "f2"
   {:when ~(and (not context.textInputFocus) (not state.show.on) (= (count computed.selected) 1))
-   :do editText
+   :do edit-text
    :with {:id ~state.board.selection.0}})
 
 (defkey "backspace"
-  [{:when ~state.show.on :do showPrevious}
-   {:when ~(and (not context.textInputFocus) (> (count computed.selected) 0)) :do deleteObjects}])
+  [{:when ~state.show.on :do show-previous}
+   {:when ~(and (not context.textInputFocus) (pos? (count computed.selected))) :do deleteObjects}])
 
 (defkey "mod+f" {:when ~(not state.show.on) :do ~(handler openFind false)})
 
 (defkey "mod+h" {:when ~(not state.show.on) :do ~(handler openFind true)})
 
 (defkey "escape"
-  [{:when ~state.show.on :do showEnd}
+  [{:when ~(and state.show.on (some? state.showPen.tool)) :do pen-tool :with {:tool nil}}
+   {:when ~state.show.on :do show-end}
    {:when ~(some? state.inkTool) :do inkTool :with {:tool nil}}
-   {:when ~(some? state.editing) :do stopEditing}
+   {:when ~(some? state.editing) :do stop-editing}
    {:when ~(and (not context.textInputFocus)
                 (not state.drop.open)
                 (not state.colors.open)
                 (not state.find.open)
-                (> (count state.board.selection) 0))
+                (pos? (count state.board.selection)))
     :do [{:set state.board.selection :to []}]}])

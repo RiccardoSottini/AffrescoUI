@@ -2,6 +2,8 @@
 ;;;
 ;;; In a narrow window the sidebar folds to its icons: the names and the keys go, the tooltips say them.
 
+(ns launcher.sidebar)
+
 ;;; The sidebar
 
 (defview sidebar "The sidebar: the mark and its name, the pages, a note, and New app." []
@@ -41,11 +43,11 @@
   ;; A macro, so that the label stays an expression of the running app.
   "A key's label, as the platform writes it: with ⌘ on a Mac, Ctrl elsewhere."
   [mac other]
-  `(if (= context.platform "mac") ~mac ~other))
+  `(if (= context.platform :mac) ~mac ~other))
 
 (defview pages-nav "The pages, each with its key." []
   `(column#nav :anchors {:left 12 :right 12 :top 90}
-     :height 186
+     :height ~(if state.catalogue.available 234 186)
      :gap 6
      :arrows vertical
      :role tablist
@@ -56,6 +58,8 @@
        :with {:id mine :icon folder-heart :title ~(t "nav.mine") :keyLabel ~(key-label "⌘2" "Ctrl+2")})
      (node#navCreate :use navItem
        :with {:id create :icon circle-plus :title ~(t "nav.create") :keyLabel ~(key-label "⌘N" "Ctrl+N")})
+     (node#navCatalogue :when ~state.catalogue.available :use navItem
+       :with {:id catalogue :icon library :title ~(t "nav.catalogue") :keyLabel ""})
      (node#navSettings :use navItem
        :with {:id settings :icon settings :title ~(t "nav.settings") :keyLabel ~(key-label "⌘," "Ctrl+,")})))
 
@@ -97,4 +101,6 @@
      :tooltip ~(if computed.wide "" (t "nav.newApp"))
      :anchors {:left 12 :right 12 :bottom 20}
      :height 42
+     ; no colour transition: folding the sidebar left it transparent, its icon on nothing
+     :transition {}
      :onClick showCreate))

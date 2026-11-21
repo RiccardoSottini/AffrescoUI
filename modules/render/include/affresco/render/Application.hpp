@@ -7,9 +7,14 @@
 #include "affresco/render/Clock.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <array>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -18,7 +23,7 @@ namespace affresco {
 namespace platform {
 class NativeWindow;
 class Platform;
-}
+} // namespace platform
 
 /// @brief How an Application opens its windows, for programs that drive them themselves instead of a person: tests
 /// and automation (affresco::automation plays scenarios on hidden windows, on a clock it moves by hand).
@@ -83,12 +88,33 @@ public:
 	/// @return EXIT_SUCCESS, or EXIT_FAILURE if a screenshot failed.
 	int run();
 
-	/// @brief Makes run() return.
+	/// @brief Makes run() return, once the task or event callback that calls it returns. Main thread only (from another
+	/// thread, post() it).
 	void quit();
 
 	/// @brief Runs a task on the main thread, inside run(). Safe to call from any thread.
 	/// @param task The work to run.
 	void post(std::function<void()> task) override;
+
+	/// @brief What woke the event loop from its wait.
+	enum class Wake {
+		Input,   ///< The windowing system delivered events: input, a resize, a redraw.
+		Timer,   ///< A window's timer was due.
+		Posted,  ///< A task was posted (post()).
+		Unknown, ///< None of these: the system woke it for something that reached no window (or nothing woke it yet).
+	};
+	/// @brief How many times run()'s loop has come back from waiting, since the Application started: while nothing
+	/// happens it waits, so an idle second turns it once per timer due and once per task posted (tests and an
+	/// inspector read it).
+	/// @return The count.
+	[[nodiscard]] std::uint64_t turns() const noexcept { return turns_; }
+	/// @brief How many of those turns had a reason (lastWake() after each).
+	/// @param why The reason.
+	/// @return The count.
+	[[nodiscard]] std::uint64_t turns(Wake why) const { return turnsBy_.at(static_cast<std::size_t>(why)); }
+	/// @brief Why the loop's last wait ended (turns()).
+	/// @return Unknown before the first. When several came at once: Posted, then Input, then Timer.
+	[[nodiscard]] Wake lastWake() const noexcept { return lastWake_; }
 
 private:
 	/// @brief Takes a new native window, with a renderer in its context (current), as a Window.
@@ -99,8 +125,12 @@ private:
 	/// @return The window, owned by the application.
 	Window& adopt(std::unique_ptr<platform::NativeWindow> native, std::string title, int width, int height);
 
-	/// @brief Tells every window the system's colour scheme and motion setting, if they changed.
+	/// @brief Tells every window the system's colour scheme and motion setting, if they changed. Where the system
+	/// announces their changes (Platform::appearanceChanges()), they are read only after one.
 	void followSystem();
+	/// @brief Waits until there is input, a task posted or a timer due, and counts the turn (turns(), lastWake()).
+	/// @param timeoutSeconds The longest wait, or std::nullopt to wait for an event.
+	void wait(std::optional<double> timeoutSeconds);
 
 	// Declaration order matters: the windows go before the windowing system
 	std::unique_ptr<platform::Platform> platform_; ///< The windowing system.
@@ -108,6 +138,11 @@ private:
 	const Clock* clock_ = &steadyClock_;           ///< Every window's clock; never null.
 	std::vector<std::unique_ptr<Window>> windows_; ///< In creation order.
 	bool running_ = false;                         ///< Cleared by quit().
+	std::uint64_t turns_ = 0;                      ///< See turns().
+	Wake lastWake_ = Wake::Unknown;                ///< See lastWake().
+	std::array<std::uint64_t, 4> turnsBy_{};       ///< turns(Wake), by Wake.
+	std::optional<std::uint64_t> appearanceSeen_;  ///< The appearance changes followSystem() last read after.
+	std::atomic<bool> posted_ = false;             ///< A task was posted since the last wait.
 
 	/// @brief Runs the tasks posted so far.
 	void runPostedTasks();

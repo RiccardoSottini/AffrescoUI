@@ -47,6 +47,15 @@ struct ReviewPolicy {
 	std::string grantsLast; ///< How long a "don't ask again" lasts at most ("8h", "7d"); empty: until revoked.
 };
 
+/// @brief Who may run which of a document's commands as a peer (the "run" key of the permissions): rules of their own,
+/// which no change rule loop ever sees. A rule is `author` or `author(command)`; its `pattern` holds the command's name
+/// or a prefix ending in `*` (empty: every command). Checked deny first, then ask, then allow.
+struct RunRules {
+	std::vector<PermissionRule> allow; ///< Runs without asking, in the order they were written.
+	std::vector<PermissionRule> ask;   ///< Waits for a reviewer or the person, in the order they were written.
+	std::vector<PermissionRule> deny;  ///< Never runs, in the order they were written.
+};
+
 /// @brief What a document lets each author do: its permission rules, checked deny first, then ask, then allow.
 struct Permissions {
 	bool configured = false;            ///< false: no rules, so every change applies and anyone reviews.
@@ -55,6 +64,7 @@ struct Permissions {
 	std::vector<PermissionRule> deny;   ///< The deny rules, in the order they were written.
 	std::vector<std::string> reviewers; ///< Who may decide on proposals (author or channel names).
 	ReviewPolicy review;                ///< What a proposal needs before it merges.
+	RunRules run;                       ///< Who may run which command as a peer (never a change rule).
 };
 
 /// @brief What version control needs to know about the documents it stores.
@@ -203,6 +213,16 @@ public:
 	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
 	[[nodiscard]] virtual json impact([[maybe_unused]] const json& before, [[maybe_unused]] const json& after) const {
 		return nullptr;
+	}
+
+	/// @brief What a change leaves out without being refused, as lines for the person: e.g. a feature that no longer
+	/// fits once an earlier change is undone. An undo's plan shows them as warnings. The default has none.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return One line for each, e.g. "the command 'export' no longer has a menu item".
+	[[nodiscard]] virtual std::vector<std::string> brokenLines([[maybe_unused]] const json& before,
+	                                                           [[maybe_unused]] const json& after) const {
+		return {};
 	}
 
 	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the

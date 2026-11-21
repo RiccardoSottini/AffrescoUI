@@ -1,27 +1,28 @@
 {
   "format": "affrescoui-budgets",
   "version": 1,
-  "note": "The budgets of BENCHMARKS.md. run.py --budgets measures them; --record writes 'measured'. ciThreshold: what CI fails above, in the unit CI measures (tokens; instructions under callgrind). 'pending' needs a Linux callgrind run to be set; null has its reason in ciReason. A missed token budget's ciThreshold is its recorded value (a ratchet); a met one's is its target.",
+  "note": "The budgets of BENCHMARKS.md. run.py --budgets measures them; --record writes 'measured'. ciThreshold: what CI fails above, in the unit CI measures (tokens; instructions under callgrind). 'pending' needs a Linux callgrind run to be set; null has its reason in ciReason. A missed token budget's ciThreshold is its recorded value (a ratchet); a met one's is its target. A workload ending in '/' or '-' is a prefix (every size, every template); a budget is met when its worst workload is.",
   "targets": [
     {
       "id": "idle-cpu",
       "budget": "Idle CPU: 0%",
       "source": "bench",
       "workloads": [
-        "budgets/idle"
+        "budgets/idle",
+        "budgets/idle-"
       ],
       "field": "processMs",
       "aggregate": "max",
       "limit": 0.0,
       "unit": "percent",
       "ciThreshold": null,
-      "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps.",
+      "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps. CI holds idle as counts instead: tests/unit/window/idle.cpp checks that an idle second of every template runs no update, draws no frame and wakes the event loop only for its own timers (3 at most) and the quit.",
       "measured": {
-        "value": 1.166,
-        "from": "budgets/idle",
+        "value": 0.587,
+        "from": "budgets/idle-music-player",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -38,11 +39,11 @@
       "ciThreshold": null,
       "ciReason": "The frames are measured as the main thread's CPU time in CI, not under callgrind (software OpenGL makes it too slow).",
       "measured": {
-        "value": 0.438,
+        "value": 0.401,
         "from": "frame/14",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -50,8 +51,18 @@
       "budget": "One state change: 1 ms at most at any size, a 50,000-panel screen included",
       "source": "bench",
       "workloads": [
+        "update/14",
+        "update/100",
         "update/400",
-        "update/panels-50000"
+        "update/read/",
+        "update/record/",
+        "update/panels-50000",
+        "update/app-50000",
+        "update/list-append-25000",
+        "update/computed-unrelated/400",
+        "update/parameter/400",
+        "update/lisp-row/25000",
+        "update/animation/400"
       ],
       "field": "value",
       "aggregate": "max",
@@ -59,11 +70,51 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 3.088,
-        "from": "update/400",
+        "value": 19.447,
+        "from": "update/record/400",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "command-run",
+      "budget": "A peer's command run: 1 ms at most on a board of 400 cards, its update and layout included",
+      "source": "bench",
+      "workloads": [
+        "command/400"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 1.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 1.389,
+        "from": "command/400",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "commands-list",
+      "budget": "A peer's command list: 2 ms at most on Forge, every command judged (getCommands with all)",
+      "source": "bench",
+      "workloads": [
+        "commands/list"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 2.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 0.8,
+        "from": "commands/list",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "068a1812",
+        "date": "2026-11-19"
       }
     },
     {
@@ -79,11 +130,51 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 3.232,
-        "from": "revision/kanban/add-button",
+        "value": 27.289,
+        "from": "revision/state-only/400",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "undo-independent",
+      "budget": "An undo of an earlier change no later one touched: 2 ms at most, at any depth",
+      "source": "bench",
+      "workloads": [
+        "history/undo/independent/"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 2.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 22.15,
+        "from": "history/undo/independent/10000",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "undo-plan",
+      "budget": "The plan of an undo with 8 conflicts, 10,000 commits back: 12 ms at most",
+      "source": "bench",
+      "workloads": [
+        "history/undoPlan/conflicts/10000"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 12.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 6.48,
+        "from": "history/undoPlan/conflicts/10000",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -100,11 +191,11 @@
       "ciThreshold": null,
       "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/type-100k.",
       "measured": {
-        "value": 3.374,
+        "value": 2.448,
         "from": "editor/type-100k",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -121,11 +212,11 @@
       "ciThreshold": null,
       "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/scroll-1m.",
       "measured": {
-        "value": 2.052,
+        "value": 0.418,
         "from": "editor/scroll-1m",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -141,11 +232,11 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 245.863,
+        "value": 174.983,
         "from": "budgets/open-50mb",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -161,11 +252,11 @@
       "unit": "bytes",
       "ciThreshold": "pending",
       "measured": {
-        "value": 213369552,
+        "value": 257196728,
         "from": "budgets/open-50mb",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -181,11 +272,11 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 36.386,
+        "value": 233.62,
         "from": "budgets/forge-cold-start",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -201,11 +292,11 @@
       "unit": "bytes",
       "ciThreshold": "pending",
       "measured": {
-        "value": 188843016,
+        "value": 231719920,
         "from": "budgets/forge-10-tabs",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -221,11 +312,11 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 2.499,
+        "value": 1.989,
         "from": "fuzzy/100000",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -241,11 +332,11 @@
       "unit": "ms",
       "ciThreshold": "pending",
       "measured": {
-        "value": 0.163,
+        "value": 0.13,
         "from": "views/tree-expand-100k",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -256,11 +347,11 @@
       "unit": "tokens",
       "ciThreshold": 1272,
       "measured": {
-        "value": 1272,
-        "from": "studio",
+        "value": 9164,
+        "from": "smart-home",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       },
       "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
     },
@@ -272,11 +363,11 @@
       "unit": "tokens",
       "ciThreshold": 4000,
       "measured": {
-        "value": 2169,
+        "value": 6114,
         "from": "forge",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -287,11 +378,11 @@
       "unit": "tokens",
       "ciThreshold": 40,
       "measured": {
-        "value": 24,
+        "value": 28,
         "from": "median of 35 canonical edits",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -302,11 +393,11 @@
       "unit": "tokens",
       "ciThreshold": 150,
       "measured": {
-        "value": 29,
+        "value": 27,
         "from": "forge",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -317,11 +408,11 @@
       "unit": "tokens",
       "ciThreshold": 1669,
       "measured": {
-        "value": 1669,
-        "from": "Top level",
+        "value": 1806,
+        "from": "Events",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       },
       "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
     },
@@ -333,11 +424,27 @@
       "unit": "tokens",
       "ciThreshold": 2000,
       "measured": {
-        "value": 174,
-        "from": "forge-focus",
+        "value": 531,
+        "from": "clj-flow-label-counts",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "1d60d3f",
-        "date": "2026-10-22"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "pick-read",
+      "budget": "What an agent reads first for a request that points: 1,500 tokens at most",
+      "source": "tokens",
+      "limit": 1500,
+      "unit": "tokens",
+      "ciThreshold": null,
+      "ciReason": "A pick is read with the affrescoui tool (affrescoui source), and CI's benchmark job builds only affrescoui_bench: tokens.py counts no pick there.",
+      "measured": {
+        "value": 2603,
+        "from": "sinopia-json thumbnails",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     },
     {
@@ -348,11 +455,71 @@
       "unit": "tokens",
       "ciThreshold": 120,
       "measured": {
-        "value": 75,
-        "from": "toolbar",
+        "value": 111,
+        "from": "dock",
         "machine": "Apple M4 Pro, macOS 27.0.1",
-        "commit": "683b332",
-        "date": "2026-10-23"
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "command-list",
+      "budget": "An app's command list: 3,000 tokens at most (list_commands)",
+      "source": "tokens",
+      "limit": 3000,
+      "unit": "tokens",
+      "ciThreshold": 3000,
+      "measured": {
+        "value": 2156,
+        "from": "forge",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "command-line",
+      "budget": "A command's line: 20 tokens at most (the median, list_commands)",
+      "source": "tokens",
+      "limit": 20,
+      "unit": "tokens",
+      "ciThreshold": 20,
+      "measured": {
+        "value": 12,
+        "from": "median of 191 commands",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "run-command",
+      "budget": "A run's answer of three changes: 120 tokens at most (run_command)",
+      "source": "tokens",
+      "limit": 120,
+      "unit": "tokens",
+      "ciThreshold": 120,
+      "measured": {
+        "value": 61,
+        "from": "three changes",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
+      }
+    },
+    {
+      "id": "command-tools",
+      "budget": "The tools to use an app: 1,000 tokens at most (list_commands, run_command, undo_run)",
+      "source": "tokens",
+      "limit": 1000,
+      "unit": "tokens",
+      "ciThreshold": 1000,
+      "measured": {
+        "value": 653,
+        "from": "list_commands, run_command, undo_run",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "9f683df6",
+        "date": "2026-11-18"
       }
     }
   ]

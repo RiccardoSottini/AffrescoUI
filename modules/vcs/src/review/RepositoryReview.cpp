@@ -7,6 +7,7 @@
 
 #include "revisions/Budget.hpp"
 #include "review/Merge.hpp"
+#include "revisions/Deltas.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "revisions/Revisions.hpp"
@@ -43,6 +44,19 @@ std::optional<long long> secondsOf(std::string_view text) {
 /// @return true for "/state" and the paths inside it.
 bool inState(const std::string& path) { return path == "/state" || path.starts_with("/state/"); }
 
+/// @brief A version of the document with main's "state" section, or none where main has none: the live state is the
+/// person's data, which merging another version never changes.
+/// @param version The version.
+/// @param main main's source document.
+/// @return The version, its state replaced.
+json withStateOf(const json& version, const json& main) {
+	json result = version;
+	if(!result.is_object()) return result;
+	if(const auto state = main.find("state"); state != main.end()) result["state"] = *state;
+	else result.erase("state");
+	return result;
+}
+
 /// @brief The paths of conflicts, for a message.
 /// @param conflicts The conflicts.
 /// @return e.g. "#title/text, /colors/accent".
@@ -78,8 +92,10 @@ bool Repository::rebase(Proposal& proposal) {
 			exact = false; // its operations no longer apply as written: the merge does
 		}
 		try {
-			if(exact) rebased.reviewedHeads.push_back(proposal.head);
-			else squash(rebased = proposal, merged.merged);
+			if(exact) {
+				rebased.reviewedHeads.push_back(proposal.head);
+				describeUndoProposal(rebased);
+			} else squash(rebased = proposal, merged.merged);
 		} catch(const DocumentError& failure) {
 			merged.conflicts.push_back({{"path", "/"},
 			                            {"reason", detail::reasonOf(failure)},
@@ -98,10 +114,18 @@ bool Repository::rebase(Proposal& proposal) {
 	return true;
 }
 
-void Repository::squash(Proposal& proposal, const json& merged) {
+json Repository::patchToward(const json& merged) const {
+	// On the views, both with the live state, so that even an operation on the whole document leaves it as it is
 	json patch = json::array();
-	for(json& op : json::diff(mainDocument(), merged))
+	for(json& op :
+	    detail::delta(detail::view(mainDocument(), committedState()), detail::view(merged, committedState())))
 		if(!inState(op["path"].get<std::string>())) patch.push_back(std::move(op));
+	detail::expectFewEnoughOperations(patch.size());
+	return patch;
+}
+
+void Repository::squash(Proposal& proposal, const json& merged) {
+	json patch = patchToward(merged);
 	for(const json& op : proposal.patch)
 		if(inState(op.value("path", std::string()))) patch.push_back(op);
 	detail::expectFewEnoughOperations(patch.size());
@@ -112,12 +136,55 @@ void Repository::squash(Proposal& proposal, const json& merged) {
 	commit.time = detail::utcNow();
 	commit.patch = std::move(patch);
 	if(!proposal.run.empty()) commit.run = proposal.run; // the merge replaces the commits, not what they run
+	commit.undo = proposal.undo;                         // nor what they undo
 	replay(proposal, {std::move(commit)});
+	describeUndoProposal(proposal);
 	proposal.approvals.clear(); // what it does now is the merge, which nobody reviewed
 	proposal.reviewedHeads.clear();
 }
 
+/* Merging another version */
+
+Repository::MergeProposed Repository::proposeMerge(const MergeRequest& request) {
+	const int number = mainHead().number;
+	const auto refused = [number](std::string error, json conflicts) {
+		return MergeProposed{{RevisionStatus::Rejected, number, {}, 0, std::move(error)}, std::move(conflicts)};
+	};
+	const json& main = mainDocument();
+	MergeResult merged = detail::merge(withStateOf(request.base, main), main, withStateOf(request.theirs, main));
+	const bool more = (request.assets.is_array() && !request.assets.empty()) ||
+	                  (request.extra.is_array() && !request.extra.empty());
+	if(merged.merged == main && !more) {
+		if(merged.clean()) return refused("nothing to merge: main already has it", {});
+		std::string error = "nothing merges cleanly: every change conflicts with main, at " + pathsOf(merged.conflicts);
+		return refused(std::move(error), std::move(merged.conflicts));
+	}
+	json patch;
+	try {
+		patch = patchToward(merged.merged);
+	} catch(const DocumentError& error) {
+		return refused(error.what(), std::move(merged.conflicts));
+	}
+	if(request.extra.is_array()) patch.insert(patch.end(), request.extra.begin(), request.extra.end());
+	json revision = {{"author", request.author}, {"message", request.message}, {"patch", std::move(patch)}};
+	if(request.assets.is_array() && !request.assets.empty()) revision["assets"] = request.assets;
+	// As any proposal: the document rules, the deny rules and the limits judge it, whoever the author is
+	RevisionResult proposed = submitRevision(revision, true, {merged.conflicts, request.personOnly});
+	return {std::move(proposed), std::move(merged.conflicts)};
+}
+
+RevisionResult Repository::proposeForPerson(const json& revision) {
+	return submitRevision(revision, true, {json::array(), true});
+}
+
 /* Approvals and policies */
+
+std::vector<std::string> Repository::personNeeds(const Proposal& proposal, const json& before,
+                                                 const json& after) const {
+	std::vector<std::string> lines = personNeeds(before, after, proposal.run);
+	if(proposal.personOnly) lines.emplace_back("was opened for the person to accept");
+	return lines;
+}
 
 std::optional<std::string> Repository::checkApproval(const Proposal& proposal, const Approval& approval) const {
 	const std::string name = "AffrescoUI screen: proposal #" + std::to_string(proposal.id);
@@ -128,7 +195,7 @@ std::optional<std::string> Repository::checkApproval(const Proposal& proposal, c
 		std::vector<std::string> person = proposal.person;
 		try {
 			const Prepared next = prepare(proposal.patch, mainDocument(), committedState());
-			person = personNeeds(next.before, next.after, proposal.run);
+			person = personNeeds(proposal, next.before, next.after);
 		} catch(const DocumentError&) { // it no longer applies: as it was described, then
 		}
 		if(!person.empty())

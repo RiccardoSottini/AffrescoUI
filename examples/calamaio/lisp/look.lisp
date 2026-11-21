@@ -3,6 +3,8 @@
 ;;; default is light with a teal ink, inchiostro dark, pergamena light with a strong contrast; the setting
 ;;; custom-enabled-themes chooses (settings.lisp). A colour is named once with its three values (@bg, @ml...).
 
+(ns calamaio.look)
+
 ;;; Faces
 
 (defpart faces

@@ -8,6 +8,7 @@
 #include <affresco/lisp/Program.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <set>
@@ -37,12 +38,48 @@ struct BuiltProgram {
 	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
 	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
 	std::set<std::pair<std::string, std::string>> defaulted; ///< Members a `defdefaults` gave (Program::defaulted()).
+	std::vector<std::string> macros; ///< The texts of its `defmacro` entries, in the order of the entries.
+	/// What the build kept of each definition, for the build of a later version (Program::rebuild()).
+	std::shared_ptr<const BuildRecord> record;
 };
 
 /// @brief Tells whether a document holds a program.
 /// @param document The document.
 /// @return true if it has a `program` section.
 [[nodiscard]] bool hasProgram(const json& document);
+
+/// @brief The program a document runs: its own `program` section, then the files of each enabled feature record whose
+/// `provides` holds a program, each named `features/<name>/<file>`, the features by `order`, then by name. It checks
+/// nothing: a record of the wrong shape is left out. With no feature that holds a program, it is the document's own
+/// section, unchanged; a document with no `program` section runs none, and gives null.
+/// @param document The document.
+/// @return The program, or null.
+[[nodiscard]] json effectiveProgram(const json& document);
+
+/// @brief The same, with only the features named (those a composition merged, Composition::merged).
+/// @param document The document.
+/// @param features The features to take.
+/// @return The program, or null.
+[[nodiscard]] json effectiveProgram(const json& document, std::span<const std::string> features);
+
+/// @brief The prefix of a feature's files in an effective program: `features/<name>/`.
+/// @param name The feature.
+/// @return The prefix.
+[[nodiscard]] std::string featureFiles(std::string_view name);
+
+/// @brief The feature a file of an effective program belongs to.
+/// @param file The file's name.
+/// @return The feature's name; empty for the document's own files.
+[[nodiscard]] std::string featureOfFile(std::string_view file);
+
+/// @brief How many sections builtProgram() has built on this thread, not counting those it kept (for the tests).
+/// @return The count.
+[[nodiscard]] std::size_t programBuilds() noexcept;
+
+/// @brief Makes builtProgram() keep more builds on this thread, for good: those of an app with features, each
+/// feature's program alone and the effective program before and after a revision, so none is built twice.
+/// builtProgram() calls it itself for a section with features' files; composition, before it builds a feature's.
+void keepFeatureBuilds() noexcept;
 
 /// @brief Checks a `program` section's shape and limits; not what its text means, which is the build's to say.
 /// @param section The section.
@@ -90,6 +127,45 @@ void checkProgramShape(const json& section);
 /// @return What it built.
 /// @throws LispError If it can't be built or a limit runs out, naming the definition.
 [[nodiscard]] std::shared_ptr<const BuiltProgram> builtProgram(const json& section);
+
+/// @brief The places of the tree that differ between two builds, as JSON pointers: where the later build was built in
+/// part from the earlier (Program::rebuild()), those its definitions gave; else each top-level key, or each member of
+/// a section, that differs. A revision may offer them to whoever shows the tree.
+/// @param before The earlier build.
+/// @param after The later.
+/// @return The places, in order, each once.
+[[nodiscard]] std::vector<std::string> changedPlaces(const BuiltProgram& before, const BuiltProgram& after);
+
+/// @brief Where the form that built a node is written, or, when a call handed the node's id to the view that built it,
+/// where that call writes the id: in which definition, and where inside the definition's own text (the history keeps
+/// definitions, and a file on disk may be laid out differently).
+struct NodeOrigin {
+	/// @brief Where the node's id is.
+	enum class Id : std::uint8_t {
+		Form,      ///< Written out in the node's form: `(button#save` or `:id "save"`.
+		Call,      ///< Written out in a call that handed it to the view that built the node (`(tool-button "save")`):
+		           ///< line and column are those of its text.
+		Expression ///< Worked out by the form (`:id ~(str "row" i)`).
+	};
+
+	std::string file;         ///< The file, as the program calls it: the key under `/program`.
+	std::string definition;   ///< The entry's name: the address is `/program/<file>/<definition>`.
+	std::string kind;         ///< The definition's head: `defview`, `defcomponent`, `defscreen`, `defmacro`...
+	std::uint32_t line = 1;   ///< The line the node's form starts on, from 1 at the definition's first line.
+	std::uint32_t column = 1; ///< Its column on that line, in characters, from 1.
+	Id id = Id::Form;         ///< Where the node's id is.
+};
+
+/// @brief Node origins by node id.
+using NodeOrigins = std::map<std::string, NodeOrigin, std::less<>>;
+
+/// @brief Where each node with an id that a `program` section builds from a form of its source comes from: a second
+/// build of the section that records (Program::recordOrigins()), under builtProgram()'s limits, run only when asked. A
+/// node with no id, or built from a map or by a function, has none; a node built in several places has its first. The
+/// same section gives the same result, kept for a few sections on this thread.
+/// @param section The section.
+/// @return The origins; empty if the section can't be built (builtProgram() says why).
+[[nodiscard]] std::shared_ptr<const NodeOrigins> nodeOrigins(const json& section);
 
 /// @brief A document as everything but version control reads it: what its program builds and its other sections
 /// together, with its `program` section kept. A member both give must be the same; so the result, read as a document

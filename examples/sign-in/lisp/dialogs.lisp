@@ -4,6 +4,8 @@
 ;;; Each is the built-in dialog component (`:use dialog`), its buttons running functions of sign-in.lisp and
 ;;; profile.lisp; its fields sit under its title and message, from y 76.
 
+(ns sign-in.dialogs)
+
 ;;; Signing in
 
 (defview forgot-dialog "Forgot password: the account's email, to send it a reset code." []
@@ -19,7 +21,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "sendLink") :run sendReset} {:title ~(t "cancel") :run closeForgot}]}
+            :buttons [{:title ~(t "sendLink") :run send-reset} {:title ~(t "cancel") :run close-forgot}]}
      (node#forgotEmail :style field
        :anchors {:left 20 :right 20 :top 76}
        :height 38
@@ -30,7 +32,7 @@
        :maxLength 254
        :bind state.forgot.email
        :onChange {:set state.forgot.error :to ""}
-       :onSubmit sendReset)
+       :onSubmit send-reset)
      (node#forgotError :when ~(not= state.forgot.error "")
        :style inlineError
        :text ~state.forgot.error
@@ -49,7 +51,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "cancel") :run cancelPasskey}]}
+            :buttons [{:title ~(t "cancel") :run cancel-passkey}]}
      ~(repeat [pk computed.passkeys :index i :key pk.email]
         (passkey-choice pk i))))
 
@@ -59,7 +61,7 @@
      :anchors {:left 20 :right 20 :top ~(+ 76 (* 46 i))}
      :icon fingerprint-pattern
      :text ~(str pk.name " · " pk.email)
-     :onClick ~(handler choosePasskey pk.email)))
+     :onClick ~(handler choose-passkey pk.email)))
 
 ;;; Two-step setup
 
@@ -76,9 +78,9 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t (if (= state.setup.step "scan") "next" "done")) :run setupNext}
+            :buttons [{:title ~(t (if (= state.setup.step "scan") "next" "done")) :run setup-next}
                       {:title ~(t (if (and (= state.setup.step "codes") (not state.user.twoStep)) "back" "cancel"))
-                       :run setupCancel}]}
+                       :run setup-cancel}]}
      ~@(scan-step)
      ~@(backup-codes-step)
      (node#setupError :when ~(not= state.setup.error "")
@@ -91,7 +93,7 @@
    `(node#label-key :when ~(= state.setup.step "scan")
       :style fieldLabel
       :text ~(t "orEnterKey")
-      :anchors {:left 176 :right 20 :top 90})
+      :anchors {:left 176 :right 20 :top 84})
    `(label#setupKey :when ~(= state.setup.step "scan")
       :font mono
       :dir ltr
@@ -105,7 +107,7 @@
       :icon copy
       :text ~(t "copyKey")
       :anchors {:left 176 :top 144}
-      :onClick copySetupKey)
+      :onClick copy-setup-key)
    `(node#demoSetup :when ~(= state.setup.step "scan")
       :style hint
       :icon info
@@ -116,7 +118,7 @@
    `(node#label-setup-code :when ~(= state.setup.step "scan")
       :style fieldLabel
       :text ~(t "code")
-      :anchors {:left 20 :right 20 :top 232})
+      :anchors {:left 20 :right 20 :top 222})
    (setup-code)])
 
 (defview qr-code "The QR code an authenticator app scans, dark on white in either theme." []
@@ -143,8 +145,8 @@
      :description ~(if (= state.setup.error "") "" (t "setupError" {:kind state.setup.error}))
      :cellBorderColor ~(if (= state.setup.error "") "@color.border" "@color.error")
      :anchors {:left 20 :right 20 :top 254}
-     :onChange setupCodeChanged
-     :onSubmit setupNext))
+     :onChange setup-code-changed
+     :onSubmit setup-next))
 
 (defview backup-codes-step "The setup's second step: the backup codes, a box to tick once saved, and Copy."
   []
@@ -154,20 +156,20 @@
       (node#savedCodes :style ~(if state.setup.saved "checkOn" "checkOff")
         :label ~(t "savedCodes")
         :checked ~state.setup.saved
-        :onClick toggleSaved
-        :keys {:space toggleSaved})
+        :onClick toggle-saved
+        :keys {:space toggle-saved})
       (label#label-saved :font small
         :text ~(t "savedCodes")
         :fitText true
         :textColor @color.muted
         :cursor hand
-        :onClick toggleSaved))
+        :onClick toggle-saved))
    `(node#copyCodes :when ~(= state.setup.step "codes")
       :style smallLink
       :icon copy
       :text ~(t "copyCodes")
       :anchors {:left 20 :top 234}
-      :onClick copyBackupCodes)])
+      :onClick copy-backup-codes)])
 
 (defview backup-code "A backup code, in two columns of four, `i` its place." [backup i]
   `(label#backup-code :when ~(= state.setup.step "codes")
@@ -198,7 +200,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "change") :run changePassword} {:title ~(t "cancel") :run closeChange}]}
+            :buttons [{:title ~(t "change") :run changePassword} {:title ~(t "cancel") :run close-change}]}
      ~@(new-password-fields)
      (node#change-meter :color transparent
        :use passwordMeter
@@ -250,7 +252,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "confirmIt") :run confirmReauth} {:title ~(t "cancel") :run closeReauth}]}
+            :buttons [{:title ~(t "confirmIt") :run confirm-reauth} {:title ~(t "cancel") :run close-reauth}]}
      (node#reauthPassword :style field
        :anchors {:left 20 :right 20 :top 76}
        :height 38
@@ -262,7 +264,7 @@
        :description ~(if (= state.reauth.error "") "" (t "reauthError" {:kind state.reauth.error}))
        :bind state.reauth.password
        :onChange {:set state.reauth.error :to ""}
-       :onSubmit confirmReauth)
+       :onSubmit confirm-reauth)
      (node#reauthError :when ~(not= state.reauth.error "")
        :style inlineError
        :text ~(t "reauthError" {:kind state.reauth.error})
@@ -281,7 +283,7 @@
             :dimColor @color.muted
             :highlight @color.error
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "deleteForever") :run confirmDelete} {:title ~(t "cancel") :run closeDelete}]}
+            :buttons [{:title ~(t "deleteForever") :run confirm-delete} {:title ~(t "cancel") :run close-delete}]}
      (node#deleteConfirm :style field
        :anchors {:left 20 :right 20 :top 76}
        :height 38
@@ -294,7 +296,7 @@
                          (t "deleteError" {:kind state.deleting.error :word computed.deleteWord}))
        :bind state.deleting.typed
        :onChange {:set state.deleting.error :to ""}
-       :onSubmit confirmDelete)
+       :onSubmit confirm-delete)
      (node#deleteError :when ~(not= state.deleting.error "")
        :style inlineError
        :text ~(t "deleteError" {:kind state.deleting.error :word computed.deleteWord})
@@ -315,7 +317,7 @@
             :dimColor @color.muted
             :highlight @color.accent
             :backdrop @color.backdrop
-            :buttons [{:title ~(t "close") :run closeShortcuts}]}
+            :buttons [{:title ~(t "close") :run close-shortcuts}]}
      (column#shortcutList :color transparent
        :role list
        :label ~(t "shortcuts")

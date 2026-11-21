@@ -62,7 +62,8 @@ public:
 /// so they show their "disconnected" state every time; a step sends what a channel would with an action named
 /// `<channel>:<type>`.
 /// @param scenario The scenario.
-/// @param document The screen's document, as JSON text.
+/// @param document The screen's document, as JSON text: a program's as its source, from its file (screenDocument()) or
+/// passed in (Options::document) alike, so that its steps can change its definitions.
 /// @param options How to play it.
 /// @param scratch A folder of the run's own.
 /// @param result Receives its failures and pictures.
@@ -79,6 +80,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	// Declared before the screen, so they outlive it: a screen disconnects from its window when it goes
 	affresco::detail::ManualClock clock;
 	NoPeers noPeers;
+	detail::Peers peers; // the channels `command` steps speak on: the screen keeps references to them
 	std::optional<Application> application;
 	std::unique_ptr<Window> headless;
 	Window* window = nullptr;
@@ -97,7 +99,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	if(options.prepare) options.prepare(screen);
 	screen.build(*window);
 	screen.startChannels(noPeers);
-	detail::Player({screen, *window, clock, scenario, options, scratch}, result).play();
+	detail::Player({screen, *window, clock, scenario, options, scratch, peers}, result).play();
 }
 
 /// @brief Plays one scenario, catching what keeps it from starting.
@@ -197,6 +199,18 @@ Screen unconnectedScreen(const std::string& document, const std::filesystem::pat
 	}
 	screen.setSocketDirectory(nowhere);
 	return screen;
+}
+
+void buildHeadless(Screen screen) {
+	const json settings = parseUntrusted(screen.documentJson()).value("window", json::object());
+	// Declared before the screen, so they outlive it: a screen disconnects from its window when it goes
+	const affresco::detail::ManualClock clock;
+	const std::unique_ptr<Window> window =
+	    affresco::detail::createHeadlessWindow(sizeIn(settings, "width", 800), sizeIn(settings, "height", 600), clock);
+	Screen built = std::move(screen);
+	built.setPlaceholderTypes(true); // as affrescoui_launcher does
+	built.build(*window);
+	window->render();
 }
 
 } // namespace affresco::automation

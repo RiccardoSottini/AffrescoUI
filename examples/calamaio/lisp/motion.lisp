@@ -4,6 +4,8 @@
 ;;; times (computed.n): with the mark active it extends the region. C-u and M-<digit> give that argument; C-g cancels
 ;;; what was begun.
 
+(ns calamaio.motion)
+
 ;;; Pressing the editor's keys
 
 (defn caret "The selected window's caret: its line, column, how much is selected and how many matches there are." []
@@ -11,7 +13,7 @@
 
 (defn move
   "Presses a key of the selected window's editor, the argument's count of times; with the mark, the region grows." [k]
-  (when (some? state.arg) (set "state.echo" ""))
+  (when-some [_ state.arg] (set "state.echo" ""))
   (when computed.text
     (press (str (if state.mark.on "shift+" "") k) :in computed.ed :times computed.n))
   (set "state.arg" nil))
@@ -70,7 +72,7 @@
   :title ~(t "command.beginning-of-buffer") :category ~(t "category.motion")
   :description ~(t "command.beginning-of-buffer.about")
   []
-  (when (not state.mark.on) (message (t "echo.markSet")))
+  (when-not state.mark.on (message (t "echo.markSet")))
   (set "state.arg" nil)
   (move "cmd+up"))
 
@@ -78,7 +80,7 @@
   :title ~(t "command.end-of-buffer") :category ~(t "category.motion")
   :description ~(t "command.end-of-buffer.about")
   []
-  (when (not state.mark.on) (message (t "echo.markSet")))
+  (when-not state.mark.on (message (t "echo.markSet")))
   (set "state.arg" nil)
   (move "cmd+down"))
 
@@ -87,6 +89,20 @@
   :description ~(t "command.scroll-up-command.about")
   []
   (move "pagedown"))
+
+(defstate recenter {:at nil :step 0} "Where the last C-l left point, and where it put its line: 0 middle, 1 top, 2 bottom.")
+
+(defcommand recenter-top-bottom
+  "Scrolls point's line to the middle of the window; again at once, to the top, then to the bottom."
+  :title ~(t "command.recenter-top-bottom") :category ~(t "category.motion")
+  :description ~(t "command.recenter-top-bottom.about")
+  []
+  (set "state.arg" nil)
+  (when computed.text
+    (let [here (assoc (point) :win state.sel)
+          step (if (= here state.recenter.at) (mod (inc state.recenter.step) 3) 0)]
+      (edit (get ["recenter" "recenterTop" "recenterBottom"] step) :in computed.ed)
+      (set "state.recenter" {:at here :step step}))))
 
 (defcommand scroll-down-command "Shows the previous screenful of text."
   :title ~(t "command.scroll-down-command") :category ~(t "category.motion")
@@ -100,14 +116,14 @@
   :title ~(t "command.set-mark-command") :category ~(t "category.editing")
   :description ~(t "command.set-mark-command.about")
   []
-  (when (and computed.text (> (or (:selected (caret)) 0) 0))
+  (when (and computed.text (pos? (or (:selected (caret)) 0)))
     (press "right" :in computed.ed))
   (set "state.mark" (assoc (point) :on true))
   (message (t "echo.markSet")))
 
 (defn deactivate-mark "Lets go of the region, point staying at the end of it the mark isn't at." []
   (let [at (caret) mark state.mark]
-    (when (and (:on mark) computed.text (> (or (:selected at) 0) 0))
+    (when (and (:on mark) computed.text (pos? (or (:selected at) 0)))
       (press (if (or (> (:line at) (:line mark)) (and (= (:line at) (:line mark)) (>= (:column at) (:column mark))))
                "right"
                "left")
@@ -120,6 +136,9 @@
   []
   (deactivate-mark)
   (set "state.arg" nil)
+  (set "state.keyseq" "")
+  (set "state.regread.on" false)
+  (when state.kmacro.on (set "state.kmacro" (merge state.kmacro {:on false :keys []})))
   (when state.mb.open (minibuffer-close))
   (set "state.echo" (t "echo.quit")))
 
@@ -134,7 +153,7 @@
     (set "state.argU" (if fresh 1 (inc (or state.argU 0))))
     (set "state.arg" (if fresh 4 (* state.arg 4)))
     (set "state.argDigits" false)
-    (set "state.echo" (str (join " " (map (fn [_] "C-u") (range state.argU))) "-"))))
+    (set "state.echo" (str (str/join " " (for [_ (range state.argU)] "C-u")) "-"))))
 
 (defcommand digit-argument "Adds a digit to the numeric argument of the next command."
   :title ~(t "command.digit-argument") :category ~(t "category.editing")

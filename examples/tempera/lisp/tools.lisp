@@ -3,6 +3,8 @@
 ;;; One column of tool groups (state.tools): each shows its chosen tool, or its first; a right click opens the group's
 ;;; other tools to its right. Under them, the foreground and background colours, the quick mask, the screen mode.
 
+(ns tempera.tools)
+
 ;;; The bar
 
 (defview tool-bar "The tools bar: the tool groups, then the colours and the modes." []
@@ -31,7 +33,7 @@
 (defview tool-group "A group of the bar, g its tools and n its place: a dot for an empty one, else its tool." [g n]
   `(node :id ~(str "tool-group-" n)
      :style clear
-     :let {:tool ~(or-else (find (fn [it] (= it.id state.doc.tool)) g) (first g))}
+     :let {:tool ~(or-else (find #(= (:id %) state.doc.tool) g) (first g))}
      :width 32
      :height ~(if (empty? g) 7 26)
      (node :when ~(empty? g) :x 14 :y 2 :width 3 :height 3 :radius 999 :color @border)
@@ -58,7 +60,7 @@
      :color ~(if (= tool.id state.doc.tool) "@selected" "transparent")
      :hover {:color ~(if tool.id "@hover" "transparent")}
      :onClick ~(handler setTool {:tool tool.id})
-     :onContextMenu ~(handler toggleOpen (str "state.flyout.g" n))
+     :onContextMenu ~(handler toggle-open (str "state.flyout.g" n))
      (node :when ~(= tool.id state.doc.tool) :x 0 :anchors {:top 6 :bottom 6} :width 3 :radius 2 :color @accent)
      (node :when ~(> (count g) 1)
        :width 3
@@ -81,7 +83,7 @@
                             :icon it.icon
                             :enabled (some? it.id)
                             :checked (= it.id state.doc.tool)
-                            :keyLabel (slice (or-else it.key "") (max 0 (- (count (or-else it.key "")) 1)))
+                            :keyLabel (slice (or-else it.key "") (->> (or-else it.key "") count dec (max 0)))
                             :run "setTool"
                             :with {:args {:tool it.id}}})
                          g)}))
@@ -90,9 +92,9 @@
 
 (defview colour-chips "The foreground over the background colour; the arrows swap them, the small pair resets them." []
   `(node#colours :role group :label ~(t "tools.colours") :style clear :width 32 :height 36
-     ~(colour-chip "background-colour" 'state.doc.background 11 12 "colour.background")
+     ~(colour-chip "background-colour" "background" 'state.doc.background 11 12 "colour.background")
      (node :x 1 :y 2 :width 21 :height 21 :color @panel :radius 999)
-     ~(colour-chip "foreground-colour" 'state.doc.foreground 2 3 "colour.foreground")
+     ~(colour-chip "foreground-colour" "foreground" 'state.doc.foreground 2 3 "colour.foreground")
      (label#colour-swap :role button
        :label ~(t "tools.swapColours")
        :icon arrow-left-right
@@ -119,8 +121,9 @@
        (node :x 3 :y 3 :width 6 :height 6 :radius 999 :color "#ffffff" :borderWidth 1 :borderColor @muted)
        (node :width 6 :height 6 :radius 999 :color "#000000" :borderWidth 1 :borderColor @muted))))
 
-(defview colour-chip "A colour's round chip at x, y, value its path, title a text key: a click shows the Colour panel."
-  [id value x y title]
+(defview colour-chip
+  "A colour's round chip at x, y, value its path, target its option, title a text key: a click opens its picker."
+  [id target value x y title]
   `(node :id ~id
      :role button
      :label ~(t title)
@@ -134,7 +137,8 @@
      :borderColor @muted
      :tooltip ~(t title)
      :cursor hand
-     :onClick {:run showPanel :with {:args {:slot colour :id colour}}}))
+     :onClick ~(handler toggle-open (str "state.pop." target))
+     ~(colour-pop id target value)))
 
 (defview screen-mode-button "The screen mode: a click changes it; a right click shows both modes." []
   `(label#screen-mode :role button

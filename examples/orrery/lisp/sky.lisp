@@ -6,6 +6,8 @@
 ;;; sidereal time, then projected through the view's azimuth, altitude and field of view. Great circles are straight
 ;;; lines in this projection, so the horizon is a horizontal line and a constellation's lines are straight.
 
+(ns orrery.sky)
+
 ;;; What the sky keeps
 
 (defstate skyMode ground)
@@ -91,7 +93,7 @@
 (defcomputed skyTracked "The body the sky view tracks, if any."
   (if (= state.skyTrack "")
     nil
-    (find (fn [it] (and (= it.kind "body") (= it.id state.skyTrack))) computed.skyLocal)))
+    (find #(and (= (:kind %) "body") (= (:id %) state.skyTrack)) computed.skyLocal)))
 
 (defcomputed skyView "The sky view's size and focal length."
   (if computed.skyTracked
@@ -110,7 +112,7 @@
    :cosAltitude (cos computed.skyView.altitude)})
 
 (defcomputed skyHome "The Earth, where the sky is seen from."
-  (or-else (find (fn [it] (= it.id "earth")) computed.placed) {:x 0 :z 0}))
+  (or-else (find #(= (:id %) "earth") computed.placed) {:x 0 :z 0}))
 
 (defcomputed skyEcliptic "The ecliptic's tilt, turning the bodies' places into the sky's."
   (map (fn [it]
@@ -119,7 +121,7 @@
           :hex it.hex
           :parent it.parent
           :longitude (atan2 (- computed.skyHome.z it.z) (- it.x computed.skyHome.x))})
-       (filter (fn [it] (not= it.id "earth")) computed.placed)))
+       (filter #(not= (:id %) "earth") computed.placed)))
 
 (defcomputed skyEarth "Where the Earth is now."
   {:sinLatitude (sin (radians state.sky.latitude))
@@ -129,17 +131,17 @@
 (defcomputed skyStars "The stars above the horizon, bright enough to see."
   (map-indexed (fn [index it]
                  {:kind "star"
-                  :u (- (* (mod (abs (* (sin (* index 12.9898)) 43758.5453)) 1) 2) 1)
-                  :t (* (mod (abs (* (sin (* index 78.233)) 12543.917)) 1) 2 (pi))
-                  :mag (+ 0.5 (* 6 (sqrt (mod (abs (* (sin (* index 39.425)) 24634.633)) 1))))
-                  :tint (floor (* (mod (abs (* (sin (* index 7.131)) 9631.77)) 1) 3))})
+                  :u (-> index (* 12.9898) sin (* 43758.5453) abs (mod 1) (* 2) dec)
+                  :t (-> index (* 78.233) sin (* 12543.917) abs (mod 1) (* 2 (pi)))
+                  :mag (->> (-> index (* 39.425) sin (* 24634.633) abs (mod 1)) sqrt (* 6) (+ 0.5))
+                  :tint (-> index (* 7.131) sin (* 9631.77) abs (mod 1) (* 3) floor)})
                (range 1200)))
 
 (defcomputed skyObjects
   "Everything in the sky: the bodies, the stars, the figures and the grid, each with its direction."
   (if (not= state.skyMode "ground")
     []
-    (concat (map (fn [it] (merge it {:r (/ (round (* (max 0.5 (- 2.8 (* it.mag 0.4))) 100)) 100)}))
+    (concat (map #(merge % {:r (-> % :mag (* 0.4) (->> (- 2.8) (max 0.5)) (* 100) round (/ 100))})
                  computed.skyStars)
             (map (fn [it]
                    (merge it
@@ -147,7 +149,7 @@
                            :u (* (sin it.longitude) 0.3978)
                            :t (atan2 (* (sin it.longitude) 0.9175) (cos it.longitude))}))
                  computed.skyEcliptic)
-            (map (fn [it] (merge it {:kind "name"})) state.constellations)
+            (map #(merge % {:kind "name"}) state.constellations)
             [{:kind "cardinal" :id "N" :e 0 :n 1 :up 0}
              {:kind "cardinal" :id "E" :e 1 :n 0 :up 0}
              {:kind "cardinal" :id "S" :e 0 :n (- 1) :up 0}
@@ -161,43 +163,45 @@
                             (radians
                               (max 0.4
                                    (+ 1.6
-                                      (* 1.3 (sin (+ (radians (* 15 it)) 1)))
-                                      (* 0.8 (sin (radians (* 35 it))))
-                                      (* 0.5 (sin (+ (radians (* 85 it)) 2)))))))})
+                                      (->> it (* 15) radians inc sin (* 1.3))
+                                      (->> it (* 35) radians sin (* 0.8))
+                                      (as-> it x (* 85 x) (radians x) (+ x 2) (sin x) (* 0.5 x))))))})
                    (range 73))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "gridLabel"
                       :id (str "g" it)
-                      :text (if (< it 12) (str (* 30 it) "°") (str (round (+ 30 (* 30 (mod it 2)))) "°"))
+                      :text (if (< it 12)
+                              (str (* 30 it) "°")
+                              (str (->> (mod it 2) (* 30) (+ 30) round) "°"))
                       :e (if (< it 12)
                            (sin (radians (* 30 it)))
-                           (* (sin (radians (* 90 (floor (/ (- it 12) 2)))))
-                              (cos (radians (+ 30 (* 30 (mod it 2)))))))
+                           (* (->> (/ (- it 12) 2) floor (* 90) radians sin)
+                              (->> (mod it 2) (* 30) (+ 30) radians cos)))
                       :n (if (< it 12)
                            (cos (radians (* 30 it)))
-                           (* (cos (radians (* 90 (floor (/ (- it 12) 2)))))
-                              (cos (radians (+ 30 (* 30 (mod it 2)))))))
-                      :up (if (< it 12) 0.02 (sin (radians (+ 30 (* 30 (mod it 2))))))})
+                           (* (->> (/ (- it 12) 2) floor (* 90) radians cos)
+                              (->> (mod it 2) (* 30) (+ 30) radians cos)))
+                      :up (if (< it 12) 0.02 (->> (mod it 2) (* 30) (+ 30) radians sin))})
                    (range 20))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "grid"
                       :line (floor (/ it 37))
-                      :e (* (cos (radians (* 30 (floor (/ it 37))))) (sin (radians (* 10 (mod it 37)))))
-                      :n (* (cos (radians (* 30 (floor (/ it 37))))) (cos (radians (* 10 (mod it 37)))))
-                      :up (sin (radians (* 30 (floor (/ it 37)))))})
+                      :e (* (->> (/ it 37) floor (* 30) radians cos) (->> (mod it 37) (* 10) radians sin))
+                      :n (* (->> (/ it 37) floor (* 30) radians cos) (->> (mod it 37) (* 10) radians cos))
+                      :up (->> (/ it 37) floor (* 30) radians sin)})
                    (range 111))
               [])
             (if state.skyLayers.grid
               (map (fn [it]
                      {:kind "grid"
                       :line (+ 3 (floor (/ it 9)))
-                      :e (* (cos (radians (* 10 (mod it 9)))) (sin (radians (* 30 (floor (/ it 9))))))
-                      :n (* (cos (radians (* 10 (mod it 9)))) (cos (radians (* 30 (floor (/ it 9))))))
-                      :up (sin (radians (* 10 (mod it 9))))})
+                      :e (* (->> (mod it 9) (* 10) radians cos) (->> (/ it 9) floor (* 30) radians sin))
+                      :n (* (->> (mod it 9) (* 10) radians cos) (->> (/ it 9) floor (* 30) radians cos))
+                      :up (->> (mod it 9) (* 10) radians sin)})
                    (range 108))
               []))))
 
@@ -206,7 +210,7 @@
          (if (or (= it.kind "cardinal") (= it.kind "grid") (= it.kind "land") (= it.kind "gridLabel"))
            it
            (merge it
-                  {:e (* (- (sqrt (- 1 (* it.u it.u)))) (sin (- computed.skyEarth.sidereal it.t)))
+                  {:e (* (->> (* it.u it.u) (- 1) sqrt -) (sin (- computed.skyEarth.sidereal it.t)))
                    :n (- (* computed.skyEarth.cosLatitude it.u)
                          (* computed.skyEarth.sinLatitude
                             (sqrt (- 1 (* it.u it.u)))
@@ -242,14 +246,14 @@
        computed.skyDepth))
 
 (defcomputed skyShown "The objects shown, in front and in the view."
-  (filter (fn [it] (and it.ahead (> it.x (- 24)) (< it.x 484) (> it.y (- 24)) (< it.y (+ computed.skyHeight 24))))
+  (filter #(and (:ahead %) (> (:x %) (- 24)) (< (:x %) 484) (> (:y %) (- 24)) (< (:y %) (+ computed.skyHeight 24)))
           computed.skyPlaced))
 
-(defcomputed skySun "The Sun, on the sky view." (find (fn [it] (= it.id "sun")) computed.skyPlaced))
+(defcomputed skySun "The Sun, on the sky view." (find #(= (:id %) "sun") computed.skyPlaced))
 
 (defcomputed daylight "How light the sky is, 0 at night to 1 by day."
   (if (and state.skyLayers.atmosphere computed.skySun)
-    (* (pow (clamp (/ (+ computed.skySun.up 0.21) 0.31) 0 1) 1.6) (- 1 (* 0.92 computed.eclipseCover)))
+    (* (-> computed.skySun.up (+ 0.21) (/ 0.31) (clamp 0 1) (pow 1.6)) (- 1 (* 0.92 computed.eclipseCover)))
     0))
 
 (defcomputed skyLimit "The faintest stars shown, less by day." (- state.limitMag (* 9 computed.daylight)))
@@ -286,7 +290,7 @@
     ""))
 
 (defcomputed skyGridPoints "The grid's points, on the sky view."
-  (filter (fn [it] (= it.kind "grid")) computed.skyPlaced))
+  (filter #(= (:kind %) "grid") computed.skyPlaced))
 
 (defcomputed skyGridPath "The azimuthal grid, as a path."
   (join ""
@@ -296,26 +300,26 @@
                     " "
                     (fixed (get-in computed.skyGridPoints [it :y]) 1)
                     "L"
-                    (fixed (get-in computed.skyGridPoints [(+ it 1) :x]) 1)
+                    (fixed (get-in computed.skyGridPoints [(inc it) :x]) 1)
                     " "
-                    (fixed (get-in computed.skyGridPoints [(+ it 1) :y]) 1)))
+                    (fixed (get-in computed.skyGridPoints [(inc it) :y]) 1)))
              (filter (fn [it]
                        (and (= (get-in computed.skyGridPoints [it :line])
-                               (get-in computed.skyGridPoints [(+ it 1) :line]))
+                               (get-in computed.skyGridPoints [(inc it) :line]))
                             (get-in computed.skyGridPoints [it :ahead])
-                            (get-in computed.skyGridPoints [(+ it 1) :ahead])))
-                     (range (max (- (count computed.skyGridPoints) 1) 0))))))
+                            (get-in computed.skyGridPoints [(inc it) :ahead])))
+                     (range (-> computed.skyGridPoints count dec (max 0)))))))
 
 (defcomputed skySelected "The selected body, on the sky view."
-  (find (fn [it] (and (= it.kind "body") (= it.id state.selected))) computed.skyPlaced))
+  (find #(and (= (:kind %) "body") (= (:id %) state.selected)) computed.skyPlaced))
 
 (defcomputed skyInfo "What the sky view says of the selected body: where it is and when it rises."
   (if computed.skySelected
     [(t "sky.azAlt"
-        {:az (fixed (mod (+ (degrees (atan2 computed.skySelected.e computed.skySelected.n)) 360) 360) 1)
+        {:az (-> (atan2 computed.skySelected.e computed.skySelected.n) degrees (+ 360) (mod 360) (fixed 1))
          :alt (fixed (degrees (asin computed.skySelected.up)) 1)})
      (t "sky.raDec"
-        {:ra (fixed (mod (+ (/ (degrees computed.skySelected.t) 15) 24) 24) 2)
+        {:ra (-> computed.skySelected.t degrees (/ 15) (+ 24) (mod 24) (fixed 2))
          :dec (fixed (degrees (asin computed.skySelected.u)) 1)})]
     []))
 
@@ -358,13 +362,13 @@
                   " 0 1 0 "
                   (* (- 2) it.r)
                   " 0")})
-       (filter (fn [it] (and (= it.kind "star") (<= it.mag computed.skyLimit))) computed.skyShown)))
+       (filter #(and (= (:kind %) "star") (<= (:mag %) computed.skyLimit)) computed.skyShown)))
 
 (defcomputed skyMoon "The Moon, on the sky view."
-  (find (fn [it] (and (= it.kind "body") (= it.parent "earth"))) computed.skyPlaced))
+  (find #(and (= (:kind %) "body") (= (:parent %) "earth")) computed.skyPlaced))
 
 (defcomputed eclipseNow "The eclipse happening now, if one is."
-  (find (fn [it] (< (abs (- it.time state.time)) 0.3)) computed.eclipses))
+  (find #(< (abs (- (:time %) state.time)) 0.3) computed.eclipses))
 
 (defcomputed eclipseCover "How much of the Sun the Moon covers now."
   (if (and computed.eclipseNow computed.eclipseNow.solar computed.skySun computed.skyMoon)
@@ -380,7 +384,7 @@
     0))
 
 (defcomputed skyLandPath "The ground's outline, as a path."
-  (if (< (count (filter (fn [it] (and (= it.kind "land") it.ahead)) computed.skyPlaced)) 2)
+  (if (< (count (filter #(and (= (:kind %) "land") (:ahead %)) computed.skyPlaced)) 2)
     (if (< computed.horizonY computed.skyHeight)
       (str "M-10 "
            (fixed (max computed.horizonY (- 10)) 1)
@@ -394,19 +398,19 @@
       "")
     (str "M"
          (join "L"
-               (map (fn [it] (str (fixed it.x 1) " " (fixed it.y 1)))
-                    (sort-by (fn [it] it.x) (filter (fn [it] (and (= it.kind "land") it.ahead)) computed.skyPlaced))))
+               (map #(str (fixed (:x %) 1) " " (fixed (:y %) 1))
+                    (sort-by :x (filter #(and (= (:kind %) "land") (:ahead %)) computed.skyPlaced))))
          "L"
-         (fixed (max (get-in (sort-by (fn [it] (- it.x))
-                                      (filter (fn [it] (and (= it.kind "land") it.ahead)) computed.skyPlaced))
+         (fixed (max (get-in (sort-by #(- (:x %))
+                                      (filter #(and (= (:kind %) "land") (:ahead %)) computed.skyPlaced))
                              [0 :x])
                      470)
                 1)
          " "
          (+ computed.skyHeight 10)
          "L"
-         (fixed (min (get-in (sort-by (fn [it] it.x)
-                                      (filter (fn [it] (and (= it.kind "land") it.ahead)) computed.skyPlaced))
+         (fixed (min (get-in (sort-by :x
+                                      (filter #(and (= (:kind %) "land") (:ahead %)) computed.skyPlaced))
                              [0 :x])
                      (- 10))
                 1)
@@ -437,9 +441,10 @@
        :fillColor ~computed.groundColor
        :stroke "#6e6347"
        :strokeWidth 1)
-     ~(repeat [b (bodies-up) :key b.id] (sky-body b))
      ~(repeat [b (if state.skyLayers.labels (bodies-up) []) :key b.id] (sky-label b))
      ~(cardinal-points)
+     (panel#sky-night :when ~(= state.theme :night) :fill true :color @nightFilter)
+     ~(repeat [b (bodies-up) :key b.id] (sky-body b))
      ~(sky-bar)
      ~(sky-place)))
 
@@ -447,13 +452,13 @@
   ;; A macro, not a function: the list it writes stays an expression, worked out at its speed.
   "The bodies on the sky view: those above the horizon, or all of them while the ground isn't drawn."
   []
-  `(filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground))))
+  `(filter #(and (= (:kind %) "body") (or (> (:up %) (- 0.01)) (not state.skyLayers.ground)))
            computed.skyShown))
 
 (defview sky-grid "The azimuthal grid, and its labels but the four cardinal ones: two nodes, spliced in." []
   `[(path#sky-grid :fill true :d ~computed.skyGridPath :stroke "#5c5240" :strokeWidth 1)
     ~(repeat [g
-              (filter (fn [it] (and (= it.kind "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] it.text) 0)))
+              (filter #(and (= (:kind %) "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] (:text %)) 0))
                       computed.skyShown)
               :key
               g.id]
@@ -469,11 +474,11 @@
 (defview star-path "The stars of one tint, as one path of their shapes." [id tint colour]
   `(path :id ~id
      :fill true
-     :d ~(join "" (map (fn [it] it.d) (filter (fn [it] (= it.tint tint)) computed.skyStarShapes)))
+     :d ~(join "" (map :d (filter #(= (:tint %) tint) computed.skyStarShapes)))
      :fillColor ~colour))
 
 (defview constellation-names "The constellations' names, while they are shown." []
-  (repeat [c (if state.skyLayers.names (filter (fn [it] (= it.kind "name")) computed.skyShown) []) :key c.id]
+  (repeat [c (if state.skyLayers.names (filter #(= (:kind %) "name") computed.skyShown) []) :key c.id]
     `(label :id ~(str "sky-name-" c.id)
        :x ~(- c.x 60)
        :y ~(- c.y 8)
@@ -495,7 +500,7 @@
      :textColor ~(if (= b.id state.selected) "@accent" "#e9d9b0")))
 
 (defview cardinal-points "The cardinal points on the horizon, while they are shown." []
-  (repeat [p (if state.skyLayers.cardinal (filter (fn [it] (= it.kind "cardinal")) computed.skyShown) []) :key p.id]
+  (repeat [p (if state.skyLayers.cardinal (filter #(= (:kind %) "cardinal") computed.skyShown) []) :key p.id]
     `(label :id ~(str "sky-cardinal-" p.id)
        :x ~(- p.x 10)
        :y ~(- p.y 24)
@@ -512,11 +517,11 @@
      :with {:items ~computed.skyBar
             :width 272
             :label ~(t "sky.layers")
-            :color "#0b1514d8"
+            :color @hud
             :textColor @onSky
             :dimColor @onSkyMuted
-            :highlight "#1f3331"
-            :checkedColor "#24514b"}))
+            :highlight @raised
+            :checkedColor @hudChecked}))
 
 (defview sky-place "Where you stand, the field of view and the day, over the sky's toolbar." []
   `(label#sky-place :anchors {:right 8 :bottom 40}
@@ -542,7 +547,7 @@
      :radius 12
      :role button
      :label ~b.name
-     :onClick ~(handler chooseBody b.id)
+     :onClick ~(handler choose-body b.id)
      :borderWidth ~(if (= b.id state.selected) 1.5 0)
      :borderColor "#2dd4bf"
      (panel :id ~(str "sky-disc-" b.id)

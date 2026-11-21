@@ -1,0 +1,116 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "index.screen.lisp",
+	"note": "The tour strip, Sinopia's slide sorter installed into Orrery over the saved views. A file of its own: affrescoui check --compose also plays index.scenarios.json against the screen before the install.",
+	"scenarios": [
+		{
+			"name": "tour-strip-is-installed",
+			"steps": [
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-title",
+						"text": "Tour of saved views (4)"
+					}
+				},
+				{
+					"click": "#slideSorter-page-mars-close"
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "mars-close"
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"click": "#slideSorter-duplicate"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmarks[4].label",
+						"is": "Mars at opposition 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "place-1"
+					}
+				}
+			]
+		},
+		{
+			"name": "tour-reorders-and-plays",
+			"steps": [
+				{
+					"drag": "#slideSorter-page-mars-close",
+					"to": "#slideSorter-page-overview",
+					"moves": 6
+				},
+				{
+					"expect": {
+						"state": "bookmarks[0].id",
+						"is": "mars-close"
+					}
+				},
+				{
+					"action": "playTour"
+				},
+				{
+					"expect": {
+						"state": "touring",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "overview"
+					}
+				},
+				{
+					"wait": 4300
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "inner"
+					}
+				},
+				{
+					"action": "playTour"
+				},
+				{
+					"expect": {
+						"state": "touring",
+						"is": false
+					}
+				}
+			]
+		}
+	]
+}

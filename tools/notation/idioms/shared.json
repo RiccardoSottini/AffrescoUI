@@ -1,0 +1,11 @@
+{
+	"folders": [
+		"shared"
+	],
+	"allowed": {
+		"four-nested-calls": 11
+	},
+	"kept": {
+		"camel-case-name": 9
+	}
+}

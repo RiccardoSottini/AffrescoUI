@@ -19,6 +19,11 @@ namespace affresco::format {
 /// @throws DocumentError For a value of the wrong kind, or an unknown command.
 void applyCodeKeys(TextEditor& editor, const json& values, const std::string& path);
 
+/// @brief Once an update has shown the editor's text: a goTo asked for in the same update moves the caret again, now
+/// that the text it names is there (the code keys are applied before the text is shown).
+/// @param editor The editor; one that isn't a LanguageEditor is left as it is.
+void settleCodeKeys(TextEditor& editor);
+
 /// @brief Runs the code events' handlers.
 /// @param editor The editor.
 /// @param sink Runs a handler.

@@ -5,6 +5,8 @@
 ;;; back; the replace takes y, n, ! and q. The editor finds the matches (computed.findRequest): each change of
 ;;; state.is.req or state.qr.req asks it to move.
 
+(ns calamaio.search)
+
 ;;; Keys as characters
 
 (def key-chars "The characters typed by the keys whose names aren't their characters."
@@ -15,12 +17,13 @@
    "shift+comma" "<" "shift+period" ">" "shift+slash" "?"})
 
 (defn starts-with? "Whether a text starts with another." [s start]
-  (and (>= (count s) (count start)) (= (subs s 0 (count start)) start)))
+  (str/starts-with? s start))
 
 (defn typed-char "The character a key types, or nil: a letter, a shifted letter, or a sign." [k]
   (cond (= (count k) 1) k
-        (and (= (count k) 7) (starts-with? k "shift+") (not= (upper-case (subs k 6)) (subs k 6)))
-        (upper-case (subs k 6))
+        ; style: keep, starts-with? here is this file's own function, defined above, not the bare string function
+        (and (= (count k) 7) (starts-with? k "shift+") (not= (str/upper-case (subs k 6)) (subs k 6)))
+        (str/upper-case (subs k 6))
         :else (get key-chars k)))
 
 (defn search-key "A key the selected window passes on while a search or a replace is on." [event]
@@ -51,7 +54,7 @@
 
 (defn isearch-step "C-s or C-r while searching: the next or the previous match, or the last search again." [back]
   (set "state.is.back" back)
-  (when (= state.is.text "") (set "state.is.text" (or state.is.last "")))
+  (when (empty? state.is.text) (set "state.is.text" (or state.is.last "")))
   (set "state.is.step" (if back "previous" "next"))
   (increment "state.is.req"))
 
@@ -62,31 +65,30 @@
   (after 0 isearch-unselect))
 
 (defn isearch-unselect "Lets go of the match the search selected, leaving point at its end." []
-  (when (and computed.text (> (or (:selected (caret)) 0) 0))
+  (when (and computed.text (pos? (or (:selected (caret)) 0)))
     (press (if state.is.back "left" "right") :in computed.ed)))
 
 (defn isearch-key "A key while searching: a character searches further, Backspace less; RET stops, C-g goes back." [k]
-  (let [c (typed-char k)
-        bound (find (fn [b] (= (:key b) k)) computed.keyList)]
-    (cond (or (= k "ctrl+s") (= k "ctrl+r"))
-          (isearch-step (= k "ctrl+r"))
-          (= k "backspace")
-          (do (set "state.is.text" (subs state.is.text 0 (max 0 (dec (count state.is.text)))))
-              (set "state.is.step" "first")
-              (increment "state.is.req"))
-          (= k "ctrl+g")
-          (do (isearch-end)
-              (goto-point computed.ed state.is.start)
-              (set "state.echo" (t "echo.quit")))
-          (or (= k "enter") (= k "escape"))
-          (do (isearch-end) (message (t "echo.markSaved")))
-          (some? c)
-          (do (set "state.is.text" (str state.is.text c))
-              (set "state.is.step" (if state.is.back "previous" "first"))
-              (increment "state.is.req"))
-          :else
-          (do (isearch-end)
-              (when (some? bound) (run (:command bound)))))))
+  (case k
+    ("ctrl+s" "ctrl+r")
+    (isearch-step (= k "ctrl+r"))
+    "backspace"
+    (do (set "state.is.text" (subs state.is.text 0 (max 0 (dec (count state.is.text)))))
+        (set "state.is.step" "first")
+        (increment "state.is.req"))
+    "ctrl+g"
+    (do (isearch-end)
+        (goto-point computed.ed state.is.start)
+        (set "state.echo" (t "echo.quit")))
+    ("enter" "escape")
+    (do (isearch-end) (message (t "echo.markSaved")))
+    (if-some [c (typed-char k)]
+      (do (set "state.is.text" (str state.is.text c))
+          (set "state.is.step" (if state.is.back "previous" "first"))
+          (increment "state.is.req"))
+      (let [bound (find #(= (:key %) k) computed.keyList)]
+        (isearch-end)
+        (when-some [b bound] (run (:command b)))))))
 
 ;;; Replacing
 
@@ -97,7 +99,7 @@
   []
   (let [from state.qr.from]
     (minibuffer-read "replace-from"
-                     (if (and (some? from) (not= from ""))
+                     (if (seq from)
                        (t "prompt.queryReplaceDefault" {:from from :to state.qr.to})
                        (t "prompt.queryReplace"))
                      (or from "")
@@ -121,7 +123,7 @@
   (after 60 end-if-no-match))
 
 (defn end-if-no-match "Ends the replace if the editor found no match." []
-  (when (and state.qr.on (= (or (:matches (caret)) 0) 0))
+  (when (and state.qr.on (zero? (or (:matches (caret)) 0)))
     (query-replace-end)))
 
 (defn query-replace-mark "Remembers where the match being answered is." []
@@ -131,12 +133,12 @@
   (after 60 end-if-wrapped))
 
 (defn end-if-wrapped "Ends the replace if no match is left, or the next one is back before the last answered." []
-  (let [at (caret) last state.qr.at]
+  (let [at (caret) answered state.qr.at]
     (when (and state.qr.on
-               (or (= (or (:matches at) 0) 0)
-                   (< (:line at) (:line last))
-                   (and (= (:line at) (:line last)) (<= (:column at) (:column last)))))
-      (goto-point computed.ed last)
+               (or (zero? (or (:matches at) 0))
+                   (< (:line at) (:line answered))
+                   (and (= (:line at) (:line answered)) (<= (:column at) (:column answered)))))
+      (goto-point computed.ed answered)
       (query-replace-end))))
 
 (defn replace-this "y, SPC or .: replaces this match; . stops there." [k]
@@ -164,14 +166,15 @@
 
 (defn query-replace-key
   "A key while replacing: y, SPC or . replaces, n skips, ! replaces the rest, C-g quits, anything else stops." [k]
-  (cond (contains ["y" "space" "period"] k) (replace-this k)
-        (contains ["n" "delete" "backspace"] k) (skip-this)
-        (= k "shift+1") (replace-the-rest)
-        (= k "ctrl+g") (do (set "state.qr.on" false) (set "state.echo" (t "echo.quit")))
-        :else (query-replace-end)))
+  (case k
+    ("y" "space" "period") (replace-this k)
+    ("n" "delete" "backspace") (skip-this)
+    "shift+1" (replace-the-rest)
+    "ctrl+g" (do (set "state.qr.on" false) (set "state.echo" (t "echo.quit")))
+    (query-replace-end)))
 
 (defn query-replace-unselect "Lets go of the match the replace left selected." []
-  (when (and computed.text (> (or (:selected (caret)) 0) 0))
+  (when (and computed.text (pos? (or (:selected (caret)) 0)))
     (press "right" :in computed.ed)))
 
 (defn query-replace-end "Ends the replace, saying how many it replaced." []

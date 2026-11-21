@@ -116,6 +116,8 @@ std::string formatTime(double time, double fps, TimeFormat format) {
 		return std::format("{}{:02}:{:02}:{:02}:{:02}", time < 0.0 && frames > 0 ? "-" : "", seconds / 3600,
 		                   seconds / 60 % 60, seconds % 60, frames % perSecond);
 	}
+	case TimeFormat::None:
+		return {};
 	}
 	return {};
 }

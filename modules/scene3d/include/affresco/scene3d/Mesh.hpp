@@ -29,6 +29,7 @@ struct MeshData {
 	std::vector<Vec3> normals;          ///< One per vertex, or none (computed by computeNormals()).
 	std::vector<TexCoord> texCoords;    ///< One per vertex, or none.
 	std::vector<std::uint32_t> indices; ///< Three per triangle.
+	std::vector<std::uint32_t> lines;   ///< The edges a wireframe draws, two indices each; none: every triangle's.
 	Aabb bounds;                        ///< Around the positions (computeBounds()).
 
 	/// @brief The number of triangles. @return It.
@@ -40,7 +41,8 @@ struct MeshData {
 	/// @brief Whether the arrays agree: sizes match, every index is in range, everything is finite.
 	/// @return An empty string if valid, else what is wrong.
 	[[nodiscard]] std::string validate() const;
-	/// @brief The unique edges, two indices each, for wireframe drawing with lines.
+	/// @brief The unique edges, two indices each, for wireframe drawing with lines: the lines given, else every
+	/// triangle's.
 	/// @return The edge index list.
 	[[nodiscard]] std::vector<std::uint32_t> edges() const;
 	/// @brief The nearest triangle a ray hits, in the mesh's own space.
@@ -55,6 +57,8 @@ struct TextureData {
 	int height = 0;                   ///< In pixels.
 	std::vector<std::uint8_t> pixels; ///< width * height * 4 bytes.
 	bool srgb = true;                 ///< Colour (sRGB) or data (linear: normals, metal and roughness).
+	std::string source;               ///< The PNG or JPEG it was decoded from, as a `data:` URI, if kept (an export
+	                                  ///< writes it).
 };
 
 /// @brief The kinds of generated primitive.

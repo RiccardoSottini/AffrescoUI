@@ -176,6 +176,11 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> forgeWorkloads(Context& context);
+/// @brief "command/<cards>": an agent's command run beside the same steps as an action, on boards of 100, 400 and
+/// 1,600 cards, and "commands/list": an agent's getCommands on Forge (commands.cpp).
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> commandWorkloads(Context& context);
 /// @brief "lisp/...": a program's function in an event and in a binding, beside the same as steps and as an expression,
 /// and a reload when a definition changes (lisp.cpp).
 /// @param context The context.
@@ -296,12 +301,50 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If the app or the screen can't be read.
 [[nodiscard]] json appDocument(const std::filesystem::path& folder);
 
+/// @brief A template's folder in JSON: its json/ beside its lisp/, or the folder itself. The canonical edits
+/// (tests/perf/edits) are JSON edits of a JSON document: in a program, the same nodes are its definitions' to change.
+/// @param folder The template's folder.
+/// @return The folder of its JSON notation.
+[[nodiscard]] std::filesystem::path jsonNotation(const std::filesystem::path& folder);
+
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
 /// @return The document, its includes and seed records merged in.
 /// @throws std::exception If the app can't be read, or its issues have no seed records.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);
+
+/// @brief Runs the updates that state changes have queued, as the end of a routed event does, without drawing: a key
+/// release that no panel has the focus for and no shortcut uses.
+/// @param window The window.
+inline void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
+
+/// @brief Lays the window out, without drawing.
+/// @param window The window.
+inline void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
+
+/// @brief A screen of 50,000 panels: a keyed list of 25,000 rows, each a row and a label showing its item's value,
+/// with a "touch" action that changes one item's value (screens.cpp).
+/// @return The document.
+[[nodiscard]] json fiftyThousandPanels();
+
+/// @brief How many panels a tree has (screens.cpp).
+/// @param panel The tree's root.
+/// @return The panels, the root included.
+[[nodiscard]] std::size_t panelCount(const Panel& panel);
+
+/// @brief The "update" workloads that dependency tracking is judged on (tracking.cpp, tests/perf/PROFILE.md): a state
+/// change one label reads, a record written, an app-shaped screen of 50,000 panels, list edits, a computed value and
+/// parameters, a program's rows and an animation's frame. Registered in screenGroups() as a second "update" group;
+/// each sets its screen up on its first run.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> trackingUpdateWorkloads(Context& context);
+/// @brief The "revision" workloads that dependency tracking is judged on (tracking.cpp): a revision that sets one
+/// state key, and one that changes one label, on the Kanban template filled to 14, 100 and 400 cards.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> trackingRevisionWorkloads(Context& context);
 
 /* Allocation counting (allocations.cpp): every operator new in the process is counted */
 

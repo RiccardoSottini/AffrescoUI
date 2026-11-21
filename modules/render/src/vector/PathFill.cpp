@@ -231,7 +231,8 @@ std::size_t vector::appendFill(std::span<const VectorPath::Contour> contours, Fi
 		if(contour.points.size() < 3) continue;
 		work += edgeCount;
 		if(work > workLimit || vector::meshIsFull(mesh, meshQuadLimit)) break;
-		appendFringe(contour, insideOnLeft(contours, contour, rule) ? -1.0f : 1.0f, std::min(feather, 4.0f), mesh);
+		appendFringe(contour, insideOnLeft(contours, contour, rule) ? -1.0f : 1.0f, std::min(feather, maxPathFeather),
+		             mesh);
 	}
 	return insideWork + work;
 }

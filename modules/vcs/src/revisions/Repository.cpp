@@ -70,6 +70,62 @@ bool idPrefix(std::string_view name) {
 	       std::ranges::all_of(name, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }
 
+/// @brief Fills in the sections a change's places of the document touch, each once, in the order first touched;
+/// a place that is the whole document makes it everything.
+/// @param change The change.
+void describeSections(DocumentChange& change) {
+	change.sections.clear();
+	for(const std::string& place : change.document) {
+		if(place.empty() || place == "/") {
+			change.everything = true;
+			return;
+		}
+		const std::string escaped = place.substr(1, place.find('/', 1) - 1);
+		const std::string section = (json::json_pointer("/" + escaped)).back(); // "~1" and "~0" read as written
+		if(std::ranges::find(change.sections, section) == change.sections.end()) change.sections.push_back(section);
+	}
+}
+
+/// @brief A program's change, described by what it builds: the places where the tree of before and the tree after
+/// differ (detail::delta()), and their sections.
+/// @param change The change; its places of the document are replaced.
+/// @param before The tree of before.
+/// @param after The tree after.
+void describeDocument(DocumentChange& change, const json& before, const json& after) {
+	change.document.clear();
+	for(const json& operation : detail::delta(before, after))
+		change.document.push_back(operation["path"].get<std::string>());
+	if(change.document.empty()) change.everything = true; // a new object, however alike: nothing it held stays valid
+	describeSections(change);
+}
+
+/// @brief Brings the live state in line with a program's change of its state. A definition's state is what a key
+/// starts from: it follows the definition only while the live value is still the old one, so what the person set is
+/// never lost to a change of the program.
+/// @param state The live state.
+/// @param oldState The program's state before.
+/// @param newState The program's state now.
+/// @param changed Where the places of the live state set or taken out go.
+void followProgramState(json& state, const json& oldState, const json& newState, std::vector<std::string>& changed) {
+	const auto untouched = [&](const std::string& key) {
+		const auto live = state.find(key);
+		return live != state.end() && oldState.contains(key) && *live == oldState[key];
+	};
+	const auto mark = [&changed](const std::string& key) {
+		changed.push_back((json::json_pointer() / key).to_string());
+	};
+	for(const auto& [key, value] : newState.items())
+		if(!state.contains(key) || untouched(key)) {
+			if(!state.contains(key) || state[key] != value) mark(key);
+			state[key] = value;
+		}
+	for(const auto& [key, value] : oldState.items())
+		if(!newState.contains(key) && untouched(key)) {
+			state.erase(key);
+			mark(key);
+		}
+}
+
 } // namespace
 
 Repository::Repository(const DocumentRules& rules, json document) : rules_(rules) {
@@ -94,7 +150,9 @@ Repository::Repository(const DocumentRules& rules, json document) : rules_(rules
 /* Objects */
 
 CommitInfo Repository::info(const Commit& c) {
-	return {c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal, c.run};
+	CommitInfo result{c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal, c.run};
+	result.undo = c.undo;
+	return result;
 }
 
 std::string Repository::describe(const Commit& c) {
@@ -110,6 +168,7 @@ std::string Repository::idOf(const Commit& commit) {
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
 	if(!commit.run.is_null()) object += "run " + detail::sha256(commit.run.dump()) + "\n"; // only when it runs any
 	if(commit.ownInput) object += "ownInput\n";
+	if(!commit.undo.is_null()) object += "undo " + detail::sha256(commit.undo.dump()) + "\n"; // only for an undo
 	object += "\n" + commit.message;
 	return detail::sha256(object);
 }
@@ -234,21 +293,13 @@ void Repository::judgeProgram(Prepared& result, const json& document, json& afte
 	};
 	const json& oldState = stateIn(before);
 	const json& newState = stateIn(now);
-	// A definition's state is what a key starts from: it follows the definition only while the live value is still the
-	// old one, so what the person set is never lost to a change of the program
-	const auto untouched = [&](const std::string& key) {
-		const auto live = result.state.find(key);
-		return live != result.state.end() && oldState.contains(key) && *live == oldState[key];
-	};
-	for(const auto& [key, value] : newState.items())
-		if(!result.state.contains(key) || untouched(key)) result.state[key] = value;
-	for(const auto& [key, value] : oldState.items())
-		if(!newState.contains(key) && untouched(key)) result.state.erase(key);
+	followProgramState(result.state, oldState, newState, result.programState);
 
 	result.sourceBefore = std::move(result.before);
 	result.sourceAfter = after;
 	result.before = detail::view(before, result.sourceBefore["state"]);
 	after = detail::view(now, result.state);
+	result.built = std::move(builtAfter); // what the new version shows; null if it builds nothing
 }
 
 std::string Repository::hintFor(const json& view, const std::string& path) const {
@@ -396,22 +447,78 @@ void Repository::upgradeHead(json upgraded) {
 }
 
 const Repository::Commit& Repository::land(Commit commit, json document, json state) {
+	Prepared next;
+	next.document = std::move(document);
+	next.state = std::move(state);
+	return landRevision(std::move(commit), next, false);
+}
+
+DocumentChange Repository::changeOf(const Commit& commit, const Prepared& next) {
+	DocumentChange change;
+	if(!commit.undo.is_null() || commit.message.starts_with("Restore ")) return change; // everything
+	change.everything = false;
+	const auto add = [&change](const json& place) {
+		if(!place.is_string()) return;
+		const std::string& text = place.get_ref<const std::string&>();
+		if(text == "/state" || text.starts_with("/state/")) change.state.push_back(text.substr(6)); // in the state
+		else change.document.push_back(text);
+	};
+	for(const json& operation : commit.patch) {
+		add(operation.value("path", json()));
+		if(operation.value("op", json()) == "move") add(operation.value("from", json())); // a copy's source stays
+	}
+	change.state.insert(change.state.end(), next.programState.begin(), next.programState.end());
+	describeSections(change);
+	return change;
+}
+
+void Repository::documentChangedWith(const DocumentChange& change) {
+	if(observer_) observer_->documentChangedWith(change);
+}
+
+void Repository::announceLanded(DocumentChange& change, Prepared& next, bool described, const json* oldDocument,
+                                const json& oldBuilt) {
+	if(!oldDocument) {
+		change.before = &document();
+	} else {
+		if(described) built_ = std::move(next.built);
+		else refreshBuilt();
+		const json& shownBefore = oldBuilt.is_null() ? *oldDocument : oldBuilt;
+		if(described && !(oldBuilt.is_null() && built_.is_null())) describeDocument(change, shownBefore, document());
+		change.before = &shownBefore;
+	}
+	documentChangedWith(change);
+}
+
+// The trees of before live until the observer returns: it may compare what it kept with them
+const Repository::Commit& Repository::landRevision(Commit commit, Prepared& next, bool described) {
+	// an import's revisions say everything: the observer hears each of them, then the import as a whole
+	DocumentChange change = described && !importing_ ? changeOf(commit, next) : DocumentChange{};
+	const bool sameDocument = !change.everything && change.document.empty(); // a change of the live state only
 	endPreview();
 	commit.parents.insert(commit.parents.begin(), main_.back());
 	commit.number = mainHead().number + 1;
-	recordStateChange(commit, state_, state);
-	const Commit& stored = store(std::move(commit), document, &document_);
+	recordStateChange(commit, state_, next.state);
+	const Commit& stored = store(std::move(commit), next.document, &document_);
 
 	main_.push_back(stored.id);
-	json oldState = std::exchange(state_, std::move(state));
-	json oldDocument = std::exchange(document_, std::move(document)); // moved, never copied: the commit keeps a delta
+	json oldState = std::exchange(state_, std::move(next.state));
+	json oldDocument, oldBuilt;
+	if(!sameDocument) {
+		oldDocument =
+		    std::exchange(document_, std::move(next.document)); // moved, never copied: the commit keeps a delta
+		oldBuilt = std::exchange(built_, json());
+	}
 	try {
-		documentChanged();
+		announceLanded(change, next, described, sameDocument ? nullptr : &oldDocument, oldBuilt);
 	} catch(const DocumentError&) {
 		main_.pop_back();
 		state_ = std::move(oldState);
-		document_ = std::move(oldDocument);
-		documentChanged();
+		if(!sameDocument) {
+			document_ = std::move(oldDocument);
+			built_ = std::move(oldBuilt);
+		}
+		documentChanged(); // everything: the observer may have kept part of the refused version
 		throw;
 	}
 	if(!importing_) {
@@ -427,6 +534,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 	try {
 		expect::object(revision, "revision");
 		const std::string author = detail::authorOf(revision);
+		if(revision.contains("undo")) checkUndo(revision, author);
 		checkParent(revision);
 		StagedBlobs staged(blobs_);
 		const json run = runOf(revision);
@@ -443,7 +551,8 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.patch = std::move(next.patch);
 		c.run = run;
 		c.ownInput = ownInput_;
-		land(std::move(c), std::move(next.document), std::move(next.state));
+		c.undo = revision.value("undo", json());
+		landRevision(std::move(c), next);
 		staged.keep();
 	} catch(const DocumentError& error) {
 		return error.what();
@@ -476,11 +585,11 @@ void Repository::judgeChange(const json& before, const json& after) const {
 	else rules_.checkChange(before, after);
 }
 
-RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }
+RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false, {}); }
 
-RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true); }
+RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true, {}); }
 
-RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview) {
+RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview, const Opening& opening) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
@@ -492,6 +601,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		StagedBlobs staged(blobs_); // what its assets bring: gone again unless it lands or is proposed
 		const json changes = changesOf(revision, staged);
 		checkReadable(changes, author);
+		if(revision.contains("undo")) checkUndo(revision, author); // before a push: an undo is never pushed
 		if(revision.contains("proposal")) {
 			RevisionResult pushed = push(revision, author, changes);
 			staged.keep();
@@ -506,7 +616,9 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
-		if(verdict.kind == Verdict::Kind::Ask || alwaysReview) {
+		// An undo that takes out what later changes built, or rebuilds one, is the person's choice: always proposed
+		const bool undoReviewed = undoNeedsReview(revision.value("undo", json())) && !mayTakeOut(author);
+		if(verdict.kind == Verdict::Kind::Ask || alwaysReview || undoReviewed) {
 			const std::string channel = detail::channelOf(author);
 			if(std::ranges::count_if(proposals_, [&](const Proposal& p) {
 				   return detail::channelOf(p.author) == channel;
@@ -524,6 +636,8 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 			proposal.message = detail::messageOf(revision);
 			proposal.time = detail::utcNow();
 			proposal.base = proposal.head = main_.back();
+			proposal.leftOut = opening.leftOut;
+			proposal.personOnly = opening.personOnly;
 			extend(proposal, revision, changes);
 			++nextProposal_;
 			proposals_.push_back(std::move(proposal));
@@ -539,7 +653,8 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
 		c.run = run;
-		const Commit& landed = land(std::move(c), std::move(next.document), std::move(next.state));
+		c.undo = revision.value("undo", json());
+		const Commit& landed = landRevision(std::move(c), next);
 		staged.keep();
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};
 	} catch(const DocumentError& error) {

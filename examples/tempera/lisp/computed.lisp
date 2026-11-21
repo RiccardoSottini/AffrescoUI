@@ -3,25 +3,50 @@
 ;;; Each defcomputed is a value the views and the functions read as computed.<name>, worked out again when what it reads
 ;;; changes: the active layer and its neighbours, the tool, the canvas's size and its rulers, the Layers panel's rows.
 
+(ns tempera.computed)
+
 ;;; Layers
 
-(defcomputed activeLayer "The active layer, or nil." (find (fn [it] (= it.id state.doc.active)) state.doc.layers))
+(defcomputed activeLayer "The active layer, or nil." (find #(= (:id %) state.doc.active) state.doc.layers))
+
+(defcomputed cropRatios "The ratios a crop drag can keep, the width over the height: 0 for any."
+  [{:ratio 0 :title (t "crop.free")}
+   {:ratio 1 :title "1 : 1"}
+   {:ratio (/ 4 3) :title "4 : 3"}
+   {:ratio (/ 3 2) :title "3 : 2"}
+   {:ratio (/ 16 9) :title "16 : 9"}
+   {:ratio (/ 4 5) :title "4 : 5"}])
+
+(defcomputed typePair "The active type layer's last two characters, where typing goes on: the pair Kerning spaces."
+  (let [text (str computed.activeLayer.content.text)
+        n (count text)]
+    (if (< n 2) "" (subs text (- n 2)))))
 
 (defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
-  (slice state.doc.layers (+ (indexOf (map (fn [it] it.id) state.doc.layers) state.doc.active) 1)))
+  (->> (indexOf (map :id state.doc.layers) state.doc.active) inc (slice state.doc.layers)))
 
 (defcomputed layerBelow "The layer Merge Down merges into: the next one at the active layer's depth or above."
-  (find (fn [it] (<= it.depth (or-else computed.activeLayer.depth 0))) computed.layersAfterActive))
+  (find #(<= (:depth %) (or-else computed.activeLayer.depth 0)) computed.layersAfterActive))
 
 (defcomputed groupChildren "The active group's own layers: those one level deeper, until the group ends."
-  (map (fn [it] it.layer)
-       (filter (fn [it] (and (not it.ended) (= it.layer.depth (+ computed.activeLayer.depth 1))))
+  (map :layer
+       (filter #(and (not (:ended %)) (= (-> % :layer :depth) (inc computed.activeLayer.depth)))
                (scan computed.layersAfterActive
                      (fn [acc it] {:ended (or acc.ended (<= it.depth computed.activeLayer.depth)) :layer it})
                      {:ended false}))))
 
+(defcomputed picked "The layers picked together that the image still has."
+  (let [ids (map :id state.doc.layers)] (filter #(contains ids %) state.pickedLayers)))
+
+(defcomputed curvePoints "The points of the curve the Curves editor shows: the composite's, or the channel's own."
+  (let [channel (indexOf ["red" "green" "blue"] state.curveChannel)
+        own (get computed.adjustment.channelCurves channel)]
+    (cond (< channel 0) computed.adjustment.curve
+          (empty? own) [[0 0] [1 1]]
+          :else own)))
+
 (defcomputed nextGroupName "The name a new group takes: Group and how many there will be."
-  (t "layer.groupName" {:n (+ (count (filter (fn [it] (= it.kind "group")) state.doc.layers)) 1)}))
+  (t "layer.groupName" {:n (->> state.doc.layers (filter #(= (:kind %) "group")) count inc)}))
 
 (defcomputed adjustment "The active adjustment layer's values, or nil." computed.activeLayer.adjustment)
 
@@ -32,8 +57,8 @@
   (t (str "blend." (or-else computed.activeLayer.blend "normal"))))
 
 (defcomputed layerShown "The layers the panel lists: a folded group's layers are hidden."
-  (map (fn [it] it.layer)
-       (filter (fn [it] (not it.hide))
+  (map :layer
+       (filter #(not (:hide %))
                (scan state.doc.layers
                      (fn [acc it]
                        (if (< acc.cut it.depth)
@@ -45,7 +70,7 @@
 
 (defcomputed layerRows "The Layers panel's rows: the layers shown, of the kinds its filter lets through."
   (if (and state.layerFilter.on (not (empty? state.layerFilter.kinds)))
-    (filter (fn [it] (contains state.layerFilter.kinds it.kind)) computed.layerShown)
+    (filter #(contains state.layerFilter.kinds (:kind %)) computed.layerShown)
     computed.layerShown))
 
 ;;; The selection and the image
@@ -56,7 +81,7 @@
 (defcomputed box "The selection's box, or else the image's: x, y, width and height."
   (if state.doc.selection state.doc.bounds [0 0 state.doc.width state.doc.height]))
 
-(defcomputed zoomPercent "The zoom, as a percentage to a tenth." (/ (round (* state.doc.view.zoom 1000)) 10))
+(defcomputed zoomPercent "The zoom, as a percentage to a tenth." (-> state.doc.view.zoom (* 1000) round (/ 10)))
 
 (defcomputed mode "The image's mode, as the document's tab shows it: RGB or Gray, and its bits."
   (str (if (contains state.doc.profile "Grey") (t "mode.gray") (t "mode.rgb"))
@@ -70,25 +95,35 @@
    {:id "white" :title (t "fill.white") :color "#ffffff"}])
 
 (defcomputed filterTitle "The open filter's name, the filter dialog's title."
-  (if (some (fn [it] (= it.id state.filter.kind)) state.filters)
+  (if (some #(= (:id %) state.filter.kind) state.filters)
     (t (str "filter." state.filter.kind))
     (t "filter.any")))
 
 ;;; The tool
 
-(defcomputed tool "The current tool, from the tools bar's groups."
-  (or-else (find (fn [it] (= it.id state.doc.tool))
-                 (or-else (find (fn [group] (some (fn [it] (= it.id state.doc.tool)) group)) state.tools) []))
-           {}))
+(defcomputed tool "The current tool, from the tools bar's groups, or a tool a command chose (state.modeTools)."
+  (or-else (find #(= (:id %) state.doc.tool)
+                 ; style: keep, #(...) can't hold another #(...)
+                 (or-else (find (fn [group] (some #(= (:id %) state.doc.tool) group)) state.tools) []))
+           (or-else (get state.modeTools state.doc.tool) {})))
 
 (defcomputed toolTitle "The current tool's name, as its tooltip says it." (t (str "tool." computed.tool.name)))
 
 (defcomputed toolName "The current tool's short name, on the options bar."
   (t (str "tool." computed.tool.name ".short")))
 
-(defcomputed paints "The tool paints." (contains ["brush" "pencil" "eraser" "clone"] state.doc.tool))
+(defcomputed paints "The tool paints."
+  (contains ["brush" "pencil" "eraser" "clone" "healing" "blur" "sharpen" "smudge" "dodge" "burn" "sponge"] state.doc.tool))
 
-(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand"] state.doc.tool))
+(defcomputed activeHoldsContent "The active layer is a type or shape layer."
+  (contains ["text" "shape"] computed.activeLayer.kind))
+
+(defcomputed hasPath "A path is active, with anchors."
+  (-> (find #(:active %) state.doc.paths) :anchors (or-else 0) (> 0)))
+
+(defcomputed vectorTool "The tool makes type or shapes." (contains ["text" "shape"] state.doc.gesture))
+
+(defcomputed selects "The tool selects." (contains ["marquee" "ellipse" "lasso" "polygon" "wand" "quick-select"] state.doc.tool))
 
 ;;; The canvas and its rulers
 
@@ -105,33 +140,56 @@
     (- window.height 24 6 36 6 6 26 24 (if state.view.rulers 16 0))))
 
 (defcomputed rulerStep "The rulers' step in image pixels: the first that leaves 64 screen pixels between numbers."
-  (or-else (find (fn [it] (>= (* it computed.px) 64)) [1 2 5 10 20 50 100 200 500 1000 2000 5000]) 10000))
+  (or-else (find #(>= (* % computed.px) 64) [1 2 5 10 20 50 100 200 500 1000 2000 5000]) 10000))
 
 (defcomputed rulerTicksX "The horizontal ruler's numbered ticks, in image pixels."
   (map (fn [it]
-         (+ (* (floor (/ (- state.doc.view.x (/ computed.canvasWidth 2 computed.px)) computed.rulerStep))
+         (+ (* (-> state.doc.view.x
+                   (- (/ computed.canvasWidth 2 computed.px))
+                   (/ computed.rulerStep)
+                   floor)
                computed.rulerStep)
             (* it computed.rulerStep)))
-       (range (min 200 (+ (ceil (/ computed.canvasWidth (* computed.rulerStep computed.px))) 2)))))
+       (-> (/ computed.canvasWidth (* computed.rulerStep computed.px)) ceil (+ 2) (->> (min 200)) range)))
 
 (defcomputed rulerTicksY "The vertical ruler's numbered ticks, in image pixels."
   (map (fn [it]
-         (+ (* (floor (/ (- state.doc.view.y (/ computed.canvasHeight 2 computed.px)) computed.rulerStep))
+         (+ (* (-> state.doc.view.y
+                   (- (/ computed.canvasHeight 2 computed.px))
+                   (/ computed.rulerStep)
+                   floor)
                computed.rulerStep)
             (* it computed.rulerStep)))
-       (range (min 200 (+ (ceil (/ computed.canvasHeight (* computed.rulerStep computed.px))) 2)))))
+       (-> (/ computed.canvasHeight (* computed.rulerStep computed.px)) ceil (+ 2) (->> (min 200)) range)))
 
 (defcomputed rulerMinorX "The horizontal ruler's small ticks, five to a step."
-  (map (fn [it] (+ (first computed.rulerTicksX) (/ (* it computed.rulerStep) 5)))
-       (range (min 400 (* 5 (count computed.rulerTicksX))))))
+  (map #(+ (first computed.rulerTicksX) (/ (* % computed.rulerStep) 5))
+       (->> computed.rulerTicksX count (* 5) (min 400) range)))
 
 (defcomputed rulerMinorY "The vertical ruler's small ticks, five to a step."
-  (map (fn [it] (+ (first computed.rulerTicksY) (/ (* it computed.rulerStep) 5)))
-       (range (min 400 (* 5 (count computed.rulerTicksY))))))
+  (map #(+ (first computed.rulerTicksY) (/ (* % computed.rulerStep) 5))
+       (->> computed.rulerTicksY count (* 5) (min 400) range)))
+
+;;; The workspaces
+
+(defcomputed workspaceSaved "Whether the workspace chosen is one saved (Delete Workspace deletes it)."
+  (boolean (some #(= % state.workspace) (map :name state.workspaces))))
 
 ;;; The command search
 
-(defcomputed searchItems "The command search's items: every command that can run, its category before its title."
-  (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
-       (filter (fn [it] (and (not= it.enabled false) (not (empty? (or-else it.title ""))) (not= it.name "unavailable")))
-               commands)))
+(defcomputed searchItems
+  "The search's items: every command that can run, its category before its title; then every tool that works, and every
+  layer of the image, each choosing it."
+  (concat
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (str (if (empty? (or-else it.category "")) "" (str it.category ": ")) it.title) :run it.name})
+         (filter #(and (not= (:enabled %) false)
+                       (-> % :title (or-else "") empty? not)
+                       (not= (:name %) "unavailable"))
+                 commands))
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (t (str "tool." it.name)) :run "setTool" :with {:args {:tool it.id}}})
+         (filter :id (flatten state.tools)))
+    ; style: keep, #(...) can't give a map
+    (map (fn [it] {:title (str (t "search.layer") ": " it.name) :run "selectLayer" :with {:args {:id it.id}}})
+         state.doc.layers)))

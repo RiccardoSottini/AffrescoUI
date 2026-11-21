@@ -13,17 +13,22 @@ import time
 
 TIMEOUT = 10  # seconds to wait for the host to answer
 MAX_EVENTS = 1000  # news kept for get_events: an agent that never asks would otherwise keep all of it
+MAX_RUNS = 64  # runs that waited whose later outcome is kept, the newest (as many as the host keeps)
 NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on Windows "
                    "no released CPython has them yet, see mcp/README.md")
 
 
-def log(text):
-    """Writes a line to stderr, the server's log. Its text can come from people (a request), so a backslash and the
-    characters that aren't printable are escaped, as the host's log does: a line can't forge another one, nor send
-    escape sequences to a terminal."""
-    text = "".join(c if c.isprintable() else c.encode("unicode_escape").decode("ascii")
+def printable(text):
+    """Text on one line: a backslash and the characters that aren't printable (a line break, a control character)
+    escaped, as the host's log does, so text people or peers wrote can't start a line of its own nor send escape
+    sequences to a terminal."""
+    return "".join(c if c.isprintable() else c.encode("unicode_escape").decode("ascii")
                    for c in str(text).replace("\\", "\\\\"))
-    print(f"[affrescoui-mcp] {text}", file=sys.stderr, flush=True)
+
+
+def log(text):
+    """Writes a line to stderr, the server's log. Its text can come from people (a request), so it is printable()."""
+    print(f"[affrescoui-mcp] {printable(text)}", file=sys.stderr, flush=True)
 
 
 def default_socket_dir():
@@ -80,6 +85,10 @@ class Host:
         self.events = collections.deque(maxlen=MAX_EVENTS)  # what happened since the agent last asked, the latest
         self.dropped = 0  # older news the bound let go since then
         self.rules = ("default", [])  # the mode and grants last reported
+        # Runs that waited, by number: [threading.Event, outcome, abandoned]. The host answers a run that waits twice
+        # with the request's id; the second answer comes after request() let its waiter go, so it lands here
+        self.runs = collections.OrderedDict()
+        self.committed = False  # a commit came since get_events last asked: the commands may have changed
 
     def ensure(self):
         """Connects to the host unless connected, starting it first with --launch when none listens; a RuntimeError
@@ -139,9 +148,14 @@ class Host:
         kind = message.get("type")
         with self.lock:
             pending = self.waiting.get(message.get("id")) if isinstance(message.get("id"), str) else None
-            if pending and kind != "request":
+            # A waiter takes one answer: an outcome that follows before request() lets it go is a run's, below
+            if pending and kind != "request" and not pending[0].is_set():
+                if kind == "waiting":  # made before the waiter wakes, so an outcome that follows at once has a place
+                    self.keep_run(message.get("run"))
                 pending[1] = message
                 pending[0].set()
+                return
+            if kind in ("ran", "rejected") and self.settle_run(message):
                 return
         if kind in ("request", "cancel"):  # a person's request, or their cancelling one
             self.on_request(message)
@@ -157,7 +171,10 @@ class Host:
         if kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
             return {"proposal": message["proposal"], "outcome": "merged" if kind == "applied" else "rejected",
                     "revision": message.get("revision"), "detail": message.get("error")}
+        if kind in ("ran", "rejected") and isinstance(message.get("run"), int):  # a run's outcome nobody waits for
+            return run_news(kind, message)
         if kind == "committed":
+            self.committed = True
             return {"committed": message.get("revision"), "commit": message.get("short"),
                     "author": message.get("author"), "committer": message.get("committer"),
                     "message": message.get("message")}
@@ -175,6 +192,40 @@ class Host:
             return None
         self.rules = rules
         return {"mode": rules[0], "grants": rules[1]}
+
+    def keep_run(self, run):
+        """Makes a place for the later outcome of run `run`, the oldest let go once MAX_RUNS are kept. Called with
+        self.lock held."""
+        if not isinstance(run, int) or isinstance(run, bool):
+            return
+        self.runs[run] = [threading.Event(), None, False]
+        self.runs.move_to_end(run)
+        while len(self.runs) > MAX_RUNS:
+            self.runs.popitem(last=False)
+
+    def settle_run(self, message):
+        """Gives a run's later outcome to the run_command call that waits for it: True if one does. Called with
+        self.lock held."""
+        place = self.runs.get(message.get("run")) if isinstance(message.get("run"), int) else None
+        if place is None or place[2] or place[0].is_set():
+            return False
+        place[1] = message
+        place[0].set()
+        return True
+
+    def await_run(self, run, seconds):
+        """The later outcome of run `run` ("ran" or "rejected"), if it comes within `seconds`; else None, and an
+        outcome that comes after is news for get_events."""
+        with self.lock:
+            place = self.runs.get(run)
+        if place is None:
+            return None
+        place[0].wait(seconds)
+        with self.lock:  # an outcome that came as the wait ended is still this call's
+            self.runs.pop(run, None)
+            if place[1] is None:
+                place[2] = True
+            return place[1]
 
     def note(self, event):
         """Keeps news for the next get_events, the oldest let go once MAX_EVENTS wait."""
@@ -211,6 +262,21 @@ class Host:
             events, dropped = list(self.events), self.dropped
             self.events.clear()
             self.dropped = 0
+            if self.committed:  # a commit can add, change or remove commands: list them again before relying on them
+                events.append({"commands": "may have changed"})
+                self.committed = False
         if dropped:
             log(f"{dropped} older events were dropped: get_events keeps the latest {MAX_EVENTS}")
         return events
+
+
+def run_news(kind, message):
+    """What get_events says of a run's outcome nobody waited for: its number, command and outcome, and the error or
+    how many changes it made."""
+    if kind == "rejected":
+        detail = message.get("error")
+    elif isinstance(message.get("changed"), list):
+        detail = len(message["changed"])
+    else:
+        detail = message.get("changes")
+    return {"run": message["run"], "command": message.get("command"), "outcome": kind, "detail": detail}

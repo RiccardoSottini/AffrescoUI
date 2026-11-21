@@ -4,6 +4,8 @@
 ;;; open it on the commands. It is Haven's own quick pick, in its look, with the kit's search and keys: Up and Down
 ;;; move, Enter runs, and the controls last picked come first.
 
+(ns haven.search)
+
 ;;; What it searches
 
 (defcomputed entities "Every control: each room's lights, climate and blinds, each device, and the alarm."
@@ -60,17 +62,17 @@
      :role dialog
      :label ~provider.placeholder
      :let ~(search-variables name)
-     :keys {:down ~(handler moveSearch base
-                            (min (+ sel 1) (max 0 (- total 1)))
-                            (max top (+ (- (min (+ sel 1) (- total 1)) rows) 1)))
-            :up ~(handler moveSearch base (max (- sel 1) 0) (min top (max (- sel 1) 0)))
-            :enter ~(handler runResult base (get results sel) home key qp.recent recentLimit provider.run)}
+     :keys {:down ~(handler move-search base
+                            (min (inc sel) (max 0 (dec total)))
+                            (max top (inc (- (min (inc sel) (dec total)) rows))))
+            :up ~(handler move-search base (max (dec sel) 0) (min top (max (dec sel) 0)))
+            :enter ~(handler run-result base (get results sel) home key qp.recent recentLimit provider.run)}
      ~(search-field)
      {:anchors {:left 0 :right 0 :top 79} :height 1 :color @divider}
-     (label :when ~(= total 0) :text ~(t "quick.none") :textColor @muted :anchors {:left 24 :top 100} :fitText true)
+     (label :when ~(zero? total) :text ~(t "quick.none") :textColor @muted :anchors {:left 24 :top 100} :fitText true)
      (column :anchors {:left 0 :right 0 :top 88}
        :height ~(* (min total rows) rowHeight)
-       :onScroll ~(handler scrollSearch base top (- total rows) event.dy)
+       :onScroll ~(handler scroll-search base top (- total rows) event.dy)
        ~(repeat [r (slice results top (+ top rows)) :index i]
          (search-result r i)))))
 
@@ -80,21 +82,21 @@
   `{:base ~(str "state." name)
    :qp ~(get state name)
    :q ~(or-else qp.query "")
-   :provider ~(or-else (find (fn [it] (and (> (count (or-else it.prefix "")) 0) (= (indexOf q it.prefix) 0))) providers)
-                       (find (fn [it] (= (count (or-else it.prefix "")) 0)) providers))
+   :provider ~(or-else (find #(and (pos? (count (or-else (:prefix %) ""))) (zero? (indexOf q (:prefix %)))) providers)
+                       (find #(zero? (count (or-else (:prefix %) ""))) providers))
    :search ~(slice q (count (or-else provider.prefix "")))
    :key ~(or-else provider.key "title")
-   :home ~(= (count (or-else provider.prefix "")) 0)
+   :home ~(zero? (count (or-else provider.prefix "")))
    :recent ~(if home (or-else qp.recent []) [])
-   :recentKeys ~(map (fn [it] (get it key)) recent)
+   :recentKeys ~(map #(get % key) recent)
    :recentHits ~(fuzzySort recent search key)
    :results ~(slice (concat recentHits
-                            (filter (fn [it] (not (contains recentKeys (get it.item key))))
+                            (filter #(not (contains recentKeys (get (:item %) key)))
                                     (fuzzySort provider.items search key (+ limit (count recent)))))
                     0
                     limit)
    :total ~(count results)
-   :sel ~(clamp (or-else qp.index 0) 0 (max 0 (- total 1)))
+   :sel ~(clamp (or-else qp.index 0) 0 (max 0 (dec total)))
    :top ~(clamp (or-else qp.top 0) 0 (max 0 (- total rows)))})
 
 (defview search-field "The search's field: a magnifier, the text, and a button that clears it." []
@@ -111,7 +113,7 @@
        :color transparent
        :textColor @text
        :placeholderColor @muted
-       :onChange ~(handler moveSearch base 0 0))
+       :onChange ~(handler move-search base 0 0))
      (label :when ~(not= q "")
        :font icons
        :icon x
@@ -127,7 +129,7 @@
        :role button
        :label ~(t "quick.clear")
        :tooltip ~(t "quick.clear")
-       :onClick ~(handler clearSearch base))
+       :onClick ~(handler clear-search base))
      {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @accent}))
 
 (defview search-result "A result: its icon, its name with the letters that match, and its area, or Recent." [r i]
@@ -139,7 +141,7 @@
      :selected ~(= (+ top i) sel)
      :color ~(if (= (+ top i) sel) highlight "@card")
      :hover {:color ~(if (= (+ top i) sel) highlight "@cardHover")}
-     :onClick ~(handler pickResult base (+ top i) r home key qp.recent recentLimit provider.run)
+     :onClick ~(handler pick-result base (+ top i) r home key qp.recent recentLimit provider.run)
      (label :font icons
        :icon ~(or-else r.item.icon "circle")
        :text ""
@@ -156,34 +158,34 @@
      (label :font small
        :text ~(if (< (+ top i) (count recentHits)) (t "quick.recent") (or-else r.item.detail ""))
        :textColor @muted
-       :anchors {:left 80 :top ~(+ (/ rowHeight 2) 1)}
+       :anchors {:left 80 :top ~(inc (/ rowHeight 2))}
        :fitText true)))
 
 ;;; What it does
 
-(defn moveSearch "Highlights a result, and scrolls the list from top." [base index top]
+(defn move-search "Highlights a result, and scrolls the list from top." [base index top]
   (set (str base ".top") top)
   (set (str base ".index") index))
 
-(defn clearSearch "Empties the search's text." [base]
+(defn clear-search "Empties the search's text." [base]
   (set (str base ".query") "")
-  (moveSearch base 0 0))
+  (move-search base 0 0))
 
-(defn scrollSearch "Scrolls the results a row up or down, within the list." [base top last dy]
-  (set (str base ".top") (clamp (+ top (cond (< dy 0) 1 (> dy 0) -1 :else 0)) 0 (max 0 last))))
+(defn scroll-search "Scrolls the results a row up or down, within the list." [base top last dy]
+  (set (str base ".top") (-> top (- (compare dy 0)) (clamp 0 (max 0 last)))))
 
 ;; The search closes, keeps the result among the recent ones on its home list, and runs its action or the list's.
-(defn runResult "Runs a result of the search." [base pick home key recent limit listRun]
-  (when (some? pick)
-    (let [item (:item pick)]
-      (set (str base ".open") false)
-      (when home
-        (set (str base ".recent")
-             (take limit (concat [item] (remove (fn [it] (= (get it key) (get item key))) (or recent []))))))
-      (clearSearch base)
-      (cond (some? (:run item)) (run (:run item) :with (:with item))
-            (some? listRun) (run listRun :with {:item item})))))
+(defn run-result "Runs a result of the search." [base pick home key recent limit listRun]
+  (when-some [{:keys [item]} pick]
+    (set (str base ".open") false)
+    (when home
+      (set (str base ".recent") (->> recent (remove #(= (get % key) (get item key))) (cons item) (take limit))))
+    (clear-search base)
+    (if-some [action (:run item)]
+      (run action :with (:with item))
+      (when-some [action listRun] (run action :with {:item item})))))
 
-(defn pickResult "A click on a result: it is highlighted, then run." [base index pick home key recent limit listRun]
+
+(defn pick-result "A click on a result: it is highlighted, then run." [base index pick home key recent limit listRun]
   (set (str base ".index") index)
-  (runResult base pick home key recent limit listRun))
+  (run-result base pick home key recent limit listRun))

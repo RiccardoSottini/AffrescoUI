@@ -149,11 +149,19 @@ bool reducedMotion() {
 	return SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0) && !animations;
 }
 
-void watchColorScheme() {} // WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads it again
+// WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads them again after every wake
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	static_cast<void>(changed);
+	return nullptr;
+}
 
 void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 
 void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own: glfwSetWindowIcon
+
+std::vector<std::uint8_t> clipboardImagePng(std::size_t /*most*/) { return {}; } // not read here yet
+
+bool setClipboardImage(const Bitmap& /*image*/) { return false; }
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {
 	return std::make_unique<Win32MenuBar>(window, std::move(chosen));

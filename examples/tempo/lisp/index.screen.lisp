@@ -6,27 +6,28 @@
 ;;; and Cmd+Shift+P runs any command; Space plays or pauses, the arrows skip and set the volume (keys.lisp has them all).
 ;;; A right click (or Shift+F10) on a song opens its menu. The songs are simulated: what plays is one beatbox loop
 ;;; (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound; a song may name a sound of its
-;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser and the crossfade are
-;;; visual only.
+;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser filters the sound, and a
+;;; crossfade overlaps the song ending and the next (the beat plays on two decks).
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "models.lisp"
-         "sound.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "sidebar.lisp"
-         "library.lisp"
-         "queue.lisp"
-         "player.lisp"
-         "pages.lisp"
-         "nowplaying.lisp"
-         "dialogs.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "tempo.lisp")
+(ns tempo.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "models.lisp"
+            "sound.lisp"
+            tempo.state
+            tempo.computed
+            tempo.look
+            tempo.keys
+            tempo.sidebar
+            tempo.library
+            tempo.queue
+            tempo.player
+            tempo.pages
+            tempo.nowplaying
+            tempo.dialogs
+            "../../shared/addons/assistant/assistant.lisp"
+            tempo.tempo))
 
 ;;; The window, and what is in it, in the order it is drawn
 
@@ -47,7 +48,8 @@
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
-                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]
+                :run {:allow ["agent(songPlay)" "agent(songPause)" "agent(songQueue)" "agent(songLike)"]}}
   :theme ~state.theme
   (node#panel-root :color @background :every {:ms 1000 :do tick}
     ~(sidebar)

@@ -122,6 +122,11 @@ void Models::changed(const std::string& name, const ModelChange& change) {
 	if(change.kind == ModelChange::Kind::Changed && change.count <= rowsMarkedOneByOne) {
 		for(std::size_t row = change.first; row < change.first + change.count; ++row)
 			engine_.document.markPlaceChanged(place + "/" + std::to_string(row));
+	} else if(change.kind == ModelChange::Kind::Inserted || change.kind == ModelChange::Kind::Removed) {
+		// its shape, and how it changed, so a repeat over it can insert or remove rows only
+		engine_.document.markPlaceListChanged(
+		    place, change.kind == ModelChange::Kind::Inserted ? ListChange::Kind::Inserted : ListChange::Kind::Removed,
+		    change.first, change.count);
 	} else { // rows moved, or many changed: whatever shows the model looks at it again
 		engine_.document.markPlaceChanged(place);
 	}

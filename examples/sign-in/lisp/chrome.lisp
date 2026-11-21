@@ -3,17 +3,21 @@
 ;;;
 ;;; The screens themselves are drawn in the outlet between the top bar and the footer (index.screen.lisp).
 
+(ns sign-in.chrome)
+
 ;;; Behind and around the screens
 
-(defview glows "The two soft glows behind the card, top left and bottom right: two nodes, spliced in with ~@." []
-  [`(node#glow :width 520
+(defview glows "The two soft glows behind the card, top left and bottom right, on windows wide enough for a card." []
+  [`(node#glow :when ~(not computed.narrow)
+      :width 520
       :height 520
       :radius 999
       :x -160
       :y -200
       :color @color.glow
       :shadow {:blur 120 :color @color.glow})
-   `(node#glow-2 :width 460
+   `(node#glow-2 :when ~(not computed.narrow)
+      :width 460
       :height 460
       :radius 999
       :anchors {:right -140 :bottom -180}
@@ -65,11 +69,11 @@
 
 (defview language-chip "A language of the top bar, by its code, lit while it is the one shown." [language]
   `(node#lang :style ~(if (= state.locale language) "chipOn" "chip")
-     :text ~(upper-case language)
+     :text ~(str/upper-case language)
      :label ~(t "langName" {:code language})
      :tooltip ~(t "langName" {:code language})
      :selected ~(= state.locale language)
-     :onClick ~(handler setLocale language)))
+     :onClick ~(handler set-locale language)))
 
 (defview slow-toggle "The Slow network switch: a snail while the fake server takes its time." []
   `(node#slowToggle :style iconButton
@@ -115,7 +119,7 @@
        :cursor hand
        :focusable true
        :role button
-       :onClick staySignedIn)
+       :onClick stay-signed-in)
      (label#toastClose :font iconsSmall
        :icon x
        :text ""
@@ -125,5 +129,5 @@
        :focusable true
        :role button
        :label ~(t "close")
-       :onClick hideToast)
+       :onClick hide-toast)
      (node#toast-end :width 6 :color transparent)))

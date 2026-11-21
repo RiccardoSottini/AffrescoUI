@@ -172,7 +172,28 @@ private:
 			if(seen.contains("children")) fail(place, "a node with :children and children after its properties");
 			members.emplace_back("children", std::move(children));
 		}
+		if(machine_.nodeNotes != nullptr) noteOrigin(list);
 		return object;
+	}
+
+	/// @brief Notes where a node's form and its id are (Machine::nodeNotes), if it has an id and its form was read from
+	/// the program's source. A computed id (`(str "row" i)`) has no place of its own; a node built from a map or by a
+	/// function has none either, and no note.
+	/// @param list The node's list, already made a tree, so well formed.
+	void noteOrigin(const Value& list) const {
+		const Place place = list.place();
+		if(place.line == 0) return;
+		for(std::size_t at = 1; at + 1 < list.count(); ++at) {
+			const Value item = list.at(at);
+			if(item.kind() != Kind::Keyword) return; // the children, after the properties
+			if(item.text() != "id") {
+				++at;
+				continue;
+			}
+			const Value id = list.at(at + 1);
+			if(id.kind() == Kind::String) machine_.nodeNotes->push_back({std::string(id.text()), place, id.place()});
+			return;
+		}
 	}
 
 	Machine& machine_;       ///< See the constructor.

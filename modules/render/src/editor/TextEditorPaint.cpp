@@ -6,10 +6,12 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace affresco {
 namespace {
@@ -103,6 +105,29 @@ constexpr bool drawnRow(std::size_t row, std::size_t first, std::size_t last) no
 	return row >= first && row < last;
 }
 
+/// @brief Draws a small chevron, 8 units wide, as two strokes.
+/// @param painter The painter.
+/// @param centre Its centre, in window units.
+/// @param right true points it right (a folded line), false down (a line that folds).
+/// @param color Its colour.
+void paintChevron(Painter& painter, Vec2 centre, bool right, Color color) {
+	constexpr float half = 3.0f, depth = 1.75f, width = 0.75f; // half its span, half its depth, half a stroke
+	const auto point = [&](float along, float across) {
+		return right ? Vec2{centre.x + across, centre.y + along} : Vec2{centre.x + along, centre.y + across};
+	};
+	const std::array<Vec2, 2> ends = {point(-half, -depth), point(half, -depth)};
+	const Vec2 tip = point(0.0f, depth);
+	std::vector<MeshVertex> quads;
+	for(const Vec2 end : ends) {
+		const float dx = tip.x - end.x, dy = tip.y - end.y, length = std::hypot(dx, dy);
+		const Vec2 normal{-dy / length * width, dx / length * width};
+		for(const Vec2 at : {Vec2{end.x + normal.x, end.y + normal.y}, Vec2{tip.x + normal.x, tip.y + normal.y},
+		                     Vec2{tip.x - normal.x, tip.y - normal.y}, Vec2{end.x - normal.x, end.y - normal.y}})
+			quads.push_back({at, 1.0f});
+	}
+	painter.fillMesh(quads, {}, color);
+}
+
 } // namespace
 
 void TextEditor::colorLine(std::u32string_view /*line*/, int& /*state*/, std::vector<Color>& colors) const {
@@ -178,7 +203,20 @@ void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& lay
 	// the line's shaping from the cache
 	const Font::ShapedText& shaped = font.shape(text);
 	if(shaped.advances.size() < text.size() || shaped.carets.size() <= span.end) return; // out of memory
+	// The spaces' dots, placed before the runs are drawn (drawing may drop the shaping)
+	std::vector<Rect> dots;
+	if(whitespace_) {
+		const float origin = wrap_ ? shaped.carets[span.start] : 0.0f, middle = top + layout.lineHeight / 2.0f;
+		for(std::size_t column = span.start; column < span.end; ++column)
+			if(text[column] == U' ') {
+				const float x = layout.textLeft + (shaped.carets[column] + shaped.carets[column + 1]) / 2.0f - origin;
+				if(x >= box.left + layout.gutter && x <= box.right)
+					dots.push_back({std::round(x) - 1.0f, std::round(middle) - 1.0f, std::round(x) + 1.0f,
+					                std::round(middle) + 1.0f});
+			}
+	}
 	colorRuns(colors_, shaped, {span.start, span.end}, wrap_, runs_);
+	for(const Rect& dot : dots) painter.fillRect(dot, guideColor_);
 	std::size_t start = span.start;
 	for(const auto& [end, x, width] : runs_) {
 		const float left = layout.textLeft + x;
@@ -269,6 +307,24 @@ void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan sp
 	if(lineBreak) fill(breakLeft, breakLeft + space);
 }
 
+void TextEditor::paintFoldMark(Painter& painter, const Layout& layout, std::size_t line, float top) const {
+	const Rect& box = frame();
+	const bool folded = viewActive() && nextShown(line) > line + 1;
+	if(foldMarkers_) {
+		// A chevron: down beside a line that folds, right beside a folded one
+		if(folded || foldable(line))
+			paintChevron(painter, {box.left + layout.gutter - 13.0f, top + layout.lineHeight / 2.0f}, folded,
+			             folded ? activeLineNumberColor_ : lineNumberColor_);
+		return;
+	}
+	// A folded line's marker: a short bar where the gutter ends
+	if(folded) {
+		const float x = box.left + layout.gutter - 14.0f;
+		painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
+		                        activeLineNumberColor_);
+	}
+}
+
 void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& layout) const {
 	// The gutter covers text scrolled under it
 	const Rect& box = frame();
@@ -283,12 +339,7 @@ void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& l
 			painter.drawText(font, label_, {x, top + layout.baseline},
 			                 span.line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
 		}
-		// A folded line's marker: a short bar where the gutter ends
-		if(viewActive() && nextShown(span.line) > span.line + 1) {
-			const float x = box.left + layout.gutter - 14.0f;
-			painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
-			                        activeLineNumberColor_);
-		}
+		paintFoldMark(painter, layout, span.line, top);
 	}
 	// Gutter icons, on their first line
 	const auto from = std::ranges::lower_bound(decorations_, rowSpan(std::min(layout.first, rowCount() - 1)).line, {},

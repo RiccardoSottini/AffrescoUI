@@ -1,0 +1,15 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "What the search box runs: besides the named commands (parts/menus.json), every item of the ribbon's drop-down menus (paste, layouts, sections, case, lists, spacing, anchor, select, arrange, colours, fonts, effects, icons, styled text, shapes, themes), run as the menu runs it.",
+
+	"computed": {
+		"searchMenus": ["menu-b-paste", "menu-b-copy", "menu-b-new-slide", "menu-b-layout", "menu-b-section", "menu-b-case", "menu-b-bullets",
+		                "menu-b-numbering", "menu-b-line-spacing", "menu-b-columns", "menu-b-direction", "menu-b-anchor", "menu-b-select",
+		                "menu-b-arrange", "menu-b-colors", "menu-b-fonts", "menu-b-effects", "menu-b-ins-icons", "menu-b-ins-art-text",
+		                "menu-b-ins-header", "menu-b-ins-shapes", "menu-gal-themes"],
+		"commandTitles": "{{map(computed.commands, it.title)}}",
+		"searchCommands": "{{concat(computed.commands, filter(flat(map(computed.searchMenus, computed[it] ?? [])), it.title != null && it.run != null && !contains(computed.commandTitles, it.title)))}}"
+	}
+}

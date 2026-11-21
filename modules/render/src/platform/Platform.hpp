@@ -7,6 +7,8 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Input.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -24,13 +26,16 @@ namespace platform {
 
 using ProcAddressLoader = void* (*)(const char* name); ///< Looks an OpenGL function up by name.
 
-/// @brief A size in pixels of the framebuffer (on HiDPI screens, more than the window has units).
+/// @brief A size in pixels of the framebuffer (on a display scaled above 100%, more than the window has units).
 struct PixelSize {
 	int width = 0;  ///< In pixels.
 	int height = 0; ///< In pixels.
 };
 
 /// @brief An OS window with an OpenGL 4.1 core context, as one Window sees it.
+///
+/// It speaks in window units (sizes, positions) everywhere but framebufferSize(): converting from the windowing
+/// system's own coordinates, where they are pixels, is its job, not the Window's.
 ///
 /// It delivers the OS's input and size changes to the Window it was connected to, converted to the typed events of
 /// affresco/render/Events.hpp, through the protected functions below (the Window's routing methods). Main thread only.
@@ -84,6 +89,20 @@ public:
 	/// @brief Sets the system clipboard's text.
 	/// @param utf8 UTF-8 text.
 	virtual void setClipboardText(const std::string& utf8) = 0;
+	/// @brief The system clipboard's image, as the bytes of a PNG file, where the OS hands one over; empty otherwise.
+	/// @param most The most bytes taken: a larger image gives nothing.
+	/// @return The bytes, or empty.
+	[[nodiscard]] virtual std::vector<std::uint8_t> clipboardImagePng(std::size_t most) const {
+		static_cast<void>(most);
+		return {};
+	}
+	/// @brief Puts an image on the system clipboard, where the OS takes one.
+	/// @param image The image.
+	/// @return Whether it is there now.
+	virtual bool setClipboardImage(const Bitmap& image) {
+		static_cast<void>(image);
+		return false;
+	}
 	/// @brief Shows a cursor shape over the window.
 	/// @param cursor The shape (Arrow is the system default).
 	virtual void setCursor(Cursor cursor) = 0;
@@ -96,11 +115,14 @@ public:
 	virtual void present() = 0;
 	/// @brief Looks the context's OpenGL functions up.
 	[[nodiscard]] virtual ProcAddressLoader procAddressLoader() const = 0;
-	/// @brief Wakes the event loop, so it works out again how long it may sleep.
+	/// @brief Wakes the event loop, so it works out again how long it may sleep. Main thread only (Window::setTimer()):
+	/// outside Platform::waitEvents() the loop works out its wait before it sleeps anyway, so only a wait under way
+	/// needs waking.
 	virtual void wake() = 0;
 	/// @brief The windowing system's own handle (a GLFWwindow*), for Window::nativeHandle().
 	[[nodiscard]] virtual void* handle() const noexcept = 0;
-	/// @brief Pixels per window unit on the window's display now.
+	/// @brief Pixels per window unit on the window's display now: the display's scale, which on windowing systems whose
+	/// coordinates are pixels (Win32, X11) is rounded to a quarter from 1 to 4 (platform/UnitScale.hpp).
 	[[nodiscard]] virtual float contentScale() const = 0;
 	/// @brief Shows a native menu bar for this window, replacing the one shown; choosing an item calls chosen().
 	/// @param menus The menus; empty removes the bar.
@@ -189,6 +211,16 @@ public:
 	[[nodiscard]] virtual ColorScheme colorScheme() const = 0;
 	/// @brief Whether the system asks for less motion now (false where it can't be read).
 	[[nodiscard]] virtual bool reducedMotion() const = 0;
+
+	/// @brief How many events the windowing system has delivered to the windows (input, resizes, redraws), so the
+	/// event loop can tell what woke it (Application::lastWake()). The default counts none.
+	/// @return The count since the platform started.
+	[[nodiscard]] virtual std::uint64_t eventsDelivered() const noexcept { return 0; }
+	/// @brief How many times the system announced a change of colorScheme() or reducedMotion(), so the event loop
+	/// reads them again only after one. The default announces none.
+	/// @return The count since the platform started, or std::nullopt where the system announces nothing: they must
+	/// then be read after every wake.
+	[[nodiscard]] virtual std::optional<std::uint64_t> appearanceChanges() const noexcept { return std::nullopt; }
 };
 
 /// @brief Starts GLFW.

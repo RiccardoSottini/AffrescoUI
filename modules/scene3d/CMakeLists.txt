@@ -7,7 +7,7 @@ affrescoui_module(scene3d
 	src/math/Math.cpp src/math/Bounds.cpp
 	# scene: meshes, primitives, the node scene, its JSON and animation
 	src/scene/Mesh.cpp src/scene/Primitives.cpp src/scene/Scene.cpp src/scene/SceneJson.cpp src/scene/Animation.cpp
-	src/scene/SceneAssets.cpp
+	src/scene/SceneAssets.cpp src/scene/PolyMesh.cpp
 	# gltf: glTF 2.0 loading, conversion to the scene, and export, through cgltf
 	src/gltf/GltfLoad.cpp src/gltf/GltfConvert.cpp src/gltf/GltfExport.cpp src/gltf/Cgltf.cpp
 	# viewport: the orbit camera, picking, gizmo maths and the viewport surface

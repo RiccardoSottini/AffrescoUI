@@ -67,11 +67,11 @@ struct Peers {
 
 /// @brief One row: a message, who sends it, and the answer it gets.
 struct Row {
-	std::string type;                              ///< The message's "type", as SCREEN_FORMAT.md lists it.
-	bool reviewer;                                 ///< Sent by the studio (true) or the agent.
-	std::function<json(Peers&)> message;           ///< Builds the message (after any setup it needs).
-	std::string answer;                            ///< The answer's "type"; "" for one relayed to the other peers.
-	std::string contains;                          ///< Text the answer's error or message holds ("" for none).
+	std::string type;                    ///< The message's "type", as SCREEN_FORMAT.md lists it.
+	bool reviewer;                       ///< Sent by the studio (true) or the agent.
+	std::function<json(Peers&)> message; ///< Builds the message (after any setup it needs).
+	std::string answer;                  ///< The answer's "type"; "" for one relayed to the other peers.
+	std::string contains;                ///< Text the answer's error or message holds ("" for none).
 };
 
 /// @brief A message without setup.
@@ -104,17 +104,68 @@ std::set<std::string> documentedMessages() {
 	return types;
 }
 
+/// @brief The rows of the commands as tools, on a host that runs none (session_commands.cpp tests one that does).
+/// @return The rows.
+std::vector<Row> commandRows() {
+	return {
+	    {"getCommands", false, plain({{"type", "getCommands"}}), "rejected", "this host runs no commands"},
+	    {"runCommand", false, plain({{"type", "runCommand"}, {"command", "save"}}), "rejected",
+		 "this host runs no commands"},
+	    {"undoRun", false, plain({{"type", "undoRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
+	    {"allowRun", true, plain({{"type", "allowRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
+	    {"denyRun", true, plain({{"type", "denyRun"}, {"run", 1}}), "rejected", "this host runs no commands"},
+	    {"revokeRun", true, plain({{"type", "revokeRun"}, {"rule", "agent(run:save)"}}), "rejected",
+		 "this host runs no commands"},
+	};
+}
+
 /// @brief The rows of convert: text in the Lisp notation into its value and back, and its errors.
 /// @return The rows.
 std::vector<Row> convertRows() {
 	return {
 	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"text", "(label #a)"}}), "converted", ""},
 	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"value", {{"id", "a"}}}}), "converted",
-	     ""},
+		 ""},
 	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"text", "(label"}}), "rejected",
-	     "line 1, column 7"},
+		 "line 1, column 7"},
 	    {"convert", false, plain({{"type", "convert"}, {"notation", "yaml"}, {"text", "a"}}), "rejected",
-	     "convert.notation"},
+		 "convert.notation"},
+	};
+}
+
+/// @brief The rows of the history's changes: revert (with an undo's choices), restore and undo, and undoPlan.
+/// @return The rows.
+std::vector<Row> historyRows() {
+	return {
+	    {"revert", true,
+		 [](Peers& peers) {
+		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
+		     return json{{"type", "revert"}, {"revision", "HEAD"}};
+	     },
+		 "applied", ""},
+	    {"revert", true, plain({{"type", "revert"}}), "rejected", "revert.revision"},
+	    {"revert", true, plain({{"type", "revert"}, {"revision", "HEAD"}, {"drop", "some"}}), "rejected",
+		 "revert.drop"},
+	    {"undoPlan", true,
+		 [](Peers& peers) {
+		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
+		     return json{{"type", "undoPlan"}, {"revision", 1}};
+	     },
+		 "undoPlan", ""},
+	    {"undoPlan", true, plain({{"type", "undoPlan"}}), "rejected", "undoPlan.revision"},
+	    {"restore", true,
+		 [](Peers& peers) {
+		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
+		     return json{{"type", "restore"}, {"revision", 0}};
+	     },
+		 "applied", ""},
+	    {"restore", true, plain({{"type", "restore"}, {"revision", 0}}), "rejected", "nothing to restore"},
+	    {"undo", true,
+		 [](Peers& peers) {
+		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
+		     return json{{"type", "undo"}};
+	     },
+		 "applied", ""},
 	};
 }
 
@@ -126,34 +177,17 @@ std::vector<Row> protocolTable() {
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#board/color", "#00ff00"}}}}), "applied", ""},
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#title/text", "Mine"}}}}), "proposed", ""},
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#statusBar/color", "#000000"}}}}), "rejected",
-	     "permission denied"},
+		 "permission denied"},
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#nowhere/text", "x"}}}}), "rejected",
-	     "no node with id 'nowhere'"},
-	    {"revert", true,
-	     [](Peers& peers) {
-		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
-		     return json{{"type", "revert"}, {"revision", "HEAD"}};
-	     },
-	     "applied", ""},
-	    {"revert", true, plain({{"type", "revert"}}), "rejected", "revert.revision"},
-	    {"restore", true,
-	     [](Peers& peers) {
-		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
-		     return json{{"type", "restore"}, {"revision", 0}};
-	     },
-	     "applied", ""},
-	    {"restore", true, plain({{"type", "restore"}, {"revision", 0}}), "rejected", "nothing to restore"},
-	    {"undo", true,
-	     [](Peers& peers) {
-		     REQUIRE(peers.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
-		     return json{{"type", "undo"}};
-	     },
-	     "applied", ""},
+		 "no node with id 'nowhere'"},
 	    {"getDocument", false, plain({{"type", "getDocument"}}), "document", ""},
 	    {"getHistory", false, plain({{"type", "getHistory"}, {"limit", 3}}), "history", ""},
 	    {"diff", false, plain({{"type", "diff"}, {"from", 0}, {"to", "HEAD"}}), "diff", ""},
 	    {"diff", false, plain({{"type", "diff"}, {"proposal", 9}}), "rejected", "no proposal 9"},
 	    {"fileChanges", false, plain({{"type", "fileChanges"}}), "rejected", "can't tell a change's files"},
+	    {"getPicks", false, plain({{"type", "getPicks"}}), "rejected", "this host keeps no picks"},
+	    {"getSource", false, plain({{"type", "getSource"}, {"at", "#title"}}), "rejected",
+		 "can't tell a node's source"},
 	    {"blame", false, plain({{"type", "blame"}, {"target", "#title"}}), "blame", ""},
 	    {"blame", false, plain({{"type", "blame"}}), "rejected", "blame.target"},
 	    {"exportChanges", false, plain({{"type", "exportChanges"}, {"from", 0}, {"name", "mine"}}), "changes", ""},
@@ -161,41 +195,53 @@ std::vector<Row> protocolTable() {
 	    {"render", false, plain({{"type", "render"}, {"scale", 2}}), "image", ""},
 	    {"render", false, plain({{"type", "render"}, {"scale", 9}}), "rejected", "render.scale"},
 	    {"accept", true,
-	     [&](Peers& peers) {
+		 [&](Peers& peers) {
 		     const auto [id, head] = proposal(peers);
 		     return json{{"type", "accept"}, {"proposal", id}, {"head", head}};
 	     },
-	     "done", ""},
-	    {"accept", true,
-	     [&](Peers& peers) { return json{{"type", "accept"}, {"proposal", proposal(peers).first}}; }, "rejected",
-	     "accept.head"},
+		 "done", ""},
+	    {"accept", true, [&](Peers& peers) { return json{{"type", "accept"}, {"proposal", proposal(peers).first}}; },
+		 "rejected", "accept.head"},
 	    {"accept", false,
-	     [&](Peers& peers) {
+		 [&](Peers& peers) {
 		     const auto [id, head] = proposal(peers);
 		     return json{{"type", "accept"}, {"proposal", id}, {"head", head}};
 	     },
-	     "rejected", "may not review"},
+		 "rejected", "may not review"},
 	    {"reject", true,
-	     [&](Peers& peers) { return json{{"type", "reject"}, {"proposal", proposal(peers).first}, {"reason", "No"}}; },
-	     "done", ""},
+		 [&](Peers& peers) { return json{{"type", "reject"}, {"proposal", proposal(peers).first}, {"reason", "No"}}; },
+		 "done", ""},
 	    {"reject", true, plain({{"type", "reject"}, {"proposal", 4}}), "rejected", "no proposal 4"},
 	    {"preview", true, [&](Peers& peers) { return json{{"type", "preview"}, {"proposal", proposal(peers).first}}; },
-	     "done", ""},
+		 "done", ""},
 	    {"endPreview", true, plain({{"type", "endPreview"}}), "done", ""},
 	    {"setMode", true, plain({{"type", "setMode"}, {"mode", "plan"}}), "done", ""},
 	    {"setMode", true, plain({{"type", "setMode"}, {"mode", "anything"}}), "rejected", "setMode.mode"},
 	    {"revoke", true,
-	     [&](Peers& peers) {
+		 [&](Peers& peers) {
 		     const auto [id, head] = proposal(peers);
 		     REQUIRE_FALSE(peers.versions.accept(id, {"studio", head, true}));
 		     return json{{"type", "revoke"}, {"rule", peers.versions.grants().at(0).rule}};
 	     },
-	     "done", ""},
+		 "done", ""},
 	    {"revoke", true, plain({{"type", "revoke"}, {"rule", "agent(#title)"}}), "rejected", "no grant"},
+	    {"resolve", true,
+		 [&](Peers& peers) {
+		     return json{
+		         {"type", "resolve"}, {"proposal", proposal(peers).first}, {"path", "/state/x"}, {"take", "mine"}};
+	     },
+		 "rejected", "only the person settles"},
+	    {"resolve", true, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "theirs"}}),
+		 "rejected", "no proposal #4"},
+	    {"resolve", true, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "both"}}),
+		 "rejected", "resolve.take"},
+	    {"resolve", false, plain({{"type", "resolve"}, {"proposal", 4}, {"path", "/state/x"}, {"take", "mine"}}),
+		 "rejected", "may not review"},
 	    {"request", false, plain({{"type", "request"}, {"id", "r1"}, {"text", "Make it blue"}}), "", ""},
 	    {"reply", true, plain({{"type", "reply"}, {"request", "r1"}, {"text", "Done"}}), "", ""},
 	};
-	std::ranges::move(convertRows(), std::back_inserter(rows));
+	for(std::vector<Row> more : {historyRows(), convertRows(), commandRows()})
+		std::ranges::move(more, std::back_inserter(rows));
 	return rows;
 }
 
@@ -247,4 +293,16 @@ TEST_CASE("channel: a message of a type the protocol doesn't have gets an error 
 	Peers peers;
 	const json answer = answerTo(peers, {"launch", false, plain({{"type", "launch"}}), "error", ""});
 	CHECK(answer == json{{"type", "error"}, {"message", "unknown message type 'launch'"}, {"id", 42}});
+}
+
+TEST_CASE("channel: a peer's request is relayed without a source or picks") {
+	// Regression: picks came through, so a peer could say what the person pointed at in the app
+	Peers peers;
+	const json picks = json::array({{{"node", "#title"}}});
+	peers.studioChannel.receive(
+	    json{{"type", "request"}, {"text", "Make it bold"}, {"source", "screen"}, {"picks", picks}}.dump());
+	REQUIRE(peers.relayed.size() == 1);
+	CHECK(peers.relayed[0]["text"] == "Make it bold");
+	CHECK_FALSE(peers.relayed[0].contains("source"));
+	CHECK_FALSE(peers.relayed[0].contains("picks"));
 }

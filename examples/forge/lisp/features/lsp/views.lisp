@@ -1,6 +1,8 @@
 ;;; views.lisp --- what the language server shows over the editor: the hover, the signature, completions, the
 ;;; peek, the rename and review dialogs, and the symbol picker
 
+(ns forge.features.lsp.views)
+
 ;;; Over the editor
 
 (defcomponent forgeLsp "What the language server shows over the editor, each an overlay: the hover first."
@@ -66,7 +68,7 @@
           :gap 8
           :color ~(if (= c.index state.lsp.completion.index) "@color.selection" "@color.widget")
           :cursor hand
-          :onClick ~(handler lspComplete c.index)
+          :onClick ~(handler lsp-complete c.index)
           (label#lsp-completion-label :font code :fitText true :textColor @color.text :text ~c.item.label)
           (label#lsp-completion-detail :grow 1 :textColor @color.muted :text ~c.item.detail)))))
 
@@ -99,7 +101,7 @@
             :height 150
             :title ~(t "command.renameSymbol")
             :message ""
-            :buttons [{:title ~(t "lsp-rename-dialog.rename") :run lspRenameSend} {:title ~(t "lsp-rename-dialog.cancel")}]}
+            :buttons [{:title ~(t "lsp-rename-dialog.rename") :run lsp-rename-send} {:title ~(t "lsp-rename-dialog.cancel")}]}
      (textarea#lsp-rename-name :bind state.lsp.rename.name
        :autofocus true
        :anchors {:left 20 :right 20 :top 48}
@@ -109,7 +111,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "lsp-rename-name.placeholder")
-       :onSubmit lspRenameSend)))
+       :onSubmit lsp-rename-send)))
 
 (defview lsp-review-dialog "The edits a rename or a format proposes, to apply or not." []
   `(node#lsp-review-dialog :use dialog
@@ -122,7 +124,7 @@
        :items ~(map-indexed (fn [index it]
                               {:id index
                                :cells [it.path
-                                       (str (+ it.line 1) ":" (+ it.column 1))
+                                       (str (inc it.line) ":" (inc it.column))
                                        (slice (join "⏎" (split it.text "\n")) 0 80)]})
                             state.lsp.review.edits)
        :rowHeight 20
@@ -145,10 +147,10 @@
             :providers [{:prefix @
                          :items ~computed.lspSymbolItems
                          :key name
-                         :run lspSymbolPicked
+                         :run lsp-symbol-picked
                          :placeholder ~(t "lsp-symbols.goToA")}
                         {:prefix "#"
                          :items ~computed.lspSymbolItems
                          :key name
-                         :run lspSymbolPicked
+                         :run lsp-symbol-picked
                          :placeholder ~(t "lsp-symbols.typeToSearch")}]}))

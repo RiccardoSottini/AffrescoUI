@@ -2,9 +2,10 @@
  :version 1
  :feature slideSorter
  :host "app:orrery"
- :note "Sinopia's slide sorter in Orrery: every body but the Sun is a page, drawn from the thumbnail the screen draws for it, and the sorter's actions are the body actions Orrery's bodies dock receives."
- :bind {:pages {:value "{{map(filter(app.sky.bodies, it.parent != ''), {id: it.id, name: it.name, image: it.thumbnail})}}"}
-        :current {:export sky.selected}
-        :reorder {:action bodies.reorder :with {:args {:id "{{id}}" :onto "{{onto}}"}}}
-        :select {:action bodies.select :with {:args {:id "{{id}}"}}}
-        :duplicate {:action bodies.clone :with {:args {:id "{{id}}"}}}}}
+ :note "Sinopia's slide sorter in Orrery, as the tour: every saved view is a page, drawn from the thumbnail of the body it looks at; picking one goes there, dragging one changes the tour's order and the copy button copies the picked view."
+ :bind {:pages {:value "{{app.tour.views}}"}
+        :current {:export tour.current}
+        :title {:export tour.title}
+        :reorder {:action tour.reorder :with {:args {:id "{{id}}" :onto "{{onto}}"}}}
+        :select {:action tour.go :with {:args {:id "{{id}}"}}}
+        :duplicate {:action tour.copy :with {:args {:id "{{id}}"}}}}}

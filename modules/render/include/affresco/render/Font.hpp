@@ -64,6 +64,13 @@ struct FontStyle {
 /// to quarters, from 1 to 4) for as long as it lives, so windows on displays of different scales can share it; each
 /// raster's pages have the same 64 MiB bound, and memoryBytes() counts them.
 ///
+/// **Pixel fitting.** Below a raster scale of 2 (fitsPixels()), where a pixel is a large share of a stem, glyphs are
+/// hinted lightly (vertically only) and drawn from whole pixel columns, so they stay sharp; to stay evenly spaced
+/// too, each glyph has up to four bitmaps, its outline moved right by 0, 1/4, 1/2 and 3/4 of a pixel, rasterised on
+/// demand. fitGlyph() picks the one that puts the glyph within an eighth of a pixel of its laid-out place. A font
+/// drawing itself (a scale of 1) puts every bitmap it draws in the pages after its Latin-1 page, which is then only
+/// measured from, so a line of text draws from one page, in one batch. At 2 and above none of this happens.
+///
 /// Pure CPU data: each window uploads the pages to its own GPU context when it draws with them, then only what was
 /// added since. Not thread-safe: a font is used on the main thread, like the panels that draw with it.
 class Font : public std::enable_shared_from_this<Font> {
@@ -72,9 +79,10 @@ public:
 	struct Glyph {
 		Rect quad;               ///< Relative to the pen position on the baseline (y pointing down).
 		Rect uv;                 ///< Texture coordinates in its atlas page.
-		float advance;           ///< Horizontal pen movement, before shaping (kerning and the like).
+		float advance = 0.0f;    ///< Horizontal pen movement, before shaping (kerning and the like).
 		std::uint32_t page = 0;  ///< The atlas page that holds it.
 		bool color = false;      ///< Whether the page is a colour page (AtlasKind::color): its texels are the colours.
+		std::uint8_t shift = 0;  ///< Quarters of a pixel its bitmap is moved right (fitGlyph()); 0 for most glyphs.
 		std::uint32_t face = 0;  ///< Which of the font's faces it comes from (the font first, then its fallbacks).
 		std::uint32_t index = 0; ///< Its glyph index in that face.
 	};
@@ -97,6 +105,12 @@ public:
 		/// the text). A ligature's carets are spread over its width. In a right-to-left run they go from right to left.
 		std::vector<float> carets;
 		float width = 0.0f; ///< How far the pen moves over the whole text.
+	};
+
+	/// @brief A glyph fitted to a frame's pixel columns: which bitmap to draw, and where its pen goes (fitGlyph()).
+	struct FittedGlyph {
+		const Glyph* glyph = nullptr; ///< The bitmap to draw; valid as long as the font.
+		float pen = 0.0f;             ///< Its pen, in window units: on a whole pixel column below a scale of 2.
 	};
 
 	/// @brief A rectangle of texels in an atlas page; right and bottom are exclusive.
@@ -176,8 +190,10 @@ public:
 	/// cluster: a ligature, or a letter and its marks). Widths are those of the shaped text.
 	/// @param text The text.
 	/// @param maxWidth Widest line, in pixels.
+	/// @param letterSpacing Extra pixels after each character (CSS `letter-spacing`), counted in the widths.
 	/// @return Views into @p text, one per line.
-	[[nodiscard]] std::vector<std::u32string_view> wrap(std::u32string_view text, float maxWidth) const;
+	[[nodiscard]] std::vector<std::u32string_view> wrap(std::u32string_view text, float maxWidth,
+	                                                    float letterSpacing = 0.0f) const;
 
 	/// @brief How much memory the font's atlas pages, glyphs and shaped text take, its rasters at other scales
 	/// included, without its font files.
@@ -189,6 +205,11 @@ public:
 	/// @param pixelScale Framebuffer pixels per window unit.
 	/// @return 1 for 1.125 or less (and for anything not a number): the font's own glyphs.
 	[[nodiscard]] static float rasterScaleFor(float pixelScale) noexcept;
+	/// @brief Whether glyphs rasterised this dense are fitted to pixels: hinted lightly (vertically only, so widths and
+	/// advances don't change) and drawn from whole pixel columns, as a screen with few pixels needs to keep them sharp.
+	/// @param rasterScale Texels per pixel (rasterScale()).
+	/// @return True below 2: denser rasters keep their outlines' exact shapes and places.
+	[[nodiscard]] static bool fitsPixels(float rasterScale) noexcept;
 	/// @brief The font as drawn into a framebuffer with more pixels per unit: its glyphs rasterised that much denser,
 	/// into atlas pages of its own, made on first use and kept as long as the font.
 	///
@@ -205,6 +226,18 @@ public:
 	/// @return For a raster, its glyph: the same face and glyph index, its quad in pixels (its bitmap's texels divided
 	/// by the scale), its texture coordinates in the raster's pages; '?' if it doesn't fit. For a font, @p glyph.
 	[[nodiscard]] const Glyph& rasterGlyph(const Glyph& glyph) const noexcept;
+	/// @brief The bitmap to draw a glyph from, and where its pen goes, for the frame this font or raster draws into.
+	///
+	/// Below a raster scale of 2 (fitsPixels()), with the pen at p pixels: the pen goes on column floor(p), or the
+	/// next one when the fraction rounds to a whole pixel, and the bitmap is the glyph's outline moved right by the
+	/// fraction rounded to a quarter, rasterised the first time. So the glyph is drawn from whole pixels, at most an
+	/// eighth of a pixel from its place. A glyph that has no moved bitmap (a colour glyph, or one past the atlas limit)
+	/// is drawn from its plain bitmap, its pen on the nearest column. At 2 and above it is rasterGlyph() with its pen
+	/// on the nearest column too (half a pixel is a small share of a stem there), never between two.
+	/// @param glyph A glyph of the font this is a raster of, or of this font.
+	/// @param pen Where its pen is laid out, in window units.
+	/// @return The bitmap and its pen. A bitmap added to a page is uploaded like any other (atlasChangesSince()).
+	[[nodiscard]] FittedGlyph fitGlyph(const Glyph& glyph, float pen) const noexcept;
 
 	/* Atlas */
 

@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -28,6 +29,8 @@ struct ListItem {
 	bool expandable = false; ///< Has children, or may get them: a tree shows a chevron.
 	std::string icon = {};   ///< A glyph drawn before the label, by name (Font::codepointNamed()), or empty.
 	std::optional<Color> iconColor = {}; ///< The icon's colour; the text's if not set.
+	/// Parts of the label drawn highlighted, each its first character and how many (codepoints): a search's matches.
+	std::vector<std::pair<std::uint32_t, std::uint32_t>> marks = {};
 
 	/// @brief Equal when every field is.
 	bool operator==(const ListItem&) const = default;
@@ -226,6 +229,15 @@ protected:
 	/// @return How far the label moves right for it: 0 without an icon.
 	[[nodiscard]] float paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin,
 	                              Color color) const;
+	/// @brief Highlights the parts of a label an item marks, behind its text.
+	/// @param painter Where.
+	/// @param font The font.
+	/// @param item The item.
+	/// @param label The label as shown.
+	/// @param left Where the label starts.
+	/// @param area The row.
+	void paintMarks(Painter& painter, const Font& font, const ListItem& item, std::u32string_view label, float left,
+	                const Rect& area) const;
 	/// @brief The left padding of a row's text.
 	[[nodiscard]] static constexpr float padding() noexcept { return 8.0f; }
 	/// @brief The colour of a tree's guides and a table's lines.

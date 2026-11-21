@@ -15,6 +15,7 @@
 	"state": {
 		"dlPaused": false,
 		"dlTick": 0,
+		"dlHour": -1,
 		"dlRate": [
 			22,
 			31,
@@ -71,7 +72,9 @@
 		"dlQueue": "{{filter(map(state.downloads, { d: it, at: index }), it.d.status == 'queued')}}",
 		"dlParked": "{{filter(state.downloads, it.status == 'paused')}}",
 		"dlDone": "{{filter(state.downloads, it.status == 'done')}}",
-		"dlNow": "{{state.dlPaused || computed.download == null ? 0 : state.dlRate[47]}}",
+		"dlNow": "{{state.dlPaused || computed.dlWaiting || computed.download == null ? 0 : state.dlRate[47]}}",
+		"dlWaiting": "{{settings.downloads.schedule == 'night' && state.dlHour >= 0 && (state.dlHour < 1 || state.dlHour > 6)}}",
+		"regionShare": "{{settings.downloads.region == 'americas' ? 0.75 : settings.downloads.region == 'asia' ? 0.6 : 1}}",
 		"dlPeak": "{{max(state.dlRate)}}",
 		"dlLeft": "{{computed.download == null || computed.dlNow == 0 ? 0 : ceil((computed.dlSize - computed.download.doneGb) * 1024 / computed.dlNow / 60)}}"
 	},
@@ -312,10 +315,10 @@
 									{
 										"type": "label",
 										"font": "caps",
-										"text": "{{upper(state.dlPaused ? t('dl.paused') : computed.download.kind == 'update' ? t('dl.updating') : t('dl.downloading'))}}",
+										"text": "{{upper(state.dlPaused ? t('dl.paused') : computed.dlWaiting ? t('dl.waitingSchedule') : computed.download.kind == 'update' ? t('dl.updating') : t('dl.downloading'))}}",
 										"height": 18,
 										"anchors": { "left": 0, "right": 0 },
-										"textColor": "{{state.dlPaused ? '@color.muted' : '@dl.net'}}"
+										"textColor": "{{state.dlPaused || computed.dlWaiting ? '@color.muted' : '@dl.net'}}"
 									},
 									{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
 									{
@@ -381,7 +384,7 @@
 											{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
 											{
 												"type": "label",
-												"text": "{{state.dlPaused ? '' : t('dl.left', { n: computed.dlLeft })}}",
+												"text": "{{state.dlPaused || computed.dlWaiting ? '' : t('dl.left', { n: computed.dlLeft })}}",
 												"fitText": true,
 												"font": "small",
 												"textColor": "@color.muted"
@@ -445,13 +448,14 @@
 				"every": {
 					"ms": 1000,
 					"do": [
+						{ "set": "state.dlHour", "to": "{{floor(now() / 3600000) % 24}}" },
 						{
-							"if": "{{computed.download != null && !state.dlPaused && (settings.downloads.whilePlaying || state.running == null)}}",
+							"if": "{{computed.download != null && !state.dlPaused && !computed.dlWaiting && (settings.downloads.whilePlaying || state.running == null)}}",
 							"then": [
 								{ "set": "state.dlTick", "to": "{{state.dlTick + 1}}" },
 								{
 									"set": "state.dlRate",
-									"to": "{{concat(slice(state.dlRate, 1), [settings.downloads.limit > 0 ? min(settings.downloads.limit, 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19) : 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19])}}"
+									"to": "{{concat(slice(state.dlRate, 1), [settings.downloads.limit > 0 ? min(settings.downloads.limit, round(computed.regionShare * (34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19))) : round(computed.regionShare * (34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19))])}}"
 								},
 								{
 									"forEach": "state.downloads",

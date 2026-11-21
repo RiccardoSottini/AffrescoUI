@@ -545,6 +545,39 @@
 			},
 			"expect": "deny",
 			"reason": "can't change \"connections\""
+		},
+		{
+			"name": "an agent marks a habit done: allowed by its run rule",
+			"run": {
+				"author": "agent/claude-code",
+				"command": "habitDone",
+				"arguments": {
+					"habit": "Meditate"
+				}
+			},
+			"expect": "allow"
+		},
+		{
+			"name": "an agent renaming a habit is asked: no run rule allows it",
+			"run": {
+				"author": "agent/claude-code",
+				"command": "habitRename",
+				"arguments": {
+					"habit": "Run",
+					"name": "Jog"
+				}
+			},
+			"expect": "ask"
+		},
+		{
+			"name": "an agent's run of a command that saves a file is denied: only the person may",
+			"run": {
+				"author": "agent/claude-code",
+				"command": "backupAll",
+				"arguments": {}
+			},
+			"expect": "deny",
+			"reason": "only the person"
 		}
 	]
 }

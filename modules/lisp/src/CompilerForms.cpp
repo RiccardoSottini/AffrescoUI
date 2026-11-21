@@ -61,6 +61,13 @@ const std::unordered_map<std::string_view, Compiler::SpecialForm>& Compiler::spe
 
 bool Compiler::isSpecial(std::string_view name) { return specialForms().contains(name); }
 
+std::vector<std::string_view> Compiler::specialNames() {
+	std::vector<std::string_view> names;
+	names.reserve(specialForms().size());
+	for(const auto& form : specialForms()) names.push_back(form.first);
+	return names;
+}
+
 void Compiler::formMisplaced(const Value& form, Position /*position*/) {
 	const std::string_view head = headWord(form);
 	if(head == "catch") fail(form, "catch goes at the end of a try");

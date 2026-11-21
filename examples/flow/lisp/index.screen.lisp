@@ -7,28 +7,29 @@
 ;;; to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light
 ;;; and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "toolbar.lisp"
-         "columns.lisp"
-         "dialogs.lisp"
-         "overlays.lisp"
-         "../../shared/components/charts.lisp"
-         "board.lisp"
-         "drawer.lisp"
-         "views.lisp"
-         "sidebar.lisp"
-         "list.lisp"
-         "issue.lisp"
-         "pages.lisp"
-         "select.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "flow.lisp")
+(ns flow.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            flow.state
+            flow.computed
+            flow.look
+            flow.keys
+            flow.toolbar
+            flow.columns
+            flow.dialogs
+            flow.overlays
+            "../../shared/components/charts.lisp"
+            flow.board
+            flow.drawer
+            flow.views
+            flow.sidebar
+            flow.list
+            flow.issue
+            flow.pages
+            flow.select
+            "../../shared/addons/assistant/assistant.lisp"
+            flow.flow))
 
 ;;; The window, and what is in it, in the order it is drawn
 
@@ -37,7 +38,7 @@
   :strings {:default en :locale ~settings.appearance.language :keep ["Flow" "Flow: an AffrescoUI template"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons symbols]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [iconsSmall]}
-          :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 9}
+          :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 10}
           :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons symbols]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 20 :fallback [iconsLarge]}
           :display {:file "../../shared/fonts/Roboto-Regular.ttf" :size 24}
@@ -50,7 +51,8 @@
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
-                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]
+                :run {:allow ["agent(cardMove)" "agent(cardAssign)" "agent(cardPriority)"]}}
   :theme ~state.theme
   (node#panel-root :color @color.sidebar
     ~(top-bar)

@@ -1,0 +1,42 @@
+{
+	"id": "use-tempo-queue",
+	"level": "use",
+	"screen": "examples/tempo/lisp/index.screen.lisp",
+	"request": "Put Golden Signals by Quiet Rooms at the end of the queue.",
+	"scenarios": [
+		{
+			"name": "queued",
+			"steps": [
+				{
+					"expect": {
+						"state": "queue.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "queue[6]",
+						"is": "-1:20"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#nowPlaying"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "songQueue",
+				"arguments": {
+					"title": "Golden Signals",
+					"artist": "Quiet Rooms"
+				}
+			}
+		]
+	}
+}

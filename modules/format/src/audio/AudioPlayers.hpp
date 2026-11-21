@@ -76,7 +76,7 @@ public:
 
 	/// @brief Runs one operation of an "audio" step.
 	/// @param name The sound (empty for "master").
-	/// @param operation play, pause, toggle, stop, seek, volume, pan, rate, loop or master.
+	/// @param operation play, pause, toggle, stop, seek, volume, pan, rate, loop, eq or master.
 	/// @param step The step's evaluated values: "to", "from", "ms".
 	/// @param where The step's place, for document errors.
 	/// @return Why it couldn't play (no engine, a file that doesn't open), which the player's state shows too; or

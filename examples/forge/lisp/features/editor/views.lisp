@@ -3,29 +3,60 @@
 ;;; The page is a file's editor (with the find bar and the merge conflict bar over it), or one of the pages other
 ;;; features give: the settings, the keybindings, search results, a diff, a debugged source.
 
+(ns forge.features.editor.views)
+
 ;;; The groups
 
 (defcomponent forgeEditors "The editor groups, side by side: each its tabs, its breadcrumbs and its page."
   {}
   `(split#editor-groups :bind state.layout.groupSizes
      :minSize 160
-     :sashSize 4
+     :sashSize 1
      :sashColor @color.border
      :sashActiveColor @color.accent
      ~(repeat [g state.groups :index gi]
-       `(column#group :color @color.editor :onClick ~(handler focusGroup gi)
-          ~(group-tabs g gi)
+       `(column#group :color @color.editor :onClick ~(handler focus-group gi)
+          ~(group-head g gi)
           (node :when ~(and settings.breadcrumbs.enabled
-                            (some (fn [it] (and (= it.id g.active) (= it.kind "file"))) state.docs))
+                            (some #(and (= (:id %) g.active) (= (:kind %) :file)) state.docs))
             :use forgeBreadcrumbs
             :with {:path ~g.active})
           (node :when ~(and (empty? g.active) (= gi 0) (= settings.workbench.startupEditor "welcome")) :use forgeWelcome)
-          ~(repeat [d (filter (fn [it] (>= it 0)) [(indexOf computed.docIds g.active)]) :key d]
+          ~(repeat [d (filter #(>= % 0) [(indexOf computed.docIds g.active)]) :key d]
             (group-body gi d))))))
+
+(defview group-head "A group's head, once it has tabs: the tabs, then Split Editor and the editor's menu." [g gi]
+  `(row#group-head :when ~(not (empty? g.tabs)) :width "100%" :height 34 :color @color.tabs :alignItems center
+     ~(group-tabs g gi)
+     (label#group-split :role button
+       :label ~(t "group-split.tip")
+       :icon columns-2
+       :width 26
+       :height 26
+       :align center
+       :radius 6
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "group-split.tip")
+       :hover {:color @color.hover :textColor @color.text}
+       :onClick ~(handler split-from-group gi))
+     (label#group-more :role button
+       :label ~(t "group-more.tip")
+       :icon ellipsis
+       :width 26
+       :height 26
+       :align center
+       :radius 6
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "group-more.tip")
+       :hover {:color @color.hover :textColor @color.text}
+       :onClick ~(handler open-editor-menu gi))
+     (node#group-head-end :width 6)))
 
 (defview group-tabs "A group's tabs: a dirty file's has a marker, the preview's is in italics, each its file's icon."
   [g gi]
-  `(tabs#group-tabs :width "100%"
+  `(tabs#group-tabs :grow 1
      :height 34
      :bind "state.groups[gi].active"
      :color @color.tabs
@@ -34,18 +65,23 @@
      :activeBackground @color.tabActive
      :accentEdge bottom
      :accentColor ~(if (= gi state.activeGroup) "@color.accent" "@color.border")
-     :tabs ~(map (fn [it]
-                   (merge it
-                          {:italic (= it.preview true)
-                           :marker (contains computed.dirtyIds it.id)
-                           :closable (not it.sticky)
-                           :icon (:icon (tab-icon it))
-                           :iconColor (:color (tab-icon it))}))
+     :tabs ~(map #(merge %
+                         {:italic (true? (:preview %))
+                          :marker (contains computed.dirtyIds (:id %))
+                          :closable (not (:sticky %))
+                          :icon (:icon (tab-icon %))
+                          :iconColor (:color (tab-icon %))})
                  g.tabs)
-     :onClose {:run closeTab :with {:gi ~gi :id ~event.id}}
+     :onClose {:run close-tab :with {:gi ~gi :id ~event.id}}
      :drag {}
-     :onDrop {:run moveTabToGroup :with {:id ~event.data.id :to ~gi :at ~event.index}}
-     :onMove {:run reorderTab :with {:gi ~gi :from ~event.from :to ~event.to}}))
+     :onDrop {:run move-tab-to-group :with {:id ~event.data.id :to ~gi :at ~event.index}}
+     :onMove {:run reorder-tab :with {:gi ~gi :from ~event.from :to ~event.to}}
+     :onContextMenu ~(handler open-editor-menu gi)))
+
+(defcomponent forgeEditorMenu "The editor's menu, from a tab strip's right click or its More Actions button."
+  {}
+  `(node#editor-menu :use contextMenu
+     :with {:open state.editorMenu.open :items ~menus.editorTab :x ~state.editorMenu.x :y ~state.editorMenu.y}))
 
 (defmacro tab-icon
   ;; A macro, not a function: what it writes stays an expression, worked out at its speed.
@@ -53,7 +89,8 @@
   [tab]
   `(if (and settings.workbench.fileIcons (contains ~(symbol (str tab ".label")) "."))
      (or-else (get state.iconTheme.names ~(symbol (str tab ".label")))
-              (get state.iconTheme.extensions (lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
+              ; style: keep, str/split with -1 is a slow call in a binding, and without -1 it drops a trailing empty part
+              (get state.iconTheme.extensions (str/lower-case (get (reverse (split ~(symbol (str tab ".label")) ".")) 0)))
               state.iconTheme.file)
      nil))
 
@@ -78,7 +115,7 @@
   `(= (get-in state.docs [~d :kind]) ~kind))
 
 (defmacro file-page? "Whether the open document `d` is a file." [d]
-  `(page? ~d "file"))
+  `(page? ~d :file))
 
 (defmacro doc-of "A field of the open document `d`." [d field]
   `(get-in state.docs [~d ~field]))
@@ -90,13 +127,13 @@
      :width "100%"
      :grow 1
      :bind "state.docs[d].text"
-     :onChange ~(handler textChanged (doc-of d :id))
+     :onChange ~(handler text-changed (doc-of d :id))
      :language ~(doc-of d :language)
      :grammar ~(doc-of d :label)
      :lineNumbers ~settings.editor.lineNumbers
      :goTo ~(if (and (= gi state.activeGroup) (> state.goTo.request 0))
-                {:line (max (- state.goTo.line 1) 0)
-                 :column (max (- (or-else state.goTo.column 1) 1) 0)
+                {:line (max (dec state.goTo.line) 0)
+                 :column (max (dec (or-else state.goTo.column 1)) 0)
                  :request state.goTo.request}
                 nil)
      :caret state.caret
@@ -107,17 +144,17 @@
      :indentGuides ~settings.editor.guides.indentation
      :tabSize ~(or-else settings.editor.tabSize 4)
      :find ~(if (= gi state.activeGroup) computed.findQuery nil)
-     :decorations ~(concat (or-else (:decorations (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
-                           (map (fn [it] it.mark) (filter (fn [it] (= it.path (doc-of d :id))) computed.debugMarks))
+     :decorations ~(concat (or-else (:decorations (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
+                           (map :mark (filter #(= (:path %) (doc-of d :id)) computed.debugMarks))
                            (if (= gi state.activeGroup) computed.conflictDecorations []))
-     :tokens ~(or-else (:tokens (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
-     :onTextHover lspHoverAt
-     :onType lspTyped
+     :tokens ~(or-else (:tokens (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
+     :onTextHover lsp-hover-at
+     :onType lsp-typed
      :popup ~(and (= gi state.activeGroup) state.lsp.completion.open)
      :onPopupKey lspPopupKey
      :insert ~(if (and (= gi state.activeGroup) (> state.lsp.insert.request 0)) state.lsp.insert nil)
-     :onGutterClick ~(handler debugGutterClick (doc-of d :id))
-     :onWordHover ~(handler debugHover (doc-of d :id))
+     :onGutterClick ~(handler debug-gutter-click (doc-of d :id))
+     :onWordHover ~(handler debug-hover (doc-of d :id))
      :keys ~debugger-keys
      :commands ~line-commands
      ~@editor-colours))

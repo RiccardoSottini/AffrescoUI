@@ -219,7 +219,8 @@ void Programs::runAdvised(const std::string& name, Panel& sender, const json& ev
 		           std::vector<std::string> ran = in.authorsThatRan();
 		           if(engine_.authority)
 			           ran.insert(ran.end(), engine_.authority->authors.begin(), engine_.authority->authors.end());
-		           const StepAuthority authority{std::move(ran)};
+		           const StepAuthority authority{std::move(ran),
+		                                         engine_.authority ? engine_.authority->run : nullptr};
 		           const AuthorityScope holder(engine_, authority.authors.empty() ? nullptr : &authority);
 		           outside(in, body);
 		           return lisp::Value();

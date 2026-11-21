@@ -16,6 +16,9 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 5 (tools and fill) | 28 | 26 | 10 |
 | 6 (keys, Shift and Alt, Auto-Select) | 30 | 24 | 10 |
 | 7 (the square and centre, the histogram) | 31 | 23 | 10 |
+| 8 (type, shapes and paths) | 34 | 24 | 5 |
+| 9 (guides, selection transform, dock, workspaces, search) | 37 | 21 | 5 |
+| 10 (quick selection, anchors, type spacing, pickers, crop ratio, retouching; multi-select, snapshots, Brushes panel, channel curves) | 49 | 13 | 2 |
 
 ## Workspace
 
@@ -26,11 +29,11 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Tools bar on the left, one column, grouped with flyouts (long press) | done | Groups open on a right click (no long press); tools not built yet show disabled |
 | Foreground/background swatches with swap and reset, quick mask button | done | |
 | Document tabs: name, layer, zoom, mode ("Untitled 1 — Layer 1 · 100% · RGB/8") | partial | One document at a time: its × and Cmd+W ask before losing changes, then leave an empty Untitled document |
-| Rulers and guides | partial | Zero at the image's corner, minor ticks, click to add a guide; no dragging guides out of the rulers |
+| Rulers and guides | done | Zero at the image's corner, minor ticks; a click adds a guide, a drag out of a ruler makes one where it is let go (level from the top ruler, upright from the side one); a guide drags, and dragged back onto its ruler it goes |
 | Dark grey pasteboard, checkerboard for transparency | done | |
 | Status bar: zoom field and document size | done | One information item at a time, chosen from its › menu |
-| Search (commands), workspace switcher, screen modes | partial | Searches the commands only; one workspace; standard and full screen with menu bar |
-| Panels docked right in tabbed groups, collapsible to icons | partial | Rounded groups with pill tabs and an icon strip (History, Navigator); groups can't be dragged, resized or collapsed |
+| Search (commands), workspace switcher, screen modes | done | Searches the commands, the tools and the layers; Standard and Painting workspaces, Save Workspace keeps the dock's tabs, folds, heights and pop-outs (kept between runs), Delete and Reset; also in Window > Workspace; standard and full screen with menu bar |
+| Panels docked right in tabbed groups, collapsible to icons | done | Rounded groups with pill tabs and an icon strip (History, Navigator); each group folds to its tabs (its chevron, or a tab click unfolds it), the sash under a group drags its height, and a group's tabs dragged onto another group's (or Alt+Up and Alt+Down on them) move the group there; a saved workspace keeps the order |
 | Light and dark interface, locales, keyboard focus, accessible names | partial | Keep and extend every round |
 
 ## Panels
@@ -38,19 +41,19 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Panel | Status | Gap |
 | --- | --- | --- |
 | Layers: thumbnails, eye, locks, blend mode, opacity and fill | partial | Fill shown, not editable; transparency and artboard locks disabled; the bottom layer isn't a locked Background |
-| Layers: filter by kind | partial | Pixel, adjustment and group filters; type and shape layers don't exist yet |
+| Layers: filter by kind | done | Pixel, adjustment, group, type and shape filters; a type layer shows a T for its thumbnail |
 | Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Group Layers (Cmd+G) and Ungroup (Shift+Cmd+G); the chevron folds a group; no fx |
 | Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
-| Properties (context-sensitive) | partial | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Quick Actions; adjustment controls; no Distribute |
+| Properties (context-sensitive) | done | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Shift or Cmd and a click pick layers together, and the Distribute icons (and Layer > Distribute) space three or more by their edges or middles, as one step; Quick Actions; adjustment controls |
 | Adjustments (icon grid) | done | |
-| History (states and snapshots) | partial | States only, no snapshots |
-| Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
-| Brushes (presets) | partial | Presets, size, hardness and spacing in the options bar's brush picker; no Brushes panel |
+| History (states and snapshots) | done | The states, and snapshots: the panel's camera keeps the layers under a name, a click on one restores it as a step undo takes back, its × forgets it |
+| Colour, Palette, Gradients and Patterns | partial | Foreground/background chips, each opening a picker beside it (as do the type and shape colours), and a square with a horizontal hue strip; no patterns |
+| Brushes (presets) | done | Presets, size, hardness and spacing in the options bar's brush picker, and a Brushes panel (beside Properties and Adjust; the options bar's Brush settings button and Window > Brushes open it) |
 | Channels | partial | Composite and channel rows, display only |
-| Paths | missing | An empty panel until the pen tool exists |
+| Paths | done | The document's paths (kept in the project file and the history): click one to show it on the canvas, and fill, stroke, make a selection or a shape layer of it, add or delete one |
 | Navigator | done | |
 | Info (pointer position, colour under the pointer) | missing | |
-| Character and Paragraph | missing | |
+| Character and Paragraph | done | Properties edits a type layer's text, font family (Roboto or JetBrains Mono), size, bold, italic, colour (a picker), tracking, the kerning of the pair where typing goes on, alignment and leading; no type on a path |
 
 ## Tools
 
@@ -61,22 +64,22 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Pencil | done | A hard painting tool (Shift+B); the brush keeps its own hardness |
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | done | Shift, Alt or both at the press add, subtract or intersect (marquee, lasso, polygon, wand); during a drag Shift keeps a square and Alt draws from the centre |
 | Lasso and polygonal lasso | done | |
-| Magic wand with tolerance, quick selection | partial | No quick selection |
-| Select all, deselect, inverse, feather, transform selection | partial | No transform selection |
+| Magic wand with tolerance, quick selection | done | Quick Selection (Shift+W) brushes over like colours, each stroke stopping at edges (its size and tolerance in the options bar); Shift adds, Alt subtracts |
+| Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, the handle above turns it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
-| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
-| Crop with overlay grid and aspect presets | partial | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the ratios crop the largest centred part, but don't hold a drag to that shape |
-| Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
+| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, the handle above the box turns it (the box turning as it is dragged), each drag one step (undo cancels it); Numbers... opens the dialog that also flips it; no skew |
+| Crop with overlay grid and aspect presets | done | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the drag ratio (Free, 1 : 1, 4 : 3, 3 : 2, 16 : 9, 4 : 5) holds a drag to that shape, and the ratios menu crops the largest centred part at once |
+| Gradient tool with editor | partial | Inline editor and presets; Reverse, Dither and Transparency work; its blend modes are disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
 | Eyedropper | done | |
 | Clone stamp (Alt-click source) | done | |
-| Healing brush and patch | missing | |
+| Healing brush and patch | partial | The Healing Brush (J) clones from the source a right click sets, in the tone of the pixels it covers; no Patch tool |
 | History brush | missing | |
-| Blur, sharpen, smudge | missing | |
-| Dodge, burn, sponge | missing | |
-| Pen and path selection | missing | |
-| Type tool, editable type layers | missing | |
-| Shapes as vector layers | missing | |
+| Blur, sharpen, smudge | done | Blur (R) and Sharpen brush each pixel towards or away from its neighbours' average, and Smudge drags the paint along the stroke, a step each |
+| Dodge, burn, sponge | done | Dodge (O), Burn (Shift+O) and Sponge lighten, darken or take the colour from the pixels under the brush, with its size and hardness |
+| Pen and path selection | done | The Pen adds corner anchors on a click and smooth ones on a drag, and closes at the first anchor; on the path it adds an anchor on a segment (the curve kept), deletes the anchor pressed on, and Alt converts smooth and corner anchors; Path Selection drags the path or one anchor; Type > Create Work Path makes a type layer's letters paths |
+| Type tool, editable type layers | done | A click adds a type layer (or picks the one clicked) and types into it on the canvas (Backspace, Enter for a new line, Escape to stop); its text, size and style stay editable in Properties; Layer > Rasterize makes it pixels |
+| Shapes as vector layers | done | Rectangle (rounded corners), ellipse, polygon and line tools drag out shape layers with a fill and a stroke, edited in the options bar and Properties, moved with their content; Layer > Rasterize |
 | Hand (and space to pan), zoom | done | |
 
 ## Adjustments and filters
@@ -84,17 +87,17 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Item | Status | Gap |
 | --- | --- | --- |
 | Levels with histogram | done | An adjustment layer; Properties draws the image's tones above its sliders, measured again as the image changes |
-| Curves | partial | The tones show behind the curve; one curve for all channels |
-| Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; no Colorize or colour ranges |
+| Curves | done | The tones show behind the curve; RGB, Red, Green and Blue pills choose the composite curve or a channel's own, each kept on the layer |
+| Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; Hue/Saturation's Colorize colours the image in one hue by its lightness; no colour ranges |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
-| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; not every filter |
+| Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; also Sharpen and High Pass (Filter > Other); Filter > Last Filter (Alt+Cmd+F) applies the last one again with its values; no median or lens blur |
 
 ## Image and file
 
 | Item | Status | Gap |
 | --- | --- | --- |
 | New document dialog with presets | done | Width, height, bit depth and six size presets |
-| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; size changes forget the history |
+| Canvas size, image size, rotate canvas | done | Canvas size with an anchor, image size keeping proportions, quarter and half turns, flips; Image > Trim crops to the visible pixels that aren't transparent; Image > Mode converts to 8 or 16 bits a channel; size and mode changes forget the history |
 | Flatten, merge down | done | Also merge visible and delete hidden layers |
 | Export as PNG/JPEG | done | Through the library's image step |
 | Open and save its own format | done | |
@@ -102,7 +105,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Undo/redo with the History panel | done | |
 | Copy, cut, paste, clear; layer via copy and via cut | done | Through the image's clipboard; paste centres a new layer |
 | Rename, align and arrange layers | done | Rename from a dialog; align to the selection or the image |
-| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I) and fills; not every menu command has its key |
+| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I), fills, F5, F6 and F7 (Brushes, Colour, Layers), Alt+Shift+Cmd+S (export JPEG), Cmd+; (guides), Alt+Cmd+F (Last Filter) and F1; a few menu commands still have no key |
 | Assistant chat add-on (shared) | done | The shared add-on, in Tempera's colours |
 
 ## Left for later
@@ -113,42 +116,31 @@ general feature the image step or a node needs first.
 
 | Item | Pri | Needs |
 | --- | --- | --- |
-| Type tool, editable type layers (and the toolbar's Text Tool) | P1 | Library: a text layer kind, laid out and drawn into the composite, editable in place |
-| Free transform: on-canvas handles, skew | P1 | Library: transform handles in the raster overlay that preview and commit `transformBox`, and a skew term |
+| Free transform: skewing, a live preview of the pixels while dragging | P2 | Library: a skew term in the transform's sampling, and the remapped layer drawn while the drag lasts |
 | Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
+| Character: type on a path; a glyph's synthetic bold or italic in Create Work Path (the font's own outlines are used) | P3 | Library: text laid along a path in renderText; outlines of the synthesised styles |
+| Create Work Path: a path per letter rather than per contour | P3 | Library: paths of several contours (subpaths) |
 | Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
-| Rulers: drag a guide out of a ruler | P2 | Library: a drag from the ruler that publishes a guide position (the raster node's rulers); then JSON |
-| Panels: drag, resize, collapse groups | P2 | Library: dockable panel groups in the kit (general, every app with panels) |
-| Search beyond the commands; saved workspaces | P3 | JSON: search layers and help too; keep panel layouts in state |
 | Light and dark interface, locales, focus, names | P2 | JSON: a light token set, and keep each new control named and focusable |
 | Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
 | Layers: link button | P3 | Library: linked layers that move and transform together |
-| Layers: filter by type and shape | P3 | Type and shape layers (above and below) |
-| Properties: Distribute | P3 | Library: several selected layers at once (multi-select in the image step) |
-| History snapshots | P2 | Library: named snapshots kept in the image's history |
 | Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
-| Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |
 | Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
 | Info panel (pointer position, colour under it) | P2 | Library: the raster node publishing the pointer's document position and the composite colour there |
-| Paths panel; Pen and Path Selection tools; Type > Create Work Path | P2 | Library: vector paths on the document (pen editing, stroke and fill, to a selection) |
-| Shapes as vector layers (the Rectangle Tool); Layer > Rasterize | P2 | Library: shape layers built on the vector paths |
-| Character and Paragraph; Type > Panels, Rasterize Type Layer | P3 | Type layers |
 | Quick selection | P2 | Library: an edge-aware brush selection |
-| Transform Selection; Select > Reselect | P2 | Library: `transformBox` on the selection mask, and keeping the last selection |
+| Transform Selection: on-canvas handles | P2 | Library: the transform handles of Free Transform, on the selection's outline |
 | Crop ratios that hold a drag to their shape | P2 | Library: a ratio option on the crop drag, next to the Shift square in `stretchBox` |
 | Gradient: Reverse, Dither, Transparency checks | P2 | Library: those three flags on the gradient fill |
 | Healing brush and patch (Healing Tool) | P2 | Library: a texture-matching brush and patch |
 | Blur, sharpen, smudge (Blur Tool) | P2 | Library: brush modes that filter or drag pixels under the tip |
-| History brush (Restore Brush Tool) | P3 | Library: painting from a history state (needs snapshots) |
+| History brush (Restore Brush Tool) | P3 | Library: painting from a history state or a snapshot (the snapshots exist) |
 | Dodge, burn, sponge (Dodge Tool) | P3 | Library: brush modes that lighten, darken or desaturate |
 | Brush: pressure for size and opacity, smoothing, angle, airbrush | P2 | Library: brush options mapping pressure to size and opacity, stroke smoothing, a tip angle and build-up |
 | Anti-alias checks (marquee, fill) | P3 | Library: an anti-alias flag on selection edges and fills (always on now) |
-| Curves per channel | P2 | Library: per-channel curves in the adjustment (the curves node already shows channels); then JSON |
-| Hue/Saturation: Colorize and colour ranges | P3 | Library: a colorize mode and per-range hue in the adjustment |
-| Filters: more kinds | P2 | Library: further filter kinds (high pass, median, lens blur); each then a JSON dialog |
+| Hue/Saturation: colour ranges | P3 | Library: a per-range hue in the adjustment |
+| Filters: more kinds | P2 | Library: further filter kinds (median, lens blur); each then a JSON dialog |
 | Edit > Stroke | P2 | Library: stroking the selection's outline |
-| Image > Mode | P2 | Library: converting the document's format (8/16 bit, greyscale) |
-| Image > Trim | P3 | Library: the bounds of the non-transparent pixels, then a crop (JSON) |
+| Image > Mode: Grayscale | P2 | Library: converting the pixels to grey with the profile (8 and 16 bits a channel convert now) |
 | File > Print | P3 | The host: printing isn't offered to screens |
 | Edit the toolbar (the tools bar's … button) | P3 | JSON: a dialog that reorders `state.tools` |

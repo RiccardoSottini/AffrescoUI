@@ -22,7 +22,7 @@
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
 				"id": "transform-dialog", "use": "dialog",
-				"with": { "open": "state.transform.open", "title": "Free Transform", "message": "", "width": 340, "height": 270,
+				"with": { "open": "state.transform.open", "title": "{{state.transform.target == 'selection' ? 'Transform Selection' : 'Free Transform'}}", "message": "", "width": 340, "height": 270,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyTransform", "default": true }] },
 				"children": [
 					{ "type": "column", "id": "transform-fields", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 }, "gap": 4,

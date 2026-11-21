@@ -1,19 +1,22 @@
 ;;; computed.lisp --- what Tempo works out from its state: the library, the song playing, the queue, the menus, the
 ;;; waveform and the level meter
 
+(ns tempo.computed)
+
 ;;; Values
 
 (defcomputed library "The library's songs as table rows: number, title, artist, album and time."
+  ; style: keep, gives a map
   (map (fn [it] {:id it.id :cells [it.number it.title it.artist it.album it.time] :sound it.sound}) data.songs))
 
 (defcomputed list "The playlist shown."
   (get data.playlists state.current))
 
 (defcomputed playing "The list playing: a playlist, or the library."
-  (if (< state.playingList 0) state.libraryInfo (get data.playlists state.playingList)))
+  (if (neg? state.playingList) state.libraryInfo (get data.playlists state.playingList)))
 
 (defcomputed track "The song playing: title, artist, album, time and sound."
-  (if (< state.playingList 0)
+  (if (neg? state.playingList)
       {:title (get-in computed.library [state.playingTrack :cells 1])
        :artist (get-in computed.library [state.playingTrack :cells 2])
        :album (get-in computed.library [state.playingTrack :cells 3])
@@ -21,8 +24,15 @@
        :sound (get-in computed.library [state.playingTrack :sound])}
       (get computed.playing.tracks state.playingTrack)))
 
-(defcomputed sound "The sound the song playing plays: its own, or the beat."
-  (or-else computed.track.sound "beat"))
+(defcomputed sound "The sound the song playing plays: its own, or the beat on the deck playing."
+  (or-else computed.track.sound (if (= state.soundOn "beat2") "beat2" "beat")))
+
+(defcomputed eqBands "The equaliser's bands as the sound takes them: each band's frequency and gain (flat when off)."
+  (map (fn [band]
+         {:frequency band.frequency
+          :gain (if state.eqOn (-> (curve state.eq band.at) (- 0.5) (* 24)) 0)
+          :q 1.1})
+       state.bands))
 
 (defcomputed loudness "How loud the sound plays, from 0 to 1."
   (if state.muted 0 (/ state.volume 100)))
@@ -31,34 +41,36 @@
   (cond (>= state.playingList 0) computed.playing.name (not= state.source "") state.source :else (t "library.all")))
 
 (defcomputed duration "The song playing's length, in seconds."
-  (+ (* (number (get (split computed.track.time ":") 0)) 60) (number (get (split computed.track.time ":") 1))))
+  (+ (* (number (get (str/split computed.track.time ":") 0)) 60) (number (get (str/split computed.track.time ":") 1))))
 
 (defcomputed elapsedText "How far the song is, as minutes:seconds."
-  (str (floor (/ state.elapsed 60)) ":" (pad (floor (mod state.elapsed 60)) 2)))
+  (str (floor (/ state.elapsed 60)) ":" (-> (mod state.elapsed 60) floor (pad 2))))
 
 (defcomputed listSizes "Each playlist's number of songs."
-  (map (fn [it] (count it.tracks)) data.playlists))
+  (map #(count (:tracks %)) data.playlists))
 
 (defcomputed queueSongs "The songs of the queue that are still there, with their titles and artists."
   (map (fn [it]
          (merge it
-                (if (< it.list 0)
+                (if (neg? it.list)
                     {:title (get-in computed.library [it.track :cells 1])
                      :artist (get-in computed.library [it.track :cells 2])}
                     {:title (get-in data.playlists [it.list :tracks it.track :title])
                      :artist (get-in data.playlists [it.list :tracks it.track :artist])})))
        (filter (fn [it]
-                 (if (< it.list 0)
+                 (if (neg? it.list)
                      (< it.track (count computed.library))
                      (< it.track (or-else (get computed.listSizes it.list) 0))))
-               (map (fn [it] {:key it :list (number (get (split it ":") 0)) :track (number (get (split it ":") 1))})
+               ; style: keep, gives a map
+               (map (fn [it] {:key it :list (number (get (str/split it ":") 0)) :track (number (get (str/split it ":") 1))})
                     state.queue))))
 
 (defcomputed upNext "The queue's rows: title and artist."
+  ; style: keep, gives a map
   (map (fn [it] {:id it.key :label (str it.title "  ·  " it.artist)}) computed.queueSongs))
 
 (defcomputed queueAt "Where the song picked in the queue is, or -1."
-  (if (nil? state.queuePick) -1 (indexOf state.queue state.queuePick)))
+  (if-some [pick state.queuePick] (indexOf state.queue pick) -1))
 
 (defcomputed picks "The quick pick's songs, while it is open."
   (if state.quickPick.open
@@ -73,27 +85,28 @@
   (str state.songMenu.list ":" state.songMenu.track))
 
 (defcomputed songMenuSong "The song menu's song."
-  (if (< state.songMenu.list 0)
+  (if (neg? state.songMenu.list)
       (merge {:title (get-in computed.library [state.songMenu.track :cells 1])
               :artist (get-in computed.library [state.songMenu.track :cells 2])
               :album (get-in computed.library [state.songMenu.track :cells 3])
               :time (get-in computed.library [state.songMenu.track :cells 4])}
-             (if (nil? (get-in computed.library [state.songMenu.track :sound]))
-                 {}
-                 {:sound (get-in computed.library [state.songMenu.track :sound])}))
+             (if-some [own (get-in computed.library [state.songMenu.track :sound])] {:sound own} {}))
       (get-in data.playlists [state.songMenu.list :tracks state.songMenu.track])))
 
 (defcomputed listMinutes "The playlist's length in minutes."
   (round (/ (sum (or-else computed.list.tracks [])
+                 ; style: keep, sum takes no #(...)
                  (fn [it]
-                   (+ (* (number (get (split (or-else it.time "0:0") ":") 0)) 60)
-                      (number (get (split (or-else it.time "0:0") ":") 1)))))
+                   (+ (* (number (get (str/split (or-else it.time "0:0") ":") 0)) 60)
+                      (number (get (str/split (or-else it.time "0:0") ":") 1)))))
             60)))
 
-(defcomputed songMenuItems "The song menu: play, play next, add to the queue or a playlist, like, remove."
+(defcomputed songMenuItems "The song menu: play, play next, add to (or take out of) the queue, add to a playlist, like, remove."
   (concat [{:title (t "song.play") :run "play" :with {:list state.songMenu.list :track state.songMenu.track}}
            {:title (t "song.playNext") :run "playNext" :with {:key computed.songMenuKey}}
-           {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}}
+           (if (contains state.queue computed.songMenuKey)
+             {:title (t "song.unqueue") :run "removeFromQueue" :with {:key computed.songMenuKey}}
+             {:title (t "song.addToQueue") :run "addToQueue" :with {:key computed.songMenuKey}})
            {:separator true}
            {:title (t "song.addToPlaylist")
             :submenu (concat (map-indexed (fn [index it]
@@ -107,7 +120,7 @@
            {:title (t (if (contains state.liked computed.songMenuKey) "song.unlike" "song.like"))
             :run "toggleLike"
             :with {:key computed.songMenuKey}}]
-          (if (< state.songMenu.list 0)
+          (if (neg? state.songMenu.list)
               []
               [{:title (t "song.remove")
                 :run "removeFromPlaylist"
@@ -116,35 +129,36 @@
 (defcomputed listMenuItems "The playlist's menu: rename, delete."
   [{:title (t "playlist.rename") :run "startRename"} {:title (t "playlist.delete") :run "askDelete"}])
 
-(defcomputed palette "The command palette's rows: every command that can run, with its keys."
+(defcomputed palette "The command palette's rows: every command that can run, with its keys, but those an agent runs by
+  a song's title (songPlay...)."
   (map (fn [it]
          {:title it.title
           :detail (if it.key
-                      (join "+"
-                            (map (fn [it] (if (= it "mod") "Cmd" (str (upper-case (slice it 0 1)) (slice it 1))))
-                                 (split it.key "+")))
+                      (->> (str/split it.key "+")
+                           (map #(if (= % "mod") "Cmd" (str (str/upper-case (slice % 0 1)) (slice % 1))))
+                           (join "+"))
                       it.category)
           :run it.name})
-       (filter (fn [it] it.enabled) commands)))
+       (filter #(and (:enabled %) (not= (slice (:name %) 0 4) "song")) commands)))
 
 (defcomputed wave "The song's waveform: 64 heights, from its title and place."
   (map-indexed (fn [index it]
-                 (+ 3 (mod (+ (* index index (+ (count computed.track.title) state.playingTrack)) (* index 7)) 21)))
+                 (-> (* index index (+ (count computed.track.title) state.playingTrack)) (+ (* index 7)) (mod 21) (+ 3)))
                (range 64)))
 
 (defcomputed played "How many of the waveform's 64 lines are played."
-  (clamp (floor (/ (* 64 state.elapsed) (max computed.duration 1))) 0 64))
+  (-> (* 64 state.elapsed) (/ (max computed.duration 1)) floor (clamp 0 64)))
 
 (defcomputed wavePlayed "The waveform played, as a path."
   (or (join " "
-            (map-indexed (fn [index it] (str "M " (+ (* index 2) 1) " " (- 28 it) " V " (+ 28 it)))
+            (map-indexed (fn [index it] (str "M " (inc (* index 2)) " " (- 28 it) " V " (+ 28 it)))
                          (slice computed.wave 0 computed.played)))
       "M -40 -40"))
 
 (defcomputed waveLeft "The waveform left to play, as a path."
   (or (join " "
             (map-indexed (fn [index it]
-                           (str "M " (+ (* (+ computed.played index) 2) 1) " " (- 28 it) " V " (+ 28 it)))
+                           (str "M " (-> (+ computed.played index) (* 2) inc) " " (- 28 it) " V " (+ 28 it)))
                          (slice computed.wave computed.played)))
       "M -40 -40"))
 
@@ -155,6 +169,5 @@
                             (+ 2 (* index 4))
                             " 20 V "
                             (- 20
-                               (if state.isPlaying (+ 3 (mod (+ (* index 7) (* state.elapsed (+ index 3))) 15)) 2))))
+                               (if state.isPlaying (-> (* state.elapsed (+ index 3)) (+ (* index 7)) (mod 15) (+ 3)) 2))))
                      (range 8))))
-

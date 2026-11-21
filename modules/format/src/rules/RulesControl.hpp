@@ -6,7 +6,10 @@
 
 #include "affresco/core/Json.hpp"
 
+#include "ProgramRules.hpp"
+
 #include <functional>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -33,5 +36,20 @@ namespace affresco::format {
 /// @return Its address, `file/name`, or nothing.
 [[nodiscard]] std::optional<std::string> alteredControlDefinition(const json& before, const json& after,
                                                                   const std::set<std::string, std::less<>>& granted);
+
+/// @brief What the scan finds in some of a document's actions, and what it found out on the way.
+struct ControlFindings {
+	std::map<std::string, std::vector<std::string>> findings; ///< For each action asked about, what may control.
+	std::set<std::string> control;                            ///< The document's actions that may run a control step.
+	ProgramReach program;                                     ///< What its program can do.
+};
+
+/// @brief What may run a control or a review step in some of a document's actions, as controlsIn() finds it: lines
+/// like `actions.save.do: {"accept": ...}`, `...: run "x"`, `...: lisp "f"`, `...: use "c" with parameters that may
+/// control`.
+/// @param doc The document (built: with its program, if it has one).
+/// @param names The actions asked about; one the document doesn't have is left out.
+/// @return The findings.
+[[nodiscard]] ControlFindings controlFindings(const json& doc, const std::vector<std::string>& names);
 
 } // namespace affresco::format

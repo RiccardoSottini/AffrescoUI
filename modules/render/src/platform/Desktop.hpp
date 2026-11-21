@@ -7,6 +7,8 @@
 
 #include "affresco/render/Events.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -30,10 +32,25 @@ namespace platform::desktop {
 /// @return false where it can't be read.
 [[nodiscard]] bool reducedMotion();
 
-/// @brief Makes a change of the colour scheme or of the motion setting wake the event loop (glfwPostEmptyEvent()),
-/// where the OS announces it.
+/// @brief What watchColorScheme() set up: the OS stops announcing the changes to it once it is destroyed.
+class AppearanceWatch {
+public:
+	AppearanceWatch() = default;
+	virtual ~AppearanceWatch() = default;
+	AppearanceWatch(const AppearanceWatch&) = delete;
+	AppearanceWatch& operator=(const AppearanceWatch&) = delete;
+	AppearanceWatch(AppearanceWatch&&) = delete;
+	AppearanceWatch& operator=(AppearanceWatch&&) = delete;
+};
+
+/// @brief Calls a function on the main thread, inside the event loop's wait, whenever the colour scheme or the motion
+/// setting changes, where the OS announces it.
 /// Called once, after GLFW started.
-void watchColorScheme();
+/// @param changed What to call; it must wake the event loop (glfwPostEmptyEvent()).
+/// @return The watch, which must go before GLFW stops; nullptr where the OS announces no change (colorScheme() and
+/// reducedMotion() must then be read after every wake). Where they can't be read they never change: a watch that
+/// calls nothing.
+[[nodiscard]] std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed);
 
 /// @brief Keeps an app whose windows all stay hidden out of the Dock and the app switcher (macOS: an accessory app
 /// that never activates); nothing elsewhere, where a hidden window has no taskbar entry.
@@ -44,6 +61,17 @@ void keepOutOfSwitcher();
 /// GLFW sets each window's.
 /// @param icon The image, or nullptr for the app's own (its bundle's).
 void setApplicationIcon(const Bitmap* icon);
+
+/// @brief The image on the system clipboard, as the bytes of a PNG file, where the OS hands one over (macOS: a PNG or
+/// TIFF on the general pasteboard); empty elsewhere, when it holds none, or when it is larger than @p most bytes.
+/// @param most The most bytes taken.
+/// @return The PNG's bytes, or empty.
+[[nodiscard]] std::vector<std::uint8_t> clipboardImagePng(std::size_t most);
+
+/// @brief Puts an image on the system clipboard, where the OS takes one (macOS, as PNG and TIFF); nothing elsewhere.
+/// @param image The image.
+/// @return Whether it is on the clipboard now.
+bool setClipboardImage(const Bitmap& image);
 
 /// @brief A window's native menu bar.
 class MenuBar {

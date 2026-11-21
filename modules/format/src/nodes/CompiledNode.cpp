@@ -4,6 +4,7 @@
 #include "CompiledNode.hpp"
 
 #include "NodeKeys.hpp"
+#include "Reads.hpp"
 
 #include <algorithm>
 #include <array>
@@ -228,7 +229,18 @@ CompiledRef compileNode(const NodeRef& node) {
 	return compileNode(withoutChildren(*node), children == node->end() ? nullptr : &*children, node);
 }
 
+std::string childrenPlace(std::uint64_t serial) {
+	if(serial == 0U) return {};
+	return std::string(places::document) + "/~n" + std::to_string(serial);
+}
+
+RevisionCounters& revisionCounters() noexcept {
+	thread_local RevisionCounters counters;
+	return counters;
+}
+
 CompiledRef compileNode(json keys, const json* children, NodeRef keep) {
+	++revisionCounters().nodesCompiled;
 	auto node = std::make_shared<CompiledNode>();
 	if(const auto styled = keys.find("children"); styled != keys.end()) { // a style's children
 		if(!children) {

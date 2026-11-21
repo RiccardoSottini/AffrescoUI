@@ -120,6 +120,7 @@
   :publisher "Blackrock Games"
   :owned true
   :installed true
+  :drive second
   :status ready
   :favourite false
   :sizeGb 12.7
@@ -234,6 +235,7 @@
   :publisher "North Gate"
   :owned true
   :installed true
+  :drive second
   :status ready
   :favourite false
   :sizeGb 27.3

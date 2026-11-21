@@ -1,0 +1,294 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Two side panels of a game's page (library.json): your screenshots, newest first, F12 taking one while the game runs, each opening big in a viewer that steps through them and deletes one; and the controller: how well the game supports a pad, the layout chosen for it and what each control does in that layout.",
+	"state": {
+		"shots": [
+			{
+				"id": 1,
+				"game": "starfall",
+				"file": "shot2"
+			},
+			{
+				"id": 2,
+				"game": "starfall",
+				"file": "hero"
+			},
+			{
+				"id": 3,
+				"game": "starfall",
+				"file": "shot1"
+			},
+			{
+				"id": 4,
+				"game": "ember",
+				"file": "shot3"
+			},
+			{
+				"id": 5,
+				"game": "neon",
+				"file": "shot1"
+			}
+		],
+		"shotView": {
+			"open": false,
+			"game": null,
+			"at": 0
+		},
+		"padLayouts": {},
+		"padBindings": {
+			"default": [
+				[
+					"pad.move",
+					"pad.leftStick"
+				],
+				[
+					"pad.look",
+					"pad.rightStick"
+				],
+				[
+					"pad.jump",
+					"pad.bottom"
+				],
+				[
+					"pad.interact",
+					"pad.left"
+				]
+			],
+			"southpaw": [
+				[
+					"pad.move",
+					"pad.rightStick"
+				],
+				[
+					"pad.look",
+					"pad.leftStick"
+				],
+				[
+					"pad.jump",
+					"pad.bottom"
+				],
+				[
+					"pad.interact",
+					"pad.left"
+				]
+			],
+			"classic": [
+				[
+					"pad.move",
+					"pad.leftStick"
+				],
+				[
+					"pad.look",
+					"pad.rightStick"
+				],
+				[
+					"pad.jump",
+					"pad.right"
+				],
+				[
+					"pad.interact",
+					"pad.top"
+				]
+			]
+		}
+	},
+	"computed": {
+		"myShots": "{{reverse(filter(state.shots, (it.game == computed.game.id)))}}",
+		"viewShots": "{{reverse(filter(state.shots, (it.game == state.shotView.game)))}}",
+		"viewShot": "{{computed.viewShots[state.shotView.at]}}",
+		"padLayout": "{{(state.padLayouts[computed.game.id] ?? 'default')}}"
+	},
+	"actions": {
+		"takeScreenshot": {
+			"title": "Take a screenshot",
+			"category": "Game",
+			"icon": "camera",
+			"description": "Takes a screenshot of the game running, kept with the game's screenshots.",
+			"enablement": "{{state.running != null}}",
+			"do": [
+				{
+					"if": "{{state.running != null}}",
+					"then": [
+						{
+							"push": "state.shots",
+							"value": {
+								"id": "{{now()}}",
+								"game": "{{state.running}}",
+								"file": "{{['shot1', 'shot2', 'shot3', 'hero'][length(state.shots) % 4]}}"
+							}
+						},
+						{
+							"run": "notify",
+							"with": {
+								"text": "{{t('shots.saved')}}"
+							}
+						}
+					]
+				}
+			]
+		},
+		"openShot": {
+			"title": "Open a screenshot",
+			"category": "Game",
+			"description": "Opens one of a game's screenshots in the viewer, by its place, newest first.",
+			"do": [
+				{
+					"set": "state.shotView",
+					"to": {
+						"open": true,
+						"game": "{{game}}",
+						"at": "{{n}}"
+					}
+				}
+			]
+		},
+		"deleteShot": {
+			"title": "Delete the screenshot",
+			"category": "Game",
+			"icon": "trash-2",
+			"description": "Deletes the screenshot the viewer shows; the viewer closes with the last one.",
+			"enablement": "{{computed.viewShot != null}}",
+			"do": [
+				{
+					"if": "{{computed.viewShot != null}}",
+					"then": [
+						{
+							"set": "state.shotView.open",
+							"to": "{{length(computed.viewShots) > 1}}"
+						},
+						{
+							"set": "state.shots",
+							"to": "{{filter(state.shots, it.id != computed.viewShot.id)}}"
+						},
+						{
+							"set": "state.shotView.at",
+							"to": "{{min(state.shotView.at, max(0, length(computed.viewShots) - 1))}}"
+						}
+					]
+				}
+			]
+		},
+		"setPadLayout": {
+			"title": "Choose the controller layout",
+			"category": "Game",
+			"description": "Chooses a game's controller layout: default, southpaw or classic.",
+			"do": [
+				{
+					"set": "{{'state.padLayouts.' + id}}",
+					"to": "{{layout}}"
+				}
+			]
+		}
+	},
+	"keys": {
+		"f12": "takeScreenshot"
+	},
+	"components": {
+		"shotViewer": {
+			"note": "A screenshot of yours, big: which of how many and when it was taken, arrows to the others, Delete and Close.",
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.shotView.open",
+					"width": 860,
+					"height": 600,
+					"title": "{{t('shots.viewerTitle', {'game': (find(data.games, (it.id == state.shotView.game)).title ?? '')})}}",
+					"message": "{{t('shots.of', {'n': (state.shotView.at + 1), 'total': length(computed.viewShots)})}}",
+					"buttons": [
+						{
+							"title": "{{t('shots.delete')}}",
+							"run": "deleteShot"
+						},
+						{
+							"title": "{{t('dialog.close')}}",
+							"default": true
+						}
+					]
+				},
+				"children": [
+					{
+						"when": "{{(computed.viewShot != null)}}",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 76
+						},
+						"height": 448,
+						"children": [
+							{
+								"type": "image",
+								"id": "shot-viewer-image",
+								"fill": true,
+								"file": "../assets/art/{{state.shotView.game}}/{{computed.viewShot.file}}.svg",
+								"fit": "cover",
+								"radius": 4,
+								"label": "{{t('shots.open')}}"
+							},
+							{
+								"type": "label",
+								"id": "shot-viewer-prev",
+								"when": "{{(length(computed.viewShots) > 1)}}",
+								"icon": "chevron-left",
+								"text": "",
+								"font": "heading",
+								"width": 40,
+								"height": 40,
+								"radius": 20,
+								"align": "center",
+								"anchors": {
+									"left": 12,
+									"top": 204
+								},
+								"color": "#00000080",
+								"textColor": "#ffffff",
+								"focusable": true,
+								"role": "button",
+								"label": "{{t('hub.shot.prev')}}",
+								"cursor": "hand",
+								"hover": {
+									"color": "#000000c0"
+								},
+								"onClick": {
+									"set": "state.shotView.at",
+									"to": "{{(state.shotView.at + -1 + length(computed.viewShots)) % length(computed.viewShots)}}"
+								}
+							},
+							{
+								"type": "label",
+								"id": "shot-viewer-next",
+								"when": "{{(length(computed.viewShots) > 1)}}",
+								"icon": "chevron-right",
+								"text": "",
+								"font": "heading",
+								"width": 40,
+								"height": 40,
+								"radius": 20,
+								"align": "center",
+								"anchors": {
+									"right": 12,
+									"top": 204
+								},
+								"color": "#00000080",
+								"textColor": "#ffffff",
+								"focusable": true,
+								"role": "button",
+								"label": "{{t('hub.shot.next')}}",
+								"cursor": "hand",
+								"hover": {
+									"color": "#000000c0"
+								},
+								"onClick": {
+									"set": "state.shotView.at",
+									"to": "{{(state.shotView.at + 1 + length(computed.viewShots)) % length(computed.viewShots)}}"
+								}
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

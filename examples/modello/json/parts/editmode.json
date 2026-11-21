@@ -1,0 +1,861 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Modello's Edit Mode and modifiers: Tab on the active mesh copies its primitive into the scene's meshes and edits it there; 1, 2 and 3 pick vertices, edges or faces; E extrudes, I insets, Ctrl R cuts a loop, Ctrl B bevels an edge, X deletes; G, R and S move, turn and scale the selection through a pivot, proportional editing pulling the vertices near it along. Mirror, array and subdivision modifiers are applied when the scene is drawn. Also glTF import and image textures.",
+	"state": {
+		"edit": {
+			"select": "vertex",
+			"vertices": [],
+			"faces": [],
+			"edge": null,
+			"object": null,
+			"objects": []
+		},
+		"proportional": false,
+		"proportionalSize": 1.5,
+		"importing": null,
+		"textureImage": null
+	},
+	"computed": {
+		"editNode": "{{state.mode == 'edit' ? find(state.scene.nodes, it.id == state.edit.object) : null}}",
+		"editMesh": "{{computed.editNode == null ? null : find(state.scene.meshes ?? [], it.id == computed.editNode.mesh)}}",
+		"editCounts": "{{computed.editMesh == null ? null : meshStats(computed.editMesh)}}",
+		"editCentre": "{{computed.editMesh == null ? null : meshCentre(computed.editMesh, state.edit.vertices)}}",
+		"proportionalRadius": "{{state.proportional ? state.proportionalSize : 0}}",
+		"activeEditable": "{{(computed.activeNode != null && computed.activeNode.kind == 'mesh' && (find(state.scene.meshes ?? [], it.id == computed.activeNode.mesh) != null || meshPrimitive(computed.activeNode.mesh ?? '') != null))}}",
+		"activeSmooth": "{{find(state.scene.meshes, it.id == computed.activeNode.mesh) != null ? find(state.scene.meshes, it.id == computed.activeNode.mesh).smooth == true : contains(['sphere', 'cylinder', 'cone', 'torus'], computed.activeNode.mesh)}}",
+		"stackedNodes": "{{filter(state.scene.nodes, length(it.modifiers ?? []) > 0 && it.id != (computed.editNode.id ?? '') && it.kind == 'mesh' && (computed.meshById[it.mesh ?? ''] != null || meshPrimitive(it.mesh ?? '') != null))}}",
+		"stackedIds": "{{map(computed.stackedNodes, it.id)}}",
+		"modifiedMeshes": "{{map(computed.stackedNodes, merge(meshModifiers(computed.meshById[it.mesh ?? ''] ?? meshPrimitive(it.mesh ?? ''), it.modifiers), { id: 'modified-' + it.id }))}}",
+		"modifiedScene": "{{length(computed.stackedNodes) == 0 ? computed.displayScene : merge(computed.displayScene, { meshes: concat(computed.displayScene.meshes ?? [], computed.modifiedMeshes), nodes: map(computed.displayScene.nodes, contains(computed.stackedIds, it.id) ? merge(it, { mesh: 'modified-' + it.id }) : it) })}}",
+		"editDot": "{{map(computed.editNode.scale ?? [1, 1, 1], 0.035 / (it == 0 ? 1 : it))}}",
+		"editBar": "{{0.012 / max(0.001, abs((computed.editNode.scale ?? [1, 1, 1])[0]))}}",
+		"editPart": "{{computed.editMesh == null ? null : meshFaces(computed.editMesh, state.edit.faces, 0.006)}}",
+		"editPivot": "{{computed.editCentre ?? [0, 0, 0]}}",
+		"viewScene": "{{computed.editNode == null || computed.editMesh == null ? computed.modifiedScene : merge(computed.modifiedScene, { meshes: concat(computed.modifiedScene.meshes ?? [], [merge(meshMove(computed.editPart, range(length(computed.editPart.vertices)), map(computed.editPivot, -it)), { id: 'edit-selection' }), merge(meshEdges(computed.editMesh, computed.editBar), { id: 'edit-edges' }), merge(meshEdges(computed.editMesh, computed.editBar * 2, state.edit.edge != null ? [state.edit.edge] : []), { id: 'edit-edge' })]), materials: concat(computed.modifiedScene.materials, [{ id: 'edit-selected', baseColor: [1, 0.55, 0.12, 0.5], emissive: [0.9, 0.4, 0.05], alphaMode: 'blend', castsShadow: false }, { id: 'edit-dot', baseColor: [0.04, 0.04, 0.05, 1], roughness: 1, castsShadow: false }]), nodes: concat(computed.modifiedScene.nodes, [{ id: 'edit-pivot', parent: computed.editNode.id, translation: computed.editPivot }, { id: 'edit-wire', parent: computed.editNode.id, mesh: 'edit-edges', material: 'edit-dot' }, { id: 'edit-edge', parent: computed.editNode.id, mesh: 'edit-edge', material: 'edit-selected' }, { id: 'edit-faces', parent: 'edit-pivot', mesh: 'edit-selection', material: 'edit-selected' }], length(computed.editMesh.vertices) <= 600 ? map(computed.editMesh.vertices, contains(state.edit.vertices, index) ? { id: 'edit-v' + index, parent: 'edit-pivot', mesh: 'cube', material: 'edit-selected', translation: [it[0] - computed.editPivot[0], it[1] - computed.editPivot[1], it[2] - computed.editPivot[2]], scale: computed.editDot } : { id: 'edit-v' + index, parent: computed.editNode.id, mesh: 'cube', material: 'edit-dot', translation: it, scale: computed.editDot }) : []) })}}",
+		"activeTexture": "{{computed.activeMaterialIndex < 0 ? null : find(state.scene.textures ?? [], it.id == state.scene.materials[computed.activeMaterialIndex].textures.baseColor)}}",
+		"meshById": "{{fromEntries(map(state.scene.meshes ?? [], { key: it.id, value: it }))}}",
+		"nodeById": "{{fromEntries(map(state.scene.nodes, { key: it.id, value: it }))}}",
+		"worlds": "{{fromEntries(map(state.scene.nodes, { key: it.id, value: transformCompose(computed.nodeById[computed.parentOf[computed.parentOf[computed.parentOf[it.id]]]], transformCompose(computed.nodeById[computed.parentOf[computed.parentOf[it.id]]], transformCompose(computed.nodeById[computed.parentOf[it.id]], it))) }))}}"
+	},
+	"actions": {
+		"enterEdit": [
+			{
+				"if": "{{!computed.activeEditable}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{find(state.scene.meshes ?? [], it.id == computed.activeNode.mesh) == null}}",
+				"then": [
+					{
+						"set": "state.scene.meshes",
+						"to": "{{concat(filter(state.scene.meshes ?? [], it.id != 'mesh-' + computed.activeNode.id), [merge(meshPrimitive(computed.activeNode.mesh), { id: 'mesh-' + computed.activeNode.id })])}}"
+					},
+					{
+						"set": "state.scene.nodes[computed.activeIndex].mesh",
+						"to": "{{'mesh-' + computed.activeNode.id}}"
+					}
+				]
+			},
+			{
+				"set": "state.edit",
+				"to": "{{merge(state.edit, { vertices: [], faces: [], edge: null, object: computed.activeNode.id, objects: state.view.selection })}}"
+			},
+			{
+				"set": "state.view.selection",
+				"to": []
+			},
+			{
+				"set": "state.mode",
+				"to": "edit"
+			}
+		],
+		"leaveEdit": [
+			{
+				"if": "{{state.mode != 'edit'}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.mode",
+				"to": "object"
+			},
+			{
+				"set": "state.view.selection",
+				"to": "{{filter(state.edit.objects, contains(map(state.scene.nodes, it.id), it))}}"
+			}
+		],
+		"toggleEditMode": {
+			"title": "Toggle Edit Mode",
+			"category": "Object",
+			"icon": "pen-tool",
+			"enablement": "{{state.mode == 'edit' || computed.activeEditable}}",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"if": "{{state.mode == 'edit'}}",
+					"then": [
+						{
+							"run": "leaveEdit"
+						}
+					],
+					"else": [
+						{
+							"run": "enterEdit"
+						}
+					]
+				}
+			]
+		},
+		"setSelectMode": {
+			"title": "Select Mode",
+			"category": "Select",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"set": "state.edit",
+					"to": "{{merge(state.edit, { select: args.mode, vertices: [], faces: [], edge: null })}}"
+				},
+				{
+					"set": "state.view.selection",
+					"to": []
+				}
+			]
+		},
+		"pivotSelection": [
+			{
+				"set": "state.view.selection",
+				"to": "{{length(state.edit.vertices) > 0 ? ['edit-pivot'] : []}}"
+			}
+		],
+		"editAfterHistory": [
+			{
+				"if": "{{state.mode != 'edit'}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.tmpId",
+				"to": "{{find(state.scene.nodes, it.id == state.edit.object).mesh ?? ''}}"
+			},
+			{
+				"set": "state.tmpMesh",
+				"to": "{{find(state.scene.meshes ?? [], it.id == state.tmpId)}}"
+			},
+			{
+				"if": "{{state.tmpMesh == null}}",
+				"then": [
+					{
+						"run": "leaveEdit"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.edit",
+				"to": "{{merge(state.edit, { faces: filter(state.edit.faces, it < length(state.tmpMesh.faces)), edge: null })}}"
+			},
+			{
+				"set": "state.edit.vertices",
+				"to": "{{length(state.edit.faces) > 0 ? meshFaceVertices(state.tmpMesh, state.edit.faces) : filter(state.edit.vertices, it < length(state.tmpMesh.vertices))}}"
+			},
+			{
+				"run": "pivotSelection"
+			}
+		],
+		"selectElements": [
+			{
+				"set": "state.edit",
+				"to": "{{merge(state.edit, { faces: args.faces, vertices: length(args.faces) > 0 ? meshFaceVertices(computed.editMesh, args.faces) : args.vertices, edge: args.edge })}}"
+			},
+			{
+				"run": "pivotSelection"
+			}
+		],
+		"editPick": [
+			{
+				"if": "{{event.point == null}}",
+				"then": [
+					{
+						"if": "{{!event.shift}}",
+						"then": [
+							{
+								"run": "selectElements",
+								"with": {
+									"args": {
+										"faces": [],
+										"vertices": [],
+										"edge": null
+									}
+								}
+							}
+						]
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.tmpHit",
+				"to": "{{meshPick(computed.editMesh, event.point, state.edit.select, computed.editNode)}}"
+			},
+			{
+				"if": "{{state.edit.select == 'face'}}",
+				"then": [
+					{
+						"run": "selectElements",
+						"with": {
+							"args": {
+								"faces": "{{!event.shift ? [state.tmpHit] : contains(state.edit.faces, state.tmpHit) ? filter(state.edit.faces, it != state.tmpHit) : concat(state.edit.faces, [state.tmpHit])}}",
+								"vertices": [],
+								"edge": null
+							}
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{state.edit.select == 'edge'}}",
+				"then": [
+					{
+						"run": "selectElements",
+						"with": {
+							"args": {
+								"faces": [],
+								"vertices": "{{event.shift ? concat(filter(state.edit.vertices, !contains(state.tmpHit, it)), state.tmpHit) : state.tmpHit}}",
+								"edge": "{{state.tmpHit}}"
+							}
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "selectElements",
+				"with": {
+					"args": {
+						"faces": [],
+						"vertices": "{{!event.shift ? [state.tmpHit] : contains(state.edit.vertices, state.tmpHit) ? filter(state.edit.vertices, it != state.tmpHit) : concat(state.edit.vertices, [state.tmpHit])}}",
+						"edge": null
+					}
+				}
+			}
+		],
+		"selectAllElements": [
+			{
+				"if": "{{!args.all}}",
+				"then": [
+					{
+						"run": "selectElements",
+						"with": {
+							"args": {
+								"faces": [],
+								"vertices": [],
+								"edge": null
+							}
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{state.edit.select == 'face'}}",
+				"then": [
+					{
+						"run": "selectElements",
+						"with": {
+							"args": {
+								"faces": "{{range(length(computed.editMesh.faces))}}",
+								"vertices": [],
+								"edge": null
+							}
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "selectElements",
+				"with": {
+					"args": {
+						"faces": [],
+						"vertices": "{{range(length(computed.editMesh.vertices))}}",
+						"edge": null
+					}
+				}
+			}
+		],
+		"putMesh": [
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.meshes",
+				"to": "{{map(state.scene.meshes, it.id == computed.editMesh.id ? merge(args.mesh, { id: it.id }) : it)}}"
+			},
+			{
+				"set": "state.edit",
+				"to": "{{merge(state.edit, { faces: args.faces, vertices: args.vertices, edge: null })}}"
+			},
+			{
+				"run": "pivotSelection"
+			},
+			{
+				"set": "state.last",
+				"to": "{{args.title}}"
+			}
+		],
+		"extrudeFaces": {
+			"title": "Extrude Faces",
+			"category": "Mesh",
+			"enablement": "{{state.mode == 'edit' && length(state.edit.faces) > 0}}",
+			"do": [
+				{
+					"set": "state.tmpMesh",
+					"to": "{{meshExtrude(computed.editMesh, state.edit.faces, 0.5)}}"
+				},
+				{
+					"run": "putMesh",
+					"with": {
+						"args": {
+							"mesh": "{{state.tmpMesh}}",
+							"faces": "{{state.edit.faces}}",
+							"vertices": "{{meshFaceVertices(state.tmpMesh, state.edit.faces)}}",
+							"title": "Extrude Faces"
+						}
+					}
+				},
+				{
+					"after": 30,
+					"do": [
+						{
+							"run": "grabExtruded"
+						}
+					]
+				}
+			]
+		},
+		"grabExtruded": [
+			{
+				"if": "{{state.mode == 'edit' && length(state.edit.faces) > 0 && state.modal == null}}",
+				"then": [
+					{
+						"run": "startTransform",
+						"with": {
+							"args": {
+								"mode": "translate"
+							}
+						}
+					}
+				]
+			}
+		],
+		"insetFaces": {
+			"title": "Inset Faces",
+			"category": "Mesh",
+			"enablement": "{{state.mode == 'edit' && length(state.edit.faces) > 0}}",
+			"do": [
+				{
+					"set": "state.tmpMesh",
+					"to": "{{meshInset(computed.editMesh, state.edit.faces, 0.25)}}"
+				},
+				{
+					"run": "putMesh",
+					"with": {
+						"args": {
+							"mesh": "{{state.tmpMesh}}",
+							"faces": "{{state.edit.faces}}",
+							"vertices": "{{meshFaceVertices(state.tmpMesh, state.edit.faces)}}",
+							"title": "Inset Faces"
+						}
+					}
+				}
+			]
+		},
+		"loopCut": {
+			"title": "Loop Cut",
+			"category": "Mesh",
+			"enablement": "{{state.mode == 'edit' && state.edit.edge != null}}",
+			"do": [
+				{
+					"run": "putMesh",
+					"with": {
+						"args": {
+							"mesh": "{{meshLoopCut(computed.editMesh, state.edit.edge)}}",
+							"faces": [],
+							"vertices": [],
+							"title": "Loop Cut"
+						}
+					}
+				}
+			]
+		},
+		"bevelEdge": {
+			"title": "Bevel Edge",
+			"category": "Mesh",
+			"enablement": "{{state.mode == 'edit' && state.edit.edge != null}}",
+			"do": [
+				{
+					"set": "state.tmpMesh",
+					"to": "{{meshBevel(computed.editMesh, state.edit.edge, 0.2)}}"
+				},
+				{
+					"run": "putMesh",
+					"with": {
+						"args": {
+							"mesh": "{{state.tmpMesh}}",
+							"faces": "{{[length(state.tmpMesh.faces) - 1]}}",
+							"vertices": "{{meshFaceVertices(state.tmpMesh, [length(state.tmpMesh.faces) - 1])}}",
+							"title": "Bevel Edge"
+						}
+					}
+				}
+			]
+		},
+		"deleteElements": {
+			"title": "Delete Vertices or Faces",
+			"category": "Mesh",
+			"icon": "trash-2",
+			"enablement": "{{state.mode == 'edit' && length(state.edit.vertices) > 0}}",
+			"do": [
+				{
+					"run": "deleteEditElements"
+				}
+			]
+		},
+		"deleteEditElements": [
+			{
+				"if": "{{length(state.edit.vertices) == 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "putMesh",
+				"with": {
+					"args": {
+						"mesh": "{{length(state.edit.faces) > 0 ? meshDeleteFaces(computed.editMesh, state.edit.faces) : meshDeleteVertices(computed.editMesh, state.edit.vertices)}}",
+						"faces": [],
+						"vertices": [],
+						"title": "Delete Vertices or Faces"
+					}
+				}
+			}
+		],
+		"toggleProportional": {
+			"title": "Proportional Editing",
+			"category": "Mesh",
+			"icon": "circle-dot-dashed",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"set": "state.proportional",
+					"to": "{{!state.proportional}}"
+				}
+			]
+		},
+		"editTransformed": [
+			{
+				"if": "{{length(event.nodes) == 0 || computed.editCentre == null}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{event.mode == 'translate'}}",
+				"then": [
+					{
+						"run": "putMesh",
+						"with": {
+							"args": {
+								"mesh": "{{meshMove(computed.editMesh, state.edit.vertices, map(event.nodes[0].translation, it - computed.editCentre[index]), computed.proportionalRadius)}}",
+								"faces": "{{state.edit.faces}}",
+								"vertices": "{{state.edit.vertices}}",
+								"title": "{{event.text}}"
+							}
+						}
+					}
+				]
+			},
+			{
+				"if": "{{event.mode == 'scale'}}",
+				"then": [
+					{
+						"run": "putMesh",
+						"with": {
+							"args": {
+								"mesh": "{{meshScale(computed.editMesh, state.edit.vertices, event.nodes[0].scale[0], computed.proportionalRadius)}}",
+								"faces": "{{state.edit.faces}}",
+								"vertices": "{{state.edit.vertices}}",
+								"title": "{{event.text}}"
+							}
+						}
+					}
+				]
+			},
+			{
+				"if": "{{event.mode == 'rotate'}}",
+				"then": [
+					{
+						"run": "putMesh",
+						"with": {
+							"args": {
+								"mesh": "{{meshRotate(computed.editMesh, state.edit.vertices, event.nodes[0].rotation, computed.proportionalRadius)}}",
+								"faces": "{{state.edit.faces}}",
+								"vertices": "{{state.edit.vertices}}",
+								"title": "{{event.text}}"
+							}
+						}
+					}
+				]
+			}
+		],
+		"setSmooth": [
+			{
+				"if": "{{!computed.activeEditable}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.tmpId",
+				"to": "{{find(state.scene.meshes ?? [], it.id == computed.activeNode.mesh) != null ? computed.activeNode.mesh : 'mesh-' + computed.activeNode.id}}"
+			},
+			{
+				"set": "state.scene.meshes",
+				"to": "{{concat(filter(state.scene.meshes ?? [], it.id != state.tmpId), [merge((find(state.scene.meshes ?? [], it.id == computed.activeNode.mesh) ?? meshPrimitive(computed.activeNode.mesh ?? '')), { id: state.tmpId, smooth: args.smooth })])}}"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].mesh",
+				"to": "{{state.tmpId}}"
+			}
+		],
+		"addModifier": [
+			{
+				"if": "{{computed.activeIndex < 0 || !computed.activeEditable}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"dismiss": true
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].modifiers",
+				"to": "{{concat(computed.activeNode.modifiers ?? [], [args.kind == 'mirror' ? { type: 'mirror', axis: 'x' } : args.kind == 'array' ? { type: 'array', count: 3, offset: [2.5, 0, 0] } : { type: 'subdivision', levels: 1 }])}}"
+			}
+		],
+		"removeModifier": [
+			{
+				"run": "snapshot"
+			},
+			{
+				"remove": "state.scene.nodes[computed.activeIndex].modifiers",
+				"at": "{{args.i}}"
+			}
+		],
+		"setModifier": [
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].modifiers[args.i][args.key]",
+				"to": "{{args.value}}"
+			}
+		],
+		"stepModifier": [
+			{
+				"if": "{{computed.activeNode.modifiers[args.i].type == 'array'}}",
+				"then": [
+					{
+						"run": "setModifier",
+						"with": {
+							"args": {
+								"i": "{{args.i}}",
+								"key": "count",
+								"value": "{{min(64, max(1, computed.activeNode.modifiers[args.i].count + args.step))}}"
+							}
+						}
+					}
+				],
+				"else": [
+					{
+						"run": "setModifier",
+						"with": {
+							"args": {
+								"i": "{{args.i}}",
+								"key": "levels",
+								"value": "{{min(3, max(0, computed.activeNode.modifiers[args.i].levels + args.step))}}"
+							}
+						}
+					}
+				]
+			}
+		],
+		"importGltf": {
+			"title": "Import glTF…",
+			"category": "File",
+			"icon": "file-input",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"run": "leaveEdit"
+				},
+				{
+					"openFile": "state.importing",
+					"extensions": ["gltf"],
+					"title": "Import glTF",
+					"onDone": [
+						{
+							"run": "gltfOpened",
+							"with": {
+								"args": {
+									"name": "{{result.name}}"
+								}
+							}
+						}
+					],
+					"onError": [
+						{
+							"set": "state.fileStatus",
+							"to": "{{'Not opened: ' + error.message}}"
+						}
+					]
+				}
+			]
+		},
+		"gltfOpened": [
+			{
+				"set": "state.tmpPart",
+				"to": "{{gltfScene(state.importing, 'import' + (state.added + 1) + '-')}}"
+			},
+			{
+				"if": "{{state.tmpPart == null || length(state.tmpPart.nodes) == 0}}",
+				"then": [
+					{
+						"set": "state.fileStatus",
+						"to": "{{'Not imported: ' + args.name + \" isn't a glTF file with its data inside\"}}"
+					}
+				],
+				"else": [
+					{
+						"run": "snapshot"
+					},
+					{
+						"increment": "state.added",
+						"by": 1
+					},
+					{
+						"set": "state.scene",
+						"to": "{{merge(state.scene, { nodes: concat(state.scene.nodes, map(state.tmpPart.nodes, merge(it, { kind: it.mesh != null ? 'mesh' : 'empty', collection: state.activeCollection != 'collection' ? state.activeCollection : null, parent: it.parent ?? '' }))), meshes: concat(state.scene.meshes ?? [], state.tmpPart.meshes), materials: concat(state.scene.materials, state.tmpPart.materials) })}}"
+					},
+					{
+						"set": "state.view.selection",
+						"to": "{{map(filter(state.tmpPart.nodes, it.mesh != null), it.id)}}"
+					},
+					{
+						"set": "state.active",
+						"to": "{{length(state.view.selection) > 0 ? state.view.selection[length(state.view.selection) - 1] : null}}"
+					},
+					{
+						"set": "state.fileStatus",
+						"to": "{{'Imported ' + args.name + ': ' + length(state.tmpPart.nodes) + ' objects'}}"
+					}
+				]
+			},
+			{
+				"set": "state.importing",
+				"to": null
+			},
+			{
+				"set": "state.tmpPart",
+				"to": null
+			}
+		],
+		"openTexture": {
+			"title": "Open Image…",
+			"category": "Material",
+			"icon": "image-plus",
+			"enablement": "{{computed.activeMaterialIndex >= 0}}",
+			"do": [
+				{
+					"dismiss": true
+				},
+				{
+					"openFile": "state.textureImage",
+					"as": "image",
+					"title": "Open Image Texture",
+					"onDone": [
+						{
+							"run": "textureOpened",
+							"with": {
+								"args": {
+									"name": "{{result.name}}"
+								}
+							}
+						}
+					],
+					"onError": [
+						{
+							"set": "state.fileStatus",
+							"to": "{{'Not opened: ' + error.message}}"
+						}
+					]
+				}
+			]
+		},
+		"textureOpened": [
+			{
+				"if": "{{state.textureImage == null || computed.activeMaterialIndex < 0}}",
+				"then": [
+					{
+						"set": "state.textureImage",
+						"to": null
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.textures",
+				"to": "{{concat(filter(state.scene.textures ?? [], it.id != 'texture-' + computed.activeNode.material), [{ id: 'texture-' + computed.activeNode.material, name: args.name, image: state.textureImage }])}}"
+			},
+			{
+				"set": "state.scene.materials[computed.activeMaterialIndex].textures",
+				"to": "{{ { baseColor: 'texture-' + computed.activeNode.material } }}"
+			},
+			{
+				"set": "state.fileStatus",
+				"to": "{{'Texture: ' + args.name}}"
+			},
+			{
+				"set": "state.textureImage",
+				"to": null
+			}
+		],
+		"removeTexture": {
+			"title": "Remove Image",
+			"category": "Material",
+			"icon": "image-off",
+			"enablement": "{{computed.activeTexture != null}}",
+			"do": [
+				{
+					"set": "state.tmpId",
+					"to": "{{computed.activeTexture.id}}"
+				},
+				{
+					"run": "snapshot"
+				},
+				{
+					"set": "state.scene.materials[computed.activeMaterialIndex].textures",
+					"to": {}
+				},
+				{
+					"if": "{{!some(state.scene.materials, (it.textures.baseColor ?? '') == state.tmpId)}}",
+					"then": [
+						{
+							"set": "state.scene.textures",
+							"to": "{{filter(state.scene.textures ?? [], it.id != state.tmpId)}}"
+						}
+					]
+				}
+			]
+		},
+		"addProperty": [
+			{
+				"if": "{{computed.activeIndex < 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.tmpName",
+				"to": "{{!contains(map(computed.activeNode.props ?? [], it.name), 'prop') ? 'prop' : 'prop.' + pad(length(computed.activeNode.props ?? []), 3, '0')}}"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].props",
+				"to": "{{concat(computed.activeNode.props ?? [], [{ name: state.tmpName, value: '1.0' }])}}"
+			}
+		],
+		"setProperty": [
+			{
+				"if": "{{computed.activeIndex < 0 || trim(args.text) == ''}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "snapshot"
+			},
+			{
+				"set": "state.scene.nodes[computed.activeIndex].props[args.i][args.key]",
+				"to": "{{slice(trim(args.text), 0, 63)}}"
+			}
+		],
+		"removeProperty": [
+			{
+				"run": "snapshot"
+			},
+			{
+				"remove": "state.scene.nodes[computed.activeIndex].props",
+				"at": "{{args.i}}"
+			}
+		]
+	}
+}

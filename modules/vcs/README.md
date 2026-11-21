@@ -12,10 +12,12 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | Header | Offers |
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
+| `Merge.hpp` | `mergeDocuments`: the three-way merge of JSON documents that rebases proposals (objects key by key in `main`'s order, lists of nodes by id, a string whole), for any caller with two versions and their common ancestor; `MergeResult` (`merged`, `conflicts`, `clean()`) |
 | `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
 | `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
 | `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
 | `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
+| `Runs.hpp` | `Runs`: the `RunControl` of a screen (core/Commands.hpp): who may run which command as a peer (the rules of `permissions.run`, the mode, the reviewers, the run grants), the runs that wait for a decision and the log of the newest runs; `maxWaitingRunsPerChannel` (4), `maxArgumentBytes` (4 KiB) |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -30,8 +32,17 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A delta rebuilds its document exactly** (`detail::delta`, `Deltas.hpp`): keys in order, 1 and 1.0 apart, which
   nlohmann's `json::diff` doesn't. main's head is the working copy, so commits never rebuild; diffs, restores, reverts
   and loading do, from at most 63 deltas.
-- **A revert undoes what the commit changed,** in the document and, in the run that made it, in the live state; it is
-  refused if a later commit or an action changed those parts since.
+- **A revert undoes what the commit changed and keeps what came later** (`RepositoryUndo.cpp`): a three-way merge
+  with the commit's document as the base, main as one side and its first parent's document as the other, so lists of
+  nodes merge by id. A part a later commit changed too is a conflict, settled only by the caller's `drop` or `keep`
+  (`MergeOptions::takeProposal` takes the parent's value for a dropped one); `detail::Trail` names the later commits
+  that changed it. `undoPlan` judges the result as a change; `undoRevision` writes it, marked `undo` (`of`, `drop`,
+  `then`), and `commit()` and `submitRevision` work it out again before it lands, unless it is the undo
+  `undoRevision` just worked out on the same head, with the same choices, patch and (where the commit changed it) live
+  state: the same inputs give the same patch, so it is taken once as it is. Verify mode (`AFFRESCOUI_VERIFY_UPDATES=1`)
+  works it out in full anyway and logs an "undo check" error on any difference. A drop or a rebuild by an author
+  who may not review is always a proposal, and where the screen declares no permissions, by anyone but the person.
+  The live state is undone only while every part is as the commit left it.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
 - **A revision is bounded before it is applied** (`detail::RevisionBudget`, `Budget.hpp`): 10,000 operations (a
   proposal with all its commits too), 100,000 values copied by `copy` operations, and objects of at most 10,000
@@ -60,7 +71,15 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **Proposals follow main** (`rebaseProposals`, `RepositoryReview.cpp`): when main moves, each open proposal rebases
   through `detail::merge` (`Merge.hpp`), keyed by node id. Approvals survive only an exact rebase (replaying its
   commits gives the merge); a merged rebase dismisses them; a conflict leaves the branch where it was, listed in
-  `conflicts`, and blocks accepting it.
+  `conflicts`, and blocks accepting it. An object's keys keep `main`'s order, and a key only one side added lands
+  after the key it followed on that side (at the start if it followed none the merge keeps): a definition added in
+  the middle of a program file stays there. A merged rebase's commit keeps that order (`patchToward`, `detail::delta`).
+- **`proposeMerge` is a proposal like any other** (`RepositoryReview.cpp`): it merges another version onto main's
+  source, with the version both came from as the base, and opens the clean part through `propose()`, so the document
+  rules, the deny rules and the limits judge it whoever the author is. Each conflict goes to `leftOut`, never into
+  the patch; `leftOut` doesn't block it and is kept as recorded through rebases and on disk. The live state is never
+  merged. `personOnly` makes only a reviewer of `personChannel` able to accept it. Nothing to merge, or nothing that
+  merges cleanly, opens no proposal.
 - **A review policy is met before a merge** (`DocumentRules::permissions().review`): approvals from distinct reviewers,
   more for behaviour changes (`DocumentRules::behaviourLines`), and one from an owner of each owned part changed. It
   is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
@@ -69,6 +88,12 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **`commitOwnInput()`** is the person's own change of a program, from the host's code alone: only `/program/` paths, judged by the rules' `checkOwnChange`, and marked in its commit (VERSION_CONTROL.md, "Programs").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
+- **A run is never authority** (`Runs`, VERSION_CONTROL.md, "Running commands"): it is judged as its runner's,
+  never makes a commit, and a grant it earns covers one command for one channel, in memory only. A reviewer never
+  allows a run of its own channel, and only the person (`user`) allows a run that reaches outside, never "always".
+  At most 16 runs wait for a decision (4 per channel), each at most 120 s; the log keeps the newest 64 and never
+  drops a waiting run; arguments are kept cut to 4 KiB of JSON text. `Runs` reads the permissions again only when
+  the head commit changes, and takes the time from a clock it is given, so tests never sleep.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every
   256 loose objects go into a pack named by its SHA-256, which the refs name before the loose files are deleted.
   Objects and packs are verified against their hashes when they are loaded, a file larger than 64 MiB is refused,
@@ -145,21 +170,29 @@ borrowed too; `setObserver(nullptr)` before the observer goes.
 
 - **Any document format:** implement `DocumentRules` (`core`) and give it to the `Repository`.
 - **Observers:** `setObserver` (one `VersionObserver`: the renderer), and the signals `onCommit`, `onDecision` and
-  `onReviewChanged` for everyone else.
+  `onReviewChanged` for everyone else. A commit tells the observer what it changed (`documentChangedWith` and a
+  `DocumentChange`): the places of the patch, split into the state's and the document's, or for a program the
+  places where the trees built before and after differ. It also passes the document the observer saw before, valid
+  during the call. A restore, a revert, a preview and its end, an import, an upgrade and the rollback after a refused
+  version say everything changed. The change stays inside the process: it is never sent to or from a peer, and
+  every check runs on the whole revision whatever it says.
 
 ## Files
 
 ```
 include/affresco/vcs/
   Repository.hpp            the Repository class
+  Merge.hpp                 mergeDocuments, the three-way merge for any caller
   Leases.hpp, Roles.hpp, Presence.hpp, ChangeSetRepair.hpp   what several agents at once add
+  Runs.hpp                  who may run a command as a peer, and the runs
 src/
   revisions/                a revision, from what it says to a commit on main
     Revisions.hpp / .cpp    what a revision says: author, message, patch; the commit time
     Budget.hpp / .cpp       what preparing one revision may cost
     Deltas.hpp / .cpp       exact deltas between documents, applying them safely, JSON Pointer segments
     Repository.cpp          commits and main; checking, judging and landing a revision
-    RepositoryDocuments.cpp rebuilding a commit's document from a snapshot and deltas; blame; restore and revert
+    RepositoryDocuments.cpp rebuilding a commit's document from a snapshot and deltas; blame; restore
+    Trail.hpp               a part followed back through the commits on main, for blame and an undo's plan
   review/                   proposals and what it takes to merge them
     RepositoryProposals.cpp opening, extending, previewing, accepting and rejecting proposals
     RepositoryReview.cpp    rebasing proposals onto a newer main, approvals and review policies, expiring grants
@@ -174,10 +207,15 @@ src/
     Leases.cpp              parts of a document one person holds for a while
     LeasesRepository.cpp    who is connected, the parts they lease, and refusing changes to another holder's part
     Presence.cpp            who has the document open, and where
+  runs/                     who may run a command as a peer, and the runs (VERSION_CONTROL.md, "Running commands")
+    RunRules.cpp            judge(): the run rules, the mode, the reviewers and the grants, in order; stateDenial()
+    RunLog.cpp              numbering runs, the runs that wait and their limits, allow, deny, expire, the log
+    RunGrants.cpp           the grants an "always allow" adds, how long they last, revoking them
   history/                  the history on disk
     HistoryStore.hpp / .cpp the history folder: the lock, atomic writes, bounded reads, packs
     RepositoryHistory.cpp   writing and loading objects and refs, every hash checked
     RepositoryChanges.cpp   the log, and exporting, checking and importing change sets
+    RepositoryUndo.cpp      undoing an earlier commit: the plan, the choices, the undo mark
   CompositionProofRevision.hpp / .cpp   the revision that installs a feature from another app
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)

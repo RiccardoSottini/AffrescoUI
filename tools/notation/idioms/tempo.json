@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"tempo/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 23
+	},
+	"kept": {
+		"camel-case-name": 11,
+		"fn-one-parameter": 4
+	}
+}

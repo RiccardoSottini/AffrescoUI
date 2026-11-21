@@ -1,0 +1,21 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Themes of one's own: Design > Save Theme keeps the deck's look (its theme's background and decorations, the colours it shows and its fonts) as a theme of the gallery, for this deck and the next. The saved themes are kept with the app's settings (persist), not in a deck, so every deck can use them.",
+
+	"state": {
+		"ownThemes": []
+	},
+
+	"computed": {
+		"galleryThemes": "{{slice(concat(reverse(state.ownThemes ?? []), computed.builtInThemes), 0, 6)}}"
+	},
+
+	"actions": {
+		"saveTheme": [
+			{ "set": "state.ownThemes", "to": "{{concat(state.ownThemes ?? [], [{ id: 'own' + (length(state.ownThemes ?? []) + 1), name: 'My Theme ' + (length(state.ownThemes ?? []) + 1), background: computed.theme.background, colors: computed.colors, variants: [{}], decor: computed.theme.decor, titleDecor: computed.theme.titleDecor, fonts: state.deck.fonts ?? { heading: 'default', body: 'default' } }])}}" },
+			{ "run": "setTheme", "with": { "theme": "{{'own' + length(state.ownThemes)}}" } }
+		]
+	}
+}

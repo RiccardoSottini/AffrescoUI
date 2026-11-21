@@ -5,13 +5,16 @@
 ;;; `:order` place it. The headers' dropdowns are lists the running app works out (defcomputed): an item names a
 ;;; function to run (`:run`) with its arguments (`:with`), and `:checked` or `:enabled` from the state.
 
+(ns modello.menus)
+
 ;;; The top bar
 
 (defmenu file "The File menu."
   {:new {:run newScene :group "1_new" :order 1}
    :open {:run openScene :group "1_new" :order 2}
    :save {:run saveScene :group "2_save"}
-   :export {:run exportGltf :group "3_export"}})
+   :import {:run importGltf :group "3_export" :order 1}
+   :export {:run exportGltf :group "3_export" :order 2}})
 
 (defmenu edit "The Edit menu."
   {:undo {:run undo :group "1_history" :order 1}
@@ -63,33 +66,33 @@
 (defmenu add "The Add menu (Shift A): meshes, lights, a camera, an empty."
   {:mesh {:submenu addMesh :title ~(t "menu.mesh") :icon triangle :group "1_add" :order 1}
    :light {:submenu addLight :title ~(t "menu.light") :icon lightbulb :group "2_add" :order 1}
-   :camera {:run addObject :with {:kind camera :name "Camera"} :title ~(t "menu.camera") :icon video :group "2_add" :order 2}
-   :empty {:run addObject :with {:kind empty :name "Empty"} :title ~(t "menu.empty") :icon axis-3-d :group "2_add" :order 3}})
+   :camera {:run add-object :with {:kind camera :name "Camera"} :title ~(t "menu.camera") :icon video :group "2_add" :order 2}
+   :empty {:run add-object :with {:kind empty :name "Empty"} :title ~(t "menu.empty") :icon axis-3-d :group "2_add" :order 3}})
 
 (defmenu addMesh "The Add menu's meshes."
-  {:plane {:run addObject :with {:kind mesh :mesh plane :name "Plane"} :title ~(t "mesh.plane") :icon square :order 1}
-   :cube {:run addObject :with {:kind mesh :mesh cube :name "Cube"} :title ~(t "mesh.cube") :icon box :order 2}
-   :sphere {:run addObject :with {:kind mesh :mesh sphere :name "Sphere"} :title ~(t "mesh.sphere") :icon globe :order 3}
-   :cylinder {:run addObject
+  {:plane {:run add-object :with {:kind mesh :mesh plane :name "Plane"} :title ~(t "mesh.plane") :icon square :order 1}
+   :cube {:run add-object :with {:kind mesh :mesh cube :name "Cube"} :title ~(t "mesh.cube") :icon box :order 2}
+   :sphere {:run add-object :with {:kind mesh :mesh sphere :name "Sphere"} :title ~(t "mesh.sphere") :icon globe :order 3}
+   :cylinder {:run add-object
               :with {:kind mesh :mesh cylinder :name "Cylinder"}
               :title ~(t "mesh.cylinder")
               :icon cylinder
               :order 4}
-   :cone {:run addObject :with {:kind mesh :mesh cone :name "Cone"} :title ~(t "mesh.cone") :icon cone :order 5}
-   :torus {:run addObject :with {:kind mesh :mesh torus :name "Torus"} :title ~(t "mesh.torus") :icon torus :order 6}})
+   :cone {:run add-object :with {:kind mesh :mesh cone :name "Cone"} :title ~(t "mesh.cone") :icon cone :order 5}
+   :torus {:run add-object :with {:kind mesh :mesh torus :name "Torus"} :title ~(t "mesh.torus") :icon torus :order 6}})
 
 (defmenu addLight "The Add menu's lights."
-  {:point {:run addObject
+  {:point {:run add-object
            :with {:kind light :name "Point" :light (point :intensity 60)}
            :title ~(t "light.point")
            :icon lightbulb
            :order 1}
-   :sun {:run addObject
+   :sun {:run add-object
          :with {:kind light :name "Sun" :light (directional :intensity 3)}
          :title ~(t "light.sun")
          :icon sun
          :order 2}
-   :spot {:run addObject
+   :spot {:run add-object
           :with {:kind light :name "Spot" :light (spot :intensity 60)}
           :title ~(t "light.spot")
           :icon cone
@@ -100,6 +103,8 @@
    :snap {:submenu snap :title ~(t "menu.snap") :group "1_transform" :order 2}
    :duplicate {:run duplicate :group "2_edit" :order 1}
    :delete {:run deleteSelected :group "2_edit" :order 2}
+   :parent {:run parentToActive :group "2_edit" :order 3}
+   :clearParent {:run clearParent :group "2_edit" :order 4}
    :keyframe {:run insertKeyframe :group "3_anim"}
    :show {:submenu objectShowHide :title ~(t "menu.showHide") :group "4_show"}})
 
@@ -136,6 +141,8 @@
    :duplicate {:run duplicate :group "3_edit" :order 1}
    :hide {:run hideSelected :group "3_edit" :order 2}
    :collection {:run moveToCollectionMenu :group "3_edit" :order 3}
+   :parent {:run parentToActive :group "3_edit" :order 4}
+   :clearParent {:run clearParent :group "3_edit" :order 5}
    :keyframe {:run insertKeyframe :group "4_anim"}
    :delete {:run deleteSelected :group "5_delete"}})
 
@@ -167,55 +174,54 @@
 ;;; The search and the pie menus
 
 (defcomputed searchItems "F3's list: every command that can run now, but the search itself."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (map (fn [it] {:title it.title :detail (or-else it.keyLabel it.category) :icon it.icon :run it.name})
-       (filter (fn [it] (and it.enabled (not= it.name "search"))) commands)))
+       (filter #(and (:enabled %) (not= (:name %) "search")) commands)))
 
 (defcomputed pieItems "The pie menu's items: Z's shading modes, or the grave key's views."
-  (cond (= state.pie.menu "shading")
-          [{:title (t "shading.wireframe") :icon "globe" :run "setOption" :with {:key "shading" :value "wireframe"}
-            :checked (= state.shading "wireframe")}
-           {:title (t "shading.rendered") :icon "sun" :run "setOption" :with {:key "shading" :value "rendered"}
-            :checked (= state.shading "rendered")}
-           {:title (t "shading.solid") :icon "circle" :run "setOption" :with {:key "shading" :value "solid"}
-            :checked (= state.shading "solid")}
-           {:title (t "shading.material") :icon "circle-dot" :run "setOption" :with {:key "shading" :value "material"}
-            :checked (= state.shading "material")}
-           {:title (t "command.toggleXray") :icon "square-dashed-bottom" :run "toggleXray" :checked state.xray}]
-        (= state.pie.menu "view")
-          [{:title (t "command.viewLeft") :run "viewLeft"}
-           {:title (t "command.viewRight") :run "viewRight"}
-           {:title (t "command.viewBottom") :run "viewBottom"}
-           {:title (t "command.viewTop") :run "viewTop"}
-           {:title (t "command.viewFront") :run "viewFront"}
-           {:title (t "command.viewBack") :run "viewBack"}
-           {:title (t "menu.camera") :icon "video" :run "viewCamera" :enabled (some? computed.cameraNode)}
-           {:title (t "menu.viewSelected") :icon "scan" :run "frameSelected" :enabled (> (count state.view.selection) 0)}]
-        :else []))
+  (case state.pie.menu
+    :shading
+    [{:title (t "shading.wireframe") :icon "globe" :run "setOption" :with {:key "shading" :value "wireframe"}
+      :checked (= state.shading :wireframe)}
+     {:title (t "shading.rendered") :icon "sun" :run "setOption" :with {:key "shading" :value "rendered"}
+      :checked (= state.shading :rendered)}
+     {:title (t "shading.solid") :icon "circle" :run "setOption" :with {:key "shading" :value "solid"}
+      :checked (= state.shading :solid)}
+     {:title (t "shading.material") :icon "circle-dot" :run "setOption" :with {:key "shading" :value "material"}
+      :checked (= state.shading :material)}
+     {:title (t "command.toggleXray") :icon "square-dashed-bottom" :run "toggleXray" :checked state.xray}]
+    :view
+    [{:title (t "command.viewLeft") :run "viewLeft"}
+     {:title (t "command.viewRight") :run "viewRight"}
+     {:title (t "command.viewBottom") :run "viewBottom"}
+     {:title (t "command.viewTop") :run "viewTop"}
+     {:title (t "command.viewFront") :run "viewFront"}
+     {:title (t "command.viewBack") :run "viewBack"}
+     {:title (t "menu.camera") :icon "video" :run "viewCamera" :enabled (some? computed.cameraNode)}
+     {:title (t "menu.viewSelected") :icon "scan" :run "frameSelected" :enabled (pos? (count state.view.selection))}]
+    []))
 
 ;;; The viewport header's dropdowns
 
-(defcomputed modeItems "The mode's dropdown: Object Mode, and Edit Mode to come."
-  [{:title (t "mode.object") :icon "box" :checked (= state.mode "object") :run "setMode" :with {:mode "object"}}
-   {:title (t "mode.edit") :icon "pen-tool" :enabled false :keyLabel (t "menu.notYet")}])
+(defcomputed modeItems "The mode's dropdown: Object Mode, and Edit Mode on the active mesh."
+  [{:title (t "mode.object") :icon "box" :checked (= state.mode :object) :run "setMode" :with {:mode "object"} :keyLabel "Tab"}
+   {:title (t "mode.edit") :icon "pen-tool" :checked (= state.mode :edit) :run "setMode" :with {:mode "edit"}
+    :enabled (or (= state.mode :edit) (editable? computed.activeNode)) :keyLabel "Tab"}])
 
-(defcomputed orientationItems "The transform orientations; Gimbal and View are to come."
-  (map (fn [it]
-         (if (contains ["gimbal" "view"] it)
-           {:title (t (str "orientation." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "orientation." it))
-            :checked (= state.orientation it)
-            :run "setOption"
-            :with {:key "orientation" :value it}}))
+(defcomputed orientationItems "The transform orientations: Gimbal turns around the active object's Euler axes."
+  (map #(hash-map :title (t (str "orientation." %))
+                  :checked (= state.orientation %)
+                  :run "setOption"
+                  :with {:key "orientation" :value %})
        ["global" "local" "normal" "gimbal" "view" "cursor"]))
 
-(defcomputed pivotItems "The pivot points; Individual Origins is to come."
+(defcomputed pivotItems "The pivot points: what the selected objects turn and scale about."
   (map (fn [it]
-         (if (= it "individual")
-           {:title (t (str "pivot." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}}))
+         {:title (t (str "pivot." it)) :checked (= state.pivot it) :run "setOption" :with {:key "pivot" :value it}})
        ["bounds" "cursor" "individual" "median" "active"]))
 
 (defcomputed snapItems "What snapping snaps to (vertices, edges and faces are to come), and its increments."
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
   (concat (map (fn [it] {:title (t (str "snap." it)) :enabled false :keyLabel (t "menu.notYet")}) ["vertex" "edge" "face"])
           [{:separator true}]
           (map (fn [it]
@@ -251,22 +257,23 @@
    {:title (t "gizmo.scale") :checked (= state.objectGizmo "scale") :run "setObjectGizmo" :with {:mode "scale"}}])
 
 (defcomputed overlayItems "The overlays shown over the scene."
-  (map (fn [it] {:title (t (str "overlay." it)) :checked (= (get state.overlay it) true) :run "toggleOverlay" :with {:key it}})
+  ; style: keep, #(...) can't give a map, and a binding's function names its item it
+  (map (fn [it] {:title (t (str "overlay." it)) :checked (true? (get state.overlay it)) :run "toggleOverlay" :with {:key it}})
        ["grid" "axes" "cursor" "text" "stats" "extras"]))
 
 (defcomputed shadingItems "The shading's options: the scene's lights and world in Material Preview, and X-Ray."
   [{:title (t "shading.sceneLights")
-    :checked (= state.sceneLights true)
+    :checked (true? state.sceneLights)
     :run "toggleOption"
     :with {:key "sceneLights"}
     :keyLabel (t "shading.material")}
    {:title (t "shading.sceneWorld")
-    :checked (= state.sceneWorld true)
+    :checked (true? state.sceneWorld)
     :run "toggleOption"
     :with {:key "sceneWorld"}
     :keyLabel (t "shading.material")}
    {:separator true}
-   {:title (t "shading.xray") :checked (= state.xray true) :run "toggleXray" :keyLabel "Alt Z"}])
+   {:title (t "shading.xray") :checked (true? state.xray) :run "toggleXray" :keyLabel "Alt Z"}])
 
 (defcomputed shadingModes "The shading modes, as the header's four buttons show them."
   [{:id "wireframe" :icon "globe" :title (t "shading.wireframe")}
@@ -276,13 +283,11 @@
 
 ;;; Editors and workspaces
 
-(defcomputed editorTypes "The editors an area can show; the image and text editors are to come."
+(defcomputed editorTypes "The editors an area can show."
   (map (fn [it]
          {:id it.0
           :title (t (str "editor." it.0))
-          :icon it.1
-          :enabled (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0)
-          :keyLabel (if (contains ["viewport" "shader" "timeline" "outliner" "properties"] it.0) "" (t "menu.notYet"))})
+          :icon it.1})
        [["viewport" "axis-3-d"]
         ["image" "image"]
         ["shader" "git-fork"]
@@ -292,18 +297,12 @@
         ["text" "file-text"]]))
 
 (defcomputed workspaces
-  "The top bar's workspaces: name is what state.workspace holds; a workspace with needs says what it waits for."
-  [{:id "layout" :name "Layout" :title (t "workspace.layout")}
-   {:id "modeling" :name "Model" :title (t "workspace.modeling")}
-   {:id "sculpting" :name "Sculpt" :title (t "workspace.sculpting") :needs (t "workspace.sculpting.needs")}
-   {:id "uv editing" :name "UV" :title (t "workspace.uv") :needs (t "workspace.uv.needs")}
-   {:id "texture paint" :name "Paint" :title (t "workspace.paint") :needs (t "workspace.paint.needs")}
-   {:id "shading" :name "Materials" :title (t "workspace.shading")}
-   {:id "animation" :name "Animate" :title (t "workspace.animation")}
-   {:id "rendering" :name "Render" :title (t "workspace.rendering")}
-   {:id "compositing" :name "Compose" :title (t "workspace.compositing") :needs (t "workspace.compositing.needs")}
-   {:id "geometry nodes" :name "Nodes" :title (t "workspace.nodes") :needs (t "workspace.nodes.needs")}
-   {:id "scripting" :name "Script" :title (t "workspace.scripting") :needs (t "workspace.scripting.needs")}])
+  "The top bar's workspaces, each a preset of the areas for one kind of work: name is what state.workspace holds."
+  [{:id "stage" :name "Stage" :icon "layout-dashboard" :title (t "workspace.stage")}
+   {:id "shape" :name "Shape" :icon "pen-tool" :title (t "workspace.shape")}
+   {:id "surface" :name "Surface" :icon "palette" :title (t "workspace.surface")}
+   {:id "motion" :name "Motion" :icon "film" :title (t "workspace.motion")}
+   {:id "shot" :name "Shot" :icon "aperture" :title (t "workspace.shot")}])
 
 ;;; The timeline's and the outliner's menus
 
@@ -317,26 +316,26 @@
               {:title (t "timeline.nextKey") :keyLabel "Up" :run "nextKey"}
               {:separator true}
               {:title (t "command.togglePreviewRange") :checked (some? state.previewRange) :run "togglePreviewRange"}]
-   :keying [{:title (t "command.insertKeyframe") :keyLabel "I" :enabled (> (count state.view.selection) 0) :run "insertKeyframe"}
+   :keying [{:title (t "command.insertKeyframe") :keyLabel "I" :enabled (pos? (count state.view.selection)) :run "insertKeyframe"}
             {:title (t "command.deleteKeyframe")
              :keyLabel "Alt I"
              :enabled (contains computed.keyFrames state.frame)
              :run "deleteKeyframe"}
             {:title (t "command.clearKeyframes")
              :keyLabel "Shift Alt I"
-             :enabled (> (count computed.keyFrames) 0)
+             :enabled (pos? (count computed.keyFrames))
              :run "clearKeyframes"}
             {:separator true}
-            {:title (t "timeline.autoKeying") :checked (= state.autoKey true) :run "toggleOption" :with {:key "autoKey"}}]
-   :view [{:title (t "timeline.seconds") :checked (= state.timeSeconds true) :run "toggleOption" :with {:key "timeSeconds"}}
+            {:title (t "timeline.autoKeying") :checked (true? state.autoKey) :run "toggleOption" :with {:key "autoKey"}}]
+   :view [{:title (t "timeline.seconds") :checked (true? state.timeSeconds) :run "toggleOption" :with {:key "timeSeconds"}}
           {:title (t "timeline.markers") :checked (not= state.hideMarkers true) :run "toggleOption" :with {:key "hideMarkers"}}
           {:separator true}
           {:title (t "command.frameCurrent") :run "frameCurrent"}]
    :marker [{:title (t "command.addMarker") :run "addMarker"}
-            {:title (t "command.deleteMarker") :enabled (some (fn [it] (= it.frame state.frame)) state.markers) :run "deleteMarker"}
+            {:title (t "command.deleteMarker") :enabled (some #(= (:frame %) state.frame) state.markers) :run "deleteMarker"}
             {:separator true}
-            {:title (t "command.prevMarker") :enabled (some (fn [it] (< it.frame state.frame)) state.markers) :run "prevMarker"}
-            {:title (t "command.nextMarker") :enabled (some (fn [it] (> it.frame state.frame)) state.markers) :run "nextMarker"}]})
+            {:title (t "command.prevMarker") :enabled (some #(< (:frame %) state.frame) state.markers) :run "prevMarker"}
+            {:title (t "command.nextMarker") :enabled (some #(> (:frame %) state.frame) state.markers) :run "nextMarker"}]})
 
 (defcomputed outlinerDisplayItems "The outliner's display modes: the view layer, or a list of objects."
   [{:title (t "outliner.viewLayer")
@@ -362,7 +361,7 @@
                computed.kinds)
           [{:separator true}
            {:title (t "outliner.onlySelected")
-            :checked (= state.outlinerSelectedOnly true)
+            :checked (true? state.outlinerSelectedOnly)
             :run "toggleOption"
             :with {:key "outlinerSelectedOnly"}}]))
 

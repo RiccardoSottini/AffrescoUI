@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -42,10 +43,21 @@ struct BrushPreset {
 
 /// @brief What a stroke does.
 enum class StrokeMode : std::uint8_t {
-	paint, ///< Lays the colour.
-	erase, ///< Takes away opacity (on a mask or the selection: hides, deselects).
-	clone, ///< Copies the image from an offset, as it was when the stroke began.
+	paint,   ///< Lays the colour.
+	erase,   ///< Takes away opacity (on a mask or the selection: hides, deselects).
+	clone,   ///< Copies the image from an offset, as it was when the stroke began.
+	dodge,   ///< Lightens the pixels under it.
+	burn,    ///< Darkens them.
+	sponge,  ///< Takes their colour away, towards grey.
+	blur,    ///< Softens them: each towards the average of its neighbours.
+	sharpen, ///< Sharpens them: each away from the average of its neighbours.
+	smudge,  ///< Drags them along the stroke, as a finger through wet paint.
+	heal,    ///< Clones from an offset, its tone matched to the pixels it covers (the healing brush).
 };
+
+/// @brief The names of the retouching modes ("dodge", "burn", "sponge", "blur", "sharpen", "smudge"), from
+/// StrokeMode::dodge on (heal, a clone, has none).
+[[nodiscard]] std::span<const std::string_view> retouchNames() noexcept;
 
 /// @brief A point of a stroke and the pen's pressure there.
 struct StrokePoint {
@@ -121,6 +133,16 @@ private:
 	/// @param y Down.
 	/// @param coverage The stroke's coverage there.
 	[[nodiscard]] Pixel painted(const Pixel& under, int x, int y, float coverage) const;
+	/// @brief The average of a pixel's neighbours before the stroke, five by five (blur, sharpen).
+	/// @param x Across.
+	/// @param y Down.
+	[[nodiscard]] Pixel neighbourhood(int x, int y) const;
+	/// @brief A pixel as a retouching stroke (dodge, burn, sponge, blur, sharpen) leaves it.
+	/// @param under The pixel before the stroke.
+	/// @param x Across.
+	/// @param y Down.
+	/// @param coverage The stroke's coverage there.
+	[[nodiscard]] Pixel retouched(const Pixel& under, int x, int y, float coverage) const;
 
 	Document* document_;                                        ///< The document, null once ended.
 	std::uint64_t target_;                                      ///< The image painted.
@@ -135,6 +157,9 @@ private:
 	StrokePoint last_;                                          ///< The last point.
 	float travelled_ = 0.0f;                                    ///< The distance since the last stamp.
 	std::size_t stamps_ = 0;                                    ///< See stamps().
+	float smudgeX_ = 0.0f;                                      ///< smudge: how far the stamp moved, across.
+	float smudgeY_ = 0.0f;                                      ///< smudge: and down.
+	std::optional<StrokePoint> lastStamp_;                      ///< smudge: where the last stamp was.
 	std::unordered_map<TileKey, Touched, TileKeyHash> touched_; ///< The tiles the stroke touched.
 };
 

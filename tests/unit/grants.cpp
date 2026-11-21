@@ -165,6 +165,16 @@ TEST_CASE("grants: programs by spec") {
 	CHECK(affresco::services::grantProgram(registry, "x=" + program + " " + std::string(5000, 'a')));
 }
 
+TEST_CASE("grants: a language server granted by name is told to speak over its standard streams") {
+	using affresco::services::stdioArguments;
+	CHECK(stdioArguments("pyright-langserver") == std::vector<std::string>{"--stdio"});
+	CHECK(stdioArguments("typescript-language-server") == std::vector<std::string>{"--stdio"});
+	CHECK(stdioArguments("bash-language-server") == std::vector<std::string>{"start"});
+	CHECK(stdioArguments("clangd").empty()); // stdio is its only transport
+	CHECK(stdioArguments("git").empty());
+	CHECK(stdioArguments("pyright").empty()); // the checker, not the server
+}
+
 TEST_CASE("grants: a root the person chooses: its services wait for it, then start on the folder chosen") {
 	const TemporaryFolder folder;
 	affresco::services::ServiceRegistry registry;

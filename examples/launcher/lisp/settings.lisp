@@ -3,10 +3,12 @@
 ;;; The AI provider's card is the shared intelligence add-on's (../../shared/addons/intelligence/settings.lisp): every
 ;;; app's assistant uses what is set there.
 
+(ns launcher.settings)
+
 ;;; The page
 
 (defview settings-page "The Settings page: its title, and the cards." []
-  `(node#settingsPage :when ~(= state.page "settings")
+  `(node#settingsPage :when ~(= state.page :settings)
      :fill true
      :color transparent
      :role tabpanel
@@ -17,7 +19,7 @@
 
 (defview settings-cards "The settings' cards, one under the other." []
   `(column#settingsList :anchors {:left 36 :top 112 :bottom 0}
-     :width ~(min 760 (- (- window.width computed.sideWidth) 72))
+     :width ~(min 776 (- window.width computed.sideWidth 56))
      :gap 16
      :scroll vertical
      ~(appearance-card)
@@ -34,8 +36,8 @@
          :anchors {:right 20 :top 62}
          :width 160
          :height 38
-         :onClick ~(handler revealMine "")))
-     (node#settingsIntelligence :anchors {:left 0 :right 0} :height 960 :color transparent
+         :onClick ~(handler reveal-mine "")))
+     (node#settingsIntelligence :style card :anchors {:left 0 :right 16} :height 960
        (node#intelligenceSettingsPage :use intelligenceSettings))
      ~(keys-card)
      (node#settingsAbout :use settingsCard :with {:title ~(t "settings.about") :icon info :height 112}
@@ -48,7 +50,7 @@
 
 (defcomponent settingsCard "A card of the settings: its icon and title, then what it holds."
   {:title "" :icon "" :height 120}
-  `(node#settingsCardPanel :style card :height ~height :anchors {:left 0 :right 0}
+  `(node#settingsCardPanel :style card :height ~height :anchors {:left 0 :right 16}
      (label#settingsCardIcon :icon ~icon
        :font bigIcons
        :textColor @c.accent
@@ -98,7 +100,7 @@
                       {:id es :title "Español" :width 80}
                       {:id fr :title "Français" :width 84}]})))
 
-(defview notation-card "The notation the examples open in: JSON or Lisp." []
+(defview notation-card "The notation the examples open in: Lisp, the standard, or JSON." []
   `(node#settingsNotation :use settingsCard :with {:title ~(t "settings.notation") :icon braces :height 158}
      (label#notationLabel :text ~(t "settings.notationLabel")
        :textColor @c.muted
@@ -114,7 +116,7 @@
               :color @c.raised
               :selectedColor @c.surface
               :highlight @c.hover
-              :items [{:id json :title "JSON" :width 80} {:id lisp :title "Lisp" :width 80}]})
+              :items [{:id lisp :title "Lisp" :width 80} {:id json :title "JSON" :width 80}]})
      (label#notationText :wrap true
        :textColor @c.muted
        :text ~(t "settings.notationText")
@@ -124,14 +126,14 @@
 (defview keys-card "The keys, as the platform writes them, and what each does." []
   `(node#settingsKeys :use settingsCard :with {:title ~(t "settings.keys") :icon keyboard :height 208}
      (column#keysList :anchors {:left 54 :right 20 :top 56} :height 134 :gap 4
-       ~(repeat [k [["⌘1 · ⌘2 · ⌘4" "settings.keyPages"]
+       ~(repeat [k [["⌘1 · ⌘2 · ⌘," "settings.keyPages"]
                     ["⌘N" "settings.keyNew"]
                     ["⌘F" "settings.keySearch"]
                     ["⌘R" "settings.keyRefresh"]
                     ["Delete" "settings.keyDelete"]]]
          `(row#keyRow :height 22 :anchors {:left 0 :right 0} :gap 12
             (label#keyCombo :font small
-              :text ~(if (= context.platform "mac") k.0 (join "Ctrl+" (split k.0 "⌘")))
+              :text ~(if (= context.platform :mac) k.0 (join "Ctrl+" (split k.0 "⌘")))
               :textColor @c.text
               :color @c.raised
               :radius 6

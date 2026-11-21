@@ -23,12 +23,15 @@ template: a Lisp program that the stock host runs, with no C++ of its own.
 | `window.lisp`, `layout.lisp` | A window with its fringes, scroll bar and mode line; the windows' layout, split and removed |
 | `bars.lisp`, `splash.lisp`, `echo.lisp` | The menu bar and the tool bar; the start screen; the echo area and *Completions* |
 | `minibuffer.lisp` | Questions in the echo area, completion, history, `M-x` |
-| `motion.lisp`, `editing.lisp` | Moving point, the mark, a numeric argument, `C-g`; deleting, undoing, the region's case and lines |
+| `motion.lisp`, `editing.lisp` | Moving point, `C-l`, the mark, a numeric argument, `C-g`; deleting, undoing, the region's case and lines, electric pairs |
+| `macros.lisp` | The keys Calamaio reads itself: a character typed after `C-u`, keyboard macros (`F3`, `F4`) |
+| `registers.lisp` | Registers (`C-x r s`, `C-x r i`, `C-x r SPC`, `C-x r j`) and rectangles (`C-x r k`, `C-x r y`, `C-x r t`) |
 | `killring.lisp` | The kill ring: `C-k`, `M-d`, `C-w`, `M-w`, `C-y`, `M-y` |
 | `search.lisp` | Search as you type (`C-s`, `C-r`) and query replace (`M-%`) |
 | `buffers.lisp`, `files.lisp`, `listings.lisp` | Buffers; visiting, saving and inserting files; a folder's files (`C-x d`) and the buffer list (`C-x C-b`) |
+| `dired.lisp` | Changing a folder from its listing: flags (`d`, `u`), deleting (`x`), renaming (`R`), copying (`C`), new folders (`+`) |
 | `help.lisp`, `guides.lisp` | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`; the tutorial (`C-h t`) and the tour |
-| `options.lisp` | The minor modes Options toggles, the theme, Customize |
+| `options.lisp`, `customize.lisp` | The minor modes Options toggles (auto-fill, whitespace and the fill column too), the theme; the *Customize* buffer, each variable with its state |
 | `loop.lisp` | Extending it from inside: `C-M-x`, `C-x C-e`, `C-j`, your init file, hook points, asking what is defined |
 | `keys.lisp`, `menus.lisp` | The key bindings; the menus |
 | `PARITY.md` | What it does like its model, and what not yet |

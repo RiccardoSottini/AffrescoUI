@@ -58,7 +58,7 @@ Every part of the format follows these, and so should every extension:
 | Key | Meaning |
 |---|---|
 | `version` | Required. `2` (a file of version 1 is read by migrating it: "Migrating from version 1"). |
-| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
+| `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it, and it is a `panel` whatever its type: a `row`, `column` or `grid` goes inside it, with `"fill": true` (`affrescoui check` reports a container root). |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"letters"` (`C-x`, `M-<`; `"emacs"` is its older name). |
@@ -83,6 +83,7 @@ Every part of the format follows these, and so should every extension:
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
+| `keyBindings` | `"state.keyBindings"`: where the person's own key bindings are, `[{ "keys": "mod+alt+t", "command": "toggleTheme" }]`, each running a command (an action with a title) by name. They are read before `keys`, so one can rebind a key; a disabled command doesn't run. A screen lets people edit them, e.g. as a JSON file. |
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
@@ -161,7 +162,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
-| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
+| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `gradient` | The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and `radial-gradient()`: `["#1e3a5f", "#0b1220"]` (colours spread evenly from top to bottom), or `{ "kind": "linear", "angle": 90, "stops": ["@accent", { "at": 0.6, "color": "#00000000" }] }`. `angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A `radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or `{ "at": 0..1, "color" }`; two stops at one place change colour sharply. At most 32 stops. It can be set in `hover` and the other states. |
@@ -174,6 +175,7 @@ parent, later siblings on top of earlier ones.
 | `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
 | `translate` | Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, `scale`, then `skew`. Default: `[0, 0]`. |
 | `transformOrigin` | The point `rotate`, `scale` and `skew` turn about: `"center"` (the default), an edge or a corner (`"top"`, `"bottomRight"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner). |
+| `opacity` | How opaque the node and its children are, from `0` to `1` (the default), like CSS `opacity`: the subtree is drawn into a texture and that drawn translucent, so overlapping children don't show through each other. Layout and clicks don't change (a node at `0` still takes them: add `disabled` or `visible`). Below 1 the children are clipped to the node, as with `cache`; a transformed node is drawn at full opacity. Bind it to the state and an `animate` step fades it. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
@@ -233,7 +235,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. Horizontally, `"justify"` stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its spaces (plain text and `runs`, left to right; `"justify center"` centres the block vertically). |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -241,6 +243,7 @@ only for the elements that changed.
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "underline", "strike", "background", "shadow", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
+| `letterSpacing` | Extra pixels between the characters of plain text (a heading, small capitals, a spaced paragraph), as CSS's `letter-spacing`; negative tightens. Counted in `align`, `fitText`, `wrap` and justified lines; `runs` keep the font's spacing. |
 <!-- end generated -->
 
 ```json
@@ -253,6 +256,8 @@ only for the elements that changed.
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
+Cmd+A (Ctrl+A elsewhere) selects the whole text, in `selectionColor`: typing or pasting replaces it, Backspace or
+Delete clears it, Cmd+C copies and Cmd+X cuts it (never a `secret` one); a caret key or a click leaves it.
 
 ### `editor`
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
@@ -266,7 +271,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines", "rowHeight" }`: the lines of its first and last visible rows (from 1), how many rows fit, how many lines there are, and a row's height. For "Top", "Bot" and "42%" indicators, and scroll bars. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
@@ -279,6 +284,8 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `whitespace` | `true` draws a small dot in each space, in `guideColor`, so blanks can be seen. |
+| `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
@@ -329,6 +336,7 @@ overflow.
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `fitContent` | `true`, `"width"` or `"height"`: that size comes from the children instead of `width` and `height` (within the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its text. A child that grows or is stretched by its anchors adds only its own size. |
+| `padding` | Room inside the edges around the children, as CSS padding: one number for every edge, `[vertical, horizontal]` or `[top, right, bottom, left]`. The children are placed, and their percentages and anchors resolved, within the rest; `fitContent` adds it to the children's size, and a scrolling container scrolls it with them. A number token works (`"@space.m"`). Default: `0`. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->
@@ -349,6 +357,7 @@ after row. A child is as wide as its cell and keeps its own height at the top of
 | `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. On a `table`: the columns, left to right: a string (its id and title), or `{ "id", "title", "width" }` (pixels, default 120, at least 24). Column i shows each item's cell i. Dragging a header's right edge resizes it and runs `onColumnResize`; keep the width in state there to keep it over a change of columns. |
 | `rows` | Tracks for the rows, as `columns`. Rows past them, and every row without `rows`, are as tall as their tallest child. |
 | `gap`, `rowGap`, `columnGap` | Pixels between cells; `rowGap` and `columnGap` over `gap`. |
+| `padding` | Room inside the edges around the cells, as on a `row` (a number or a CSS-style list). |
 | `justifyItems` | Where children sit across their cells: `stretch` (default), `start`, `center` or `end`. |
 | `alignItems` | Where children sit down their cells: `start` (default), `center`, `end` or `stretch`. |
 <!-- end generated -->
@@ -525,7 +534,7 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 <!-- generated: tabs -->
 | Key | Meaning |
 |---|---|
-| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. Each tab is an element of its own to assistive tools and scenarios (role `tab`, its label as its name, `selected` when active; pressing it picks it), for the first 1,000. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
@@ -559,7 +568,7 @@ top stays in place.
 <!-- generated: list -->
 | Key | Meaning |
 |---|---|
-| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
+| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). `"marks"`: parts of the label drawn highlighted, each `[first, count]` in characters (at most 64), such as a search's matches in a line. Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
 | `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. A state path (`"expanded": "state.files.open"`) does that itself: the ids are read from there, and kept there before `onExpand` runs. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
 | `guides` | On a `tree`: a line per level left of the nested rows (default true). |
@@ -629,10 +638,11 @@ time, as it is drawn.
 | `tracks` | The tracks, usually from state: `{ id, label, keyframes, clips, tracks, expanded, muted, locked }` (at most 10,000 in all, ids unique). A track with `tracks` is a group (at most 16 deep) that its chevron or Enter opens and closes (`onExpand`); its M and L buttons, or the keys, mute and lock it (`onChange`, `event.type` `"track"`): a locked track's items don't move. A keyframe is `{ time, value, easing }`, `easing` being `"step"` (drawn as a square), `"linear"` (a diamond, the default) or `"bezier"` (a circle; CSS's ease-in-out, or `[x1, y1, x2, y2]` for others). A clip is `{ id, label, start, duration, color }` (ids unique across tracks). At most 10,000 keyframes and 10,000 clips a track, 100,000 in all. The node's children, made with `repeat`, are the headers: child i is the i-th track (a group's tracks following it), placed in its row and hidden while the row is scrolled away or closed. |
 | `duration`, `fps` | Its length, in seconds (default 10), and its frames per second (`fps`, 1 to 1000, default 30): times snap to frames. |
 | `time` | The playhead, in seconds, usually `{{state.time}}` (applied when it changes). A press or a drag on the ruler, Left and Right (a frame; a second with Shift), Comma and Period (the previous or next keyframe, clip edge or marker), Home and End (the play range's ends) move it and run `onScrub`. |
-| `timeFormat` | The ruler's labels: `"frames"` (the default), `"seconds"` or `"timecode"` (`HH:MM:SS:FF`). Its ticks follow the zoom. |
+| `timeFormat` | The ruler's labels: `"frames"` (the default), `"seconds"`, `"timecode"` (`HH:MM:SS:FF`) or `"none"` (ticks only, for markers that name the times, as a roadmap's months). Its ticks follow the zoom. |
 | `playRange` | `[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration). |
 | `markers` | Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000). |
 | `snap` | Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the play range and the playhead. Alt held at the press leaves it off for that drag. |
+| `trackButtons` | Whether each track shows its M and L buttons, and the M and L keys mute and lock it (the default); `false` for tracks that are never muted or locked, such as a roadmap's projects. |
 | `pixelsPerSecond`, `offset` | The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, `offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, or a drag with the right or middle button) stay until then. |
 | `selectedKeys` | The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index (`"pos:2"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and `onClipChange` for each item. |
 | `headerWidth`, `trackHeight` | The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28). |
@@ -680,6 +690,7 @@ data or its size changes.
 | `fillColor` | The inside's colour; without it the path isn't filled. |
 | `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
 | `fillGradient` | The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "@accent" }] }` (1 to 32 stops; a radial one is centred, reaching the corners). |
+| `feather` | How wide the inside's edge fades out past the path, in window units: `1` (the default) anti-aliases it, `0` is a hard edge, and up to `64` a soft edge or a blurred shadow. |
 | `stroke` | The outline's colour; without it there is no outline. |
 | `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
 | `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
@@ -701,8 +712,10 @@ An infinite canvas, as in whiteboards and design tools: its children and its `it
 seen through a camera. Drag the background (or hold Space, or use the middle button) and scroll to pan; pinch, or Ctrl
 or Cmd with the wheel, zooms at the pointer, as do `+` and `-` (`0` resets the zoom, Shift+1 fits everything, Shift+2
 the selection). Click, Shift-click and a marquee select; the handles move, resize (eight of them) and rotate; arrow
-keys nudge (Shift: 10). Moves and resizes snap to the grid, to other items' edges and centres and to guides, with
-smart guides drawn while dragging. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
+keys nudge (Shift: 10). Shift held as a drag starts keeps a corner resize's proportions and a move along one axis.
+Moves and resizes snap to the grid, to other items' edges and centres and to guides, with smart guides drawn while
+dragging; a move also snaps to the gaps its row (or column) already has, or to the middle between two items, and
+distance indicators show the equal gaps. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
@@ -746,7 +759,7 @@ to load is left out and named in the log.
 |---|---|
 | `bind` | A state path keeping the view (camera and selection), both ways. |
 | `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
-| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "display", "asset" }`; `display` is `"solid"` (the default), `"wire"` (its edges) or `"bounds"` (the box around it), and a node is picked by its surfaces however it is drawn; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone", "castsShadow" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
 | `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
 | `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
 | `time` | The animations' time, in seconds (default 0). |
@@ -763,7 +776,7 @@ to load is left out and named in the log.
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
 | `xray` | How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to 1 (kept at 0.95, so they still show). |
 | `lighting` | `"scene"` (the default: the scene's lights, a soft studio light if it has none) or `"studio"` (the studio light only, the scene's lights left out: a material preview). |
-| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local" | "view", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "individual" (each node about its own origin), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
 | `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
@@ -957,13 +970,15 @@ The parts of a conversation with an assistant (see Asking the agents) are built-
   unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
   action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
   left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
-  badge).
+  badge; `size` is its diameter, 56 by default, its icon scaled with it).
 
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
 `kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
-like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system). The sizes include a type scale
+(`kit.fontCaption` to `kit.fontDisplay`, 13 pixels for body text at 1x) and one icon size, `kit.iconSize`, for a font's
+`size` and an icon font's (`"fonts": { "default": { "file": "...", "size": "@kit.fontBody" } }`).
 
 <!-- generated: kitTokens -->
 | Token | Dark | Light | For |
@@ -992,6 +1007,14 @@ like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
 | `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
 | `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
 | `kit.borderWidth` | 1 | 1 | Borders. |
+| `kit.fontCaption` | 11 | 11 | The type scale: captions, badges and shortcut hints. |
+| `kit.fontSmall` | 12 | 12 | The type scale: secondary text, status bars and metadata. |
+| `kit.fontBody` | 13 | 13 | The type scale: body text, controls and lists (a font's `size`). |
+| `kit.fontSubheading` | 15 | 15 | The type scale: a group's or a card's heading. |
+| `kit.fontHeading` | 18 | 18 | The type scale: a panel's or a dialog's heading. |
+| `kit.fontTitle` | 24 | 24 | The type scale: a page's title. |
+| `kit.fontDisplay` | 32 | 32 | The type scale: large figures and hero text. |
+| `kit.iconSize` | 16 | 16 | Icons in bars, buttons, lists and menus: one size per row. |
 <!-- end generated -->
 
 ## Values, expressions and state
@@ -1036,11 +1059,14 @@ Wherever a value is expected it can be computed:
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
   `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches),
   `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`, `formKeyword(text, keywords)`,
-  `setFormKeyword(text, keywords, value)`;
-- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
-  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
-  `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
-  `scan(list, expression, initial?)`.
+  `setFormKeyword(text, keywords, value)`, `meshPrimitive(name)`, `meshExtrude(mesh, faces, distance)`,
+  `meshInset(mesh, faces, amount)`, `meshDeleteFaces(mesh, faces)`, `meshDeleteVertices(mesh, vertices)`,
+  `meshLoopCut(mesh, edge)`, `meshBevel(mesh, edge, amount?)`, `meshMove(mesh, vertices, delta, radius?)`,
+  `meshScale(mesh, vertices, factor, radius?)`, `meshRotate(mesh, vertices, rotation, radius?)`,
+  `meshFaceVertices(mesh, faces)`, `meshFaces(mesh, faces, offset?)`, `meshCentre(mesh, vertices)`,
+  `meshModifiers(mesh, modifiers)`, `meshEdges(mesh, thickness, edges?)`, `meshFlip(mesh)`, `meshMirror(mesh, axis)`,
+  `meshArray(mesh, count, offset)`, `meshSubdivide(mesh, levels)`, `meshPick(mesh, point, mode, node?)`,
+  `meshStats(mesh)`, `gltfScene(gltf, prefix)`, `transformCompose(outer, inner)`, `transformRelative(transform, outer)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
@@ -1052,12 +1078,20 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `m
 latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
+`touches`, `changes`, `remember`, `reason`, `time`) (an entry of `history` or `proposals` made by an undo that keeps
+later changes has `undo`: `{"of", "drop", "then"}`, what it undid and the later changes it took out or rebuilt);
+`preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
 `requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
 (not in a circle, and at most 32 deep). Prefer them to actions that recount things by hand.
+
+**When a binding is evaluated again:** when a place it read changes. A binding that reads `state.items[5].title`
+is evaluated again when that title changes, not when another item does, and a `computed` value whose new value is
+the same as before changes nothing that reads it. `nodes.<id>`, `now()` and `today()` say nothing when they change,
+so a binding that reads one is evaluated on every update. A `repeat` with a `key` makes an item inserted or removed
+cost one row; without a `key`, the rows after it are evaluated again with their new items.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 
@@ -1177,13 +1211,16 @@ are stored in the state as they are shown to a `calendar`. The functions give nu
 ## Events
 
 A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
-`event.left`/`top` (in the handling node) and its `width`/`height`.
+`event.left`/`top` (in the handling node) and its `width`/`height`. Pointer events (press, release, click, double
+click, context menu, drag, drop and scroll) also get the modifier keys held: `event.shift`, `ctrl`, `alt`, `cmd` and
+`mod` (Cmd on macOS, Ctrl elsewhere, as in shortcuts), e.g. `{{event.shift ? 'extend' : 'replace'}}` or
+`(if event.shift ...)` in a handler.
 
 <!-- generated: events -->
 | Handler | When |
 |---|---|
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; `event.data` is the item under the pointer that a drag would carry, as a tab's `{ "id", "index" }` or a list row's `{ "id", "ids" }`, when there is one). |
-| `onPress`, `onRelease` | Left button down, up. |
+| `onPress`, `onRelease` | Left button down, up (the release reaches the node pressed wherever it is let go: `event.inside` says whether over it; a click needs it over). |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
@@ -1237,9 +1274,25 @@ a keymap that owns the keyboard while its node has the focus.
 object with both step keys and command keys is an error. `enablement` is checked only when a key, a menu or a palette
 runs the command; a `run` step and the application's code ignore it.
 
+**Arguments:** `arguments` is a list of names, or an object from a name to its type, which a peer reads and its runs
+are checked against (Commands as tools):
+
+```json
+"moveCard": { "title": "Move card", "description": "Moves a card to another column.",
+	"arguments": { "card": { "type": "string", "description": "The card's id" },
+	               "to": { "enum": ["todo", "doing", "done"] } },
+	"do": [{ "run": "move", "with": { "id": "{{card}}", "status": "{{to}}" } }] }
+```
+
+A type is one of Typed state's, with `description` and `default` (which must match it). At most 32 arguments, each
+named with 1 to 64 letters, digits, `-` and `_`. For a command whose `do` runs a function of the program, each typed
+argument must be one of the function's parameters. Each is checked when the document is read and on every revision,
+and the error names `actions.<name>.arguments.<argument>`.
+
 **Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
 is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
-variables), or a list of bindings, where the first that applies runs.
+variables), or a list of bindings, where the first that applies runs. The key `"alt"` (or `"option"`) alone is Alt
+pressed and released with no other key, modifier or click between: key hints, a menu bar's letters.
 
 **Resolution:** one walk per press.
 1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
@@ -1250,11 +1303,18 @@ variables), or a list of bindings, where the first that applies runs.
 5. A press that starts a chord waits for the next one.
 6. If nothing matched, `onKey` bubbles.
 
+**Gamepads:** a connected gamepad presses keys in the focused window, so every keyboard path works with it: the D-pad
+and the left stick press the arrows (held, they repeat), A presses Enter, B Escape, X Space, the right bumper Tab and the
+left one Shift+Tab. While one is connected the desktop loop looks at it 30 times a second; the web build has none.
+
 **Variables:**
 - `context`: `focus` (the focused node's id), `focusPath` (the ids from the root), `textInputFocus`, `overlay` (one is
   open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
   node `context` of the focused node and its ancestors (an inner node wins).
 - `commands`: `{ name, title, category, icon, description, enabled, key, keyLabel }`, sorted by category, then title.
+- `runs` and `runGrants`: the runs of commands peers asked for, waiting or done, oldest first (`{ id, author,
+  command, title, arguments, state, reason, time, changes, errors, undoable, personOnly }`), and the grants an
+  `allowRun` with `always` added; a screen's person decides with the `allowRun`, `denyRun` and `undoRun` steps.
 - `keybindings`: `{ key, keyLabel, command, title, when, scope }`, the document's first (`"screen"`), then by node
   (`"#id"`) and key.
 
@@ -1315,20 +1375,26 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line"; a "type" with "line", "column", "toLine" and "toColumn" (from 1) types over that range; "recenter", "recenterTop" and "recenterBottom" scroll the caret's row to the middle, the top or the bottom |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
+| `paste` | `{ "paste": "text", "into": "state.clip", "onDone": [...] }`: the clipboard's text (at most 1 MiB), into a state path, and to `onDone` as `result`; only on the person's own click or key, never a timer, a reply or a revision's step. `{ "paste": "image", "as": "clip", "into": "state.pasted" }` takes the clipboard's image instead (macOS for now; a 64 MiB PNG and 4,096 by 4,096 pixels at most): an `image` node with `"source": "clip"` shows it, and the value is `{ "image", "width", "height" }`, or null when the clipboard holds none. A control step |
+| `copyImage` | `{ "copyImage": "chart" }`: puts a named image of the screen (a `snapshot`'s, one pasted or set by the host) on the clipboard, where the system takes one (macOS for now). A control step |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
 | `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
 | `exportChanges` | `{ "exportChanges": "my init", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }`: the commits on main after `from`, those that only touch what starts with `only`, as a change set |
 | `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
-| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since). `revert` undoes an earlier commit and keeps the later ones; where a later change conflicts, it carries the person's choice: `{ "revert": "{{c.id}}", "drop": "all", "head": "{{state.plan.head}}" }`, `drop` (those later changes are taken out too) and `keep` (they stay, and that part is not undone) each a list of conflict paths or `"all"`, `head` the head of main the plan was worked out on (refused if main moved since) |
+| `allowRun` | `{ "allowRun": "{{item.id}}", "always": true, "for": "8h" }`: the person allows a command run a peer asked for that waits (`runs`); `always` also lets that channel run that command without asking, for `for` or as long as the review policy says |
+| `denyRun` | `{ "denyRun": "{{item.id}}", "reason": "not now" }`: the person refuses a run that waits |
+| `undoRun` | `{ "undoRun": "{{item.id}}" }`: puts back what a run changed, refused when that was changed since |
+| `undoPlan` | `{ "undoPlan": "{{c.id}}", "into": "state.plan" }`: what undoing that commit would do, without doing it (`of`, `head`, `outcome`, `conflicts`, `later`, `state`, ...: see "Live protocol"), from any handler; `drop` and `keep` ask what that choice would do; `then` gets `result`, the plan, `onError` gets `error` |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
 | `insert` | `{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see Data: models and records) |
@@ -1336,7 +1402,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
 | `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
 | `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
-| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it |
+| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it; `{ "closeWindow": "main" }` closes the screen's own window, which ends the app (Quit, Exit): only from the person's own click or key, never from a load, a timer, a message or a revision |
+| `openUrl` | `{ "openUrl": "https://example.com/help" }`: opens an http:// or https:// web address in the person's browser, only after asking them in a question the window draws itself (the whole address shown; Enter or Open says yes, Escape or Cancel no). Nothing a screen runs can answer it, so a timer, a message or a revision's code never opens one without the person's yes. Any other scheme is an error. A control step |
 | `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the person's own click or key, and Esc always leaves. A control step |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
@@ -1359,8 +1426,8 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
-| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. A control step |
-| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. With `"as": "image"` it reads a PNG or JPEG picture (at most 8 MB; `png`, `jpg` and `jpeg` by default) as a data URI that an `image` node's `source` shows and a saved document carries, and `result` is `{name, bytes, width, height}`. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of each node (`scale` pixels a unit, 2 by default; several nodes are written as numbered files beside the chosen name, `Deck-1.png`, `Deck-2.png`..., at most 500, and `result.files` names them), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
 | `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |
@@ -1370,6 +1437,8 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words, with `options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `cancelAsk` | `{ "cancelAsk": "{{state.asked}}" }`: stops requests of `ask` still in progress (an id or a list): they become `cancelled`, the agents are told, and their later replies are dropped. A control step |
 | `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
+| `pick` | `{ "pick": "node", "hint": "Point at what to change", "into": "state.pointed" }`: after the person's own press, they point at an element; the engine keeps its record (where it is written, never its data) and runs `onDone` with `result`, or `onCancel` (Pointing at a node). A control step |
+| `unpick` | `{ "unpick": "{{state.pointed.id}}" }`: forgets pick records (an id or a list); an unknown id is ignored. A control step |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -1430,6 +1499,9 @@ The operations, and the keys of `with` each reads:
 | `redo` | — | Does again the step last taken back. |
 | `history` | `position` | Goes to a place in the history (0 is before the first step). |
 | `clearHistory` | — | Forgets every step of the history. |
+| `takeSnapshot` | `name` | Keeps the layers as they are under a name, to restore later. |
+| `restoreSnapshot` | `index` | Puts the layers back as a snapshot kept them, as one step. |
+| `deleteSnapshot` | `index` | Forgets a snapshot. |
 | `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
 | `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
 | `duplicateLayer` | `id` | Duplicates a layer. |
@@ -1438,10 +1510,11 @@ The operations, and the keys of `with` each reads:
 | `deleteMask` | `id` | Deletes a layer's mask. |
 | `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
-| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
+| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the last selection again, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `trim` | — | Crops the image to the box around its visible pixels that aren't transparent, and forgets the history. |
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
@@ -1449,8 +1522,11 @@ The operations, and the keys of `with` each reads:
 | `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `convertFormat` | `format` | Converts the image to 8 bits a channel (rgba8) or 16-bit floats (rgba16f), and forgets the history. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `distributeLayers` | `ids`, `edge` | Spaces three or more pixel layers evenly between the outermost two, by their edges or middles. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
 | `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
@@ -1464,13 +1540,28 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector`, `cropRatio`, `retouch`, `reverse`, `dither`, `transparency`, `healing` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
+| `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `tracking`, `kerning`, `fill` | Adds a type layer. |
+| `addShape` | `shape`, `x`, `y`, `x2`, `y2`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Adds a shape layer. |
+| `editContent` | `id`, `text`, `x`, `y`, `x2`, `y2`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `tracking`, `kerning`, `shape`, `radius`, `sides`, `points`, `closed`, `fill`, `stroke`, `strokeWidth` | Changes a type or shape layer's content, and draws it again. |
+| `rasterize` | `id` | Makes a type or shape layer a pixel layer of the same pixels. |
+| `newPath` | `name` | Adds an empty path, the active one, for the pen. |
+| `textToPath` | `id` | Adds the outlines of a type layer's text as paths, one per contour of each glyph (Create Work Path). |
+| `selectPath` | `index` | Makes a path the active one (-1 for none). |
+| `deletePath` | `index` | Deletes a path (the active one when no index). |
+| `renamePath` | `index`, `name` | Renames a path. |
+| `setPath` | `points`, `closed` | Replaces the active path's anchors, or closes or opens it. |
+| `strokePath` | `width` | Strokes the active path on the active layer with the foreground colour. |
+| `fillPath` | — | Fills the active path on the active layer with the foreground colour. |
+| `pathToSelection` | `mode` | Makes a selection of the active path's inside. |
+| `pathToShape` | — | Makes a shape layer of the active path. |
 <!-- end generated -->
 
-Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
-and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
+Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `reselect`: the selection
+the last `none` or marquee click took away, `invert`, `rectangle` and `ellipse` from `from` to `to`, `polygon` through
+`points`, `wand` at `x`, `y`, `colorRange` of `color` within
 `fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
 its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
 layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
@@ -1479,9 +1570,34 @@ layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by`
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
 tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
 `mode` (a polygon keeps the mode of its first corner). During a marquee's or crop's drag, `shift` keeps a square and
-`alt` draws from the press as the centre (a key held since the press only chose the mode). With the `autoSelect` option,
+`alt` draws from the press as the centre (a key held since the press only chose the mode); a crop with the `cropRatio`
+option (width over height, 0 for any) keeps that shape instead. The gradient's `reverse`, `dither` (a little noise
+against bands) and `transparency` (false makes every stop opaque) options change how it is laid. With the `autoSelect` option,
 a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
 go through the file dialogs the person sees: a document never names a file.
+
+**Type, shapes and paths.** A type or shape layer is a pixel layer drawn from its `content` (in its snapshot row, with
+`kind` `text` or `shape`): `{"text", "font", "size", "leading", "tracking", "kerning", "bold", "italic", "align", "x",
+"y", "fill"}` for type (drawn with the screen's `fonts`, `""` the default; `tracking` is the space after each character
+and `kerning` an object of two-character keys to the space between that pair, both in thousandths of the size), `{"shape": rectangle|ellipse|polygon|line|path, "x", "y", "x2",
+"y2", "radius", "sides", "points", "fill", "stroke", "strokeWidth"}` for a shape, colours as `#rrggbb[aa]`. `addText`,
+`addShape` and `editContent` take those keys and draw the layer again (typing and sliders coalesce into one step);
+painting and filters refuse it until `rasterize`; moving moves its content. The `vector` tool option holds what new type
+and shapes start as. The `text` gesture adds a type layer at the press or picks the one pressed, then the canvas types
+into it (Backspace, Enter, Escape stops); `shape` drags one out; `pen` adds anchors to the active path (a drag pulls
+smooth handles; a press on the first anchor closes it; on the path, a press on a segment adds an anchor there keeping the
+curve, on another anchor deletes it, and with `alt` on an anchor makes a smooth one a corner or pulls a corner's handles
+out); `path-select` drags the active path or the anchor pressed. `textToPath` adds a type layer's outlines as paths, one
+per contour. `quick-select` selects, at the release, the pixels like the one under each point of the drag (within the
+`tolerance`) and connected to it, no farther than the brush's radius (`size`), so it stops at edges.
+`retouch` strokes with the brush and changes the pixels under it as its `retouch` option says: `dodge` lightens,
+`burn` darkens, `sponge` takes the colour away, `blur` and `sharpen` move each pixel towards or away from its
+neighbours' average, `smudge` drags the paint along the stroke. A `clone` tool with the `healing` option lays the
+source's texture in the tone of the pixels it covers (the healing brush). `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
+stays), a drag inside moves it, the handle above the box turns it about its centre, one step each; `layer-box` does the same to the active pixel layer, around its pixels
+(a Free Transform step). The
+paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
+canvas while one is active.
 
 ### Image values and the snapshot
 
@@ -1490,10 +1606,10 @@ The names the operations and tool options take, and the library's limits:
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
-| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom` |
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select`, `quick-select`, `selection-box`, `layer-box`, `retouch` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
-| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur`, `high-pass` |
 | The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
 | `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `imageFilePixels` 268435456, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
 <!-- end generated -->
@@ -1501,11 +1617,12 @@ The names the operations and tool options take, and the library's limits:
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
 `lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
-an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
-`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
-`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
-pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
-`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
+an `image` node shows), `history` (`id`, `label`), `snapshots` (`name`, `index`), `position`, `dropped`, `canUndo`,
+`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`,
+`x`, `y`), `message`, `previewing`, `clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the
+`histogram` operation last counted: pixels by brightness, darkest first, transparent ones left out; a large image is
+measured at a smaller size, so give `curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole
+image.
 
 ### An image example
 
@@ -1565,6 +1682,7 @@ last 1,024 samples mixed, all 0 unless it plays; `"updates": 50` makes it follow
 | `seek` | `to` (seconds) | Moves it (a file, bytes or a tone; not a live stream). |
 | `volume` | `to` (0 to 4), `ms` | Sets its gain, over `ms` if given. |
 | `pan`, `rate`, `loop` | `to` | Sets its balance, its playback rate, whether it loops. |
+| `eq` | `to` | Sets its equaliser: a list of up to 16 bands `{ "frequency": 60, "gain": 6, "q": 1 }` (20 Hz to 20 kHz, -24 to 24 dB, `q` 0.1 to 10, 1 by default), peaking filters on what it plays; `[]` takes it off. |
 | `master` | `to` (0 to 4) | Sets the gain of every sound (no `of`). |
 
 `of` names the sound, and may be left out when the screen declares only one; the operation may be computed
@@ -1656,7 +1774,8 @@ A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_
 `%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
-disconnect.
+disconnect. `name:closed` runs once per closing: when an open channel closes, or its first try fails, and not again
+for each retry that fails after.
 In an app (`app.json`) the stock host lets channels connect only with the `channels` capability, and only to a socket
 in its own socket folder: a relative path with no `..` (`studio.sock`, its own host). Any other is refused, and
 `name:closed` runs once with why (SECURITY.md, "Channels a screen declares").
@@ -1795,7 +1914,7 @@ without `app.json` reads `app.lisp`. A generated example:
   "$schema": "../../schema/affrescoui-app.schema.json",
   "format": "affrescoui-app", "version": 1,
   "id": "reading-list", "name": "Reading list", "description": "Books to read, and notes on the ones read.",
-  "icon": "assets/icon.png",
+  "icon": "assets/icon.png", "release": "1.2.0",
   "entry": "index.screen.json",
   "themes": ["themes/paper.json"],
   "capabilities": {
@@ -1815,6 +1934,9 @@ without `app.json` reads `app.lisp`. A generated example:
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
   own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
+- **`release`** (optional): the app's release, three numbers as a feature's (`"1.2.0"`, compared as semver's). A
+  shared version of the app names the release it was made from; an app without one is known by its files alone. A
+  malformed one refuses the app (`AffrescoUI app: release: expected three numbers such as 1.0.0`).
 - **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (its includes, themes,
   models and seed data may be written in the Lisp notation too: "The Lisp notation"). Every path in the manifest is relative, inside the
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
@@ -1847,6 +1969,14 @@ without `app.json` reads `app.lisp`. A generated example:
 
 Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
 theme, models or seed file 16 MiB.
+
+## Packages
+A version of an app travels as one file, a package (`*.affresco.json`, `"format": "affrescoui-package"`,
+[schema](schema/affrescoui-package.schema.json)): its source document, the release it was made from (`base`: the app's
+id, name and release, the notation, the tree, and the JSON Patch that turns the document back into it), the state keys
+and assets it adds, and, for `"kind": "app"`, the app's files. It holds no records, state, history or paths. `affrescoui
+pack` writes one, `affrescoui inspect` reads one; see [Version control](VERSION_CONTROL.md), "Sharing a version:
+packages".
 
 ## Live screens: revisions and the channel
 
@@ -1898,15 +2028,44 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
-| peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `picks` (`picks`), `source` (`source`), `undoPlan` (`plan`, `revision`), `done` |
+| peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` (`revision`, and the undo's choices `drop`?, `keep`?, `then`?, `head`?, `message`?: see below), `restore` (`revision`), `undo` |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?), `undoPlan` (`revision`, and `drop`?, `keep`?, `then`?, `head`? as on `revert`: what undoing that commit would do, without doing it; a peer whose reads are limited is refused it) |
+| peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
+| reviewer → | `resolve` (`proposal`, `path`, `take`: "mine" or "theirs"): settles a part a merge left out of a proposal (its leftOut: VERSION_CONTROL.md, "Installing a package"). Taking theirs adds the part to the proposal as its author's and moves its head; taking mine keeps main's. Never by its proposal's author; answered with done or rejected |
+| peer → | `getCommands` (`filter`?, `all`?), `runCommand` (`command`, `arguments`?, `evidence`?: "state", "picture" or "none", `scale`?), `undoRun` (`run`): the app's commands as tools (Commands as tools) |
+| → peer | answers to them: `commands` (a list of `{name, title, category, description, arguments, enabled, run, reason?, key?}`, `run` being "allow", "ask", "person" or "deny" for this peer now), `ran` (`run`, `command`, `changed`, `records`, `errors`, `failed`, `undoable`, and with a picture `region`, `picture`, `scale`), `waiting` (`run`, `reason`, `expires`), `undone` or `rejected`; after a wait, `ran` or `rejected` with `run` and the `id` of its `runCommand` |
+| reviewer → | `allowRun` (`run`, `always`?, `for`?), `denyRun` (`run`, `reason`?), `revokeRun` (`rule`) |
+| → all peers | `review` also carries `runs` and `runGrants` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?, `picks`?: at most 4 pick records) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
+
+**Undoing an earlier commit.** `revert` undoes one commit on main and keeps the commits after it. Where a later commit
+changed what it changed, the choices say what happens there: `drop` (those later changes are taken out too) and
+`keep` (they stay, and the commit's part there is not undone) each name conflict paths, or `"all"`; `then` is a JSON
+Patch applied after the undo, in the same commit; `head` is main's head the choices were made on; `message` is the
+commit's message. At most 256 paths in `drop` and `keep` together, each at most 1,024 bytes; a malformed choice is
+rejected naming its key (`revert.drop: expected a list of paths or "all"`). Without choices, `revert` is a plain undo,
+refused on a conflict. `undoPlan` answers what the undo would do first, as `plan`:
+
+| Key | Value |
+|---|---|
+| `of` | The commit to undo, as in `history` |
+| `head` | main's head id the plan was worked out on |
+| `outcome` | `"clean"` (it can be undone as asked), `"choose"` (later changes conflict and are not all named in `drop` or `keep`), `"ready"` (every conflict is named), `"blocked"` (it can't be done) |
+| `blocked` | Why, when blocked; else `""` |
+| `untouched` | How many later commits stay exactly as they are |
+| `later`, `laterMore` | At most 64 later commits a part of which conflicts, oldest first: `{"number", "id", "short", "author", "message", "parts": [paths]}`; and how many more |
+| `conflicts`, `conflictsMore` | At most 64: `{"path", "reason", "then", "now", "before", "commits": [numbers], "choice": "drop", "keep" or null}`; `then` is the value as the undone commit left it, `now` as it is, `before` as it was before the commit; and how many more |
+| `gone` | Paths the commit changed that a later change removed: nothing to undo there |
+| `state` | `{"undone": [paths], "kept": [paths]}` of the live state |
+| `changes`, `impact` | For `clean` and `ready`: the undo's operations as lines, and its impact per layer; else `[]` and null |
+| `proposals` | Ids of open proposals that would conflict with main after it |
+| `warnings` | Lines: a feature that would be left out, steps the commit ran once that are not undone |
 
 **Limits per peer** (`channel::PeerLimits`; the host may set others). A message over a limit is refused, and the first
 refusal in a row is logged:
@@ -1915,8 +2074,11 @@ refusal in a row is logged:
 |---|---|---|
 | One message | 88 MiB (a revision of 64 MiB of assets in base64) | `error` "message too large", without `id` (it isn't read) |
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
-| Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
+| Changes (`revision`, `restore`, `revert`, `undo`, and `undoPlan`, which costs a merge) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
 | Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
+| Runs (`runCommand`) | 120 a minute, 30 at once | `rejected` "too many runs", with `id` |
+| A run's `arguments` | 64 KiB | `rejected`, naming the size |
+| Runs that wait | 16 a screen, 4 a channel, 120 seconds each | `rejected` "too many runs are waiting" |
 | Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
@@ -1939,7 +2101,9 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   does. It is a control step. With no peer connected it fails at once: `ask:reply` runs with the error
   `no agent is connected`. `"attachments": "{{state.attached}}"` sends
   what the person attached (an `attach` step's list, or ids) as `[{id, name, type, size, duration?, width?,
-  height?}]`, never the bytes.
+  height?}]`, never the bytes. `"picks": ["{{state.pointed.id}}"]` sends what the person pointed at (a `pick` step's
+  record, or ids; at most 4) as the engine's records, then forgets them (Pointing at a node). A peer whose reads are
+  limited gets the request without `picks`.
 - `options` (an object, at most 4 KiB as JSON) goes with the request as it is, for the agents to read, e.g.
   `{ "ask": "{{text}}", "options": { "model": "{{state.model}}" } }`: the model the person chose. The screen gives it
   no meaning; an agent ignores what it doesn't know (the examples' agent uses `model` if its provider lists it).
@@ -1959,6 +2123,108 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   waits for review as any other.
 - Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
   to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
+
+### Commands as tools
+A peer can use an app as well as change it: it lists the app's commands and runs one, with arguments. Only commands
+are tools (actions with a `title` and a `do`: Commands and keybindings), never plain actions or functions.
+
+**The list:** `getCommands` answers each command, in the order of the `commands` variable, at most 1,024:
+`{name, title, category, description, arguments, enabled, run, reason?, key?}`. The title and description are the
+translated ones, cut at 128 and 512 bytes. `arguments` is always an object of types there; a name without a type
+maps to `{}`. `run` says what a run by this peer would meet now (`allow`, `ask`, `person` or `deny`), and `reason`
+why, e.g. a command that reaches a control step.
+
+**What a command reaches** is worked out from the document, never from what a peer sends: its steps, each `run` of a
+name written out (the document's action, else the program's function, else the application's own action), each
+`lisp` step's function and the definitions it uses, advice on them, and the hooks of the hook points they run. It
+reaches control when any of these holds a control or a review step, a `run` of a computed name, an action the
+document doesn't define, or a component that runs computed actions; and when the program doesn't build. It lists
+each `invoke`, `request` or `subscribe` of a method that writes or runs, as a reviewer reads it (`uses files.write
+(...)`), and whether a step writes records (`insert`, `update`, `delete`, `undoData`, `redoData`, `importCsv`).
+
+**The arguments a peer sends** are checked against the command's, in this order: an object
+(`move-card: arguments must be an object, like {"card": "…"}`); only declared names (`move-card: no argument 'colum'
+(it takes card, to)`); each value of its type, without quoting it (`move-card: to: expected one of todo, doing,
+done`); a missing one takes its `default`, else null, unless its type doesn't allow null (`move-card: card is
+missing`). A command that declares no arguments takes only `{}`.
+
+**How a run is judged:** it is refused when the screen has no window, draws a picture or previews a proposal; when
+the name is no command; when the arguments are wrong; when `enablement` is false. Then, the first that applies:
+
+| | The run |
+|---|---|
+| A `deny` rule names it | is denied |
+| It reaches a control or a review step | is denied: a peer never runs one |
+| The mode is `plan` | is denied (`acceptEdits` changes nothing for runs) |
+| It writes or runs through a service | waits for the person, each time, in the window's own question |
+| The runner is a reviewer | is allowed |
+| An `ask` rule names it | waits for a yes (the `runs` variable, `allowRun` and `denyRun`) |
+| An `allow` rule or a grant names it | is allowed |
+| The screen has no `permissions` section | is allowed |
+| Anything else | waits for a yes |
+
+A run always executes as its runner, never as the person, even after a yes: it can't approve, and reaches only what
+its runner may. It changes the live state and records, its records under the runner's name, and is kept in the
+`runs` log, not in the history; `undoRun` takes its changes back, refused if something changed them since. The command function's return value isn't sent back. A host can switch runs off.
+
+**What comes back:** `ran` with what changed (`changed`, `records`), the errors, whether it failed and can be undone,
+and with `evidence: "picture"` a picture of the region it changed; `waiting` with why and when the question expires
+(a run that waits is answered later with `ran` or `rejected`); or `rejected` with why. The limits are in the table
+above.
+
+**Run rules** live in `permissions.run`, in lists of their own that no change rule reads:
+
+```json
+"permissions": { "allow": ["studio"], "ask": ["agent(/actions)"], "reviewers": ["studio"],
+	"run": { "allow": ["agent(moveCard)", "agent(card.*)"], "ask": ["agent"], "deny": ["*(clearBoard)"] } }
+```
+
+A rule is `author` or `author(command)`: the author is `*`, a channel or a full name, and the command a name or a
+prefix ending in `*`. Only `allow`, `ask` and `deny`, at most 64 rules a list and 256 bytes a rule. A `role:` author
+isn't supported yet, and a pattern starting with `/` or `#` is refused (`run rules name commands, like
+agent(moveCard)`). An `allowRun` with `always` adds a grant, shown as `agent(run:moveCard)`. `affrescoui check` warns
+about a rule naming a command the document doesn't have.
+
+### Pointing at a node
+A person can point at an element and ask for a change to it: a `pick` step lets them pick one, and `ask` sends what
+they picked with their words.
+
+```json
+"keys": { "f9": [{ "pick": "node", "hint": "Point at what to change", "into": "state.pointed" }] },
+"actions": {
+	"send": [{ "ask": "{{state.draft}}", "picks": ["{{state.pointed.id}}"] }, { "set": "state.pointed", "to": null }]
+}
+```
+
+- `pick` starts only from the person's own press (a click, a key); a timer, a reply or a peer's message can't start
+  one, and neither can a revision: it is a control step. Without a window (a check, a preview) nothing happens.
+- While it runs, the panel under the pointer is outlined with a caption, its type, its id and, for a program, the
+  definition that wrote it (`label #cardTitle · card-title`); `hint` (at most 200 bytes) is shown at the top. A click
+  picks, Escape or a right click cancels, and the keyboard does all the mouse does (ACCESSIBILITY.md, "Pointing with
+  the keyboard"). One pick at a time.
+- A pick offers the nearest panel a node built, and describes the nearest node a revision can address: one with an
+  id, or the root. Its record goes `into` a state path and `onDone` runs with `result`; a cancel runs `onCancel`.
+- The engine keeps the records (at most 16, the oldest going first) until `unpick` forgets them or `ask` sends them.
+  A document names one by its `id` only: what agents get is the engine's record, never what a document wrote.
+- **A record says where something is written, never what the app's data is.** It holds no value from the state, no
+  record and no text a panel shows: bindings as written, not as evaluated. At most 4 KiB as JSON.
+
+| Field | What it holds |
+|---|---|
+| `id` | `pick-<n>`, counted from 1 in each run |
+| `revision`, `proposal`? | The revision shown, and the proposal previewed if one is |
+| `node`, `type`, `pointer` | The node as a revision addresses it (`#id`), its type, and the JSON Pointer where it is written |
+| `bounds` | `[x, y, width, height]` of its panel, in the window's pixels |
+| `bindings`, `handlers` | Its properties written with `{{...}}`, as written (each cut to 200 bytes), and its event names; 16 each |
+| `repeat`? | The repeats it is an item of, outermost first, the innermost 4: `{for, in, index}`; never the item itself |
+| `component`? | `{name, kit, usedAt}`: the component it lies in and the node that uses it; `kit` true for the library's |
+| `exact`, `hitType`? | Whether the panel clicked is the node's own; if not, the type of the one clicked |
+| `source` | Where it is written: for a program, the definition that built it `{address, kind, file, line, column, shared}`, the address `/program/<file>/<name>`; for a JSON document `{address, file?, shared?}` |
+
+An agent reads the records not yet sent with `getPicks`, and where a node is written with `getSource` (a node's id,
+a JSON Pointer, or a definition's address): the definition's exact text for a program, the node printed as JSON for a
+JSON document, at most 16 KiB (`cut` true when cut). A peer whose reads are limited is refused both
+(`Screen::picks()` and `Screen::source()` give the same to the host).
 
 ### Assets
 A revision can bring files: a picture an agent drew (an SVG it writes), a sound it described (a `.sound.json`), or a
@@ -2043,11 +2309,12 @@ own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affres
 Each scenario starts from the screen as loaded (no saved history or state) and plays alone: its channels find no host,
 and the clock moves only when a step waits, so it plays the same way on any machine. It runs headless; only a picture
 needs OpenGL. A scenario may name its own `screen`, and `screens` gives the folder they are in (default: the file's).
-`scale` (1 to 4) sets the pixels per window unit of its pictures. `note` is allowed on the file, a scenario and a step.
+`scale` (1 to 4, in quarters: 1.25 is a display set to 125%) sets the pixels per window unit of its pictures. `note` is
+allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part. `"mods": "shift+alt"` holds modifier keys over the step (`shift`, `ctrl`, `alt`, `cmd`, `mod`), on `drag` and `scroll` too |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
@@ -2056,8 +2323,9 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
+| `{ "command": "moveCard", "with": { ... }, "as": "agent" }` | Runs one of the app's commands as its author's peer would (`as`, default `agent`): the arguments are checked, the run rules judge, and it runs under that name. A run that would wait for a reviewer or the person, or is denied, ends the scenario. `"verdict": "ask"` (`allow`, `ask`, `person` or `deny`) runs nothing and checks the verdict a run would meet instead |
 | `{ "resize": [960, 720] }` | Resizes the window |
-| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
+| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }`. `"from": "fixtures/photo.png"` first copies that file of the scenario's screens folder (a path inside it, without `..`) into the run's own folder under the chosen name, e.g. a picture to open |
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 
@@ -2072,9 +2340,13 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks disabled` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has; `disabled` is whether it takes no input) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
+
+`action` and `command` differ in whose authority runs: an action runs as the app's own code, with the person's, while
+a command runs as its author, under the screen's `permissions.run` and that peer's limits (its run rate, the size of its
+arguments), as an agent's run would; a `verdict` that differs is reported as a failed expectation.
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused
 revision) ends it, and so does one whose handlers raise an error (an unknown variable stops an action), unless the step
@@ -2124,6 +2396,65 @@ capabilities, checks the composed document, then plays the feature's scenarios a
 (`"format": "affrescoui-proof"`) records the bindings, each check, the scenarios and the base commit; a failed one
 names each unmet need and why. An install keeps the record whole on `/features/<name>`, with its `needs`, `bindings`
 and `proof` ([Version control](VERSION_CONTROL.md), "Installing across apps").
+
+## A feature written as a program
+
+A feature for an app written as a program may hold Lisp definitions instead of, or beside, its JSON parts. They go in
+`provides.program`, in the shape of a document's `program` section, `{ "<file>": { "<address>": "<text>" } }`, and in
+the package as `features/<name>/feature.lisp`. The record keeps the program whole, within the manifest's 1 MiB. A
+static app (no `program` section) refuses it: "this feature holds code, and this app is static: install its JSON
+version".
+
+The program is built alone, and every definition is named in the feature's namespace:
+
+| Definition | Its name |
+|---|---|
+| `defstate`, `defcomputed` | the feature's name, `wordCount` |
+| `defcommand` | `wordCount.<word>` (not `wordCount.adapted.*`, the adapter's) |
+| `defview`, `defn`, `def`, `defmacro`, `defstyle`, `defcomponent`, `defpart`, `defcustom`, `defhook` | `wordCount-<word>` |
+| `defkey`, `add-hook`, `remove-hook`, `advice` | as written |
+| `defscreen`, `defdefaults`, `defmenu`, `deftokens`, `include` | refused |
+
+What it builds must be parts a feature provides (`state`, `computed`, `actions`, `components`, `styles`, `keys`,
+`menus`, `settings`, `views`, `exports`), each member in its namespace (actions `wordCount.*`, node ids
+`wordCount-*`), with no control step; a member both the JSON parts and the program give must be the same. A build
+that fails or runs out of its budget is refused, naming the definition.
+
+Its code may reach its own definitions, the language's functions, the expressions' functions and the steps `set`,
+`toggle`, `push`, `remove-state` (each with its path written out, under `state.wordCount`), `after`, `debounce`,
+`copy`, `log` and `run`, which names, written out, one of its own commands or `app.<need>` for an action need. Any
+other step or undefined name is refused. A view may read `app.<need>`; a command's or a function's body reads only the
+feature's own values: what else it needs, "pass it to the function as an argument from the view". A hook joins only a
+hook point the app declares with `defhook` and lists in `points.<name>.hooks` of a point the feature is placed in;
+advice only an action export such a point receives. Composition lists each in `extensions`. The functions don't run
+in the screen yet: what composes is what they built.
+
+In a feature's folder, `feature.lisp` may list the files instead: `:program ["sorter.lisp"]` reads each file, which
+must be in the folder, into `provides.program` (`affrescoui check --compose`, `contributions` and the MCP server read
+the folder so). Sinopia's slide sorter (`examples/sinopia/lisp/features/slide-sorter/sorter.lisp`) begins:
+
+```lisp
+;;; sorter.lisp --- the slide sorter: thumbnails of an ordered list of pages, drag to reorder, click to select
+;;;
+;;; Written once, for Sinopia's slides, and installed into any app that offers its needs (feature.lisp): it reads
+;;; the app only as app.pages and app.current, and changes it only through the actions app.select, app.reorder and
+;;; app.duplicate. Its own state is the page picked last, the selection of an app that keeps none.
+
+;;; Its state
+
+(defstate slideSorter {:picked ""} "The id of the page picked last: the selection when the app has no current page.")
+
+;;; What it does
+
+(defn slideSorter-selected
+  "The selected page: the app's current page, else the one picked last."
+  [current]
+  (if (nil? current) state.slideSorter.picked current))
+
+(defcommand slideSorter.pick
+  "Selects a page: the sorter remembers it, and the app selects it."
+  :title "Select Page"
+```
 
 ## Other formats
 
@@ -2279,6 +2610,7 @@ builds
 | `(deftokens name "doc"? {:token value ...})` | Its tokens, in `tokens` |
 | `(defpart name "doc"? :section value ...)` | Each section's members, as definitions of each would; a list (`persist`) joins the others |
 | `(defdefaults name "doc"? :section {...} ...)` | Members that yield to any other definition, or to the document's own value: an add-on's colours an app replaces |
+| `(ns name (:require ...))` | Nothing it builds: a file's label; the entry's `:require` names the app's other files, as `include` does ("Writing an app as a program") |
 | `(include "file.lisp" ...)` | Nothing: the file an app loads from its folder names its other files ("Writing an app as a program") |
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
 | `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
@@ -2446,17 +2778,21 @@ builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == '
 
 ### Writing an app as a program
 
-An app's `lisp/` folder can be a program to read, not the JSON tree in parentheses: Flow's is the example
-([examples/flow/lisp/](examples/flow/lisp/)), its first frame the same as its `json/` folder's, pixel for pixel (`ctest -R
-lisp_parity`). These are the rules its files follow, for anyone writing an app this way:
+An app's `lisp/` folder can be a program to read, not the JSON tree in parentheses: every example's is, and Flow's is the
+model ([examples/flow/lisp/](examples/flow/lisp/)), its first frame the same as its `json/` folder's, pixel for pixel
+(`ctest -R lisp_parity`). These are the rules its files follow, for anyone writing an app this way; how to write each
+form in the dialect, and when not to, is
+[modules/lisp/reference/style.md](modules/lisp/reference/style.md):
 
 - **Every `.lisp` file is a program, but data.** A file starts with a `;;;` header that says what it is, then named definitions,
   each with a docstring, grouped under `;;;` sections. Data stays data, as well-formatted Lisp literals: the manifest
   (`app.lisp`), `models.lisp`, `seed/`, `locales/`, `*.policy.lisp`, syntax tables.
-- **The entry names the other files.** `(include "state.lisp" "toolbar.lisp" ...)` at the top of the file the app loads (its
-  manifest's `entry`) lists them, as a data file's `include` does, with the same checks: read with the file from the app's folder or
+- **The entry names the other files.** `(ns flow.index (:require flow.state flow.toolbar "locales/en.lisp" ...))` at the top
+  of the file the app loads (its manifest's `entry`) lists them, code files by their dotted name and data and shared files
+  by their path, and builds the `include` an `(include "state.lisp" "toolbar.lisp" ...)` would, with the same checks: read with the file from the app's folder or
   the shared folder, never by a revision (SECURITY.md, "The Lisp language"). A file it includes may include others. The shared
   folder counts only where it is a folder, not a link, for a program's include and a data file's alike: a link leads anywhere.
+  Every other code file starts with its label, `(ns flow.board)` for `board.lisp`: a label builds nothing.
 - **`defscreen main` is an outline.** Its options are the window, fonts, strings, permissions and persist; its root lists the
   window's parts in the order they are drawn, each a view: `~(top-bar)`, `~(toolbar)`, `~(work-area)`...
 - **Views are small.** About 40 lines at most and shallow: a long one calls others. A view's docstring says what it shows.
@@ -2485,7 +2821,11 @@ shows that it does for every text there (each translated, built back and parsed 
 `tools/notation/lisp_program.py` drafts a data file as a program (sections as definitions, views cut out of long trees, repeats,
 every `{{...}}` a form), `--bindings` and `--handlers` rewrite a program's texts and step maps in place, and
 `tools/notation/lisp_metrics.py` measures a folder: the longest definition, the deepest line, the texts left, the first frame and the
-scenarios beside the JSON version's. Opening a program costs about what opening its JSON version does once the process has read
+scenarios beside the JSON version's. `tools/notation/lisp_idioms.py --check` holds every example's code to the dialect's
+style: no old spelling, each place kept with its reason and counted in the app's `tools/notation/idioms/<app>.json`
+(`--kept` lists them, `--measure` gives each app's size); `tools/notation/lisp_tree.py --save DIR` and `--compare DIR`
+show that a change to an app's code leaves the tree it builds the same, but for a binding's or a definition's text, and
+calls no more Lisp functions from its bindings. Opening a program costs about what opening its JSON version does once the process has read
 it before: each file's document and each entry's form are kept for the process by their exact text (and file, name and place),
 since reading them is pure, and an interpreter that runs a program compiles its functions, not its views (`tests/perf`,
 `lisp/open-<app>`).
@@ -2512,6 +2852,7 @@ them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
 | `formAround(text, line, column)` | The top-level form around a position, or else the last before it, or else the next; null if the one around it isn't finished |
 | `printForm(value)`, `(pr-str value)` | A value as Lisp text |
 | `(describe-function name)`, `(describe-variable name)` | What is known of a definition or a command: `{name, kind, doc, author, file, line, arguments}`, with `title` and `category` for a command; never a value; nil if it isn't there |
+| `(describe-form text)` | What evaluating a text would do, without running it: `{definitions: [{name, kind, file, replaces}], expressions, typed}`: each definition's address, its kind, the file that holds that name now (`""` for a new one) and whether it replaces one; how many other forms; whether the person's keystrokes typed it all. Nil for anything but forms of Lisp up to 4 MiB, each a definition or a call of a name code can call; nil too when any author whose code led to it isn't the person (`file`, `user`, `user/...`). Changes nothing |
 | `(describe-key "ctrl+k")` | `{key, runs, command}`: what a key runs, and that described |
 | `(apropos "text")` | Everything defined whose name holds the text, each described |
 | `(program-file "init.lisp")` | A file of the program, its entries one after another |

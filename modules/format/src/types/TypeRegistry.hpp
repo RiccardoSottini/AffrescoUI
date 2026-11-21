@@ -326,7 +326,8 @@ void registerIconProperty(TypeRegistry& registry);
 /// (TransformProperties.cpp).
 /// @param registry The registry.
 void registerTransformProperties(TypeRegistry& registry);
-/// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
+/// @brief Registers "runs", "selectable", "selectionColor" and "letterSpacing", properties of labels
+/// (RunsProperty.cpp).
 /// @param registry The registry.
 void registerRichTextProperties(TypeRegistry& registry);
 /// @brief Registers "path" (PathType.cpp).

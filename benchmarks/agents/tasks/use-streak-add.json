@@ -1,0 +1,49 @@
+{
+	"id": "use-streak-add",
+	"level": "use",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "Add a yes-or-no habit named Stretch.",
+	"scenarios": [
+		{
+			"name": "added",
+			"steps": [
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 9
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].name",
+						"is": "Stretch"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].kind",
+						"is": "yesNo"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "habitAdd",
+				"arguments": {
+					"name": "Stretch",
+					"kind": "yesNo"
+				}
+			}
+		]
+	}
+}

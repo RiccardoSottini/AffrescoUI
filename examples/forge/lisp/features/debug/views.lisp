@@ -1,6 +1,8 @@
 ;;; views.lisp --- the debugger's views: Run and Debug in the side bar, the debug console, the toolbar over the
 ;;; editors, its dialogs, and a source outside the folder
 
+(ns forge.features.debug.views)
+
 ;;; Run and Debug
 
 (defcomponent forgeDebugView
@@ -36,7 +38,7 @@
           :icon ~(if f.enabled "square-check" "square")
           :text ~f.label
           :hover {:color @color.hover}
-          :onClick ~(handler debugToggleFilter f.filter)))
+          :onClick ~(handler debug-toggle-filter f.filter)))
      ~(debug-breakpoints)))
 
 (defview debug-head "The view's title, and Start and Reload." []
@@ -74,7 +76,7 @@
      :onOpen debugStart))
 
 (defview debug-empty "No configuration: how to add one, and how many were left out." []
-  `(column#debug-empty :when ~(and (= (count state.debug.configurations) 0)
+  `(column#debug-empty :when ~(and (empty? state.debug.configurations)
                                    (empty? state.debug.error)
                                    (= state.debug.status "inactive"))
      :width "100%"
@@ -109,9 +111,10 @@
      :padding 8
      :icon bug
      :textColor ~(if (= state.debug.status "stopped") "#e5c07b" "@color.muted")
-     :text ~(cond (= state.debug.status "stopped") (t "debug-status.paused" {:reason state.debug.reason})
-                  (= state.debug.status "starting") (t "debug-status.starting")
-                  :else (t "debug-status.running"))))
+     :text ~(case state.debug.status
+              :stopped (t "debug-status.paused" {:reason state.debug.reason})
+              :starting (t "debug-status.starting")
+              (t "debug-status.running"))))
 
 (defview debug-variables-head "The variables' title, and Set Value." []
   `(row#debug-variables-head :width "100%" :height 22 :alignItems center
@@ -122,7 +125,7 @@
        :cursor hand
        :focusable true
        :isOpen ~(not (contains state.debug.collapsed "variables"))
-       :onClick ~(handler debugToggleSection "variables")
+       :onClick ~(handler debug-toggle-section "variables")
        :textColor @color.text
        :grow 1
        :height 22
@@ -149,7 +152,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen ~(handler debugExpand event.id)))
+     :onOpen ~(handler debug-expand event.id)))
 
 (defview debug-watch-head "The watches' title, and Remove." []
   `(row#debug-watch-head :width "100%" :height 22 :alignItems center
@@ -160,7 +163,7 @@
        :cursor hand
        :focusable true
        :isOpen ~(not (contains state.debug.collapsed "watch"))
-       :onClick ~(handler debugToggleSection "watch")
+       :onClick ~(handler debug-toggle-section "watch")
        :textColor @color.text
        :grow 1
        :height 22
@@ -172,19 +175,19 @@
        :textColor @color.muted
        :tooltip ~(t "debug-watch-remove.tip")
        :hover {:textColor @color.text}
-       :onClick debugRemoveWatch)))
+       :onClick debug-remove-watch)))
 
 (defview debug-watch-input "The expression to watch: Enter adds it." []
-  `(textarea#debug-watch-input :when ~(not (contains state.debug.collapsed "watch"))
-     :width "100%"
-     :height 24
-     :padding 5
-     :color @color.input
-     :textColor @color.text
-     :placeholderColor @color.muted
-     :bind state.debug.watchDraft
-     :placeholder ~(t "debug-watch-input.placeholder")
-     :onSubmit debugAddWatch))
+  `(node#debug-watch-row :when ~(not (contains state.debug.collapsed "watch")) :use forgeInset :height 24
+     (textarea#debug-watch-input :grow 1
+       :height 24
+       :padding 5
+       :color @color.input
+       :textColor @color.text
+       :placeholderColor @color.muted
+       :bind state.debug.watchDraft
+       :placeholder ~(t "debug-watch-input.placeholder")
+       :onSubmit debug-add-watch)))
 
 (defview debug-watches "The watches, each its value in the frame shown." []
   `(list#debug-watches :when ~(not (contains state.debug.collapsed "watch"))
@@ -208,7 +211,7 @@
      :cursor hand
      :focusable true
      :isOpen ~(not (contains state.debug.collapsed "stack"))
-     :onClick ~(handler debugToggleSection "stack")
+     :onClick ~(handler debug-toggle-section "stack")
      :width "100%"
      :height 22
      :textColor @color.text
@@ -226,7 +229,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onChange ~(handler debugSelectStack (or-else event.value ""))))
+     :onChange ~(handler debug-select-stack (or-else event.value ""))))
 
 (defview debug-breakpoints-head "The breakpoints' title, and Edit, Enable, Remove and Remove All." []
   `(row#debug-breakpoints-head :width "100%" :height 22 :alignItems center
@@ -246,7 +249,7 @@
        :textColor @color.muted
        :tooltip ~(t "debug-breakpoint-enable.tip")
        :hover {:textColor @color.text}
-       :onClick debugToggleSelectedEnabled)
+       :onClick debug-toggle-selected-enabled)
      (label#debug-breakpoint-remove :icon x
        :padding 4
        :fitText true
@@ -254,7 +257,7 @@
        :textColor @color.muted
        :tooltip ~(t "debug-breakpoint-remove.tip")
        :hover {:textColor @color.text}
-       :onClick debugRemoveBreakpoint)
+       :onClick debug-remove-breakpoint)
      (label#debug-breakpoint-remove-all :icon list-x
        :padding 4
        :fitText true
@@ -272,7 +275,7 @@
      :cursor hand
      :focusable true
      :isOpen ~(not (contains state.debug.collapsed "breakpoints"))
-     :onClick ~(handler debugToggleSection "breakpoints")
+     :onClick ~(handler debug-toggle-section "breakpoints")
      :textColor @color.text
      :grow 1
      :height 22
@@ -290,7 +293,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onOpen debugOpenBreakpoint))
+     :onOpen debug-open-breakpoint))
 
 ;;; The debug console
 
@@ -329,8 +332,8 @@
        :placeholderColor @color.muted
        :bind state.debug.input
        :placeholder ~(if (= state.debug.status "inactive") (t "debug-console.inactive") (t "debug-console.placeholder"))
-       :onSubmit debugEvaluate
-       :keys {:up debugHistoryBack :down debugHistoryForward :tab debugComplete})
+       :onSubmit debug-evaluate
+       :keys {:up debug-history-back :down debug-history-forward :tab debug-complete})
      (label#debug-console-clear :icon trash-2
        :padding 6
        :fitText true
@@ -353,7 +356,7 @@
               :title ~(t "debug-outside-dialog.title")
               :message ~(t "debug-outside-dialog.message"
                            {:frame (or state.debug.outside.frame.path state.debug.outside.frame.name (t "debug.aFrame"))})
-              :buttons [{:title ~(t "debug-outside-dialog.open") :run debugOpenOutside}
+              :buttons [{:title ~(t "debug-outside-dialog.open") :run debug-open-outside}
                         {:title ~(t "debug-outside-dialog.cancel")}]})))
 
 (defview debug-toolbar
@@ -431,7 +434,7 @@
             :height 230
             :title ~(t "command.debugEditSelectedBreakpoint")
             :message ""
-            :buttons [{:title ~(t "debug-edit-dialog.ok") :run debugSaveBreakpoint}
+            :buttons [{:title ~(t "debug-edit-dialog.ok") :run debug-save-breakpoint}
                       {:title ~(t "debug-edit-dialog.cancel")}]}
      (textarea#debug-edit-condition :bind state.debug.edit.condition
        :autofocus true
@@ -443,7 +446,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "debug-edit-condition.placeholder")
-       :onSubmit debugSaveBreakpoint)
+       :onSubmit debug-save-breakpoint)
      (textarea#debug-edit-hits :bind state.debug.edit.hitCondition
        :anchors {:left 20 :right 20 :top 84}
        :height 28
@@ -453,7 +456,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "debug-edit-hits.placeholder")
-       :onSubmit debugSaveBreakpoint)
+       :onSubmit debug-save-breakpoint)
      (textarea#debug-edit-log :bind state.debug.edit.logMessage
        :anchors {:left 20 :right 20 :top 120}
        :height 28
@@ -463,7 +466,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "debug-edit-log.placeholder")
-       :onSubmit debugSaveBreakpoint)))
+       :onSubmit debug-save-breakpoint)))
 
 (defview debug-value-dialog "A variable's new value." []
   `(node#debug-value-dialog :use dialog
@@ -471,7 +474,7 @@
             :height 150
             :title ~(t "debug-value-dialog.title" {:name state.debug.setValue.name})
             :message ""
-            :buttons [{:title ~(t "debug-value-dialog.set") :run debugSetValue} {:title ~(t "debug-value-dialog.cancel")}]}
+            :buttons [{:title ~(t "debug-value-dialog.set") :run debug-set-value} {:title ~(t "debug-value-dialog.cancel")}]}
      (textarea#debug-value :bind state.debug.setValue.value
        :autofocus true
        :anchors {:left 20 :right 20 :top 48}
@@ -482,7 +485,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "debug-value.placeholder")
-       :onSubmit debugSetValue)))
+       :onSubmit debug-set-value)))
 
 ;;; A source outside the folder
 
@@ -503,10 +506,10 @@
      :font code
      :rowHeight 18
      :items ~(map-indexed (fn [index it]
-                            {:id (text (+ index 1))
-                             :label (+ (pad (text (+ index 1)) 6)
+                            {:id (text (inc index))
+                             :label (+ (pad (text (inc index)) 6)
                                        (if (and (= state.debug.current.path doc.id)
-                                                (= state.debug.current.line (+ index 1)))
+                                                (= state.debug.current.line (inc index)))
                                            " → "
                                            "   ")
                                        it)})

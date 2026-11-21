@@ -1269,7 +1269,7 @@
 									{
 										"type": "column",
 										"grow": 1,
-										"height": 84,
+										"height": "{{length(state.rewardsOwned) == 0 ? 84 : 122}}",
 										"gap": 6,
 										"alignSelf": "center",
 										"children": [
@@ -1295,6 +1295,36 @@
 												"height": 20,
 												"textColor": "@color.muted",
 												"text": "{{t('profile.since', { year: text(state.user.since) })}} · {{t('presence.' + state.user.status)}}"
+											},
+											{
+												"type": "row",
+												"id": "profile-rewards",
+												"note": "The rewards redeemed with points, each a small tile in its colours with its icon.",
+												"when": "{{length(state.rewardsOwned) > 0}}",
+												"height": 32,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 8,
+												"alignItems": "center",
+												"role": "list",
+												"label": "{{t('profile.rewards')}}",
+												"children": [
+													{
+														"type": "label",
+														"id": "{{'profile-reward-' + r.id}}",
+														"repeat": { "for": "r", "in": "{{filter(state.rewardItems, contains(state.rewardsOwned, it.id))}}", "key": "{{r.id}}" },
+														"role": "listitem",
+														"width": 32,
+														"height": 32,
+														"radius": 8,
+														"icon": "{{r.icon}}",
+														"text": "",
+														"align": "center",
+														"gradient": { "kind": "linear", "angle": 135, "stops": ["{{r.a}}", "{{r.b}}"] },
+														"textColor": "#ffffffe0",
+														"label": "{{t('rewards.item.' + r.id)}}",
+														"tooltip": "{{t('rewards.item.' + r.id) + ' · ' + t('rewards.type.' + r.kind)}}"
+													}
+												]
 											}
 										]
 									},

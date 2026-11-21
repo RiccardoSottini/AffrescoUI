@@ -7,8 +7,10 @@
 #include "Providers.hpp"
 #include "affresco/services/Search.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <string_view>
 #include <system_error>
 
 namespace affresco::services {
@@ -28,15 +30,28 @@ PatternOptions optionsOf(const json& with) {
 	        .caseSensitive = with.value("caseSensitive", false)};
 }
 
+/// @brief The characters (code points) in UTF-8 text: its bytes that don't continue one.
+/// @param text The text.
+/// @return How many.
+std::size_t characters(std::string_view text) {
+	return static_cast<std::size_t>(
+	    std::ranges::count_if(text, [](char byte) { return (static_cast<unsigned char>(byte) & 0xC0U) != 0x80U; }));
+}
+
 /// @brief The match as the document sees it.
 /// @param match The match.
-/// @return {line, column, length, text, at}.
+/// @return {line, column, length, text, at, first, count}: `first` and `count` are `at` and `length` in characters,
+/// for a list item's marks.
 json matchJson(const SearchMatch& match) {
+	const std::string_view text = match.text;
+	const std::size_t at = std::min(match.at, text.size());
 	return {{"line", match.line},
 	        {"column", match.column},
 	        {"length", match.length},
 	        {"text", match.text},
-	        {"at", match.at}};
+	        {"at", match.at},
+	        {"first", characters(text.substr(0, at))},
+	        {"count", characters(text.substr(at, match.length))}};
 }
 
 /// @brief Runs a `find` call: one event {file, matches} per file with matches, then {files, matches, searched,
@@ -181,7 +196,8 @@ public:
 		         false,
 		         {{"type", "object"}, {"required", {"pattern"}}, {"properties", find}, {"additionalProperties", false}},
 		         "searches the text files under the root, one event {file, matches: [{line, column, length, text, "
-		         "at}]} per file: {files, matches, searched, skipped, truncated}"},
+		         "at, first, count}]} per file (first and count: at and length in characters): {files, matches, "
+		         "searched, skipped, truncated}"},
 		        {"replace",
 		         Effect::Read,
 		         true,

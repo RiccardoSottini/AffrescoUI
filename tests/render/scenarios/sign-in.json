@@ -139,6 +139,10 @@
 					"click": "#terms"
 				},
 				{
+					"scroll": "#stack-form-2",
+					"dy": -100
+				},
+				{
 					"click": "#label-create-account"
 				},
 				{
@@ -154,6 +158,17 @@
 				},
 				{
 					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "welcome-dark"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -417,6 +432,17 @@
 					"wait": 800
 				},
 				{
+					"expect": {
+						"image": "reset-done"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -492,6 +518,12 @@
 				},
 				{
 					"wait": 800
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"click": "#password"
@@ -736,7 +768,8 @@
 								"pending": [],
 								"working": false,
 								"proposals": [],
-								"models": null
+								"models": null,
+								"runs": null
 							}
 						}
 					}
@@ -777,7 +810,8 @@
 								],
 								"working": false,
 								"proposals": [],
-								"models": null
+								"models": null,
+								"runs": null
 							},
 							"/state/assistant/messages": [
 								{
@@ -834,6 +868,118 @@
 				{
 					"expect": {
 						"image": "dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-goodbye",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "delete"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "deleted"
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"resize": [
+						480,
+						640
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow-dark"
 					}
 				}
 			]

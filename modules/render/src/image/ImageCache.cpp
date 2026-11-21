@@ -280,6 +280,17 @@ void ImageCache::finishPending() {
 	state.deliver();
 }
 
+bool ImageCache::finishPending(std::chrono::milliseconds limit) {
+	State& state = *state_;
+	bool finished = false;
+	{
+		std::unique_lock lock(state.mutex);
+		finished = state.idle.wait_for(lock, limit, [&state] { return state.queue.empty() && !state.busy; });
+	}
+	state.deliver();
+	return finished;
+}
+
 std::size_t ImageCache::pending() const {
 	const std::scoped_lock lock(state_->mutex);
 	return state_->queue.size() + state_->done.size() + (state_->busy ? 1 : 0);

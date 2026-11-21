@@ -4,6 +4,8 @@
 ;;; saturation, colour balance, brightness and contrast, a threshold); a pixel layer, its transform, the align icons
 ;;; and quick actions, in sections that fold. Adjust adds an adjustment layer of each kind.
 
+(ns tempera.properties)
+
 ;;; Sliders and sections
 
 (defcomponent tAdjustSlider "One of the active adjustment's values, from low to high: its title, a slider, its value."
@@ -28,7 +30,7 @@
               :low -100
               :high 100
               :scale 100
-              :run setBalance
+              :run set-balance
               :args {:channel ~channel}
               :width 112})
      (label :text ~(round (* (get computed.adjustment.balance channel) 100))
@@ -46,7 +48,7 @@
      :alignItems center
      :gap 4
      :cursor hand
-     :onClick ~(handler toggleOpen (str "state.props." key))
+     :onClick ~(handler toggle-open (str "state.props." key))
      (label :icon ~(if (get state.props key) "chevron-down" "chevron-right")
        :textColor @muted
        :width 14
@@ -67,10 +69,14 @@
        :fitText true
        :icon ~(cond (not computed.activeLayer) "circle-off"
                     (= computed.activeLayer.kind "group") "folder"
+                    (= computed.activeLayer.kind "text") "type"
+                    (= computed.activeLayer.kind "shape") "shapes"
                     computed.adjustment "contrast"
                     :else "image")
        :text ~(cond (not computed.activeLayer) (t "properties.noLayer")
                     (= computed.activeLayer.kind "group") (t "properties.group")
+                    (= computed.activeLayer.kind "text") (t "properties.typeLayer")
+                    (= computed.activeLayer.kind "shape") (t "properties.shapeLayer")
                     computed.adjustment (t (str "adjustment." computed.adjustmentKind))
                     :else (t "properties.pixelLayer")))
      (node#properties-name :style dim
@@ -86,7 +92,100 @@
      ~@(balance-values)
      ~@(brightness-values)
      ~@(threshold-values)
+     ~@(type-values)
+     ~@(shape-values)
      ~(layer-sections)))
+
+(defview type-values
+  "A type layer's Character: its text, font, size, style, spacing, alignment and colour, each change drawn again."
+  []
+  [`(editor#type-text :label ~(t "character.text")
+      :when ~(= computed.activeLayer.kind "text")
+      :text ~computed.activeLayer.content.text
+      :wrap true
+      :width "100%"
+      :height 64
+      :color @input
+      :textColor @text
+      :borderWidth 1
+      :borderColor @border
+      :radius @kit.radius
+      :onChange ~(handler set-text event.value))
+   `(row#type-character :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-size :use tField
+        :with {:title ~(t "character.size") :key size :value ~computed.activeLayer.content.size :low 4 :high 1000
+               :unit " px" :width 52 :pop false :run edit-content})
+      (node#type-bold :use tIcon
+        :with {:icon bold :tip ~(t "option.bold") :on ~computed.activeLayer.content.bold :run edit-content
+               :args {:bold ~(not computed.activeLayer.content.bold)}})
+      (node#type-italic :use tIcon
+        :with {:icon italic :tip ~(t "option.italic") :on ~computed.activeLayer.content.italic :run edit-content
+               :args {:italic ~(not computed.activeLayer.content.italic)}})
+      (node#type-colour :role button :label ~(t "character.colour") :tooltip ~(t "character.colour.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.fill")
+        ~(colour-pop "type-colour" "fill" 'computed.activeLayer.content.fill)))
+   `(row#type-font :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-family :use tPicker
+        :with {:title ~(:title (or (find #(= (:id %) (or computed.activeLayer.content.font "default")) state.typeFonts)
+                                   (first state.typeFonts)))
+               :tip ~(t "character.font")
+               :width 150
+               :open state.typeFontMenu
+               :items ~(map (fn [it]
+                              {:title it.title
+                               :checked (= it.id (or computed.activeLayer.content.font "default"))
+                               :run "edit-content"
+                               :with {:args {:font it.id}}})
+                            state.typeFonts)}))
+   `(row#type-spacing :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 6 :alignItems center
+      (node#type-tracking :use tField
+        :with {:title ~(t "character.tracking") :tip ~(t "character.tracking.tip") :key tracking
+               :value ~(or computed.activeLayer.content.tracking 0) :low -500 :high 2000 :unit "" :width 40 :pop false
+               :run edit-content})
+      (node#type-kerning :use tField
+        :with {:title ~(t "character.kerning") :tip ~(t "character.kerning.tip" {:pair computed.typePair})
+               :key kerning :value ~(or (get computed.activeLayer.content.kerning computed.typePair) 0) :low -500
+               :high 2000 :unit "" :width 40 :pop false :off ~(= computed.typePair "") :run set-kerning}))
+   `(row#type-paragraph :width "100%" :when ~(= computed.activeLayer.kind "text") :height 26 :gap 2 :alignItems center
+      (node :style dim :text ~(str (t "character.paragraph") ":") :width 74 :height 20 :fitText false)
+      ~@(map (fn [it]
+               `(node :id ~(str "type-align-" (first it))
+                  :use tIcon
+                  :with {:icon ~(second it) :tip ~(t (str "option.align." (first it)))
+                         :on ~(= computed.activeLayer.content.align (first it)) :run edit-content
+                         :args {:align ~(first it)}}))
+             [["left" "align-left"] ["center" "align-center"] ["right" "align-right"]])
+      (node#type-leading :use tField
+        :with {:title ~(t "character.leading") :key leading :value ~computed.activeLayer.content.leading :low 0.5
+               :high 5 :scale 100 :unit "%" :width 44 :pop false :run edit-content}))
+   `(node#type-rasterize :use tButton
+      :when ~(= computed.activeLayer.kind "text")
+      :with {:title ~(t "command.rasterizeType") :run rasterizeLayer})])
+
+(defview shape-values "A shape layer's fill, stroke, width and corners, each change drawn again." []
+  [`(row#shape-colours :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+      (node :style dim :text ~(str (t "option.shapeFill") ":"))
+      (node#shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.fill :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.fill")
+        ~(colour-pop "shape-fill" "fill" 'computed.activeLayer.content.fill))
+      (node :style dim :text ~(str (t "option.shapeStroke") ":"))
+      (node#shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
+        :width 22 :height 22 :radius @kit.radius :color ~computed.activeLayer.content.stroke :borderWidth 1
+        :borderColor @border :cursor hand :onClick ~(handler toggle-open "state.pop.stroke")
+        ~(colour-pop "shape-stroke" "stroke" 'computed.activeLayer.content.stroke)))
+   `(row#shape-sizes :width "100%" :when ~(= computed.activeLayer.kind "shape") :height 26 :gap 6 :alignItems center
+      (node#shape-stroke-width :use tField
+        :with {:title ~(t "option.strokeWidth") :key strokeWidth :value ~computed.activeLayer.content.strokeWidth
+               :low 0 :high 200 :unit " px" :width 48 :pop false :run edit-content})
+      (node#shape-radius :use tField
+        :when ~(= computed.activeLayer.content.shape "rectangle")
+        :with {:title ~(t "option.radius") :key radius :value ~computed.activeLayer.content.radius :low 0 :high 1000
+               :unit " px" :width 48 :pop false :run edit-content}))
+   `(node#shape-rasterize :use tButton
+      :when ~(= computed.activeLayer.kind "shape")
+      :with {:title ~(t "command.rasterizeLayer") :run rasterizeLayer})])
 
 (defview levels-values "A Levels layer's tones, and its input, gamma and output sliders." []
   [`(node#adjust-tones :use areaChart
@@ -101,7 +200,7 @@
    (adjust-slider "adjust-output-white" "levels" "outputWhite" 0 255 255)])
 
 (defmacro tones "The image's tones for a chart: each bin at most four times the average, so a peak flattens nothing." []
-  '(map (fn [it] (min it (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram))))
+  '(map #(min % (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram)))
         (or-else state.doc.histogram [])))
 
 (defview adjust-slider "An adjustment's slider, id its node's, shown for one kind of adjustment: key names its value."
@@ -116,18 +215,58 @@
             :high ~high
             :scale ~scale}))
 
-(defview curve-values "A Curves layer's curve, over the image's tones." []
-  [`(curves#adjust-curve :label ~(t "adjust.curve")
+(defview curve-values "A Curves layer's channel (the composite, red, green or blue), and its curve over the tones." []
+  [`(row#curve-channels :role group
+      :label ~(t "adjust.curveChannel")
+      :when ~(= computed.adjustmentKind "curves")
+      :width "100%"
+      :height 24
+      :gap 2
+      :alignItems center
+      ~(repeat [ch ["rgb" "red" "green" "blue"]] (curve-channel ch)))
+   `(curves#adjust-curve :label ~(t "adjust.curve")
       :when ~(= computed.adjustmentKind "curves")
       :width 200
       :height 140
-      :value ~(merge {:points []} {:points computed.adjustment.curve})
-      :accentColor @accent
+      :value ~{:points computed.curvePoints}
+      :accentColor ~(case state.curveChannel "red" "#e5484d" "green" "#46a758" "blue" "#3e8ed0" "@accent")
       :histogram ~(tones)
-      :onChange ~(handler setCurve event.value.points))])
+      :onChange ~(handler set-curve {:points event.value.points}))])
 
-(defview hue-values "A Hue/Saturation layer's hue, saturation and lightness." []
-  [(adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)
+(defview curve-channel "A pill choosing the channel the curve edits: rgb (the composite), red, green or blue." [ch]
+  `(label :id ~(str "curve-channel-" ch)
+     :role radio
+     :label ~(t (str "adjust.channel." ch))
+     :selected ~(= state.curveChannel ch)
+     :focusable true
+     :text ~(t (str "adjust.channel." ch))
+     :width 46
+     :height 20
+     :align center
+     :radius 999
+     :cursor hand
+     :color ~(if (= state.curveChannel ch) "@accentSoft" "transparent")
+     :textColor ~(if (= state.curveChannel ch) "@text" "@muted")
+     :hover {:textColor @text}
+     :focused {:borderWidth 1 :borderColor @accent}
+     :onClick [{:set state.curveChannel :to ~ch}]))
+
+(defview hue-values "A Hue/Saturation layer's Colorize, then its hue, saturation and lightness." []
+  [`(row#adjust-colorize-row :when ~(= computed.adjustmentKind "hue-saturation")
+      :width "100%"
+      :height 24
+      :gap 8
+      :alignItems center
+      (checkbox#adjust-colorize :label ~(t "adjust.colorize")
+        :width 14
+        :height 14
+        :checked ~(= computed.adjustment.colorize true)
+        :activeColor @accent
+        :trackColor @border
+        :knobColor @input
+        :onChange ~(handler setAdjustment {:colorize event.value}))
+      (label :text ~(t "adjust.colorize") :textColor @text :fitText true :tooltip ~(t "adjust.colorize.tip")))
+   (adjust-slider "adjust-hue" "hue-saturation" "hue" -180 180 1)
    (adjust-slider "adjust-saturation" "hue-saturation" "saturation" -100 100 100)
    (adjust-slider "adjust-lightness" "hue-saturation" "lightness" -100 100 100)])
 
@@ -159,7 +298,7 @@
 ;;; A pixel layer's sections
 
 (defview layer-sections "A pixel layer's sections, each folding: Transform, Align and Distribute, Quick Actions." []
-  `(column#properties-sections :when ~(not computed.adjustment) :width "100%" :height 300 :gap 4
+  `(column#properties-sections :when ~(not computed.adjustment) :width "100%" :height 328 :gap 4
      (node#section-transform :use tSection :with {:title ~(t "section.transform") :key transform})
      ~@(transform-fields)
      (node :width "100%" :height 1 :color @border)
@@ -171,6 +310,13 @@
        ~(align-icon "align-start-horizontal" "top")
        ~(align-icon "align-center-horizontal" "middle")
        ~(align-icon "align-end-horizontal" "bottom"))
+     (row#distribute-icons :when ~state.props.align :width "100%" :height 24 :gap 2
+       ~(distribute-icon "align-horizontal-distribute-start" "left")
+       ~(distribute-icon "align-horizontal-distribute-center" "center")
+       ~(distribute-icon "align-horizontal-distribute-end" "right")
+       ~(distribute-icon "align-vertical-distribute-start" "top")
+       ~(distribute-icon "align-vertical-distribute-center" "middle")
+       ~(distribute-icon "align-vertical-distribute-end" "bottom"))
      (node :width "100%" :height 1 :color @border)
      (node#section-actions :use tSection :with {:title ~(t "section.actions") :key actions})
      (column#quick-actions :when ~state.props.actions :width "100%" :height 76 :gap 4
@@ -185,7 +331,7 @@
   [`(row :when ~state.props.transform :width "100%" :height 24 :gap 10 :alignItems center
       (node#transform-w :use tField
         :with {:title ~(t "transform.width") :key w :value ~(get computed.box 2) :unit " px" :pop false :width 66 :low 1
-               :high 100000 :run transformBox :off ~(not= computed.activeLayer.kind "pixel")
+               :high 100000 :run transform-box :off ~(not= computed.activeLayer.kind "pixel")
                :tip ~(if state.doc.selection (t "transform.width.selection") (t "transform.width.image"))})
       ~(box-field "transform-h" "h" 3 1))
    `(row :when ~state.props.transform :width "100%" :height 24 :gap 10 :alignItems center
@@ -194,7 +340,7 @@
    `(row :when ~state.props.transform :width "100%" :height 24 :gap 6 :alignItems center
       (label :icon rotate-cw :textColor @muted :width 14 :height 20 :align center :tooltip ~(t "transform.angle"))
       (node#transform-angle :use tField
-        :with {:title "" :key angle :value 0 :unit "°" :pop false :width 50 :low -360 :high 360 :run transformActive
+        :with {:title "" :key angle :value 0 :unit "°" :pop false :width 50 :low -360 :high 360 :run transform-active
                :off ~(not= computed.activeLayer.kind "pixel") :tip ~(t "transform.angle.tip")})
       (node :grow 1 :height 1 :style clear)
       (node#flip-horizontal :use tIcon
@@ -216,7 +362,7 @@
             :width 66
             :low ~low
             :high 100000
-            :run transformBox
+            :run transform-box
             :off ~(not= computed.activeLayer.kind "pixel")
             :tip ~(t (str "transform." key ".tip"))}))
 
@@ -230,6 +376,18 @@
             :run alignActive
             :args {:edge ~edge}
             :off ~(not= computed.activeLayer.kind "pixel")}))
+
+(defview distribute-icon "A distribute icon: the layers picked together spaced evenly by an edge, or their middles."
+  [icon edge]
+  `(node :id ~(str "distribute-" edge)
+     :use tIcon
+     :with {:icon ~icon
+            :tip ~(if (>= (count computed.picked) 3)
+                    (t "distribute.tip" {:edges (t (str "align.edge." edge))})
+                    (t "distribute.pick"))
+            :run distributeLayers
+            :args {:edge ~edge}
+            :off ~(< (count computed.picked) 3)}))
 
 ;;; The Adjust panel
 

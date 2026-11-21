@@ -48,6 +48,14 @@ void checkVersion(const json& value, const std::string& name) {
 /// @param name Its name.
 void checkObject(const json& value, const std::string& name) { expect::object(value, name); }
 
+/// @brief "keyBindings": the state path of the person's own key bindings.
+/// @param value The value.
+/// @param name "keyBindings".
+void checkKeyBindings(const json& value, const std::string& name) {
+	if(!expect::string(value, name).starts_with("state."))
+		expect::fail(name, "expected a path under state, e.g. \"state.keyBindings\"");
+}
+
 /// @brief Checks "languages" by compiling them (LanguageCatalog::read()); the last valid one is remembered, as
 /// each revision checks the whole document and languages seldom change.
 /// @param value The section.
@@ -139,6 +147,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"watch", checkObject});
 	registry.add({"actions", checkObject});
 	registry.add({"keys", checkObject});
+	registry.add({"keyBindings", checkKeyBindings}); // the person's own bindings, read before "keys" (EventsKeys.cpp)
 	registry.add({"menus", checkMenus});       // Contributions.hpp
 	registry.add({"settings", checkSettings}); // Settings.hpp
 	registry.add({"strings", checkStrings});   // translations per locale (Strings.hpp)

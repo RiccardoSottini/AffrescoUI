@@ -1,5 +1,7 @@
 ;;; editor.lisp --- the editor: its tabs, the code, and the find panel under it
 
+(ns code-editor.editor)
+
 ;;; Views
 
 (defview editor-column "The editor's column: the tabs and the file shown, over the bottom panel." []
@@ -10,16 +12,72 @@
      :sashSize 2
      :sashColor @border
      :sashActiveColor @accent
-     (node#editorGroup :color @background
-       ~(editor-tabs)
-       ~(repeat [open (if computed.file [state.active] []) :key open]
-         (editor open))
-       (label#welcome :when ~(not computed.file)
-         :text ~(t "ui.noFileOpenPickOne")
-         :textColor @faint
-         :anchors {:left 0 :right 0 :top 32 :bottom 0}
-         :align center))
+     (split#editorSplit :direction ~state.layout
+       :bind state.splitSizes
+       :minSize [240 200]
+       :sashSize 2
+       :sashColor @border
+       :sashActiveColor @accent
+       (node#editorGroup :color @background
+         ~(editor-tabs)
+         ~(repeat [open (if computed.file [state.active] []) :key open]
+           (editor open))
+         (label#welcome :when ~(not computed.file)
+           :text ~(t "ui.noFileOpenPickOne")
+           :textColor @faint
+           :anchors {:left 0 :right 0 :top 32 :bottom 0}
+           :align center))
+       ~(side-group))
      ~(bottom-panel)))
+
+(defview side-group "The second editor group, beside the first or under it: one file, its own caret." []
+  `(node#sideGroup :when ~(and (>= state.split 0) (not state.zen)) :color @background
+     (tabs#sideTabs
+       :anchors {:left 0 :right 0 :top 0}
+       :height 32
+       :tabs ~[{:id (text state.split) :label (get-in state.files [state.split :name])
+                :marker (get-in state.files [state.split :dirty])}]
+       :value ~(text state.split)
+       :color @tabBar
+       :textColor @muted
+       :activeTextColor @text
+       :activeBackground @background
+       :accentColor transparent
+       :markerColor @accent
+       :keepMarker true
+       :tabRadius 7
+       :tabGap 4
+       :tabInset 5
+       :onClose closeSplit)
+     ~(repeat [open (if (>= state.split 0) [state.split] []) :key open]
+       (side-editor open))))
+
+(defview side-editor "The file `open` in the second group: the same text as in the first, edited in either." [open]
+  `(editor#sideEditor
+     :font code
+     :lineNumbers true
+     :language ~(get-in state.files [open :language])
+     :grammar ~(or-else (get-in state.files [open :grammar]) (get-in state.files [open :name]))
+     :readOnly ~(or-else (get-in state.files [open :readOnly]) false)
+     :commands {"alt+up" moveLinesUp
+                "alt+down" moveLinesDown
+                "mod+shift+k" deleteLines
+                "mod+[" outdentLines
+                "mod+]" indentLines
+                "mod+c" copyLine
+                "mod+x" cutLine}
+     :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
+     :minimap false
+     :indentGuides ~(not (get-in state.files [open :scratch]))
+     :brackets true :bracketStyle underline :foldMarkers true
+     :rulers ~(if state.ruler [80] [])
+     :wrap ~state.wrap
+     :bind "state.files[open].text"
+     :anchors {:left 0 :right 0 :top 32 :bottom 0}
+     :color @background :textColor @plain :lineNumberColor @faint :activeLineNumberColor @text
+     :lineColor @line :selectionColor @selection :caretColor @accent :guideColor @guide
+     :bracketColor @accent
+     :onChange ~(handler mark-dirty open)))
 
 (defview editor-tabs "The open files' tabs: a dot on an unsaved one; drag to reorder, right-click for the menu." []
   `(tabs#editorTabs :when ~(not state.zen)
@@ -37,10 +95,10 @@
      :tabRadius 7
      :tabGap 4
      :tabInset 5
-     :onContextMenu ~(handler openTabMenu event.x event.y event.data.id)
-     :onChange ~(handler showFile (number event.value))
+     :onContextMenu ~(handler open-tab-menu event.x event.y event.data.id)
+     :onChange ~(handler show-file (number event.value))
      :onClose ~(handler close (number event.id))
-     :onMove ~(handler moveTab event.from event.to (number event.id))))
+     :onMove ~(handler move-tab event.from event.to (number event.id))))
 
 (defview editor
   "The file `open` in the library's editor: its language gives the commands, its grammar the colours."
@@ -62,10 +120,12 @@
      :minimap ~state.minimap :minimapStyle bars :minimapWidth 44 :minimapViewport always
      :matchStyle outline
      :indentGuides ~(not (get-in state.files [open :scratch]))
-     :brackets true :bracketStyle underline
+     :brackets true :bracketStyle underline :foldMarkers true
+     :tabSize ~(or-else (get-in state.files [open :tabSize]) 4)
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap
      :find ~computed.findQuery
+     :insert ~state.snippetInsert
      :bind "state.files[open].text"
      :caret state.caret
      :autofocus true
@@ -73,10 +133,10 @@
      :color @background :textColor @plain :lineNumberColor @faint :activeLineNumberColor @text
      :lineColor @line :selectionColor @selection :caretColor @accent :guideColor @guide
      :matchColor @selection :bracketColor @accent
-     :onShow editorShown
-     :onChange ~(handler markDirty open)
-     :onContextMenu ~(handler openEditorMenu event.x event.y event.left event.top event.width event.height)
-     :onDoubleClick ~(handler resultClicked open state.caret.line)))
+     :onShow editor-shown
+     :onChange ~(handler mark-dirty open)
+     :onContextMenu ~(handler open-editor-menu event.x event.y event.left event.top event.width event.height)
+     :onDoubleClick ~(handler result-clicked open state.caret.line)))
 
 (defview find-panel "The find panel under the editor: find, replace, where, its toggles and buttons." []
   `(node#findPanel :dir ~state.dir
@@ -105,7 +165,7 @@
        :style findButton
        :text ~(t "bar.find")
        :anchors {:right 12 :top 5}
-       :onClick searchFiles)
+       :onClick search-files)
      (node#label-find :when ~(> computed.findLeft 128) :style findLabel :text ~(t "ui.find2")
        :anchors {:left 128 :top 9})
      (node#label-where :when ~state.findBar.inFiles :style findLabel :text ~(t "ui.where") :anchors {:left 128 :top 39})
@@ -122,15 +182,15 @@
      :placeholder ~(if (> computed.findLeft 128) "" (t "bar.find"))
      :bind state.findBar.text
      :autofocus true
-     :onChange findAsTyped
-     :onSubmit submitFind))
+     :onChange find-as-typed
+     :onSubmit submit-find))
 
 (defview replace-text "The replacement: Enter replaces one, or in the files." []
   `(node#replaceText :style findField
      :when ~state.findBar.replacing
      :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top ~computed.replaceTop}
      :bind state.findBar.replace
-     :onSubmit submitReplace))
+     :onSubmit submit-replace))
 
 (defview find-selection "In selection: find only in the selected text." []
   `(node#findSelection :style findToggle
@@ -156,7 +216,7 @@
      :anchors {:left ~computed.findLeft :right 112 :top 35}
      :placeholder ~(t "ui.whereOpenFoldersOpenFiles")
      :bind state.findBar.where
-     :onSubmit searchFiles))
+     :onSubmit search-files))
 
 (defview find-word "Whole word." []
   `(node#findWord :style findToggle

@@ -18,6 +18,10 @@
 
 	"theme": "{{computed.theme}}",
 
+	"persist": ["state.unsaved", "state.tabs", "state.active", "state.split", "state.layout", "state.theme", "state.wrap", "state.ruler", "state.minimap", "state.sidebarOpen", "state.branch", "state.userKeys"],
+
+	"keyBindings": "state.userKeys",
+
 	"fonts": {
 		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
 		"small": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "code"] },
@@ -58,6 +62,28 @@
 		"symbolIndex": [],
 		"place": null,
 		"results": { "query": "", "at": 0 },
+		"split": -1,
+		"layout": "row",
+		"splitSizes": [],
+		"indentPick": { "open": false, "query": "" },
+		"unsaved": {},
+		"userKeys": [],
+		"branch": "main",
+		"branches": ["main", "develop", "sensor-calibration"],
+		"branchPick": { "open": false, "query": "" },
+		"snippets": {
+			"C++": [{ "prefix": "class", "text": "class Name {\npublic:\n\tName();\n\nprivate:\n};" }, { "prefix": "for", "text": "for(std::size_t i = 0; i < count; ++i) {\n\t\n}" }, { "prefix": "if", "text": "if(condition) {\n\t\n}" }, { "prefix": "include", "text": "#include <header>" }, { "prefix": "main", "text": "int main(int argc, char** argv) {\n\treturn 0;\n}" }, { "prefix": "namespace", "text": "namespace name {\n\n} // namespace name" }],
+			"CMake": [{ "prefix": "executable", "text": "add_executable(name main.cpp)" }, { "prefix": "library", "text": "add_library(name STATIC source.cpp)" }, { "prefix": "link", "text": "target_link_libraries(name PRIVATE dependency)" }],
+			"JSON": [{ "prefix": "object", "text": "{\n\t\"key\": \"value\"\n}" }],
+			"JavaScript": [{ "prefix": "function", "text": "function name(args) {\n\t\n}" }, { "prefix": "for", "text": "for (const item of items) {\n\t\n}" }],
+			"TypeScript": [{ "prefix": "function", "text": "function name(args: unknown): void {\n\t\n}" }, { "prefix": "interface", "text": "interface Name {\n\tkey: string;\n}" }],
+			"Markdown": [{ "prefix": "code", "text": "```\ncode\n```" }, { "prefix": "heading", "text": "## Heading" }, { "prefix": "link", "text": "[text](https://example.com)" }, { "prefix": "table", "text": "| Column | Column |\n|---|---|\n| Cell | Cell |" }],
+			"Python": [{ "prefix": "def", "text": "def name(args):\n\tpass" }, { "prefix": "for", "text": "for item in items:\n\tpass" }, { "prefix": "main", "text": "if __name__ == \"__main__\":\n\tmain()" }],
+			"Shell": [{ "prefix": "for", "text": "for item in \"$@\"; do\n\techo \"$item\"\ndone" }, { "prefix": "if", "text": "if [ -f \"$file\" ]; then\n\techo found\nfi" }]
+		},
+		"snippetPick": { "open": false, "query": "" },
+		"snippetInsert": null,
+		"snippetRequest": 0,
 		"wrap": false,
 		"ruler": false,
 		"findBar": { "open": false, "replacing": false, "inFiles": false, "where": "", "scope": [], "text": "", "replace": "", "regex": false, "wholeWord": false, "caseSensitive": false, "inSelection": false, "step": "first", "request": 0 },
@@ -163,7 +189,10 @@
 		"theme": "{{state.themePick.open ? (computed.themes[state.themePick.index ?? 0] ?? computed.themes[0]).theme : state.theme == 'system' ? window.colorScheme : state.theme}}",
 		"syntaxes": "{{[{ title: 'Plain Text', language: '', grammar: 'plain.txt' }, { title: 'C++', language: 'C++', grammar: 'cpp' }, { title: 'CMake', language: 'CMake', grammar: 'CMakeLists.txt' }, { title: 'JavaScript', language: 'JavaScript', grammar: 'javascript' }, { title: 'JSON', language: 'JSON', grammar: 'json' }, { title: 'Markdown', language: 'Markdown', grammar: 'markdown' }, { title: 'Python', language: 'Python', grammar: 'python' }, { title: 'Shell', language: 'Shell', grammar: 'script.sh' }, { title: 'TypeScript', language: 'TypeScript', grammar: 'typescript' }]}}",
 		"settingsText": "{{'{\\n\\t// Quaderno settings: save this file (Cmd+S) to apply them.\\n\\t// theme: \"dark\", \"light\" or \"system\"\\n\\t\"theme\": ' + json(state.theme) + ',\\n\\t\"wordWrap\": ' + json(state.wrap) + ',\\n\\t\"ruler\": ' + json(state.ruler) + ',\\n\\t\"minimap\": ' + json(state.minimap) + ',\\n\\t\"sideBar\": ' + json(state.sidebarOpen) + '\\n}\\n'}}",
-		"keysText": "{{'// Quaderno key bindings (read only): the keys section of the screen\\n[\\n' + join(map(filter(commands, it.key), '\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), ',\\n') + '\\n]\\n'}}",
+		"keysText": "{{'// Quaderno key bindings: add yours to the list at the end, then save (Cmd+S) to apply them.\\n// \"keys\" as in the list below (mod is cmd on macOS, ctrl elsewhere; two presses for a chord, apart).\\n// \"command\" is a command’s name. The built-in bindings:\\n' + join(map(filter(commands, it.key), '//\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), '\\n') + '\\n[\\n' + join(map(state.userKeys, '\\t{ \"keys\": ' + json(it.keys) + ', \"command\": ' + json(it.command) + ' }'), ',\\n') + '\\n]\\n'}}",
+		"indentations": "{{map([2, 4, 8], { title: 'Spaces: ' + it, size: it, detail: it == (computed.file.tabSize ?? 4) ? 'Current' : '' })}}",
+		"snippetItems": "{{map(state.snippets[computed.file.language ?? ''] ?? [], { title: it.prefix, detail: split(it.text, '\\n')[0], text: it.text })}}",
+		"branches": "{{map(state.branches, { title: it, detail: it == state.branch ? 'Current' : '' })}}",
 		"findSummary": "{{empty(state.findBar.text) ? '' : computed.findMatches == 0 ? 'No results' : plural(computed.findMatches, 'match', 'matches')}}"
 	},
 
@@ -215,6 +244,7 @@
 			"indent": { "run": "indentLines", "group": "1_line", "order": 6 },
 			"outdent": { "run": "outdentLines", "group": "1_line", "order": 7 },
 			"comment": { "run": "toggleComment", "group": "2_comment" },
+			"snippet": { "run": "insertSnippet", "group": "2_comment", "order": 2 },
 			"sort": { "run": "sortLines", "group": "3_text" },
 			"reverse": { "run": "reverseLines", "group": "3_text", "order": 2 },
 			"unique": { "run": "uniqueLines", "group": "3_text", "order": 3 },
@@ -240,6 +270,10 @@
 			"wrap": { "run": "toggleWordWrap", "group": "4_editor" },
 			"ruler": { "run": "toggleRuler", "group": "4_editor", "order": 2 },
 			"minimap": { "run": "toggleMinimap", "group": "4_editor", "order": 3 },
+			"indentation": { "run": "selectIndentation", "group": "4_editor", "order": 5 },
+			"split": { "run": "splitEditor", "group": "2b_groups" },
+			"layout": { "run": "toggleLayout", "group": "2b_groups", "order": 2 },
+			"closeSplit": { "run": "closeSplit", "group": "2b_groups", "order": 3 },
 			"unfold": { "run": "unfoldAll", "group": "4_editor", "order": 4 },
 			"syntax": { "run": "selectSyntax", "group": "5_look" },
 			"theme": { "run": "selectTheme", "group": "5_look", "order": 2 }
@@ -278,6 +312,8 @@
 		"window": {
 			"next": { "run": "nextTab", "group": "1_tabs" },
 			"previous": { "run": "previousTab", "group": "1_tabs", "order": 2 },
+			"split": { "run": "splitEditor", "group": "1b_groups" },
+			"layout": { "run": "toggleLayout", "group": "1b_groups", "order": 2 },
 			"closeAll": { "run": "closeAll", "group": "2_close" }
 		},
 		"help": {
@@ -289,20 +325,36 @@
 	"onLoad": "prepare",
 
 	"watch": {
-		"state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }]
+		"state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }],
+		"state.files": [
+			{ "note": "Hot exit: each unsaved file's text by its index, which the state file keeps across a restart" },
+			{ "set": "state.unsaved", "to": "{{fromEntries(map(filter(range(length(state.files)), state.files[it].dirty), { key: text(it), value: state.files[it].text }))}}" }
+		]
 	},
 
 	"actions": {
 		"prepare": [
-			{ "note": "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems" },
+			{ "note": "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems; the assistant's launcher sits above the status bar" },
+			{ "set": "state.assistant.floor", "to": 24 },
 			{
 				"set": "state.files[3].text",
 				"to": "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"
 			},
 			{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "set": "state.files[f].saved", "to": "{{state.files[f].text}}" }] },
+			{ "run": "restoreUnsaved", "with": { "kept": "{{state.unsaved}}" } },
 			{ "set": "state.symbolIndex", "to": "{{map(state.files, [])}}" },
 			{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "run": "indexFile", "with": { "file": "{{f}}" } }] },
 			{ "run": "findProblems" }
+		],
+		"restoreUnsaved": [
+			{ "note": "with: kept; hot exit: gives the files the text the last run left unsaved, and keeps the tabs to files that are there" },
+			{ "forEach": "{{filter(entries(kept), number(it.key) != null && number(it.key) < length(state.files))}}", "as": "entry", "do": [
+				{ "set": "state.files[number(entry.key)].text", "to": "{{entry.value}}" },
+				{ "set": "state.files[number(entry.key)].dirty", "to": true }
+			] },
+			{ "set": "state.tabs", "to": "{{filter(state.tabs, it < length(state.files))}}" },
+			{ "if": "{{state.active >= length(state.files)}}", "then": [{ "set": "state.active", "to": "{{state.tabs[0] ?? -1}}" }] },
+			{ "if": "{{state.split >= length(state.files)}}", "then": [{ "set": "state.split", "to": -1 }] }
 		],
 		"findProblems": [
 			{ "note": "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table" },
@@ -341,8 +393,9 @@
 			}
 		],
 		"saveFile": [
-			{ "note": "with: file; the Settings file applies its values instead" },
-			{ "if": "{{state.files[file].settings}}", "then": [{ "run": "applySettings", "with": { "file": "{{file}}" } }, { "stop": true }] },
+			{ "note": "with: file; the Settings and Key Bindings files apply their values instead" },
+			{ "if": "{{state.files[file].settings == 'settings'}}", "then": [{ "run": "applySettings", "with": { "file": "{{file}}" } }, { "stop": true }] },
+			{ "if": "{{state.files[file].settings == 'keys'}}", "then": [{ "run": "applyKeys", "with": { "file": "{{file}}" } }, { "stop": true }] },
 			{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
 			{ "set": "state.files[file].dirty", "to": false }
 		],
@@ -629,15 +682,15 @@
 			{ "set": "state.files[state.active].grammar", "to": "{{item.grammar}}" }
 		],
 		"openVirtual": [
-			{ "note": "with: name, text, readOnly; opens the file of that name outside the project, made with the text the first time" },
+			{ "note": "with: name, text, kind; opens the file of that name outside the project, made with the text the first time; saving it applies it, as kind says: settings or keys" },
 			{ "if": "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null) == null}}",
-				"then": [{ "push": "state.files", "value": { "name": "{{name}}", "folder": null, "language": "JSON", "dirty": false, "text": "{{text}}", "saved": "{{text}}", "readOnly": "{{readOnly}}", "settings": "{{!readOnly}}" } }] },
+				"then": [{ "push": "state.files", "value": { "name": "{{name}}", "folder": null, "language": "JSON", "dirty": false, "text": "{{text}}", "saved": "{{text}}", "settings": "{{kind}}" } }] },
 			{ "run": "open", "with": { "file": "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null)}}" } }
 		],
 		"openSettings": { "title": "Settings", "category": "Preferences", "icon": "settings",
-			"do": [{ "run": "openVirtual", "with": { "name": "Settings.json", "text": "{{computed.settingsText}}", "readOnly": false } }] },
+			"do": [{ "run": "openVirtual", "with": { "name": "Settings.json", "text": "{{computed.settingsText}}", "kind": "settings" } }] },
 		"openKeyBindings": { "title": "Key Bindings", "category": "Preferences", "icon": "keyboard",
-			"do": [{ "run": "openVirtual", "with": { "name": "Key Bindings.json", "text": "{{computed.keysText}}", "readOnly": true } }] },
+			"do": [{ "run": "openVirtual", "with": { "name": "Key Bindings.json", "text": "{{computed.keysText}}", "kind": "keys" } }] },
 		"applySettings": [
 			{ "note": "with: file, the Settings file; a valid file is saved and its values applied, a broken one stays unsaved with an error in the console" },
 			{ "forEach": "{{[parseJsonc(state.files[file].text)]}}", "as": "values", "do": [
@@ -649,6 +702,17 @@
 				{ "set": "state.ruler", "to": "{{values.ruler ?? state.ruler}}" },
 				{ "set": "state.minimap", "to": "{{values.minimap ?? state.minimap}}" },
 				{ "set": "state.sidebarOpen", "to": "{{values.sideBar ?? state.sidebarOpen}}" },
+				{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
+				{ "set": "state.files[file].dirty", "to": false }
+			] }
+		],
+		"applyKeys": [
+			{ "note": "with: file, the Key Bindings file; a list is saved and its bindings become the person's own, anything else stays unsaved with an error in the console" },
+			{ "forEach": "{{[parseJsonc(state.files[file].text)]}}", "as": "values", "do": [
+				{ "if": "{{type(values) != 'list'}}", "then": [
+					{ "push": "state.terminal", "value": { "t": "Key Bindings.json: not a list of bindings, nothing applied", "c": "error" } },
+					{ "set": "state.panelOpen", "to": true }, { "set": "state.panelTab", "to": "terminal" }, { "stop": true }] },
+				{ "set": "state.userKeys", "to": "{{filter(values, type(it) == 'object' && type(it.keys) == 'string' && type(it.command) == 'string')}}" },
 				{ "set": "state.files[file].saved", "to": "{{state.files[file].text}}" },
 				{ "set": "state.files[file].dirty", "to": false }
 			] }
@@ -665,7 +729,41 @@
 			{ "forEach": "{{slice(state.tabs, indexOf(state.tabs, file) + 1)}}", "as": "f", "do": [{ "if": "{{!state.files[f].dirty}}", "then": [{ "run": "closeNow", "with": { "file": "{{f}}" } }] }] }
 		],
 		"about": { "title": "About Quaderno", "category": "Help", "icon": "info",
-			"do": [{ "set": "state.aboutOpen", "to": true }] }
+			"do": [{ "set": "state.aboutOpen", "to": true }] },
+		"splitEditor": { "title": "Split Editor", "category": "View", "icon": "columns-2", "enablement": "{{computed.file != null || state.split >= 0}}",
+			"description": "Shows the file in a second editor group too; again, closes it.",
+			"do": [{ "set": "state.split", "to": "{{state.split >= 0 ? -1 : state.active}}" }] },
+		"closeSplit": { "title": "Close Second Group", "category": "View", "icon": "x", "enablement": "{{state.split >= 0}}",
+			"description": "Closes the second editor group; its file stays open.",
+			"do": [{ "set": "state.split", "to": -1 }] },
+		"toggleLayout": { "title": "Toggle Layout: Columns or Rows", "category": "View", "icon": "rows-2",
+			"description": "Puts the two editor groups side by side, or one under the other.",
+			"do": [
+				{ "set": "state.splitSizes", "to": [] },
+				{ "set": "state.layout", "to": "{{state.layout == 'row' ? 'column' : 'row'}}" },
+				{ "if": "{{state.split < 0}}", "then": [{ "set": "state.split", "to": "{{state.active}}" }] }
+			] },
+		"openToTheSide": [{ "note": "with: file; shows it in the second editor group" }, { "set": "state.split", "to": "{{file}}" }],
+		"selectIndentation": { "title": "Indentation", "category": "View", "icon": "indent", "enablement": "{{state.active >= 0}}",
+			"description": "Picks how many spaces an indentation level is, for the file shown.",
+			"do": [{ "set": "state.indentPick", "to": { "open": true, "query": "" } }] },
+		"insertSnippet": { "title": "Insert Snippet…", "category": "Edit", "icon": "braces", "enablement": "{{state.active >= 0 && !(computed.file.readOnly ?? false)}}",
+			"description": "Inserts a snippet of the file's language at the caret; a prefix just typed becomes its snippet.",
+			"do": [{ "set": "state.snippetPick", "to": { "open": true, "query": "" } }] },
+		"insertSnippetItem": [
+			{ "note": "with: item, a row of computed.snippetItems; the text before the caret is handed on" },
+			{ "run": "sendSnippet", "with": { "item": "{{item}}", "before": "{{slice(split(state.files[state.active].text, '\\n')[state.caret.line - 1] ?? '', 0, state.caret.column - 1)}}" } }
+		],
+		"sendSnippet": [
+			{ "note": "with: item, before; the editor inserts the snippet, its prefix replaced when just typed before the caret" },
+			{ "set": "state.snippetRequest", "to": "{{state.snippetRequest + 1}}" },
+			{ "set": "state.snippetInsert", "to": { "text": "{{item.text}}", "before": "{{length(before) >= length(item.title) && slice(before, length(before) - length(item.title)) == item.title ? length(item.title) : 0}}", "request": "{{state.snippetRequest}}" } }
+		],
+		"switchBranch": { "title": "Switch Branch…", "category": "Tools", "icon": "git-branch",
+			"description": "Picks the branch the status bar shows.",
+			"do": [{ "set": "state.branchPick", "to": { "open": true, "query": "" } }] },
+		"setBranch": [{ "note": "with: item, a row of computed.branches" }, { "set": "state.branch", "to": "{{item.title}}" }],
+		"setIndentation": [{ "note": "with: item, a row of computed.indentations" }, { "set": "state.files[state.active].tabSize", "to": "{{item.size}}" }]
 	},
 
 	"keys": {
@@ -712,7 +810,9 @@
 		"escape": "closeFind",
 		"mod+k mod+t": "selectTheme",
 		"ctrl+cmd+shift+f": { "when": "{{context.platform == 'mac'}}", "do": "toggleZen" },
-		"shift+f11": "toggleZen"
+		"shift+f11": "toggleZen",
+		"mod+backslash": "splitEditor",
+		"alt+mod+backslash": "toggleLayout"
 	},
 
 	"root": {
@@ -858,6 +958,16 @@
 						"sashActiveColor": "@accent",
 						"children": [
 							{
+							"type": "split",
+							"id": "editorSplit",
+							"direction": "{{state.layout}}",
+							"bind": "state.splitSizes",
+							"minSize": [240, 200],
+							"sashSize": 2,
+							"sashColor": "@border",
+							"sashActiveColor": "@accent",
+							"children": [
+							{
 								"id": "editorGroup",
 								"color": "@background",
 								"children": [
@@ -907,9 +1017,12 @@
 										"indentGuides": "{{!state.files[open].scratch}}",
 										"brackets": true,
 										"bracketStyle": "underline",
+										"foldMarkers": true,
+										"tabSize": "{{state.files[open].tabSize ?? 4}}",
 										"rulers": "{{state.ruler ? [80] : []}}",
 										"wrap": "{{state.wrap}}",
 										"find": "{{computed.findQuery}}",
+										"insert": "{{state.snippetInsert}}",
 										"bind": "state.files[open].text",
 										"caret": "state.caret",
 										"autofocus": true,
@@ -928,7 +1041,10 @@
 											{ "set": "state.caret", "to": { "line": 1, "column": 1, "selected": 0 } },
 											{ "forEach": "{{state.place ? [state.place] : []}}", "as": "place", "do": [{ "set": "state.place", "to": null }, { "run": "goToPlace", "with": { "item": "{{place}}" } }] }
 										],
-										"onChange": { "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" },
+										"onChange": [
+											{ "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" },
+											{ "if": "{{state.snippetInsert != null}}", "then": [{ "set": "state.snippetInsert", "to": null }] }
+										],
 										"onContextMenu": { "set": "state.editorMenu", "to": { "open": true, "x": "{{min(event.x, event.x - event.left + event.width - 240)}}", "y": "{{min(event.y, event.y - event.top + event.height - 204)}}" } },
 										"onDoubleClick": { "if": "{{state.files[open].scratch}}", "then": [{ "run": "openResult", "with": { "line": "{{state.caret.line}}" } }] }
 									},
@@ -942,6 +1058,68 @@
 										"align": "center"
 									}
 								]
+							},
+							{
+								"id": "sideGroup",
+								"note": "The second editor group, beside the first or under it: one file, its own caret",
+								"when": "{{state.split >= 0 && !state.zen}}",
+								"color": "@background",
+								"children": [
+									{
+										"type": "tabs",
+										"id": "sideTabs",
+										"anchors": { "left": 0, "right": 0, "top": 0 },
+										"height": 32,
+										"tabs": "{{[{ id: text(state.split), label: state.files[state.split].name, marker: state.files[state.split].dirty }]}}",
+										"value": "{{text(state.split)}}",
+										"color": "@tabBar",
+										"textColor": "@muted",
+										"activeTextColor": "@text",
+										"activeBackground": "@background",
+										"accentColor": "transparent",
+										"markerColor": "@accent",
+										"keepMarker": true,
+										"tabRadius": 7,
+										"tabGap": 4,
+										"tabInset": 5,
+										"onClose": "closeSplit"
+									},
+									{
+										"type": "editor",
+										"id": "sideEditor",
+										"repeat": { "for": "open", "in": "{{state.split >= 0 ? [state.split] : []}}", "key": "{{open}}" },
+										"note": "The same text as in the first group, edited in either",
+										"font": "code",
+										"lineNumbers": true,
+										"language": "{{state.files[open].language}}",
+										"grammar": "{{state.files[open].grammar ?? state.files[open].name}}",
+										"readOnly": "{{state.files[open].readOnly ?? false}}",
+										"commands": { "alt+up": "moveLinesUp", "alt+down": "moveLinesDown", "mod+shift+k": "deleteLines",
+										              "mod+[": "outdentLines", "mod+]": "indentLines", "mod+c": "copyLine", "mod+x": "cutLine" },
+										"minimap": false,
+										"indentGuides": "{{!state.files[open].scratch}}",
+										"brackets": true,
+										"bracketStyle": "underline",
+										"foldMarkers": true,
+										"tabSize": "{{state.files[open].tabSize ?? 4}}",
+										"rulers": "{{state.ruler ? [80] : []}}",
+										"wrap": "{{state.wrap}}",
+										"bind": "state.files[open].text",
+										"anchors": { "left": 0, "right": 0, "top": 32, "bottom": 0 },
+										"color": "@background",
+										"textColor": "@plain",
+										"lineNumberColor": "@faint",
+										"activeLineNumberColor": "@text",
+										"lineColor": "@line",
+										"selectionColor": "@selection",
+										"caretColor": "@accent",
+										"guideColor": "@guide",
+										"bracketColor": "@accent",
+										"onChange": { "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" }
+									}
+								]
+							}
+							]
 							},
 							{
 								"id": "bottomPanel",
@@ -1128,11 +1306,14 @@
 					{
 						"id": "statusText",
 						"style": "statusItem",
-						"text": "main",
+						"text": "{{state.branch}}",
 						"icon": "git-branch",
-						"textColor": "@faint",
+						"textColor": "@muted",
+						"hover": { "textColor": "@text" },
 						"anchors": { "left": 36 },
-						"tooltip": "Branch: switching branches isn't available yet"
+						"cursor": "hand",
+						"tooltip": "Switch Branch…",
+						"onClick": "switchBranch"
 					},
 					{
 						"id": "statusProblems",
@@ -1158,10 +1339,12 @@
 					{
 						"id": "statusIndent",
 						"style": "statusItem",
-						"text": "{{computed.file ? 'Spaces: 4' : ''}}",
-						"textColor": "@faint",
+						"text": "{{computed.file ? 'Spaces: ' + (computed.file.tabSize ?? 4) : ''}}",
+						"hover": { "textColor": "@text" },
 						"anchors": { "right": 140 },
-						"tooltip": "Indentation: 4 spaces; changing it isn't available yet"
+						"cursor": "hand",
+						"tooltip": "Indentation",
+						"onClick": "selectIndentation"
 					},
 					{
 						"id": "statusSyntax",
@@ -1281,6 +1464,8 @@
 						{ "title": "Close Others", "run": "closeOthersOf", "with": { "file": "{{state.tabMenu.file}}" }, "enabled": "{{length(state.tabs) > 1}}" },
 						{ "title": "Close Tabs to the Right", "run": "closeToTheRight", "with": { "file": "{{state.tabMenu.file}}" }, "enabled": "{{indexOf(state.tabs, state.tabMenu.file) < length(state.tabs) - 1}}" },
 						{ "separator": true },
+						{ "title": "Open to the Side", "run": "openToTheSide", "with": { "file": "{{state.tabMenu.file}}" } },
+						{ "separator": true },
 						{ "title": "Reopen Closed File", "run": "reopenClosed", "enabled": "{{length(state.closed) > 0}}" }
 					]
 				}
@@ -1336,6 +1521,51 @@
 					"highlight": "@rowSelected",
 					"field": "@input",
 					"providers": [{ "items": "{{computed.syntaxes}}", "run": "setSyntax", "placeholder": "Select the syntax of the file" }]
+				}
+			},
+			{
+				"id": "indentPick",
+				"when": "{{state.indentPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"name": "indentPick",
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@rowSelected",
+					"field": "@input",
+					"providers": [{ "items": "{{computed.indentations}}", "run": "setIndentation", "placeholder": "Select the indentation of the file" }]
+				}
+			},
+			{
+				"id": "snippetPick",
+				"when": "{{state.snippetPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"name": "snippetPick",
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@rowSelected",
+					"field": "@input",
+					"providers": [{ "items": "{{computed.snippetItems}}", "run": "insertSnippetItem", "placeholder": "Select a snippet: its prefix, typed before the caret, is replaced" }]
+				}
+			},
+			{
+				"id": "branchPick",
+				"when": "{{state.branchPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"name": "branchPick",
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@rowSelected",
+					"field": "@input",
+					"providers": [{ "items": "{{computed.branches}}", "run": "setBranch", "placeholder": "Select a branch" }]
 				}
 			}
 		]

@@ -181,6 +181,16 @@ std::vector<std::string> Interpreter::definitionNames() const {
 	return names;
 }
 
+std::vector<std::string> Interpreter::callableNames() const {
+	std::vector<std::string> names = machine_->globalNames();
+	for(const auto& definition : machine_->definitions()) names.push_back(definition->name);
+	for(const std::string_view form : Compiler::specialNames()) names.emplace_back(form);
+	std::ranges::sort(names);
+	const auto repeated = std::ranges::unique(names);
+	names.erase(repeated.begin(), repeated.end());
+	return names;
+}
+
 std::vector<Extension> Interpreter::extensions() const {
 	std::vector<Extension> found;
 	for(const auto& definition : machine_->definitions()) {
@@ -219,6 +229,12 @@ Value Interpreter::makeFunction(const std::string& name, Primitive primitive) {
 Interpreter::Sealed::Sealed(Interpreter& interpreter) : machine_(interpreter.machine()), ran_(machine_.ranSet()) {}
 
 Interpreter::Sealed::~Sealed() { machine_.setRanSet(static_cast<const AuthorSet*>(ran_)); }
+
+Interpreter::Apart::Apart(Interpreter& interpreter) : machine_(interpreter.machine()), ran_(machine_.ranSet()) {
+	machine_.setRanSet(machine_.noAuthors());
+}
+
+Interpreter::Apart::~Apart() { machine_.setRanSet(static_cast<const AuthorSet*>(ran_)); }
 
 void Interpreter::addAuthorsThatRan(std::span<const std::string> authors) {
 	for(const std::string& author : authors)

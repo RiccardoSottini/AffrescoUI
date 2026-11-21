@@ -131,6 +131,19 @@ private:
 	/// @param event The event.
 	/// @return true if a binding ran, a chord started or went on, or a press ended one.
 	bool resolve(Panel* from, const KeyEvent& event);
+	/// @brief Escape: ends a chord in progress (and does nothing else), or closes the open overlays.
+	/// @param chording Whether a chord is in progress.
+	/// @return true if it ended a chord, so the press is taken.
+	bool escape(bool chording);
+	/// @brief Runs the bindings of a press: the focused panel's and its ancestors', then the document's unless a
+	/// focused text input types the key or a focused node moves with it.
+	/// @param from The focused panel, or nullptr.
+	/// @param event The event.
+	/// @param name The key's name (shortcut()).
+	/// @param press The press, with the chord in progress before it.
+	/// @param waits Set when a key starts with the press.
+	/// @return true if a binding ran.
+	bool runPress(Panel* from, const KeyEvent& event, const std::string& name, const std::string& press, bool& waits);
 	/// @brief Runs the "keys" binding of a press on the focused panel or its nearest ancestor that has one.
 	/// @param from The focused panel, or nullptr.
 	/// @param press The press, with the chord in progress before it.
@@ -170,6 +183,18 @@ private:
 	/// @param position The pointer.
 	/// @return The event.
 	static json pointerEvent(std::string_view type, const Panel& panel, Vec2 position);
+	/// @brief Adds the modifier keys held to a pointer event: `shift`, `ctrl`, `alt`, `cmd`, and `mod` (Cmd on macOS,
+	/// Ctrl elsewhere, as in shortcuts).
+	/// @param event The event, which receives them.
+	void addModifiers(json& event) const;
+	/// @brief Keeps the modifier keys held after a key event: its own, with a modifier key it presses or releases.
+	/// @param event The key event.
+	void keepModifiers(const KeyEvent& event) noexcept;
+	/// @brief Follows Alt pressed and released with no other key or modifier between: the press a document's keys name
+	/// "alt" (key hints, a menu bar's letters).
+	/// @param event A key event.
+	/// @return true if it is the release of an Alt pressed alone.
+	bool altReleasedAlone(const KeyEvent& event) noexcept;
 	/// @brief Handles a mouse button on a built panel: press, release, click, double click, drop.
 	/// @param panel The panel that holds the mouse.
 	/// @param event The event.
@@ -178,7 +203,8 @@ private:
 	/// @param panel The panel pressed.
 	/// @param at Where.
 	void pressed(Panel& panel, Vec2 at);
-	/// @brief Handles a release of the left button: a drop, or a release and a click (or a double click).
+	/// @brief Handles a release of the left button: a drop, or a release (wherever it is) and, over the panel pressed,
+	/// a click (or a double click).
 	/// @param panel The panel that holds the mouse.
 	/// @param at Where.
 	void released(Panel& panel, Vec2 at);
@@ -295,6 +321,8 @@ private:
 	std::string focusPath_;            ///< The path of the latest focusStep().
 	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
 	bool capsLock_ = false;            ///< Whether caps lock was on at the latest key event: bindings update on a change.
+	Mods modifiers_; ///< The modifier keys held, from the latest key or button event: pointer events carry them.
+	bool altAlone_ = false; ///< Alt is held, and nothing else was pressed since (altReleasedAlone()).
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

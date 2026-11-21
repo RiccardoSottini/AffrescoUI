@@ -67,6 +67,11 @@ public:
 	/// @brief Closes a window (nothing if it isn't open).
 	/// @param name Its name.
 	void close(const std::string& name);
+	/// @brief Closes the screen's own window, as its close button does: the application ends once no window is open
+	/// (the declared windows close with it). Only from the person's own click or key, or the application's code;
+	/// else it reports the refusal and does nothing.
+	/// @param at The step's place, for the report.
+	void closeMain(const std::string& at);
 	/// @brief Makes a window, or the screen's own ("main"), fill a display or not.
 	/// @param name Its name, or "main".
 	/// @param fullscreen true or false; nothing to toggle it.
@@ -96,6 +101,10 @@ private:
 	/// @param at The step's place, for the report.
 	/// @return Whether it may.
 	[[nodiscard]] bool mayFill(const std::string& at) const;
+	/// @brief Whether the person (or the application's code) starts what runs now: a press being delivered to the
+	/// screen's window or one of these, or the host running an action.
+	/// @return Whether it is so.
+	[[nodiscard]] bool personStarted() const;
 	/// @brief The entry of a declared window.
 	/// @param name Its name.
 	/// @return The entry, or nullptr.

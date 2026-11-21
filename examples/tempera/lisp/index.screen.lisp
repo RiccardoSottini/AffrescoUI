@@ -6,30 +6,31 @@
 ;;; M, L, W, C, B, E, S, G, I, H and Z choose a tool; Cmd+Z undoes, Cmd+J duplicates a layer, Cmd+L, M, U, B and I add
 ;;; an adjustment layer, Cmd+F searches the commands, F changes the screen mode (keys.lisp).
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "offers.lisp"
-         "state.lisp"
-         "image.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "commands.lisp"
-         "keys.lisp"
-         "menus.lisp"
-         "controls.lisp"
-         "menu.lisp"
-         "menubar.lisp"
-         "options.lisp"
-         "tools.lisp"
-         "canvas.lisp"
-         "panels.lisp"
-         "properties.lisp"
-         "layers.lisp"
-         "dialogs.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "../../shared/components/charts.lisp"
-         "tempera.lisp")
+(ns tempera.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "offers.lisp"
+            tempera.state
+            tempera.image
+            tempera.computed
+            tempera.look
+            tempera.commands
+            tempera.keys
+            tempera.menus
+            tempera.controls
+            tempera.menu
+            tempera.menubar
+            tempera.options
+            tempera.tools
+            tempera.canvas
+            tempera.panels
+            tempera.properties
+            tempera.layers
+            tempera.dialogs
+            "../../shared/addons/assistant/assistant.lisp"
+            "../../shared/components/charts.lisp"
+            tempera.tempera))
 
 ;;; The window, and what is in it, in the order it is drawn
 
@@ -42,7 +43,7 @@
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
           :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 17}}
   :permissions {:allow [studio] :ask [agent] :reviewers [studio user]}
-  :persist [state.theme state.view]
+  :persist [state.theme state.view state.workspaces]
   :theme ~state.theme
   (node#root :color @background
     (column#workspace :fill true :gap 6

@@ -6,24 +6,25 @@
 ;;; problems (updated on save), and a terminal. A find panel (Cmd+F, Cmd+Alt+F to replace), word wrap (Alt+Cmd+W) and
 ;;; a ruler at column 80 (View); multiple selections, Cmd+/ comments, line operations.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "parts/look.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "keys.lisp"
-         "window.lisp"
-         "explorer.lisp"
-         "editor.lisp"
-         "panel.lisp"
-         "../../shared/languages/languages.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "quaderno.lisp")
+(ns code-editor.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            code-editor.parts.look
+            code-editor.state
+            code-editor.computed
+            code-editor.keys
+            code-editor.window
+            code-editor.explorer
+            code-editor.editor
+            code-editor.panel
+            "../../shared/languages/languages.lisp"
+            "../../shared/addons/assistant/assistant.lisp"
+            code-editor.quaderno))
 
 (defpart events "Quaderno's start and its watch: the files are prepared, and the assistant sits above the find panel."
   :onLoad prepare
-  :watch {:state.findBar [~(handler liftAssistant)]})
+  :watch {:state.findBar [~(handler lift-assistant)] :state.files [~(handler keep-unsaved)]})
 
 ;;; The screen
 
@@ -40,6 +41,10 @@
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
                 :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+  :persist [state.unsaved state.tabs state.active state.split state.layout state.theme state.wrap state.ruler
+            state.minimap state.sidebarOpen state.branch
+            state.userKeys]
+  :keyBindings state.userKeys
   :theme ~computed.theme
   (node#panel-root :color @background
     ~(title-bar)
@@ -63,4 +68,7 @@
     ~(tab-menu)
     ~(editor-menu)
     ~(theme-pick)
-    ~(syntax-pick)))
+    ~(syntax-pick)
+    ~(indent-pick)
+    ~(snippet-pick)
+    ~(branch-pick)))

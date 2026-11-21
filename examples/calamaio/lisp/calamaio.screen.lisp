@@ -5,34 +5,39 @@
 ;;; look.lisp, its variables in settings.lisp: changing how it works is a revision of its program, as an init file
 ;;; is. Lisp typed in a buffer runs in it (loop.lisp).
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "look.lisp"
-         "settings.lisp"
-         "state.lisp"
-         "home.lisp"
-         "languages.lisp"
-         "window.lisp"
-         "layout.lisp"
-         "bars.lisp"
-         "splash.lisp"
-         "echo.lisp"
-         "minibuffer.lisp"
-         "motion.lisp"
-         "editing.lisp"
-         "killring.lisp"
-         "search.lisp"
-         "buffers.lisp"
-         "files.lisp"
-         "listings.lisp"
-         "help.lisp"
-         "options.lisp"
-         "guides.lisp"
-         "loop.lisp"
-         "keys.lisp"
-         "menus.lisp"
-         "../../shared/addons/assistant/assistant.lisp")
+(ns calamaio.calamaio
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            calamaio.look
+            calamaio.settings
+            calamaio.state
+            calamaio.home
+            "languages.lisp"
+            calamaio.window
+            calamaio.layout
+            calamaio.bars
+            calamaio.splash
+            calamaio.echo
+            calamaio.minibuffer
+            calamaio.motion
+            calamaio.editing
+            calamaio.killring
+            calamaio.search
+            calamaio.buffers
+            calamaio.files
+            calamaio.listings
+            calamaio.dired
+            calamaio.help
+            calamaio.macros
+            calamaio.registers
+            calamaio.options
+            calamaio.customize
+            calamaio.guides
+            calamaio.loop
+            calamaio.keys
+            calamaio.menus
+            "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; Starting
 

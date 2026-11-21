@@ -9,6 +9,7 @@
                            :status (enum :values [none ready running downloading update] :default none)
                            :favourite (boolean :default false)
                            :local (boolean :default false)
+                           :drive (enum :values [main second] :default main :description "The drive it is installed on.")
                            :note (string :maxLength 500)
                            :art (string :maxLength 40)
                            :sizeGb (number :minimum 0)

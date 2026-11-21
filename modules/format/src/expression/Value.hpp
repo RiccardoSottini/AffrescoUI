@@ -135,6 +135,9 @@ public:
 
 	/// @brief The value as JSON: what evaluate() returns.
 	[[nodiscard]] json toJson() const;
+	/// @brief The JSON this value refers to where it lies, when it borrows it (fromJson()) rather than owning it.
+	/// @return It, valid while that JSON is; nullptr if the value owns what it holds or holds it inline.
+	[[nodiscard]] const json* borrowed() const noexcept;
 	/// @brief The value as text, as format::toText() writes JSON: texts as they are, null as "", whole doubles below
 	/// 10^15 without a fraction, the rest as JSON (bytes that aren't UTF-8 replaced, never an exception).
 	[[nodiscard]] std::string toText() const;

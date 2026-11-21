@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -161,4 +162,25 @@ TEST_CASE("editor commands: undo, redo, cut, copy, paste, select all, indent and
 	CHECK(test.editor.runCommand("cut")); // known, but a read-only text doesn't change
 	CHECK(test.editor.runCommand("undo"));
 	CHECK(test.editor.text() == "one\ntwoone\ntwo");
+}
+
+TEST_CASE("editor commands: scroll the caret's row to the top, the bottom and the middle of the view") {
+	std::string text;
+	for(int line = 1; line <= 100; ++line) text += "line " + std::to_string(line) + "\n";
+	CommandWindow test(text);
+	test.at(49, 0);
+	REQUIRE(test.editor.runCommand("recenterTop"));
+	CHECK(test.editor.view().first == 50);
+	REQUIRE(test.editor.runCommand("recenterBottom"));
+	CHECK(test.editor.view().last == 50);
+	REQUIRE(test.editor.runCommand("recenter"));
+	const TextEditor::View view = test.editor.view();
+	CHECK(view.first < 50);
+	CHECK(view.last > 50);
+	CHECK(view.rowHeight > 0.0f);
+	const long above = 50 - static_cast<long>(view.first), below = static_cast<long>(view.last) - 50;
+	CHECK(std::abs(above - below) <= 1);
+	test.at(0, 0);
+	REQUIRE(test.editor.runCommand("recenter"));
+	CHECK(test.editor.view().first == 1); // as far as the text lets it scroll
 }

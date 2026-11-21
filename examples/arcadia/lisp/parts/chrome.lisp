@@ -3,6 +3,8 @@
 ;;; The menu row (the menus on the left; TV mode, the notifications and the account with its wallet on the right), the
 ;;; big navigation with back and forward, and the bottom bar (add a game, the download in progress, friends and chat).
 
+(ns arcadia.parts.chrome)
+
 ;;; What the bars keep
 
 (defstate menus {})
@@ -27,12 +29,12 @@
    {:icon tag :text notice.sale :n 2 :unread false}])
 
 (defcomputed download "The download in progress, if one is."
-  (find (fn [it] (= it.status "downloading")) state.downloads))
+  (find #(= (:status %) "downloading") state.downloads))
 
 (defcomputed downloadGame "The game the download in progress is of."
-  (find (fn [it] (= it.id computed.download.id)) data.games))
+  (find #(= (:id %) computed.download.id) data.games))
 
-(defcomputed unread "How many notifications are unread." (count (filter (fn [it] it.unread) state.notifications)))
+(defcomputed unread "How many notifications are unread." (count (filter :unread state.notifications)))
 
 ;;; The bars' looks
 
@@ -94,7 +96,7 @@
              {:title ~(t "menu.backup") :run openBackup}
              {:title ~(t "menu.settings") :run openSettings :with {:page interface} :keyLabel "⌘,"}
              {:separator true}
-             {:title ~(t "menu.exit") :enabled false}]))
+             {:title ~(t "menu.exit") :run exitApp}]))
 
 (defview view-menu "The View menu: couch mode, the pages, the theme and the language." []
   `(node :name view
@@ -131,7 +133,9 @@
      :items [{:title ~(t "menu.viewLibrary") :run showLibrary}
              {:title ~(t "menu.activate") :run openCode :with {:kind activate}}
              {:title ~(t "menu.redeem") :run openCode :with {:kind redeem}}
-             {:title ~(t "menu.addOther") :run openAddGame}]))
+             {:title ~(t "menu.addOther") :run openAddGame}
+             {:separator true}
+             {:title ~(t "coll.new") :run newCollection}]))
 
 (defview help-menu "The Help menu: support, privacy, the system's details and About." []
   `(node :name help
@@ -245,7 +249,7 @@
      :text ""
      :fitText true
      :padding 6
-     :textColor ~(if (< state.at (- (count state.nav) 1)) "@color.text" "@color.dim")
+     :textColor ~(if (< state.at (dec (count state.nav))) "@color.text" "@color.dim")
      :focusable true
      :role button
      :label ~(t "nav.forward")
@@ -317,11 +321,12 @@
   ;; A macro: the line is an expression, shown and read aloud.
   "What the bottom bar says of the downloads: the game in progress and how far it is, or a link to them."
   []
-  `(if computed.download
-     (t "bottom.downloading"
-        {:title computed.downloadGame.title
-         :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
-     (t "bottom.manage")))
+  `(cond
+     (and computed.download computed.dlWaiting) (t "bottom.scheduled" {:title computed.downloadGame.title})
+     computed.download (t "bottom.downloading"
+                          {:title computed.downloadGame.title
+                           :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
+     :else (t "bottom.manage")))
 
 (defview downloads-status
   "The download in progress, with its bar, in the middle of the bottom bar: it opens the downloads."

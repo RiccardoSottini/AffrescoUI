@@ -1,0 +1,2 @@
+;; (#{:a} x) writes x twice: nested, the text doubled at each level until memory ran out
+(defscreen main :state {:kind "a"} (column :value ~(#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} (#{:a} state.kind))))))))))))))))))))))))))))))))

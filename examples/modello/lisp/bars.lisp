@@ -1,6 +1,8 @@
 ;;; bars.lisp --- the window's frame: the top bar (menus, workspaces, scene and layer), the four areas, the status bar,
 ;;; and the render window's image
 
+(ns modello.bars)
+
 ;;; The workspace
 
 (defview workspace-column "The window's column: the top bar, the areas (or the one maximized), the status bar." []
@@ -26,12 +28,14 @@
        (node :use area :with {:slot d}))))
 
 (defcomponent area "An area: the editor state.areas gives its slot (a, b, c or d)." {:slot a}
-  `(node :id ~(str "area-" slot) :color transparent :onHover ~(handler hoverArea slot)
-     (node :when ~(= (get state.areas slot) "viewport") :use viewportArea :fill true)
-     (node :when ~(= (get state.areas slot) "timeline") :use timelineArea :fill true)
-     (node :when ~(= (get state.areas slot) "outliner") :use outlinerArea :fill true)
-     (node :when ~(= (get state.areas slot) "properties") :use propertiesArea :fill true)
-     (node :when ~(= (get state.areas slot) "shader") :use shaderArea :fill true)))
+  `(node :id ~(str "area-" slot) :color transparent :onHover ~(handler hover-area slot)
+     (node :when ~(= (get state.areas slot) :viewport) :use viewportArea :fill true)
+     (node :when ~(= (get state.areas slot) :timeline) :use timelineArea :fill true)
+     (node :when ~(= (get state.areas slot) :outliner) :use outlinerArea :fill true)
+     (node :when ~(= (get state.areas slot) :properties) :use propertiesArea :fill true)
+     (node :when ~(= (get state.areas slot) :shader) :use shaderArea :fill true)
+     (node :when ~(= (get state.areas slot) :image) :use imageArea :fill true)
+     (node :when ~(= (get state.areas slot) :text) :use textArea :fill true)))
 
 ;;; The top bar
 
@@ -72,50 +76,56 @@
                      {:name "window" :title (t "menubar.window") :items menus.window}
                      {:name "help" :title (t "menubar.help") :items menus.help}]}))
 
-(defview workspace-tabs "The workspaces, as tabs." []
-  `(row#workspaces :height 24
+(defview workspace-tabs "The workspaces, as a segmented control: an icon and a name each." []
+  `(row#workspaces :height 26
      :alignItems center
-     :gap 0
+     :gap 2
      :color @header
-     :radius 7
+     :radius 13
      :role tablist
      :label ~(t "topbar.workspaces")
      :arrows horizontal
      :fitContent width
-     {:width 2 :height 1 :color transparent}
+     {:width 1 :height 1 :color transparent}
      ~(repeat [w computed.workspaces] (workspace-tab w))
-     {:width 2 :height 1 :color transparent}))
+     {:width 1 :height 1 :color transparent}))
 
-(defview workspace-tab "A workspace's tab: chosen, or greyed with what it needs in its tooltip." [w]
-  `(node :id ~(str "workspace-" w.id)
-     :height 20
-     :width ~(+ (* (count w.title) 6) 18)
-     :radius 5
+(defview workspace-tab "A workspace's tab: its icon and name, filled with the accent when chosen." [w]
+  `(row :id ~(str "workspace-" w.id)
+     :height 22
+     :width ~(+ (* (count w.title) 6.5) 34)
+     :radius 11
      :role tab
      :focusable true
      :label ~w.title
-     :disabled ~(some? w.needs)
-     :tooltip ~(if (some? w.needs) (t "topbar.needs" {:title w.title :needs w.needs}) "")
+     :alignItems center
+     :gap 5
      :selected ~(= state.workspace w.name)
-     :color ~(if (= state.workspace w.name) "@widget" "transparent")
-     :hover {:color ~(cond (= state.workspace w.name) "@widget" (some? w.needs) "transparent" :else "@view")}
-     :onClick ~(handler setWorkspace w.id w.name)
-     (label :text ~w.title
-       :textColor ~(cond (= state.workspace w.name) "@active" (some? w.needs) "@faint" :else "@dim")
-       :align center
-       :fill true)))
+     :color ~(if (= state.workspace w.name) "@kit.accent" "transparent")
+     :hover {:color ~(if (= state.workspace w.name) "@kit.accent" "@view")}
+     :onClick ~(handler set-workspace w.id w.name)
+     {:width 5 :height 1 :color transparent}
+     (label :font iconsSmall
+       :icon ~w.icon
+       :text ""
+       :textColor ~(if (= state.workspace w.name) "#ffffff" "@dim")
+       :width 14
+       :height 20
+       :align center)
+     (label :text ~w.title :textColor ~(if (= state.workspace w.name) "#ffffff" "@text") :fitText true :height 20)))
 
-(defview scene-picker "The scene's picker (one scene for now), then its name, typed in place: two nodes." []
+(defview scene-picker "The scene's picker (switch, add, delete), then its name, typed in place: two nodes." []
   [`(node#scene-picker
       :use hButton
-      :with {:icon shapes :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneScene")})
+      :with {:icon shapes :chevron true :width 38 :tooltip ~(t "topbar.scenes") :open state.open.scenePicker
+             :items ~computed.sceneItems})
    `(node#scene-name :width 100 :height 20 :color @field :radius 4
       (textarea#scene-name-field :anchors {:left 3 :top 1 :bottom 1 :right 2}
         :color transparent
         :text ~state.sceneName
         :textColor @text
         :label ~(t "topbar.sceneName")
-        :onSubmit ~(handler renameScene event.text)))])
+        :onSubmit ~(handler rename-scene event.text)))])
 
 (defview layer-picker "The view layer's picker (one layer for now), then its name, typed in place: two nodes." []
   [`(node#layer-picker
@@ -127,7 +137,7 @@
         :text ~state.layerName
         :textColor @text
         :label ~(t "topbar.layerName")
-        :onSubmit ~(handler renameLayer event.text)))])
+        :onSubmit ~(handler rename-layer event.text)))])
 
 ;;; The status bar
 
@@ -154,14 +164,18 @@
 
 ;;; The render window
 
+(defcomputed renderScene "The scene as a render shows it: what isn't rendered hidden, the modifiers applied."
+  (modifiers-applied
+   (merge state.scene
+         {:nodes (map (fn [it]
+                        (if (or (false? it.render) (contains computed.collectionsOff.render (or-else it.collection "collection")))
+                          (merge it {:visible false})
+                          it))
+                      state.scene.nodes)})))
+
 (defview render-image "The render: the scene through its camera, lit by its lights, without what isn't rendered." []
   `(scene#render-image :anchors {:left 20 :right 20 :top 44 :bottom 56}
-     :scene ~(merge state.scene
-                    {:nodes (map (fn [it]
-                                   (if (or (= it.render false) (contains computed.collectionsOff.render (or-else it.collection "collection")))
-                                     (merge it {:visible false})
-                                     it))
-                                 state.scene.nodes)})
+     :scene ~computed.renderScene
      :view ~{:camera computed.cameraView :selection []}
      :up z
      :extras false

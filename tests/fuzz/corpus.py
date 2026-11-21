@@ -6,11 +6,18 @@
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the JSON template's nodes and state;
 - delta:      the JSON template and changed copies of it (keys reordered, a node added), with deltas to apply;
+- undo:       a few revisions on the JSON template and on a program, later ones changing again what earlier ones did,
+              and the undo of one of them with each kind of choice (drop, keep, then);
+- merge:      the JSON template as base, and two changed copies of it (a node added, a key added in the middle, a
+              definition changed on both sides);
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
+- commands:   each command message from each peer, and short conversations with runs that wait;
 - text:       every text of the templates and of the rendering check's screens;
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
+- updates:    the screens and steps kept in seeds/updates/ (nested repeats, components, a program, a set past a
+              list's end).
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
 - data_uri:   the same PNG and JPEG files as data: URIs;
@@ -19,8 +26,10 @@
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
+- bencode, nrepl: an editor's first nREPL messages, then the files kept in seeds/<target>/.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
 - app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
+- package:    packages made here, of each kind (a version's changes, a whole app), with state and an asset.
 - composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
@@ -63,7 +72,7 @@ MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
 FIELD_VALUES = {"revision": "HEAD~1", "proposal": 1, "head": "", "dontAskAgain": True, "from": 0, "to": "HEAD",
                 "name": "plugin", "limit": 5, "text": "Make the status bar dark", "request": "r1", "mode": "plan",
-                "rule": "agent(/actions)", "reason": "Not now",
+                "rule": "agent(/actions)", "reason": "Not now", "at": "#title",
                 "patch": [{"op": "replace", "path": "#statusText/text", "value": "Saved"}]}
 MORE_FIELDS = {"revert": ["revision"], "reject": ["proposal", "reason"], "preview": ["proposal"], "setMode": ["mode"],
                "revoke": ["rule"]}
@@ -171,6 +180,28 @@ def program_revisions():
     ]
 
 
+def feature_revisions():
+    """Revisions on the fixture's feature that holds a program (tests/fuzz/revision.cpp): one installed, its definition
+    changed and added to, switched off and on, and removed; and what must be refused."""
+    at = "/features/tally/provides/program/feature.lisp/"
+    program = {"feature.lisp": {"state.mark": '(defstate mark {:on false} "Its state.")',
+                                "mark-flip": '(defn mark-flip "Flips." [] (toggle "state.mark.on"))'}}
+    record = {"release": "1.0.0", "source": "revision", "enabled": True, "order": 1, "provides": {"program": program}}
+    return [
+        {"author": "agent", "set": {"/features/mark": record}},
+        {"author": "agent", "set": {at + "tally-bump": '(defn tally-bump "Counts twice." [] (set "state.tally.n" 2))'}},
+        {"author": "agent", "set": {at + "tally-reach": '(defn tally-reach "Reaches." [] (set "state.n" 0) (call "x"))'}},
+        {"author": "agent", "set": {at + "advice go around tally-bump": "(advice go :around tally-bump)"}},
+        {"author": "agent", "set": {at + "accept": '(defn accept "Named like a review step." [] nil)'}},
+        {"author": "agent", "set": {"/features/tally/enabled": False}},
+        {"author": "studio", "set": {"/features/tally/order": 3}},
+        {"author": "agent", "set": {at + "add-hook after-go tally-bump": "(add-hook after-go tally-bump)"}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "tally.go"}]},
+        {"author": "agent", "patch": [{"op": "remove", "path": "/features/tally"}]},
+        {"author": "agent", "remove": ["/features/tally/provides/program"]},
+    ]
+
+
 def revisions():
     """Revisions for the JSON template: from the docs, and edits of every kind to its nodes and state."""
     found = [block for block in doc_blocks() if isinstance(block, dict) and
@@ -194,7 +225,7 @@ def revisions():
         {"op": "move", "from": "/state/copy", "path": "/state/moved"}, {"op": "test", "path": "/state/moved/0", "value": 1},
         {"op": "replace", "path": "#statusText/text", "value": "Saved"}, {"op": "remove", "path": "/state/extra"}]})
     found.append({"author": "agent", "proposal": 1, "set": {"#boardName/text": "Again"}})
-    found += program_revisions()
+    found += program_revisions() + feature_revisions()
     return [compact(revision) for revision in found]
 
 
@@ -231,9 +262,30 @@ def session_seeds():
                             ">" + compact({"type": "setMode", "mode": "acceptEdits"}), compact(asks),
                             ">" + compact({"type": "reject", "proposal": 1, "reason": "No"}), compact({"type": "undo"}),
                             compact({"type": "request", "id": "r1", "text": "hi"}), ">{\"type\":\"reply\",\"request\":\"r1\"}"]))
+    # getSource's other kinds of node: a JSON Pointer and a definition's address
+    seeds.append("\n".join(compact({"type": "getSource", "id": i, "at": at})
+                           for i, at in enumerate(["/root", "/program/app.lisp/main"], start=1)))
     # Over the agent's limits (session.cpp): more changes than its burst, then a message larger than 4 KiB
     renames = [compact({"type": "revision", "id": i, "set": {"#boardName/text": f"B{i}"}}) for i in range(8)]
     seeds.append("\n".join(renames + [compact({"type": "getHistory", "id": 9, "padding": "x" * 5000})]))
+    return seeds
+
+
+def commands_seeds():
+    """The commands target's seeds: each command message alone, from each peer, then short conversations."""
+    messages = [{"type": "getCommands", "id": 1, "filter": "sh", "all": True},
+                {"type": "runCommand", "id": 2, "command": "shown", "arguments": {"text": "a"}, "evidence": "picture",
+                 "scale": 2},
+                {"type": "undoRun", "id": 3, "run": 1}, {"type": "allowRun", "id": 4, "run": 1, "always": True, "for": "8h"},
+                {"type": "denyRun", "id": 5, "run": 1, "reason": "not now"},
+                {"type": "revokeRun", "id": 6, "rule": "agent:shown"}]
+    seeds = [prefix + compact(message) for message in messages for prefix in ("", ">", "?")]
+    run = compact(messages[1])
+    seeds.append("\n".join([run, ">" + compact(messages[3]), "!", compact(messages[2]), "?" + run, "!"]))
+    seeds.append("\n".join([run, "~", "!", run, "~", run, "!", "?" + compact(messages[0])]))
+    # Over the limits (commands.cpp): arguments past 512 bytes, then more runs than the burst
+    seeds.append("\n".join([compact({"type": "runCommand", "command": "shown", "arguments": {"t": "x" * 600}})] +
+                           [run] * 10))
     return seeds
 
 
@@ -253,6 +305,61 @@ def delta_seeds():
     seeds += [compact({"from": [1, 2, 3], "to": [3, 1.0, -0.0], "delta": [{"op": "add", "path": "/0/x", "value": 1}]}),
               compact({"from": {"a/b": {"~": 1}, "c": [1]}, "to": {"c": [], "a/b": None}, "delta": []})]
     return seeds
+
+
+def undo_seeds():
+    """The undo target's seeds (tests/fuzz/undo.cpp): revisions where later ones build on an earlier one, then the
+    undo of that one with no choice, with drop and keep (all, or the conflict's path) and with a node rebuilt."""
+    ids = template_ids()[:6]
+    first, second = ids[0], ids[1 % len(ids)]
+    added = {"type": "label", "id": "fuzzAdded", "text": "Added"}
+    template = [
+        [{"set": {f"#{first}/text": "One"}}, {"set": {f"#{second}/text": "Two"}}],
+        [{"set": {f"#{first}/text": "One"}}, {"set": {f"#{first}/text": "Again"}}],
+        [{"add": {f"#{first}/children/-": added}}, {"set": {"#fuzzAdded/text": "Renamed"}}],
+        [{"add": {f"#{first}/children/-": added}}, {"remove": ["#fuzzAdded"]}],
+        [{"set": {"/state/notice": "Hi"}}, {"set": {"/state/notice": "Bye"}}, {"set": {f"#{second}/text": "T"}}],
+        [{"set": {"/actions/fuzz": [{"log": "one"}]}}, {"set": {"/actions/fuzz": [{"log": "two"}]}}],
+    ]
+    at = "/program/app.lisp/"
+    program = [
+        [{"set": {at + "greeting": '(def greeting "A value." "Hi")'}},
+         {"set": {at + "greeting": '(def greeting "A value." "Hey")'}}],
+        [{"set": {at + "go/:title": "Run"}}, {"set": {at + "helper": '(defn helper "New." [n] (+ n 2))'}}],
+        [{"set": {at + "shout": '(defn shout "Loud." [s] (str s "!"))'}},
+         {"set": {at + "welcome": '(defn welcome "Uses it." [] (shout "Hi"))'}}],
+        [{"patch": [{"op": "remove", "path": at + "uses"}]}, {"set": {at + "greeting": '(def greeting "V." "X")'}}],
+    ]
+    rebuild = [{"op": "add", "path": f"#{first}/children/-", "value": {"type": "label", "id": "rebuilt"}}]
+    choices = [{}, {"drop": "all"}, {"keep": "all"}, {"drop": "all", "then": rebuild}, {"target": 2},
+               {"target": "HEAD"}, {"target": 0}, {"drop": ["#fuzzAdded"]}, {"keep": [f"#{first}"]},
+               {"drop": [at + "greeting"]}, {"then": [{"op": "remove", "path": "/nothing"}]}]
+    seeds = []
+    for revisions in template + program:
+        for choice in choices:
+            seeds.append(compact({"revisions": revisions, "target": 1, **choice}))
+    return seeds
+
+
+def merge_seeds():
+    """The merge target's seeds: the JSON template as base, and two changed copies of it that merge or conflict."""
+    template = json.loads(TEMPLATE.read_text(encoding="utf-8"))
+
+    def copy():
+        return json.loads(json.dumps(template))
+
+    renamed, added, reordered = copy(), copy(), dict(reversed(list(template.items())))
+    renamed["state"]["board"] = "Renamed"
+    added["root"]["children"].insert(0, {"type": "label", "id": "first", "text": "First"})
+    program = {"program": {"main.lisp": {"first": "(defn first [] 1)", "last": "(defn last [] 3)"}}}
+    middle = {"program": {"main.lisp": {"first": "(defn first [] 1)", "middle": "(defn middle [] 2)",
+                                        "last": "(defn last [] 3)"}}}
+    changed = {"program": {"main.lisp": {"first": "(defn first [] 10)", "last": "(defn last [] 3)"}}}
+    other = {"program": {"main.lisp": {"first": "(defn first []\n  1)", "last": "(defn last [] 3)"}}}
+    sides = [(template, renamed, added), (template, added, renamed), (template, reordered, renamed),
+             (template, renamed, {}), (program, changed, middle), (program, changed, other), (program, {}, middle),
+             ([1, 2], [1, 2, 3], [0, 1, 2]), ({"a": 1}, [1], "x")]
+    return [compact({"base": base, "main": main, "proposal": proposal}) for base, main, proposal in sides]
 
 
 def policy_seeds():
@@ -522,6 +629,26 @@ def peer_handshake_seeds():
             '\x00{"type": "auth", "token": ""}', '\x00{"type": "hello"}']
 
 
+EDITOR_MESSAGES = [b"d2:op5:clonee", b"d2:op8:describee", b"d4:code7:(+ 1 2)2:id1:12:op4:eval7:session3:abce"]
+
+
+def checked_in_seeds(target):
+    """The seeds kept in tests/fuzz/seeds/<target>/, as bytes, by name; none while the folder isn't there."""
+    folder = ROOT / "tests" / "fuzz" / "seeds" / target
+    return [path.read_bytes() for path in sorted(folder.glob("*")) if path.is_file()]
+
+
+def bencode_seeds():
+    """An editor's bytes: nREPL's first messages (clone, describe, eval), then the bencode kept in seeds/bencode/."""
+    return EDITOR_MESSAGES + checked_in_seeds("bencode")
+
+
+def nrepl_seeds():
+    """An editor's messages: nREPL's first messages (clone, describe, eval), then the conversations kept in
+    seeds/nrepl/."""
+    return EDITOR_MESSAGES + checked_in_seeds("nrepl")
+
+
 def frames_seeds():
     """Content-Length frames (even first byte) and lines (odd first byte), cut into pieces of a few sizes."""
     body = '{"jsonrpc":"2.0","id":1,"result":{}}'
@@ -545,6 +672,40 @@ def app_seeds():
                 if not (path.parent.parent / "json").is_dir()]
     return ([path.read_text(encoding="utf-8") for path in manifests] + [compact(app) for app in programs if app]
             + [path.read_text(encoding="utf-8") for path in templates("*.screen.json")])
+
+
+def package_seeds():
+    """Packages of each kind, made here: a version's document, the delta back to its base and that base's tree."""
+    def tree(document):
+        canonical = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    dot = '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>'
+    document = {"format": "affrescoui-screen", "version": 2,
+                "state": {"title": "Notes", "columns": ["To do", "Blocked", "Done"]},
+                "program": {"app.lisp": {"count": "(defn count [] 2)"}},
+                "assets": {"dot.svg": {"type": "image/svg+xml", "size": len(dot),
+                                       "sha256": hashlib.sha256(dot.encode()).hexdigest()}},
+                "root": {"type": "label", "id": "title", "text": "{{state.title}}"}}
+    delta = [{"op": "remove", "path": "/state/columns/1"},
+             {"op": "replace", "path": "/program/app.lisp/count", "value": "(defn count [] 1)"},
+             {"op": "remove", "path": "/assets"}]
+    base = json.loads(json.dumps(document))
+    del base["state"]["columns"][1]
+    base["program"]["app.lisp"]["count"] = "(defn count [] 1)"
+    del base["assets"]
+    changes = {"format": "affrescoui-package", "version": 1, "kind": "changes", "name": "Notes with Blocked",
+               "release": "1.1.0", "engine": "1.0.0", "author": "Ada",
+               "base": {"app": "notes", "name": "Notes", "release": "1.0.0", "notation": "lisp", "tree": tree(base),
+                        "delta": delta},
+               "document": document, "state": {"blockedReason": ""},
+               "assets": {"dot.svg": {"type": "image/svg+xml", "text": dot}}}
+    app = json.loads(json.dumps(changes))
+    app["kind"] = "app"
+    app["base"]["files"] = {
+        "app.json": {"text": json.dumps({"format": "affrescoui-app", "version": 1, "id": "notes", "name": "Notes",
+                                         "entry": "index.screen.lisp"})},
+        "index.screen.lisp": {"text": "(screen)"}, "seed/notes.csv": {"data": "aWQsVGl0bGUK"}}
+    return [json.dumps(changes, indent=1), json.dumps(app, indent=1)]
 
 
 CLI = None  # the affrescoui command, in the build the corpus is written for (main()), to read Lisp files
@@ -976,7 +1137,8 @@ def dictionaries():
     scenarios += [f"#{node}" for node in template_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
-            "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
+            "delta": delta, "merge": delta + ["base", "main", "proposal", "id", "children", "program"],
+            "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
             "actions": tokens + expression + steps,
             "layout": tokens + schema_words() + ["\"1fr\"", "\"auto\"", "\"minmax(", "\"25%\"", "\"space-between\"",
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
@@ -1082,7 +1244,12 @@ def main():
                                                 "remove", "replace", "move", "copy", "test", "/", "~0", "~1", "\n"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
+    write(out, "commands", commands_seeds(), words["session"] + ["getCommands", "runCommand", "undoRun", "allowRun",
+                                                                  "denyRun", "revokeRun", "evidence", "picture", "none",
+                                                                  "always", "for", "rule", "filter", "!", "~", "?", ">"])
     write(out, "delta", delta_seeds(), words["delta"])
+    write(out, "merge", merge_seeds(), words["merge"])
+    write(out, "undo", undo_seeds(), words["revision"] + ["revisions", "target", "drop", "keep", "then", "all", "HEAD"])
     write(out, "policy", policy_seeds(),
           words["revision"] + ["budgets", "data", "read", "write", "never", "over", "role:"])
     write(out, "text", text_seeds(), words["text"])
@@ -1090,6 +1257,8 @@ def main():
     write(out, "cli", cli_seeds(), words["cli"])
     write(out, "actions", action_seeds(), words["actions"])
     write(out, "layout", layout_seeds(), words["layout"])
+    write(out, "updates", checked_in_seeds("updates"), words["layout"] + ["steps", "screen", "set", "push", "remove",
+                                                                         "toggle", "increment", "repeat", "key", "when"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
     write(out, "data_uri", data_uri_seeds(), words["data_uri"])
@@ -1106,11 +1275,17 @@ def main():
     write(out, "websocket", websocket_seeds(), words["websocket"])
     write(out, "frames", frames_seeds(), words["frames"])
     write(out, "peer_handshake", peer_handshake_seeds(), words["peer_handshake"])
+    editor = ["d", "e", "l", "i", "0:", "2:op", "4:code", "7:session", "2:id", "5:clone", "8:describe", "4:eval"]
+    write(out, "bencode", bencode_seeds(), editor)
+    write(out, "nrepl", nrepl_seeds(), editor + ["9:load-file", "11:completions", "4:info", "5:close", "9:interrupt"])
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
     write(out, "app_manifest", app_seeds(), words["json"] + ["affrescoui-app", "capabilities", "network", "folders",
           "programs", "audio", "access", "write", "why", "seed", "models", "https://*.", "ws://127.0.0.1:", "../"])
+    write(out, "package", package_seeds(), words["json"] + ["affrescoui-package", "changes", "app", "base", "delta",
+          "tree", "sha256:", "notation", "files", "text", "data", "document", "state", "assets", "add", "remove",
+          "replace", "signature", "proof"])
     migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)

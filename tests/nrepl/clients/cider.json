@@ -1,0 +1,66 @@
+[
+  {
+    "note": "CIDER 2.1.0-snapshot. Connect, its own text, an eval in a source buffer and load-file follow the requests recorded in nrepl/proof internal/checks/clients/cider.toml at commit e9e325a756df344563891aac19dc829f710d3024 (CIDER at 9e049baa1c2c136724d7538b1df6898ee77de6e7); completions, info, eldoc and interrupt follow CIDER's sources at that commit. Reply shapes checked against babashka/babashka.nrepl src/babashka/nrepl/impl/server.clj at fb44874128d8cc2622f164e6a499ed4f00e5aae9. Written for AffrescoUI: the forms and files are its own.",
+    "send": {"op": "clone", "id": "1", "client-name": "CIDER", "client-version": "2.1.0-snapshot"},
+    "expect": [{"keys": ["new-session"], "status": ["done"], "capture": "repl"}]
+  },
+  {
+    "send": {"op": "clone", "id": "2", "client-name": "CIDER", "client-version": "2.1.0-snapshot"},
+    "expect": [{"keys": ["new-session"], "status": ["done"], "capture": "tooling"}]
+  },
+  {
+    "send": {"op": "describe", "id": "3", "session": "$repl"},
+    "expect": [{"keys": ["ops", "versions", "aux", "session"], "absent": ["clojure"], "status": ["done"]}]
+  },
+  {
+    "note": "CIDER's own REPL requires: answered nil, no pairing.",
+    "send": {"op": "eval", "id": "4", "session": "$repl", "file": "*cider-repl ~/project:localhost:7888(clj)*",
+             "line": 6, "column": 1,
+             "code": "(when-let [requires (resolve 'clojure.main/repl-requires)]\n  (clojure.core/apply clojure.core/require @requires))",
+             "nrepl.middleware.print/stream?": "1", "nrepl.middleware.print/print": "cider.nrepl.pprint/clojure-pprint",
+             "nrepl.middleware.print/quota": 1048576, "nrepl.middleware.print/buffer-size": 4096,
+             "nrepl.middleware.print/options": {"right-margin": 70}, "content-type": "true",
+             "inhibit-cider-middleware": "true"},
+    "expect": [{"keys": ["value", "ns"], "value": "nil"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "eval", "id": "5", "session": "$repl", "code": "(ns proof.cider)\n"},
+    "expect": [{"keys": ["value", "ns"], "value": "nil", "ns": "proof.cider"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "note": "The first form for the app: the person is asked, says yes, and it runs.",
+    "send": {"op": "eval", "id": "6", "session": "$repl", "ns": "proof.cider",
+             "file": "/home/user/project/src/proof/cider.lisp", "line": 3, "column": 1, "code": "(+ 1 2)",
+             "content-type": "true", "nrepl.middleware.print/print": "cider.nrepl.pprint/pr",
+             "nrepl.middleware.print/stream?": [], "nrepl.middleware.print/quota": 1048576},
+    "expect": [{"keys": ["value", "ns"], "ns": "proof.cider"}, {"status": ["done"]}],
+    "questions": 1
+  },
+  {
+    "send": {"op": "load-file", "id": "7", "session": "$repl", "file": "(defn add-item [item] item)\n",
+             "file-path": "/home/user/project/src/proof/cider.lisp", "file-name": "cider.lisp",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pr", "nrepl.middleware.print/stream?": [],
+             "nrepl.middleware.print/quota": 1048576},
+    "expect": [{"keys": ["value", "ns"]}, {"status": ["done"]}],
+    "questions": 1
+  },
+  {
+    "send": {"op": "completions", "id": "8", "session": "$tooling", "prefix": "add", "ns": "proof.cider",
+             "context": ":same"},
+    "expect": [{"keys": ["completions"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "info", "id": "9", "session": "$tooling", "sym": "add-item", "ns": "proof.cider"},
+    "expect": [{"keys": ["name", "ns", "doc", "arglists-str", "file", "line"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "eldoc", "id": "10", "session": "$tooling", "sym": "add-item", "ns": "proof.cider"},
+    "expect": [{"keys": ["name", "ns", "type", "eldoc", "docstring"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "interrupt", "id": "11", "session": "$repl", "interrupt-id": "6"},
+    "expect": [{"status": ["session-idle", "done"]}]
+  }
+]

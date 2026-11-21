@@ -13,11 +13,11 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 
 | Header | Offers |
 |---|---|
-| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), second windows sharing a window's context and font (`createWindow(..., sharing)`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
-| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`; on by default in screens); the OS's file dialogs (`chooseFiles`, `FileDialog`, `FileFilter`; `setFileDialogHandler` answers them instead, for tests and automation); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot`, `renderToImage` (a panel's subtree as a bitmap: thumbnails, mirrors); for the inspector, `frameStatistics` (`FrameStatistics.hpp`: frames drawn, the last one's time and draw calls) and `setInspection`, a layer drawn above everything and never hit; `confirm` (`Confirmation`), a question the window draws itself above everything a screen draws, which only the person's own press answers (`dismissConfirmation`, `confirmation`) |
+| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`; `turns()` and `lastWake()` count its wakes and say why: `Wake::Input`, `Timer`, `Posted`, `Unknown`), second windows sharing a window's context and font (`createWindow(..., sharing)`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
+| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`; on by default in screens); the OS's file dialogs (`chooseFiles`, `FileDialog`, `FileFilter`; `setFileDialogHandler` answers them instead, for tests and automation); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot`, `renderToImage` (a panel's subtree as a bitmap: thumbnails, mirrors); for the inspector, `frameStatistics` (`FrameStatistics.hpp`: frames drawn, the last one's time and draw calls) and `setInspection`, a layer drawn above everything and never hit; `confirm` (`Confirmation`), a question the window draws itself above everything a screen draws, which only the person's own press answers (`dismissConfirmation`, `confirmation`); `pick` (`PickOptions`), a mode in which the person points at a panel with the mouse or the keyboard while the screen hears none of that input (`cancelPick`, `picking`, `setPickLayerVisible`) |
 | `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`; each element's value (text, a slider's `AccessibleRange`, a checkbox's state, a field's selection), states (`AccessibleState`: expanded, selected, disabled, a live region), the actions it allows, bounds and an id that lasts (`accessibleId`, `findByAccessibleId`), and `performAccessibleAction`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`, `setAccessibleState`); each window hands the tree to the platform after the frames that change it (`ACCESSIBILITY.md`) |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
-| `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture); `setGradient` (a background over its colour) |
+| `Panel.hpp` | `Panel`: the owned tree (`addChild`, `insertChild`, `takeChild`, `replaceChild`, `reorderChildren`, `removeChildren`), `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture); `setGradient` (a background over its colour) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
 | `Layout.hpp` | The values of flexible and grid layout: `Justify`, `CrossAlign`, `Track` (pixels, percent, fractions, content, minmax), `GridCell` |
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
@@ -40,21 +40,28 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
 | `GraphView.hpp` | `GraphView`: a node editor over a `GraphModel` (nodes with typed ports, links); the link rules (`checkLink`: kinds, `links` per port, duplicates, cycles), a small camera (`GraphCamera`, zoom and pan, to move onto Camera2D), Bézier links coloured by kind, a minimap, off-screen nodes culled; drags, a marquee and the keyboard emit `GraphEvent`s (`onEdit`) and change nothing themselves |
 | `TimelineView.hpp` | `TimelineView`: tracks of keyframes and clips under a time ruler over a `TimelineModel` (nested groups, mute and lock, markers, a play range); ticks that follow the zoom in frames, seconds or timecode (`rulerTicks`, `formatTime`), snapping (`snapTime`), step, linear and Bézier easing (`keyframeValueAt`); only the rows in view laid out and drawn; scrubbing, keyframe drags, clip moves and trims, a marquee and the keyboard emit `TimelineEvent`s (`onEdit`) |
-| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages; `rasterAt` (its glyphs rasterised for a HiDPI framebuffer, laid out the same) |
+| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages; `rasterAt` (its glyphs rasterised for a HiDPI framebuffer, laid out the same); `fitGlyph` (below a scale of 2, a glyph's bitmap moved by a quarter of a pixel and its pen on a whole column) |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`, gradients with `fillGradient`); `CornerRadii`, `Shadow`, `MeshVertex` |
 | `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG with stb_image, SVG icons rasterised at twice their size) and `fromPixels`, within `Bitmap::Limits` |
-| `ImageCache.hpp` | `ImageCache`: files decoded on a worker thread and delivered on the main one (through an `Executor`), only from allowed folders, kept within a bound; images the host names; `Request`s that cancel when destroyed |
+| `ImageCache.hpp` | `ImageCache`: files decoded on a worker thread and delivered on the main one (through an `Executor`), only from allowed folders, kept within a bound; images the host names; `Request`s that cancel when destroyed; `finishPending`, also within a time limit (for a first frame) |
 | `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
 | `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
 | `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
 | `Camera2D.hpp` | `Camera2D`: a pure value (x, y, zoom within 0.01 to 256) mapping world units to screen units: `toScreen`, `toWorld`, `visible`, `zoomedAt` (the point under the pointer stays), `pannedBy`, `fitted` |
-| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items and guides, with smart guides; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
+| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items, guides and equal gaps, with smart guides and distance indicators; Shift keeps a corner resize's proportions and a move on one axis; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
 ## Invariants
 
+- **A pick is the person's, and only a pointer.** While `Window::pick()` runs, no panel and no window signal hears a
+  key, a character, a move, a button, a drop or a menu choice; the hover and the focus stay as they were, and a scroll
+  only scrolls. Only the person's own press ends it (`routingOwnPress()`: never `pressKey`), on its release; a question
+  (`confirm`) ends it first, and one pick runs at a time. What it hands back is a panel, never a permission. A panel
+  that only shows itself on hover can't be picked, as the pointer leaves the hover where it was. The caption is a
+  polite live region of the window's own layer, which the platform's accessibility tree doesn't read yet (as for
+  `confirm`'s question).
 - **A parent owns its children** (`std::unique_ptr`); `parent()` and `window()` never own. Destroying a panel
   clears the window's focus, hover and capture if they point at it.
 - **Setters only mark what changed.** A setter stores a value only when it differs (`Panel::setProperty`), and then
@@ -71,6 +78,14 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels. A grid has at
   most `maxGridTracks` (1,000) tracks a side, and placing a child looks at each of the grid's cells about once at most.
 - **A window draws only when something changed,** and the event loop sleeps while nothing is due: idle costs no CPU.
+  No thread polls: `Application::run` waits until there is input, a task posted or a timer due, and counts each wake
+  (`turns()`, `turns(Wake)`, `lastWake()`), so a test or an inspector can tell an idle second from a busy one
+  (`tests/unit/window/idle.cpp` asserts it for every template).
+- **The tree changes by the panel, not by the list.** `Panel::insertChild(index, child)` adds a panel at a position and
+  `takeChild(index)` takes one out (the window drops its focus, hover and capture pointers into it), each moving only
+  the later siblings; `reorderChildren(first, order)` puts the children from `first` on in a new order with one change
+  of the tree, keeping every panel with its focus, hover and capture. A keyed list uses them to insert, remove or
+  reorder rows without building the others again (`modules/format/README.md`, "Cost follows the change").
 - **A frame draws only what changed.** Each panel keeps what it drew (`src/paint/RetainedGeometry.hpp`: its clipped quads
   and the batch steps between them, recorded by `PaintRecorder`, the Painter panels draw with). Before a frame,
   `GeometryCache` visits only the panels whose drawing changed (`invalidatePaint()`, or `invalidate()`) and those a
@@ -115,7 +130,19 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   test harness sets it by default (`CONTRIBUTING.md`).
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
-  with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
+  with HarfBuzz; FreeType rasterises the glyphs. Below a scale of 2 they are fitted to pixels (`Font::fitsPixels`):
+  hinted lightly, vertically only, and each drawn from a whole pixel row and column, so a screen with few pixels shows
+  them sharp while widths and carets stay HarfBuzz's. A glyph has up to four bitmaps there, its outline moved right
+  by 0, ¼, ½ and ¾ of a pixel, rasterised the first time a pen needs them (`Font::fitGlyph`): the pen goes on a whole
+  column and the bitmap moved by the rest, rounded to a quarter, so each glyph is within an eighth of a pixel of where
+  it is laid out and the spaces between letters stay even. A font drawing itself (a scale of 1) keeps what it draws in
+  the pages after its Latin-1 page, so a line never changes page and makes no draw call more than at 2; the places of
+  Latin-1's four bitmaps there are kept the first time it draws, so they don't follow what it drew before. Colour glyphs,
+  and glyphs past the atlas's limit, are drawn plain from the nearest column. At 2 and above glyphs are unhinted, their
+  outlines' exact shapes, each drawn from the nearest pixel column, never resampled between two. Coverage is raised
+  by an enhanced contrast that grows with the text's luminance (`gl/QuadShaders.hpp`, `textCoverage`): blending in
+  sRGB values makes the edges of light text on a dark ground much dimmer than their coverage, so such text looked thin
+  and washed out; covered and empty pixels keep their exact colours. A right-to-left run is laid out right to left, and a line's
   runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
   first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
@@ -136,6 +163,15 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   moving a window back and forth rasterises nothing twice. A frame at another scale than the last records every panel
   again (`PaintKey::scale`). A raster's pages have a font's 64 MiB bound and count in its `memoryBytes()`; a font too
   large to rasterise at the scale (past 4,096 pixels) draws unscaled.
+- **A window unit is the display's scale in pixels, on every platform.** On macOS, Wayland and the web the windowing
+  system speaks in units and gives the framebuffer at the display's scale. On Windows and X11 its coordinates are
+  pixels, so the window converts at the edge (`src/platform/GlfwPlatform.cpp`, its arithmetic in
+  `src/platform/UnitScale.hpp`): the display's scale rounded to a quarter, from 1 to 4 (125% to 400%), is the unit
+  scale; the window opens that many times larger in pixels, its sizes, size limits and pointer positions are converted
+  both ways, and `contentScale()` is that scale, so a frame is drawn for the real pixels. When
+  the scale changes (the window moves to another display, or the setting changes), the window keeps its size in units
+  and is resized to it at the new scale. Headless windows, and every platform but those two, have a unit scale of
+  exactly 1, which converts nothing.
 - **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
   on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
@@ -160,7 +196,12 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   selects with the mouse and Cmd/Ctrl+A and copies with Cmd/Ctrl+C.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages (and each of its rasters') hold at most
   64 MiB in all (colour pages count four bytes a texel), so text naming many characters can't exhaust memory; past
-  that, characters draw as `?`.
+  that, characters draw as `?`. Below a scale of 2 the bitmaps of glyphs moved by quarters of a pixel count in those
+  64 MiB; past it, a glyph is drawn plain from the nearest column. Glyphs fit the pixels of a frame drawn at a quarter
+  (1, 1.25, 1.5, 1.75); between quarters they are rasterised at the nearest and resampled, as before. A text that
+  starts with a colour glyph, at a scale of 1, makes one draw call more than at 2 (its first letter is on a page after
+  the Latin-1 one). Other glyphs, and a raster's (1.25 and up), take atlas places as text draws them, as before, so a
+  turned or scaled text, sampled between texels, can differ by a level or two with what its font drew before.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
   32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
   256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.

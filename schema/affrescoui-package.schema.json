@@ -1,0 +1,321 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/schema/affrescoui-package.schema.json",
+	"title": "AffrescoUI Package",
+	"description": "A shared version of an app, in one file ending in .affresco.json: the version's source document, what turns it back into the release it was made from, and (kind \"app\") that release's files. A package is untrusted input: installing one is a proposal the person reviews and accepts, limited by the capabilities they grant. Specification: SCREEN_FORMAT.md, \"Apps: app.json\", and modules/format/src/packages/README.md. Limits: the file at most 16 MiB, 1024 files of at most 4 MiB each.",
+	"type": "object",
+	"required": [
+		"format",
+		"version",
+		"kind",
+		"name",
+		"release",
+		"engine",
+		"base",
+		"document"
+	],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"maxLength": 1024
+		},
+		"format": {
+			"const": "affrescoui-package"
+		},
+		"version": {
+			"const": 1
+		},
+		"kind": {
+			"enum": [
+				"changes",
+				"app"
+			],
+			"description": "\"changes\": a version of an app the person has; \"app\": also the base app's files, in base.files."
+		},
+		"name": {
+			"$ref": "#/$defs/name",
+			"description": "The version's name."
+		},
+		"release": {
+			"$ref": "#/$defs/release",
+			"description": "The version's own release."
+		},
+		"description": {
+			"type": "string",
+			"maxLength": 2000,
+			"description": "What the person wrote about the version."
+		},
+		"author": {
+			"type": "string",
+			"maxLength": 80,
+			"description": "A name the person typed: a claim, not a proof (a signature is the proof)."
+		},
+		"license": {
+			"type": "string",
+			"maxLength": 64,
+			"description": "The version's licence, such as \"Apache-2.0\"."
+		},
+		"engine": {
+			"$ref": "#/$defs/release",
+			"description": "The AffrescoUI release that wrote the package."
+		},
+		"base": {
+			"type": "object",
+			"required": [
+				"app",
+				"name",
+				"notation",
+				"tree",
+				"delta"
+			],
+			"additionalProperties": false,
+			"description": "The release the version was made from.",
+			"properties": {
+				"app": {
+					"type": "string",
+					"pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$",
+					"description": "Its app's id (app.json's id)."
+				},
+				"name": {
+					"$ref": "#/$defs/name",
+					"description": "Its app's name."
+				},
+				"release": {
+					"$ref": "#/$defs/release",
+					"description": "Its app's release (app.json's release), if it has one."
+				},
+				"notation": {
+					"enum": [
+						"json",
+						"lisp"
+					],
+					"description": "The notation its source document is written in."
+				},
+				"tree": {
+					"type": "string",
+					"pattern": "^sha256:[0-9a-f]{64}$",
+					"description": "The SHA-256 of its source document's canonical JSON (RFC 8785)."
+				},
+				"delta": {
+					"type": "array",
+					"maxItems": 100000,
+					"items": {
+						"$ref": "#/$defs/operation"
+					},
+					"description": "A JSON Patch (RFC 6902) of add, remove and replace operations that turns document into the base's source document."
+				},
+				"files": {
+					"type": "object",
+					"maxProperties": 1024,
+					"propertyNames": {
+						"$ref": "#/$defs/path"
+					},
+					"additionalProperties": {
+						"$ref": "#/$defs/file"
+					},
+					"description": "For a package of kind \"app\": the base app's folder, each file by its path in it."
+				}
+			}
+		},
+		"document": {
+			"type": "object",
+			"description": "The version's source document."
+		},
+		"state": {
+			"type": "object",
+			"maxProperties": 10000,
+			"propertyNames": {
+				"maxLength": 256
+			},
+			"description": "The state keys the version adds, with their first values."
+		},
+		"assets": {
+			"type": "object",
+			"maxProperties": 1000,
+			"propertyNames": {
+				"pattern": "^[a-z0-9][a-z0-9._-]{0,99}$"
+			},
+			"additionalProperties": {
+				"$ref": "#/$defs/asset"
+			},
+			"description": "The bytes of the assets the version adds, by name (VERSION_CONTROL.md, \"Assets\")."
+		},
+		"proof": {
+			"type": "object",
+			"required": [
+				"scenarios"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"scenarios": {
+					"type": "array",
+					"maxItems": 1000
+				}
+			},
+			"description": "The scenarios the version passes, as a change set's proof."
+		},
+		"signature": {
+			"type": "object",
+			"required": [
+				"publisher",
+				"value"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"publisher": {
+					"type": "string",
+					"pattern": "^ed25519:[A-Za-z0-9_-]{43}$",
+					"description": "The publisher's public key."
+				},
+				"value": {
+					"type": "string",
+					"pattern": "^[A-Za-z0-9_-]{86}$",
+					"description": "The Ed25519 signature of the package's canonical JSON without its signature, base64url."
+				}
+			},
+			"description": "Optional, as a feature's: shown in the review and checked against the trusted publishers the person keeps."
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"kind": {
+						"const": "app"
+					}
+				},
+				"required": [
+					"kind"
+				]
+			},
+			"then": {
+				"properties": {
+					"base": {
+						"required": [
+							"files"
+						]
+					}
+				}
+			}
+		}
+	],
+	"$defs": {
+		"name": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 80
+		},
+		"release": {
+			"type": "string",
+			"maxLength": 29,
+			"pattern": "^[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}$",
+			"description": "Three numbers, as a feature's release (\"1.2.0\")."
+		},
+		"path": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 1024,
+			"pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))(?!.*//)[^\\\\:\\u0000-\\u001f]+$",
+			"description": "A file inside the app's folder: relative, no \"..\" part, '/' between parts."
+		},
+		"base64": {
+			"type": "string",
+			"contentEncoding": "base64",
+			"description": "Bytes as base64 (RFC 4648, section 4), checked when read: a pattern is not matched against text this long."
+		},
+		"file": {
+			"type": "object",
+			"additionalProperties": false,
+			"minProperties": 1,
+			"maxProperties": 1,
+			"properties": {
+				"text": {
+					"type": "string",
+					"maxLength": 4194304
+				},
+				"data": {
+					"$ref": "#/$defs/base64",
+					"maxLength": 5592408
+				}
+			},
+			"description": "A file's content: {\"text\"} for UTF-8 text, {\"data\"} for other bytes as base64; at most 4 MiB."
+		},
+		"asset": {
+			"type": "object",
+			"required": [
+				"type"
+			],
+			"additionalProperties": false,
+			"minProperties": 2,
+			"maxProperties": 2,
+			"properties": {
+				"type": {
+					"enum": [
+						"image/png",
+						"image/jpeg",
+						"image/svg+xml",
+						"audio/wav",
+						"audio/mpeg",
+						"audio/flac",
+						"application/json",
+						"text/plain",
+						"application/vnd.affrescoui.sound+json"
+					]
+				},
+				"text": {
+					"type": "string",
+					"maxLength": 16777216
+				},
+				"data": {
+					"$ref": "#/$defs/base64",
+					"maxLength": 22369624
+				}
+			},
+			"description": "An asset: its media type, and its content as text or base64 data."
+		},
+		"operation": {
+			"type": "object",
+			"required": [
+				"op",
+				"path"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"op": {
+					"enum": [
+						"add",
+						"remove",
+						"replace"
+					]
+				},
+				"path": {
+					"type": "string",
+					"maxLength": 4096,
+					"pattern": "^(/.*)?$"
+				},
+				"value": {}
+			},
+			"if": {
+				"properties": {
+					"op": {
+						"const": "remove"
+					}
+				}
+			},
+			"then": {
+				"not": {
+					"required": [
+						"value"
+					]
+				}
+			},
+			"else": {
+				"required": [
+					"value"
+				]
+			},
+			"description": "One JSON Patch operation: move, copy and test are not used."
+		}
+	}
+}

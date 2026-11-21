@@ -8,9 +8,10 @@
 ;;; on save, and the field is emptied. Everything here is named intelligence..., state under state.intelligence. See
 ;;; README.md.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp")
+(ns shared.addons.intelligence.settings
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"))
 
 ;;; Definitions
 
@@ -153,15 +154,14 @@
      :dir auto
      :onShow intelligence-load
      :let {:iData ~state.intelligence.data
-           :iProvider ~(or-else (find (fn [it] (= it.id state.intelligence.selected))
-                                      state.intelligence.data.providers)
+           :iProvider ~(or-else (find #(= (:id %) state.intelligence.selected) state.intelligence.data.providers)
                                 state.intelligence.data.providers.0)}
      ~(intelligence-column)))
 
 ;;; What it does: each a function, run by its action's name where a button or an app names one
 
 (defn intelligence-provider-of "The provider of that id, of the host's list." [id]
-  (find (fn [provider] (= (:id provider) id)) state.intelligence.data.providers))
+  (find #(= (:id %) id) state.intelligence.data.providers))
 
 (defn intelligence-refresh "Asks the host for the chosen provider's models (only the host has them)." []
   (when state.intelligence.native
@@ -175,9 +175,10 @@
 (defn intelligence-no-models "No models to choose from." [] (set "state.intelligence.models" []))
 
 (defn intelligence-choose "Shows a provider's form: its address and model, its models asked for." [id]
-  (set "state.intelligence.selected" id)
-  (set "state.intelligence.baseUrl" (or (:baseUrl (intelligence-provider-of id)) ""))
-  (set "state.intelligence.model" (or (:model (intelligence-provider-of id)) ""))
+  (let [{:keys [baseUrl model]} (intelligence-provider-of id)]
+    (set "state.intelligence.selected" id)
+    (set "state.intelligence.baseUrl" (or baseUrl ""))
+    (set "state.intelligence.model" (or model "")))
   (set "state.intelligence.query" "")
   (set "state.intelligence.models" [])
   (set "state.intelligence.test" nil)
@@ -195,7 +196,7 @@
   "The host's providers came: the one in use is chosen the first time, or else the one chosen, or else the first."
   []
   (set "state.intelligence.native" true)
-  (when (not state.intelligence.loaded)
+  (when-not state.intelligence.loaded
     (set "state.intelligence.loaded" true)
     (intelligence-choose
      (cond (not= state.intelligence.data.current.provider "") state.intelligence.data.current.provider
@@ -233,7 +234,7 @@ first provider: then its own first is chosen, as the form shows it."
 (defn intelligence-apply "Keeps the provider, its model and its address, as every app's assistant uses them." []
   (set "state.intelligence.error" "")
   (set "state.intelligence.test" nil)
-  (if (not state.intelligence.native)
+  (if-not state.intelligence.native
     (set "state.intelligence.error" (t "intelligence.launcherOnly"))
     (call "intelligence.save"
           :into "state.intelligence.data"
@@ -307,14 +308,15 @@ first provider: then its own first is chosen, as the form shows it."
      (label#label-provider-kind-claude :anchors {:left 16 :top 31}
        :fitText true
        :textColor @intelligence.dim
-       :text ~(if (= provider.kind "claude-code") "claude" provider.baseUrl))
+       :text ~(if (= provider.kind :claude-code) "claude" provider.baseUrl))
      (row#row-intelligence-provider-p :anchors {:right 16 :top 17} :height 22 :fitContent width :gap 6 :alignItems center
        (node#panel-intelligence-provider :width 8
          :height 8
          :radius 4
-         :color ~(cond (or (= iStatus "inUse") (= iStatus "keySaved") (= iStatus "ready")) "@intelligence.success"
-                       (= iStatus "needsKey") "@intelligence.warning"
-                       :else "@intelligence.dim"))
+         :color ~(case iStatus
+                   (:inUse :keySaved :ready) "@intelligence.success"
+                   :needsKey "@intelligence.warning"
+                   "@intelligence.dim"))
        (label#label-t-intelligence-status :fitText true
          :textColor @intelligence.dim
          :text ~(t (str "intelligence.status." iStatus))))))
@@ -353,10 +355,10 @@ first provider: then its own first is chosen, as the form shows it."
      :label ~(t "intelligence.searchModels")
      :placeholder ~(t "intelligence.searchModels")
      :placeholderColor @intelligence.dim
-     :onSubmit [{:if ~(and (> (count (trim state.intelligence.query)) 0)
-                           (or (not iProvider.fixedModels)
-                               (some (fn [it] (= it.id (trim state.intelligence.query))) iProvider.models)))
-                 :then [{:run intelligence.pickModel :with {:id ~(trim state.intelligence.query)}}]}]))
+     :onSubmit [{:if ~(let [query (str/trim state.intelligence.query)]
+                        (and (pos? (count query))
+                             (or (not iProvider.fixedModels) (some #(= (:id %) query) iProvider.models))))
+                 :then [{:run intelligence.pickModel :with {:id ~(str/trim state.intelligence.query)}}]}]))
 
 (defview intelligence-model "A model to choose, as a row." [model m]
   `(node :id ~(str "intelligenceModel" m)
@@ -384,9 +386,10 @@ first provider: then its own first is chosen, as the form shows it."
        :text ~(or-else (get model.description (slice locale 0 2)) model.description.en ""))))
 
 (defview intelligence-use-model "The button that uses the model chosen." []
-  `(node#intelligenceUseModel :when ~(and (not iProvider.fixedModels)
-                                          (> (count (trim state.intelligence.query)) 0)
-                                          (not (some (fn [it] (= it.id (trim state.intelligence.query))) iMatches)))
+  `(node#intelligenceUseModel :when ~(let [query (str/trim state.intelligence.query)]
+                                       (and (not iProvider.fixedModels)
+                                            (pos? (count query))
+                                            (not (some #(= (:id %) query) iMatches))))
      :height 30
      :radius 6
      :color transparent
@@ -394,12 +397,12 @@ first provider: then its own first is chosen, as the form shows it."
      :role option
      :focusable true
      :cursor hand
-     :label ~(t "intelligence.useModel" {:model (trim state.intelligence.query)})
-     :onClick ~(handler intelligence-pick-model (trim state.intelligence.query))
+     :label ~(t "intelligence.useModel" {:model (str/trim state.intelligence.query)})
+     :onClick ~(handler intelligence-pick-model (str/trim state.intelligence.query))
      (label#label-t-intelligence-use :anchors {:left 8 :top 7}
        :fitText true
        :textColor @intelligence.accent
-       :text ~(t "intelligence.useModel" {:model (trim state.intelligence.query)}))))
+       :text ~(t "intelligence.useModel" {:model (str/trim state.intelligence.query)}))))
 
 (defview intelligence-models "The provider's models, searched." []
   `(column#intelligenceModels :gap 2
@@ -408,11 +411,11 @@ first provider: then its own first is chosen, as the form shows it."
      :anchors {:left 14 :right 14}
      :role listbox
      :label ~(t "intelligence.model")
-     :let {:iMatches ~(map (fn [it] it.item)
-                           (fuzzySort (if (> (count state.intelligence.models) 0)
-                                          state.intelligence.models
-                                          (or-else iProvider.models []))
-                                      (trim state.intelligence.query)
+     :let {:iMatches ~(map :item
+                           (fuzzySort (if (pos? (count state.intelligence.models))
+                                        state.intelligence.models
+                                        (or-else iProvider.models []))
+                                      (str/trim state.intelligence.query)
                                       "name"
                                       6))}
      (label#intelligenceModelsLoading :when ~state.intelligence.loadingModels
@@ -421,8 +424,8 @@ first provider: then its own first is chosen, as the form shows it."
        :textColor @intelligence.dim
        :text ~(t "intelligence.loadingModels"))
      (label#intelligenceNoModels :when ~(and (not state.intelligence.loadingModels)
-                                             (= (count iMatches) 0)
-                                             (= (count (trim state.intelligence.query)) 0))
+                                             (empty? iMatches)
+                                             (empty? (str/trim state.intelligence.query)))
        :height 28
        :align "start center"
        :textColor @intelligence.dim
@@ -479,7 +482,7 @@ first provider: then its own first is chosen, as the form shows it."
 (defview intelligence-key-row "The key's field, and a link to get a key where the provider gives one." []
   `(row#intelligenceKeyRow :when ~iProvider.takesKey :height 32 :gap 8 :anchors {:left 14 :right 14}
      ~(intelligence-key)
-     (node#intelligenceGetKey :when ~(= (indexOf iProvider.keyHelp "https://") 0)
+     (node#intelligenceGetKey :when ~(zero? (indexOf iProvider.keyHelp "https://"))
        :use intelligenceButton
        :with {:text ~(t "intelligence.getKey") :run intelligence.getKey :width 130})))
 
@@ -529,8 +532,7 @@ first provider: then its own first is chosen, as the form shows it."
      :textColor @intelligence.text
      :text ~(if (not= state.intelligence.model "")
                 (t "intelligence.modelChosen"
-                   {:model (or-else (:name (find (fn [it] (= it.id state.intelligence.model))
-                                                 (or-else iProvider.models [])))
+                   {:model (or-else (:name (find #(= (:id %) state.intelligence.model) (or-else iProvider.models [])))
                                     state.intelligence.model)})
                 (t "intelligence.model"))))
 
@@ -582,7 +584,7 @@ first provider: then its own first is chosen, as the form shows it."
        :textColor ~(if (not= iData.current.provider "") "@intelligence.success" "@intelligence.warning")
        :text ~(if (not= iData.current.provider "")
                   (t "intelligence.inUse"
-                     {:provider (or-else (:name (find (fn [it] (= it.id iData.current.provider)) iData.providers))
+                     {:provider (or-else (:name (find #(= (:id %) iData.current.provider) iData.providers))
                                          iData.current.provider)
                       :model iData.current.model})
                   (t "intelligence.none")))

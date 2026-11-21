@@ -13,6 +13,7 @@ document's state as JSON; the vertices and pixels it names by id stay in an `Ass
 | `Math.hpp` | Vectors, quaternions, column-major 4 by 4 matrices and translation-rotation-scale transforms; right-handed, y up |
 | `Bounds.hpp` | Boxes, spheres, rays and the view frustum: what culling and picking test against |
 | `Mesh.hpp` | Mesh and texture data on the CPU, their checks, normals and ray casts, and the primitives (cube, sphere, cylinder, torus, plane) |
+| `PolyMesh.hpp` | Editable polygon meshes as a document holds them, and edit mode's operations on them: extrude, inset, loop cut, delete, move or scale with a falloff, mirror, array, Catmull-Clark subdivision, and the vertex, edge or face nearest a point |
 | `Scene.hpp` | `Scene`: nodes in a hierarchy with meshes, materials, lights and cameras; `Assets`: the store of their heavy data |
 | `SceneJson.hpp` | Scenes and animation clips as JSON, the form they take in a document's state |
 | `Animation.hpp` | Tracks of a node's translation, rotation or scale, with step, linear or cubic keys, and clips of them |
@@ -27,7 +28,9 @@ document's state as JSON; the vertices and pixels it names by id stay in an `Ass
 ## Invariants
 
 - **Heavy data never goes into JSON.** A scene names meshes and textures by id; the `Assets` store holds them, and the
-  renderer re-uploads one when the store's data under its id changes.
+  renderer re-uploads one when the store's data under its id changes. The exceptions are bounded and a document's
+  own: editable polygon meshes (`"meshes"`, 65,536 vertices and faces each at most) and pictures (`"textures"`, 8 MiB
+  each), which SceneView triangulates or decodes into the store when they change.
 - **A file is untrusted input.** A glTF file's counts and sizes are checked against `GltfLimits` before anything is
   read, and its accessors against their buffers; buffers and images come only from the GLB's chunk, `data:` URIs or
   relative files beside it without `..` that stay in its folder, never the network or an absolute path. Extensions it
@@ -67,5 +70,5 @@ document's state as JSON; the vertices and pixels it names by id stay in an `Ass
 ## Tests
 
 `tests/unit/scene3d.cpp` (maths, scenes, glTF in and out, hostile files, rendering), `tests/unit/scene3d_modello.cpp`
-and `tests/unit/scene3d_tools.cpp` (Modello's tools over the module), the fuzz target `tests/fuzz/gltf.cpp`, and
+and `tests/unit/scene3d_tools.cpp` (Modello's tools over the module), `tests/unit/scene3d_polymesh.cpp` (polygon meshes and their operations), the fuzz target `tests/fuzz/gltf.cpp`, and
 `tests/perf/modello.cpp`.

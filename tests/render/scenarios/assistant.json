@@ -128,6 +128,52 @@
 			]
 		},
 		{
+			"name": "assistant-point",
+			"screen": "assistant.screen.json",
+			"note": "Pointing at an element for the next message: Point steps the panel aside and the element under the pointer is outlined, with the hint; a click picks it (the app's own click doesn't run) and the panel comes back with it as a chip above the field, then sending shows it in the conversation",
+			"steps": [
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "click": "#assistantPoint" },
+				{ "move": "#pageTitle" },
+				{ "wait": 250 },
+				{ "expect": { "image": "picking" } },
+				{ "click": "#pageTitle" },
+				{ "wait": 250 },
+				{ "expect": { "state": "assistant.pointed[0].node", "is": "#pageTitle" } },
+				{ "expect": { "image": "chip" } },
+				{ "type": "Make this larger" },
+				{ "key": "enter" },
+				{ "wait": 250 },
+				{ "expect": { "state": "assistant.pointed", "is": [] } },
+				{ "expect": { "image": "sent" } }
+			]
+		},
+		{
+			"name": "assistant-point-keys",
+			"screen": "assistant.screen.json",
+			"note": "Pointing by keyboard alone: the shortcut starts it with the panel closed, the arrows walk the elements, Enter picks; the shortcut again and Escape cancel, keeping the one picked",
+			"steps": [
+				{ "action": "test.online" },
+				{ "key": "mod+alt+a" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "wait": 250 },
+				{ "expect": { "image": "walked" } },
+				{ "key": "enter" },
+				{ "wait": 250 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "key": "mod+alt+a" },
+				{ "key": "escape" },
+				{ "wait": 250 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "expect": { "state": "assistant.pointing", "is": false } },
+				{ "expect": { "state": "assistant.pointed.length", "is": 1 } }
+			]
+		},
+		{
 			"name": "assistant-dark",
 			"screen": "assistant.screen.json",
 			"note": "The conversation in the dark theme: every colour is a token",
@@ -149,6 +195,26 @@
 				{ "action": "assistant.open" },
 				{ "wait": 250 },
 				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "assistant-runs",
+			"screen": "assistant.screen.json",
+			"note": "Commands an agent ran or asked to run, as cards: one that ran (Undo), one the person denied, one waiting for their yes (Run, Always allow, Don't run; its title and arguments on one line each) and one only the window may allow; the launcher counts the waiting ones; scrolled up, the one that ran; then the dark theme",
+			"steps": [
+				{ "action": "test.runs" },
+				{ "expect": { "image": "badge" } },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "cards" } },
+				{ "scroll": "#assistantMessages", "dy": 10 },
+				{ "wait": 250 },
+				{ "expect": { "image": "ran" } },
+				{ "key": "escape" },
+				{ "action": "test.dark" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "dark" } }
 			]
 		}
 	]

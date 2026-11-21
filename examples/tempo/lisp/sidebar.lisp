@@ -1,11 +1,13 @@
 ;;; sidebar.lisp --- the sidebar: the logo, back and forward, the theme and the language, the pages, and the playlists
 
+(ns tempo.sidebar)
+
 ;;; The sidebar
 
 (defview sidebar "The sidebar, hidden in the mini player." []
   `(node#sidebar :when ~(not state.mini)
      :dir auto
-     :anchors {:left 0 :top 0 :bottom 112}
+     :anchors {:left 0 :top 0 :bottom ~(if settings.window.statusBar 112 84)}
      :width 248
      :color @sidebar
      :role navigation
@@ -49,8 +51,8 @@
       :width 24
       :radius 8
       :color @sidebar
-      :textColor ~(if (> (count state.backStack) 0) "@text" "@faint")
-      :disabled ~(= (count state.backStack) 0)
+      :textColor ~(if (pos? (count state.backStack)) "@text" "@faint")
+      :disabled ~(empty? state.backStack)
       :label ~(t "nav.back")
       :tooltip ~(t "nav.back")
       :onClick goBack)
@@ -61,15 +63,15 @@
       :width 24
       :radius 8
       :color @sidebar
-      :textColor ~(if (> (count state.forwardStack) 0) "@text" "@faint")
-      :disabled ~(= (count state.forwardStack) 0)
+      :textColor ~(if (pos? (count state.forwardStack)) "@text" "@faint")
+      :disabled ~(empty? state.forwardStack)
       :label ~(t "nav.forward")
       :tooltip ~(t "nav.forward")
       :onClick goForward)])
 
 (defview look-buttons "The theme's switch, a sun or a moon, and the language's, its code: two buttons." []
   [`(node#themeButton :style control
-      :icon ~(if (= state.theme "dark") "sun" "moon")
+      :icon ~(if (= state.theme :dark) "sun" "moon")
       :anchors {:right 56 :top 26}
       :width 32
       :radius 8
@@ -79,7 +81,7 @@
       :onClick toggleTheme)
    `(node#languageButton :style control
       :font small
-      :text ~(upper-case settings.ui.language)
+      :text ~(str/upper-case settings.ui.language)
       :anchors {:right 16 :top 26}
       :width 36
       :radius 8
@@ -90,8 +92,8 @@
 
 (defview page-tab "A page of the menu: on while it is shown, or while an album or artist of it is." [item]
   `(label#label-menu :let {:on ~(or (= item.id state.page)
-                                    (and (= item.id "albums") (= state.page "collection") (= state.collection.kind "album"))
-                                    (and (= item.id "artists") (= state.page "collection") (= state.collection.kind "artist")))}
+                                    (and (= item.id :albums) (= state.page :collection) (= state.collection.kind :album))
+                                    (and (= item.id :artists) (= state.page :collection) (= state.collection.kind :artist)))}
      :icon ~item.icon
      :text ~(t (str "menu." item.id))
      :anchors {:left 0 :right 0}
@@ -113,7 +115,7 @@
 
 (defview playlist-row "A playlist: its cover, name and size, a dot while it plays; a click opens it, a double click plays it."
   [list]
-  `(node#playlist :let {:open ~(and (= state.page "playlist") (= index state.current))}
+  `(node#playlist :let {:open ~(and (= state.page :playlist) (= index state.current))}
      :anchors {:left 0 :right 0}
      :height 56
      :radius 14
@@ -125,10 +127,10 @@
      :role button
      :selected ~open
      :label ~(str list.name ", " (t "songs" {:n (count list.tracks)}))
-     :onClick ~(handler openList index)
+     :onClick ~(handler open-list index)
      :onDoubleClick ~(handler play index 0)
      :tooltip ~(t "playlist.play")
-     (image#image-list-cover :file ~list.cover :fit cover :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
+     (image#image-list-cover :file ~list.cover :fit cover :color @button :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
      (label#label-list-name :text ~list.name :textColor @text :anchors {:left 62 :top 10} :fitText true)
      (node#label-plural-list-tracks
        :style caption

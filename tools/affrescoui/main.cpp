@@ -21,11 +21,13 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 17> list = {{
+	static constexpr std::array<Command, 23> list = {{
 	    {"run",
-		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
+		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]... "
+		 "[--nrepl [PORT]]",
 		 "Show a screen or an app (its folder, its manifest or its entry) and let peers change it, like "
-		 "affrescoui_launcher; a Lisp program of its own, or --print, prints the tree it builds",
+		 "affrescoui_launcher; a Lisp program of its own, or --print, prints the tree it builds; --nrepl lets an "
+		 "nREPL client evaluate into an app written as a program, on 127.0.0.1, once the person says yes in the app",
 		 runScreen},
 	    {"repl", "", "Read Lisp forms and print their values", lispRepl},
 	    {"lisp-binding", "<text>... | --prove <file or folder>... [--verbose] | --batch",
@@ -44,7 +46,7 @@ std::span<const Command> commands() {
 		 "Play a screen's scenarios and report what failed", testScreen},
 	    {"policy", "test <policy-file>... [--json]",
 		 "Play policy files' example revisions and report the decisions that aren't the expected ones", policyCommand},
-	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
+	    {"render", "<file> -o out.png [--scale 1|1.25|1.5|1.75|2] [--size WIDTHxHEIGHT]",
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
 		 formatScreen},
@@ -68,10 +70,36 @@ std::span<const Command> commands() {
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
 		 generateSchema},
+	    {"pack",
+		 "<app> [-o FILE] [--name NAME] [--release X.Y.Z] [--description TEXT] [--author NAME] [--license NAME] "
+		 "[--whole] [--data DIR]",
+		 "Write your version of an app as one package: its changes and the release they grew from, nothing of yours; "
+		 "--whole puts the app's files in too",
+		 packVersion},
+	    {"inspect", "<file> [--json] [--app APP] [--data DIR]",
+		 "Check a package and say everything installing it would do; --app compares it with your copy of that app, "
+		 "and lists what wouldn't merge",
+		 inspectPackage},
+	    {"install", "<app> <file> [--data DIR] | --new <folder> <file> [--data DIR]",
+		 "Propose a package to you on an app, or on a new folder its files are written into; it never accepts: open "
+		 "the app to review it",
+		 installPackage},
+	    {"trust", "<key> [--name NAME] [--remove] [--data DIR] | --list [--data DIR]",
+		 "Keep the publishers whose signatures you trust, in the data folder's publishers.json", trustPublisher},
+	    {"catalogue", "check <folder> [--examples DIR] | refresh <folder>",
+		 "Check a catalogue's folder: each entry reads, fits its app in examples/, plays its proof, adds no "
+		 "capability, "
+		 "holds no path or key and has a licence, and the index's digests match; refresh writes them",
+		 catalogueCommand},
 	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
-		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
+		 "Sign a feature's manifest, a catalogue's index (its digests first) or a package; --new-key makes a key",
+		 signFile},
 	    {"migrate", "<file>... [--check] [--write]",
 		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
+	    {"source", "<file> <#id | pointer | address> [--json]",
+		 "Print where a node is written: for a program the definition that built it, for a JSON document the node; "
+		 "what an agent reads with getSource",
+		 printNodeSource},
 	}};
 	return list;
 }

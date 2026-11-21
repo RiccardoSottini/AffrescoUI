@@ -21,7 +21,7 @@
 		},
 		{
 			"name": "forge-search-finds-text",
-			"note": "The query typed and submitted finds its match in src/main.cpp, a tree item per file with a child per match",
+			"note": "The query typed and submitted finds its match in src/main.cpp, a tree item per file with a child per match, the match highlighted in its line",
 			"steps": [
 				{ "action": "findInFiles" },
 				{ "expect": { "node": "#search-page", "exists": true } },
@@ -33,6 +33,9 @@
 				{ "expect": { "state": "search.result.matches", "is": 1 } },
 				{ "expect": { "state": "search.result.tree[0].id", "is": "file:src/main.cpp" } },
 				{ "expect": { "state": "search.result.tree[0].children[0].id", "is": "hit:0" } },
+				{ "expect": { "state": "search.result.tree[0].children[0].label", "is": "4: std::cout << \"hello\\n\";" } },
+				{ "expect": { "state": "search.result.tree[0].children[0].marks[0][0]", "is": 17 } },
+				{ "expect": { "state": "search.result.tree[0].children[0].marks[0][1]", "is": 5 } },
 				{ "expect": { "state": "search.result.hits[0].line", "is": 4 } },
 				{ "expect": { "state": "search.busy", "is": false } },
 				{ "expect": { "node": "#search-results", "exists": true } }
@@ -245,6 +248,87 @@
 				{ "action": "runSearch" },
 				{ "expect": { "state": "search.result.matches", "is": 1 } },
 				{ "expect": { "state": "search.result.hits[0].file", "is": "src/main.cpp" } }
+			]
+		},
+		{
+			"name": "forge-search-collapse-and-clear",
+			"note": "Collapse All closes every file of the results and opens them again; Clear Search Results empties the query and the results",
+			"steps": [
+				{
+					"action": "findInFiles"
+				},
+				{
+					"expect": {
+						"node": "#search-page",
+						"exists": true
+					}
+				},
+				{
+					"click": "#search-query"
+				},
+				{
+					"type": "hello"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "search.result.done",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#search-collapse-all",
+						"exists": true
+					}
+				},
+				{
+					"click": "#search-collapse-all"
+				},
+				{
+					"expect": {
+						"state": "search.collapsed.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "search.collapsed[0]",
+						"is": "file:src/main.cpp"
+					}
+				},
+				{
+					"action": "searchCollapseAll"
+				},
+				{
+					"expect": {
+						"state": "search.collapsed.length",
+						"is": 0
+					}
+				},
+				{
+					"click": "#search-clear"
+				},
+				{
+					"expect": {
+						"state": "search.query",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "search.result",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"node": "#search-results",
+						"exists": false
+					}
+				}
 			]
 		}
 	]

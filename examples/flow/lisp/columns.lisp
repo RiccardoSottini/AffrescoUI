@@ -1,5 +1,7 @@
 ;;; columns.lisp --- the work area: the board's columns and cards, the table, and the side panel
 
+(ns flow.columns)
+
 ;;; The work area
 
 (defview work-area
@@ -14,10 +16,10 @@
      :sashColor transparent
      :sashActiveColor @color.accent
      (node#content :color transparent
-       (node#lanesView :use swimlanes :when ~(and (= state.view "board") state.swimlanes) :fill true)
-       (node#listView :use listView :when ~(= state.view "list") :fill 6)
-       (node#timelineView :use timelineView :when ~(= state.view "timeline") :fill 6)
-       (row#board :when ~(and (= state.view "board") (not state.swimlanes)) :fill true
+       (node#lanesView :use swimlanes :when ~(and (= state.view :board) state.swimlanes) :fill true)
+       (node#listView :use listView :when ~(= state.view :list) :fill 6)
+       (node#timelineView :use timelineView :when ~(= state.view :timeline) :fill 6)
+       (row#board :when ~(and (= state.view :board) (not state.swimlanes)) :fill true
          ~(repeat [column computed.columns :index c]
            (column-view column c)))
        ~(card-table))
@@ -68,10 +70,11 @@
   "A column's cards, in the order the Display menu chose: by priority, by due date (none last), or as placed."
   [c]
   `(sort-by (fn [it]
-              (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
-                    (= state.order "due") (or-else it.due "9999-12-31")
-                    :else it.at))
-            (filter (fn [it] (= it.c ~c)) computed.allCards)))
+              (case state.order
+                :priority (if (zero? (or-else it.priority 0)) 9 it.priority)
+                :due (or-else it.due "9999-12-31")
+                it.at))
+            (filter #(= (:c %) ~c) computed.allCards)))
 
 (defview column-view "A column of the board: its title, its cards, and a drop target for cards from another."
   [column c]
@@ -104,7 +107,7 @@
        :height 40
        :align {:horizontal start :vertical center})
      (label#columnCount :font small
-       :text ~(count (filter (fn [it] (= it.c c)) computed.visible))
+       :text ~(count (filter #(= (:c %) c) computed.visible))
        :fitText true
        :height 40
        :align {:horizontal start :vertical center}
@@ -135,7 +138,7 @@
      :role button
      :tooltip ~(t "column.more")
      :label ~(t "column.more")
-     :onClick ~(handler openColumnMenu c)))
+     :onClick ~(handler open-column-menu c)))
 
 (defview column-add "A column's + button, which opens the composer on that column." [column c]
   `(label#columnAdd :icon plus
@@ -153,7 +156,7 @@
      :role button
      :tooltip ~(t "composer.in" {:column column.name})
      :label ~(t "composer.in" {:column column.name})
-     :onClick ~(handler openComposer c)))
+     :onClick ~(handler open-composer c)))
 
 (defview card-view
   "A card on the board: its id, title and chips; it is dragged to another column, and right-clicked for its menu."
@@ -179,15 +182,15 @@
      :label ~(t "card.label"
                 {:title card.title
                  :tag (t (str "tag." card.tag))
-                 :who (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)
+                 :who (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)
                  :column column.name})
-     :onFocus ~(handler selectCard c i)
+     :onFocus ~(handler select-card c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
      :dragging {:color @color.column :borderColor @color.border :shadow {:y 0 :blur 0 :color "#00000000"}}
-     :onClick ~(handler selectCard c i)
-     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
-     :onContextMenu ~(handler openCardMenu c i)
+     :onClick ~(handler select-card c i)
+     :onDoubleClick [~(handler select-card c i) ~(handler openIssue)]
+     :onContextMenu ~(handler open-card-menu c i)
      ~(card-ref)
      ~(card-owner)
      ~(card-title)
@@ -218,9 +221,9 @@
      :height 18
      :radius 999
      :anchors {:right 10 :top 8}
-     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) card.who) state.members)) "@color.muted")
      :textColor "#ffffff"
-     :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
+     :tooltip ~(or-else (:name (find #(= (:who %) card.who) state.members)) card.who)))
 
 (defview card-chips "A card's chips: its priority, label, due date, points and owner, as the Display menu shows them."
   [c]
@@ -242,7 +245,7 @@
      (node#cardLabels :when ~(and (not (contains state.hidden "label")) (> (count (or-else card.labels [])) 0))
        :style cardChip
        :text ~(str "+" (count (or-else card.labels [])))
-       :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels []))))
+       :tooltip ~(join ", " (map #(t (str "label." %)) (or-else card.labels []))))
      ~(card-due c)
      (node#cardNotes :style cardChip
        :borderWidth 0
@@ -270,21 +273,21 @@
 ;;; The table
 
 (defview card-table "The table of every card, sortable and with columns to resize, while the table is the layout." []
-  `(table#cardTable :when ~(= state.view "table")
+  `(table#cardTable :when ~(= state.view :table)
      :fill 6
      :radius @radius.card
      :color @color.surface
      :rowHeight 32
      :items ~computed.rows
-     :value ~(if (nil? state.selected) nil (str state.selected.c "-" state.selected.i))
+     :value ~(when-some [at state.selected] (str at.c "-" at.i))
      :sort ~state.tableSort
      :columns ~computed.tableColumns
      :textColor @color.text
      :selectedTextColor @color.text
      :selectedBackground @color.accentSoft
      :accentColor @color.accent
-     :onChange openRow
+     :onChange open-row
      :keys {:space togglePeek}
-     :onOpen [~(handler openRow) ~(handler editCard)]
-     :onSort sortTable
-     :onColumnResize resizeTableColumn))
+     :onOpen [~(handler open-row) ~(handler editCard)]
+     :onSort sort-table
+     :onColumnResize resize-table-column))

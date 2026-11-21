@@ -24,7 +24,7 @@
 
 	"permissions": { "allow": ["studio"], "reviewers": ["studio"] },
 
-	"state": { "theme": "light", "locale": "en" },
+	"state": { "theme": "light", "locale": "en", "note": "" },
 	"theme": "{{state.theme}}",
 
 	"strings": {
@@ -65,6 +65,8 @@
 	},
 
 	"actions": {
+		"test.note": { "title": "Add a note", "description": "Writes the page's note.",
+		               "arguments": { "text": { "type": "string" } }, "do": [{ "set": "state.note", "to": "{{text}}" }] },
 		"test.show": [{ "set": "state.assistant.show", "to": true }],
 		"test.hide": [{ "set": "state.assistant.show", "to": false }],
 		"test.online": [{ "set": "state.assistant.simulate", "to": { "online": true } }],
@@ -114,6 +116,20 @@
 				  "run": [{ "update": "playlists", "id": "p1" }] }
 			] }
 		],
+		"test.pointed": [
+			{ "set": "state.assistant.simulate", "to": { "online": true, "pending": [] } },
+			{ "set": "state.assistant.pointed", "to": [
+				{ "id": "pick-a", "revision": 0, "node": "#pageTitle", "type": "label", "exact": true,
+				  "source": { "address": "#pageTitle" } },
+				{ "id": "pick-b", "revision": 0, "node": "/program/board.lisp/card-title", "type": "label", "exact": true,
+				  "repeat": [{ "in": "state.cards", "index": 2 }],
+				  "source": { "address": "/program/board.lisp/card-title", "file": "board.lisp", "line": 12 } },
+				{ "id": "pick-c", "revision": 0, "node": "#statusBar", "type": "row", "exact": false,
+				  "source": { "address": "/program/shell.lisp/components.statusBar", "file": "shell.lisp", "shared": true } },
+				{ "id": "pick-d", "revision": 0, "node": "#addCard", "type": "node", "exact": true,
+				  "source": { "address": "#addCard" } } ] }
+		],
+		"test.runs": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": [], "runs": [{"id": 1, "author": "agent/claude", "command": "addTask", "title": "Add a task", "arguments": {"title": "Call the printer people", "due": "2026-11-20"}, "state": "ran", "reason": "", "time": 1773501000000, "changes": 2, "errors": [], "undoable": "state", "personOnly": false}, {"id": 2, "author": "agent/claude", "command": "archiveDone", "title": "Archive the done tasks", "arguments": {"olderThan": 7}, "state": "denied", "reason": "the person said no", "time": 1773501005000, "changes": 0, "errors": [], "undoable": "none", "personOnly": false}, {"id": 3, "author": "agent/claude", "command": "sendDigest", "title": "Send the weekly\ndigest", "arguments": {"to": "team", "note": "Line one\nline two"}, "state": "waiting", "reason": "it writes to a service", "time": 1773501010000, "changes": 0, "errors": [], "undoable": "none", "personOnly": false}, {"id": 4, "author": "agent/claude", "command": "deleteAll", "title": "Delete every task", "arguments": {}, "state": "waiting", "reason": "only the person may allow it", "time": 1773501015000, "changes": 0, "errors": [], "undoable": "none", "personOnly": true}] } }],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
 	},
@@ -122,7 +138,8 @@
 		"color": "@page",
 		"children": [
 			{ "type": "label", "id": "pageTitle", "anchors": { "left": 24, "top": 20 }, "fitText": true,
-			  "textColor": "@pageText", "text": "{{t('assistant.title')}}" }
+			  "textColor": "@pageText", "text": "{{t('assistant.title')}}",
+			  "onClick": [{ "set": "state.titleClicks", "to": "{{(state.titleClicks ?? 0) + 1}}" }] }
 		]
 	}
 }

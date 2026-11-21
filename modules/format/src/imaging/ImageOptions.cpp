@@ -4,6 +4,8 @@
 
 #include "ImageDocuments.hpp"
 
+#include "affresco/imaging/Shapes.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -15,15 +17,18 @@ namespace affresco::format::editing {
 namespace {
 
 /// @brief The gestures' names, in Gesture's order.
-constexpr std::array<std::string_view, 15> gestureNameList{
+constexpr std::array<std::string_view, 23> gestureNameList{
     "move", "select-rectangle", "select-ellipse", "lasso",    "polygon-lasso", "magic-wand", "crop", "paint",
-    "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom"};
+    "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom", "text",
+    "shape", "pen",             "path-select",    "quick-select", "selection-box", "layer-box",
+    "retouch"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
-constexpr std::array<std::string_view, 22> optionKeyList{
-    "preset",     "size",        "sizeStep",   "hardness",       "spacing",  "opacity",    "flow",      "mode",
-    "tolerance",  "contiguous",  "allLayers",  "fillOpacity",    "shape",    "gradientPreset", "gradient",
-    "foreground", "background",  "swap",       "reset",          "quickMask", "cloneSource", "autoSelect"};
+constexpr std::array<std::string_view, 29> optionKeyList{
+    "preset",     "size",       "sizeStep",  "hardness",    "spacing",     "opacity",        "flow",     "mode",
+    "tolerance",  "contiguous", "allLayers", "fillOpacity", "shape",       "gradientPreset", "gradient", "foreground",
+    "background", "swap",       "reset",     "quickMask",   "cloneSource", "autoSelect",     "vector",   "cropRatio",
+    "retouch",    "reverse",    "dither",    "transparency", "healing"};
 
 /// @brief A gradient argument: {stops: [{at, color}]} as a gradient editor gives it (or "position" for "at").
 /// @param value The value.
@@ -69,8 +74,8 @@ void setBrush(imaging::BrushTip& tip, const imaging::Limits& limits, const json&
 	tip.normalize(limits);
 }
 
-/// @brief Sets the gradient's shape and stops: shape, gradientPreset (an unknown one means foreground to background),
-/// gradient.
+/// @brief Sets the gradient's shape, stops and options: shape, gradientPreset (an unknown one means foreground to
+/// background), gradient, reverse, dither, transparency.
 /// @param settings The settings.
 /// @param arguments The options set.
 /// @throws DocumentError If the shape or the stops are malformed.
@@ -88,9 +93,14 @@ void setGradient(ToolSettings& settings, const json& arguments) {
 		else settings.gradient = found->gradient;
 	}
 	if(arguments.contains("gradient")) settings.gradient = gradientOf(arguments["gradient"]);
+	imaging::GradientOptions& options = settings.gradientOptions;
+	options.reverse = flagOf(arguments, "reverse", options.reverse);
+	options.dither = flagOf(arguments, "dither", options.dither);
+	options.transparency = flagOf(arguments, "transparency", options.transparency);
 }
 
-/// @brief Sets the selection, fill and move options: mode, tolerance, contiguous, allLayers, fillOpacity, autoSelect.
+/// @brief Sets the selection, fill, move, crop, retouch and healing options: mode, tolerance, contiguous, allLayers,
+/// fillOpacity, autoSelect, cropRatio, retouch, healing.
 /// @param settings The settings.
 /// @param arguments The options set.
 void setSampling(ToolSettings& settings, const json& arguments) {
@@ -99,6 +109,16 @@ void setSampling(ToolSettings& settings, const json& arguments) {
 	settings.sample.contiguous = flagOf(arguments, "contiguous", settings.sample.contiguous);
 	settings.sample.allLayers = flagOf(arguments, "allLayers", settings.sample.allLayers);
 	settings.autoSelect = flagOf(arguments, "autoSelect", settings.autoSelect);
+	settings.healing = flagOf(arguments, "healing", settings.healing);
+	if(const std::string retouch = textOf(arguments, "retouch"); !retouch.empty()) {
+		const auto names = imaging::retouchNames();
+		const auto found = std::ranges::find(names, retouch);
+		if(found == names.end()) throw DocumentError("Unknown retouch " + retouch);
+		settings.retouch = static_cast<imaging::StrokeMode>(static_cast<std::size_t>(imaging::StrokeMode::dodge) +
+		                                                    static_cast<std::size_t>(found - names.begin()));
+	}
+	settings.cropRatio =
+	    std::clamp(static_cast<float>(numberOf(arguments, "cropRatio", settings.cropRatio)), 0.0f, 100.0f);
 	settings.opacity = std::clamp(
 	    static_cast<float>(numberOf(arguments, "fillOpacity", settings.opacity * 100.0) / 100.0), 0.0f, 1.0f);
 }
@@ -159,6 +179,7 @@ void chooseTool(ImageDocument& image, const std::string& name) {
 	const auto found = std::ranges::find(tools, name, &ImageTool::name);
 	if(found == tools.end()) throw DocumentError("Unknown tool " + name);
 	settle(image);
+	image.typing = false;
 	image.settings.tool = found->name;
 	image.settings.gesture = found->gesture;
 	setOptions(image.settings, image.cloneOffset, image.limits, found->settings);
@@ -170,6 +191,7 @@ void setOptions(ToolSettings& settings, std::optional<imaging::Point>& cloneOffs
 	setSampling(settings, arguments);
 	setGradient(settings, arguments);
 	setColours(settings, cloneOffset, arguments);
+	if(arguments.is_object() && arguments.contains("vector")) imaging::readContent(arguments["vector"], settings.vector);
 }
 
 } // namespace affresco::format::editing

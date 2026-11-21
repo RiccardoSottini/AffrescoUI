@@ -1,0 +1,260 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Text at display scales, for the rendering check: the same frame at 1, 1.25, 1.5, 1.75 and 2 (text-scales.json) shows how sharp text is at each. Body text and small sizes with letters whose stems blur first (Pinned, Crash, Waffle, illicit), bold and italic, code, icons, Arabic, Devanagari and accented Latin, light on dark and dark on light, a turned and a scaled label, and an input for a caret and a selection. 640 by 400 so every quarter scale gives whole pixels.",
+
+	"window": { "title": "Text scales", "width": 640, "height": 400 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 15,
+			"fallback": ["arabic", "devanagari", "icons"]
+		},
+		"size11": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 11 },
+		"size12": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 12 },
+		"size13": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 13 },
+		"bold": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15, "bold": true },
+		"italic": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15, "italic": true },
+		"mono": { "file": "../../../examples/shared/fonts/JetBrainsMono-Regular.ttf", "size": 13 },
+		"arabic": { "file": "../fonts/NotoSansArabic-Subset.ttf", "size": 15 },
+		"devanagari": { "file": "../fonts/NotoSansDevanagari-Subset.ttf", "size": 15 },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 15 }
+	},
+
+	"colors": {
+		"background": "#f8fafc",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"dark": "#0f172a",
+		"light": "#e2e8f0",
+		"onDark": "#f1f5f9",
+		"code": "#eef2f7",
+		"field": "#ffffff",
+		"frame": "#94a3b8",
+		"selection": "#bfdbfe"
+	},
+
+	"styles": {
+		"line": { "type": "label", "x": 16, "width": 308, "height": 24, "textColor": "@text" },
+		"code": {
+			"type": "label",
+			"height": 18,
+			"font": "mono",
+			"textColor": "@text",
+			"anchors": { "left": 0, "right": 0 }
+		},
+		"icon": { "type": "label", "width": 22, "height": 24, "textColor": "@text" }
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "style": "line", "id": "body", "y": 10, "text": "Body 15: Pinned Crash Waffle illicit 0123456789" },
+			{
+				"style": "line",
+				"id": "size-11",
+				"y": 36,
+				"height": 18,
+				"font": "size11",
+				"text": "Size 11: Pinned Crash Waffle illicit 0123456789"
+			},
+			{
+				"style": "line",
+				"id": "size-12",
+				"y": 56,
+				"height": 20,
+				"font": "size12",
+				"text": "Size 12: Pinned Crash Waffle illicit 0123456789"
+			},
+			{
+				"style": "line",
+				"id": "size-13",
+				"y": 78,
+				"height": 20,
+				"font": "size13",
+				"text": "Size 13: Pinned Crash Waffle illicit 0123456789"
+			},
+			{
+				"style": "line",
+				"id": "bold",
+				"y": 100,
+				"font": "bold",
+				"text": "Bold: Pinned Crash Waffle illicit 2048"
+			},
+			{
+				"style": "line",
+				"id": "italic",
+				"y": 124,
+				"font": "italic",
+				"text": "Italic: Pinned Crash Waffle illicit 2048"
+			},
+			{
+				"style": "line",
+				"id": "accents",
+				"y": 148,
+				"text": "Accents: café, naïve, Ångström, élève, señor, Øre"
+			},
+			{
+				"style": "line",
+				"id": "arabic",
+				"y": 172,
+				"height": 26,
+				"text": "Arabic: السلام عليكم، كيف حالك؟"
+			},
+			{
+				"style": "line",
+				"id": "devanagari",
+				"y": 198,
+				"height": 28,
+				"text": "Devanagari: नमस्ते दुनिया, क्षत्रिय और हिन्दी"
+			},
+			{
+				"type": "row",
+				"id": "icons",
+				"x": 16,
+				"y": 228,
+				"width": 308,
+				"height": 24,
+				"gap": 4,
+				"children": [
+					{
+						"type": "label",
+						"id": "icons-label",
+						"width": 50,
+						"height": 24,
+						"textColor": "@text",
+						"text": "Icons:"
+					},
+					{ "style": "icon", "id": "icon-search", "icon": "search" },
+					{ "style": "icon", "id": "icon-file", "icon": "file-plus" },
+					{ "style": "icon", "id": "icon-folder", "icon": "folder-open" },
+					{ "style": "icon", "id": "icon-save", "icon": "save" },
+					{ "style": "icon", "id": "icon-undo", "icon": "undo-2" },
+					{ "style": "icon", "id": "icon-redo", "icon": "redo-2" },
+					{ "style": "icon", "id": "icon-trash", "icon": "trash-2" }
+				]
+			},
+			{
+				"id": "dark-panel",
+				"x": 16,
+				"y": 258,
+				"width": 308,
+				"height": 40,
+				"radius": 6,
+				"color": "@dark",
+				"children": [
+					{
+						"type": "label",
+						"id": "light-on-dark",
+						"align": "start center",
+						"anchors": { "left": 12, "right": 12, "top": 0, "bottom": 0 },
+						"textColor": "@onDark",
+						"text": "Light on dark: Pinned Crash illicit 0123"
+					}
+				]
+			},
+			{
+				"id": "light-panel",
+				"x": 16,
+				"y": 304,
+				"width": 308,
+				"height": 40,
+				"radius": 6,
+				"color": "@light",
+				"children": [
+					{
+						"type": "label",
+						"id": "dark-on-light",
+						"align": "start center",
+						"anchors": { "left": 12, "right": 12, "top": 0, "bottom": 0 },
+						"textColor": "@text",
+						"text": "Dark on light: Pinned Crash illicit 0123"
+					}
+				]
+			},
+			{
+				"id": "input-frame",
+				"x": 16,
+				"y": 352,
+				"width": 308,
+				"height": 32,
+				"radius": 4,
+				"color": "@frame",
+				"children": [
+					{
+						"type": "editor",
+						"id": "input",
+						"note": "One line of an editor: the single-line textarea has no selection to show.",
+						"anchors": { "left": 1, "right": 1, "top": 1, "bottom": 1 },
+						"color": "@field",
+						"textColor": "@text",
+						"lineColor": "@field",
+						"selectionColor": "@selection",
+						"caretColor": "@text"
+					}
+				]
+			},
+			{
+				"type": "label",
+				"id": "code-caption",
+				"x": 340,
+				"y": 10,
+				"width": 284,
+				"height": 22,
+				"textColor": "@muted",
+				"text": "Code: JetBrains Mono 13"
+			},
+			{
+				"id": "code-panel",
+				"x": 340,
+				"y": 34,
+				"width": 284,
+				"height": 160,
+				"radius": 6,
+				"color": "@code",
+				"children": [
+					{
+						"type": "column",
+						"id": "code",
+						"anchors": { "left": 8, "right": 8, "top": 8, "bottom": 8 },
+						"children": [
+							{ "style": "code", "id": "code-1", "text": "fn total(items: &[Item]) -> u32 {" },
+							{ "style": "code", "id": "code-2", "text": "    let mut sum = 0; // illicit" },
+							{ "style": "code", "id": "code-3", "text": "    for item in items {" },
+							{ "style": "code", "id": "code-4", "text": "        sum += item.count * 2;" },
+							{ "style": "code", "id": "code-5", "text": "    }" },
+							{ "style": "code", "id": "code-6", "text": "    if sum >= 100 && sum != 0 { 1 }" },
+							{ "style": "code", "id": "code-7", "text": "    sum | 0x1F // Waffle" },
+							{ "style": "code", "id": "code-8", "text": "}" }
+						]
+					}
+				]
+			},
+			{
+				"type": "label",
+				"id": "turned",
+				"x": 372,
+				"y": 232,
+				"width": 200,
+				"height": 24,
+				"textColor": "@text",
+				"rotate": 12,
+				"text": "Turned 12°: Pinned Crash"
+			},
+			{
+				"type": "label",
+				"id": "scaled",
+				"x": 392,
+				"y": 322,
+				"width": 180,
+				"height": 24,
+				"textColor": "@text",
+				"scale": 1.5,
+				"text": "Scaled 1.5: Waffle"
+			}
+		]
+	}
+}

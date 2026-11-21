@@ -7,6 +7,8 @@
 ;;; (and by the shape's own text inset), anchored at the top, middle or bottom; a body's levels drop 4 points each and
 ;;; indent 36. In edit mode an empty placeholder shows its prompt and a dashed outline.
 
+(ns sinopia.parts.slide)
+
 ;;; Definitions
 
 (defcomponent slideBackground "A slide's background: its colour, and its theme's decorations."
@@ -17,7 +19,7 @@
      :width 960
      :height 540
      :color ~(or-else (get computed.palette (or-else slide.background computed.theme.background)) slide.background)
-     ~(repeat [d (if (or (= slide.layout "title") (= slide.layout "section"))
+     ~(repeat [d (if (contains? #{:title :section} slide.layout)
                    computed.theme.titleDecor
                    computed.theme.decor)
                :key d.id]
@@ -33,7 +35,7 @@
                                :effect nil} d)
                    :name ~(str prefix "decor-" d.id)})))
      (label :id ~(str prefix "footer")
-       :when ~(and (some? (or-else state.deck.footer nil)) (not= slide.layout "title"))
+       :when ~(and (some? state.deck.footer) (not= slide.layout :title))
        :x 40
        :y 506
        :width 640
@@ -41,16 +43,16 @@
        :textColor ~(or-else computed.palette.dark2 computed.palette.dark1)
        :runs [{:text ~(or-else state.deck.footer "") :size 12}])
      (label :id ~(str prefix "number")
-       :when ~(and (or-else state.deck.slideNumbers false) (not= slide.layout "title"))
+       :when ~(and (or-else state.deck.slideNumbers false) (not= slide.layout :title))
        :x 820
        :y 506
        :width 100
        :height 22
        :align {:horizontal end :vertical center}
        :textColor ~(or-else computed.palette.dark2 computed.palette.dark1)
-       :runs [{:text ~(text (+ (indexOf (map (fn [it] it.id) state.deck.slides) slide.id) 1)) :size 12}])))
+       :runs [{:text ~(-> (map :id state.deck.slides) (indexOf slide.id) inc text) :size 12}])))
 
-(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink or text, at its place."
+(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink, a table, a picture or text, at its place."
   {:o nil :prefix "" :layout nil :edit false}
   `(node :id ~(str prefix o.id)
      :let ~(object-measures)
@@ -65,43 +67,79 @@
      ~(object-shape)
      ~(object-icon)
      ~(object-ink)
+     (node :use slideTable :when ~(or (= o.kind :table) (and (= o.kind :chart) editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h :edit ~edit})
+     (node :use slidePicture :when ~(= o.kind :picture) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
+     (node :use slideChart :when ~(and (= o.kind :chart) (not editing)) :with {:o ~o :prefix ~prefix :w ~box.w :h ~box.h})
      ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))
 
+;; The text's height is measured as the slide's text is laid out: half the size a letter, 1.2 the size a line, so a
+;; text shrunk by a factor k takes about k squared of its height
+(defn text-fit
+  "The size a shrinking text box gives its text, and the height a resizing one takes: its text, size and spacing, its
+  drawn box, its shape's text inset and its margins."
+  [text pt spacing drawn inset mx my]
+  (let [across (- 1 inset.0 inset.2)
+        down (- 1 inset.1 inset.3)
+        width (max (- (* drawn.w across) (* 2 mx)) 20)
+        room (max (- (* drawn.h down) (* 2 my)) 1)
+        line-height (* 1.2 pt (or-else spacing 1))
+        lengths (map #(max (count (str/trim %)) 1) (str/split (or-else text "") "\n"))
+        need (reduce + 0 (map #(* line-height
+                             (ceil (/ (* % 0.5 pt) width)))
+                         lengths))
+        fraction (sqrt (/ room (max need 1)))]
+    {:size (if (> need room)
+             (max 6 (floor (* pt fraction)))
+             pt)
+     :h (/ (+ need (* 2 my)) (max down 0.1))}))
+
+(defn fit-size "The size a shrinking text box gives its text (text-fit's arguments)." [text pt spacing drawn inset mx my]
+  (:size (text-fit text pt spacing drawn inset mx my)))
+
+(defn fit-height "The height a box resized to its text takes (text-fit's arguments)." [text pt spacing drawn inset mx my]
+  (:h (text-fit text pt spacing drawn inset mx my)))
+
 (defview object-measures "What object `o` is drawn from: its placeholder `p`, its box, its text and colour."
   []
-  `{:p ~(or-else (find (fn [it] (= it.ph o.ph)) layout.ph) {})
-    :box ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
-    :shape ~(or (= o.kind "shape")
-                (= o.kind "line")
-                (not= (or-else o.fill "none") "none")
-                (not= (or-else o.line "none") "none"))
-    :inset ~(if (= o.kind "shape")
+  `{:p ~(or-else (find #(= (:ph %) o.ph) layout.ph) {})
+    :drawn ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
+    :mx ~(or-else o.marginX 7.2)
+    :my ~(or-else o.marginY 3.6)
+    :inset ~(if (= o.kind :shape)
                 (or-else (get-in computed.shapes [(or-else o.shape "rect") :text]) [0 0 0 0])
                 [0 0 0 0])
-    :size ~(or-else o.size p.size 18)
-    :empty ~(= (trim (or-else o.text "")) "")
+    :box ~(if (= o.autofit "resize")
+              (assoc drawn :h (fit-height o.text (or-else o.size p.size 18) o.spacing drawn inset mx my))
+              drawn)
+    :shape ~(or (contains? #{:shape :line} o.kind)
+                (not= (or-else o.fill :none) :none)
+                (not= (or-else o.line :none) :none))
+    :size ~(if (= o.autofit "shrink")
+               (fit-size o.text (or-else o.size p.size 18) o.spacing drawn inset mx my)
+               (or-else o.size p.size 18))
+    :empty ~(= (str/trim (or-else o.text "")) "")
     :editing ~(and edit (= state.editing o.id))
     :prompt ~(and edit empty (some? o.ph) (not editing))
     :outline ~(str prefix o.id "-ph")
-    :lines ~(if prompt [(or-else (get computed.prompts o.ph) "")] (split (or-else o.text "") "\n"))
+    :lines ~(if prompt [(or-else (get computed.prompts o.ph) "")] (str/split (or-else o.text "") "\n"))
     :bullets ~(or-else o.bullets p.bullets false)
-    :anchor ~(or-else o.anchor p.anchor (if (= o.kind "shape") "middle" "top"))
-    :align ~(or-else o.align p.align (if (= o.kind "shape") "center" "left"))
-    :ink ~(or-else (get computed.palette (or-else o.color p.color (if (= o.kind "shape") "light1" "dark1")))
+    :anchor ~(or-else o.anchor p.anchor (if (= o.kind :shape) "middle" "top"))
+    :align ~(or-else o.align p.align (if (= o.kind :shape) "center" "left"))
+    :ink ~(or-else (get computed.palette (or-else o.color p.color (if (= o.kind :shape) "light1" "dark1")))
                    o.color)
-    :frame ~{:x (+ (* box.w inset.0) 7.2)
-             :y (+ (* box.h inset.1) 3.6)
-             :w (max (- (* box.w (- (- 1 inset.0) inset.2)) 14.4) 1)
-             :h (max (- (* box.h (- (- 1 inset.1) inset.3)) 7.2) 1)}})
+    :frame ~{:x (+ (* box.w inset.0) mx)
+             :y (+ (* box.h inset.1) my)
+             :w (max (- (* box.w (- (- 1 inset.0) inset.2)) (* 2 mx)) 1)
+             :h (max (- (* box.h (- (- 1 inset.1) inset.3)) (* 2 my)) 1)}})
 
 (defview object-shape "Object `o`'s shape or line, or the fill and line a text box has." []
   `(node :use shapePath
      :when ~shape
-     :with {:o ~(merge {:shape (if (= o.kind "text") "rect" "rect")
-                        :fill (if (= o.kind "shape") "accent1" "none")
-                        :line (if (= o.kind "text") "none" nil)
+     :with {:o ~(merge {:shape "rect"
+                        :fill (if (= o.kind :shape) "accent1" "none")
+                        :line (if (= o.kind :text) "none" nil)
                         :lineWidth 1
                         :flipH false
                         :flipV false
@@ -113,7 +151,7 @@
 
 (defview object-icon "Object `o` if it is an icon." []
   `(label :id ~(str prefix o.id "-icon")
-     :when ~(= o.kind "icon")
+     :when ~(= o.kind :icon)
      :x 0
      :y 0
      :width ~box.w
@@ -124,12 +162,12 @@
 
 (defview object-ink "Object `o` if it is ink: its stroke, a path in its own box." []
   `(path :id ~(str prefix o.id "-ink")
-     :when ~(= o.kind "ink")
+     :when ~(= o.kind :ink)
      :x 0
      :y 0
      :width ~box.w
      :height ~box.h
-     :d ~(or-else o.d "")
+     :d ~(if edit (replayed-path o) (or-else o.d ""))
      :viewBox ~(str "0 0 " (or-else o.vw box.w) " " (or-else o.vh box.h))
      :fit fill
      :stroke ~(or-else o.color "#1f2933")
@@ -160,7 +198,7 @@
        `(node :use slideObject
           :with {:o ~o
                  :prefix ~prefix
-                 :layout ~(or-else (find (fn [it] (= it.id slide.layout)) computed.layouts) computed.layouts.1)
+                 :layout ~(or-else (find #(= (:id %) slide.layout) computed.layouts) computed.layouts.1)
                  :edit false}))))
 
 ;;; Views
@@ -169,21 +207,23 @@
   "The editor over an object whose text is edited, its first line where the text's is."
   [o]
   `(editor :id ~(str "edit-" o.id)
-     :when ~editing
+     :when ~(and editing (not (contains? #{:table :chart} o.kind)))
      :autofocus true
      :wrap true
+     :caret "state.caret"
      :bind ~(str "state.deck.slides["
                  state.current
                  "].objects["
-                 (indexOf (map (fn [it] it.id) computed.objects) o.id)
+                 (indexOf (map :id computed.objects) o.id)
                  "].text")
      :note "Its gutter (12 px) and top padding (6 px), at its 48 px font scaled, are taken off; the anchor places it"
      :let {:k ~(/ size 48)
-           :block ~(* (count (split (or-else o.text "") "\n")) size 1.2)
+           :block ~(* (count (str/split (or-else o.text "") "\n")) size 1.2)
            :top ~(- (- (+ frame.y
-                          (max (cond (= anchor "middle") (/ (- frame.h block) 2)
-                                     (= anchor "bottom") (- frame.h block)
-                                     :else 0)
+                          (max (case anchor
+                                 :middle (/ (- frame.h block) 2)
+                                 :bottom (- frame.h block)
+                                 0)
                                0))
                        (* 6 k))
                     (* size 0.14))}
@@ -206,36 +246,16 @@
      :when ~(and bullets (not prompt))
      :width ~mark
      :height ~(ceil (* pt 1.2))
-     :runs ~[(cond (some? numbering) {:text (+ (cond (= numbering "A.") (slice "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                          (mod (- ordinal 1) 26)
-                                          (+ (mod (- ordinal 1) 26) 1))
-                                   (= numbering "a)") (slice "abcdefghijklmnopqrstuvwxyz"
-                                          (mod (- ordinal 1) 26)
-                                          (+ (mod (- ordinal 1) 26) 1))
-                                   (= numbering "I.") (or-else (get ["I"
-                                                  "II"
-                                                  "III"
-                                                  "IV"
-                                                  "V"
-                                                  "VI"
-                                                  "VII"
-                                                  "VIII"
-                                                  "IX"
-                                                  "X"
-                                                  "XI"
-                                                  "XII"
-                                                  "XIII"
-                                                  "XIV"
-                                                  "XV"
-                                                  "XVI"
-                                                  "XVII"
-                                                  "XVIII"
-                                                  "XIX"
-                                                  "XX"]
-                                                 (- ordinal 1))
-                                            (text ordinal))
-                                   :else (text ordinal))
-                             (if (or (= numbering "1)") (= numbering "a)")) ")" "."))
+     :runs ~[(cond (some? numbering)
+                   {:text (+ (case numbering
+                               "A." (let [at (mod (dec ordinal) 26)] (slice "ABCDEFGHIJKLMNOPQRSTUVWXYZ" at (inc at)))
+                               "a)" (let [at (mod (dec ordinal) 26)] (slice "abcdefghijklmnopqrstuvwxyz" at (inc at)))
+                               "I." (or-else (get ["I" "II" "III" "IV" "V" "VI" "VII" "VIII" "IX" "X" "XI" "XII" "XIII"
+                                                   "XIV" "XV" "XVI" "XVII" "XVIII" "XIX" "XX"]
+                                                  (dec ordinal))
+                                             (text ordinal))
+                               (text ordinal))
+                             (if (contains? #{"1)" "a)"} numbering) ")" "."))
                     :size pt
                     :color ink
                     :font (or-else o.font "default")}
@@ -244,16 +264,18 @@
 
 (defview paragraph-text "Paragraph `n`'s text, wrapped to the box less its mark." [o prefix n]
   `(label :id ~(str prefix o.id "-p" n "-t")
-     :wrap true
-     :fitText {:maxWidth ~(max (- (- (/ (- (if turned frame.h frame.w) (* size (- cols 1))) cols) lead)
-                                  (if (and bullets (not prompt)) mark 0))
-                               1)}
-     :align {:horizontal ~(cond (= align "center") "center" (= align "right") "end" :else "start")}
-     :runs [{:text ~(if (= (trim line) "") " " (trim line))
+     :let {:room ~(if (= o.wrap false) 4000 (max (- (- (/ (- (if turned frame.h frame.w) (* size (dec cols))) cols) lead)
+                                                  (if (and bullets (not prompt)) mark 0))
+                                               1))}
+     :wrap ~(or-else o.wrap true)
+     :fitText {:maxWidth ~room}
+     :minWidth ~(if (and (= pa :justify) (not= o.wrap false)) room 0)
+     :align {:horizontal ~(case pa :center "center" :right "end" :justify "justify" "start")}
+     :runs [{:text ~(if (= (str/trim line) "") " " (str/trim line))
              :size ~pt
              :bold ~(or-else o.bold p.bold false)
              :font ~(or-else o.font
-                             (if (contains ["title" "ctrTitle"] (or-else o.ph ""))
+                             (if (contains? #{:title :ctrTitle} o.ph)
                                  computed.headingFont
                                  computed.bodyFont))
              :italic ~(or-else o.italic false)
@@ -267,19 +289,22 @@
   `(row :id ~(str prefix o.id "-p" n)
      :fitContent true
      :overflow visible
-     :let {:line ~(get lines n)
+     :alignSelf ~(case pa :center "center" :right "end" "start")
+     :let {:pa ~(if prompt align (or-else (get o.aligns n) align))
+           :line ~(get lines n)
            :level ~(get levels n)
            :pt ~(max (if bullets (- size (* 4 (min (get levels n) 2))) size) 6)
            :lead ~(if bullets (* 36 (get levels n)) 0)
-           :mark ~(if (nil? numbering) 18 (max (* size 1.5) 18))
-           :ordinal ~(count (filter (fn [it] (= it (get levels n)))
+           :mark ~(if (some? numbering) (max (* size 1.5) 18) 18)
+           :ordinal ~(count (filter #(= % (get levels n))
                                     (slice levels
-                                           (+ (max (concat [(- 1)]
-                                                           (filter (fn [it] (< (get levels it) (get levels n)))
-                                                                   (range n))))
-                                              1)
-                                           (+ n 1))))}
-     (node :id ~(str prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(> lead 0))
+                                           (->> (range n)
+                                                (filter #(< (get levels %) (get levels n)))
+                                                (concat [-1])
+                                                max
+                                                inc)
+                                           (inc n))))}
+     (node :id ~(str prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(pos? lead))
      ~(paragraph-mark o prefix n)
      ~(paragraph-text o prefix n)))
 
@@ -291,10 +316,10 @@
      :let {:turned ~(not= (or-else o.textRotate 0) 0)
            :cols ~(if prompt 1 (min (or-else o.columns 1) (max (count lines) 1)))
            :numbering ~(if prompt nil (or-else o.numbering nil))
-           :levels ~(map (fn [it] (min (floor (/ (indexOf it (trim it)) 4)) 8)) lines)
-           :colWidth ~(/ (- (if turned frame.h frame.w) (* size (- cols 1))) cols)
+           :levels ~(map #(min (floor (/ (indexOf % (str/trim %)) 4)) 8) lines)
+           :colWidth ~(/ (- (if turned frame.h frame.w) (* size (dec cols))) cols)
            :heights ~(map-indexed (fn [index it]
-                                    (+ (* (ceil (/ (* (max (count (trim it)) 1)
+                                    (+ (* (ceil (/ (* (max (count (str/trim it)) 1)
                                                       0.5
                                                       (max (if bullets (- size (* 4 (min (get levels index) 2))) size)
                                                            6))
@@ -303,14 +328,14 @@
                                           1.2
                                           (max (if bullets (- size (* 4 (min (get levels index) 2))) size) 6))
                                        (if bullets (* size 0.35) 0)
-                                       (* size (- (if prompt 1 (or-else o.spacing 1)) 1))))
+                                       (* size (dec (if prompt 1 (or-else o.spacing 1))))))
                                   lines)
            :column ~(map-indexed (fn [index it]
                                    (if (= cols 1)
                                        0
                                        (min (floor (/ (+ (sum (slice heights 0 index)) (* it 0.999))
                                                       (if turned frame.w frame.h)))
-                                            (- cols 1))))
+                                            (dec cols))))
                                  heights)}
      :x ~(if turned (+ frame.x (/ (- frame.w frame.h) 2)) frame.x)
      :y ~(if turned (+ frame.y (/ (- frame.h frame.w) 2)) frame.y)
@@ -324,8 +349,8 @@
      :overflow visible
      :width ~colWidth
      :height ~(if turned frame.w frame.h)
-     :justify ~(cond (= anchor "bottom") "end" (= anchor "middle") "center" :else "start")
-     :alignItems ~(cond (= align "center") "center" (= align "right") "end" :else "start")
-     :gap ~(+ (if bullets (* size 0.35) 0) (* size (- (if prompt 1 (or-else o.spacing 1)) 1)))
-     ~(repeat [n (filter (fn [it] (= (get column it) k)) (range (count lines)))]
+     :justify ~(case anchor :bottom "end" :middle "center" "start")
+     :alignItems ~(case align :center "center" :right "end" "start")
+     :gap ~(+ (if bullets (* size 0.35) 0) (* size (dec (if prompt 1 (or-else o.spacing 1)))))
+     ~(repeat [n (filter #(= (get column %) k) (range (count lines)))]
        (paragraph o prefix n))))

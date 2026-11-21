@@ -26,6 +26,31 @@
 				{ "resize": [1024, 680] },
 				{ "expect": { "image": "resized" } }
 			]
+		},
+		{
+			"name": "sinopia-content",
+			"screen": "index.screen.lisp",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-insert-label" },
+				{ "click": "#b-ins-chart" },
+				{ "click": { "role": "menuitem", "name": "Column" } },
+				{ "expect": { "image": "chart-column" } },
+				{ "click": "#b-ins-chart" },
+				{ "click": { "role": "menuitem", "name": "Pie" } },
+				{ "expect": { "image": "chart-pie" } },
+				{ "key": "delete" },
+				{ "click": "#b-ins-textbox" },
+				{ "wait": 100 },
+				{ "key": "f2" },
+				{ "wait": 0 },
+				{ "key": "mod+a" },
+				{ "type": "Each phase has one owner, and building starts once the permits are in, so the long pole is the council." },
+				{ "key": "escape" },
+				{ "wait": 100 },
+				{ "key": "mod+j" },
+				{ "expect": { "image": "justified-text" } }
+			]
 		}
 	]
 }

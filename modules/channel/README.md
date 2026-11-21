@@ -16,7 +16,7 @@ nlohmann/json; Winsock on Windows).
 |---|---|
 | `Sockets.hpp` | `SocketChannel` (`connect` to a path, or wrap a connected socket; a bounded send queue) and `SocketServer` (listen; `onConnection`; a `PeerCheck`, `peerIsThisUser` by default) |
 | `Channels.hpp` | `ProcessChannel` (a child process's stdin and stdout) and `StdioChannel` (this process's) |
-| `Session.hpp` | `Session`: the protocol for one peer over a `Channel`; `send`, `author`, `onRelay` |
+| `Session.hpp` | `Session`: the protocol for one peer over a `Channel`; `send`, `author`, `onRelay`; the host's answers it can't give itself (`setUsage`, `setFileChanges`, `setPicks`, `setSource`) |
 | `Limits.hpp` | `PeerLimits` (what one peer may send: message size, messages and changes a second) and `TokenBucket` |
 
 ## Invariants
@@ -30,6 +30,26 @@ nlohmann/json; Winsock on Windows).
   session; `render` and `getEvidence` take a scale from 1 to `ScreenImages::maxScale` (2).
 - **Evidence comes from the host:** `getEvidence` answers with `ScreenImages::evidence` (pictures, region, behaviour
   lines, scenario results, changed texts); nothing in it comes from the proposal's author.
+- **Picks and sources come from the host:** `getPicks` answers what `setPicks` gives (the elements the person pointed
+  at and has not sent or removed) and `getSource` what `setSource` gives for its `at` (a text of 1 to 512 bytes,
+  checked before the host is asked: `#id`, a JSON Pointer or a definition's address). The session knows nothing of
+  windows or nodes; without a callback it answers `rejected` ("this host keeps no picks", "this host can't tell a
+  node's source"), and what the callback throws is answered `rejected` with its message. Any peer may ask: they are
+  reads and change nothing.
+- **A peer whose reads are limited is refused the reads that show the document whole** (`showsWhole`: `diff`,
+  `fileChanges`, `exportChanges`, `render`, `getEvidence`, `blame`, `getPicks`, `getSource`), never given a shorter
+  answer: a node's definition and its bindings tell what the paths hidden from it hold.
+- **Commands are run through the host's `CommandService`, never decided here** (`SessionCommands.cpp`): without one
+  (`setCommands(nullptr)`) every command message is refused with "this host runs no commands". The session checks
+  each field and passes on only those the service knows; holds `runCommand` and `undoRun` to `runsPerMinute` (120)
+  and `arguments` to `maxArgumentBytes` (64 KiB as JSON), and a `runCommand` with `"evidence": "picture"` to the
+  rate of pictures too; and refuses `allowRun`, `denyRun` and `revokeRun` from a peer that may not review. A run that
+  waits is answered again, with the `id` of the `runCommand` that asked, through a token the session drops when it
+  leaves the service; leaving first denies its runs that wait ("the peer went away"), so a yes given later never runs
+  a command for a peer that can't hear it. There is no message that runs as the person.
+- **A peer whose reads are limited is told less of commands:** `getCommands` lists only those whose
+  `/actions/<name>` it may read; a run's `evidence` is always `none` for it, and `ran` and `undone` carry the count of
+  `changes`, never what changed or a picture.
 - **The inspector is a reviewer's:** `inspect` turns on `ScreenImages::inspect` only for a peer that may review; it is
   off by default.
 - **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
@@ -81,7 +101,8 @@ owner (`affresco::Screen`) destroys the session before any of them.
 - **A new protocol message:** see the recipe below. `Session::handle` passes each message to its group:
   `handleChange` (revisions, restore, revert, undo), `handleReview` (accept, reject, preview, mode, revoke: it checks
   that the peer may review, then `decide` carries the decision out) or `handleQuery` (document, catalog, history,
-  diff, change sets, render).
+  diff, change sets, render), then `handleBlame`, `handlePickRead` (getPicks, getSource), `handleConvert` and
+  `handleCommands` (the command messages).
 
 ## Files
 
@@ -97,6 +118,8 @@ src/
   session/
     Session.cpp             the live protocol: reading, answering, base64 pictures, relaying
     Convert.cpp             the convert message: text in a notation into its value, and back
+    Picks.cpp               getPicks and getSource: what the person pointed at, and where a node is written
+    SessionCommands.cpp     the command messages (getCommands, runCommand, undoRun, allowRun, denyRun, revokeRun)
 CMakeLists.txt              the affrescoui_channel target and its sources
 ```
 

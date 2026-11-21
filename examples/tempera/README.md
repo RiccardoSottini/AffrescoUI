@@ -15,7 +15,7 @@ in JSON, also by hand: the Launcher's Settings choose which one opens, the same 
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/lisp/*.scenarios.json                       # the 62 scenarios (ctest: scenarios)
+./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 79 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -37,14 +37,32 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 | `lisp/menubar.lisp`, `options.lisp`, `tools.lisp`, `canvas.lisp` | The menu bar, the options bar, the tools bar, the canvas with rulers, guides and status bar |
 | `lisp/panels.lisp`, `properties.lisp`, `layers.lisp`, `dialogs.lisp` | The dock and its panels, and the dialogs |
 | `lisp/look.lisp`, `locales/` | The palette and styles; the text in English, Spanish and French |
-| `lisp/index.scenarios.json`, `agent.scenarios.json` | 61 scenarios, and an agent's proposal of a Filters panel to the program, run headless (they stay JSON) |
+| `lisp/index.scenarios.json` | 79 scenarios, an agent's proposal of a Filters panel to the program among them, run headless (they stay JSON); the slide sorter's proof plays them all |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
-| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
+| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent. The Lisp Tempera installs the sorter written as a program (`sorter.lisp`), the JSON one its JSON manifest |
 
 The pixels stay in the library. The `images` section declares `doc`, and the state `doc` mirrors it after every step:
 the layers (top first) with their thumbnails (`doc/layer/<id>`), the history, the selection's bounds, the colours, the
 tool and its options, and the view. The canvas is a `raster` node that draws `doc` and sends a pointer to its tool.
 Scenarios drive it through the `pointer` action, in document pixels.
+
+Shift or Cmd and a click in the Layers panel picks layers together (`state.pickedLayers`); Properties' Distribute icons
+and Layer > Distribute space three or more of them evenly as one step (`(image "distributeLayers" ...)`). A group of the
+dock moves when its tabs are dragged onto another group's, or with Alt+Up and Alt+Down on them (`state.groupOrder`, kept
+by a saved workspace). The History panel's camera takes a snapshot of the layers (`takeSnapshot`, listed in
+`doc.snapshots`), restored as one step; Image > Trim crops to the visible pixels (`trim`), and Image > Mode converts to
+8 or 16 bits a channel (`convertFormat`).
+
+Type and shape layers are the library's too: each keeps what it is drawn from (its text, size and style; its outline,
+fill and stroke), shown in the snapshot's layer rows as `content`, and is drawn again whenever that changes, so it stays
+sharp and editable until Layer > Rasterize makes it pixels. The Type tool types on the canvas into the layer it adds or
+clicks, and Properties edits it too: its font family, size, style, tracking, and the kerning of the pair where typing
+goes on. The pen's paths are the document's (`doc.paths`), drawn over the canvas while one is chosen in the Paths
+panel, and filled, stroked, selected or made a shape layer from there or the options bar. The Pen adds an anchor on a
+segment, deletes the one pressed on, and Alt converts a smooth anchor to a corner (a drag pulls a corner's handles);
+Type > Create Work Path makes a type layer's letters paths. Select > Transform Selection puts handles on the
+selection's box (the `selection-box` gesture), Free Transform (Cmd+T) on the active layer's (`layer-box`), and every
+colour chip opens a picker beside it.
 
 ## Agents
 
@@ -58,19 +76,21 @@ a new image (the scenario `tempera-opens-an-agents-picture`).
 
 | Keys | Command |
 | --- | --- |
-| V M ⇧M L ⇧L W C B ⇧B E S G ⇧G I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, crop, brush, pencil, eraser, clone, gradient, fill, eyedropper, hand, zoom |
+| V M ⇧M L ⇧L W ⇧W C B ⇧B E S J G ⇧G R O ⇧O I H Z | Tools: move, marquee, ellipse, lasso, polygon, wand, quick selection, crop, brush, pencil, eraser, clone, healing brush, gradient, fill, blur, dodge, burn, eyedropper (sharpen, smudge and sponge in the groups), hand, zoom |
+| T P A U ⇧U | Tools: type, pen, path selection, rectangle, ellipse (shapes) |
 | D, X, Q, F | Default colours, swap them, quick mask, screen mode |
 | `[` `]` (or `,` `.`) | Smaller or larger brush |
 | ⌥⌫, ⌘⌫, ⇧⌫, ⌫ | Fill with the foreground or the background, Fill..., clear |
 | ⌘X ⌘C ⌘⇧C ⌘V | Cut, copy, copy merged, paste |
 | ⌘T ⌘⌥I ⌘⌥C | Free transform, image size, canvas size |
-| ⌘N ⌘O ⌘S ⌘⇧S ⌘W ⌘⌥⇧W F12 | New, open, save, save as, close, export PNG, revert |
+| ⌘N ⌘O ⌘S ⌘⇧S ⌘W ⌘⌥⇧W ⌘⌥⇧S F12 | New, open, save, save as, close, export PNG, export JPEG, revert |
 | ⌘Z ⌘⇧Z | Undo, redo |
-| ⌘A ⌘D ⌘⇧I | Select all, deselect, inverse |
+| ⌘A ⌘D ⌘⇧D ⌘⇧I | Select all, deselect, reselect, inverse |
 | ⌘⇧N ⌘J ⌘⇧J ⌘G ⌘⇧G ⌘⌥G | New layer, duplicate, layer via cut, group, ungroup, clipping mask |
 | ⌘L ⌘M ⌘U ⌘B ⌘I ⌘⌥⇧B | Levels, Curves, Hue/Saturation, Colour Balance, Invert, Black & White (as adjustment layers) |
 | ⌘E ⌘⇧E ⌘/ | Merge down, merge visible, lock the layer |
 | ⌘↑ ⌘↓ ⌘⇧↑ ⌘⇧↓ | Move the layer up or down, to the front or the back |
 | ⌘Y | Proof colours |
 | ⌘= ⌘- ⌘0 ⌘1 | Zoom in, zoom out, fit, 100% |
-| ⌘R ⌘F ⇧F6 | Rulers, search the commands, feather |
+| ⌘R ⌘; ⌘F ⇧F6 | Rulers, guides, search the commands, tools and layers, feather |
+| F5 F6 F7 ⌘⌥F F1 | The Brushes, Colour and Layers panels, the last filter again, about |

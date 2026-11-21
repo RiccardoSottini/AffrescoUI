@@ -20,6 +20,7 @@ affrescoui_module(imaging
 	src/compose/Blend.cpp src/compose/Adjustment.cpp src/compose/Composite.cpp
 	# paint: rasterized shapes, selections, brush strokes and gradients
 	src/paint/Rasterize.cpp src/paint/Selection.cpp src/paint/Brush.cpp src/paint/Gradient.cpp
+	src/paint/Shapes.cpp src/paint/GlyphOutline.cpp
 	# filters: convolution kernels and the filters built on them
 	src/filters/Kernels.cpp src/filters/Filter.cpp
 	# io: colour profiles, PNG and JPEG codecs (stb), and the project file format
@@ -29,4 +30,4 @@ affrescoui_module(imaging
 	${AFFRESCOUI_LCMS2_SOURCES})
 target_include_directories(affrescoui_imaging SYSTEM PRIVATE ${stb_image_SOURCE_DIR} ${stb_image_write_SOURCE_DIR}
 	${AFFRESCOUI_LCMS2_INCLUDE_DIR} ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
-target_link_libraries(affrescoui_imaging PUBLIC affrescoui::core affrescoui::render)
+target_link_libraries(affrescoui_imaging PUBLIC affrescoui::core affrescoui::render PRIVATE affrescoui_harfbuzz)

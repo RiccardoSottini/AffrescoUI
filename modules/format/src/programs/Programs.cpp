@@ -27,8 +27,9 @@ constexpr auto freeSteps = std::to_array<std::string_view>(
 	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData",    "runHooks"});
 
 /// The steps that decide on changes: only ever from the person's own input.
-constexpr auto reviewSteps = std::to_array<std::string_view>(
-    {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "evaluate"});
+constexpr auto reviewSteps =
+    std::to_array<std::string_view>({"accept", "reject", "preview", "endPreview", "restore", "revert", "undo",
+	                                 "evaluate", "allowRun", "denyRun", "undoRun"});
 
 /// @brief Credits the entries of a program no author is known for, so that none runs as if nobody wrote it.
 /// @param section The section.
@@ -69,10 +70,36 @@ bool isPersonsAuthor(std::string_view author) noexcept {
 	return author == "file" || author == "user" || author.starts_with("user/");
 }
 
-AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept
-    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {}
+KeptAuthority keptAuthority(const Engine& engine) {
+	return engine.authority ? KeptAuthority(*engine.authority) : std::nullopt;
+}
 
-AuthorityScope::~AuthorityScope() { engine_.authority = outer_; }
+AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority, bool judged)
+    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {
+	// Only the outermost scope of a run's work judges it: one inside it (a Lisp step) is part of the same work
+	if(judged && authority && authority->run && !(outer_ && outer_->run) && engine.runControl) {
+		run_ = authority->run;
+		before_ = engine.versions.state();
+	}
+}
+
+// NOLINTNEXTLINE(bugprone-exception-escape): only building the report in its catch can throw, if memory runs out
+AuthorityScope::~AuthorityScope() {
+	engine_.authority = outer_;
+	if(!run_) return;
+	try {
+		const json& state = engine_.versions.state();
+		if(state == before_) return;
+		const std::optional<std::string> refusal = engine_.runControl->stateDenial(run_->runner, before_, state);
+		if(!refusal) return;
+		engine_.versions.state() = std::move(before_);
+		engine_.document.markStateChanged();
+		engine_.reconciler.requestStateUpdate();
+		engine_.report("what a run by '" + run_->runner + "' scheduled was put back: " + *refusal);
+	} catch(const std::exception& error) { // never out of a destructor: the change stays, and is told
+		engine_.report(std::string("what a run scheduled couldn't be judged: ") + error.what());
+	}
+}
 
 WorkBudget& Programs::work() const {
 	WorkBudget* running = engine_.document.budget();
@@ -84,32 +111,96 @@ Programs::Frame* Programs::enter(Frame* frame) {
 	return std::exchange(frame_, frame);
 }
 
+// A program whose features' code can't be loaded with it runs alone: the rules refuse such a revision, so it is only
+// ever a document read from disk
 void Programs::load() {
 	const json& source = engine_.versions.sourceDocument();
-	const auto section = source.find("program");
-	if(section == source.end()) {
+	const auto own = source.find("program");
+	if(own == source.end()) {
 		live_.reset();
 		extensions_.reset();
 		loaded_ = nullptr;
+		program_.reset();
 		return;
 	}
-	if(live_ && loaded_ == *section) return;
+	const json section = runningProgram(source);
+	if(live_ && loaded_ == section) return;
+	try {
+		loadSection(section);
+	} catch(const std::exception& error) {
+		if(section == *own) throw;
+		engine_.report(std::string("the features' programs don't load with the app's, so they don't run: ") +
+		               error.what());
+		if(!live_ || loaded_ != *own) loadSection(*own);
+	}
+}
+
+void Programs::loadSection(const json& section) {
 	json authors = engine_.versions.programAuthors();
-	creditTheRest(*section, authors);
-	const lisp::Program program = lisp::programOf(*section, authors);
+	creditTheRest(section, authors);
+	creditFeatures(engine_.versions.sourceDocument(), section, authors);
+	if(redefine(section, authors)) return;
+	lisp::Program program = lisp::programOf(section, authors);
+	live_ = loadedInterpreter(program);
+	extensions_ = std::move(extensionsNext_);
+	loaded_ = section;
+	program_ = std::move(program);
+	redefinitions_ = 0;
+	redefinedBytesLeft_ = lisp::maxBuildBytes;
+}
+
+std::shared_ptr<lisp::Interpreter> Programs::loadedInterpreter(const lisp::Program& program) {
 	lisp::Limits limits;
 	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
 	auto next = std::make_shared<lisp::Interpreter>(limits);
 	definePrimitives(*next);
-	next->setPure(true); // macros run now, and values are worked out: neither reaches anything
+	next->setPure(true);        // macros run now, and values are worked out: neither reaches anything
 	program.load(*next, false); // what runs: the build compiled everything, views too, and refused what didn't compile
 	next->workOutDefinitions();
 	next->setPure(false);
 	loadExtensions(*next);
 	next->setGate([this](const lisp::CallContext& call) { check(call); });
-	live_ = std::move(next);
-	extensions_ = std::move(extensionsNext_);
-	loaded_ = *section;
+	return next;
+}
+
+/// The changes made in place before a new interpreter is made instead: what each leaves in the heap stays there.
+constexpr int maxRedefinitions = 64;
+
+bool Programs::redefinable() const {
+	// Running code holds its own reference: it keeps the code it started with, in the interpreter it started in
+	return live_ && live_.use_count() == 1 && redefinitions_ < maxRedefinitions &&
+	       (!extensions_ || (extensions_->hooks.empty() && extensions_->advice.empty()));
+}
+
+bool Programs::redefine(const json& section, const json& authors) {
+	if(!program_ || !redefinable()) return false;
+	std::shared_ptr<const lisp::BuiltProgram> built;
+	try {
+		built = lisp::builtProgram(section); // judging the version built it: kept
+	} catch(const DocumentError&) {
+		return false; // loading it says why
+	}
+	if(!built->extensions.empty() || !built->record) return false;
+	lisp::Program program = lisp::programOf(section, authors);
+	lisp::Limits limits;
+	limits.budget = {lisp::maxBuildOperations, redefinedBytesLeft_}; // what they keep together: one load's
+	bool done = false;
+	live_->setPure(true);
+	try {
+		done = program.redefine(*live_, *program_, *built->record, limits, &redefinedBytesLeft_);
+	} catch(const std::exception&) { // half changed: the earlier version again, afresh, and load() says what is wrong
+		live_ = loadedInterpreter(*program_);
+		extensions_ = std::move(extensionsNext_);
+		redefinitions_ = 0;
+		redefinedBytesLeft_ = lisp::maxBuildBytes;
+		return false;
+	}
+	live_->setPure(false);
+	if(!done) return false;
+	loaded_ = section;
+	program_ = std::move(program);
+	++redefinitions_;
+	return true;
 }
 
 bool Programs::defines(std::string_view name) const { return live_ && live_->isProgramFunction(name); }
@@ -162,24 +253,31 @@ json Programs::read(const std::string& name, std::vector<json> arguments, const 
 	if(!live_) fail(where, "this screen has no program, so lisp() has nothing to call");
 	const Entered entered(*this, {nullptr, &event, &locals});
 	lisp::Interpreter& interpreter = entered.interpreter();
-	++reading_;
-	try {
-		std::vector<lisp::Value> values;
-		values.reserve(arguments.size());
-		for(json& argument : arguments) values.push_back(viewOf(interpreter, std::move(argument)));
-		json result = interpreter.toTree(interpreter.call(functionOf(interpreter, name, where), values));
-		--reading_;
-		return result;
-	} catch(...) {
-		--reading_;
-		throw;
-	}
+	const Reading reading(*this);
+	std::vector<lisp::Value> values;
+	values.reserve(arguments.size());
+	for(json& argument : arguments) values.push_back(viewOf(interpreter, std::move(argument)));
+	// Its own tree before the read ends: nothing of the state it viewed in place escapes it
+	return interpreter.toTree(interpreter.call(functionOf(interpreter, name, where), values));
+}
+
+// A read inside a read (an expression's function calling lisp()) starts its own: the variables it views go with it
+Programs::Reading::Reading(Programs& programs) noexcept
+    : programs_(programs), outer_(std::exchange(programs.chargedInRead_, {})) {
+	++programs_.reading_;
+}
+
+Programs::Reading::~Reading() {
+	--programs_.reading_;
+	programs_.chargedInRead_ = std::move(outer_); // the places it charged go with it
 }
 
 bool Programs::hasProgram() const noexcept { return live_ != nullptr; }
 
 std::optional<std::string> Programs::refusal(std::string_view what, StepKind kind,
                                              std::span<const std::string> ran) const {
+	if(engine_.authority && engine_.authority->run && engine_.authority->run->refused)
+		return "the run that scheduled this was refused, so what it scheduled runs no step";
 	if(kind == StepKind::None || kind == StepKind::Free) return std::nullopt;
 	const std::string step =
 	    "the " + std::string(kind == StepKind::Review ? "review" : "control") + " step \"" + std::string(what) + "\"";
@@ -205,6 +303,7 @@ void Programs::check(const lisp::CallContext& call) const {
 	StepKind kind = call.capability == "review"    ? StepKind::Review
 	                : call.capability == "control" ? StepKind::Control
 	                                               : StepKind::Free;
+	if(kind != StepKind::Free) checkFeatureCall(call.primitive, ran);
 	// What the calling code names written out is judged by its use, as its text was (ServiceRules.cpp)
 	if(kind == StepKind::Control && judgedByUse(call.primitive, call.named)) kind = StepKind::Free;
 	if(const std::optional<std::string> why = refusal(call.primitive, kind, ran)) throw lisp::Refusal(*why);
@@ -212,6 +311,7 @@ void Programs::check(const lisp::CallContext& call) const {
 
 void Programs::checkStep(const json& step, const std::string& where) const {
 	if(!step.is_object()) return;
+	checkFeatureStep(step, where);
 	for(const auto& [key, value] : step.items()) {
 		StepKind kind = stepKind(key);
 		// A use written out in the document, judged by its use as the revision that wrote it was

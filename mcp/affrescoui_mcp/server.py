@@ -11,12 +11,15 @@ import tempfile
 import threading
 import time
 
-from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned
+from . import commands
+from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned, source_of
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
+from .picks import pick_lines, picks_of
 from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
 from .repository import ROOT, confined_path, find_cli, guide_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
+from .undo import choice_error, plan_summary, undo_message
 
 OUTSIDE = "error: {}: must be inside the repository, the working folder or a --root folder"
 SCREEN_FILES = (".screen.json", ".screen.lisp")  # a screen file, in JSON or in the Lisp notation
@@ -107,6 +110,10 @@ class Server:
         attachments = attachments_of(message.get("attachments"))
         if attachments:  # files the person attached: metadata only; name one in submit_revision's assets
             request["attachments"] = attachments
+        # What the person pointed at comes only with a request the screen sent: a peer's relayed request has none
+        picks = picks_of(message.get("picks")) if request["origin"] == "app" else []
+        if picks:  # what the person pointed at: start from each one's source.address
+            request["picks"] = picks
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
@@ -118,6 +125,9 @@ class Server:
             if isinstance(request.get("options", {}).get("model"), str):  # the model the chat chose
                 meta["model"] = request["options"]["model"]
             content = request["text"]
+            if picks:
+                meta["picks"] = json.dumps(picks, separators=(",", ":"))
+                content += "\n\n" + "\n".join(pick_lines(picks))
             if attachments:
                 meta["attachments"] = json.dumps(attachments, separators=(",", ":"))
                 content += "\n\nAttached: " + "; ".join(
@@ -207,8 +217,8 @@ class Server:
 
     def checked_document(self, args):
         """The document scenarios play on: main as the host has it now, or with an open proposal applied."""
-        reply = self.host.request({"type": "getDocument"})
-        document, shown = reply.get("document") or {}, f"main at revision {reply.get('revision')}"
+        reply = self.host.request({"type": "getDocument"})  # a program's source: its proposals' patches are on it
+        document, shown = source_of(reply), f"main at revision {reply.get('revision')}"
         if "proposal" in args:
             diff = self.host.request({"type": "diff", "proposal": args["proposal"]})
             if diff.get("type") != "diff":
@@ -311,7 +321,7 @@ class Server:
             if args.get("running"):
                 document = os.path.join(scratch, "running.json")
                 with open(document, "w", encoding="utf-8") as file:
-                    json.dump(self.host.request({"type": "getDocument"}).get("document") or {}, file)
+                    json.dump(source_of(self.host.request({"type": "getDocument"})), file)
                 command += ["--document", document]
             result = subprocess.run(command, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
@@ -330,7 +340,7 @@ class Server:
         with tempfile.TemporaryDirectory(prefix="affrescoui-compose-") as scratch:
             document, revision = os.path.join(scratch, "document.json"), os.path.join(scratch, "install.json")
             with open(document, "w", encoding="utf-8") as file:
-                json.dump(reply.get("document") or {}, file)
+                json.dump(source_of(reply), file)  # a program's source: the proof builds what it needs from it
             command = [find_cli(), "check", "--compose", screen, feature, "--document", document,
                        "--base", str((reply.get("head") or {}).get("id", "")), "--revision", revision]
             if isinstance(args.get("adapter"), dict):
@@ -439,14 +449,45 @@ class Server:
         impact = reply.get("impact")  # the layers it touches: view, logic, model, data
         return compact(reply.get("patch")) + (f"\nimpact: {compact(impact)}" if impact else ""), False
 
+    def get_pick(self, args):
+        """The get_pick tool: what the person pointed at and has not sent yet, or that nothing is."""
+        reply = self.host.request({"type": "getPicks"})
+        if reply.get("type") != "picks":
+            return host_failure(reply)
+        picks = picks_of(reply.get("picks"), most=16)
+        return (compact(picks) if picks else "nothing is pointed at"), False
+
+    def get_source(self, args):
+        """The get_source tool: where a node is written, as one line of JSON, then the definition's text."""
+        reply = self.host.request({"type": "getSource", "at": args.get("at", "")})
+        if reply.get("type") != "source" or not isinstance(reply.get("source"), dict):
+            return host_failure(reply)
+        source = dict(reply["source"])
+        text = source.pop("text", "")
+        return compact(source) + (f"\n{text}" if isinstance(text, str) and text else ""), False
+
     def get_models(self, args):
         """The get_models tool: the data layer's models and how many records each collection holds, never a record."""
         catalog = self.host.request({"type": "getCatalog"}).get("catalog") or {}
         return compact(catalog.get("data") or {"collections": {}, "queries": []}), False
 
     def change_main(self, kind, args):
-        """The restore_revision and revert_revision tools: main brought back to a revision, or one revision undone."""
+        """The restore_revision tool: main brought back to a revision."""
         return describe(self.host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
+
+    def revert_revision(self, args):
+        """The revert_revision tool: with dry_run, the plan of undoing one revision (nothing changes); else the undo,
+        with the choices given, described as applied, proposed or rejected. Arguments that break the tool's schema
+        are refused before the host is asked."""
+        refused = choice_error(args)
+        if refused:
+            return refused, True
+        if not args.get("dry_run"):
+            return describe(self.host.request(undo_message("revert", args, self.client)))
+        reply = self.host.request(undo_message("undoPlan", args, self.client))
+        if reply.get("type") != "undoPlan":
+            return host_failure(reply)
+        return compact(plan_summary(reply.get("plan"))), False
 
     def get_events(self, args):
         """The get_events tool: what happened since the last call."""
@@ -479,9 +520,15 @@ class Server:
         "get_history": get_history,
         "get_diff": get_diff,
         "restore_revision": lambda self, args: self.change_main("restore", args),
-        "revert_revision": lambda self, args: self.change_main("revert", args),
+        "revert_revision": revert_revision,
         "get_events": get_events,
         "export_changes": export_changes,
+        "get_pick": get_pick,
+        "get_source": get_source,
+        # Using the app (commands.py): its commands, run under its rules
+        "list_commands": lambda self, args: commands.list_commands(self.host, args),
+        "run_command": lambda self, args: commands.run_command(self.host, args),
+        "undo_run": lambda self, args: commands.undo_run(self.host, args),
     }
 
     def call_tool(self, name, args):

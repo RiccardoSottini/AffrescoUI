@@ -40,7 +40,8 @@ namespace affresco::format {
 [[nodiscard]] std::string normalizeShortcut(std::string_view text);
 
 /// @brief Writes a chord, presses separated by spaces, each the way normalizeShortcut() does: "Mod+K  Mod + S" is
-/// "cmd+k cmd+s" on macOS. A single press is a chord of one.
+/// "cmd+k cmd+s" on macOS. A single press is a chord of one; "alt" (or "option") alone is Alt pressed and released
+/// with no other key.
 /// @param text The chord as written.
 /// @return The normalised chord, its presses joined by one space.
 [[nodiscard]] std::string normalizeChord(std::string_view text);

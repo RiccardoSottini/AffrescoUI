@@ -1,7 +1,10 @@
 ;;; edit.lisp --- Haven's dashboard editing: arranging the home page's cards, and a card's editor
 ;;;
-;;; Arrange cards, in the top bar's menu, outlines each card with a pencil; a click on one opens its editor, which
-;;; changes the card's configuration in a visual form or as code, beside a preview.
+;;; Arrange cards, in the top bar's menu, outlines each card with a pencil and a button that takes it off the dashboard;
+;;; Add card puts one back. A click on a card opens its editor, which changes the card's configuration in a visual form
+;;; or as code, beside a preview.
+
+(ns haven.edit)
 
 ;;; What it keeps
 
@@ -17,6 +20,11 @@
    :cover {:type cover :title ""}
    :devices {:type device-tiles :title "" :actions true}}
   "Each card's configuration: its kind, its own title (empty for the usual one) and its options.")
+
+(defstate hiddenCards [] "The cards taken off the dashboard, by their keys in cards; Add card puts them back."
+  :type (array :items (string)))
+
+(defstate addCardOpen false "Whether Add card's menu is open.")
 
 (defstate cardEdit {:open false :id climate :code false :draft {} :text "" :error ""}
   "The editor: open, the card, form or code, the configuration being changed, its code, and what is wrong with it.")
@@ -34,14 +42,42 @@
 (defcomputed cardIcon "Each card's icon."
   {:lights "lightbulb" :scenes "clapperboard" :security "shield" :climate "thermometer" :cover "blinds" :devices "cpu"})
 
+(defcomputed cardShown "Whether each card is on the dashboard."
+  {:lights (not (contains state.hiddenCards "lights"))
+   :scenes (not (contains state.hiddenCards "scenes"))
+   :security (not (contains state.hiddenCards "security"))
+   :climate (not (contains state.hiddenCards "climate"))
+   :cover (not (contains state.hiddenCards "cover"))
+   :devices (not (contains state.hiddenCards "devices"))})
+
+(defcomputed scenesTop "Where the scenes' heading starts: under the lights, or in their place when they are off."
+  (cond computed.cardShown.lights "#lights.bottom + 16"
+        computed.compact 0
+        :else 136))
+
+(defcomputed securityTop "Where the alarm's heading starts: under the scenes, or the lights, or in their place."
+  (cond computed.cardShown.scenes "#scenes.bottom + 16"
+        :else computed.scenesTop))
+
+(defcomputed devicesTop "Where the devices start: under the blinds, or the climate, or at the top of the column."
+  (cond computed.cardShown.cover "#blindsCard.bottom + 12"
+        computed.cardShown.climate "#climateCard.bottom + 12"
+        :else 116))
+
+(defcomputed hiddenChoices "Add card's menu: each card taken off the dashboard, by its icon and title."
+  (map (fn [card]
+         {:title (get computed.cardTitle card) :icon (get computed.cardIcon card) :run "add-card" :with {:card card} :separator false})
+       state.hiddenCards))
+
 (defcomputed cardCode "The configuration being changed, as code."
   (str "{\n"
-       (join ",\n" (map (fn [it] (str "  " (json it.key) ": " (json it.value))) (entries state.cardEdit.draft)))
+       (->> (entries state.cardEdit.draft) (map #(str "  " (json (:key %)) ": " (json (:value %)))) (join ",\n"))
        "\n}"))
 
 ;;; Arranging the cards
 
-(defcomponent editFrame "While editing, a card's outline and pencil: a click anywhere on the card opens its editor."
+(defcomponent editFrame
+  "While editing, a card's outline, its pencil and a button that takes it off: a click anywhere else opens its editor."
   {:card "" :name ""}
   `(node :when ~state.editing
      :color transparent
@@ -54,7 +90,24 @@
      :role button
      :label ~(t "edit.card" {:name name})
      :tooltip ~(t "edit.card" {:name name})
-     :onClick ~(handler editCard card)
+     :onClick ~(handler edit-card card)
+     (label#editHide :icon eye-off
+       :font iconsSmall
+       :text ""
+       :textColor @muted
+       :color @card
+       :hover {:color @cardHover}
+       :anchors {:right 40 :top 4}
+       :width 28
+       :height 28
+       :radius 14
+       :align center
+       :cursor hand
+       :focusable true
+       :role button
+       :label ~(t "edit.hide" {:name name})
+       :tooltip ~(t "edit.hide" {:name name})
+       :onClick ~(handler hide-card card))
      (label :icon pencil
        :font iconsSmall
        :text ""
@@ -125,7 +178,7 @@
       :text ~(t (if state.cardEdit.code "edit.showForm" "edit.showCode"))
       :anchors {:left 16 :bottom 14}
       :height 36
-      :onClick switchCardView)
+      :onClick switch-card-view)
    `(node#cardSave :style button
       :color @accent
       :hover {:color @accent}
@@ -135,7 +188,7 @@
       :width 88
       :height 36
       :radius 18
-      :onClick saveCard)
+      :onClick save-card)
    `(node#cardCancel :style button
       :color transparent
       :hover {:color @accentSoft}
@@ -164,7 +217,7 @@
          :anchors {:left 0 :right 0 :top 18 :bottom 0}
          :label ~(t "edit.title"))
        {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @muted})
-     ~(repeat [opt (filter (fn [it] (and (not= it "type") (not= it "title"))) (keys state.cardEdit.draft)) :index i]
+     ~(repeat [opt (remove #{:type :title} (keys state.cardEdit.draft)) :index i]
        (card-option opt i))))
 
 (defview card-option "An option of the card, and its switch." [opt i]
@@ -241,7 +294,7 @@
      :gap 12
      :justify center
      ~(repeat [mode state.modes]
-       `(label :icon ~(cond (= mode "Heat") "flame" (= mode "Cool") "snowflake" :else "sun-snow")
+       `(label :icon ~(case mode "Heat" "flame" "Cool" "snowflake" "sun-snow")
           :text ""
           :color ~(if (= mode state.mode) computed.modeSoft "@raised")
           :textColor ~(if (= mode state.mode) computed.modeColor "@muted")

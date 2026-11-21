@@ -3,6 +3,8 @@
 ;;;
 ;;; The theme is state.theme: dark, light, or system (the window's colour scheme).
 
+(ns code-editor.parts.look)
+
 ;;; Definitions
 
 (deftokens tokens "Quaderno's colours, dark and light, and the assistant's and the kit's."

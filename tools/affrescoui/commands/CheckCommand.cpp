@@ -1,11 +1,13 @@
 /// @file
-/// @brief `affrescoui check`: a screen against the schema, the format's rules and the checker, without a window; an
-/// app's folder or app.json, its manifest and the capabilities its screen uses too.
+/// @brief `affrescoui check`: a screen against the schema, the format's rules and the checker, then built in a headless
+/// window (no display, no OpenGL) as a host shows it; an app's folder or app.json, its manifest and the capabilities
+/// its screen uses too.
 
 #include "Cli.hpp"
 #include "Schema.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/automation/Scenarios.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/format/App.hpp>
 #include <affresco/format/Rules.hpp>
@@ -32,6 +34,42 @@ struct Problem {
 	std::string message; ///< What.
 };
 
+/// @brief Builds a loaded screen as a host shows it, in a headless window: loading alone doesn't apply the nodes'
+/// properties, so what only building rejects (a property a node's type doesn't have, a layout property on the root) is
+/// a problem too, and so are the errors building logs (an expression that fails), but for a service provider a host
+/// registers itself.
+/// @param screen The screen, loaded.
+/// @param problems Receives what building rejected or logged as an error.
+void built(Screen screen, std::vector<Problem>& problems) {
+	std::vector<std::string> errors;
+	setLogSink([&errors](LogLevel level, std::string_view line) {
+		// A host registers service providers of its own, which this tool hasn't: those are the host's to report
+		if(level != LogLevel::Error || line.contains("no provider '")) return;
+		if(std::ranges::find(errors, line) == errors.end()) errors.emplace_back(line);
+	});
+	try {
+		automation::buildHeadless(std::move(screen));
+	} catch(const std::exception& error) {
+		errors.insert(errors.begin(), error.what());
+	}
+	setLogSink({});
+	for(std::string& error : errors) problems.push_back({"format", "", std::move(error)});
+}
+
+/// @brief Reports a root typed as a container: the root is the window's own panel whatever its type, so a column's
+/// arrangement silently wouldn't happen.
+/// @param document The document, as loaded.
+/// @param problems Receives the finding, if there is one.
+void containerRoot(const json& document, std::vector<Problem>& problems) {
+	const auto root = document.find("root");
+	if(root == document.end() || !root->is_object() || !root->contains("type") || !(*root)["type"].is_string()) return;
+	const std::string& type = (*root)["type"].get_ref<const std::string&>();
+	if(type == "row" || type == "column" || type == "stack" || type == "grid")
+		problems.push_back({"checker", "root",
+		                    "a " + type + " root doesn't arrange its children: the root is a panel that always fills " +
+		                        "the window; put the " + type + " inside it, with \"fill\": true"});
+}
+
 /// @brief Loads a screen as the library does, keeping its log quiet: the checker's warnings on load are reported by
 /// the check itself.
 /// @param text The file.
@@ -42,9 +80,11 @@ std::optional<std::pair<json, json>> load(const std::string& text, const std::fi
                                           std::vector<Problem>& problems) {
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
-		const Screen screen = Screen::fromString(text, directory);
+		Screen screen = Screen::fromString(text, directory);
+		std::pair loaded(json::parse(screen.documentJson()), json::parse(screen.stateJson()));
 		setLogSink({});
-		return std::pair(json::parse(screen.documentJson()), json::parse(screen.stateJson()));
+		built(std::move(screen), problems);
+		return loaded;
 	} catch(const DocumentError& error) {
 		setLogSink({});
 		problems.push_back({"format", "", error.what()});
@@ -83,6 +123,7 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	for(std::string& finding :
 	    rules.findings(checked, loaded ? loaded->second : document.value("state", json::object())))
 		problems.push_back({"checker", "", std::move(finding)});
+	containerRoot(checked, problems);
 	return problems;
 }
 
@@ -116,14 +157,16 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	}
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
-		const Screen screen = Screen::fromApp(manifest, {}, Screen::History::InMemory);
+		Screen screen = Screen::fromApp(manifest, {}, Screen::History::InMemory);
 		setLogSink({});
 		const json document = json::parse(screen.documentJson());
 		for(std::string& finding : format::Rules().findings(document, json::parse(screen.stateJson())))
 			problems.push_back({"checker", app.entry, std::move(finding)});
+		containerRoot(document, problems);
 		for(const std::string& key : format::undeclaredCapabilities(app, document))
 			problems.push_back({"capabilities", app.entry,
 			                    "the screen uses " + key + ", which app.json doesn't declare: it is never granted"});
+		built(std::move(screen), problems);
 	} catch(const DocumentError& error) {
 		setLogSink({});
 		problems.push_back({"format", "", error.what()});
@@ -145,7 +188,7 @@ std::vector<std::string> truthNotes(const std::filesystem::path& file, const std
 		                          : Screen::fromApp(manifest, {}, Screen::History::InMemory);
 		const json document = json::parse(screen.documentJson());
 		if(lisp::hasProgram(document))
-			for(const lisp::UndefinedName& test : lisp::builtProgram(document["program"])->truth)
+			for(const lisp::UndefinedName& test : lisp::builtProgram(lisp::effectiveProgram(document))->truth) // features' too
 				notes.push_back(
 				    test.name == "+"
 				        ? std::format("{}: in {}, line {}: + is given a text: an expression joins texts with it, a "

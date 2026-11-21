@@ -8,6 +8,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 namespace affresco::format {
 
@@ -40,6 +41,9 @@ public:
 	[[nodiscard]] json programAuthors() const override { return inner_.programAuthors(); }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] json& state() override { return inner_.state(); }
+	/// @brief The features the composition merged: those whose program runs (lisp::effectiveProgram()).
+	/// @return Their names.
+	[[nodiscard]] const std::vector<std::string>& mergedFeatures() const noexcept { return merged_; }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] const json& state() const override { return inner_.state(); }
 	/// @copydoc VersionControl::head
@@ -80,6 +84,16 @@ public:
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override {
 		return inner_.revertRevision(revision, author);
 	}
+	/// @copydoc VersionControl::undoPlan
+	[[nodiscard]] UndoPlan undoPlan(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override {
+		return inner_.undoPlan(revision, author, options);
+	}
+	/// @copydoc VersionControl::undoRevision
+	[[nodiscard]] json undoRevision(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override {
+		return inner_.undoRevision(revision, author, options);
+	}
 	/// @copydoc VersionControl::diff
 	[[nodiscard]] json diff(const json& from, const json& to) const override { return inner_.diff(from, to); }
 	/// @copydoc VersionControl::blame
@@ -94,6 +108,11 @@ public:
 	}
 	/// @copydoc VersionControl::reject
 	bool reject(int proposal, std::string_view reason) override { return inner_.reject(proposal, reason); }
+	/// @copydoc VersionControl::resolveLeftOut
+	std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                          std::string_view reviewer) override {
+		return inner_.resolveLeftOut(proposal, path, theirs, reviewer);
+	}
 	/// @copydoc VersionControl::preview
 	std::optional<std::string> preview(int proposal) override { return inner_.preview(proposal); }
 	/// @copydoc VersionControl::endPreview
@@ -124,18 +143,25 @@ public:
 private:
 	/// @brief Recomposes the screen and brings the live state in line with the features, then tells the observer.
 	void documentChanged() override;
+	/// @brief As documentChanged(), passing on what changed: as it is when nothing is composed, or only the state
+	/// changed (the composed screen is then kept, the same object); everything when composing, since a place of the
+	/// document as written isn't one of the composed screen. The screen of before lives until the observer returns.
+	/// @param change What the inner version control says changed.
+	void documentChangedWith(const DocumentChange& change) override;
 	/// @brief Tells the observer.
 	void proposalsChanged() override;
 	/// @brief Recomposes the screen from the inner document.
 	void recompose();
 	/// @brief Gives the live state each enabled feature's state it lacks, and drops that of features gone.
-	void syncState();
+	/// @return The places of the state it changed.
+	std::vector<std::string> syncState();
 
 	VersionControl& inner_;               ///< The version control wrapped.
 	VersionObserver* observer_ = nullptr; ///< Who is told about changes.
 	json composed_;                       ///< The composed screen, if composing is needed.
 	bool composing_ = false;              ///< Whether document() is composed_.
 	std::set<std::string> featureStates_; ///< The state keys features own now.
+	std::vector<std::string> merged_;     ///< See mergedFeatures().
 	std::vector<Connection> forwarded_;   ///< The inner signals forwarded to this one's.
 };
 
