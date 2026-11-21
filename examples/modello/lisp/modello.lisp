@@ -185,6 +185,8 @@
     (when (and (not (selected? n)) (contains state.view.selection (:parent n)))
       (reparent (:id n) nil)))
   (set "state.scene.nodes" (remove selected? state.scene.nodes))
+  (let [used (map :mesh state.scene.nodes)] ; an editable mesh no object uses any more goes too
+    (set "state.scene.meshes" (filter #(contains used (:id %)) (or state.scene.meshes []))))
   (set "state.view.selection" [])
   (set "state.active" nil)
   (set "state.last" (t "command.deleteSelected")))

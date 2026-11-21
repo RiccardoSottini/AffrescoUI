@@ -154,6 +154,7 @@
 					{ "run": "reparent", "with": { "args": { "id": "{{n.id}}", "parent": null } } }
 				] },
 				{ "set": "state.scene.nodes", "to": "{{filter(state.scene.nodes, !contains(state.view.selection, it.id))}}" },
+				{ "set": "state.scene.meshes", "to": "{{filter(state.scene.meshes ?? [], contains(map(state.scene.nodes, it.mesh), it.id))}}" },
 				{ "set": "state.view.selection", "to": [] },
 				{ "set": "state.active", "to": null },
 				{ "set": "state.last", "to": "Delete" }

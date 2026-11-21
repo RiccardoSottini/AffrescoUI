@@ -1162,7 +1162,11 @@
 				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } },
 				{ "key": "mod+z" },
 				{ "key": "tab" },
-				{ "expect": { "state": "mode", "is": "object" } }
+				{ "expect": { "state": "mode", "is": "object" } },
+				{ "action": "deleteSelected" },
+				{ "expect": { "state": "scene.meshes", "is": [] } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.meshes[0].id", "is": "mesh-cube" } }
 			]
 		},
 		{
