@@ -1,5 +1,7 @@
 ;;; views.lisp --- the Search view in the side bar, and the results shown as text in an editor
 
+(ns forge.features.search.views)
+
 ;;; The Search view
 
 (defcomponent forgeSearchEditor
@@ -25,8 +27,8 @@
                  :regex state.search.regex
                  :wholeWord state.search.wholeWord
                  :caseSensitive state.search.caseSensitive})
-     :keys {:enter openSearchEditorLine}
-     :onDoubleClick openSearchEditorLine))
+     :keys {:enter open-search-editor-line}
+     :onDoubleClick open-search-editor-line))
 
 (defcomponent forgeSearchPage
   "The Search view: the query and its options, the replacement, the file filters, the results."
@@ -122,7 +124,7 @@
      :borderColor ~(if (get state.search bind) "@color.accent" "@color.input")
      :color ~(if (get state.search bind) "@color.selection" "@color.input")
      :hover {:color @color.hover}
-     :onClick ~(handler toggleSearchOption bind)))
+     :onClick ~(handler toggle-search-option bind)))
 
 (defview search-summary "What the search found, and the button that opens the results in an editor." []
   `(node :use forgeInset :height 22
@@ -132,6 +134,34 @@
        :textColor @color.muted
        :grow 1
        :height 22)
+     (label#search-collapse-all :when ~(some? state.search.result)
+       :role button
+       :label ~(t "command.searchCollapseAll")
+       :icon list-collapse
+       :font icons
+       :width 22
+       :height 22
+       :align center
+       :cursor hand
+       :radius 3
+       :tooltip ~(t "command.searchCollapseAll")
+       :textColor @color.text
+       :hover {:color @color.hover}
+       :onClick searchCollapseAll)
+     (label#search-clear :when ~(some? state.search.result)
+       :role button
+       :label ~(t "command.searchClear")
+       :icon list-x
+       :font icons
+       :width 22
+       :height 22
+       :align center
+       :cursor hand
+       :radius 3
+       :tooltip ~(t "command.searchClear")
+       :textColor @color.text
+       :hover {:color @color.hover}
+       :onClick searchClear)
      (label#search-open-editor :when ~(some? state.search.result)
        :role button
        :label ~(t "search-open-editor.label")
@@ -160,7 +190,7 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onExpand searchExpand
+     :onExpand search-expand
      :onOpen openSearchHit
      :keys {:delete searchDismiss :backspace searchDismiss}
-     :onContextMenu searchMenu))
+     :onContextMenu search-menu))

@@ -372,6 +372,25 @@ void CanvasView::paintGuides(Painter& painter) const {
 		screen.bottom = std::max(std::round(screen.bottom), screen.top + 1.0f);
 		painter.fillRect(screen, smart);
 	}
+	// Distance indicators: each equal gap as a line across it, with a tick at both ends
+	constexpr float tick = 4.0f;
+	for(const auto& gap : internals_->gaps) {
+		if(!gap) continue;
+		const Rect world = gap->vertical ? Rect{gap->position, gap->from, gap->position, gap->to}
+		                                 : Rect{gap->from, gap->position, gap->to, gap->position};
+		const Rect screen = onScreen(world);
+		const float left = std::round(screen.left), top = std::round(screen.top);
+		const float right = std::max(std::round(screen.right), left + 1.0f);
+		const float bottom = std::max(std::round(screen.bottom), top + 1.0f);
+		painter.fillRect({left, top, right, bottom}, smart);
+		if(gap->vertical) { // a column's gap: ticks across at its top and bottom
+			painter.fillRect({left - tick, top, left + tick + 1.0f, top + 1.0f}, smart);
+			painter.fillRect({left - tick, bottom - 1.0f, left + tick + 1.0f, bottom}, smart);
+		} else { // a row's gap: ticks up and down at its ends
+			painter.fillRect({left, top - tick, left + 1.0f, top + tick + 1.0f}, smart);
+			painter.fillRect({right - 1.0f, top - tick, right, top + tick + 1.0f}, smart);
+		}
+	}
 }
 
 } // namespace affresco

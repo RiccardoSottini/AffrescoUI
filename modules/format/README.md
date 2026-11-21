@@ -18,7 +18,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`); for pointing at a node, `picks` (the records the person made with `pick` and hasn't sent), `source` (where a node is written: a program's definition, or a JSON node) and `setFileOf` (the file holding a JSON entry, a `FileOf`); for an editor connected to the app, `console` (a `ProgramConsole`, below) |
 | `Usage.hpp` | `Usage` (`Runtime::usage`): usage summaries, off by default: `setEnabled` with the person's `giveConsent`, `ran`, `visited`, `summary`, `clear`; only ids, counts and times, bounded |
 | `Locale.hpp` | `systemLocale()`: the locale the computer's user chose, for `Runtime::setLocale` |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
@@ -53,7 +53,7 @@ Each subsystem's header says its role, its invariants and its callers:
 |---|---|---|
 | `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`, `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
 | `Programs` | a document's live Lisp program (`programs/`; the loop in `ProgramEvaluate.cpp`, hooks and advice in `ProgramExtensions.cpp`): one interpreter per version of its `program` section; its primitives, each a step or a read; the checks by author. An app with no program has only an empty pointer of it, a check on each step run and each timer | `programs/Programs.cpp`, `programs/ProgramSteps.cpp`, RFC 0005 |
-| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `steps/`: `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp`; `AuthSteps.cpp` |
+| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `steps/`: `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `RunSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp`; `AuthSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
 The type registry belongs to each runtime, since applications add to it; the built-in steps and sections never
@@ -108,6 +108,18 @@ theme, and a name can't be both a colour and a token.
 - **A revision can't widen a capability.** `checkChange` refuses a revision that changes `permissions`, `channels` or
   `persist`, or adds, changes or moves a control step (`call`, `send`, `connect`, `patch`, `accept`, `reject`,
   `preview`, `endPreview`, `restore`, `revert`, `undo`), or a way to run one.
+- **An editor evaluates as the person, never more** (`Runtime::console()`, `src/programs/ProgramConsole.*`). The
+  console is the host's: the editor server calls it for a connection the person paired, and nothing a document, a
+  step, a peer or a primitive runs reaches it. `evaluate` lands definitions through `Programs::evaluateConfirmed()`
+  (or `evaluateFile()` for a whole file), as the person's own input in one revision ("Evaluate name (origin)"), so
+  deny rules, protected sections and "a text keeps its first author" hold as for anything they type. It refuses
+  what the step `evaluate` refuses (no program, a proposal previewed, an agent's reply being decided), a text over
+  4 MiB, and a definition named like a control or a review step (only the app's file defines one). A new definition
+  goes in the file that holds its name, else the editor's file, else its namespace's (`<ns>.lisp`), each if the
+  program has it, else `evaluated.lisp`. A whole file lands only the definitions whose text changed; one the file no
+  longer has stays in the program (removing is a revision of its own). Other forms run for their value, with no
+  revision. An error's place is given in the editor's buffer. `names`, `describe` and `files` read and change
+  nothing; a definition's `line` is given only while the file on disk still holds its text.
 - **A revision can't bring new findings.** What it refers to must exist (`introduced(before, after)` is empty);
   findings that were there before don't block it.
 - **Documents stay declarative:** no scripts. Expressions are pure: they read the state and never change it. Native
@@ -116,15 +128,55 @@ theme, and a name can't be both a colour and a token.
   typing, scroll and drags survive. If a version can't be built, the runtime refuses it and version control rolls
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
-- **Cost follows the change** (4.1). Each record keeps what its values, its list of children and its subtree read
-  (`ReadSet`, `src/updates/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
-  repeat's reading of a list's shape only). A state step records the places it wrote (`StateChanges`); the update
-  after it visits only the records whose subtree reads one, applies again the values that do and builds again the
-  lists of children that do. A repeat over a place of the state gives each item that place (`Scope::origin`), so its
-  bindings read `/items/5/title`, not the whole list. A long list (64 children or more) looks the changed places up
-  by item (`ItemIndex`) instead of visiting every child. A revision, a resize, a new theme or screen, and a change no
-  place describes update everything. A subtree's reads may say more than it reads, never less: an update that
-  visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
+- **Cost follows the change** (4.1, `src/updates/`). An update costs what it touches: the readers of the places that
+  changed, the rows a list gained or lost, and the panels the layout moves.
+  - *Readers and places.* Each record's values, its list of children and the items its variables copy are readers
+    (`Reader`, `src/updates/Tracker.hpp`), each with what it read (`ReadSet`, `src/updates/Reads.hpp`): JSON Pointers
+    into the state, `~*` for any key once a set holds more than 32 places (`maxReadPaths`), and `~#` for a repeat that
+    reads only a list's shape. What isn't the state has a place of its own, which no JSON Pointer can name: the host's
+    variables `/~v`, the globals `/~g` (the theme, the window, `history`, `proposals`...), `computed.<name>` at
+    `/~c/<name>`, the variables of a scope at `/~s/<layer>/<name>`, records at `/~d/<name>`, model rows at
+    `/~m/<name>/<row>`. Reads may say more than a value reads, never less.
+  - *The index.* `PlaceIndex` (`src/updates/PlaceIndex.hpp`, a trie of keys) holds the readers by the place they read.
+    A step records the places it wrote (`StateChanges`); the update looks them up without walking the panels and runs
+    each reader they meet once, in the order of the panels (`Tracker::update()`); places a reader marks while it runs
+    join the same update. A write of the value already there marks nothing and runs no update (`StateSteps.cpp`).
+  - *Lists by key.* A repeat over a place of the state gives each item that place (`Scope::origin`), so a row's
+    bindings read `/items/5/title`, not the list; the index keeps a row's reads relative to its row (`~r`), so an
+    insert or a removal numbers the later rows again in place (`PlaceIndex::shift()`). A `push`, an insert or a
+    removal records a `ListChange`, and a repeat with a `key` builds or destroys only those rows
+    (`ChildList::partial()`, `Panel::insertChild`, `takeChild`); a reorder keeps every panel (`reorderChildren`). A
+    list written whole is matched by key, row by row.
+  - *Computed values, and where they stop.* `computed.<name>` (`src/runtime/ComputedValues.hpp`), a query
+    (`src/data/DataLayer.hpp`) and a `watch` (`src/updates/Watches.hpp`) are readers too: a change of what they read
+    makes them stale, they are evaluated again when next read, and their own place is marked only when the new value
+    differs. A change that leaves a computed value as it was stops there.
+  - *Records.* A write to a collection marks `/~d/<collection>`, and a query's place only when its results differ.
+  - *Component parameters, `with` and `let`.* Each scope's variables are a layer (`ScopeLayers`,
+    `src/updates/ScopeLayers.hpp`), a reader that evaluates them again in place and marks only those whose value
+    changed, so a parameter's change reaches only what reads it.
+  - *Around the panels.* The screen, the window, the theme, the locale, the title, the menu bar and `onUpdated` run
+    only when what they read changed (`UpdateFrame`, `src/updates/UpdateFrame.hpp`).
+  - *Revisions.* `Engine::documentChangedWith()` (`src/runtime/EngineVersions.cpp`) keeps compiled what a revision
+    didn't change (`CompiledCache::carryOver()`), marks the state places it changed, and runs only the lists and
+    places of the nodes it touched. A revision of a section any binding may read by name (`computed`, `actions`,
+    `styles`, `components`, `tokens`, `strings`, `commands`...) takes a full pass, named in `revisionPasses`. A
+    program's changed definition is built again alone (`modules/lisp/README.md`).
+  - *The fallback.* Some reads no change announces, so their readers run on every update (`ReadSet::always`, with
+    its `AlwaysReason`): a panel's geometry (`nodes.<id>`), the clock (`now()`, `today()`), a variable the host builds
+    without announcing it, a behaviour that reads more than its values, and a reader past the index's 4,000,000
+    entries (`Tracker::maxEntries`). An update does everything when there is no place to look up: a revision of the
+    sections above, a resize, a new appearance or screen, the first update, more than 64 places changed at once
+    (`maxChangedPaths`), or a reconcile requested. `UpdateStatistics::fullReason` says which.
+  - *Verify mode.* `Runtime::setVerifyUpdates(true)`, or `AFFRESCOUI_VERIFY_UPDATES=1` when the runtime is made,
+    runs a full pass after every partial update, with handlers suspended, and reports the first node and property
+    that differ (`src/updates/Verify.hpp`). The tests that hold all this: `tests/unit/updates.cpp`,
+    `update_index.cpp`, `update_lists.cpp`, `update_derived.cpp`, `update_scopes.cpp`, `update_frame.cpp`,
+    `update_verify.cpp` and the property test `update_property.cpp`, with the fuzz target `affrescoui_fuzz_updates`.
+  - *The counters.* `Runtime::lastUpdate()` gives the last update's `UpdateStatistics`: its time, the panels applied,
+    created and visited, the nodes and computed values evaluated, the lists and rows expanded, the variables built,
+    the readers that read always (`alwaysReaders`), and whether it was full and why. `Runtime::lastChanges()` gives
+    the places it changed, for the host only.
 - **Data models** (4.3). `setModel(name, model)` registers rows the application owns (`DataModel`), which
   `"repeat": {"in": "models.<name>"}` goes over (`src/updates/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
   places values read (`~m` is no JSON Pointer key, so it is never one of the state), and an item's bindings read its
@@ -139,8 +191,8 @@ theme, and a name can't be both a colour and a token.
   store set with `Rules::setData`); `reviewLines` asks review for a migration, a destructive model change and a new
   write step; `impact` gives the layers a change touches (`DocumentRules::impact`, carried by proposals and diffs).
   `DataLayer` makes the store follow each version (`Engine::documentChanged`, first: records that don't fit refuse
-  the version); `data.<name>` reads in place, at the place `/~d` plus what the queries read, so only its readers are
-  evaluated again after a write. The write steps (`DataSteps.cpp`) are no control steps; an author other than "app"
+  the version); `data.<name>` reads in place, at the place `/~d/<name>`: a write marks its collection's place, and a
+  query's place only when its results differ, so only their readers are evaluated again after a write. The write steps (`DataSteps.cpp`) are no control steps; an author other than "app"
   (`Runtime::setDataAuthor`) writes only where `permissions.data` lets it (`/data/<collection>`). The checker reads
   `data` as lists of records with their model's fields (`CheckerData.cpp`). `computed.<name>` is read in place
   (`Context::computedValues`): a large computed list is never copied by a value that reads one item of it.
@@ -187,7 +239,7 @@ theme, and a name can't be both a colour and a token.
   It looks the same and grants nothing, so `checkChange` has nothing to check; the renderer keeps its textures within
   a budget and draws a subtree directly beyond it.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
-  `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
+  `pad` 10,000; nested actions 48; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
   10,000 positions past a list's end (`maxListGap`); a text an expression builds (a template, `join`, `+`, `t`, a
   message) 64 MiB (`textLimit`); 250,000 panels per screen (`maxPanels`); a timer's delay about 24.8 days, as in web
@@ -215,7 +267,8 @@ deferred work, timers and animations run through the window (`Window::defer`, `s
 destroyed it cancels its timers, its deferred tasks check that it is still alive, and it disconnects every signal it
 connected (the window's and its panels'), so a window can outlive its screen. Image files are decoded on the
 `ImageCache`'s worker thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an
-`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits
+`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `createWindow(app)` waits
+for the images the first screen asks for (at most 400 ms), so its first frame shows them; `waitForImages` waits
 for the worker and shows what it decoded. `onAsyncCall` functions run on a pool of 2 to 4 threads
 (`src/calls/AsyncCalls.*`), which share only a call's cancellation and its latest report with the main thread; every
 result comes back through the `Executor`, and destroying the runtime joins them.
@@ -296,13 +349,27 @@ src/
   updates/                 building panels, and updating only what reads a change
     Reconciler.*           records, building and reconciling panels; updates of only what reads a change
     Reads.*                what values read and what changed in the state, and when they meet
-    ItemIndex.*            the children of a long list by the item of the state they read
+    PlaceIndex.*           the readers of the state by the place they read
     ListItems.*            a list's and a tree's items, read within limits, without recursion
     Models.*               the application's data models, their rows' places and their outline for agents
   events/                  Events.*: input (EventsFocus.cpp, EventsKeys.cpp, EventsPointer.cpp); Shortcuts.* names
                            keys, chords and shortcuts
   steps/                   Steps.*: handlers and actions; StepRegistry.* and the *Steps.cpp groups (AuthSteps.cpp,
                            the signIn and signOut steps, is in connections/)
+  pick/                    pointing at a node (SCREEN_FORMAT.md, "Pointing at a node")
+    Picks.*                the records the person made, kept until removed or sent; describePick() makes one from
+                           the panels and the document as written, never from a value
+    NodeSource.cpp         where a node is written: sourceOf() (Runtime::source()), a record's `source`
+    PickSteps.cpp          the pick and unpick steps
+  commands/                main's commands as tools for peers (core/Commands.hpp)
+    CommandCatalog.*       the actions that describe themselves: list, find, reach, checkArguments
+    CommandArguments.*     a run's typed arguments, checked, defaults filled in
+    CommandReach.*         what a command can reach: control steps, service uses, record writes
+    CommandRuns.*          running a command as its runner (programs/StepAuthority.hpp), rolling a refused run back,
+                           and undoing a run (RunUndo.*, what the newest runs changed). What a run changed is the
+                           state before and after it returns, so what it schedules for later isn't in it; the copy
+                           of the state it diffs costs time in proportion to the state
+    RuntimeCommands.cpp    Runtime's commands: setRunControl, commandList, runCommandAs, undoCommandRun...
   calls/                   calls outside the document
     AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
     ServiceCalls.*         invoke, subscribe and respond: calls to the services, their results and events in the state

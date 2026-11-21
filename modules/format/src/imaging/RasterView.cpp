@@ -133,13 +133,82 @@ void RasterView::scrollEvent(const ScrollEvent& event) {
 	play({PointerKind::scroll, event.position, MouseButton::Left, event.offset, mods_});
 }
 
+bool RasterView::typeKey(const KeyEvent& event) {
+	editing::ImageDocument* shown = image();
+	if(shown == nullptr || !editing::typingInto(*shown) || event.action == Action::Release || event.mods.super() ||
+	   event.mods.control())
+		return false;
+	const bool erase = event.key == Key::Backspace, newline = event.key == Key::Enter || event.key == Key::KeypadEnter;
+	if(event.key == Key::Escape) shown->typing = false; // done typing: the tool's clicks add or pick type again
+	if(erase || newline) type(*shown, erase ? "" : "\n");
+	if(!erase && !newline && event.key != Key::Escape) return false;
+	invalidatePaint();
+	return true;
+}
+
 void RasterView::keyEvent(const KeyEvent& event) {
+	if(typeKey(event)) return;
 	if(event.key == Key::Space)
 		if(editing::ImageDocument* shown = image()) {
 			shown->spaceHeld = event.action != Action::Release;
 			invalidatePaint(); // the brush's outline hides while it pans
 		}
 	SurfaceView::keyEvent(event);
+}
+
+namespace {
+
+/// @brief A character as UTF-8.
+/// @param codepoint The character (a surrogate or one past U+10FFFF becomes U+FFFD).
+[[nodiscard]] std::string utf8Of(char32_t codepoint) {
+	if((codepoint >= 0xD800 && codepoint <= 0xDFFF) || codepoint > 0x10FFFF) codepoint = 0xFFFD;
+	std::string out;
+	if(codepoint < 0x80) {
+		out += static_cast<char>(codepoint);
+	} else if(codepoint < 0x800) {
+		out += static_cast<char>(0xC0 | (codepoint >> 6));
+		out += static_cast<char>(0x80 | (codepoint & 0x3F));
+	} else if(codepoint < 0x10000) {
+		out += static_cast<char>(0xE0 | (codepoint >> 12));
+		out += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+		out += static_cast<char>(0x80 | (codepoint & 0x3F));
+	} else {
+		out += static_cast<char>(0xF0 | (codepoint >> 18));
+		out += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+		out += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+		out += static_cast<char>(0x80 | (codepoint & 0x3F));
+	}
+	return out;
+}
+
+} // namespace
+
+void RasterView::charEvent(const CharEvent& event) {
+	if(editing::ImageDocument* shown = image(); shown != nullptr && editing::typingInto(*shown) &&
+	   event.codepoint >= 0x20 && event.codepoint != 0x7F)
+		type(*shown, utf8Of(event.codepoint));
+	SurfaceView::charEvent(event);
+}
+
+void RasterView::type(editing::ImageDocument& image, std::string_view added) {
+	const std::shared_ptr<editing::ImageDocuments> images = images_.lock();
+	try {
+		editing::typeText(image, added);
+		if(images) images->changed(image, true);
+	} catch(const std::exception& error) {
+		image.message = error.what();
+		log(LogLevel::Warning, "AffrescoUI screen: raster \"" + name_ + "\": " + error.what());
+	}
+}
+
+bool RasterView::typesText() const {
+	const editing::ImageDocument* shown = image();
+	return shown != nullptr && editing::typingInto(*shown);
+}
+
+bool typesIntoImage(const Panel* panel) {
+	const auto* view = dynamic_cast<const RasterView*>(panel);
+	return view != nullptr && view->typesText();
 }
 
 void RasterView::focusEvent(bool focused) {

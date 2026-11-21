@@ -5,7 +5,7 @@
 	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal node, its shell on the terminal service of the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (read through files.read, parsed with parseJsonc) in a new terminal, through runInTerminal.",
 
 	"state": {
-		"terminals": { "list": [], "active": "", "next": 1 },
+		"terminals": { "list": [], "active": "", "next": 1, "split": "" },
 		"tasks": { "items": [], "skipped": 0, "error": "", "last": "" }
 	},
 
@@ -24,9 +24,28 @@
 				{ "set": "state.panelTab", "to": "terminal" },
 				{ "after": 0, "do": [{ "focus": "#terminal" }] }
 			] },
+		"terminalSplit": { "title": "Split Terminal", "category": "Terminal", "icon": "columns-2",
+			"description": "Split the terminal: a new shell shows beside the one shown, and gets the focus.",
+			"enablement": "{{length(state.terminals.list) < 8}}",
+			"do": [
+				{ "if": "{{empty(state.terminals.active)}}",
+				  "then": [{ "run": "terminalNew" }],
+				  "else": [
+					{ "set": "state.terminals.split", "to": "{{'t' + state.terminals.next}}" },
+					{ "push": "state.terminals.list", "value": "{{ {id: 't' + state.terminals.next, label: 'Terminal ' + state.terminals.next, closable: true} }}" },
+					{ "increment": "state.terminals.next", "by": 1 },
+					{ "set": "state.layout.panel", "to": true },
+					{ "set": "state.panelTab", "to": "terminal" },
+					{ "after": 0, "do": [{ "focus": "#terminal-split" }] }
+				  ] }
+			] },
+		"terminalUnsplit": { "title": "Unsplit Terminal", "category": "Terminal", "icon": "square",
+			"enablement": "{{!empty(state.terminals.split)}}",
+			"do": [{ "set": "state.terminals.split", "to": "" }] },
 		"terminalClose": [
 			{ "closeTerminal": "{{id}}" },
 			{ "set": "state.terminals.list", "to": "{{filter(state.terminals.list, it.id != id)}}" },
+			{ "if": "{{state.terminals.split == id}}", "then": [{ "set": "state.terminals.split", "to": "" }] },
 			{ "if": "{{state.terminals.active == id}}",
 			  "then": [{ "set": "state.terminals.active", "to": "{{length(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
 			{ "if": "{{length(state.terminals.list) == 0 && state.panelTab == 'terminal'}}",
@@ -107,6 +126,7 @@
 
 	"keys": {
 		"mod+alt+t": "terminalNew",
+		"mod+shift+5": "terminalSplit",
 		"mod+shift+b": "runBuildTask"
 	},
 
@@ -124,12 +144,24 @@
 						  "onClose": { "run": "terminalClose", "with": { "id": "{{event.id}}" } } },
 						{ "type": "label", "id": "terminal-new", "icon": "plus", "textColor": "@color.muted", "padding": 8,
 						  "fitText": true, "cursor": "hand", "tooltip": "New Terminal", "hover": { "color": "@color.hover" },
-						  "onClick": { "run": "terminalNew" } }
+						  "onClick": { "run": "terminalNew" } },
+						{ "type": "label", "id": "terminal-split-button", "icon": "columns-2", "textColor": "@color.muted", "padding": 8,
+						  "fitText": true, "cursor": "hand", "tooltip": "Split Terminal (Cmd+Shift+5)", "hover": { "color": "@color.hover" },
+						  "onClick": { "run": "terminalSplit" } }
 					  ] },
-					{ "type": "terminal",
-					  "id": "terminal", "repeat": { "for": "t", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.active)}}", "key": "{{t}}" }, "session": "{{t}}", "font": "code", "width": "100%", "grow": 1,
-					  "color": "@color.editor", "textColor": "@color.text", "cursorColor": "@color.accent", "scrollback": 1000,
-					  "focusable": true, "keys": { "tab": "terminalKeepTab", "shift+tab": "terminalKeepTab" } }
+					{ "type": "row", "id": "terminal-body", "width": "100%", "grow": 1, "children": [
+						{ "type": "terminal",
+						  "id": "terminal", "repeat": { "for": "t", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.active)}}", "key": "{{t}}" }, "session": "{{t}}", "font": "code", "grow": 1, "height": "100%",
+						  "color": "@color.editor", "textColor": "@color.text", "cursorColor": "@color.accent", "scrollback": 1000,
+						  "focusable": true, "keys": { "tab": "terminalKeepTab", "shift+tab": "terminalKeepTab" } },
+						{ "type": "row", "id": "terminal-split-pane", "repeat": { "for": "s", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.split && it != state.terminals.active)}}", "key": "{{s}}" },
+						  "grow": 1, "height": "100%", "children": [
+							{ "id": "terminal-split-line", "width": 1, "height": "100%", "color": "@color.border" },
+							{ "type": "terminal", "id": "terminal-split", "session": "{{s}}", "font": "code", "grow": 1, "height": "100%",
+							  "color": "@color.editor", "textColor": "@color.text", "cursorColor": "@color.accent", "scrollback": 1000,
+							  "focusable": true, "keys": { "tab": "terminalKeepTab", "shift+tab": "terminalKeepTab" } }
+						  ] }
+					] }
 				]
 			}
 		}

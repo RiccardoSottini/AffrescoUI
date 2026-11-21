@@ -36,6 +36,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsForms.cpp
 	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
+	src/functions/ExpressionFunctionsMesh.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp
@@ -79,13 +80,17 @@ target_sources(affrescoui_format PRIVATE
 	src/rules/Migrate.cpp
 	src/rules/ServiceRules.cpp
 	src/rules/AssetRules.cpp
-	src/rules/ProgramRules.cpp)
+	src/rules/ProgramRules.cpp
+	src/rules/BrokenLines.cpp)
 target_include_directories(affrescoui_format PRIVATE src/rules)
 # src/runtime/: the engine, its document context, settings, scheduler and usage
 target_sources(affrescoui_format PRIVATE
 	src/runtime/Runtime.cpp
 	src/runtime/Engine.cpp
 	src/runtime/DocumentContext.cpp
+	src/runtime/HostVariables.cpp
+	src/runtime/ComputedValues.cpp
+	src/runtime/EngineVersions.cpp
 	src/runtime/Settings.cpp
 	src/runtime/Scheduler.cpp
 	src/runtime/Usage.cpp)
@@ -93,14 +98,22 @@ target_include_directories(affrescoui_format PRIVATE src/runtime)
 # src/nodes/: compiled nodes: the builder, bindings, node keys and records
 target_sources(affrescoui_format PRIVATE
 	src/nodes/Builder.cpp
+	src/nodes/CompiledCache.cpp
 	src/nodes/CompiledNode.cpp
 	src/nodes/Binding.cpp)
 target_include_directories(affrescoui_format PRIVATE src/nodes)
-# src/updates/: reads, models, list items, the item index and the reconciler
+# src/updates/: reads, models, list items, the reconciler and its children lists, the update's frame,
+# watches, the tracker of readers, the place index, scope layers and the check of partial updates (Verify)
 target_sources(affrescoui_format PRIVATE
 	src/updates/Reconciler.cpp
+	src/updates/ChildList.cpp
+	src/updates/UpdateFrame.cpp
+	src/updates/Watches.cpp
+	src/updates/Tracker.cpp
+	src/updates/PlaceIndex.cpp
+	src/updates/ScopeLayers.cpp
+	src/updates/Verify.cpp
 	src/updates/Reads.cpp
-	src/updates/ItemIndex.cpp
 	src/updates/Models.cpp
 	src/updates/ListItems.cpp)
 target_include_directories(affrescoui_format PRIVATE src/updates)
@@ -121,6 +134,7 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/FlowSteps.cpp
 	src/steps/OutsideSteps.cpp
 	src/steps/ReviewSteps.cpp
+	src/steps/RunSteps.cpp
 	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
 	src/steps/KeySteps.cpp
@@ -139,6 +153,8 @@ target_sources(affrescoui_format PRIVATE
 	src/programs/ProgramSteps.cpp
 	src/programs/ProgramEvaluate.cpp
 	src/programs/ProgramExtensions.cpp
+	src/programs/ProgramConsole.cpp
+	src/programs/ProgramFeatures.cpp
 	src/programs/TypedText.cpp)
 target_include_directories(affrescoui_format PRIVATE src/programs)
 # src/calls/: asynchronous and service calls
@@ -149,6 +165,18 @@ target_include_directories(affrescoui_format PRIVATE src/calls)
 # src/assistant/: the requests the screen's own person sends its agents ("ask"), and their replies
 target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp src/assistant/AttachSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/assistant)
+# src/pick/: the person pointing at an element ("pick"), the engine's records of it, and where a node is written
+target_sources(affrescoui_format PRIVATE src/pick/Picks.cpp src/pick/PickSteps.cpp src/pick/NodeSource.cpp)
+target_include_directories(affrescoui_format PRIVATE src/pick)
+# src/commands/: the app's commands as tools for peers
+target_sources(affrescoui_format PRIVATE
+	src/commands/CommandCatalog.cpp
+	src/commands/CommandArguments.cpp
+	src/commands/CommandReach.cpp
+	src/commands/CommandRuns.cpp
+	src/commands/RunUndo.cpp
+	src/commands/RuntimeCommands.cpp)
+target_include_directories(affrescoui_format PRIVATE src/commands)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image
@@ -187,6 +215,7 @@ target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
 	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
 	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageTransforms.cpp
+	src/imaging/ImageVectors.cpp
 	src/imaging/ImageView.cpp src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
@@ -226,6 +255,11 @@ target_sources(affrescoui_format PRIVATE src/app/App.cpp)
 # features: features (RFC 0004): manifests, catalogues, signatures, trusted publishers
 target_sources(affrescoui_format PRIVATE src/features/FeatureManifest.cpp src/features/FeatureCatalog.cpp
 	src/features/FeatureSignatures.cpp src/features/Features.cpp)
+# features that hold Lisp, and upgrading an installed version to a later release
+target_sources(affrescoui_format PRIVATE src/features/FeaturePrograms.cpp src/features/FeatureUpgrade.cpp)
+# packages: a shared version of an app in one file (Package.hpp): its format, writing one, and installing one
+target_sources(affrescoui_format PRIVATE src/packages/Package.cpp src/packages/PackageExport.cpp
+	src/packages/PackageInstall.cpp)
 # composition: features merged into a screen and proven, contribution points, contributions (RFC 0001), versions
 target_sources(affrescoui_format PRIVATE src/composition/Composition.cpp src/composition/ComposedVersions.cpp
 	src/composition/CompositionProof.cpp src/composition/ContributionPoints.cpp src/composition/Contributions.cpp)

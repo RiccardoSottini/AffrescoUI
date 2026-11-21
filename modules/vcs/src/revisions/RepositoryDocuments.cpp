@@ -1,17 +1,22 @@
 /// @file
 /// @brief vcs::Repository's documents: rebuilding a commit's document from the nearest snapshot and the deltas after
-/// it, blame, which follows a node or a path back through the deltas to the commit that last changed it, and the
-/// revisions that restore or revert a commit.
+/// it, blame, which follows a node or a path back through the deltas to the commit that last changed it (Trail.hpp),
+/// the live state's changes a commit records for its undo, the revision that restores a commit, and who each definition
+/// of the program counts as (programAuthors()).
 
 #include "affresco/vcs/Repository.hpp"
+#include "affresco/core/FeatureOrigin.hpp"
 
 #include "revisions/Deltas.hpp"
+#include "revisions/Trail.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
 #include <algorithm>
 #include <map>
+#include <optional>
+#include <set>
 #include <array>
 #include <cctype>
 #include <ranges>
@@ -22,84 +27,6 @@ using expect::fail;
 
 namespace {
 
-/// @brief Tells whether one path is the start of another (or the same path).
-/// @param prefix The shorter path's segments.
-/// @param path The other's.
-/// @return true if every segment of @p prefix begins @p path.
-bool startsWith(const std::vector<std::string>& path, const std::vector<std::string>& prefix) {
-	return prefix.size() <= path.size() && std::equal(prefix.begin(), prefix.end(), path.begin());
-}
-
-/// @brief Reads a list position.
-/// @param segment A path segment.
-/// @return It as a number, or -1 if it isn't one.
-long long positionOf(const std::string& segment) {
-	if(segment.empty() || segment.size() > 18 ||
-	   !std::ranges::all_of(segment, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); }))
-		return -1;
-	return std::stoll(segment);
-}
-
-/// @brief Where a node or a value is, followed back through the commits on main.
-///
-/// It starts at a path in main's head and moves back one commit at a time, through each delta's operations in
-/// reverse: an operation that adds, removes or replaces it, or something inside it or around it (one of the objects
-/// or lists that hold it), changed it. Adding or removing an item before it in a list only moves it. The containers
-/// along the path keep their kind (list or object) until something replaces one, which changes what is inside it.
-class Trail {
-public:
-	/// @brief Starts at a path in main's head.
-	/// @param head main's head's document.
-	/// @param pointer The path; something is there.
-	Trail(const json& head, std::string_view pointer) : path_(detail::segmentsOf(pointer)) {
-		const json* value = &head;
-		for(const std::string& segment : path_) {
-			lists_.push_back(value->is_array());
-			value = value->is_array() ? &(*value)[static_cast<std::size_t>(positionOf(segment))] : &(*value)[segment];
-		}
-	}
-
-	/// @brief Moves back through one commit.
-	/// @param delta The commit's delta: how its document differs from its first parent's.
-	/// @return true if the commit changed what the trail follows; then the trail stops there.
-	bool changedBy(const json& delta) {
-		for(auto op = delta.rbegin(); op != delta.rend(); ++op)
-			if(changedBy(op->value("op", ""), detail::segmentsOf(op->value("path", "")))) return true;
-		return false;
-	}
-
-private:
-	/// @brief Moves back through one operation.
-	/// @param kind "add", "remove" or "replace" (the only ones detail::delta() writes).
-	/// @param at Its path.
-	/// @return true if it changed what the trail follows.
-	bool changedBy(const std::string& kind, const std::vector<std::string>& at) {
-		if(startsWith(at, path_)) return true;                     // inside it
-		if(kind != "remove" && startsWith(path_, at)) return true; // it, or something holding it, was added or replaced
-		if(kind == "replace") return false;
-		if(kind != "add" && kind != "remove") return true; // an operation deltas don't hold: assume the worst
-		moveBack(kind == "add", at);
-		return false;
-	}
-
-	/// @brief Follows an item added or removed in a list that holds it: that moves it one place.
-	/// @param added Whether the item was added (else removed).
-	/// @param at The item's path.
-	void moveBack(bool added, const std::vector<std::string>& at) {
-		if(at.empty() || at.size() > path_.size() || !lists_[at.size() - 1] ||
-		   !std::equal(at.begin(), std::prev(at.end()), path_.begin()))
-			return;
-		std::string& segment = path_[at.size() - 1];
-		const long long changed = positionOf(at.back()), position = positionOf(segment);
-		if(changed < 0 || position < 0) return;
-		if(added && position > changed) segment = std::to_string(position - 1);
-		if(!added && position >= changed) segment = std::to_string(position + 1);
-	}
-
-	std::vector<std::string> path_; ///< Where it is, in the document of the commit reached.
-	std::vector<bool> lists_;       ///< For each segment: whether what holds it is a list.
-};
-
 /// @brief Tells whether an operation of a revision's patch reaches a path of the live state.
 /// @param op The operation, as submitted.
 /// @param target The path's segments ("state", ...).
@@ -109,7 +36,7 @@ bool reaches(const json& op, const std::vector<std::string>& target) {
 		const auto at = op.find(key);
 		if(at == op.end() || !at->is_string() || !at->get_ref<const std::string&>().starts_with("/state")) return false;
 		const std::vector<std::string> segments = detail::segmentsOf(at->get_ref<const std::string&>());
-		return startsWith(segments, target) || startsWith(target, segments);
+		return detail::startsWith(segments, target) || detail::startsWith(target, segments);
 	});
 }
 
@@ -139,36 +66,103 @@ std::string partOf(const json& state, const std::string& path) {
 	return list && list->is_array() ? holder : path;
 }
 
-/// @brief The part of a document a reverted operation must find as its commit left it: its path, or the list that
-/// holds it, since adding or removing an item moves the ones after it.
-/// @param then The document as the commit left it.
-/// @param op The operation of the revert.
-/// @return The part's JSON Pointer.
-std::string revertedPart(const json& then, const json& op) {
-	const json::json_pointer path(op["path"].get<std::string>());
-	const json* container = detail::locate(then, path.parent_pointer().to_string());
-	if(!path.empty() && (path.back() == "-" || (container && container->is_array())))
-		return path.parent_pointer().to_string();
-	return path.to_string();
+/// The prefix of a feature's files among a program's (lisp::effectiveProgram(), which the history doesn't link).
+constexpr std::string_view featureFiles = "features/";
+
+/// @brief The program a document runs, as lisp::effectiveProgram() gives it: its own files, and each enabled feature's
+/// program under `features/<name>/<file>`; nothing of a record of the wrong shape.
+/// @param document The document.
+/// @return `{file: {name: text}}`; null with no `program`.
+json runningProgram(const json& document) {
+	const auto own = document.find("program");
+	if(own == document.end()) return nullptr;
+	json program = *own;
+	const auto records = document.find("features");
+	if(!program.is_object() || records == document.end() || !records->is_object()) return program;
+	for(const auto& [name, record] : records->items()) {
+		if(!record.is_object() || record.value("enabled", json()) != true || name.contains('/')) continue;
+		const auto provides = record.find("provides");
+		if(provides == record.end() || !provides->is_object() || !provides->contains("program")) continue;
+		for(const auto& [file, entries] : (*provides)["program"].items())
+			if(entries.is_object()) {
+				std::string named(featureFiles);
+				named += name;
+				named += '/';
+				named += file;
+				program[named] = entries;
+			}
+	}
+	return program;
 }
 
-/// @brief Tells whether a part of a document is as a commit left it, inside the same nodes (each node around it
-/// keeps its id).
-/// @param head The document now.
-/// @param then The document as the commit left it.
-/// @param part The part's JSON Pointer.
-/// @return true if it is.
-bool unchangedSince(const json& head, const json& then, const std::string& part) {
-	const auto same = [&](const std::string& pointer) {
-		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
-		return now && before ? *now == *before : now == before;
-	};
-	bool unchanged = same(part);
-	for(json::json_pointer prefix(part); unchanged && !prefix.empty(); prefix = prefix.parent_pointer()) {
-		const json* node = detail::locate(then, prefix.to_string());
-		if(node && node->is_object() && node->contains("id")) unchanged = same(prefix.to_string() + "/id");
+/// @brief The feature a file of a running program belongs to.
+/// @param file The file.
+/// @return Its name; empty for the document's own files.
+std::string featureOf(std::string_view file) {
+	if(!file.starts_with(featureFiles)) return {};
+	const std::string_view rest = file.substr(featureFiles.size());
+	const std::size_t slash = rest.find('/');
+	return slash == std::string_view::npos ? std::string() : std::string(rest.substr(0, slash));
+}
+
+/// @brief What a value holds under a key, if it is an object that has it.
+/// @param at The value, or nullptr.
+/// @param key The key.
+/// @return It, or nullptr.
+const json* below(const json* at, const char* key) {
+	if(!at || !at->is_object()) return nullptr;
+	const auto found = at->find(key);
+	return found == at->end() ? nullptr : &*found;
+}
+
+/// @brief The program of a feature's record in a document.
+/// @param document The document.
+/// @param feature The feature.
+/// @return `{file: {name: text}}`, or nullptr.
+const json* featureProgram(const json& document, const std::string& feature) {
+	return below(below(below(below(&document, "features"), feature.c_str()), "provides"), "program");
+}
+
+/// @brief Goes through the definitions some files hold.
+/// @tparam Each What to call: (file, name, text).
+/// @param prefix What goes before each file's name.
+/// @param files `{file: {name: text}}`.
+/// @param each What to call.
+template <class Each> void eachEntryOf(const std::string& prefix, const json& files, const Each& each) {
+	for(const auto& [file, entries] : files.items())
+		if(entries.is_object())
+			for(const auto& [name, text] : entries.items()) each(prefix + file, name, text);
+}
+
+/// @brief Tells whether a path of the "features" section may hold a feature's program, or part of it.
+/// @param path The path's segments, the first "features".
+/// @return true for the section, a record, its `provides`, its program, a file and a definition of it.
+bool reachesFeatureProgram(const std::vector<std::string>& path) {
+	return path.size() <= 6 && (path.size() < 3 || path[2] == "provides") && (path.size() < 4 || path[3] == "program");
+}
+
+/// @brief The definitions a value written at a path of the "features" section holds: what a feature's program has.
+/// @tparam Each What to call: (file, name, text), the file as runningProgram() names it.
+/// @param path The path's segments, the first "features".
+/// @param value What was written there.
+/// @param each What to call.
+template <class Each> void eachFeatureWritten(const std::vector<std::string>& path, const json& value, const Each& each) {
+	if(path.size() == 1) { // the whole section
+		if(value.is_object())
+			for(const auto& [name, record] : value.items()) eachFeatureWritten({"features", name}, record, each);
+		return;
 	}
-	return unchanged;
+	if(!reachesFeatureProgram(path)) return;
+	std::string prefix(featureFiles);
+	prefix += path[1];
+	prefix += '/';
+	if(path.size() == 6) return each(prefix + path[4], path[5], value);
+	const json* files = &value; // what the path holds, brought down to the program's files
+	if(path.size() <= 2) files = below(files, "provides");
+	if(path.size() <= 3) files = below(files, "program");
+	if(!files || !files->is_object()) return;
+	if(path.size() == 5) eachEntryOf(prefix, json{{path[4], *files}}, each);
+	else eachEntryOf(prefix, *files, each);
 }
 
 /// @brief A definition's text in a document.
@@ -179,10 +173,29 @@ bool unchangedSince(const json& head, const json& then, const std::string& part)
 const json* entryIn(const json& document, const std::string& file, const std::string& name) {
 	const auto section = document.find("program");
 	if(section == document.end() || !section->is_object()) return nullptr;
+	if(const std::string feature = featureOf(file); !feature.empty()) { // a feature's: in its record
+		const json* entries = below(featureProgram(document, feature),
+		                            file.substr(featureFiles.size() + feature.size() + 1).c_str());
+		const json* text = entries ? below(entries, name.c_str()) : nullptr;
+		return text && text->is_string() ? text : nullptr;
+	}
 	const auto entries = section->find(file);
 	if(entries == section->end() || !entries->is_object()) return nullptr;
 	const auto text = entries->find(name);
 	return text == entries->end() ? nullptr : &*text;
+}
+
+/// @brief The definitions a value written at a path of the document's own program holds.
+/// @tparam Each What to call: (file, name, text).
+/// @param path The path's segments: empty for the whole document, else the first "program".
+/// @param value What was written there.
+/// @param each What to call.
+template <class Each> void eachOwnWritten(const std::vector<std::string>& path, const json& value, const Each& each) {
+	if(path.size() == 3) return each(path[1], path[2], value);
+	const json* files = path.empty() ? below(&value, "program") : &value;
+	if(!files || !files->is_object()) return;
+	if(path.size() == 2) eachEntryOf("", json{{path[1], *files}}, each);
+	else eachEntryOf("", *files, each);
 }
 
 /// @brief Goes through the definitions an operation of a commit's delta writes, reaching them from any level above.
@@ -193,25 +206,10 @@ template <class Each> void eachWritten(const json& op, const Each& each) {
 	const auto value = op.find("value");
 	if(value == op.end()) return;
 	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
-	if(path.size() >= 3) {
-		if(path[0] == "program" && path.size() == 3) each(path[1], path[2], *value);
-		return;
-	}
-	if(!path.empty() && path[0] != "program") return;
-	const json* files = &*value;
-	if(path.empty()) { // the whole document
-		const auto section = value->find("program");
-		if(section == value->end()) return;
-		files = &*section;
-	}
-	if(!files->is_object()) return;
-	if(path.size() == 2) {
-		for(const auto& [name, text] : files->items()) each(path[1], name, text);
-		return;
-	}
-	for(const auto& [file, entries] : files->items())
-		if(entries.is_object())
-			for(const auto& [name, text] : entries.items()) each(file, name, text);
+	if(!path.empty() && path[0] == "features") return eachFeatureWritten(path, *value, each);
+	if(path.empty())
+		if(const json* features = below(&*value, "features")) eachFeatureWritten({"features"}, *features, each);
+	if(path.empty() || (path[0] == "program" && path.size() <= 3)) eachOwnWritten(path, *value, each);
 }
 
 /// @brief The entries a person's commit is credited with, whose author is whoever first wrote that text.
@@ -255,22 +253,24 @@ private:
 class EntryAuthors {
 public:
 	/// @brief Starts with no entry credited.
-	/// @param head The document; it must outlive this.
-	explicit EntryAuthors(const json& head) {
-		const auto program = head.find("program");
-		if(program == head.end() || !program->is_object()) return;
-		section_ = &*program;
+	/// @param program The program the document runs (runningProgram()); it must outlive this.
+	explicit EntryAuthors(const json& program) {
+		if(!program.is_object()) return;
+		section_ = &program;
 		for(const auto& [file, entries] : section_->items())
 			if(entries.is_object()) missing_ += entries.size();
 	}
-	/// @brief Credits what an operation's path reaches: an entry, a file or the whole program.
+	/// @brief Credits what an operation's path reaches: an entry, a file or the whole program; or a feature's
+	/// record, its program, a file or an entry of it.
 	/// @param path The path's segments.
 	/// @param author The commit's author.
 	void creditPath(const std::vector<std::string>& path, const std::string& author) {
-		if(path.empty() || path[0] != "program") return;
+		if(path.empty()) return creditAll(author);
+		if(path[0] == "features") return creditFeature(path, author);
+		if(path[0] != "program") return;
 		if(path.size() >= 3) credit(path[1], path[2], author);
 		else if(path.size() == 2) creditFile(path[1], author);
-		else creditAll(author);
+		else creditOwn(author);
 	}
 	/// @brief Credits every entry not credited yet.
 	/// @param author The author.
@@ -299,6 +299,25 @@ private:
 		ofFile[name] = author;
 		--missing_;
 	}
+	/// @brief Credits what a path in the "features" section reaches of a feature's program.
+	/// @param path The path's segments, the first "features".
+	/// @param author The author.
+	void creditFeature(const std::vector<std::string>& path, const std::string& author) {
+		if((path.size() >= 3 && path[2] != "provides") || (path.size() >= 4 && path[3] != "program") || !section_)
+			return;
+		const std::string prefix = path.size() >= 2 ? std::string(featureFiles) + path[1] + "/" : std::string(featureFiles);
+		if(path.size() >= 6) return credit(prefix + path[4], path[5], author);
+		if(path.size() == 5) return creditFile(prefix + path[4], author);
+		for(const auto& [file, entries] : section_->items())
+			if(file.starts_with(prefix)) creditFile(file, author);
+	}
+	/// @brief Credits the entries of the document's own files that have no author yet.
+	/// @param author The author.
+	void creditOwn(const std::string& author) {
+		if(!section_) return;
+		for(const auto& [file, entries] : section_->items())
+			if(featureOf(file).empty()) creditFile(file, author);
+	}
 	/// @brief Credits a file's entries that have no author yet.
 	/// @param file The file.
 	/// @param author The author.
@@ -313,7 +332,75 @@ private:
 	std::size_t missing_ = 0;       ///< How many entries have no author.
 };
 
+/// @brief Notes the features of a "features" section whose records say they were installed (holdsFeatureOrigin()).
+/// @param records The section, or nullptr.
+/// @param installed Gets their names.
+void noteRecords(const json* records, std::set<std::string>& installed) {
+	if(!records || !records->is_object()) return;
+	for(const auto& [name, record] : records->items())
+		if(holdsFeatureOrigin(record)) installed.insert(name);
+}
+
+/// @brief Notes the features whose records an operation of a commit's delta shows were installed: it writes or removes
+/// one of their origin keys, or writes a record, a "features" section or a document that holds one with one.
+/// @param op The operation.
+/// @param installed Gets their names.
+void noteInstalled(const json& op, std::set<std::string>& installed) {
+	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
+	if(!path.empty() && path[0] != "features") return;
+	if(path.size() >= 3) {
+		if(std::ranges::find(featureOriginKeys, path[2]) != featureOriginKeys.end()) installed.insert(path[1]);
+		return;
+	}
+	const auto value = op.find("value");
+	if(value == op.end()) return;
+	if(path.size() == 2) {
+		if(holdsFeatureOrigin(*value)) installed.insert(path[1]);
+		return;
+	}
+	noteRecords(path.empty() ? below(&*value, "features") : &*value, installed);
+}
+
 } // namespace
+
+// A feature's code runs as the feature, a revision's authority, whoever installed it: only what the app's own file
+// shipped, for a feature nothing on main ever installed, is the app's own
+void Repository::creditFeatures(json& credited) const {
+	std::optional<std::set<std::string>> installed; // worked out for the first entry the file is credited with
+	for(auto& [file, entries] : credited.items()) {
+		const std::string feature = featureOf(file);
+		if(feature.empty()) continue;
+		for(auto& [name, author] : entries.items()) {
+			const auto& who = author.get_ref<const std::string&>();
+			if(who == "file" && !(installed ? *installed : installed.emplace(installedFeatures())).contains(feature))
+				continue;
+			if(who == "file" || who == "user" || who.starts_with("user/")) author = "feature:" + feature;
+		}
+	}
+}
+
+// Where it was installed, at any time on main: an origin key in the screen file, written or removed by a commit, on
+// main's head or in the proposal shown. Removing one later never makes the feature the app's own
+std::set<std::string> Repository::installedFeatures() const {
+	std::set<std::string> installed;
+	const Commit& screenFile = objects_.at(main_.front());
+	const json rebuilt = screenFile.snapshot ? json() : documentOf(screenFile);
+	for(const json* document :
+	    {screenFile.snapshot ? screenFile.snapshot.get() : &rebuilt, &mainDocument(), &document_}) {
+		const json* records = below(document, "features");
+		noteRecords(records, installed);
+		const json* own = below(document, "program");
+		if(records && !records->is_object() && own && own->is_object()) // no record to tell: none is the app's own
+			for(const auto& [file, entries] : own->items())
+				if(const std::string feature = featureOf(file); !feature.empty()) installed.insert(feature);
+	}
+	for(std::size_t n = 1; n < main_.size(); ++n) {
+		const Commit& commit = objects_.at(main_[n]);
+		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
+		for(const json& op : commit.delta.is_null() ? worked : commit.delta) noteInstalled(op, installed);
+	}
+	return installed;
+}
 
 // Only revisions that reach the live state can change it: what actions change between commits isn't a commit's
 void Repository::recordStateChange(Commit& commit, const json& before, const json& after) {
@@ -336,24 +423,17 @@ void Repository::recordStateChange(Commit& commit, const json& before, const jso
 	}
 }
 
-json Repository::stateRevert(const Commit& target) const {
-	if(target.stateUndo.is_null()) return json::array();
-	for(const json& part : target.stateAfter) {
-		const std::string& path = part["path"].get_ref<const std::string&>();
-		const json* now = detail::locate(committedState(), path.substr(std::string_view("/state").size()));
-		const bool unchanged = part.contains("value") ? now && *now == part["value"] : now == nullptr;
-		if(!unchanged)
-			fail("revert", "conflict: " + path + " changed after " + describe(target) +
-			                   "; restore an earlier revision "
-			                   "instead");
-	}
-	return target.stateUndo;
-}
-
 json Repository::documentOf(const Commit& commit) const {
 	if(commit.id == main_.back()) return mainDocument();
 	if(commit.snapshot) return *commit.snapshot;
 	return rebuild(objects_, commit);
+}
+
+const json& Repository::documentAt(const Commit& commit, json& storage) const {
+	if(commit.id == main_.back()) return mainDocument();
+	if(commit.snapshot) return *commit.snapshot;
+	storage = rebuild(objects_, commit);
+	return storage;
 }
 
 json Repository::rebuild(const std::unordered_map<std::string, Commit>& objects, const Commit& commit) {
@@ -370,9 +450,13 @@ json Repository::rebuild(const std::unordered_map<std::string, Commit>& objects,
 			     "its delta doesn't apply (" + detail::reasonOf(error) + "): the history is damaged");
 		}
 	}
-	// Deltas read from disk aren't covered by the ids: the document they give must be the one the commit names
-	if(!chain.empty() && detail::sha256(document.dump()) != commit.tree)
-		fail("commit " + commit.id, "its deltas don't give the document its id names: the history is damaged");
+	// Deltas read from disk aren't covered by the ids: the document they give must be the one the commit names. Once
+	// they have given it, they give it again: neither they nor the snapshot change
+	if(!chain.empty() && !commit.rebuiltOnce) {
+		if(detail::sha256(document.dump()) != commit.tree)
+			fail("commit " + commit.id, "its deltas don't give the document its id names: the history is damaged");
+		commit.rebuiltOnce = true;
+	}
 	return document;
 }
 
@@ -403,7 +487,7 @@ CommitInfo Repository::blame(std::string_view target) const {
 	const json& head = mainDocument();
 	const std::string pointer = resolvePath(head, text, "blame");
 	if(!detail::locate(head, pointer)) fail("blame", "nothing at '" + text + "' on main's head" + hintFor(head, text));
-	Trail trail(head, pointer);
+	detail::Trail trail(head, pointer);
 	for(std::size_t n = main_.size() - 1; n > 0; --n) {
 		const Commit& commit = objects_.at(main_[n]);
 		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
@@ -419,33 +503,6 @@ json Repository::restoreRevision(const json& revision, std::string_view author) 
 	return {{"author", std::string(author)}, {"message", "Restore " + describe(target)}, {"patch", std::move(patch)}};
 }
 
-// The inverse of the commit, refused if a later commit changed any part it touches (a revert never guesses)
-json Repository::revertRevision(const json& revision, std::string_view author) const {
-	const Commit& target = find(revision);
-	if(std::ranges::find(main_, target.id) == main_.end()) fail("revert", describe(target) + " is not on main");
-	if(target.parents.empty()) fail("revert", "revision 0 is the screen as loaded: there is nothing to revert");
-
-	const json then = documentOf(target);
-	json patch = json::diff(then, documentOf(objects_.at(target.parents.front())));
-	checkDocumentRevert(target, then, patch);
-	const json undo = stateRevert(target); // the live state too, when the commit changed it in this run
-	if(patch.empty() && undo.empty())
-		fail("revert", "nothing to revert: " + describe(target) +
-		                   " changed neither the document nor, in this run, the live state");
-	patch.insert(patch.end(), undo.begin(), undo.end());
-	return {
-	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
-}
-
-void Repository::checkDocumentRevert(const Commit& target, const json& then, const json& patch) const {
-	for(const json& op : patch) {
-		const std::string checked = revertedPart(then, op);
-		if(!unchangedSince(mainDocument(), then, checked))
-			fail("revert", "conflict: " + (checked.empty() ? std::string("the screen") : checked) + " changed after " +
-			                   describe(target) + "; restore an earlier revision instead");
-	}
-}
-
 json Repository::diff(const json& from, const json& to) const {
 	return json::diff(documentOf(find(from)), documentOf(find(to)));
 }
@@ -458,7 +515,8 @@ json Repository::impact(const json& from, const json& to) const {
 
 // Newest first: the first commit met that changed an entry, or held it whole, is who last wrote it
 json Repository::programAuthors() const {
-	EntryAuthors authors(mainDocument());
+	const json program = runningProgram(mainDocument());
+	EntryAuthors authors(program);
 	for(std::size_t n = main_.size() - 1; n > 0 && authors.missing(); --n) {
 		const Commit& commit = objects_.at(main_[n]);
 		for(const json& op : deltaOf(commit))
@@ -468,20 +526,21 @@ json Repository::programAuthors() const {
 	json credited = authors.take();
 	keepFirstWriters(credited);
 	creditPreviewed(credited);
+	creditFeatures(credited);
 	return credited;
 }
+
 
 // A person's restore or revert brings back what someone else wrote, and it stays theirs: whoever first wrote that text
 // on main. One walk over the history, however many entries it answers for
 void Repository::keepFirstWriters(json& credited) const {
-	const json& document = mainDocument();
-	const auto section = document.find("program");
-	if(section == document.end()) return; // a static app: no definition to credit
-	FirstWriters writers(*section, credited);
+	const json program = runningProgram(mainDocument());
+	if(!program.is_object()) return; // a static app: no definition to credit
+	FirstWriters writers(program, credited);
 	if(writers.done()) return;
 	const json first = documentOf(objects_.at(main_.front()));
-	if(const auto files = first.find("program"); files != first.end() && files->is_object()) {
-		const json whole = {{"path", "/program"}, {"value", *files}};
+	if(first.contains("program")) {
+		const json whole = {{"path", ""}, {"value", first}};
 		eachWritten(whole, [&](const std::string& file, const std::string& name, const json& text) {
 			writers.settle(file, name, text, "file");
 		});
@@ -500,10 +559,10 @@ void Repository::keepFirstWriters(json& credited) const {
 void Repository::creditPreviewed(json& credited) const {
 	if(!previewing_) return;
 	const Proposal* shown = findProposal(*previewing_);
-	const auto section = document_.find("program");
-	if(!shown || section == document_.end() || !section->is_object()) return;
+	const json section = runningProgram(document_);
+	if(!shown || !section.is_object()) return;
 	const json& main = mainDocument();
-	for(const auto& [file, entries] : section->items()) {
+	for(const auto& [file, entries] : section.items()) {
 		if(!entries.is_object()) continue;
 		for(const auto& [name, text] : entries.items())
 			if(const json* before = entryIn(main, file, name); !before || *before != text)

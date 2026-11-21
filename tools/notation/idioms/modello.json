@@ -1,0 +1,13 @@
+{
+	"folders": [
+		"modello/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 39
+	},
+	"kept": {
+		"camel-case-name": 11,
+		"fn-one-parameter": 7,
+		"four-nested-calls": 1
+	}
+}

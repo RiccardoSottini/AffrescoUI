@@ -1,6 +1,6 @@
 # Flow: parity
 
-Flow is an issue tracker with a Kanban board. It is a JSON screen only. Its icons are Lucide's
+Flow is an issue tracker with a Kanban board. It is written twice, as a Lisp program and in JSON. Its icons are Lucide's
 and all of its data is invented. This page lists what a daily user would reach for and how far Flow has got.
 
 | Area | What a daily user reaches for | Flow | Notes |
@@ -16,7 +16,8 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Keyboard | C new, J/K move, single-key property changes, G-chords | done | C, J/K, S, P, A, I (assign to me), /, Cmd+Z; G then I, A, V or P |
 | Multi-select | X, Shift+J/K, a bar for bulk status, priority, assignee and delete | done | `select.lisp`; Cmd+A selects every shown issue, Escape clears, each bulk change is one undo step |
 | Sprints | current sprint, scope, progress and its issues | done | `pages.lisp`; scope, started and completed from the board, a burn-up, the cycle's issues (a click opens one), upcoming and past cycles; G then V |
-| Projects | a project list, status and progress | partial | All, Active and Completed tabs, New project; health, lead, target date and progress; G then P; a row opens its issues behind a Project filter chip. The project page with milestones and updates is missing |
+| Projects | a project list, status and progress, and a project page with milestones and updates | done | All, Active and Completed tabs, New project; health, lead, target date and progress; G then P. A row opens the project's page (New project opens its own, the name ready to type): a crumb back to Projects (or Escape), its name and summary edited in place (Enter saves), milestones (a click ticks one, a field adds one), project updates (write one, pick on track, at risk or off track, Post or Cmd+Enter: the project takes that health), its issues (a click opens one), its properties aside (health, lead, start and target dates, progress, issues), and View issues, which shows its issues behind a Project filter chip |
 | Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
-| Roadmap | projects on a timeline | partial | the Timeline view |
+| Roadmap | projects on a timeline | done | Roadmap in the sidebar, G then R, or the List and Roadmap switch on Projects: a bar per project from its start to its target date, months marked and today's line; dragging or trimming a bar moves the project's dates. The issues have their own Timeline view |
 | Assistant | ask for a change in plain words | done | the shared assistant add-on; Cmd+Shift+A |
+| Agents | an agent uses the board, not only changes it | done | An agent can use it: `cardMove`, `cardAssign` and `cardPriority` run at once, `cardAdd` and `projectUpdate` (an update on a project by its name, with its health) ask (`permissions.run`); cards by their id, columns, members and projects by name |

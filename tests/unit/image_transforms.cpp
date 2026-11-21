@@ -211,3 +211,73 @@ TEST_CASE("format: align lines a layer's pixels up with the selection's edges, o
 	run(image, "addLayer", {{"kind", "group"}});
 	CHECK_THROWS(run(image, "alignLayer", {{"edge", "left"}}));
 }
+
+TEST_CASE("format: a snapshot keeps the layers, and restoring it is one step that undo takes back") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10
+	run(image, "takeSnapshot");
+	CHECK(editing::snapshot(image)["snapshots"][0]["name"] == "Snapshot 1");
+	run(image, "clear"); // the ink's layer cleared: its pixels show white
+	CHECK(at(image, 5, 5)[0] == 255);
+	run(image, "restoreSnapshot", {{"index", 0}});
+	CHECK(at(image, 5, 5)[0] == 0);
+	run(image, "clear"); // the snapshot's pixels stay as they were
+	run(image, "restoreSnapshot", {{"index", 0}});
+	CHECK(at(image, 5, 5)[0] == 0);
+	run(image, "undo");
+	CHECK(at(image, 5, 5)[0] == 255);
+	CHECK_THROWS(run(image, "restoreSnapshot", {{"index", 3}}));
+	run(image, "deleteSnapshot", {{"index", 0}});
+	CHECK(editing::snapshot(image)["snapshots"].empty());
+}
+
+TEST_CASE("format: convertFormat turns the image to 16-bit floats and back, its pixels kept") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10, over white
+	run(image, "convertFormat", {{"format", "rgba16f"}});
+	CHECK(editing::snapshot(image)["format"] == "rgba16f");
+	CHECK(at(image, 5, 5)[0] == 0);
+	CHECK(at(image, 25, 5)[0] == 255);
+	run(image, "convertFormat", {{"format", "rgba8"}});
+	CHECK(editing::snapshot(image)["format"] == "rgba8");
+	CHECK(at(image, 5, 5)[0] == 0);
+	CHECK_THROWS(run(image, "convertFormat", {{"format", "cmyk"}}));
+}
+
+TEST_CASE("format: trim crops the image to its visible pixels that aren't transparent") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10, over a white background
+	run(image, "trim");                           // nothing transparent: nothing changes
+	CHECK(image.canvas->document().width() == 40);
+	const json taken = editing::snapshot(image);
+	run(image, "setLayer", {{"id", taken["layers"].back()["id"]}, {"visible", false}});
+	run(image, "trim");
+	CHECK(image.canvas->document().width() == 10);
+	CHECK(image.canvas->document().height() == 30);
+	CHECK(at(image, 5, 5)[0] == 0);
+}
+
+TEST_CASE("format: distribute spaces three layers' pixels evenly between the outermost two, as one step") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10
+	json ids = json::array({std::to_string(image.canvas->document().structure().active)});
+	const auto inkColumns = [&](int from, int to) {
+		run(image, "addLayer", {{"name", "Ink " + std::to_string(from)}});
+		run(image, "select",
+		    {{"kind", "rectangle"}, {"from", {{"x", from}, {"y", 0}}}, {"to", {{"x", to}, {"y", 30}}}});
+		run(image, "fillSelection", {{"color", "#000000"}});
+		run(image, "select", {{"kind", "none"}});
+		ids.push_back(std::to_string(image.canvas->document().structure().active));
+	};
+	inkColumns(12, 16);
+	inkColumns(30, 40);
+	CHECK_THROWS(run(image, "distributeLayers", {{"ids", json::array({ids[0], ids[1]})}, {"edge", "left"}}));
+	CHECK_THROWS(run(image, "distributeLayers", {{"ids", ids}, {"edge", "diagonal"}}));
+	run(image, "distributeLayers", {{"ids", ids}, {"edge", "left"}}); // lefts 0, 12 and 30: the middle one to 15
+	CHECK(at(image, 13, 5)[0] == 255);
+	CHECK(at(image, 17, 5)[0] == 0);
+	CHECK(at(image, 5, 5)[0] == 0); // the outermost two stay
+	CHECK(at(image, 35, 5)[0] == 0);
+	run(image, "undo");
+	CHECK(at(image, 13, 5)[0] == 0);
+}

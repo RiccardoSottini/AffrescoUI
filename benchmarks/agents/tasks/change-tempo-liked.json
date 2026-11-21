@@ -1,0 +1,36 @@
+{
+	"id": "change-tempo-liked",
+	"level": "edit",
+	"screen": "examples/tempo/lisp/index.screen.lisp",
+	"request": "Change the screen so that the app starts with Golden Rivers by Halfway already liked: its key, -1:4, in the initial state's liked list.",
+	"scenarios": [
+		{
+			"name": "liked",
+			"steps": [
+				{
+					"expect": {
+						"state": "liked",
+						"is": [
+							"-1:4"
+						]
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#nowPlaying"
+	],
+	"runs": 0,
+	"reference": [
+		{
+			"message": "Golden Rivers starts liked",
+			"set": {
+				"/state/liked": [
+					"-1:4"
+				]
+			}
+		}
+	]
+}

@@ -71,6 +71,14 @@ struct LazyNative {
 	NativeFunction function = nullptr; ///< It.
 };
 
+/// @brief A node a recording build made with an id written out (Machine::nodeNotes): its id, the place of its form and
+/// the place of its id's text, which a call may have handed in from elsewhere.
+struct NodeNote {
+	std::string id; ///< The id.
+	Place form;     ///< Where the node's form starts.
+	Place written;  ///< Where the id's text is written; line 0 if it was computed.
+};
+
 /// @brief The machine behind an Interpreter.
 class Machine {
 public:
@@ -80,6 +88,9 @@ public:
 	Machine(Interpreter& owner, const Limits& limits);
 
 	Heap heap; ///< What values point at.
+	/// Gets, as a tree is made, each node with an id written out (Program::recordOrigins()): nullptr, as in every
+	/// ordinary build, records nothing. It points at the recording build's own list, which outlives the build.
+	std::vector<NodeNote>* nodeNotes = nullptr;
 
 	/// @brief The interpreter it serves. @return It.
 	[[nodiscard]] Interpreter& owner() noexcept { return owner_; }
@@ -115,6 +126,9 @@ public:
 	/// @param natives Sorted by name; a constant, which outlives the machine.
 	/// @throws std::logic_error If the language has more tables than the machine has room for.
 	void defineLazyNatives(std::span<const LazyNative> natives);
+	/// @brief The names of every global code can read now, a lazy native's whether or not it was made yet: the
+	/// language's own, the host's primitives and the program's. @return Them, unsorted, possibly repeated.
+	[[nodiscard]] std::vector<std::string> globalNames() const;
 	/// @brief The language's own cell of a name, made if it is new: what its library code sees, whatever a program or
 	/// a host defines with that name (Library.hpp).
 	/// @param name Its name.
@@ -172,6 +186,13 @@ public:
 	[[nodiscard]] const Definition* definition(std::string_view name) const;
 	/// @brief Every definition, in order. @return Them.
 	[[nodiscard]] const std::vector<std::unique_ptr<Definition>>& definitions() const noexcept { return definitions_; }
+	/// @brief Takes a definition away, its global undefined again (Program::redefine()): one of the program's, which
+	/// no language name.
+	/// @param name Its name.
+	void forgetDefinition(std::string_view name);
+	/// @brief Puts the definitions in an order, as a load of the program gives them (Program::redefine()).
+	/// @param names Their names, in that order; those not named follow, as they were.
+	void orderDefinitions(const std::vector<std::string>& names);
 	/// @brief Notes a use of a global, for undefined names.
 	/// @param use The use.
 	void noteUse(GlobalUse use) { uses_.push_back(std::move(use)); }
@@ -257,6 +278,10 @@ public:
 	void setPure(bool pure) noexcept { pure_ = pure; }
 	/// @brief What running may still spend. @return A reference to it.
 	[[nodiscard]] Budget& budget() noexcept { return budget_; }
+	/// @brief What running may still spend. @return It.
+	[[nodiscard]] const Budget& budget() const noexcept { return budget_; }
+	/// @brief What macro expansion may still spend, in operations, outside an expansion. @return It.
+	[[nodiscard]] std::size_t macroOperationsLeft() const noexcept { return macroOperations_; }
 	/// @brief Spends operations. @param count How many.
 	/// @throws Problem If the budget runs out.
 	void spend(std::size_t count) {

@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "projects-tabs-and-new-project",
-			"note": "Projects' tabs show all, active or completed projects, and New project adds one",
+			"note": "Projects' tabs show all, active or completed projects; New project adds one and opens its page, whose title and summary are edited in place",
 			"steps": [
 				{ "key": "g" },
 				{ "key": "p" },
@@ -36,7 +36,15 @@
 				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
 				{ "click": "#newProject" },
 				{ "expect": { "data": "projects[5].name", "is": "Project 6" } },
-				{ "expect": { "state": "projectScope", "is": "all" } }
+				{ "expect": { "state": "projectScope", "is": "all" } },
+				{ "expect": { "state": "projectOpen", "is": 5 } },
+				{ "type": "Offline mode" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[5].name", "is": "Offline mode" } },
+				{ "click": "#projectSummary" },
+				{ "type": "Work without a connection" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[5].summary", "is": "Work without a connection" } }
 			]
 		},
 		{
@@ -120,6 +128,19 @@
 				{ "key": "escape" },
 				{ "wait": 50 },
 				{ "expect": { "state": "assistant.open", "is": false } }
+			]
+		},
+		{
+			"name": "point-at-card-title",
+			"note": "Cmd+Alt+A points at an element for the assistant: a click on a card's title picks it (and doesn't select the card), and the assistant opens with where it is written",
+			"steps": [
+				{ "key": "mod+alt+a" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle", "nth": 0 },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "expect": { "state": "assistant.pointed.length", "is": 1 } },
+				{ "expect": { "state": "assistant.pointed[0].source.address", "is": "/program/columns.lisp/card-title" } }
 			]
 		},
 		{
@@ -887,11 +908,13 @@
 		},
 		{
 			"name": "a-project-shows-its-issues",
-			"note": "A project row opens the issues behind a Project filter; the chip's x removes it",
+			"note": "A project's page has View issues, which opens the issues behind a Project filter; the chip's x removes it",
 			"steps": [
 				{ "key": "g" },
 				{ "key": "p" },
 				{ "click": "#projectRow", "nth": 1 },
+				{ "expect": { "state": "projectOpen", "is": 1 } },
+				{ "click": "#projectViewIssues" },
 				{ "expect": { "state": "page", "is": "issues" } },
 				{ "expect": { "state": "fProject", "is": 1 } },
 				{ "expect": { "node": "#filterChip", "exists": true } },
@@ -938,7 +961,110 @@
 				{ "expect": { "state": "cardMenu", "is": true } },
 				{ "expect": { "state": "menuAt.x", "is": 242 } }
 			]
+		},
+		{
+			"name": "an-agent-uses-the-board",
+			"note": "An agent runs the board's commands (Commands as tools): moving, assigning and setting a priority are allowed by permissions.run; a card or a column that isn't there changes nothing, and the notice says so; adding a card asks",
+			"steps": [
+				{ "command": "cardMove", "with": { "card": "flo-1", "status": "in review" }, "as": "agent" },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "expect": { "data": "lane2.length", "is": 3 } },
+				{ "expect": { "data": "lane2[2].ref", "is": "FLO-1" } },
+				{ "command": "cardAssign", "with": { "card": "FLO-1", "who": "Maya" }, "as": "agent" },
+				{ "expect": { "data": "lane2[2].who", "is": "MK" } },
+				{ "command": "cardPriority", "with": { "card": "FLO-1", "priority": "urgent" }, "as": "agent" },
+				{ "expect": { "data": "lane2[2].priority", "is": 1 } },
+				{ "command": "cardMove", "with": { "card": "FLO-99", "status": "Done" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "There is no card FLO-99 on this board" } },
+				{ "expect": { "data": "lane3.length", "is": 3 } },
+				{ "command": "cardMove", "with": { "card": "FLO-2", "status": "Archive" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "There is no column named Archive" } },
+				{ "expect": { "data": "lane0[0].ref", "is": "FLO-2" } },
+				{ "command": "cardAssign", "with": { "card": "FLO-2", "who": "Zoe" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "Nobody here is named Zoe" } },
+				{ "expect": { "data": "lane0[0].who", "is": "MK" } },
+				{ "command": "cardAdd", "with": { "title": "Write the release notes" }, "verdict": "ask" },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "command": "cardAdd", "with": { "title": "Write the release notes", "status": "In progress" }, "as": "studio" },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
+				{ "expect": { "data": "lane1[3].title", "is": "Write the release notes" } },
+				{ "expect": { "data": "lane1[3].ref", "is": "FLO-21" } },
+				{ "expect": { "state": "nextRef", "is": 22 } }
+			]
+		},
+		{
+			"name": "a-project-page-with-milestones-and-updates",
+			"note": "A project row opens its page: a milestone is ticked and one added, an update posted with its health, the crumb or Escape goes back, and one of its issues opens",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "click": "#projectRow", "nth": 0 },
+				{ "expect": { "state": "projectOpen", "is": 0 } },
+				{ "expect": { "node": "#projectHeroName", "text": "Board keyboard access" } },
+				{ "expect": { "node": "#milestonesSectionCount", "text": "1 / 3" } },
+				{ "click": "#milestoneRow", "nth": 1 },
+				{ "expect": { "data": "projects[0].milestones[1].done", "is": true } },
+				{ "expect": { "node": "#milestonesSectionCount", "text": "2 / 3" } },
+				{ "click": "#milestoneField" },
+				{ "type": "Beta release" },
+				{ "key": "enter" },
+				{ "expect": { "data": "projects[0].milestones[3].name", "is": "Beta release" } },
+				{ "expect": { "state": "milestoneDraft", "is": "" } },
+				{ "click": "#updateField" },
+				{ "type": "Review found two gaps" },
+				{ "click": "#updateHealth", "nth": 1 },
+				{ "click": "#postUpdate" },
+				{ "expect": { "data": "projects[0].updates[0].text", "is": "Review found two gaps" } },
+				{ "expect": { "data": "projects[0].health", "is": "atRisk" } },
+				{ "expect": { "node": "#updateText", "text": "Review found two gaps" } },
+				{ "click": "#projectCrumb" },
+				{ "expect": { "state": "projectOpen", "is": -1 } },
+				{ "expect": { "node": "#projectRow", "exists": true } },
+				{ "click": "#projectRow", "nth": 2 },
+				{ "expect": { "node": "#projectHeroName", "text": "Public board API" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "projectOpen", "is": -1 } },
+				{ "click": "#projectRow", "nth": 0 },
+				{ "expect": { "node": "#issuesSectionCount", "text": "7" } },
+				{ "scroll": "#projectBody", "dy": -40 },
+				{ "wait": 50 },
+				{ "click": "#projectIssue", "nth": 0 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "issueOpen", "is": true } }
+			]
+		},
+		{
+			"name": "the-roadmap",
+			"note": "G then R shows the projects on a timeline, one bar each; List goes back to the table",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "r" },
+				{ "wait": 50 },
+				{ "expect": { "state": "page", "is": "projects" } },
+				{ "expect": { "state": "projectLayout", "is": "roadmap" } },
+				{ "expect": { "node": "#roadmapTimeline", "exists": true } },
+				{ "expect": { "node": "#roadmapHeader", "nth": 4, "exists": true } },
+				{ "expect": { "node": "#projectRow", "exists": false } },
+				{ "click": "#projectLayout", "nth": 0 },
+				{ "expect": { "state": "projectLayout", "is": "list" } },
+				{ "expect": { "node": "#projectRow", "exists": true } }
+			]
+		},
+		{
+			"name": "an-agent-posts-a-project-update",
+			"note": "projectUpdate asks an agent first; run by the person it posts on the project named, with its health; a project or a health that isn't there changes nothing",
+			"steps": [
+				{ "command": "projectUpdate", "with": { "project": "Label palette", "health": "at risk", "text": "Contrast fixed for one colour" }, "verdict": "ask" },
+				{ "expect": { "data": "projects[1].updates.length", "is": 1 } },
+				{ "command": "projectUpdate", "with": { "project": "label PALETTE", "health": "On track", "text": "Contrast fixed for both colours" }, "as": "studio" },
+				{ "expect": { "data": "projects[1].updates[0].text", "is": "Contrast fixed for both colours" } },
+				{ "expect": { "data": "projects[1].health", "is": "onTrack" } },
+				{ "command": "projectUpdate", "with": { "project": "Moon base", "health": "on track", "text": "Hello" }, "as": "studio" },
+				{ "expect": { "state": "toast.message", "is": "There is no project named Moon base" } },
+				{ "command": "projectUpdate", "with": { "project": "Label palette", "health": "sideways", "text": "Hello" }, "as": "studio" },
+				{ "expect": { "data": "projects[1].updates.length", "is": 2 } }
+			]
 		}
-	
 	]
 }

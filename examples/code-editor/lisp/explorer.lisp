@@ -1,5 +1,7 @@
 ;;; explorer.lisp --- the side bar: the project's files as a tree
 
+(ns code-editor.explorer)
+
 ;;; Views
 
 (defview explorer "The side bar: the open files, then the project's folders and files." []
@@ -19,7 +21,7 @@
             :hover {:color @hover}
             :textColor ~(if (= tab state.active) "@text" "@muted")
             :cursor hand
-            :onClick ~(handler showFile tab))))
+            :onClick ~(handler show-file tab))))
      (node#label-folders :style caption :text ~(t "bar.project")
        :anchors {:left 14 :top ~(+ 44 (* 24 (count state.tabs)))})
      ~(file-tree)))
@@ -37,5 +39,5 @@
      :selectedBackground @rowSelected
      :accentColor @accent
      :guides false
-     :onChange pickTreeRow
-     :onExpand ~(handler expandFolder event.id event.expanded)))
+     :onChange pick-tree-row
+     :onExpand ~(handler expand-folder event.id event.expanded)))

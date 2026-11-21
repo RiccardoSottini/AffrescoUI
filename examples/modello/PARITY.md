@@ -10,10 +10,10 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | What | Status | Note |
 |---|---|---|
 | Top bar: File, Edit, Render, Window, Help menus | done | new, open, save, export glTF; undo, redo, copy, paste; render; workspaces, theme, assistant |
-| Workspace tabs (Layout, Model, ... Script) | partial | 5 of 11 work (Layout, Model, Materials, Animate, Render), Ctrl+Page Up and Page Down step through them; the rest are disabled with a reason |
-| Scene and view layer pickers | partial | the names can be edited; one scene and one layer |
+| Workspace tabs | done | Modello's own five, as an icon segmented control: Stage, Shape, Surface (the Shader Editor under the viewport), Motion (a taller timeline) and Shot (rendered shading, no overlays); Ctrl+Page Up and Page Down step through them |
+| Scene and view layer pickers | partial | several scenes: the picker switches, adds (empty, its own collection) and deletes them, each with its own objects, materials and meshes, the name edited in place; one view layer, its name edited |
 | 3D viewport header: editor type, mode, View, Select, Add, Object | done | |
-| Header: orientation, pivot, snapping, proportional editing | done | proportional is a toggle only |
+| Header: orientation, pivot, snapping, proportional editing | done | every pivot, Individual Origins too; every orientation (View follows the camera's axes, Gimbal turns around the active object's Euler axes so one angle changes alone); proportional editing (O) pulls the vertices near the moved ones along in Edit Mode |
 | Header: visibility, gizmos, overlays, X-ray, four shading modes | done | X-ray sees through; look development lights with a studio light or the scene's |
 | Navigation gizmo (drag to orbit, click an axis) | done | |
 | Zoom, pan, camera and orthographic buttons | done | |
@@ -23,14 +23,18 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | Outliner: collections, objects, data icons | done | several collections: New Collection, rename, delete, M moves objects between them, each with its own toggles |
 | Outliner: selectable, eye and camera toggles | done | |
 | Properties editor: tab strip | done | |
-| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform and Visibility edit; the others are disabled with a reason |
-| Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; the world colour; a light's or a camera's settings; exposure; the frame range; search |
+| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform, Visibility, Relations (the parent), Viewport Display (solid, wire or bounds) and Custom Properties (names and values of one's own, saved with the object) edit; Collections, Transform Offset, Instancing, Motion Paths and Line Drawing are disabled with a reason |
+| Properties: Modifiers tab | done | mirror (X, Y or Z), array (its count) and subdivision (its levels), stacked, each removable, undoable; drawn live, and left out while the object is in Edit Mode |
+| Properties: Texture tab | done | Open Image picks a PNG or JPEG as the material's base colour texture (kept in the scene, saved with it, embedded in a glTF export), Remove Image takes it off; a primitive maps it by its own coordinates, an edited mesh has none yet |
+| Properties: Data › Normals | done | Shade Smooth on or off for a mesh (its primitive becomes an editable mesh) |
+| Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; blend mode (opaque, clip, blend), alpha and whether it casts shadows; the world colour; a light's or a camera's settings, a light's shadow; exposure; the frame range; the resolution (the render window takes its shape) and the frame rate (the timeline, playback and the export follow it); search |
 | Timeline: play controls, frame, start, end | done | |
 | Timeline: keyframe diamonds | done | |
 | Keyframes animate (playback, next and previous key, dragging keys) | done | translation, rotation and scale, in frame order |
 | Status bar: mouse hints, counts, version | done | |
 | Light and dark themes | done | Window › Toggle Light and Dark Theme |
-| Camera and light glyphs in the viewport | done | a frustum with its up triangle; a lamp with a line to the floor |
+| Camera and light glyphs in the viewport | done | a frustum with its up triangle; a lamp with a line to the floor; light over a dark background, dark over a light one |
+| Floor grid | done | a backdrop every surface covers, even below the floor |
 
 ## Object mode
 
@@ -56,29 +60,29 @@ what isn't there yet. Modello is a Lisp program: `./build/affrescoui_launcher ex
 | Adjust Last Operation panel, F9 | done | Move, Rotate, Resize and Add adjust; F9 opens it in place |
 | Z and ~ pie menus | done | Z: shading and X-ray; ~: the views |
 | Right click object context menu | done | |
-| Editor-type switcher | done | an editor swaps with the area that shows it; those Modello lacks are disabled with a reason |
+| Editor-type switcher | done | an editor swaps with the area that shows it; every type works: the Image Editor shows the camera's render, kept up to date, and the Text Editor the scene's notes, saved with it |
 | Area split and join | missing | the areas resize |
 | I inserts a keyframe, Space plays | done | |
 | Ctrl+C and Ctrl+V copy and paste objects | done | |
 | Alt+G, Alt+R, Alt+S clear; Shift+S snap menu | done | |
 | Ctrl+Space maximizes an area | done | |
 | M moves to a collection | done | to an existing one or a new one |
-| Parenting (Ctrl+P, Alt+P) | missing | |
+| Parenting (Ctrl+P, Alt+P) | done | Ctrl+P, Alt+P, the Object menu, the context menu and the Relations panel; each keeps its place, turned and scaled as it was, however its old and new parents are turned or scaled; the outliner nests children; deleting a parent frees its children where they are |
 
 ## Edit mode
 
 | What | Status | Note |
 |---|---|---|
-| Tab into edit mode | missing | Edit Mode is in the mode menu, disabled with a reason |
-| 1/2/3 vertex, edge, face select | missing | |
-| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | missing | |
+| Tab into edit mode | done | Tab or the mode menu, on the active mesh: its primitive becomes an editable mesh in the scene; its edges, vertices and selected faces are drawn over it, the status bar counts its vertices, edges and faces |
+| 1/2/3 vertex, edge, face select | done | also three buttons in the header; a click picks, Shift adds or takes out, A and Alt+A select all or nothing; G, R and S move, turn and scale the selected vertices (with proportional editing) |
+| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | partial | E extrudes the selected faces as a region, I insets them, Ctrl+R cuts the loop of quads across the selected edge, Ctrl+B bevels the selected edge, X deletes vertices or faces, G, R and S move, turn and scale the selection (the selected faces follow the pointer), each undoable; the extruded faces follow the pointer at once (Enter or a click leaves them, Escape at half a unit out); Ctrl+B bevels one edge at a fixed width |
 
 ## Other workspaces and files
 
 | What | Status | Note |
 |---|---|---|
 | Shading workspace: node editor, material slots | done | the Shader Editor adds, links, sets and deletes nodes of the material's graph, undoable |
-| Import and export glTF | partial | export only (File › Export glTF, with the keyframes as an animation; no textures yet) |
+| Import and export glTF | done | File › Import glTF reads a .gltf with its data inside: its objects, materials and meshes join the scene, the meshes editable (no textures or animations from it yet); File › Export glTF writes the keyframes as an animation and embeds a material's image texture |
 | Save and open | done | Ctrl+S and Ctrl+O, and the File menu: the scene as JSON in a file the person picks, checked when it opens, undoable |
 | Render window | done | F12: the camera's view, lit, without markers; Save As Image |
 | Chat add-on | done | Window › Assistant, Ctrl+Shift+A |
@@ -92,6 +96,16 @@ Round 2 (a folder of files): 35 done, 11 partial, 6 missing (34, 11 and 7 before
 
 Round 3 (every control works): 49 done, 5 partial, 5 missing (35, 11 and 6 before it, over 52 rows; 7 rows added). Keyframes animate, the properties tabs, the Shader Editor, the render window, collections, pie menus, glTF export.
 
+Round 4 (the revamp): 52 done, 4 partial, 4 missing (one row added: the floor grid). Modello's own workspaces, parenting,
+Individual Origins and the View orientation, the Image and Text Editors, viewport display as wire or bounds, a light's shadow, a material's blend
+mode and alpha, the output's resolution and frame rate; the grid drawn behind every surface, the object named once in
+the properties, glyphs that contrast with the background, a solid shading whose faces read apart.
+
+Round 5 (round 2 of the revamp): 58 done, 4 partial, 1 missing (three rows added: the Modifiers and Texture tabs, Data › Normals). Edit Mode on editable polygon meshes (`scene3d`'s `PolyMesh.hpp`
+and the `mesh...` expression functions): vertex, edge and face selection, extrude, inset, loop cut, delete, proportional
+editing; the modifier stack; Shade Smooth; glTF import; image textures; several scenes; the Gimbal orientation; materials that
+cast no shadow; custom properties; a turned or scaled parent keeping its child's place.
+
 ## Left for later
 
 Every row above that is partial or missing, and every control Modello shows disabled with a tooltip. "JSON" means
@@ -100,30 +114,19 @@ occasionally; P3: rarely.
 
 | What | Priority | Needs |
 |---|---|---|
-| Edit mode: Tab, 1/2/3 vertex, edge, face select, Edit Mode in the mode menu | P1 | library: editable meshes in `scene` (element picking, selection drawing, mesh data written back to the document) |
-| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | P1 | library: mesh operators on that editable mesh, as steps |
-| Parenting: Ctrl+P, Alt+P, the Object tab's Relations panel | P1 | JSON for the commands and the outliner's nesting (scene nodes already take `parent`); library: an expression or step giving a node's world transform, so parenting keeps it and the gizmo, G/R/S and picking work on children |
-| Proportional editing (header toggle) | P2 | library: editable meshes (it moves vertices) |
+| Ctrl+B following the pointer; bevelling several edges or vertices; extruding along the normal only | P1 | library: `bevelEdge` over a chain of edges; JSON: the bevel's width from a drag, the extrude's move locked to the normal |
 | Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
-| glTF import | P2 | library: an open-file step that hands a picked .gltf to `scene` assets under the file-read permission |
-| Textures (Texture tab, textures in the glTF export) | P2 | library: image textures on scene materials from picked files, and the export embedding them |
-| Pivot: Individual Origins | P2 | JSON: rotate and scale each selected object about its own origin in the transform commands |
-| Output › Format: resolution and frame rate | P2 | JSON: render size and fps in state, used by F12 and the timeline (24 is fixed today) |
-| Modifiers tab | P2 | library: mesh modifiers (array, mirror, subdivision) in `scene` |
-| Object › Viewport Display (bounds, wire) | P2 | library: per-node display as bounds or wire in `scene` |
-| Material › Settings: blend and shadow | P2 | library: blend modes and shadow casting on scene materials |
-| Light › Shadow, Camera › Depth of Field, Mesh › Normals panels | P2 | library: shadows, depth of field and smooth or flat normals in the scene renderer |
+| Textures on edited meshes; glTF import with textures and animations | P2 | library: texture coordinates on polygon meshes; `gltfScene` keeping them |
+| Camera › Depth of Field | P2 | library: depth of field in the scene renderer (Light › Shadow and Mesh › Normals are done) |
 | Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
 | Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |
 | Workspaces Compose, Nodes, Script | P3 | library: a compositor, geometry nodes, a script console (the last may never fit a JSON-only app) |
-| Editor types Image Editor, Text Editor | P3 | JSON: the image viewer can show the last render; the text editor can use the `editor` node |
-| Scene and view layer pickers, View Layer tab, outliner Scenes mode | P3 | JSON: a list of scenes and layers in state, each with its own nodes and toggles |
+| View layers, View Layer tab, outliner Scenes mode; saving every scene in one file | P3 | JSON: a list of layers in state, each with its collections' toggles; the saved file holding state.scenes and the store |
 | Outliner Orphan Data mode | P3 | JSON: materials and meshes no object uses, listed from state |
-| Orientation: Gimbal, View | P3 | JSON: axes from the object's Euler rotation, or from the view's rotation |
 | Rotation mode (quaternion, axis angle) | P3 | JSON: other rotation fields converted to rotationDegrees |
 | Properties pin | P3 | JSON: a pinned object id the panels read instead of the active one |
 | Object › Collections (link to several) | P3 | JSON: a list of collections per object instead of one |
-| Object › Transform Offset, Custom Properties | P3 | JSON: delta transforms added in the displayed scene; free key-value fields per object |
+| Object › Transform Offset | P3 | JSON: delta transforms added in the displayed scene, kept out of what a transform writes back |
 | Object › Instancing, Motion Paths, Line Drawing | P3 | library: instancing, path lines through keyframe positions, line-art rendering in `scene` |
 | Particles, Physics, Object Constraints tabs | P3 | library: particles and a physics step; constraints may be JSON (track-to as an expression) |
 | Render › Sampling, Scene › Units, Tool › Workspace | P3 | library: a sampled renderer; JSON: unit labels on the fields; JSON: workspace settings |

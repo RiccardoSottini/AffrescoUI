@@ -50,7 +50,7 @@
 		{
 			"message": "C-y says Nothing to paste",
 			"set": {
-				"/program/killring.lisp/yank": "(defcommand yank \"Inserts the last killed text at point, and sets the mark at its start.\"\n  :title ~(t \"command.yank\") :category ~(t \"category.killing\")\n  :description ~(t \"command.yank.about\")\n  []\n  (when (editable?)\n    (if (= (count state.kills) 0)\n      (message \"Nothing to paste\")\n      (let [here (caret)]\n        (deactivate-mark)\n        (set \"state.arg\" nil)\n        (yank-at 0 {:line (:line here) :column (:column here)})))))"
+				"/program/killring.lisp/yank": "(defcommand yank \"Inserts the last killed text at point, and sets the mark at its start.\"\n  :title ~(t \"command.yank\") :category ~(t \"category.killing\")\n  :description ~(t \"command.yank.about\")\n  []\n  (when (editable?)\n    (if (empty? state.kills)\n      (message \"Nothing to paste\")\n      (let [here (point)]\n        (deactivate-mark)\n        (set \"state.arg\" nil)\n        (yank-at 0 here)))))"
 			}
 		}
 	]

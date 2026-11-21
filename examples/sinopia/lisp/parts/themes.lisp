@@ -5,9 +5,12 @@
 ;;; A deck names its theme and variant; its objects name colours by slot (accent1, dark1, accent1.2 for a tint) or by
 ;;; value.
 
+(ns sinopia.parts.themes)
+
 ;;; Definitions
 
-(defcomputed themes "The themes: their colour slots, variants, background, and the decorations drawn under every slide."
+(defcomputed builtInThemes
+  "The app's own themes: their colour slots, variants, background, and the decorations drawn under every slide."
   '[{:id default
      :background light1
      :colors {:dark1 "#000000"
@@ -246,15 +249,18 @@
             {:to "#000000" :by 0.25 :name (t "theme.darker25")}
             {:to "#000000" :by 0.5 :name (t "theme.darker50")}]})
 
-(defcomputed theme "The deck's theme."
-  (or-else (find (fn [it] (= it.id state.deck.theme)) computed.themes) computed.themes.0))
+(defcomputed themes "Every theme: the app's own, then those the person saved (parts/own-themes.lisp)."
+  (concat computed.builtInThemes (or-else state.ownThemes [])))
 
-(defcomputed colors "The deck's colours: its theme's, its variant's, or another theme's."
+(defcomputed theme "The deck's theme."
+  (or-else (find #(= (:id %) state.deck.theme) computed.themes) computed.themes.0))
+
+(defcomputed colors "The deck's colours: its theme's, its variant's, another theme's, or its own."
   (merge computed.theme.colors
          (or-else (get computed.theme.variants (or-else state.deck.variant 0)) {})
-         (if (nil? state.deck.colors)
-             {}
-             (:colors (or-else (find (fn [it] (= it.id state.deck.colors)) computed.themes) {:colors {}})))))
+         (cond (nil? state.deck.colors) {}
+               (= state.deck.colors "own") (or-else state.deck.ownColors {})
+               :else (:colors (or-else (find #(= (:id %) state.deck.colors) computed.themes) {:colors {}})))))
 
 (defcomputed headingFont "The titles' font." (or-else (:heading (or-else state.deck.fonts {})) "default"))
 
@@ -262,8 +268,8 @@
 
 (defcomputed slotTint "Each slot's tints, as colours."
   (map (fn [it]
-         (cond (or (= it "light1") (= it "light2")) "light"
-               (or (= it "dark1") (= it "dark2")) "dark"
+         (cond (#{:light1 :light2} it) "light"
+               (#{:dark1 :dark2} it) "dark"
                :else "accent"))
        computed.slotNames))
 
@@ -272,9 +278,9 @@
                   (join ","
                         (map (fn [it]
                                (str (json (+ (get computed.slotNames (floor (/ it 6)))
-                                             (if (= (mod it 6) 0) "" (str "." (mod it 6)))))
+                                             (if (zero? (mod it 6)) "" (str "." (mod it 6)))))
                                     ":"
-                                    (json (if (= (mod it 6) 0)
+                                    (json (if (zero? (mod it 6))
                                               (get computed.colors (get computed.slotNames (floor (/ it 6))))
                                               (gradientColor {:stops [{:at 0
                                                                        :color (get computed.colors
@@ -284,24 +290,24 @@
                                                                        :color (get-in computed.tints
                                                                                       [(get computed.slotTint
                                                                                             (floor (/ it 6)))
-                                                                                       (- (mod it 6) 1)
+                                                                                       (dec (mod it 6))
                                                                                        :to])}]}
                                                              (get-in computed.tints
                                                                      [(get computed.slotTint (floor (/ it 6)))
-                                                                      (- (mod it 6) 1)
+                                                                      (dec (mod it 6))
                                                                       :by]))))))
                              (range 60)))
                   "}")))
 
 (defcomputed layouts "The layouts, their placeholders placed for the deck's theme."
   (map (fn [it]
-         (if (and (= it.id "title") (some? computed.theme.titleArea))
-             (merge it {:ph (map (fn [it] (merge it computed.theme.titleArea)) it.ph)})
+         (if (and (= it.id :title) (some? computed.theme.titleArea))
+             (merge it {:ph (map #(merge % computed.theme.titleArea) it.ph)})
              it))
        computed.baseLayouts))
 
 (defcomputed layout "The layout of the slide shown."
-  (or-else (find (fn [it] (= it.id computed.slide.layout)) computed.layouts) computed.layouts.1))
+  (or-else (find #(= (:id %) computed.slide.layout) computed.layouts) computed.layouts.1))
 
 (defcomputed titleLike "Whether the slide shown is a title or section slide."
   (or (= computed.slide.layout "title") (= computed.slide.layout "section")))

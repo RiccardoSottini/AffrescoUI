@@ -1,5 +1,7 @@
 ;;; keys.lisp --- Orrery's keyboard shortcuts: each runs a command or a function of orrery.lisp
 
+(ns orrery.keys)
+
 ;;; Keys
 
 (defkey "mod+p" togglePlay)
@@ -16,7 +18,7 @@
 
 (defkey "space" togglePlay)
 
-(defkey "shift+1" dayZero)
+(defkey "shift+1" day-zero)
 
 (defkey "shift+k" realTime)
 
@@ -45,3 +47,11 @@
 (defkey "minus" brighter)
 
 (defkey "m" toggleMarker)
+
+(defkey "n" toggleNight)
+
+(defkey "mod+f" findObject)
+
+(defkey "shift+up" goNorth)
+
+(defkey "shift+down" goSouth)

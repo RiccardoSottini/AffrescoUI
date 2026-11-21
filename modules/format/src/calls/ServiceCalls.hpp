@@ -8,6 +8,7 @@
 #include "affresco/core/Services.hpp"
 
 #include "Expression.hpp"
+#include "StepAuthority.hpp"
 #include "StepRegistry.hpp"
 
 #include <cstddef>
@@ -113,6 +114,7 @@ private:
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.
 		std::uint64_t timeout = 0;                  ///< Its "timeout" timer, or 0 for none.
+		KeptAuthority authority;                    ///< Who the step that started it came from: its handlers run so.
 	};
 
 	/// @brief A service's request waiting for "respond".

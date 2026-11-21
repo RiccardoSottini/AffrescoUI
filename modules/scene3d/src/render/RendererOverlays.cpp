@@ -94,13 +94,16 @@ void addGizmo(Lines& lines, const Gizmo& gizmo, const GizmoSettings& settings, V
 	}
 }
 
-/// @brief A light or camera glyph's colour: dark, or the outline's colour when selected, lighter when active.
+/// @brief A light or camera glyph's colour: dark over a light background and light over a dark one, or the outline's
+/// colour when selected, lighter when active.
 /// @param view The frame. @param id The node's id. @return The colour.
 Vec4 glyphColor(const FrameView& view, const std::string& id) noexcept {
 	const auto& selection = view.settings.selection;
 	const Vec3 o = view.settings.outline;
 	if(!selection.empty() && selection.back() == id) return {0.6f * o.x + 0.4f, 0.6f * o.y + 0.4f, 0.6f * o.z + 0.4f, 1.0f};
 	if(std::ranges::find(selection, id) != selection.end()) return {o.x, o.y, o.z, 1.0f};
+	const Vec3 b = view.settings.background;
+	if(0.2126f * b.x + 0.7152f * b.y + 0.0722f * b.z < 0.45f) return {0.8f, 0.81f, 0.84f, 0.85f};
 	return {0.0f, 0.0f, 0.0f, 0.9f};
 }
 
@@ -152,6 +155,26 @@ void addLightGlyph(Lines& lines, const FrameView& view, const Light& light, Vec3
 	for(int i = 0; i + 1 < dashes; i += 2) {
 		const auto y = [&](int k) { return position.y - std::copysign(dash * static_cast<float>(k), position.y); };
 		lines.add({position.x, y(i), position.z}, {position.x, y(i + 1), position.z}, color);
+	}
+}
+
+/// @brief Adds the box around each mesh displayed as bounds: its own bounds, turned and placed as the node is.
+/// @param lines The list. @param view The frame.
+void addBounds(Lines& lines, const FrameView& view) {
+	for(const std::size_t index : view.inView) {
+		const DrawItem& item = view.items[index];
+		if(item.node->display != Display::Bounds || !item.data || item.data->bounds.empty()) continue;
+		const Vec3 lo = item.data->bounds.min;
+		const Vec3 hi = item.data->bounds.max;
+		std::array<Vec3, 8> corners{};
+		for(std::size_t k = 0; k < corners.size(); ++k)
+			corners[k] = item.world.transformPoint(
+			    {(k & 1) != 0 ? hi.x : lo.x, (k & 2) != 0 ? hi.y : lo.y, (k & 4) != 0 ? hi.z : lo.z});
+		const Vec3 o = view.settings.outline;
+		const Vec4 color = item.selected ? Vec4{o.x, o.y, o.z, 1.0f} : Vec4{0.62f, 0.63f, 0.66f, 0.85f};
+		for(std::size_t k = 0; k < corners.size(); ++k)
+			for(const std::size_t bit : {1U, 2U, 4U})
+				if((k & bit) == 0) lines.add(corners[k], corners[k | bit], color);
 	}
 }
 
@@ -221,8 +244,7 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	const auto inverse = view.viewProjection.inverse();
 	if(!inverse) return;
 	const float distance = std::max(view.settings.camera.distance, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
+	glDisable(GL_DEPTH_TEST); // drawn before the surfaces and leaving no depth: they all cover it
 	glDepthMask(GL_FALSE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -240,7 +262,6 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	glBindVertexArray(emptyArray_);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LESS);
 	glDisable(GL_BLEND);
 }
 
@@ -287,6 +308,7 @@ void SceneRenderer::drawLines(const FrameView& view) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	Lines world;
+	addBounds(world, view);
 	addMarkers(world, view);
 	addCursor(world, view);
 	if(const auto gizmo = gizmoFor(view.scene, view.settings, static_cast<float>(view.height) / view.scale))

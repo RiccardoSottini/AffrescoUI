@@ -70,6 +70,24 @@ inline constexpr float maxSample = 16;
 /// @return The levels.
 [[nodiscard]] Levels measure(const float* frames, std::size_t count, std::uint32_t channels) noexcept;
 
+/// @brief One peaking filter of an equaliser (the RBJ cookbook's biquad), with each channel's memory, in direct form
+/// II transposed.
+struct Biquad {
+	/// @brief A filter for a band at a sample rate.
+	/// @param band The band, already clamped.
+	/// @param sampleRate The engine's rate.
+	/// @param channels The engine's channels.
+	Biquad(const EqualizerBand& band, std::uint32_t sampleRate, std::uint32_t channels);
+	/// @brief Filters one sample of a channel.
+	/// @param sample It.
+	/// @param channel Its channel.
+	/// @return It, filtered.
+	[[nodiscard]] float process(float sample, std::uint32_t channel) noexcept;
+
+	float b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0; ///< Its coefficients, normalised by a0.
+	std::vector<float> z1, z2;                    ///< Each channel's two delays.
+};
+
 /// @brief One voice: its reader, transport, gain and rate conversion, and what it has to report.
 ///
 /// The rate converter interpolates linearly between two frames of the source, `last` and `next`, at `t` (0 to 1),
@@ -118,6 +136,8 @@ struct VoiceCore {
 	float pan = 0;                ///< See Voice::pan().
 	float rate = 1;               ///< See Voice::rate().
 	bool loop = false;            ///< See Voice::loop().
+
+	std::vector<Biquad> equalizer; ///< See Voice::setEqualizer(): the bands that change the sound.
 
 	std::vector<float> input;       ///< Frames read from the reader.
 	std::size_t inputPosition = 0;  ///< The next frame of input to use.

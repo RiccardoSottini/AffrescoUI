@@ -11,6 +11,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -59,6 +60,16 @@ struct VoiceOptions {
 	std::chrono::milliseconds positionInterval{250};
 };
 
+/// The most bands an equaliser has (Voice::setEqualizer()).
+inline constexpr std::size_t maxEqualizerBands = 16;
+
+/// @brief One band of an equaliser: a peaking filter that turns the frequencies round one up or down.
+struct EqualizerBand {
+	float frequency = 1000; ///< Its centre, in Hz: 20 to 20,000 (and below half the engine's rate).
+	float gain = 0;         ///< How much, in dB: -24 to 24; 0 leaves the sound as it is.
+	float q = 1;            ///< How narrow: 0.1 to 10 (1 is about an octave and a third wide).
+};
+
 /// @brief One source playing on an Engine (Engine::createVoice()). Every function may be called from any thread.
 ///
 /// A voice keeps playing when its last handle goes, until it ends ("fire and forget" for sound effects); a voice
@@ -104,6 +115,10 @@ public:
 	/// @brief Sets the playback rate.
 	/// @param rate From 0.25 to 4.
 	void setRate(float rate);
+	/// @brief Sets its equaliser: peaking filters (RBJ biquads) applied to what it plays, before its gain.
+	/// @param bands Up to maxEqualizerBands (more are ignored), each clamped to its range; none (or every gain 0)
+	/// leaves the sound as it is.
+	void setEqualizer(std::span<const EqualizerBand> bands);
 
 	/// @brief Where it is.
 	[[nodiscard]] State state() const;

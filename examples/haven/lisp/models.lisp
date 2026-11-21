@@ -1,6 +1,6 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
  :note "Haven's records: the logbook of what happened, each thing's on and off hours over the day, and the energy used each day of the week. Their first records are in seed/, all invented."
- :models {:logbook {:fields {:day (enum :values [today yesterday])
+ :models {:logbook {:fields {:day (enum :values [today yesterday ago2 ago3 ago4 ago5 ago6])
                              :time (string :maxLength 5 :description "HH:MM.")
                              :icon (string)
                              :name (string :required true)

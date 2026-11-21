@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"code-editor/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 6
+	},
+	"kept": {
+		"camel-case-name": 2,
+		"fn-one-parameter": 8
+	}
+}

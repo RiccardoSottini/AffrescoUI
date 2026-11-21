@@ -3,21 +3,22 @@
 ;;; The habits with their last days to tick on the left, the selected habit's detail on the right (one of them on a
 ;;; narrow window); the popup of a day, the dialog that edits a habit, the settings, sync with the document server.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "state.lisp"
-         "computed.lisp"
-         "look.lisp"
-         "widgets.lisp"
-         "list.lisp"
-         "detail.lisp"
-         "dialogs.lisp"
-         "settings.lisp"
-         "server.lisp"
-         "sync.lisp"
-         "habits.lisp")
+(ns streak.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "../../shared/addons/assistant/assistant.lisp"
+            streak.state
+            streak.computed
+            streak.look
+            streak.widgets
+            streak.list
+            streak.detail
+            streak.dialogs
+            streak.settings
+            "server.lisp"
+            streak.sync
+            streak.habits))
 
 ;;; The app
 
@@ -31,7 +32,7 @@
        :color @c.divider)
      (node#detailPane :anchors {:right 0 :top 0 :bottom 0}
        :width ~computed.detailWidth
-       :visible ~(or computed.wide (= state.page "detail"))
+       :visible ~(or computed.wide (= state.page :detail))
        :color @c.bg
        ~(detail-cards)
        (label#label-t-no-selection :text ~(t "noSelection")
@@ -51,7 +52,7 @@
              :title ~(if (= state.edit.id "") (t "edit.new") (t "edit.edit"))
              :message ""
              :width 600
-             :height ~(if (= state.edit.kind "measurable") 500 436)
+             :height ~(if (= state.edit.kind :measurable) 500 436)
              :highlight ~computed.accent
              :buttons ~[{:title (t "save") :run "saveHabit"} {:title (t "cancel")}]}
       ~(edit-fields))
@@ -89,6 +90,8 @@
           :mark {:file "../../shared/fonts/Lucide.ttf" :size 22}
           :iconsSmall {:file "../../shared/fonts/Lucide.ttf" :size 14}}
   :persist [state.nextId
+            state.demoDay
+            state.demoStamp
             state.selected
             state.sort
             state.hideCompleted
@@ -103,6 +106,7 @@
             state.scorePeriod
             state.historyPeriod]
   :permissions {:allow [studio]
+                :run {:allow ["agent(habitDone)"]}
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#appBar)"]
                 :reviewers [studio]

@@ -4,6 +4,8 @@
 ;;; window; an item is a map with any of title, icon, keyLabel, checked, enabled, separator, submenu, run and with. A
 ;;; row chosen runs its item (tempera.lisp, chooseMenuItem); one with a submenu opens it to the right, a tSubmenu.
 
+(ns tempera.menu)
+
 ;;; The rows
 
 (defmacro menu-rows "The items with every key a row reads, those an item leaves out at their default." [items]
@@ -24,10 +26,11 @@
      :mnemonic ~(or-else item.title "")
      :color transparent
      :tooltip ~(if (= item.run "unavailable") (t "command.unavailable") "")
+     ; style: keep, three states: no check, on and off
      :selected ~(if (nil? item.checked) nil (= item.checked true))
      :hover {:color ~(if (or item.separator (= item.enabled false)) "transparent" "@menuHover")}
      :focused {:color @menuHover}
-     :onClick ~(handler chooseMenuItem item path close)
+     :onClick ~(handler choose-menu-item item path close)
      (node :when ~item.separator :anchors {:left 0 :right 0 :top 3} :height 1 :color @border)
      (node :when ~(and (= item.checked true) (= mark "square")) :x 8 :y 8 :width 5 :height 5 :color @text)
      ~@(menu-row-labels)))
@@ -52,7 +55,7 @@
       :fitText true)])
 
 (defmacro key-label "A key's label as a menu shows it: Down and Up as arrows." [label]
-  `(join "↑" (split (join "↓" (split (or-else ~label "") "Down")) "Up")))
+  `(-> (or-else ~label "") (str/split "Down") (->> (join "↓")) (str/split "Up") (->> (join "↑"))))
 
 ;;; Menus
 
@@ -63,6 +66,7 @@
      :role menu
      :arrows vertical
      :width ~width
+     ; style: keep, sum's function names its item it
      :height ~(+ (sum rows (fn [it] (if it.separator 7 22))) 10)
      :color @panel
      :radius @kit.cardRadius

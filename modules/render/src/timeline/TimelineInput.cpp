@@ -151,12 +151,13 @@ enum class HeaderPart { None, Lock, Mute, Chevron };
 /// @param x Where, relative to the view.
 /// @param lanes Where the lanes start.
 /// @param depth The track's depth.
+/// @param buttons Whether the track shows its buttons (none, a press on their place hits nothing).
 /// @return The part.
-HeaderPart headerPart(float x, float lanes, std::size_t depth) {
+HeaderPart headerPart(float x, float lanes, std::size_t depth, bool buttons) {
 	const float lock = lanes - 4.0f - buttonSize, mute = lock - 2.0f - buttonSize;
 	const float chevron = static_cast<float>(depth) * indentStep;
-	if(x >= lock && x < lock + buttonSize) return HeaderPart::Lock;
-	if(x >= mute && x < mute + buttonSize) return HeaderPart::Mute;
+	if(x >= lock && x < lock + buttonSize) return buttons ? HeaderPart::Lock : HeaderPart::None;
+	if(x >= mute && x < mute + buttonSize) return buttons ? HeaderPart::Mute : HeaderPart::None;
 	if(x >= chevron && x < chevron + chevronWidth) return HeaderPart::Chevron;
 	return HeaderPart::None;
 }
@@ -344,7 +345,7 @@ void TimelineView::mouseButtonEvent(const MouseButtonEvent& event) {
 			drag_ = Drag::None;
 			if(const std::size_t row = rowAt(point.y); row < rows_.size()) {
 				const std::size_t track = rows_[row];
-				const HeaderPart part = headerPart(point.x, lanes, model_.tracks[track].depth);
+				const HeaderPart part = headerPart(point.x, lanes, model_.tracks[track].depth, trackButtons_);
 				keyRow_ = row;
 				if(part == HeaderPart::Chevron) toggleExpanded(track);
 				else if(part != HeaderPart::None) toggleFlag(track, part == HeaderPart::Lock);

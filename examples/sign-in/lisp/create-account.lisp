@@ -3,11 +3,13 @@
 ;;; Every field checks itself once the form is sent; the username asks the demo server whether it is free as it is
 ;;; typed. What the buttons run is in sign-in.lisp.
 
+(ns sign-in.create-account)
+
 ;;; The screen
 
 (defview create-card "The create-account screen: its card, centred, scrolling when the window is short." []
   `(node#panel-create-account :style screen
-     (node#panel-card :style card :width ~(min 420 (- window.width 32)) :maxHeight ~(- window.height 116)
+     (node#panel-card :style ~computed.cardStyle :width ~computed.cardWidth :maxHeight ~(- window.height 116)
        (node#panel-card-top :height 36 :color transparent)
        ~(create-form)
        (node#panel-card-end :height 36 :color transparent))))
@@ -28,28 +30,28 @@
        :icon ~(if (= state.busy "create") "loader" "user-plus")
        :text ~(if (= state.busy "create") computed.busyText (t "createAccount"))
        :disabled ~(not= state.busy "")
-       :onClick submitNewAccount)
-     (node#label-back-to-sign :style link :text ~(t "backToSignIn") :onClick goBack)))
+       :onClick submit-new-account)
+     (node#label-back-to-sign :style link :text ~(t "backToSignIn") :onClick go-back)))
 
 ;;; The fields
 
 (defview name-and-email "The new account's name and email, each with its label." []
   [`(node#label-name :style fieldLabel :text ~(t "name"))
    `(node#checked-field-form :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.name
              :content ~state.name
              :key name
              :icon user
              :fieldName ~(t "name")
              :placeholder ~(t "namePlaceholder")
-             :valid ~(> (count (trim state.name)) 0)
+             :valid ~(> (count (str/trim state.name)) 0)
              :message ~(t "enterName")
              :submitted ~state.submitted
              :maxLength 60})
    `(node#label-email-2 :style fieldLabel :text ~(t "email"))
    `(node#checked-field-form-2 :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.email
              :content ~state.email
              :key email
@@ -63,8 +65,8 @@
 
 (defview username-field "The username: each change asks the demo server, once typing stops." []
   `(node#username :use checkedField
-     :with {:submit submitNewAccount
-            :change usernameChanged
+     :with {:submit submit-new-account
+            :change username-changed
             :bind state.username
             :content ~state.username
             :key username
@@ -77,9 +79,10 @@
             :maxLength 20}))
 
 (defmacro username-colour "The username status's colour: muted while checking, green when free, else the error's." []
-  `(cond (= computed.usernameStatus "checking") "@color.muted"
-         (= computed.usernameStatus "available") "@color.strong"
-         :else "@color.error"))
+  `(case computed.usernameStatus
+     "checking" "@color.muted"
+     "available" "@color.strong"
+     "@color.error"))
 
 (defview username-status "Under the username: a spinner while it is checked, then whether it is free." []
   `(row#usernameStatus :when ~(and (not= computed.usernameStatus "")
@@ -91,29 +94,30 @@
      :color transparent
      :role status
      :live polite
-     :label ~(t "usernameStatus" {:kind computed.usernameStatus :name (lower-case (trim state.username))})
+     :label ~(t "usernameStatus" {:kind computed.usernameStatus :name (str/lower-case (str/trim state.username))})
      (label#username-status-icon :font iconsSmall
        :text ""
        :width 14
        :height 14
        :align center
        :color transparent
-       :icon ~(cond (= computed.usernameStatus "checking") "loader"
-                    (= computed.usernameStatus "available") "check-circle"
-                    :else "alert-circle")
+       :icon ~(case computed.usernameStatus
+                "checking" "loader"
+                "available" "check-circle"
+                "alert-circle")
        :rotate ~(if (= computed.usernameStatus "checking") state.spin 0)
        :textColor ~(username-colour))
      (label#username-status-text :font small
        :fitText true
        :height 18
        :color transparent
-       :text ~(t "usernameStatus" {:kind computed.usernameStatus :name (lower-case (trim state.username))})
+       :text ~(t "usernameStatus" {:kind computed.usernameStatus :name (str/lower-case (str/trim state.username))})
        :textColor ~(username-colour))))
 
 (defview new-password "The password, its strength and rules, and its confirmation unless it is shown." []
   [`(node#label-password-2 :style fieldLabel :text ~(t "password"))
    `(node#checked-field-form-3 :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.password
              :content ~state.password
              :key password
@@ -131,7 +135,7 @@
    `(node#label-confirm :when ~(not state.showPassword) :style fieldLabel :text ~(t "confirm"))
    `(node#confirm-password :when ~(not state.showPassword)
       :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.confirm
              :content ~state.confirm
              :key confirm
@@ -149,23 +153,23 @@
      (node#terms :style ~(if state.terms "checkOn" "checkOff")
        :label ~(t "terms")
        :description ~(if (and state.submitted (not state.terms)) (t "termsError") "")
-       :onClick toggleTerms)
+       :onClick toggle-terms)
      (label#label-terms :font small :text ~(t "terms") :fitText true :textColor @color.text :cursor hand
-       :onClick toggleTerms)))
+       :onClick toggle-terms)))
 
 (defview invite "Have an invite?, then its code, and a notice once the code is a team's." []
-  [`(node#haveInvite :when ~(not state.invite.open) :style smallLink :text ~(t "haveInvite") :onClick openInvite)
+  [`(node#haveInvite :when ~(not state.invite.open) :style smallLink :text ~(t "haveInvite") :onClick open-invite)
    `(node#label-invite :when ~state.invite.open :style fieldLabel :text ~(t "inviteCode"))
    `(node#invite :when ~state.invite.open
       :use checkedField
-      :with {:submit submitNewAccount
+      :with {:submit submit-new-account
              :bind state.invite.code
              :content ~state.invite.code
              :key invite
              :icon ticket
              :fieldName ~(t "inviteCode")
              :placeholder ~(t "invitePlaceholder")
-             :valid ~(or (= (count (trim state.invite.code)) 0) computed.inviteValid)
+             :valid ~(or (empty? (str/trim state.invite.code)) computed.inviteValid)
              :message ~(t "inviteUnknown")
              :submitted ~state.submitted
              :maxLength 40})

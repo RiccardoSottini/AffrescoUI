@@ -4,12 +4,15 @@
 
 #include "ImageDocuments.hpp"
 
+#include "affresco/imaging/Shapes.hpp"
+
 #include <affresco/imaging/Composite.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <map>
+#include <numbers>
 #include <ranges>
 
 namespace affresco::format::editing {
@@ -79,7 +82,14 @@ bool pressCloneSource(ImageDocument& image, Point at) {
 [[nodiscard]] const char* strokeName(const ToolSettings& settings) noexcept {
 	if(settings.quickMask) return "Quick Mask";
 	if(settings.gesture == Gesture::erase) return "Eraser";
-	return settings.gesture == Gesture::clone ? "Clone Stamp" : "Brush";
+	if(settings.gesture == Gesture::retouch) {
+		constexpr std::array<const char*, 6> names{"Dodge", "Burn", "Sponge", "Blur", "Sharpen", "Smudge"};
+		const auto index =
+		    static_cast<std::size_t>(settings.retouch) - static_cast<std::size_t>(imaging::StrokeMode::dodge);
+		return index < names.size() ? names[index] : "Retouch"; // NOLINT(*-constant-array-index): checked
+	}
+	if(settings.gesture == Gesture::clone) return settings.healing ? "Healing Brush" : "Clone Stamp";
+	return "Brush";
 }
 
 /// @brief Starts a brush, eraser or clone stroke.
@@ -91,12 +101,14 @@ bool startStroke(ImageDocument& image, Point at) {
 	if(settings.gesture == Gesture::clone && pressCloneSource(image, at)) return true;
 	const auto target = paintTarget(image);
 	if(!target) return true;
-	const auto mode = settings.gesture == Gesture::erase  ? imaging::StrokeMode::erase
-	                  : settings.gesture == Gesture::clone ? imaging::StrokeMode::clone
-	                                                 : imaging::StrokeMode::paint;
+	const auto mode = settings.gesture == Gesture::erase ? imaging::StrokeMode::erase
+	                  : settings.gesture == Gesture::clone
+	                      ? (settings.healing ? imaging::StrokeMode::heal : imaging::StrokeMode::clone)
+	                  : settings.gesture == Gesture::retouch ? settings.retouch
+	                                                         : imaging::StrokeMode::paint;
 	image.stroke = std::make_unique<imaging::Stroke>(image.canvas->document(), *target, settings.tip, mode,
 	                                                   settings.foreground, strokeName(settings));
-	if(mode == imaging::StrokeMode::clone && settings.cloneSource) {
+	if((mode == imaging::StrokeMode::clone || mode == imaging::StrokeMode::heal) && settings.cloneSource) {
 		// The offset is kept between strokes, so that the source follows the brush as in other editors
 		if(!image.cloneOffset)
 			image.cloneOffset = Point{settings.cloneSource->x - at.x, settings.cloneSource->y - at.y};
@@ -118,13 +130,18 @@ bool startStroke(ImageDocument& image, Point at) {
 }
 
 /// @brief Sets a marquee's corners from the press to a point: a square while Shift is held, from the press as the
-/// centre while Alt is (a key held since the press only chose the selection mode).
+/// centre while Alt is (a key held since the press only chose the selection mode); a crop with a ratio keeps it.
 /// @param press The press.
 /// @param mods The keys held now.
 /// @param at Where the pointer is.
-void stretchBox(Press& press, affresco::Mods mods, Point at) noexcept {
+/// @param ratio The width over the height the box keeps, or 0 for any.
+void stretchBox(Press& press, affresco::Mods mods, Point at, float ratio) noexcept {
 	float dx = at.x - press.start.x, dy = at.y - press.start.y;
-	if(mods.shift() && !press.shiftHeld) {
+	if(ratio > 0.0f) {
+		const float height = std::max(std::abs(dy), std::abs(dx) / ratio);
+		dx = std::copysign(height * ratio, dx);
+		dy = std::copysign(height, dy);
+	} else if(mods.shift() && !press.shiftHeld) {
 		const float side = std::max(std::abs(dx), std::abs(dy));
 		dx = std::copysign(side, dx);
 		dy = std::copysign(side, dy);
@@ -184,6 +201,82 @@ bool clickWand(imaging::Document& document, const ToolSettings& settings, imagin
 	return true;
 }
 
+/// @brief Adds points to the quick-selection stroke up to a point, a quarter of the brush apart along the way.
+/// @param image The image.
+/// @param at Where.
+void addQuickPoint(ImageDocument& image, Point at) {
+	std::vector<Point>& path = image.path;
+	const float step = std::max(1.0f, image.settings.tip.size / 4.0f);
+	if(path.empty()) {
+		path.push_back(at);
+		return;
+	}
+	const Point from = path.back();
+	const float distance = std::hypot(at.x - from.x, at.y - from.y);
+	const int steps = static_cast<int>(std::min(distance / step, static_cast<float>(image.limits.polygonPoints)));
+	for(int index = 1; index <= steps && path.size() < image.limits.polygonPoints; ++index) {
+		const float share = static_cast<float>(index) * step / distance;
+		path.push_back({from.x + (at.x - from.x) * share, from.y + (at.y - from.y) * share});
+	}
+}
+
+/// @brief Selects what the quick-selection stroke found, in the press's mode, and clears the stroke.
+/// @param image The image.
+void closeQuickSelection(ImageDocument& image) {
+	imaging::Document& document = image.canvas->document();
+	std::vector<Point> path = std::move(image.path);
+	image.path.clear();
+	if(path.empty()) return;
+	imaging::select(document, "Quick Selection",
+	                imaging::quickCoverage(document, path, image.settings.tip.size / 2.0f, image.settings.sample),
+	                image.press.mode);
+}
+
+/// @brief The selection's bounds as a box, left, top, right, bottom (all zero without a selection).
+/// @param document The document.
+[[nodiscard]] std::array<float, 4> selectionBox(const imaging::Document& document) {
+	const auto [x, y, width, height] = imaging::selectionBounds(document);
+	return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + width),
+	        static_cast<float>(y + height)};
+}
+
+/// @brief The turn about a box's centre from one point to another, degrees clockwise (the rotation handle's drag).
+/// @param box The box, left, top, right, bottom.
+/// @param from Where the drag began.
+/// @param to Where it is.
+[[nodiscard]] float turnOf(const std::array<float, 4>& box, Point from, Point to) noexcept {
+	const float centreX = (box[0] + box[2]) / 2.0f, centreY = (box[1] + box[3]) / 2.0f;
+	const double turn = std::atan2(to.y - centreY, to.x - centreX) - std::atan2(from.y - centreY, from.x - centreX);
+	return static_cast<float>(std::remainder(turn * 180.0 / std::numbers::pi, 360.0));
+}
+
+/// @brief selection-box's and layer-box's press: picks the handle of the box pressed on (the selection's, or the
+/// active layer's pixels'), or inside it to move it.
+/// @param image The image; its message says why when there is no box.
+/// @param at Where.
+/// @return Whether the screen should hear of it.
+bool pressSelectionBox(ImageDocument& image, Point at) {
+	const imaging::Document& document = image.canvas->document();
+	image.boxHandle = -1;
+	if(image.settings.gesture == Gesture::layerBox) {
+		const auto box = activeLayerBox(image);
+		if(!box) {
+			image.message = "Choose a pixel layer with pixels";
+			return true;
+		}
+		image.boxBefore = *box;
+	} else if(!document.hasSelection()) {
+		image.message = "Select something to transform";
+		return true;
+	} else image.boxBefore = selectionBox(document);
+	image.boxNow = image.boxBefore;
+	image.boxAngle = 0.0f;
+	constexpr float handleReach = 6.0f; // window units around a handle
+	image.boxHandle =
+	    boxHandleAt(image.boxBefore, at, handleReach / static_cast<float>(std::max(image.view.zoom, 1e-6)));
+	return image.boxHandle >= 0;
+}
+
 /// @brief Fills with the paint bucket from the pixel clicked.
 /// @param image The image; its message says why when nothing can be filled.
 /// @param at Where, in document pixels.
@@ -235,6 +328,68 @@ void panView(ImageDocument& image, const imaging::CanvasPointer& event) {
 	image.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
 }
 
+/// @brief Whether a tool's press goes to pressVector(): type, pen and path selection.
+/// @param gesture The tool's gesture.
+/// @return true for those.
+[[nodiscard]] bool pressesVector(Gesture gesture) noexcept {
+	return gesture == Gesture::text || gesture == Gesture::pen || gesture == Gesture::pathSelect;
+}
+
+/// @brief quick-select's, selection-box's and layer-box's press: the stroke's first point, or the box's handle.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool pressSelecting(ImageDocument& image, Point at) {
+	switch(image.settings.gesture) {
+	case Gesture::quickSelect:
+		image.path.clear();
+		addQuickPoint(image, at);
+		return true;
+	case Gesture::selectionBox:
+	case Gesture::layerBox:
+		return pressSelectionBox(image, at);
+	default:
+		return false;
+	}
+}
+
+/// @brief quick-select's, selection-box's and layer-box's drag: the stroke goes on, or the box follows the handle.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool dragSelecting(ImageDocument& image, Point at) {
+	const Gesture gesture = image.settings.gesture;
+	if(gesture == Gesture::quickSelect) {
+		addQuickPoint(image, at);
+		return true;
+	}
+	if((gesture != Gesture::selectionBox && gesture != Gesture::layerBox) || image.boxHandle < 0) return false;
+	image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
+	if(image.boxHandle == 9) image.boxAngle = turnOf(image.boxBefore, image.press.start, at);
+	return true;
+}
+
+/// @brief quick-select's, selection-box's and layer-box's release: selects what the stroke found, or transforms the
+/// selection or the layer as the box was dragged.
+/// @param image The image.
+/// @param at Where, in document pixels.
+/// @return Whether the screen should hear of it.
+bool releaseSelecting(ImageDocument& image, Point at) {
+	const Gesture gesture = image.settings.gesture;
+	if(gesture == Gesture::quickSelect) {
+		closeQuickSelection(image);
+		return true;
+	}
+	if((gesture != Gesture::selectionBox && gesture != Gesture::layerBox) || image.boxHandle < 0) return false;
+	const Point from = image.press.start;
+	image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
+	image.boxAngle = image.boxHandle == 9 ? turnOf(image.boxBefore, from, at) : 0.0f;
+	image.boxHandle = -1;
+	if(gesture == Gesture::layerBox) transformLayerTo(image, image.boxBefore, image.boxNow, image.boxAngle);
+	else transformSelectionTo(image, image.boxBefore, image.boxNow, image.boxAngle);
+	return true;
+}
+
 /// @brief What a tool does when a button goes down.
 /// @param image The image.
 /// @param at Where, in document pixels.
@@ -244,6 +399,7 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		return startStroke(image, at);
 	case Gesture::lasso:
 	case Gesture::polygonLasso:
@@ -261,7 +417,7 @@ bool pressTool(ImageDocument& image, Point at) {
 		zoomAt(image, at, image.press.right ? 0.5 : 2.0);
 		return true;
 	default:
-		return false;
+		return pressesVector(image.settings.gesture) ? pressVector(image, at) : pressSelecting(image, at);
 	}
 }
 
@@ -275,6 +431,7 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		if(image.stroke) image.stroke->add({at.x, at.y, image.pressure});
 		return false;
 	case Gesture::lasso:
@@ -285,21 +442,24 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 		return true;
 	case Gesture::sample:
 		return pickColour(image, at);
+	case Gesture::pen:
+	case Gesture::pathSelect:
+		return dragVector(image, at);
 	default:
-		return false;
+		return dragSelecting(image, at);
 	}
 }
 
-/// @brief A marquee's selection, or none for a click without a drag.
-/// @param document The document.
-/// @param settings The tool settings: the marquee's shape.
-/// @param mode The selection mode.
+/// @brief A marquee's selection, or none for a click without a drag (kept for reselect).
+/// @param image The image: its document, the marquee's shape in its settings, and the press's selection mode.
 /// @param from One corner of the box.
 /// @param at The opposite corner.
-void selectShape(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point from,
-                 Point at) {
+void selectShape(ImageDocument& image, Point from, Point at) {
+	imaging::Document& document = image.canvas->document();
+	const ToolSettings& settings = image.settings;
+	const imaging::SelectionMode mode = image.press.mode;
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
-		if(mode == imaging::SelectionMode::replace) imaging::deselect(document);
+		if(mode == imaging::SelectionMode::replace) deselectKeeping(image);
 		return;
 	}
 	if(settings.gesture == Gesture::selectRectangle)
@@ -321,7 +481,7 @@ void drawGradient(ImageDocument& image, Point at) {
 	if(settings.gradient) gradient = *settings.gradient;
 	else gradient.stops = {{0.0f, settings.foreground}, {1.0f, settings.background}};
 	imaging::drawGradient(image.canvas->document(), *target, gradient, settings.shape, image.press.start, at,
-	                      settings.opacity);
+	                      settings.opacity, settings.gradientOptions);
 }
 
 /// @brief Selects inside the lasso's path, if it has an area, and clears the path.
@@ -355,14 +515,14 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::paint:
 	case Gesture::erase:
 	case Gesture::clone:
+	case Gesture::retouch:
 		if(!image.stroke) return false;
 		image.stroke->finish();
 		image.stroke.reset();
 		return true;
 	case Gesture::selectRectangle:
 	case Gesture::selectEllipse:
-		selectShape(image.canvas->document(), image.settings, image.press.mode, image.press.boxFrom,
-		            image.press.boxTo);
+		selectShape(image, image.press.boxFrom, image.press.boxTo);
 		return true;
 	case Gesture::lasso:
 		closeLasso(image);
@@ -377,8 +537,10 @@ bool releaseTool(ImageDocument& image, Point at) {
 	case Gesture::crop:
 		cropToDrag(image);
 		return true;
+	case Gesture::shape:
+		return releaseVector(image, at);
 	default:
-		return false;
+		return releaseSelecting(image, at);
 	}
 }
 
@@ -494,14 +656,16 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 		case affresco::PointerKind::move:
 			if(!press.down) return false;
 			press.last = at;
-			stretchBox(press, event.pointer.mods, at);
+			stretchBox(press, event.pointer.mods, at,
+			           image.settings.gesture == Gesture::crop ? image.settings.cropRatio : 0.0f);
 			if(!press.pan) return dragTool(image, event);
 			panView(image, event);
 			return true;
 		case affresco::PointerKind::release:
 			if(!press.down) return false;
 			press.down = false;
-			stretchBox(press, event.pointer.mods, at);
+			stretchBox(press, event.pointer.mods, at,
+			           image.settings.gesture == Gesture::crop ? image.settings.cropRatio : 0.0f);
 			return press.pan || releaseTool(image, at);
 		}
 	} catch(const DocumentError& error) {
@@ -523,6 +687,17 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy) {
 	const imaging::Image& image = *document.image(target);
 	const auto before = tilesOf(image);
 	const int columns = image.columns(), rows = image.rows();
+	if(layer->content.kind != imaging::ContentKind::none) { // its content moves with its pixels, as one step
+		auto moved = std::make_shared<imaging::Image>(image.width(), image.height(), image.format(), image.limits());
+		for(const auto& [place, tile] : before)
+			copyPlaced(*tile,
+			           {place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns, rows},
+			           [&](int column, int row) -> imaging::Tile& { return moved->writableTile(column, row); });
+		document.setContent(layer->id, "Move",
+		                    imaging::movedContent(layer->content, static_cast<float>(dx), static_cast<float>(dy)),
+		                    std::move(moved));
+		return;
+	}
 	const auto destinationOf = [&](int column, int row) -> imaging::Tile& {
 		return document.editTile(target, column, row);
 	};

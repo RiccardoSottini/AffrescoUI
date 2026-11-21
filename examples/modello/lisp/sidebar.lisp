@@ -1,6 +1,8 @@
 ;;; sidebar.lisp --- the viewport's sidebar (N): the active object's transform, the active tool, the view and the
 ;;; 3D cursor, in three tabs
 
+(ns modello.sidebar)
+
 ;;; The sidebar
 
 (defcomponent viewportSidebar "The sidebar: its tabs, then the panels of the tab chosen (state.sidebarTab)." {}
@@ -45,7 +47,7 @@
      :color ~(if (= state.sidebarTab tab) "@widget" "transparent")
      :hover {:color @widgetHover}
      :radius 6
-     :onClick ~(handler chooseSidebarTab tab)
+     :onClick ~(handler choose-sidebar-tab tab)
      (label
        :text ~(t (str "sidebar.tab." tab))
        :textColor ~(if (= state.sidebarTab tab) "@text" "@dim")
@@ -95,7 +97,7 @@
          :with {:id view-ortho
                 :label ~(t "sidebar.orthographic")
                 :path state.view.camera.orthographic
-                :checked ~(= state.view.camera.orthographic true)}))))
+                :checked ~(true? state.view.camera.orthographic)}))))
 
 (defview cursor-panel "The 3D cursor: where it is, and a button that puts it back at the origin." []
   `(node#cursor-panel :when ~(and (= state.sidebarTab "View") state.panels.cursorPanel)

@@ -2,6 +2,8 @@
 ;;;
 ;;; Commands act on the current slide and its selected objects (parts/edit.lisp).
 
+(ns sinopia.parts.tabs)
+
 ;;; Definitions
 
 (defcomponent tabHome "The Home tab: the clipboard, the slides, the font, the paragraph, drawing, editing, voice."
@@ -31,7 +33,7 @@
          (node#b-select :use rbSmall
            :with {:icon mouse-pointer-2 :title ~(t "ribbon.select") :menu true}
            :tooltip ~(t "ribbon.select")
-           :onClick ~(handler openDrop "b-select"))))
+           :onClick ~(handler open-drop "b-select"))))
      (node#g-voice :use rbGroup :with {:title ~(t "ribbon.voice")}
        (node#b-dictate :use rbBig
          :with {:icon audio-lines :title ~(t "ribbon.speak") :menu true :width 50 :enabled false}
@@ -47,13 +49,13 @@
        (node#b-layout :use rbSmall
          :with {:icon layout-template :title ~(t "ribbon.layout") :menu true}
          :tooltip ~(t "ribbon.layout")
-         :onClick ~(handler openDrop "b-layout"))
+         :onClick ~(handler open-drop "b-layout"))
        (node#b-reset :use rbSmall :with {:icon rotate-ccw :title ~(t "ribbon.reset")} :tooltip ~(t "ribbon.reset")
          :onClick resetSlide)
        (node#b-section :use rbSmall
          :with {:icon layout-list :title ~(t "ribbon.section") :menu true}
          :tooltip ~(t "ribbon.section")
-         :onClick ~(handler openDrop "b-section")))))
+         :onClick ~(handler open-drop "b-section")))))
 
 (defview g-clipboard "Paste, Cut, Copy and Copy Style." []
   `(node#g-clipboard :use rbGroup :with {:title ~(t "ribbon.clipboard")}
@@ -71,7 +73,7 @@
        (node#b-painter :use rbSmall
          :with {:icon paint-roller :title ~(t "ribbon.copyStyle") :on ~(some? state.painter)}
          :tooltip ~(t "ribbon.copyStyleSelectAnObject")
-         :onClick copyStyle))))
+         :onClick copy-style))))
 
 (defcomponent tabInsert "The Insert tab: slides, tables, pictures, shapes and icons, links, comments, text, symbols."
   {}
@@ -82,12 +84,14 @@
          :onClick ~(handler newSlide "content")))
      (node#g-ins-tables :use rbGroup :with {:title ~(t "ribbon.tables")}
        (node#b-ins-table :use rbBig
-         :with {:icon table :title ~(t "ribbon.table") :width 46 :enabled false}
-         :tooltip ~(t "ribbon.insertingATableIsnT")))
+         :with {:icon table :title ~(t "ribbon.table") :menu true :width 46}
+         :tooltip ~(t "table.insertTip")
+         :onClick open-table-grid))
      (node#g-ins-images :use rbGroup :with {:title ~(t "ribbon.images")}
        (node#b-ins-pictures :use rbBig
-         :with {:icon image :title ~(t "ribbon.pictures") :width 52 :enabled false}
-         :tooltip ~(t "ribbon.insertingPicturesIsnTAvailable"))
+         :with {:icon image :title ~(t "ribbon.pictures") :width 52}
+         :tooltip ~(t "picture.insertTip")
+         :onClick insert-picture)
        (node#b-ins-album :use rbBig
          :with {:icon images :title ~(t "ribbon.photoAlbum") :width 50 :enabled false}
          :tooltip ~(t "ribbon.aPhotoAlbumIsnT")))
@@ -105,7 +109,7 @@
          :tooltip ~(t "ribbon.insertingAnEquationIsnT"))
        (node#b-ins-symbol :use rbBig
          :with {:icon omega :title ~(t "ribbon.symbol") :menu true :width 48}
-         :onClick ~(handler openDrop "b-ins-symbol")))
+         :onClick ~(handler open-drop "b-ins-symbol")))
      (node#g-ins-media :use rbGroup :with {:title ~(t "ribbon.media")}
        (node#b-ins-video :use rbBig
          :with {:icon film :title ~(t "ribbon.video") :width 44 :enabled false}
@@ -121,21 +125,22 @@
               :title ~(t "ribbon.link")
               :menu true
               :width 44
-              :enabled ~(some (fn [it] (contains ["text" "shape"] (or-else it.kind "text"))) computed.selected)}
+              :enabled ~(some #(contains? #{:text :shape} (or-else (:kind %) "text")) computed.selected)}
        :tooltip ~(t "ribbon.linkTheSelectedTextTo")
-       :onClick ~(handler openDrop "b-ins-link"))))
+       :onClick ~(handler open-drop "b-ins-link"))))
 
 (defview g-ins-illustrations "Shapes, icons and charts." []
   `(node#g-ins-illustrations :use rbGroup :with {:title ~(t "ribbon.illustrations")}
      (node#b-ins-shapes :use rbBig
        :with {:icon shapes :title ~(t "ribbon.shapes") :menu true :width 48}
-       :onClick ~(handler openDrop "b-ins-shapes"))
+       :onClick ~(handler open-drop "b-ins-shapes"))
      (node#b-ins-icons :use rbBig
        :with {:icon face-slightly-smiling :title ~(t "ribbon.icons") :menu true :width 44}
-       :onClick ~(handler openDrop "b-ins-icons"))
+       :onClick ~(handler open-drop "b-ins-icons"))
      (node#b-ins-chart :use rbBig
-       :with {:icon chart-column-stacked :title ~(t "ribbon.chart") :width 44 :enabled false}
-       :tooltip ~(t "ribbon.insertingAChartIsnT"))))
+       :with {:icon chart-column-stacked :title ~(t "ribbon.chart") :menu true :width 44}
+       :tooltip ~(t "chart.insertTip")
+       :onClick ~(handler open-drop "b-ins-chart"))))
 
 (defview g-ins-text "A text box, a header and footer, word art and a symbol." []
   `(node#g-ins-text :use rbGroup :with {:title ~(t "object.newText")}
@@ -144,31 +149,35 @@
                          :onClick insertTextBox)
      (node#b-ins-header :use rbBig
        :with {:icon panel-top :title ~(t "ribbon.headerFooter") :menu true :width 52}
-       :onClick ~(handler openDrop "b-ins-header"))
+       :onClick ~(handler open-drop "b-ins-header"))
      (node#b-ins-art-text :use rbBig
        :with {:icon type :title ~(t "ribbon.artText") :menu true :width 44}
-       :onClick ~(handler openDrop "b-ins-art-text"))))
+       :onClick ~(handler open-drop "b-ins-art-text"))))
 
 (defcomponent tabDesign "The Design tab: the themes, their variants, the colours and fonts, and the background."
   {}
   `(row#tab-design :fitContent width :height 92 :gap 4 :color transparent
      (node#g-themes :use rbGroup :with {:title ~(t "ribbon.themes")}
        (node#gal-themes :use rbGallery :with {:width 490 :more gal-themes}
-         ~(repeat [theme (slice computed.themes 0 6) :key theme.id]
+         ~(repeat [theme computed.galleryThemes :key theme.id]
            (theme-choice theme))))
      (node#g-variants :use rbGroup :with {:title ~(t "ribbon.variants")}
        (node#gal-variants :use rbGallery :with {:width 290}
          ~(repeat [v computed.theme.variants :index n]
            (variant-choice v n)))
-       (column#variants-col :width 76 :height 72 :gap 2 :alignItems stretch :color transparent
+       (column#variants-col :width 96 :height 72 :gap 0 :alignItems stretch :color transparent
          (node#b-colors :use rbSmall
            :with {:icon palette :title ~(t "ribbon.colors") :menu true}
            :tooltip ~(t "ribbon.anotherThemeSColoursFor")
-           :onClick ~(handler openDrop "b-colors"))
+           :onClick ~(handler open-drop "b-colors"))
          (node#b-fonts :use rbSmall
            :with {:icon type :title ~(t "ribbon.fonts") :menu true}
            :tooltip ~(t "ribbon.theFontsOfTheTitles")
-           :onClick ~(handler openDrop "b-fonts"))))
+           :onClick ~(handler open-drop "b-fonts"))
+         (node#b-save-theme :use rbSmall
+           :with {:icon bookmark-plus :title ~(t "design.saveTheme")}
+           :tooltip ~(t "design.saveThisDeckSLook")
+           :onClick save-theme)))
      (node#g-customize :use rbGroup :with {:title ~(t "ribbon.customize")}
        (node#b-slide-size :use rbBig
          :with {:icon rectangle-horizontal :title ~(t "ribbon.slideSize") :width 46 :enabled false}
@@ -199,7 +208,7 @@
          (node#cb-grid :use rbCheck :with {:title ~(t "ribbon.gridlines") :at state.gridlines :prefix cb-grid})
          (node#cb-guides :use rbCheck :with {:title ~(t "ribbon.guides") :at state.guides :prefix cb-guides})))
      (node#g-zoom :use rbGroup :with {:title ~(t "bar.zoom")}
-       (node#b-zoom :use rbBig :with {:icon zoom-in :title ~(t "bar.zoom") :width 44} :onClick ~(handler zoomBy 1.25))
+       (node#b-zoom :use rbBig :with {:icon zoom-in :title ~(t "bar.zoom") :width 44} :onClick ~(handler zoom-by 1.25))
        (node#b-fit :use rbBig :with {:icon maximize :title ~(t "ribbon.fitToWindow") :width 50} :onClick fit))
      (node#g-notes-show :use rbGroup :with {:title ~(t "ribbon.panes")}
        (node#b-notes-toggle :use rbBig
@@ -218,6 +227,7 @@
 (defcomponent tabFile "The File tab: open and save the deck, export it, and what the last of those did."
   {}
   `(row#tab-file :fitContent width :height 92 :gap 4 :color transparent
+     ~(g-file-new)
      (node#g-file :use rbGroup :with {:title ~(t "ribbon.deck")}
        (node#b-open :use rbBig
          :with {:icon folder-open :title ~(t "ribbon.open") :width 46}
@@ -235,7 +245,12 @@
        (node#b-export-png :use rbBig
          :with {:icon file-image :title ~(t "ribbon.picture") :width 50}
          :tooltip ~(t "ribbon.thisSlideAsAPng")
-         :onClick exportPng))
+         :onClick exportPng)
+       (node#b-export-pngs :use rbBig
+         :with {:icon images :title ~(t "ribbon.allSlides") :width 50}
+         :tooltip ~(t "ribbon.everySlideShownAPng")
+         :onClick exportPngs))
+     ~(g-file-recent)
      (node#g-file-info :use rbGroup :with {:title ~(t "ribbon.last")}
        (label#file-status :width 220
          :height 72
@@ -251,7 +266,7 @@
      :height 92
      :gap 4
      :color transparent
-     :let {:a ~computed.animation :on ~(> (count computed.selected) 0)}
+     :let {:a ~computed.animation :on ~(pos? (count computed.selected))}
      (node#g-motion-preview :use rbGroup :with {:title ~(t "ribbon.preview")}
        (node#b-motion-preview :use rbBig
          :with {:icon play :title ~(t "ribbon.preview") :width 50}
@@ -259,7 +274,8 @@
          :onClick previewSlide))
      ~(g-effects)
      (node#g-motion-timing :use rbGroup :with {:title ~(t "ribbon.timing")}
-       ~(motion-timing-col))
+       ~(motion-timing-col)
+       ~(motion-timing-more))
      (node#g-motion-advanced :use rbGroup :with {:title ~(t "ribbon.advanced")}
        (node#b-motion-pane :use rbBig
          :with {:icon list-ordered
@@ -272,14 +288,21 @@
 (defcomponent rbCheck "A checkbox bound to the state path at, and its title, which toggles it too."
   {:title "" :at "" :prefix ""}
   `(row :height 22 :gap 6 :alignItems center :color transparent
-     (checkbox :id ~(str prefix "-box") :width 14 :height 14 :bind ~at :label ~title)
+     (checkbox :id ~(str prefix "-box")
+       :width 14
+       :height 14
+       :bind ~at
+       :label ~title
+       :activeColor @brand
+       :trackColor @rbFieldLine
+       :knobColor @rbFieldBg)
      (label :id ~(str prefix "-caption")
        :fitText true
        :height 20
        :cursor hand
        :textColor @rbInk
        :runs [{:text ~title :size 12}]
-       :onClick ~(handler toggleAt at))))
+       :onClick ~(handler toggle-at at))))
 
 (defcomponent tabPresent "The Present tab: start the show, hide a slide, the presenter view, the reading view."
   {}
@@ -314,53 +337,53 @@
      (node#b-grow :use rbSmall
        :with {:icon a-arrow-up}
        :tooltip ~(t "ribbon.increaseFontSizeCtrlShift")
-       :onClick ~(handler growText 1))
+       :onClick ~(handler grow-text 1))
      (node#b-shrink :use rbSmall
        :with {:icon a-arrow-down}
        :tooltip ~(t "ribbon.decreaseFontSizeCtrlShift")
-       :onClick ~(handler growText -1))
+       :onClick ~(handler grow-text -1))
      (node#b-clear :use rbSmall
                    :with {:icon remove-formatting}
                    :tooltip ~(t "ribbon.clearAllFormatting")
-                   :onClick clearFormatting)))
+                   :onClick clear-formatting)))
 
 (defview r-font-2 "Bold, italic, underline, shadow, strikethrough, spacing, case, highlight and colour." []
   `(node#r-font-2 :use rbRow
      (node#b-bold :use rbSmall
        :with {:icon bold :on ~(and (some? computed.first) computed.allOn.bold)}
        :tooltip ~(t "ribbon.boldCtrlB")
-       :onClick ~(handler toggleText "bold"))
+       :onClick ~(handler toggle-text "bold"))
      (node#b-italic :use rbSmall
        :with {:icon italic :on ~(and (some? computed.first) computed.allOn.italic)}
        :tooltip ~(t "ribbon.italicCtrlI")
-       :onClick ~(handler toggleText "italic"))
+       :onClick ~(handler toggle-text "italic"))
      (node#b-underline :use rbSmall
        :with {:icon underline :on ~(and (some? computed.first) computed.allOn.underline)}
        :tooltip ~(t "ribbon.underlineCtrlU")
-       :onClick ~(handler toggleText "underline"))
+       :onClick ~(handler toggle-text "underline"))
      (node#b-shadow :use rbSmall
        :with {:icon type-outline :on ~(and (some? computed.first) computed.allOn.shadow)}
        :tooltip ~(t "ribbon.textShadow")
-       :onClick ~(handler toggleText "shadow"))
+       :onClick ~(handler toggle-text "shadow"))
      (node#b-strike :use rbSmall
        :with {:icon strikethrough :on ~(and (some? computed.first) computed.allOn.strike)}
        :tooltip ~(t "ribbon.strikethrough")
-       :onClick ~(handler toggleText "strike"))
+       :onClick ~(handler toggle-text "strike"))
      (node#b-spacing :use rbSmall
        :with {:icon move-horizontal :menu true :enabled false}
        :tooltip ~(t "ribbon.characterSpacingIsnTAvailable"))
      (node#b-case :use rbSmall
        :with {:icon case-sensitive :menu true}
        :tooltip ~(t "ribbon.changeCase")
-       :onClick ~(handler openDrop "b-case"))
+       :onClick ~(handler open-drop "b-case"))
      (node#b-highlight :use rbSmall
        :with {:icon highlighter :menu true :tint ~(get state.lastColor "b-highlight") :drop b-highlight :colors true}
        :tooltip ~(t "ribbon.textHighlightColor")
-       :onClick ~(handler applyColor "b-highlight" (get state.lastColor "b-highlight")))
+       :onClick ~(handler apply-color "b-highlight" (get state.lastColor "b-highlight")))
      (node#b-color :use rbSmall
        :with {:icon baseline :menu true :tint ~(get state.lastColor "b-color") :drop b-color :colors true}
        :tooltip ~(t "ribbon.fontColor")
-       :onClick ~(handler applyColor "b-color" (get state.lastColor "b-color")))))
+       :onClick ~(handler apply-color "b-color" (get state.lastColor "b-color")))))
 
 (defview r-para-1 "Bullets, numbering, list levels, line spacing and columns." []
   `(node#r-para-1 :use rbRow
@@ -370,27 +393,27 @@
               :drop b-bullets
               :on ~(and (some? computed.first) computed.allOn.bullets (nil? computed.first.numbering))}
        :tooltip ~(t "ribbon.bullets")
-       :onClick ~(handler toggleText "bullets"))
+       :onClick ~(handler toggle-text "bullets"))
      (node#b-numbering :use rbSmall
        :with {:icon list-ordered :menu true :drop b-numbering :on ~(some? computed.first.numbering)}
        :tooltip ~(t "ribbon.numbering")
-       :onClick toggleNumbering)
+       :onClick toggle-numbering)
      (node#b-outdent :use rbSmall
        :with {:icon indent-decrease}
        :tooltip ~(t "ribbon.decreaseListLevel")
-       :onClick ~(handler indentText -1))
+       :onClick ~(handler indent-text -1))
      (node#b-indent :use rbSmall
        :with {:icon indent-increase}
        :tooltip ~(t "ribbon.increaseListLevel")
-       :onClick ~(handler indentText 1))
+       :onClick ~(handler indent-text 1))
      (node#b-line-spacing :use rbSmall
        :with {:icon list-chevrons-up-down :menu true}
        :tooltip ~(t "ribbon.lineSpacing")
-       :onClick ~(handler openDrop "b-line-spacing"))
+       :onClick ~(handler open-drop "b-line-spacing"))
      (node#b-columns :use rbSmall
        :with {:icon columns-2 :menu true}
        :tooltip ~(t "ribbon.addOrRemoveColumns")
-       :onClick ~(handler openDrop "b-columns"))))
+       :onClick ~(handler open-drop "b-columns"))))
 
 (defview r-para-2 "The text's alignment, its direction, its place in the box." []
   `(node#r-para-2 :use rbRow
@@ -401,15 +424,15 @@
                  :on ~(and (some? computed.first)
                            (= (or-else computed.first.align computed.firstPlaceholder.align "left") a.0))}
           :tooltip ~a.2
-          :onClick ~(handler setAlign a.0)))
+          :onClick ~(handler set-align a.0)))
      (node#b-direction :use rbSmall
        :with {:icon arrow-down-up :menu true}
        :tooltip ~(t "ribbon.textDirection")
-       :onClick ~(handler openDrop "b-direction"))
+       :onClick ~(handler open-drop "b-direction"))
      (node#b-anchor :use rbSmall
        :with {:icon align-vertical-justify-center :menu true}
        :tooltip ~(t "ribbon.alignText")
-       :onClick ~(handler openDrop "b-anchor"))
+       :onClick ~(handler open-drop "b-anchor"))
      (node#b-smart :use rbSmall
        :with {:icon network :menu true :enabled false}
        :tooltip ~(t "ribbon.convertToADiagramIsn"))))
@@ -446,7 +469,7 @@
      :cursor hand
      :hover {:color @rbHover}
      :tooltip ~(if (= k "textBox") (t "ribbon.textBox2") (t (str "shape." k)))
-     :onClick ~(handler shapeChosen k)
+     :onClick ~(handler shape-chosen k)
      (label :id ~(str "gal-shape-" k "-tb")
        :when ~(= k "textBox")
        :fill 0
@@ -464,24 +487,24 @@
      (node#b-arrange :use rbBig
        :with {:icon layers-2 :title ~(t "ribbon.arrange") :menu true :width 52}
        :tooltip ~(t "ribbon.arrange")
-       :onClick ~(handler openDrop "b-arrange"))
+       :onClick ~(handler open-drop "b-arrange"))
      (node#b-quick-styles :use rbBig
        :with {:icon swatch-book :title ~(t "ribbon.shapeStyles") :menu true :width 52}
        :tooltip ~(t "ribbon.shapeStyles2")
-       :onClick ~(handler openColors "b-quick-styles"))
+       :onClick ~(handler open-colors "b-quick-styles"))
      (node#s-drawing :use rbStack
        (node#b-fill :use rbSmall
          :with {:icon paint-bucket :title ~(t "ribbon.shapeFill") :menu true :drop b-fill :colors true}
          :tooltip ~(t "ribbon.shapeFill")
-         :onClick ~(handler applyColor "b-fill" (get state.lastColor "b-fill")))
+         :onClick ~(handler apply-color "b-fill" (get state.lastColor "b-fill")))
        (node#b-outline :use rbSmall
          :with {:icon pen-tool :title ~(t "ribbon.shapeOutline") :menu true :drop b-outline :colors true}
          :tooltip ~(t "ribbon.shapeOutline")
-         :onClick ~(handler applyColor "b-outline" (get state.lastColor "b-outline")))
+         :onClick ~(handler apply-color "b-outline" (get state.lastColor "b-outline")))
        (node#b-effects :use rbSmall
          :with {:icon sparkles :title ~(t "ribbon.shapeEffects") :menu true}
          :tooltip ~(t "ribbon.shapeEffects")
-         :onClick ~(handler openDrop "b-effects")))))
+         :onClick ~(handler open-drop "b-effects")))))
 
 (defview theme-choice "Theme `theme` in the gallery: its background, Aa in its text colour, and its accents." [theme]
   `(panel :id ~(str "theme-" theme.id)
@@ -489,7 +512,7 @@
      :height 60
      :radius 2
      :cursor hand
-     :tooltip ~(t (str "theme." theme.id))
+     :tooltip ~(theme-name theme)
      :color ~(get theme.colors theme.background)
      :borderWidth ~(if (= state.deck.theme theme.id) 2 1)
      :borderColor ~(if (= state.deck.theme theme.id) "@brand" "@rbFieldLine")
@@ -516,7 +539,7 @@
      :borderWidth ~(if (= (or-else state.deck.variant 0) n) 2 1)
      :borderColor ~(if (= (or-else state.deck.variant 0) n) "@brand" "@rbFieldLine")
      :hover {:borderColor @brand}
-     :onClick ~(handler setVariant n)
+     :onClick ~(handler set-variant n)
      {:id ~(str "variant-" n "-band")
       :x 0
       :y 0
@@ -533,7 +556,7 @@
 
 (defview g-transition-to "The transitions, and the side the transition comes from." []
   `(node#g-transition-to :use rbGroup :with {:title ~(t "ribbon.transitionToThisSlide")}
-     (node#gal-transitions :use rbGallery :with {:width 520}
+     (node#gal-transitions :use rbGallery :with {:width 520 :more gal-transitions}
        ~(repeat [k computed.transitionKinds]
          `(label :id ~(str "tr-" k.0)
             :width 60
@@ -542,14 +565,16 @@
             :align {:horizontal center :vertical center}
             :style ~(if (= (or-else computed.slide.transition.kind "none") k.0) "rbButtonOn" "rbButton")
             :runs ~[{:icon k.1 :size 24} {:text (str "\n" k.2) :size 11}]
-            :onClick ~(handler setTransitionKind k.0))))
+            :onClick ~(handler set-transition-kind k.0))))
+     ~(fade-options)
      (node#b-effect-options :use rbBig
+       :when ~(not= computed.slide.transition.kind "fade")
        :with {:icon ~(get computed.directionIcons (or-else computed.slide.transition.direction "left"))
               :title ~(t "ribbon.fromSide" {:side (or-else computed.slide.transition.direction "left")})
               :width 52
               :enabled ~(contains ["push" "wipe" "reveal" "cover"] (or-else computed.slide.transition.kind "none"))}
        :tooltip ~(t "ribbon.theSideTheTransitionComes")
-       :onClick nextDirection)))
+       :onClick next-direction)))
 
 (defview timing-col "The transition's duration, Apply To All, and On Mouse Click." []
   `(column#timing-col :width 200 :height 72 :gap 2 :alignItems stretch :color transparent
@@ -563,9 +588,9 @@
        (node#timing-shorter :use rbSmall
                             :with {:icon minus}
                             :tooltip ~(t "ribbon.shorter")
-                            :onClick ~(handler durationBy -250))
+                            :onClick ~(handler duration-by -250))
        (node#timing-longer :use rbSmall :with {:icon plus} :tooltip ~(t "ribbon.longer")
-         :onClick ~(handler durationBy 250)))
+         :onClick ~(handler duration-by 250)))
      (label#timing-apply :height 22
        :style rbButton
        :padding 2
@@ -589,29 +614,38 @@
        :with {:icon layout-grid :title ~(t "ribbon.slideSorter") :on ~(= state.view "sorter") :width 46}
        :onClick [{:set state.view :to sorter}])
      (node#b-notes-page :use rbBig
-       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :width 46 :enabled false}
-       :tooltip ~(t "ribbon.theNotesPageViewIsn"))
+       :with {:icon notebook-text :title ~(t "ribbon.notesPage") :on ~(= state.view "notesPage") :width 46}
+       :tooltip ~(t "notes.theSlideOverItsNotes")
+       :onClick [{:set state.view :to notesPage}])
      (node#b-reading :use rbBig
        :with {:icon book-open :title ~(t "ribbon.readingView") :width 50}
        :onClick ~(handler readingView state.current))))
 
-(defview g-effects "The build effects for the selected objects, and As Exit." []
-  `(node#g-effects :use rbGroup :with {:title ~(if (= a.kind "exit") (t "ribbon.exit") (t "ribbon.entrance"))}
-     (node#gal-effects :use rbGallery :with {:width 380}
-       ~(repeat [e computed.buildEffects]
+(defview g-effects "The build effects for the selected objects, the emphasis effects, and As Exit." []
+  `(node#g-effects :use rbGroup
+     :with {:title ~(case a.kind
+                      "exit" (t "ribbon.exit")
+                      "emphasis" (t "motion.emphasis")
+                      "path" (t "motion.motionPath")
+                      (t "ribbon.entrance"))}
+     (node#gal-effects :use rbGallery :with {:width 692 :more gal-effects}
+       ~(repeat [e (concat computed.buildEffects computed.emphasisEffects computed.pathEffects)]
          `(label :id ~(str "fx-" e.0)
-            :width 60
+            :width 42
             :height 64
             :wrap true
             :align {:horizontal center :vertical center}
             :style ~(cond (not on) "rbButtonOff" (= (or-else a.effect "none") e.0) "rbButtonOn" :else "rbButton")
             :runs ~[{:icon e.1 :size 24} {:text (str "\n" e.2) :size 11}]
-            :onClick ~(handler setAnimation e.0 (or-else a.kind "entrance") (or-else a.start "click")
-                                (or-else a.ms 500)))))
+            :onClick ~(handler choose-effect e.0))))
      (node#b-exit :use rbBig
-       :with {:icon log-out :title ~(t "ribbon.asExit") :on ~(= a.kind "exit") :enabled ~(some? a) :width 46}
+       :with {:icon log-out
+              :title ~(t "ribbon.asExit")
+              :on ~(= a.kind "exit")
+              :enabled ~(and (some? a) (contains? #{"entrance" "exit"} a.kind))
+              :width 46}
        :tooltip ~(t "ribbon.leaveTheSlideInsteadOf")
-       :onClick toggleExit)))
+       :onClick toggle-exit)))
 
 (defview motion-timing-col "When the build starts, its duration, and how many builds the slide has." []
   `(column#motion-timing-col :width 200 :height 72 :gap 2 :alignItems stretch :color transparent
@@ -624,7 +658,7 @@
             :padding 4
             :style ~(cond (nil? a) "rbButtonOff" (= a.start w.0) "rbButtonOn" :else "rbButton")
             :runs [{:text ~w.1 :size 12}]
-            :onClick ~(handler animationStart w.0))))
+            :onClick ~(handler animation-start w.0))))
      (row#motion-duration-row :height 22 :gap 2 :alignItems center :color transparent
        (label#motion-duration :width 120
          :height 22
@@ -634,15 +668,15 @@
        (node#motion-shorter :use rbSmall
          :with {:icon minus :enabled ~(some? a)}
          :tooltip ~(t "ribbon.shorter")
-         :onClick ~(handler animationDurationBy -250))
+         :onClick ~(handler animation-duration-by -250))
        (node#motion-longer :use rbSmall
          :with {:icon plus :enabled ~(some? a)}
          :tooltip ~(t "ribbon.longer")
-         :onClick ~(handler animationDurationBy 250)))
+         :onClick ~(handler animation-duration-by 250)))
      (label#motion-count :height 22
        :textColor @rbMuted
        :runs [{:text ~(t "ribbon.buildCount" {:n (count (or-else computed.slide.animations []))
-                                               :clicks (count (filter (fn [it] (= it.start "click"))
+                                               :clicks (count (filter #(= (:start %) :click)
                                                                       (or-else computed.slide.animations [])))})
                :size 12}])))
 
@@ -678,30 +712,41 @@
 
 ;;; What the ribbon does
 
-(defn toggleAt "Turns a setting of the state on or off, by its path." [at]
+(defn toggle-at "Turns a setting of the state on or off, by its path." [at]
   (toggle at))
 
-(defn setAlign "Aligns the selected text: left, center, right or justify." [align]
-  (setObjects {:align align}))
+(defn set-align
+  "Aligns the selected text: left, center, right or justify; while a text is edited, the caret's paragraph only."
+  [align]
+  (if-some [o (find #(= (:id %) state.editing) computed.objects)]
+    (let [at (dec (or-else state.caret.line 1))
+          aligns (or-else (:aligns o) [])
+          text (or-else (:text o) "")
+          lines (count (str/split text "\n"))
+          aligned (vec (for [i (range lines)]
+                         (if (= i at) align (get aligns i))))]
+      (commit)
+      (set-objects (map #(if (= (:id %) (:id o)) (assoc % :aligns aligned) %) computed.objects)))
+    (setObjects {:align align :aligns nil})))
 
-(defn toggleNumbering "Numbers the selected text's lines, or stops numbering them." []
-  (setObjects (if (nil? computed.first.numbering) {:bullets true :numbering "1."} {:numbering nil})))
+(defn toggle-numbering "Numbers the selected text's lines, or stops numbering them." []
+  (setObjects (if (some? computed.first.numbering) {:numbering nil} {:bullets true :numbering "1."})))
 
-(defn shapeChosen "Adds a shape of the gallery to the slide, or a text box." [k]
+(defn shape-chosen "Adds a shape of the gallery to the slide, or a text box." [k]
   (if (= k "textBox") (insertTextBox) (insertShape k)))
 
-(defn setTransitionKind "Gives the slide a transition." [kind]
-  (setTransition {:kind kind}))
+(defn set-transition-kind "Gives the slide a transition." [kind]
+  (set-transition {:kind kind}))
 
-(defn nextDirection "Turns the side the transition comes from to the next: left, up, right, down." []
+(defn next-direction "Turns the side the transition comes from to the next: left, up, right, down." []
   (let [now (or-else computed.slide.transition.direction "left")]
-    (setTransition {:direction (get computed.directions (mod (inc (indexOf computed.directions now)) 4))})))
+    (set-transition {:direction (get computed.directions (mod (inc (indexOf computed.directions now)) 4))})))
 
-(defn toggleExit "Makes the selected objects' build an exit, or an entrance again." []
-  (changeAnimation {:kind (if (= computed.animation.kind "exit") "entrance" "exit")}))
+(defn toggle-exit "Makes the selected objects' build an exit, or an entrance again." []
+  (change-animation {:kind (if (= computed.animation.kind "exit") "entrance" "exit")}))
 
-(defn animationStart "Starts the selected objects' build on a click, with the one before, or after it." [start]
-  (changeAnimation {:start start}))
+(defn animation-start "Starts the selected objects' build on a click, with the one before, or after it." [start]
+  (change-animation {:start start}))
 
-(defn animationDurationBy "Makes the selected objects' build longer or shorter, by milliseconds." [by]
-  (changeAnimation {:ms (clamp (+ (or-else computed.animation.ms 500) by) 0 59000)}))
+(defn animation-duration-by "Makes the selected objects' build longer or shorter, by milliseconds." [by]
+  (change-animation {:ms (clamp (+ (or-else computed.animation.ms 500) by) 0 59000)}))

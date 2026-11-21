@@ -4,6 +4,8 @@
 ;;; and switching is one state change. A colour theme read from a file (VS Code's .json) becomes a new theme: its
 ;;; colours, by a revision, added to the tokens they map to (state.themeSources), the rest its kind's defaults.
 
+(ns forge.features.themes.themes)
+
 ;;; The themes
 
 (defstate theme forge-dark)
@@ -19,7 +21,7 @@
   (set "state.quickPick.open" true)
   (set "state.quickPick.query" "theme "))
 
-(defn setTheme "A theme picked in the palette becomes the workbench's." [item]
+(defn set-theme "A theme picked in the palette becomes the workbench's." [item]
   (set "state.theme" item.id))
 
 ;;; Importing a colour theme
@@ -74,51 +76,53 @@
             :comments true
             :title (t "importTheme.dialog")
             :extensions ["json"]
-            :onDone importThemeDone
-            :onError importThemeFailed))
+            :onDone import-theme-done
+            :onError import-theme-failed))
 
-(defn importThemeDone "A theme file read: its name noted, then it is added." [result]
+(defn import-theme-done "A theme file read: its name noted, then it is added." [result]
   (set "state.importedFile" result.name)
   (readTheme))
 
-(defn importThemeFailed "Says why no theme was read." [error]
+(defn import-theme-failed "Says why no theme was read." [error]
   (notify "info" (t "notify.themeNotImported" {:error error.message})))
 
+; style: keep, named in examples/forge/lisp/workbench.scenarios.json
 (defn readTheme "The colour theme read into state.imported, added as a theme." []
-  (readThemeOf state.imported state.importedFile))
+  (read-theme-of state.imported state.importedFile))
 
-(defn readThemeOf "A theme file's name (else its file's), its kind (light, dark or high contrast) and its colours."
+(defn read-theme-of "A theme file's name (else its file's), its kind (light, dark or high contrast) and its colours."
   [theme file]
-  (if (not= (type theme) "object")
+  (if-not (map? theme)
     (notify "info" (t "notify.themeNotObject"))
-    (addTheme (cond
-                (= (type theme.name) "string") theme.name
-                (= (slice file (- 5)) ".json") (slice file 0 (- 5))
+    (add-theme (cond
+                (string? theme.name) theme.name
+                (str/ends-with? file ".json") (slice file 0 -5)
                 :else file)
               (cond
-                (not= (type theme.type) "string") "dark"
-                (or (= theme.type "light") (= theme.type "vs")) "light"
-                (or (= (slice theme.type 0 2) "hc") (= theme.type "high-contrast")) "hc"
-                :else "dark")
-              (if (= (type theme.colors) "object") theme.colors nil))))
+                (not (string? theme.type)) :dark
+                (#{"light" "vs"} theme.type) :light
+                (or (str/starts-with? theme.type "hc") (= theme.type "high-contrast")) :hc
+                :else :dark)
+              (when (map? theme.colors) theme.colors))))
 
-(defn addTheme
+(defn add-theme
   "Each token takes the first colour the theme gives of its keys, else its kind's default; the id is the name's."
   [name kind colors]
-  (addThemeAs (if (empty? (slug name 40)) "imported" (slug name 40))
-              name
-              (if (= kind "light") "light" "dark")
-              (map (fn [it]
-                     {:token it.token
-                      :value (or-else (find (fn [it] (some? it)) (map (fn [it] (hexColor (get colors it))) it.keys))
-                                      (get it kind))})
-                   state.themeSources)))
+  (let [id (slug name 40)]
+    (add-theme-as (if (empty? id) "imported" id)
+                name
+                (if (= kind :light) :light :dark)
+                ; style: keep, #(...) can't give a map
+                (map (fn [source]
+                       {:token source.token :value (or-else (some #(hexColor (get colors %)) source.keys) (get source kind))})
+                     state.themeSources))))
 
-(defn addThemeAs "Adds a theme's colours to the tokens, by one revision, lists it and switches to it."
+(defn add-theme-as "Adds a theme's colours to the tokens, by one revision, lists it and switches to it."
   [id name type values]
+  ; style: keep, #(...) can't give a map
   (patch (map (fn [it] {:op "add" :path (str "/tokens/color." it.token "/" id) :value it.value}) values)
          :message (t "revision.importTheme" {:name name}))
-  (set "state.themes" (concat (filter (fn [it] (not= it.id id)) state.themes) [{:id id :name name :type type}]))
+  (set "state.themes" (concat (remove #(= (:id %) id) state.themes) [{:id id :name name :type type}]))
   (set "state.theme" id)
   (notify "info" (t "notify.themeImported" {:name name})))
 

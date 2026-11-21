@@ -1,11 +1,13 @@
 ;;; player.lisp --- the player at the bottom (shuffle, the transport, repeat, the song playing and its seek bar, the
 ;;; level, the mini player, the queue and the volume), and the mini player, one card in the middle of the window
 
+(ns tempo.player)
+
 ;;; The player
 
 (defview player "The floating player at the bottom, hidden in the mini player." []
   `(node#player :when ~(not state.mini)
-     :anchors {:left 12 :right 12 :bottom 40}
+     :anchors {:left 12 :right 12 :bottom ~(if settings.window.statusBar 40 12)}
      :height 64
      :radius 16
      :color @bar
@@ -65,11 +67,11 @@
 
 (defview repeat-button "Repeat: off, the whole list, or one song." []
   `(node#repeatButton :style control
-     :icon ~(if (= state.repeat "one") "repeat-1" "repeat")
+     :icon ~(if (= state.repeat :one) "repeat-1" "repeat")
      :anchors {:left 168 :top 16}
      :width 32
-     :textColor ~(if (= state.repeat "off") "@muted" "@accent")
-     :checked ~(not= state.repeat "off")
+     :textColor ~(if (= state.repeat :off) "@muted" "@accent")
+     :checked ~(not= state.repeat :off)
      :label ~(t (str "player.repeat." state.repeat))
      :tooltip ~(t (str "player.repeat." state.repeat))
      :onClick cycleRepeat))
@@ -77,7 +79,7 @@
 (defview now-card "The song playing: its cover (a click shows its list), title and artist, like, and the seek bar." []
   `(node#nowCard :dir auto :anchors {:left 224 :right 268 :top 0 :bottom 0} :color transparent
      (image#playingCover :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 10
        :anchors {:left 0 :top 10}
        :width 44
@@ -87,7 +89,7 @@
        :role button
        :label ~(t "now.show" {:name computed.playingName})
        :tooltip ~(t "now.show" {:name computed.playingName})
-       :onClick showPlayingList)
+       :onClick show-playing-list)
      (label#nowPlaying :anchors {:left 56 :right 36 :top 9}
        :height 20
        :runs [{:text ~computed.track.title :color @text} {:text ~(str "  ·  " computed.track.artist) :color @muted :size 12}]
@@ -168,7 +170,7 @@
      :tooltip ~(t "player.mute")
      :onClick toggleMute))
 
-(defview volume-slider "The volume." []
+(defview volume-slider "The volume, dimmed while muted (muting keeps it)." []
   `(slider#volume :anchors {:right 16 :top 24}
      :width 100
      :height 16
@@ -177,8 +179,8 @@
      :label ~(t "player.volume")
      :bind state.volume
      :trackColor @faint
-     :activeColor @muted
-     :knobColor @text
+     :activeColor ~(if state.muted "@faint" "@muted")
+     :knobColor ~(if state.muted "@muted" "@text")
      :tooltip ~(t "player.volume")))
 
 ;;; The mini player
@@ -195,7 +197,7 @@
      :color @surface
      (image#miniCover
        :file ~computed.playing.cover
-       :fit cover
+       :fit cover :color @button
        :radius 6
        :anchors {:left 20 :top 20}
        :width 112

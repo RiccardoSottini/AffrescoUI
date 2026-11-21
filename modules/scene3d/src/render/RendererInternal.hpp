@@ -98,12 +98,16 @@ private:
 	static void setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow);
 	/// @brief Draws the meshes' edges. @param view The frame.
 	void drawWireframe(const FrameView& view);
+	/// @brief Draws the edges of the meshes whose nodes are displayed as wire, hidden behind surfaces.
+	/// @param view The frame.
+	void drawWired(const FrameView& view);
 	/// @brief Draws a mesh with one program's position attribute only. @param item It. @param program In use.
 	/// @param edges Its edges rather than its triangles.
 	void drawPlain(const DrawItem& item, const GlProgram& program, bool edges);
 
 	// RendererOverlays.cpp
-	/// @brief Draws the floor grid and axes. @param view The frame.
+	/// @brief Draws the floor grid and axes as a backdrop, before the surfaces, which all cover it.
+	/// @param view The frame.
 	void drawGrid(const FrameView& view);
 	/// @brief Draws the selection's outline. @param frame The frame. @param view What it shows.
 	void drawOutline(SurfaceFrame& frame, const FrameView& view);

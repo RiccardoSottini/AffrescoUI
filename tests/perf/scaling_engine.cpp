@@ -75,10 +75,11 @@ struct History {
 	}
 };
 
-/// @brief The Kanban template as a history holds it, its includes merged in.
+/// @brief The Kanban template's JSON document as a history holds it, its includes merged in (the template the
+/// Launcher shows is its program, whose nodes the program builds, so a revision can't set them).
 /// @param context The context.
 /// @return The document.
-json kanban(const Context& context) { return screenDocument(context.templateFolder("kanban") / "index.screen.json"); }
+json kanban(const Context& context) { return screenDocument(context.examples() / "flow/json/index.screen.json"); }
 
 /// @brief "scaling/history/commit/<n>": 16 more commits on a history of n, per commit; retainedBytes is what one keeps.
 /// @param context The context.
@@ -141,6 +142,18 @@ std::vector<Workload> restoreWorkloads(Context& context, bool large) {
 std::vector<Workload> revertWorkloads(Context& context, bool large) {
 	return historyReads(context, large, "history/revert", [](const vcs::Repository& history, int commits) {
 		expectChange(history.revertRevision(commits / 2, "bench"), "revert");
+	});
+}
+
+/// @brief "scaling/history/undoPlan/<n>": the plan of an undo of the commit in the middle (a state change no later
+/// commit touched), judged as a peer's: clean, so it walks no later commit.
+/// @param context The context.
+/// @param large Nightly sizes.
+/// @return One workload per size.
+// NOLINTNEXTLINE(misc-const-correctness): with() takes every group's function with a Context it may change
+std::vector<Workload> undoPlanWorkloads(Context& context, bool large) {
+	return historyReads(context, large, "history/undoPlan", [](const vcs::Repository& history, int commits) {
+		if(history.undoPlan(commits / 2, "bench", {}).outcome != "clean") throw std::logic_error("undoPlan: not clean");
 	});
 }
 
@@ -496,6 +509,7 @@ std::vector<Group> scalingEngineGroups(bool large) {
 	        {"scaling/history/commit", with(commitWorkloads)},
 	        {"scaling/history/restore", with(restoreWorkloads)},
 	        {"scaling/history/revert", with(revertWorkloads)},
+	        {"scaling/history/undoPlan", with(undoPlanWorkloads)},
 	        {"scaling/history/diff", with(diffWorkloads)},
 	        {"scaling/history/blame", with(blameWorkloads)},
 	        {"scaling/history/load", with(loadWorkloads)},

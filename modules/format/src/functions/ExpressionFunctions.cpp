@@ -20,7 +20,8 @@ std::span<const Function> functions() {
 		    {logicFunctions(),    numberFunctions(), mathsFunctions(), textFunctions(),  listFunctions(),
 		     itemFunctions(),     foldFunctions(),   timeFunctions(),  fuzzyFunctions(), colorFunctions(),
 		     keyframeFunctions(), localeFunctions(), dateFunctions(),  formFunctions(),  pathFunctions(),
-		     keyFunctions(),      qrFunctions(),     diffFunctions(),  gitFunctions(),   formsFunctions()})
+		     keyFunctions(),      qrFunctions(),     diffFunctions(),  gitFunctions(),   formsFunctions(),
+		     meshFunctions()})
 			rows.insert(rows.end(), group.begin(), group.end());
 		return rows;
 	}();

@@ -56,4 +56,15 @@ struct Followers {
 void saveAfterEvent(const Running& s, std::vector<std::uint8_t> bytes, std::string name, FileFilter filter,
                     json result);
 
+/// @brief Writes a series of files where the person chooses one in the save dialog, after the event: a single file
+/// under the chosen name, several numbered beside it ("Deck.png" gives "Deck-1.png", "Deck-2.png", ...), then runs
+/// "onDone" with result plus {name} (the first file's) and, for several, {files} (their names), or "onError".
+/// @param s The step (its "title" names the dialog).
+/// @param files What to write, one entry a file.
+/// @param name The suggested name.
+/// @param filter The kind of file.
+/// @param result What onDone sees besides the files' names.
+void saveSeriesAfterEvent(const Running& s, std::vector<std::vector<std::uint8_t>> files, std::string name,
+                          FileFilter filter, json result);
+
 } // namespace affresco::format

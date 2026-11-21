@@ -182,6 +182,7 @@ TEST_CASE("render: the ruler's ticks follow the zoom, in frames, seconds or time
 	CHECK(formatTime(1.5, 30.0, TimeFormat::Timecode) == "00:00:01:15");
 	CHECK(formatTime(3725.0, 24.0, TimeFormat::Timecode) == "01:02:05:00");
 	CHECK(formatTime(std::numeric_limits<double>::infinity(), 30.0, TimeFormat::Frames) == "0");
+	CHECK(formatTime(1.5, 30.0, TimeFormat::None).empty()); // ticks only: markers name the times
 }
 
 TEST_CASE("render: a time snaps to the nearest target within reach, else to a frame") {
@@ -317,6 +318,20 @@ TEST_CASE("render: a clip is trimmed from either edge, moved to another track, a
 	fixture.events.clear();
 	fixture.drag(fixture.at(2.0, 1), fixture.at(3.0, 1));
 	for(const TimelineEvent& event : fixture.events) CHECK(event.kind != TimelineEvent::Kind::ClipChange);
+}
+
+TEST_CASE("render: without track buttons, M and L leave a track as it is") {
+	TimelineFixture fixture;
+	fixture.window->setFocus(fixture.view); // the keys go to the timeline
+	fixture.view->setTrackButtons(false);
+	fixture.press(Key::Down);
+	fixture.press(Key::M);
+	fixture.press(Key::L);
+	for(const TimelineEvent& event : fixture.events) CHECK(event.kind != TimelineEvent::Kind::TrackChange);
+	fixture.view->setTrackButtons(true);
+	fixture.press(Key::L);
+	REQUIRE_FALSE(fixture.events.empty());
+	CHECK(fixture.events.back().kind == TimelineEvent::Kind::TrackChange);
 }
 
 TEST_CASE("render: a press whose selection makes the owner drop the model drags nothing") {

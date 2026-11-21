@@ -24,7 +24,8 @@ namespace affresco::automation {
 struct Scenario {
 	std::string name;              ///< Unique in its file; the prefix of its pictures' names.
 	std::filesystem::path screen;  ///< The screen file it plays on.
-	int scale = 1;                 ///< Pixels per window unit in its pictures (1, or 2 like a Retina display).
+	float scale = 1.0f;            ///< Pixels per window unit in its pictures: 1 to 4 in quarters (1.25 looks like a
+	                               ///< display at 125%, 2 like a Retina display).
 	std::vector<json> steps;       ///< The steps, each checked when the file was read (SCREEN_FORMAT.md, "Scenarios").
 	bool needsPictures = false;    ///< Whether a step draws (capture, expect image): it then plays on a hidden
 	                               ///< window with OpenGL, else headless.
@@ -65,7 +66,8 @@ struct Options {
 	                                     ///< empty: a capture fails, and a frame that differs is only counted.
 	std::optional<std::string> document; ///< Play on this document (JSON text) instead of each scenario's screen file,
 	                                     ///< e.g. the running screen's, to check its revisions; files are still found
-	                                     ///< relative to the screen file.
+	                                     ///< relative to the screen file. A program's is its source, as a file's is
+	                                     ///< (screenDocument()): what it builds is built from it, never read back.
 	std::vector<std::string> only;       ///< Play only these scenarios; empty: all.
 	bool pictures = true;                ///< Whether scenarios that draw may open a hidden OpenGL window; if not, they
 	                                     ///< fail at their first picture.
@@ -158,5 +160,13 @@ struct Report {
 /// @throws std::exception If the document isn't a valid screen.
 [[nodiscard]] Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                                        const std::filesystem::path& nowhere);
+
+/// @brief Builds a loaded screen in a headless window (no display, no OpenGL) at its "window" size, and lays out its
+/// first frame, as a host shows it: what only building rejects (a property a node's type doesn't have, a layout
+/// property on the root) throws. Other apps' types build as plain panels; no channel is started. `affrescoui check`
+/// runs it after loading.
+/// @param screen The screen, which is built and then dropped.
+/// @throws std::exception What building rejected.
+void buildHeadless(Screen screen);
 
 } // namespace affresco::automation

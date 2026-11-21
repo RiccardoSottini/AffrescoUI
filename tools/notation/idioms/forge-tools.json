@@ -1,0 +1,22 @@
+{
+	"folders": [
+		"forge/lisp/features/debug",
+		"forge/lisp/features/lsp",
+		"forge/lisp/features/scm",
+		"forge/lisp/features/shell",
+		"forge/lisp/features/terminal",
+		"forge/lisp/features/agent",
+		"forge/lisp/features/accounts",
+		"forge/lisp/features/merge"
+	],
+	"allowed": {
+		"four-nested-calls": 42
+	},
+	"kept": {
+		"camel-case-name": 47,
+		"cond-one-value": 2,
+		"fn-one-parameter": 9,
+		"four-nested-calls": 2,
+		"string-function": 7
+	}
+}

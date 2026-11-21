@@ -1,5 +1,7 @@
 ;;; window.lisp --- Quaderno's window: the title bar and its menus, the status bar, and the pickers over them
 
+(ns code-editor.window)
+
 ;;; Views
 
 (defview title-bar "The title bar: the menus, the project's name and the file's path." []
@@ -11,7 +13,7 @@
        :anchors {:left 520 :right 44 :top 0 :bottom 0}
        :align {:horizontal end :vertical center})
      (label#themeSwitch :text ""
-       :icon ~(if (= computed.theme "dark") "moon" "sun")
+       :icon ~(if (= computed.theme :dark) "moon" "sun")
        :font small
        :anchors {:right 10 :top 3}
        :width 24
@@ -64,18 +66,23 @@
        :tooltip ~(t "bar.showOrHideThePanel")
        :onClick togglePanel)
      (node#statusText :style statusItem
-       :text main
+       :text ~state.branch
        :icon git-branch
-       :textColor @faint
+       :textColor @muted
+       :hover {:textColor @text}
        :anchors {:left 36}
-       :tooltip ~(t "bar.branchSwitchingBranchesIsnT"))
+       :cursor hand
+       :tooltip ~(t "command.switchBranch")
+       :onClick switchBranch)
      ~(status-problems)
      ~(status-size)
      (node#statusIndent :style statusItem
-       :text ~(if computed.file (t "bar.spaces4") "")
-       :textColor @faint
+       :text ~(if computed.file (t "bar.spaces" {:n computed.tabSize}) "")
+       :hover {:textColor @text}
        :anchors {:right 140}
-       :tooltip ~(t "bar.indentation4SpacesChangingIt"))
+       :cursor hand
+       :tooltip ~(t "command.selectIndentation")
+       :onClick selectIndentation)
      (node#statusSyntax :style statusItem
        :text ~(if computed.file (or computed.file.language "Plain Text") "")
        :hover {:textColor @text}
@@ -100,13 +107,7 @@
 
 (defview status-problems "How many errors and warnings: a click shows them." []
   `(node#statusProblems :style statusItem
-     :text ~(str computed.errors
-                 " "
-                 (if (= computed.errors 1) "error" "errors")
-                 ", "
-                 computed.warnings
-                 " "
-                 (if (= computed.warnings 1) "warning" "warnings"))
+     :text ~(t "status.problems" {:errors computed.errors :warnings computed.warnings})
      :textColor ~(if (> computed.errors 0) "@error" "@muted")
      :hover {:textColor @text}
      :anchors {:left 104}
@@ -128,19 +129,19 @@
             :field @input
             :providers [{:items ~(if (= computed.gotoKind "") computed.picks computed.gotoItems)
                          :filter ~(= computed.gotoKind "")
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.goToAFileThen")}
                         {:prefix @
                          :items ~computed.gotoItems
                          :filter false
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.goToASymbolIn")}
-                        {:prefix ":" :items ~computed.gotoItems :filter false :run goToPlace
+                        {:prefix ":" :items ~computed.gotoItems :filter false :run go-to-place
                          :placeholder ~(t "bar.goToALine")}
                         {:prefix "#"
                          :items ~computed.gotoItems
                          :filter false
-                         :run goToPlace
+                         :run go-to-place
                          :placeholder ~(t "bar.searchTheFile")}]}))
 
 (defview theme-pick "The theme picker: dark, light or the system's." []
@@ -158,7 +159,7 @@
             :field @input
             :providers [{:items ~computed.themes
                          :filter false
-                         :run setTheme
+                         :run set-theme
                          :placeholder ~(t "bar.selectAThemeTheArrows")}]}))
 
 ;;; Dialogs, menus and pickers over the window
@@ -177,9 +178,9 @@
             :dimColor @muted
             :highlight @accent
             :backdrop @backdrop
-            :buttons [{:title ~(t "ui.save") :run saveAndClose}
+            :buttons [{:title ~(t "ui.save") :run save-and-close}
                       {:title ~(t "ui.cancel")}
-                      {:title ~(t "ui.donTSave") :run discardAndClose}]}))
+                      {:title ~(t "ui.donTSave") :run discard-and-close}]}))
 
 (defview about-dialog "About Quaderno." []
   `(node#aboutDialog :use dialog
@@ -220,7 +221,7 @@
             :accent @accent
             :highlight @rowSelected
             :field @input
-            :providers [{:items ~computed.projectSymbols :run goToPlace :placeholder ~(t "ui.goToASymbolIn")}]}))
+            :providers [{:items ~computed.projectSymbols :run go-to-place :placeholder ~(t "ui.goToASymbolIn")}]}))
 
 (defview tab-menu "A tab's context menu." []
   `(node#tabMenu :use contextMenu
@@ -229,15 +230,17 @@
             :y ~state.tabMenu.y
             :items [{:title ~(t "ui.close") :run close :with {:file ~state.tabMenu.file}}
                     {:title ~(t "ui.closeOthers")
-                     :run closeOthersOf
+                     :run close-others-of
                      :with {:file ~state.tabMenu.file}
                      :enabled ~(> (count state.tabs) 1)}
                     {:title ~(t "ui.closeTabsToTheRight")
-                     :run closeToTheRight
+                     :run close-to-the-right
                      :with {:file ~state.tabMenu.file}
-                     :enabled ~(< (indexOf state.tabs state.tabMenu.file) (- (count state.tabs) 1))}
+                     :enabled ~(< (indexOf state.tabs state.tabMenu.file) (dec (count state.tabs)))}
                     {:separator true}
-                    {:title ~(t "ui.reopenClosedFile") :run reopenClosed :enabled ~(> (count state.closed) 0)}]}))
+                    {:title ~(t "ui.openToTheSide") :run open-to-side :with {:file ~state.tabMenu.file}}
+                    {:separator true}
+                    {:title ~(t "ui.reopenClosedFile") :run reopenClosed :enabled ~(pos? (count state.closed))}]}))
 
 (defview editor-menu "The editor's context menu." []
   `(node#editorMenu :use contextMenu
@@ -264,4 +267,42 @@
             :accent @accent
             :highlight @rowSelected
             :field @input
-            :providers [{:items ~computed.syntaxes :run setSyntax :placeholder ~(t "ui.selectTheSyntaxOfThe")}]}))
+            :providers [{:items ~computed.syntaxes :run set-syntax :placeholder ~(t "ui.selectTheSyntaxOfThe")}]}))
+
+(defview indent-pick "The indentation picker: spaces per level for the file shown." []
+  `(node#indentPick :when ~state.indentPick.open
+     :use quickPick
+     :with {:name indentPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.indentations :run set-indentation
+                         :placeholder ~(t "ui.selectIndentation")}]}))
+
+(defview snippet-pick "The snippet picker: the file's language's snippets, by prefix." []
+  `(node#snippetPick :when ~state.snippetPick.open
+     :use quickPick
+     :with {:name snippetPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.snippetItems :run insert-snippet
+                         :placeholder ~(t "ui.selectASnippet")}]}))
+
+(defview branch-pick "The branch picker: the sample project's branches, the current one marked." []
+  `(node#branchPick :when ~state.branchPick.open
+     :use quickPick
+     :with {:name branchPick
+            :color @menu
+            :textColor @text
+            :dimColor @muted
+            :accent @accent
+            :highlight @rowSelected
+            :field @input
+            :providers [{:items ~computed.branches :run set-branch :placeholder ~(t "ui.selectABranch")}]}))

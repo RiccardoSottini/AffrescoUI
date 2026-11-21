@@ -30,9 +30,13 @@ affrescoui_fuzzer(diff_functions affrescoui::format) # diffLines, atPointer, app
 target_include_directories(affrescoui_fuzz_diff_functions PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs affrescoui::lisp)
+affrescoui_fuzzer(undo affrescoui::format affrescoui::vcs affrescoui::lisp)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
+# The command messages (getCommands, runCommand, ...), over a service that keeps runs waiting
+affrescoui_fuzzer(commands affrescoui::format affrescoui::vcs affrescoui::channel)
 affrescoui_fuzzer(delta affrescoui::vcs)
+affrescoui_fuzzer(merge affrescoui::vcs) # the three-way merge of documents (vcs/Merge.hpp)
 affrescoui_fuzzer(policy affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(text affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_text PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # detail/Utf8.hpp
@@ -42,6 +46,9 @@ affrescoui_fuzzer(richtext affrescoui::render nlohmann_json::nlohmann_json) # Fu
 target_compile_definitions(affrescoui_fuzz_richtext PRIVATE AFFRESCOUI_FUZZ_CHECKOUT="${PROJECT_SOURCE_DIR}")
 affrescoui_fuzzer(layout affrescoui)
 target_include_directories(affrescoui_fuzz_layout PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # Headless.hpp
+# Partial updates in verify mode: any screen and steps give the panels a full pass gives (format::Verify)
+affrescoui_fuzzer(updates affrescoui)
+target_include_directories(affrescoui_fuzz_updates PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # Headless.hpp
 # What the affrescoui tool reads (tools/affrescoui): its own sources, linked only into the fuzzer (the tool's target
 # compiles them otherwise), and the schema it builds in
 affrescoui_fuzzer(cli affrescoui::format)
@@ -84,6 +91,10 @@ affrescoui_fuzzer(websocket affrescoui::net nlohmann_json::nlohmann_json) # Fuzz
 target_include_directories(affrescoui_fuzz_websocket PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # WebSocketFrames.hpp
 affrescoui_fuzzer(peer_handshake affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_peer_handshake PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # PeerHandshake.hpp
+affrescoui_fuzzer(bencode affrescoui::net) # an editor's bytes, to the editor server's bencode reader
+target_include_directories(affrescoui_fuzz_bencode PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # nrepl/Bencode.hpp
+affrescoui_fuzzer(nrepl affrescoui::net) # an editor's messages, to a connection's nREPL protocol
+target_include_directories(affrescoui_fuzz_nrepl PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # nrepl/EditorLink.hpp
 affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp
 affrescoui_fuzzer(dap affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -96,6 +107,7 @@ target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # Apps' manifests (app.json, format/App.hpp), and the capabilities a screen uses
 affrescoui_fuzzer(app_manifest affrescoui::format)
+affrescoui_fuzzer(package affrescoui) # a version of an app as one file, and installing it (Screen::proposePackage)
 affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
@@ -152,3 +164,5 @@ endif()
 affrescoui_fuzzer(data_models affrescoui::data)
 affrescoui_fuzzer(key_press affrescoui::format)
 target_include_directories(affrescoui_fuzz_key_press PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src/events) # Shortcuts.hpp
+affrescoui_fuzzer(picks affrescoui::intelligence) # what the person pointed at, as the in-process agent reads it
+target_include_directories(affrescoui_fuzz_picks PRIVATE ${PROJECT_SOURCE_DIR}/modules/intelligence/src) # Picks.hpp

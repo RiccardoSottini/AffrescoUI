@@ -2,6 +2,8 @@
 ;;;
 ;;; Each card shows the room's climate and how many of its lights are on; a click opens the room on the home page.
 
+(ns haven.areas)
+
 ;;; What the page works out
 
 (defcomputed areaFloors "The floors, and the rooms on each, by their place."
@@ -26,7 +28,7 @@
 
 (defview room-card "A room: its picture, name and climate, and a bulb while a light is on; it opens the room." [r]
   `(node#areaTile :let {:room ~(get state.rooms r)
-                        :lit ~(count (filter (fn [it] it.on) (get-in state.rooms [r :lights])))}
+                        :lit ~(count (filter :on (get-in state.rooms [r :lights])))}
      :style card
      :anchors {:top 0 :bottom 0}
      :grow 1
@@ -36,8 +38,8 @@
      :focusable true
      :role button
      :label ~room.name
-     :onClick ~(handler openRoom (str "r" r))
-     (image :file ~room.image :fit cover :radius 12 :anchors {:left 0 :right 0 :top 0 :bottom 56})
+     :onClick ~(handler open-room (str "r" r))
+     (image :file ~room.image :fit cover :radius 12 :color ~room.tint :anchors {:left 0 :right 0 :top 0 :bottom 56})
      (label :text ~room.name
        :font heading
        :textColor @text
@@ -86,7 +88,7 @@
      :color @raised
      :hover {:color @raised}
      :textColor @muted
-     :anchors {:right 32 :bottom 32}
+     :anchors {:right 72 :bottom 32}
      :width 180
      :height 52
      :radius 16

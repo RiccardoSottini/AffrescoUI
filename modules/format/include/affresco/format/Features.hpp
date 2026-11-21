@@ -3,7 +3,7 @@
 /// @file
 /// @brief Features from catalogues (rfcs/0004-features.md): the publishers a host trusts, the catalogues it reads, and
 /// the revisions that install and upgrade a feature from them. Enabling, disabling and removing a feature are
-/// revisions on `/features/<name>` like any other (see VERSION_CONTROL.md, "Features").
+/// revisions on `/features/<name>` like any other (see VERSION_CONTROL.md, "Features: signed packages").
 
 #include "affresco/core/Json.hpp"
 
@@ -62,8 +62,21 @@ public:
 	[[nodiscard]] json installRevision(const json& document, std::string_view name, std::string_view release,
 	                                   std::string_view author) const;
 
+	/// @brief The record a release would install, from the catalogue that lists it, after checking its manifest (size,
+	/// digest, signature, shape).
+	/// @param name The feature.
+	/// @param release The release, or "" for the newest.
+	/// @param order Its place among the features.
+	/// @return The record, enabled, with its "installed" digest.
+	/// @throws DocumentError With the reason (not in a catalogue, refused manifest).
+	[[nodiscard]] json releaseRecord(std::string_view name, std::string_view release, int order) const;
+	/// @brief The newest release of a feature any catalogue lists, without fetching its manifest.
+	/// @param name The feature.
+	/// @return "1.2.0", or "" if none lists it.
+	[[nodiscard]] std::string newestRelease(std::string_view name) const;
 	/// @brief The revision that upgrades an installed feature to its newest release, from the same publisher, keeping
-	/// whether it is enabled and its order.
+	/// whether it is enabled and its order. It replaces the record whole: the `features` service merges an edited
+	/// record instead (FeatureUpgrade.hpp), so its edits are kept.
 	/// @param document The document.
 	/// @param name The feature.
 	/// @param author The revision's author.

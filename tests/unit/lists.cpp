@@ -16,9 +16,11 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 using affresco::Action;
@@ -379,6 +381,22 @@ TEST_CASE("items: a tree is read in pre-order, within limits, and bad items are 
 	CHECK(affresco::format::readIds(json::parse(R"(["a", 2, null, true])"), "ids") == std::vector<std::string>{"a", "2"});
 	CHECK(affresco::format::readIds(json(nullptr), "ids").empty());
 	CHECK_THROWS(static_cast<void>(affresco::format::readIds(json("a"), "ids")));
+}
+
+TEST_CASE("items: the parts of a label an item marks, each [first, count], and bad parts refused") {
+	const auto marked = readItems(json::parse(R"([{ "id": "a", "label": "5: return 0;", "marks": [[3, 6], [10, 1]] },
+		{ "id": "b", "marks": null }])"),
+	                              false, "items");
+	REQUIRE(marked.size() == 2);
+	CHECK(marked[0].marks == std::vector<std::pair<std::uint32_t, std::uint32_t>>{{3, 6}, {10, 1}});
+	CHECK(marked[1].marks.empty());
+	// An expression gives doubles: a whole one counts, a fraction doesn't
+	CHECK(readItems(json::parse(R"([{ "id": "a", "marks": [[3.0, 6.0]] }])"), false, "items")[0].marks ==
+	      std::vector<std::pair<std::uint32_t, std::uint32_t>>{{3, 6}});
+	CHECK_THROWS(static_cast<void>(readItems(json::parse(R"([{ "id": "a", "marks": [[1.5, 2]] }])"), false, "items")));
+	CHECK_THROWS(static_cast<void>(readItems(json::parse(R"([{ "id": "a", "marks": [[1]] }])"), false, "items")));
+	CHECK_THROWS(static_cast<void>(readItems(json::parse(R"([{ "id": "a", "marks": [[-1, 2]] }])"), false, "items")));
+	CHECK_THROWS(static_cast<void>(readItems(json::parse(R"([{ "id": "a", "marks": "3" }])"), false, "items")));
 }
 
 TEST_CASE("list and tree nodes: selection and expanded items bound to state, open and expand events, bad keys refused") {

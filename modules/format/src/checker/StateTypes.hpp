@@ -77,6 +77,13 @@ struct Mismatch {
 
 	/// @brief The mismatch as one line: "<place>: <problem>".
 	[[nodiscard]] std::string text() const { return place + ": " + problem; }
+
+	/// @brief The problem without the value it quotes ("expected text"), for a value someone else sent: what
+	/// follows "expected ..." is the value, and the expected part is the type's, written by the screen.
+	[[nodiscard]] std::string problemWithoutValue() const {
+		const std::size_t got = problem.starts_with("expected ") ? problem.find(", got ") : std::string::npos;
+		return got == std::string::npos ? problem : problem.substr(0, got);
+	}
 };
 
 /// @brief The first way a value doesn't match a type.

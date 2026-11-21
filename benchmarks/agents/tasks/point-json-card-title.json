@@ -1,0 +1,39 @@
+{
+	"id": "point-json-card-title",
+	"level": "edit",
+	"screen": "examples/flow/json/index.screen.json",
+	"request": "Show the titles of the cards on the board in the theme's accent colour.",
+	"point": "#cardTitle",
+	"pointRequest": "Show card titles like this one in the theme's accent colour.",
+	"scenarios": [
+		{
+			"name": "accent",
+			"steps": [
+				{
+					"expect": {
+						"node": "#cardTitle",
+						"property": "textColor",
+						"is": "#0d7f63"
+					}
+				},
+				{
+					"expect": {
+						"node": "#cardTitle",
+						"nth": 5,
+						"property": "textColor",
+						"is": "#0d7f63"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": ["#topBar", "#statusBar", "#toolbar", "#columnTitle"],
+	"reference": [
+		{
+			"message": "Card titles in the accent colour",
+			"set": {
+				"#cardTitle/textColor": "@color.accent"
+			}
+		}
+	]
+}

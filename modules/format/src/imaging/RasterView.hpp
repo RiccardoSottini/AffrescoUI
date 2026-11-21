@@ -55,6 +55,9 @@ public:
 	/// @brief The name of the image it shows; empty before show().
 	[[nodiscard]] const std::string& imageName() const noexcept { return name_; }
 
+	/// @brief Whether it types into its image's type layer (plain keys type rather than run shortcuts).
+	[[nodiscard]] bool typesText() const;
+
 protected:
 	/// @brief Draws the image, then what the tools are doing over it.
 	/// @param painter The painter.
@@ -73,6 +76,9 @@ protected:
 	/// @brief The space bar pans while held; other keys go on.
 	/// @param event The event.
 	void keyEvent(const KeyEvent& event) override;
+	/// @brief Types a character into the active type layer while the Type tool types on the canvas.
+	/// @param event The event.
+	void charEvent(const CharEvent& event) override;
 	/// @brief Losing the focus lets go of the space bar.
 	/// @param focused Whether it has the focus.
 	void focusEvent(bool focused) override;
@@ -87,6 +93,15 @@ private:
 	/// @brief The image it shows, if the store still has it.
 	/// @return It, or nullptr.
 	[[nodiscard]] editing::ImageDocument* image() const;
+	/// @brief Types into the image's active type layer and tells the screen.
+	/// @param image The image.
+	/// @param added The text added (UTF-8), or "" to take the last character back.
+	void type(editing::ImageDocument& image, std::string_view added);
+	/// @brief Handles a key while typing into a type layer: Backspace takes a character back, Enter adds a line, Escape
+	/// ends the typing.
+	/// @param event The key.
+	/// @return Whether it was one of those (and nothing else should hear of it).
+	bool typeKey(const KeyEvent& event);
 	/// @brief Sizes the image's view (and its canvas's) to the panel, in pixels, fitting the image the first time a
 	/// view sizes its canvas.
 	/// @param image The image.
@@ -112,10 +127,29 @@ private:
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintOutline(Painter& painter, const editing::ImageDocument& image) const;
-	/// @brief Draws the brush's outline under the pointer.
+	/// @brief Draws the brush's outline under the pointer, for a tool that paints with it.
 	/// @param painter The painter.
 	/// @param image The image.
 	void paintBrush(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws the active path (its anchors and the last anchor's handles), and the active type or shape layer's
+	/// box while a vector tool is chosen.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintPaths(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws the active type or shape layer's box while a vector tool is chosen and nothing is pressed.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintContentBox(Painter& painter, const editing::ImageDocument& image) const;
+	/// @brief Draws a path's anchors, and the handles of its last anchor and of the one being dragged.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	/// @param path The path.
+	void paintAnchors(Painter& painter, const editing::ImageDocument& image, const imaging::VectorPath& path) const;
+	/// @brief Draws the box around the selection (selection-box) or the active layer's pixels (layer-box), and its eight
+	/// handles, as the drag makes it; nothing for the other gestures.
+	/// @param painter The painter.
+	/// @param image The image shown.
+	void paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const;
 
 	std::weak_ptr<editing::ImageDocuments> images_; ///< The runtime's images.
 	std::string name_;                              ///< See imageName().
@@ -127,5 +161,9 @@ private:
 	bool hovered_ = false;                          ///< Whether the pointer is over the view.
 	Mods mods_;                                     ///< The modifier keys of the last button event.
 };
+
+/// @brief Whether a panel is a raster view typing into a type layer, so plain keys type rather than run shortcuts.
+/// @param panel The panel, or nullptr.
+[[nodiscard]] bool typesIntoImage(const Panel* panel);
 
 } // namespace affresco::format

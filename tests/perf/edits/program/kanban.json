@@ -1,0 +1,31 @@
+{
+	"change-colour": {
+		"message": "Darker top bar",
+		"change": [{ "definition": "look.lisp/tokens.tokens", "from": ":color.topBar {:light \"#ffffff\"", "to": ":color.topBar {:light \"#1e1b4b\"" }]
+	},
+	"rename-label": {
+		"message": "Call the app Board",
+		"change": [{ "definition": "toolbar.lisp/top-bar", "from": "Flow", "to": "Board" }]
+	},
+	"restyle": {
+		"message": "Wider filter chips",
+		"change": [{ "definition": "look.lisp/styles.chip", "from": ":width 84", "to": ":width 96" }]
+	},
+	"add-button": {
+		"message": "Add a button that clears the Done column",
+		"change": [
+			{
+				"definition": "toolbar.lisp/clearDone",
+				"text": "(defn clearDone \"Clears the Done column.\" [] (delete \"issues\" :where {:board state.boardId :status 3}))"
+			},
+			{
+				"definition": "toolbar.lisp/top-bar",
+				"append": "(node :style chip :text \"Clear done\" :anchors {:right 180 :top 16} :onClick clearDone)"
+			}
+		]
+	},
+	"remove-node": {
+		"message": "Hide the member badges",
+		"change": [{ "definition": "toolbar.lisp/top-bar", "from": "\n     ~(members-menu)", "to": "" }]
+	}
+}

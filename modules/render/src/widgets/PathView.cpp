@@ -5,6 +5,7 @@
 #include "affresco/render/Painter.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace affresco {
@@ -52,6 +53,13 @@ void PathView::setFillRule(FillRule rule) {
 	changed();
 }
 
+void PathView::setFeather(float feather) {
+	const float clamped = std::isfinite(feather) ? std::clamp(feather, 0.0f, maxPathFeather) : 1.0f;
+	if(clamped == feather_) return;
+	feather_ = clamped;
+	changed();
+}
+
 void PathView::setFillGradient(std::optional<Gradient> gradient) {
 	if(gradient == fillGradient_) return;
 	fillGradient_ = std::move(gradient);
@@ -94,10 +102,10 @@ void PathView::build(Vec2 size) const {
 	const PathTransform transform = transformFor(size);
 	const std::vector<VectorPath::Contour> contours = path_.flatten(transform);
 	if(fillGradient_) {
-		appendFill(contours, fillRule_, fillMesh_);
+		appendFill(contours, fillRule_, fillMesh_, feather_);
 		appendGradientFill(fillMesh_, *fillGradient_, {0.0f, 0.0f, size.x, size.y}, gradientBands_);
 		fillMesh_.clear();
-	} else if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_);
+	} else if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_, feather_);
 	if(strokeColor_.a <= 0.0f) return;
 	StrokeStyle style = strokeStyle_;
 	if(viewBox_ && fit_ != ImageFit::fill) {
@@ -107,13 +115,33 @@ void PathView::build(Vec2 size) const {
 	appendStroke(contours, style, strokeMesh_);
 }
 
+// A translucent path is drawn as a group (Panel::setPaintOpacity()): its mesh's quads overlap at joins, edges and
+// crossings, which would show darker drawn one by one. Only when the group holds nothing else and is drawn
+// untransformed
+float PathView::groupOpacity() const {
+	const float fill = fillMesh_.empty() ? 0.0f : fillColor_.a, stroke = strokeMesh_.empty() ? 0.0f : strokeColor_.a;
+	const float most = std::max(fill, stroke);
+	if(most <= 0.0f || most >= 1.0f || !gradientBands_.empty() || !children().empty() || color().a > 0.0f ||
+	   borderWidth() > 0.0f || shadow().isVisible())
+		return 1.0f;
+	for(const Panel* panel = this; panel; panel = panel->parent())
+		if(panel->isTransformed()) return 1.0f; // a transformed subtree is drawn directly, not through a texture
+	return most;
+}
+
 void PathView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const Rect& box = frame();
 	build({box.width(), box.height()});
+	const float group = groupOpacity();
+	setPaintOpacity(group);
+	const auto inGroup = [group](Color color) {
+		color.a = std::min(color.a / group, 1.0f);
+		return color;
+	};
 	for(const GradientBand& band : gradientBands_) painter.fillMesh(band.quads, {box.left, box.top}, band.color);
-	if(!fillMesh_.empty()) painter.fillMesh(fillMesh_, {box.left, box.top}, fillColor_);
-	if(!strokeMesh_.empty()) painter.fillMesh(strokeMesh_, {box.left, box.top}, strokeColor_);
+	if(!fillMesh_.empty()) painter.fillMesh(fillMesh_, {box.left, box.top}, inGroup(fillColor_));
+	if(!strokeMesh_.empty()) painter.fillMesh(strokeMesh_, {box.left, box.top}, inGroup(strokeColor_));
 }
 
 } // namespace affresco

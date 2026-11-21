@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs every command of the affrescoui tool on every template (ctest "cli"), and checks what each one must do:
 
-- check:  every template passes (exit 0), in text and with --json;
+- check:  every template passes (exit 0), in text and with --json; what only building rejects is reported;
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
 - strings: literal text moves to a language file, and a screen that requires that is held to it;
@@ -15,8 +15,11 @@
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
 - policy test sets a file's roles, and refuses one that isn't text;
+- policy test judges command runs without running them: allow, ask, person or deny, and why;
 - render connects to no channel the screen declares, even by an absolute path;
-- render draws a code editor whose "insert" has no "text".
+- render draws a code editor whose "insert" has no "text";
+- pack, inspect and install: a package's texts don't steer the terminal, and an app's files that aren't its base
+  write nothing.
 
     python3 tools/affrescoui/check.py [--build DIR] [--headless]
 
@@ -214,6 +217,36 @@ class Checker:
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
 
+    def policy_runs(self):
+        """A policy test file's run cases: each is judged by the screen's run rules, nothing runs, and a case has a
+        revision or a run, never both."""
+        screen = {"format": "affrescoui-screen", "version": 2, "state": {"count": 0},
+                  "permissions": {"allow": ["studio"], "reviewers": ["studio"],
+                                  "run": {"allow": ["agent(bump)"], "deny": ["*(reset)"]}},
+                  "actions": {"bump": {"title": "Bump", "arguments": {"by": {"type": "number"}},
+                                       "do": [{"set": "state.count", "to": "{{state.count + by}}"}]},
+                              "reset": {"title": "Reset", "do": [{"set": "state.count", "to": 0}]},
+                              "note": {"title": "Note", "do": [{"set": "state.count", "to": 1}]},
+                              "save": {"title": "Save", "do": [{"saveFile": "{{state}}", "name": "a.json"}]}},
+                  "root": {"type": "label", "text": "{{state.count}}"}}
+        with open(os.path.join(self.scratch, "runs.screen.json"), "w", encoding="utf-8") as file:
+            json.dump(screen, file)
+        run = lambda command, **arguments: {"author": "agent/claude", "command": command, "arguments": arguments}
+        cases = [{"name": "bump", "run": run("bump", by=2), "expect": "allow"},
+                 {"name": "reset", "run": run("reset"), "expect": "deny", "reason": "*(reset)"},
+                 {"name": "note", "run": run("note"), "expect": "ask"},
+                 {"name": "save", "run": run("save"), "expect": "deny", "reason": "only the person may run"},
+                 {"name": "wrong", "run": run("bump", by="x"), "expect": "deny", "reason": "by"},
+                 {"name": "none", "run": run("bmup"), "expect": "deny", "reason": "no command 'bmup'"}]
+        path = os.path.join(self.scratch, "runs.policy.json")
+        for extra, expect in [({}, 0), ({"name": "fails", "run": run("note"), "expect": "allow"}, 1),
+                              ({"name": "both", "run": run("note"), "revision": {}, "expect": "ask"}, 1)]:
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"screen": "runs.screen.json", "cases": cases + ([extra] if extra else [])}, file)
+            out = self.run("policy", "test", path, "--json", expect=expect)
+            if expect == 0:
+                self.expect(all(c["passed"] for c in json.loads(out)["cases"]), f"policy runs: {out}")
+
     def lisp_documents(self):
         """A lisp/ folder's own files work as its JSON ones do: its app.lisp, a policy, and a feature's manifest,
         which gives the same answer in either notation."""
@@ -372,6 +405,48 @@ class Checker:
         self.run("convert", path, "-o", lisp)
         self.run("strings", "extract", lisp, expect=1)  # Lisp files are generated
 
+    def sources(self):
+        """`source`: where a node is written, in either notation (a JSON node's own text, a Lisp node's definition
+        and the line of its file), as getSource gives it with --json; a node that isn't there, and no node."""
+        written = os.path.join(EXAMPLES, "flow", "json", "index.screen.json")
+        program = os.path.join(EXAMPLES, "flow", "lisp", "index.screen.lisp")
+        as_json = json.loads(self.run("source", written, "#cardTitle", "--json"))
+        self.expect(as_json["node"] == "#cardTitle" and as_json["notation"] == "json"
+                    and '"id": "cardTitle"' in as_json["text"], f"source: a JSON node: {as_json}")
+        as_lisp = json.loads(self.run("source", program, "#cardTitle", "--json"))
+        self.expect(as_lisp["address"] == "/program/columns.lisp/card-title" and as_lisp["kind"] == "defview"
+                    and "label#cardTitle" in as_lisp["text"], f"source: a Lisp node: {as_lisp}")
+        with open(os.path.join(EXAMPLES, "flow", "lisp", "columns.lisp"), encoding="utf-8") as file:
+            line = next(n for n, text in enumerate(file, 1) if "(label#cardTitle" in text)
+        heading = self.run("source", program, "#cardTitle").split("\n", 1)[0]
+        self.expect(heading == f"/program/columns.lisp/card-title  columns.lisp:{line}  (defview)",
+                    f"source: the heading of a Lisp node: {heading}")
+        self.run("source", program, "#nothingHere", expect=1)
+        self.run("source", program, expect=2)
+        self.source_reads_only_its_folder()
+
+    def source_reads_only_its_folder(self):
+        """Regression: `source` read the file a /program key names to find a definition's line, so a screen could make
+        it read any file (`../outside.lisp`, with its line found) or never finish (`/dev/zero`). It reads only a
+        regular file inside the screen's folder, and otherwise gives the line within the definition."""
+        folder = os.path.join(self.scratch, "source")
+        os.makedirs(folder, exist_ok=True)
+        view = '(defscreen main (panel#root (label#x :text "a")))'
+        with open(os.path.join(self.scratch, "outside.lisp"), "w", encoding="utf-8") as file:
+            file.write(view + "\n")
+        for name, key in (("up", "../outside.lisp"), ("zero", "/dev/zero")):
+            path = os.path.join(folder, name + ".screen.json")
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"format": "affrescoui-screen", "version": 2, "program": {key: {"main": view}}}, file)
+            try:
+                result = subprocess.run([self.tool, "source", path, "#x"], capture_output=True, text=True,
+                                        encoding="utf-8", timeout=60)
+                heading = result.stdout.split("\n", 1)[0]
+                self.expect(result.returncode == 0 and heading.endswith("(line 1 of the definition)  (defscreen)"),
+                            f"source: a program file named {key}: exit {result.returncode}, {heading}")
+            except subprocess.TimeoutExpired:
+                self.expect(False, f"source: a program file named {key}: didn't finish")
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -382,6 +457,54 @@ class Checker:
         report = json.loads(self.run("check", path, "--json", expect=1))
         self.expect(any(problem["source"] == "schema" and "too long to check" in problem["message"]
                         for problem in report["problems"]), f"check: a long expression: {report}")
+
+    def packages(self):
+        """pack, inspect and install --new: a package's texts can't steer the terminal its review is printed on, and
+        an app's files that aren't the base it describes (a definition hidden in them alone) write nothing."""
+        app = os.path.join(self.scratch, "packed")
+        os.makedirs(app)
+        with open(os.path.join(app, "app.json"), "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-app", "version": 1, "id": "packed", "name": "Packed",
+                       "release": "1.0.0", "entry": "index.screen.json"}, file)
+        with open(os.path.join(app, "index.screen.json"), "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 2, "state": {"title": "Packed"},
+                       "root": {"type": "label", "id": "title", "text": "{{state.title}}"}}, file)
+        data = os.path.join(self.scratch, "packed-data")
+        packed = os.path.join(self.scratch, "packed.affresco.json")
+        self.run("pack", app, "-o", packed, "--whole", "--name", "Packed", "--data", data)
+        self.run("inspect", packed, "--data", data)
+        with open(packed, encoding="utf-8") as file:
+            package = json.load(file)
+
+        def variant(name, change):
+            value = json.loads(json.dumps(package))
+            change(value)
+            path = os.path.join(self.scratch, name)
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump(value, file)
+            return path
+
+        steering = variant("steering.affresco.json", lambda value: value.update(
+            description="\x1b[2J\x1b[Hsignature: trusted", author="A\u009b2J"))
+        for args in (["inspect", steering], ["install", "--new", os.path.join(self.scratch, "steered"), steering]):
+            result = subprocess.run([self.tool, *args, "--data", data], capture_output=True, text=True,
+                                    encoding="utf-8")
+            self.expect("\x1b" not in result.stdout and "\u009b" not in result.stdout,
+                        f"{args[0]}: a package's text reached the terminal as a control: {result.stdout!r}")
+
+        def hide(value):
+            screen = json.loads(value["base"]["files"]["index.screen.json"]["text"])
+            screen["program"] = {"app.lisp": {"hidden": "(defn hidden [] 1)"}}
+            value["base"]["files"]["index.screen.json"]["text"] = json.dumps(screen)
+
+        hidden = variant("hidden.affresco.json", hide)
+        self.expect("aren't the base it describes" in self.run("inspect", hidden, "--data", data, expect=1),
+                    "inspect: an app's files that aren't its base")
+        target = os.path.join(self.scratch, "hidden")
+        self.expect("aren't the base it describes" in self.run("install", "--new", target, hidden, "--data", data,
+                                                              expect=1),
+                    "install --new: an app's files that aren't its base")
+        self.expect(not os.path.exists(target), "install --new: an app's files that aren't its base were written")
 
 
 def parse_arguments(args):
@@ -441,13 +564,23 @@ def main():
         checker.expect(problems[0]["source"] == "lisp" and "line 2, column 15" in problems[0]["message"],
                        f"check: a Lisp file that isn't a value: {problems}")
         checker.run("convert", broken_lisp, expect=1)
+        # What only building rejects: a property the node's type doesn't have, inside a program the schema can't see
+        unbuilt = os.path.join(scratch, "unbuilt.screen.lisp")
+        with open(unbuilt, "w", encoding="utf-8") as file:
+            file.write('(ns unbuilt)\n(defscreen main (panel#all (panel#box :gap 8)))\n')
+        problems = json.loads(checker.run("check", unbuilt, "--json", expect=1))["problems"]
+        checker.expect(any(problem["source"] == "format" and "root.children[0].gap" in problem["message"]
+                           for problem in problems), f"check: a property building rejects: {problems}")
         checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
+        checker.packages()
         checker.strings()
         checker.strings_split()
         checker.policy_roles()
+        checker.policy_runs()
         checker.lisp_documents()
         checker.lisp_language()
+        checker.sources()
         if not headless:
             checker.render_reaches_nobody()
             checker.insert_without_text()

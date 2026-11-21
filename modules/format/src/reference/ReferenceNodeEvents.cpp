@@ -19,7 +19,10 @@ constexpr auto eventTable = std::to_array<KeyReference>({
      "list row's `{ \"id\", \"ids\" }`, when there is one).", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
-    {"onPress", "handler", "Left button down, up.", "events"},
+    {"onPress", "handler",
+	 "Left button down, up (the release reaches the node pressed wherever it is let go: `event.inside` says whether "
+	 "over it; a click needs it over).",
+	 "events"},
     {"onRelease", "handler", "", "events"},
     {"onDrag", "handler", "The pointer moves while pressed: `event.dx`, `event.dy` since the press.", "events"},
     {"onDrop", "handler",

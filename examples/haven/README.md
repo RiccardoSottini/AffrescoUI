@@ -1,6 +1,6 @@
 # Haven, a smart-home dashboard
 
-Rooms in a tree by floor, a floor plan, scenes, lights with their colours, climate, blinds, media, automations, schedules, an energy page with charts, security and notifications, a settings page, light and dark themes, in English, Spanish and French. The `smart-home` template: an app with no C++ of its own, which the stock host runs.
+Rooms in a tree by floor, a floor plan, scenes, lights with their colours, climate, blinds, media, automations, schedules, an energy page with charts, an activity log and history, each over today and the six days before it, cards taken off the dashboard and put back, security and notifications, a settings page, light and dark themes, in English, Spanish and French. The `smart-home` template: an app with no C++ of its own, which the stock host runs.
 
 ```sh
 ./build/affrescoui_launcher examples/haven/lisp/index.screen.lisp

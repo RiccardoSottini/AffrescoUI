@@ -4,6 +4,7 @@
 #include "Events.hpp"
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "RasterView.hpp"
 #include "Shortcuts.hpp"
 
 #include "affresco/render/ColorPicker.hpp"
@@ -84,7 +85,7 @@ bool movesWith(Reconciler& reconciler, const Panel* panel, const KeyEvent& event
 /// @param panel The panel, or nullptr.
 /// @return true if it is.
 bool isTextInput(const Panel* panel) {
-	return dynamic_cast<const TextArea*>(panel) || dynamic_cast<const TextEditor*>(panel);
+	return dynamic_cast<const TextArea*>(panel) || dynamic_cast<const TextEditor*>(panel) || typesIntoImage(panel);
 }
 
 /// @brief Tells whether a focused text input types a key, which the document's "keys" then leave to it: a plain key,
@@ -186,28 +187,63 @@ Panel* findMnemonic(Reconciler& reconciler, const Panel& scope, Panel& panel, ch
 	return nullptr;
 }
 
+/// @brief The person's own key bindings: the list at the state path the document's "keyBindings" names.
+/// @param engine The engine, which evaluates the path.
+/// @param document The document.
+/// @return The list; empty without "keyBindings", or when it holds no list (an error is reported).
+json personBindings(Engine& engine, const json& document) {
+	if(!document.contains("keyBindings") || !document["keyBindings"].is_string()) return json::array();
+	try {
+		const json bindings = engine.document.evaluate("{{" + document["keyBindings"].get<std::string>() + "}}",
+		                                               *noVariables(), json::object(), "keyBindings");
+		return bindings.is_array() ? bindings : json::array();
+	} catch(const DocumentError& error) {
+		engine.report(error.what());
+		return json::array();
+	}
+}
+
+/// @brief Tells whether an item of the person's key bindings is one: keys and a command, both text.
+/// @param binding The item.
+/// @return true if it is.
+bool isPersonBinding(const json& binding) {
+	return binding.is_object() && binding.contains("keys") && binding["keys"].is_string() &&
+	       binding.contains("command") && binding["command"].is_string();
+}
+
 } // namespace
 
+bool Events::altReleasedAlone(const KeyEvent& event) noexcept {
+	if(event.action == affresco::Action::Repeat) return false;
+	const bool alt = event.key == Key::LeftAlt || event.key == Key::RightAlt;
+	if(!alt) {
+		if(event.action == affresco::Action::Press) altAlone_ = false;
+		return false;
+	}
+	constexpr unsigned others = 0x1U | 0x2U | 0x8U; // Shift, Control, Cmd
+	if(event.action == affresco::Action::Press) {
+		altAlone_ = (static_cast<unsigned>(event.mods.bits) & others) == 0;
+		return false;
+	}
+	const bool alone = altAlone_;
+	altAlone_ = false;
+	return alone;
+}
+
 bool Events::resolve(Panel* from, const KeyEvent& event) {
+	if(altReleasedAlone(event) && chord_.empty()) { // "alt": Alt pressed and released alone
+		bool waits = false;
+		return runPanelKeys(from, "alt", waits) || runDocumentKeys("alt", waits);
+	}
 	if(event.action == affresco::Action::Release) return false;
 	const std::string name = shortcut(event);
 	if(name.empty()) return false;
 	const bool chording = !chord_.empty();
-	if(name == "escape") {
-		if(chording) { // Escape ends a chord, and does nothing else
-			chord_.clear();
-			engine_.document.contextChanged();
-			if(engine_.window) engine_.window->takeKey();
-			return true;
-		}
-		dismissOverlays(nullptr);
-	}
+	if(name == "escape" && escape(chording)) return true;
 	const std::string press = chording ? chord_ + " " + name : name;
 	bool waits = false; // some key starts with this press
 	// The focused panel and its ancestors, then the document's; a focused text input keeps plain keys for typing
-	const bool ran = runPanelKeys(from, press, waits) ||
-	                 (!typesKey(from, event, name, chording) && !movesWith(engine_.reconciler, from, event) &&
-	                  runDocumentKeys(press, waits));
+	const bool ran = runPress(from, event, name, press, waits);
 	if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
 	else chord_.clear();              // it ran, or ends a chord, which drops it
 	if(chording || !chord_.empty()) engine_.document.contextChanged();
@@ -215,6 +251,24 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const bool taken = ran || waits || chording;
 	if(taken && engine_.window) engine_.window->takeKey();
 	return taken;
+}
+
+bool Events::runPress(Panel* from, const KeyEvent& event, const std::string& name, const std::string& press,
+                      bool& waits) {
+	return runPanelKeys(from, press, waits) ||
+	       (!typesKey(from, event, name, !chord_.empty()) && !movesWith(engine_.reconciler, from, event) &&
+	        runDocumentKeys(press, waits));
+}
+
+bool Events::escape(bool chording) {
+	if(!chording) {
+		dismissOverlays(nullptr);
+		return false;
+	}
+	chord_.clear(); // Escape ends a chord, and does nothing else
+	engine_.document.contextChanged();
+	if(engine_.window) engine_.window->takeKey();
+	return true;
 }
 
 bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
@@ -236,7 +290,14 @@ bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
 
 bool Events::runDocumentKeys(const std::string& press, bool& waits) {
 	const json& document = engine_.versions.document();
-	if(!document.contains("keys") || !document["keys"].is_object() || !engine_.window) return false;
+	if(!engine_.window) return false;
+	// The person's own bindings ("keyBindings") first, so one can rebind a key the screen's "keys" name
+	for(const json& binding : personBindings(engine_, document)) {
+		if(!isPersonBinding(binding) || normalizeChord(binding["keys"].get<std::string>()) != press) continue;
+		if(runBinding({{"do", binding["command"]}}, engine_.window->root(), *noVariables(), press, "keyBindings"))
+			return true;
+	}
+	if(!document.contains("keys") || !document["keys"].is_object()) return false;
 	waits = waits || startsChord(document["keys"], press + " ", true);
 	// NOLINTNEXTLINE(readability-use-anyofallof): runs the bindings until one handles the press
 	for(const auto& [written, handler] : document["keys"].items()) {

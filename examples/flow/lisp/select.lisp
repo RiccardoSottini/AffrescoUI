@@ -4,20 +4,22 @@
 ;;;
 ;;; Each bulk change is one undo step.
 
+(ns flow.select)
+
 ;;; State
 
 (defstate marked [])
 
 ;;; Keys
 
-(defkey "x" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do toggleMark})
+(defkey "x" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do toggleMark})
 
-(defkey "shift+j" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do markNext})
+(defkey "shift+j" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do markNext})
 
-(defkey "shift+down" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do markNext})
+(defkey "shift+down" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do markNext})
 
-(defkey "shift+k" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do markPrevious})
+(defkey "shift+k" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do markPrevious})
 
-(defkey "shift+up" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do markPrevious})
+(defkey "shift+up" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do markPrevious})
 
-(defkey "mod+a" {:when ~(and (not context.textInputFocus) (= state.page "issues")) :do markAll})
+(defkey "mod+a" {:when ~(and (not context.textInputFocus) (= state.page :issues)) :do markAll})

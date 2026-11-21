@@ -4,6 +4,7 @@
 
 #include "SectionRegistry.hpp"
 #include "NodeKeys.hpp"
+#include "RunRules.hpp"
 
 #include "affresco/core/DocumentRules.hpp"
 
@@ -193,18 +194,22 @@ void checkRuleList(const std::string& key, const json& list, const std::string& 
 	}
 }
 
-/// @brief "permissions": allow, ask and deny rules, the reviewers and the review policy.
+/// @brief "permissions": allow, ask and deny rules, the reviewers, the review policy and the run rules.
 /// @param value The value.
 /// @param name "permissions".
 void checkPermissions(const json& value, const std::string& name) {
 	for(const auto& [key, list] : expect::object(value, name).items()) {
 		const std::string at = std::format("{}.{}", name, key);
+		if(key == "run") {
+			checkRunRules(list, at);
+			continue;
+		}
 		if(key == "review" || key == "budgets" || key == "data") {
 			(key == "review" ? checkReview : key == "budgets" ? checkBudgets : checkDataRules)(list, at);
 			continue;
 		}
 		if(key != "allow" && key != "ask" && key != "deny" && key != "reviewers")
-			expect::fail(at, "unknown property (expected allow, ask, deny, reviewers, review, budgets or data)");
+			expect::fail(at, "unknown property (expected allow, ask, deny, reviewers, review, budgets, data or run)");
 		checkRuleList(key, list, at);
 	}
 }

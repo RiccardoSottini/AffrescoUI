@@ -133,6 +133,31 @@ void mergeList(json& list, const json& part) {
 	list = std::move(merged);
 }
 
+/// @brief Warns of each entry an included file gives that an earlier included file already gave differently: two
+/// parts defining the same name, where the earlier one silently wins. The including file's own entries are meant to
+/// win, and aren't warned of; nor are "strings" and "menus", which merge deeper.
+/// @param document The screen, with the earlier includes merged.
+/// @param own The sections the screen had before any include.
+/// @param part The included file.
+/// @param name What the include names it.
+void warnOfTwiceDefined(const json& document, const json& own, const json& part, const std::string& name) {
+	for(const auto& [key, value] : part.items()) {
+		if(!value.is_object() || key == "strings" || key == "menus") continue;
+		const auto section = document.find(key);
+		if(section == document.end() || !section->is_object()) continue;
+		const auto ownSection = own.find(key);
+		for(const auto& [entry, given] : value.items()) {
+			const auto earlier = section->find(entry);
+			if(earlier == section->end() || *earlier == given) continue;
+			if(ownSection != own.end() && ownSection->is_object() && ownSection->contains(entry)) continue;
+			std::string message = "AffrescoUI screen: include: ";
+			message.append(name).append(" defines ").append(key).append(".").append(entry);
+			message += ", which an earlier include already defines: the earlier one is kept";
+			affresco::log(LogLevel::Warning, message);
+		}
+	}
+}
+
 /// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
 /// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
 /// merge one level deeper, menu by menu, so several files can add items to the same menu; "persist" lists join.
@@ -178,6 +203,19 @@ struct IncludeChain {
 	std::size_t* reads = nullptr; ///< The files read for the screen so far; owned by resolveIncludes(), for the call.
 };
 
+/// @brief The entries a file gives itself in its sections, which are meant to win over its includes'.
+/// @param document The file.
+/// @return Each object section's name, holding each of its entry names (as null).
+[[nodiscard]] json ownEntries(const json& document) {
+	json own;
+	for(const auto& [key, value] : document.items())
+		if(value.is_object()) {
+			own[key] = json::object();
+			for(const auto& [entry, given] : value.items()) own[key][entry] = nullptr;
+		}
+	return own;
+}
+
 /// @brief resolveIncludes(), with where the document is in the chain of includes.
 /// @param document The screen, or an included file.
 /// @param baseDirectory Where its include paths are resolved from.
@@ -199,6 +237,7 @@ void resolveIncludesIn(json& document, const std::filesystem::path& baseDirector
 	document.erase("include");
 	if(!includes.is_array()) throw ScreenError("AffrescoUI screen: include: expected a list of files");
 
+	const json own = ownEntries(document);
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
@@ -216,6 +255,7 @@ void resolveIncludesIn(json& document, const std::filesystem::path& baseDirector
 		inner.containing.push_back(normal);
 		resolveIncludesIn(part, path.parent_path(), migrated, roots, depth + 1,
 		                  sources != nullptr ? &partSources : nullptr, normal.generic_string(), inner);
+		warnOfTwiceDefined(document, own, part, name.get<std::string>());
 		mergeInclude(document, part);
 		if(sources != nullptr) sources->absorb(partSources);
 	}

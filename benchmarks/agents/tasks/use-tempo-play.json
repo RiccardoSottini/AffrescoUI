@@ -1,0 +1,47 @@
+{
+	"id": "use-tempo-play",
+	"level": "use",
+	"screen": "examples/tempo/lisp/index.screen.lisp",
+	"request": "Play Golden Rivers.",
+	"scenarios": [
+		{
+			"name": "playing",
+			"steps": [
+				{
+					"expect": {
+						"state": "playingList",
+						"is": -1
+					}
+				},
+				{
+					"expect": {
+						"state": "playingTrack",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "isPlaying",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#nowPlaying"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "songPlay",
+				"arguments": {
+					"title": "Golden Rivers"
+				}
+			}
+		]
+	}
+}

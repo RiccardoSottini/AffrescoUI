@@ -29,7 +29,7 @@ SCREEN = os.path.join(HERE, "index.screen.json")
 ADAPTER = os.path.join(HERE, "orrery-sorter.adapter.json")
 FEATURE = os.path.join(ROOT, "examples", "sinopia", "json", "features", "slide-sorter")
 SCENARIOS = [os.path.join(HERE, name) for name in
-             ("index.scenarios.json", "controls.scenarios.json", "bodies-strip.scenarios.json")]
+             ("index.scenarios.json", "controls.scenarios.json", "tour-strip.scenarios.json")]
 
 
 def connect(path, timeout=20.0):
@@ -179,7 +179,7 @@ def main():
         png = base64.b64decode(picture["data"])
         assert picture["type"] == "image" and png.startswith(b"\x89PNG"), picture.get("type")
         text = mcp.tool("run_scenarios", {"file": strip, "proposal": proposal})[0]["text"]
-        assert "FAILED" not in text and "1 passed" in text, text
+        assert "FAILED" not in text and " 0 failed" in text and " 0 passed" not in text, text
 
         # 5. The person approves it, as a studio peer
         studio_stream.write((json.dumps({"type": "accept", "proposal": proposal,

@@ -1,5 +1,5 @@
 /// @file
-/// @brief openInBrowser (SignIn.hpp): the system's default browser, started without a shell.
+/// @brief openInBrowser and openWebAddress (SignIn.hpp): the system's default browser, started without a shell.
 
 #include "affresco/net/SignIn.hpp"
 #include "affresco/net/Url.hpp"
@@ -20,6 +20,8 @@ extern char** environ; // NOLINT: POSIX declares it for posix_spawn's callers
 #endif
 
 #include <array>
+#include <cstdint>
+#include <optional>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -49,24 +51,26 @@ std::string browserOpener() {
 } // namespace
 #endif
 
-void openInBrowser(const std::string& url) {
-	if(!isSignInPage(url)) {
-		log(LogLevel::Warning, "AffrescoUI sign-in: won't open a URL that isn't https in the browser");
-		return;
-	}
+namespace {
+
+/// @brief Starts the system's default browser with a URL already checked, without a shell.
+/// @param url The URL.
+/// @return Whether the browser was started.
+bool launchBrowser(const std::string& url) {
 #ifdef _WIN32
 	const int length = MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, nullptr, 0);
 	std::wstring wide(static_cast<std::size_t>(length), L'\0');
 	MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, wide.data(), length);
-	ShellExecuteW(nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+	return reinterpret_cast<std::intptr_t>(ShellExecuteW(nullptr, L"open", wide.c_str(), nullptr, nullptr,
+	                                                     SW_SHOWNORMAL)) > 32; // as documented: above 32 is success
 #else
 #ifdef __APPLE__
 	const std::string program = "/usr/bin/open"; // the system's, never one found on the PATH
 #else
 	const std::string program = browserOpener();
 	if(program.empty()) {
-		log(LogLevel::Warning, "AffrescoUI sign-in: no xdg-open on the PATH's absolute folders to open the browser");
-		return;
+		log(LogLevel::Warning, "AffrescoUI: no xdg-open on the PATH's absolute folders to open the browser");
+		return false;
 	}
 #endif
 	std::string first = program;
@@ -74,12 +78,32 @@ void openInBrowser(const std::string& url) {
 	std::array<char*, 3> arguments{first.data(), second.data(), nullptr};
 	pid_t child = 0;
 	if(posix_spawn(&child, program.c_str(), nullptr, nullptr, arguments.data(), environ) != 0) {
-		log(LogLevel::Warning, "AffrescoUI sign-in: couldn't start " + program + " to open the browser");
-		return;
+		log(LogLevel::Warning, "AffrescoUI: couldn't start " + program + " to open the browser");
+		return false;
 	}
 	int status = 0;
 	waitpid(child, &status, 0); // "open" and "xdg-open" return once the browser has the URL
+	return true;
 #endif
+}
+
+} // namespace
+
+void openInBrowser(const std::string& url) {
+	if(!isSignInPage(url)) {
+		log(LogLevel::Warning, "AffrescoUI sign-in: won't open a URL that isn't https in the browser");
+		return;
+	}
+	launchBrowser(url);
+}
+
+bool openWebAddress(const std::string& url) {
+	const std::optional<Url> parsed = parseUrl(url);
+	if(!parsed || (parsed->scheme != "http" && parsed->scheme != "https")) {
+		log(LogLevel::Warning, "AffrescoUI: won't open a web address that isn't a well-formed http or https URL");
+		return false;
+	}
+	return launchBrowser(url);
 }
 
 } // namespace affresco::net

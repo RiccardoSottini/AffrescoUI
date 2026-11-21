@@ -21,10 +21,10 @@ difference the note says. `missing`: not yet.
 | Playlists, each a table of its songs | done | Records of the `playlists` model |
 | A library of thousands of songs in a table | done | 3,000, virtualised |
 | Albums and artists in grids, each opening its songs | done | |
-| Search that finds songs as you type | done | Fuzzy, on the title and the artist |
+| Search that finds songs as you type | done | Fuzzy, on the title and the artist: the playlists' songs, then the library's |
 | Quick open of a song, a palette of commands | done | Cmd+P, Cmd+Shift+P |
 | Like a song, and a list of the liked ones | done | The heart in the player or a song's menu; Cmd+4 shows them. Playing one, the liked songs after it (up to 50) come next |
-| A context menu on a song: play next, add to the queue | done | A right click or Shift+F10: play, play next, add to the queue, add to a playlist, like, remove from this playlist. The queue takes any song, from any mix, the library or a search |
+| A context menu on a song: play next, add to the queue | done | A right click or Shift+F10, in a table or the queue: play, play next, add to (or remove from) the queue, add to a playlist, like, remove from this playlist. The queue takes any song, from any mix, the library or a search |
 | Make, rename and delete playlists | done | The "+" by the mixes, a playlist's "..." menu, a double click on its name; deleting asks first |
 | Add a song to a playlist, remove it | done | The song's menu: "Add to playlist" (or a new one), "Remove from this playlist" |
 
@@ -36,9 +36,9 @@ difference the note says. `missing`: not yet.
 | The sound of what plays | done | A beat for the simulated songs; a song may name a sound of its own (an attached file) |
 | Shuffle | done | Cmd+S: the songs up next shuffled, and back in order |
 | Repeat: off, all, one | done | Cmd+R |
-| A queue to see and reorder | done | By dragging, or Alt and the arrows |
-| Crossfade into the next song | partial | Heard: the song fades out, the next fades in. One sound plays at a time, so the two don't overlap |
-| Equaliser with presets | partial | On a curves control; it shapes the visualiser, and a note says the sound isn't filtered (the audio module has no filters yet) |
+| A queue to see and reorder | done | By dragging, or Alt and the arrows; Delete takes a song out, and the button by "Coming up" (or "Clear the queue" in the palette) empties it |
+| Crossfade into the next song | done | The two overlap: the next song's sound starts under the last seconds of the one before (the beat plays on two decks) |
+| Equaliser with presets | done | On a curves control: five peaking filters (60 Hz to 16 kHz) shape the sound and the visualiser; the preset the curve is shows as chosen |
 | Now playing: the cover, a visualiser and the lyrics | done | The visualiser is the spectrum of what plays (the sound's `bands`) |
 | Lyrics that follow the time; click a line to go there | done | |
 | Mini player | done | Cmd+M, inside the window |
@@ -51,6 +51,7 @@ difference the note says. `missing`: not yet.
 | Keyboard access and accessibility names | done | Roles, names and live regions; the menu is a tab list |
 | Settings that persist | done | Language, crossfade, theme, equaliser, volume |
 | Agents propose; the person reviews | done | A change to the audio section always waits for the person |
+| An agent can use it | done | `songPlay`, `songPause`, `songQueue` and `songLike` run at once (`permissions.run`): a song by its title (a playlist's or the library's), and its artist when two share it. `soundPreset` and `soundCrossfade` ask the person first |
 
 | Round | Done | Partial | Missing |
 |---|---|---|---|
@@ -58,3 +59,4 @@ difference the note says. `missing`: not yet.
 | 2 | 22 | 2 | 2 |
 | 3 | 22 | 4 | 0 |
 | 4 (playlists, a queue of any song, a distinct look) | 26 | 2 | 0 |
+| 5 (the sound filtered and overlapped) | 28 | 0 | 0 |

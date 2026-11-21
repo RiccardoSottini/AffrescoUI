@@ -4,6 +4,8 @@
 ;;; the devices and controls (tables of the devices and the rooms), the profile (language and theme), General (every
 ;;; setting from the settings schema, each row drawn by its type) and About.
 
+(ns haven.settings)
+
 ;;; The settings
 
 (defcustom climate.awayTarget
@@ -17,13 +19,17 @@
   :title ~(t "setting.blindsMs") :description ~(t "setting.blindsMs.about"))
 
 (defcustom energy.dailyBudget
-  12 "The energy a day should stay under, in kWh, shown on the Energy page."
+  30 "The energy a day should stay under, in kWh, shown on the Energy page."
   :type integer :minimum 5 :maximum 60
   :title ~(t "setting.dailyBudget") :description ~(t "setting.dailyBudget.about"))
 
 (defcustom devices.notify
   true "Show a note in the corner when a device has answered."
   :type boolean :title ~(t "setting.notify") :description ~(t "setting.notify.about"))
+
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
 
 (defcustom ui.language
   "en" "English, Spanish or French."
@@ -40,6 +46,10 @@
 (defstate devTab devices "The tab of the devices and controls.")
 
 (defstate devQuery "" "The text the devices' and rooms' tables are filtered by.")
+
+(defstate devFilter "" "What the devices' tables are narrowed to: empty for all, a room's name, or a connection.")
+
+(defstate devFilterOpen false "Whether the menu of the devices' filters is open.")
 
 (defstate settingsGroups
   [{:id home
@@ -68,15 +78,38 @@
 (defcomputed deviceMakers "Each device's maker, the room it is in, and how it is connected."
   {:door ["Keystead" 0 "Zigbee"] :vacuum ["Tidyworks" 1 "Wi-Fi"] :speaker ["Aurelle" 0 "Wi-Fi"]})
 
-(defcomputed deviceRows "The devices table's rows, those whose name holds the search."
-  (filter (fn [it] (contains (lower-case it.cells.0) (lower-case state.devQuery)))
+(defcomputed connections "The ways the devices are connected." ["Zigbee" "Wi-Fi"])
+
+(defcomputed deviceFilters "The filters menu: every device, each room, each connection; the chosen one checked."
+  (concat [{:title (t "dev.filterAll")
+            :icon (if (= state.devFilter "") "check" "")
+            :run "pick-device-filter"
+            :with {:filter ""}}
+           {:separator true}]
+          (map (fn [room]
+                 {:title room.name
+                  :icon (if (= state.devFilter room.name) "check" "")
+                  :run "pick-device-filter"
+                  :with {:filter room.name}})
+               state.rooms)
+          [{:separator true}]
+          (map (fn [via]
+                 {:title via :icon (if (= state.devFilter via) "check" "") :run "pick-device-filter" :with {:filter via}})
+               computed.connections)))
+
+(defcomputed deviceRows
+  "The devices table's rows: those in the room or on the connection chosen, whose name holds the search."
+  (filter #(and (str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+                (or (= state.devFilter "")
+                    (= (get-in % [:cells 3]) state.devFilter)
+                    (= (get-in % [:cells 4]) state.devFilter)))
           (map (fn [it]
                  {:id it.id
                   :cells [it.name
-                          (get-in computed.deviceMakers [it.id 0])
-                          (t (str "kind." it.id))
-                          (get-in state.rooms [(get-in computed.deviceMakers [it.id 1]) :name])
-                          (get-in computed.deviceMakers [it.id 2])]})
+                          (or-else (get-in computed.deviceMakers [it.id 0]) it.maker)
+                          (t (str "kind." it.kind))
+                          (get-in state.rooms [(or-else (get-in computed.deviceMakers [it.id 1]) it.room) :name])
+                          (or-else (get-in computed.deviceMakers [it.id 2]) it.link)]})
                state.devices)))
 
 (defcomputed deviceColumns "The devices table's columns."
@@ -86,12 +119,16 @@
    {:id "area" :title (t "table.area") :width (floor (* computed.tableWidth 0.18))}
    {:id "via" :title (t "table.integration") :width (floor (* computed.tableWidth 0.18))}])
 
-(defcomputed roomEntityRows "The rooms table's rows: each room's lights and climate, those whose name holds the search."
-  (filter (fn [it] (contains (lower-case it.cells.0) (lower-case state.devQuery)))
+(defcomputed roomEntityRows
+  "The rooms table's rows: each room's lights and climate, the room chosen (or all), those whose name holds the search."
+  (filter #(and (str/includes? (str/lower-case (get-in % [:cells 0])) (str/lower-case state.devQuery))
+                (or (= state.devFilter "")
+                    (contains computed.connections state.devFilter)
+                    (= (get-in % [:cells 0]) state.devFilter)))
           (map-indexed (fn [index it]
                          {:id (str "r" index)
                           :cells [it.name
-                                  (t "summary.lights" {:on (count (filter (fn [it] it.on) it.lights))
+                                  (t "summary.lights" {:on (count (filter :on it.lights))
                                                        :total (count it.lights)})
                                   (str it.temp "°  →  " it.target "°")]})
                        state.rooms)))
@@ -113,7 +150,7 @@
      :focusable true
      :role button
      :label ~(t (str "set." row.id))
-     :onClick ~(handler openSettingsRow row.id)
+     :onClick ~(handler open-settings-row row.id)
      (label :font icons :icon ~row.icon :text "" :textColor "#ffffff" :color ~row.color
        :anchors {:left 16 :top 16} :width 40 :height 40 :radius 20 :align center)
      (label :text ~(t (str "set." row.id))
@@ -165,8 +202,8 @@
      ~(device-filters)
      ~(device-search)
      ~(device-empty)
-     ~(device-add)
      ~(device-tables)
+     ~(device-add)
      ~(profile-user)
      ~(profile-choices)
      ~(general-settings)
@@ -197,12 +234,12 @@
      (label#settingsTitle :font heading
        :textColor @onHeader
        :fitText true
-       :text ~(if (= state.settingsView "main") (t "page.settings") (t (str "set." state.settingsView)))
-       :anchors {:left ~(if (= state.settingsView "main") 24 64) :top 0 :bottom 0}
+       :text ~(if (= state.settingsView :main) (t "page.settings") (t (str "set." state.settingsView)))
+       :anchors {:left ~(if (= state.settingsView :main) 24 64) :top 0 :bottom 0}
        :align {:horizontal start :vertical center})))
 
 (defview settings-main "The main page: a card of rows for each group." []
-  `(column#settingsMain :when ~(= state.settingsView "main")
+  `(column#settingsMain :when ~(= state.settingsView :main)
      :anchors {:left 24 :right 24 :top 80 :bottom 0}
      :gap 24
      :scroll vertical
@@ -219,7 +256,7 @@
 ;;; Devices and controls
 
 (defview device-tabs "The devices' tabs: in the bar when the window is wide, else under it." []
-  `(row#devTabs :when ~(= state.settingsView "devices")
+  `(row#devTabs :when ~(= state.settingsView :devices)
      :anchors {:left ~(if computed.devInBar 260 0) :right ~(if computed.devInBar 24 0)
                :top ~(if computed.devInBar 0 56)}
      :height ~(if computed.devInBar 56 48)
@@ -244,39 +281,45 @@
      :focusable true
      :role tab
      :selected ~(= state.devTab tab)
-     :onClick ~(handler showDeviceTab tab)
+     :onClick ~(handler show-device-tab tab)
      {:when ~(= state.devTab tab)
       :anchors {:left 0 :right 0 :bottom 0}
       :height 2
       :color ~(if computed.devInBar "@onHeader" "@accent")}))
 
 (defview device-tabs-rule "The rule under the devices' tabs, while they are under the bar." []
-  `(node#devTabsRule :when ~(and (= state.settingsView "devices") (not computed.devInBar))
+  `(node#devTabsRule :when ~(and (= state.settingsView :devices) (not computed.devInBar))
      :anchors {:left 0 :right 0 :top 104}
      :height 1
      :color @divider))
 
-(defview device-filters "The filters button, not there yet." []
-  `(node#devFilters :when ~(= state.settingsView "devices")
+(defview device-filters "The filters button: it opens a menu that narrows the tables to a room or a connection." []
+  `(node#devFilters :when ~(= state.settingsView :devices)
      :style button
      :icon filter
-     :text ~(t "dev.filters")
-     :color transparent
-     :hover {:color transparent}
-     :textColor @muted
+     :text ~(if (= state.devFilter "") (t "dev.filters") state.devFilter)
+     :color ~(if (= state.devFilter "") "transparent" "@accentSoft")
+     :hover {:color @cardHover}
+     :textColor ~(if (= state.devFilter "") "@text" "@accent")
      :borderWidth 1
-     :borderColor @border
+     :borderColor ~(if (= state.devFilter "") "@border" "@accent")
      :anchors {:left 24 :top ~(+ computed.devTop 16)}
-     :width 112
+     :width 136
      :height 40
      :radius 8
-     :tooltip ~(t "dev.filtersSoon")
-     :cursor arrow
-     :disabled true))
+     :cursor hand
+     :focusable true
+     :role button
+     :label ~(t "dev.filters")
+     :tooltip ~(t "dev.filtersTip")
+     :isOpen ~state.devFilterOpen
+     :onClick {:toggle state.devFilterOpen}
+     (node#devFilterMenu :use popMenu
+       :with {:open state.devFilterOpen :width 220 :placement below :items ~computed.deviceFilters})))
 
 (defview device-search "The search over the devices or the rooms." []
-  `(node#devSearchBox :when ~(= state.settingsView "devices")
-     :anchors {:left 148 :right 24 :top ~(+ computed.devTop 16)}
+  `(node#devSearchBox :when ~(= state.settingsView :devices)
+     :anchors {:left 172 :right 24 :top ~(+ computed.devTop 16)}
      :height 40
      :radius 8
      :color @card
@@ -285,7 +328,7 @@
      (label :icon search :text "" :textColor @muted :anchors {:left 10 :top 0 :bottom 0} :width 24 :align center)
      (textarea#devSearch :bind state.devQuery
        :placeholder ~(t (str "dev.searchN." state.devTab)
-                        {:n (count (if (= state.devTab "entities") state.rooms state.devices))})
+                        {:n (count (if (= state.devTab :entities) state.rooms state.devices))})
        :placeholderColor @muted
        :textColor @text
        :color transparent
@@ -293,13 +336,13 @@
        :label ~(t "dev.search"))))
 
 (defview device-empty "What the integrations and helpers tabs show: nothing yet." []
-  `(node#devEmpty :when ~(and (= state.settingsView "devices")
-                              (or (= state.devTab "integrations") (= state.devTab "helpers")))
+  `(node#devEmpty :when ~(and (= state.settingsView :devices)
+                              (or (= state.devTab :integrations) (= state.devTab :helpers)))
      :style card
      :anchors {:left 24 :right 24 :top ~(+ computed.devTop 80)}
      :height 160
      (label :font iconsLarge
-       :icon ~(if (= state.devTab "helpers") "wand-2" "puzzle")
+       :icon ~(if (= state.devTab :helpers) "wand-2" "puzzle")
        :text ""
        :textColor @muted
        :anchors {:left 0 :right 0 :top 32}
@@ -311,28 +354,111 @@
        :height 24
        :align center)))
 
-(defview device-add "The floating button that adds to the tab shown (not there yet)." []
-  `(node#devAdd :when ~(= state.settingsView "devices")
+(defview device-add
+  "The floating button that adds to the tab shown: a device, in a dialog; the other tabs' kinds are not there yet." []
+  `(node#devAdd :when ~(= state.settingsView :devices)
+     :let {:can ~(= state.devTab :devices)}
      :style button
      :icon plus
      :text ~(t (str "dev.add." state.devTab))
-     :color @raised
-     :hover {:color @raised}
-     :textColor @muted
-     :anchors {:right 32 :bottom 32}
+     :color ~(if can "@accentSoft" "@raised")
+     :hover {:color ~(if can "@accentSoft" "@raised")}
+     :textColor ~(if can "@accent" "@muted")
+     :anchors {:right 72 :bottom 32}
      :width 200
      :height 52
      :radius 16
      :shadow {:y 4 :blur 12 :color "#00000040"}
      :role button
      :label ~(t (str "dev.add." state.devTab))
-     :tooltip ~(t "dev.addSoon")
-     :cursor arrow
-     :disabled true))
+     :tooltip ~(if can "" (t "dev.addSoon"))
+     :cursor ~(if can "hand" "arrow")
+     :disabled ~(not can)
+     :onClick ~(handler open-new-device)))
+
+(def new-device-kinds "The kinds of device the add dialog offers, with their icons on and off."
+  [{:kind "plug" :icon "plug-zap" :iconOff "plug"} {:kind "fan" :icon "fan" :iconOff "fan"}])
+
+(defn open-new-device "Opens the dialog that adds a device, empty." []
+  (set "state.newDevice" {:open true :name "" :kind "plug" :room 0 :link "Wi-Fi" :error ""}))
+
+(defn add-device "Adds the device the dialog describes, off, to the home's devices; it needs a name." []
+  (let [{:keys [name kind room link]} state.newDevice
+        title (str/trim name)
+        icons (find #(= (:kind %) kind) new-device-kinds)]
+    (if (empty? title)
+      (set "state.newDevice.error" (t "dev.new.needName"))
+      (do (set "state.devices"
+               (conj state.devices
+                     {:id (str kind "-" (count state.devices)) :kind kind :name title :icon (:icon icons)
+                      :iconOff (:iconOff icons) :maker (t "dev.new.maker") :room room :link link :on false
+                      :busy false :progress 0}))
+          (set "state.newDevice.open" false)
+          (show-toast (t "dev.new.added" {:name title}))))))
+
+(defcomponent newDeviceDialog "Adds a device: its name, its kind, its room and how it is connected."
+  {}
+  `(node :dir auto
+     :overlay {:placement center :open state.newDevice.open :dismiss outside :modal true}
+     :width 440
+     :height 404
+     :radius 28
+     :color @card
+     :shadow {:y 8 :blur 24 :color "#00000040"}
+     :role dialog
+     :label ~(t "dev.new.title")
+     (label#newDeviceTitle :font heading :textColor @text :text ~(t "dev.new.title") :anchors {:left 24 :top 20}
+       :fitText true)
+     (textarea#newDeviceName :anchors {:left 24 :right 24 :top 60}
+       :height 40
+       :padding 10
+       :radius 10
+       :color @raised
+       :textColor @text
+       :placeholderColor @muted
+       :bind state.newDevice.name
+       :maxLength 40
+       :placeholder ~(t "dev.new.name")
+       :label ~(t "dev.new.name")
+       :autofocus true
+       :onSubmit ~(handler add-device))
+     (label#newDeviceError :when ~(and (not (empty? state.newDevice.error)) (empty? (str/trim state.newDevice.name)))
+       :font small :text ~state.newDevice.error :textColor @alert :anchors {:left 24 :top 104} :fitText true :live assertive)
+     ~(new-device-field "kind" 124)
+     ~(new-device-field "room" 196)
+     ~(new-device-field "link" 268)
+     (node#newDeviceCancel :style button :text ~(t "dev.new.cancel") :anchors {:right 132 :bottom 20} :width 100
+       :height 36 :onClick {:set state.newDevice.open :to false})
+     (node#newDeviceAdd :style choiceOn :text ~(t "dev.new.add") :anchors {:right 24 :bottom 20} :width 100
+       :height 36 :onClick ~(handler add-device))))
+
+(defcomputed newDeviceChoices "The choices of each field of the new device: its kinds, the rooms, the connections."
+  ; style: keep, #(...) can't give a map
+  {:kind (map (fn [it] {:v it :title (t (str "kind." it))}) ["plug" "fan"])
+   :room (map-indexed (fn [index it] {:v index :title (:name it)}) state.rooms)
+   ; style: keep, #(...) can't give a map
+   :link (map (fn [it] {:v it :title it}) computed.connections)})
+
+(defview new-device-field "A caption over the choices of one field of the new device, the chosen one lit." [field top]
+  `(column :anchors {:left 24 :right 24 :top ~top} :height 70 :gap 6
+     (node :style caption :text ~(t (str "dev.new." field)) :fitText true)
+     (row :height 40 :anchors {:left 0 :right 0} :gap 8 :role radiogroup :label ~(t (str "dev.new." field))
+       ~(repeat [o (get computed.newDeviceChoices field)]
+          `(node :id ~(str "newDevice-" field "-" o.v)
+             :style ~(if (= (get state.newDevice field) o.v) "choiceOn" "choice")
+             :role radio
+             :selected ~(= (get state.newDevice field) o.v)
+             :text ~o.title
+             :fitText true
+             :padding 11
+             :onClick ~(handler pick-new-device field o.v))))))
+
+(defn pick-new-device "Chooses a field of the new device: its kind, room or connection." [field v]
+  (set (str "state.newDevice." field) v))
 
 (defview device-tables "The devices tab's table, or the controls tab's table of rooms." []
-  `(column#settingsDevices :when ~(and (= state.settingsView "devices")
-                                       (or (= state.devTab "devices") (= state.devTab "entities")))
+  `(column#settingsDevices :when ~(and (= state.settingsView :devices)
+                                       (or (= state.devTab :devices) (= state.devTab :entities)))
      :anchors {:left 0 :right 0 :top ~(+ computed.devTop 72) :bottom 0}
      :gap 0
      :scroll vertical
@@ -340,7 +466,7 @@
      ~(room-table)))
 
 (defview device-table "The devices: name, maker, model, room and connection." []
-  `(node#deviceTableCard :when ~(= state.devTab "devices")
+  `(node#deviceTableCard :when ~(= state.devTab :devices)
      :anchors {:left 0 :right 0}
      :height ~(+ (* (count computed.deviceRows) 52) 29)
      :color @card
@@ -359,7 +485,7 @@
        `(node#deviceTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
 
 (defview room-table "The rooms: their lights and climate; opening one shows it on the home page." []
-  `(node#roomTableCard :when ~(= state.devTab "entities")
+  `(node#roomTableCard :when ~(= state.devTab :entities)
      :anchors {:left 0 :right 0}
      :height ~(+ (* (count computed.roomEntityRows) 52) 29)
      :color @card
@@ -373,7 +499,7 @@
        :selectedTextColor @text
        :selectedBackground @selected
        :accentColor @border
-       :onOpen ~(handler openRoom event.value))
+       :onOpen ~(handler open-room event.value))
      {:anchors {:left 0 :right 0 :top 28} :height 1 :color @divider}
      ~(repeat [row computed.roomEntityRows]
        `(node#roomEntityTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
@@ -381,7 +507,7 @@
 ;;; The profile
 
 (defview profile-user "The person signed in, and Log out (not there yet)." []
-  `(node#settingsUser :when ~(= state.settingsView "profile")
+  `(node#settingsUser :when ~(= state.settingsView :profile)
      :style card
      :anchors {:left 24 :right 24 :top 80}
      :height 88
@@ -406,7 +532,7 @@
        :disabled true)))
 
 (defview profile-choices "The language and the theme." []
-  `(node#settingsProfile :when ~(= state.settingsView "profile")
+  `(node#settingsProfile :when ~(= state.settingsView :profile)
      :style card
      :anchors {:left 24 :right 24 :top 184}
      :height 168
@@ -416,13 +542,13 @@
          ~(language-pick))
        (node#profileTheme :use settingsSection :with {:title ~(t "set.theme") :sub ~(t "set.theme.sub")}
          (node#pickAuto :use settingsRadio
-           :with {:text ~(t "set.auto") :chosen ~(= state.theme "auto")}
+           :with {:text ~(t "set.auto") :chosen ~(= state.theme :auto)}
            :onClick {:set state.theme :to auto})
          (node#pickLight :use settingsRadio
-           :with {:text ~(t "set.light") :chosen ~(= state.theme "light")}
+           :with {:text ~(t "set.light") :chosen ~(= state.theme :light)}
            :onClick {:set state.theme :to light})
          (node#pickDark :use settingsRadio
-           :with {:text ~(t "set.dark") :chosen ~(= state.theme "dark")}
+           :with {:text ~(t "set.dark") :chosen ~(= state.theme :dark)}
            :onClick {:set state.theme :to dark})))))
 
 (defview language-pick "The language chosen, and the menu of the three, each named in its own language." []
@@ -447,9 +573,9 @@
        :with {:open state.langMenu
               :placement below
               :width 240
-              :items [{:title "English" :checked ~(= settings.ui.language "en") :run pickLanguage :with {:lang en}}
-                      {:title "Español" :checked ~(= settings.ui.language "es") :run pickLanguage :with {:lang es}}
-                      {:title "Français" :checked ~(= settings.ui.language "fr") :run pickLanguage
+              :items [{:title "English" :checked ~(= settings.ui.language "en") :run pick-language :with {:lang en}}
+                      {:title "Español" :checked ~(= settings.ui.language "es") :run pick-language :with {:lang es}}
+                      {:title "Français" :checked ~(= settings.ui.language "fr") :run pick-language
                        :with {:lang fr}}]})))
 
 (defview menu-chevron "The chevron at the end of a field that opens a menu." [top]
@@ -459,13 +585,14 @@
 ;;; General: every setting, each row drawn by its type
 
 (defview general-settings "Every setting of the settings schema, a row each." []
-  `(node#settingsGeneral :when ~(= state.settingsView "general")
+  `(node#settingsGeneral :when ~(= state.settingsView :general)
      :anchors {:top 80}
-     :x ~(max 24 (/ (- (- window.width computed.sideWidth) 1040) 2))
-     :width ~(min 1040 (- (- window.width computed.sideWidth) 48))
+     :x ~(max 24 (/ (- window.width computed.sideWidth 1040) 2))
+     :width ~(min 1040 (- window.width computed.sideWidth 48))
      :height ~(+ (* (count settingsList) 72) 16)
      :style card
      (column :anchors {:left 0 :right 0 :top 8 :bottom 8} :gap 0
+       ;; style: keep, the JSON version's filter(settingsList, true), the same expression
        ~(repeat [s (filter (fn [it] true) settingsList) :index i]
          (general-row s i)))))
 
@@ -485,7 +612,7 @@
        :focusable true
        :role button
        :label ~(t "set.resetOne" {:name s.title})
-       :onClick ~(handler resetSetting s.key))
+       :onClick ~(handler reset-setting s.key))
      (node#generalSwitch :when ~(= s.type "boolean")
        :use pill
        :with {:at ~(str "settings." s.key) :on ~s.value :name ~s.title}
@@ -507,7 +634,7 @@
      :hover {:color @raisedHover}
      :textColor @text
      :label ~s.title
-     :onChange ~(handler typeSetting s event.value)))
+     :onChange ~(handler type-setting s event.value)))
 
 (defview general-pick "A setting with a list of values: the one chosen, and the menu of them." [s]
   `(label#generalPick :when ~(and (= s.type "string") (some? s.enum))
@@ -540,7 +667,7 @@
 ;;; About
 
 (defview about-card "The app's mark, name and tagline, its facts, and links to its pages (offline here)." []
-  `(node#settingsAbout :when ~(= state.settingsView "about") :style card :anchors {:left 24 :right 24 :top 80}
+  `(node#settingsAbout :when ~(= state.settingsView :about) :style card :anchors {:left 24 :right 24 :top 80}
      :height 468
      (row :anchors {:left 0 :right 0 :top 32} :height 72 :justify center
        (node :color @accent :width 72 :height 72 :radius 36

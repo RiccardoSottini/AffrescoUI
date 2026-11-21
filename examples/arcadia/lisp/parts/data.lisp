@@ -4,6 +4,8 @@
 ;;; models.lisp's, seeded from seed/, all invented. A game's pictures are art/<id>/cover.svg (2:3), hero.svg (the wide
 ;;; banner) and shot1-3.svg. Times are milliseconds, measured from state.today.
 
+(ns arcadia.parts.data)
+
 ;;; Today and the person
 
 (defstate today 1792713600000)

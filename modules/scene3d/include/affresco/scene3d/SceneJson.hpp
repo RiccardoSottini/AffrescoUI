@@ -7,7 +7,7 @@
 /// "mesh", "material", "light": {...}, "camera": {...}, "visible"}`, where `"rotationDegrees": [x, y, z]` (Euler
 /// angles, applied x, then y, then z) may stand for the rotation and wins over it; a material: `{"id", "name", "baseColor":
 /// [r, g, b, a], "metallic", "roughness", "emissive": [r, g, b], "alphaMode", "alphaCutoff", "doubleSided",
-/// "textures": {"baseColor", "metallicRoughness", "normal", "emissive"}}`. Members left out take their defaults;
+/// "castsShadow", "textures": {"baseColor", "metallicRoughness", "normal", "emissive"}}`. Members left out take their defaults;
 /// members this file doesn't know (a material's "graph") are ignored here and kept by the document.
 
 #include "affresco/core/Json.hpp"

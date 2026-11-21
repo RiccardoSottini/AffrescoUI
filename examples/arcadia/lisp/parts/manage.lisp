@@ -3,6 +3,8 @@
 ;;; A game's menu opens from the library (right click, Shift+F10) or the game page's gear. Its properties (launch
 ;;; options, the overlay, cloud saves, updates, installed files) are kept on the game's record; uninstalling asks first.
 
+(ns arcadia.parts.manage)
+
 ;;; What it keeps
 
 (defstate manage nil)
@@ -11,21 +13,44 @@
 
 (defstate properties {:open false :tab general :verify ""})
 
+(defstate compat {} "The compatibility layer each game is forced to run with, by its id; a game not here runs as it is.")
+
+(def compat-layers "The compatibility layers a game can be forced to use, the newest first."
+  ["bridge9" "bridge8" "experimental"])
+
+(defcomputed compatLayer "The layer the game being managed is forced to use, or nil."
+  (get state.compat computed.manageGame.id))
+
+(defcomputed manageDrive "The name of the drive the game being managed is installed on."
+  (t (str "storage." (or-else computed.manageGame.drive "main"))))
+
+(defcomputed gameFiles
+  "The files in the game's folder, the largest first: its packs, the program and its settings, each with its share of
+  the game's size, in GB."
+  (let [size (or-else computed.manageGame.sizeGb 0)]
+    [{:name "content.pak" :icon "package" :gb (* size 0.78)}
+     {:name "textures.pak" :icon "image" :gb (* size 0.15)}
+     {:name "audio.pak" :icon "music" :gb (* size 0.06)}
+     {:name (str computed.manageGame.id ".bin") :icon "cpu" :gb (* size 0.009)}
+     {:name "settings.cfg" :icon "file" :gb 0.0001}]))
+
 (defstate uninstall {:open false})
 
-(defcomputed manageGame "The game being managed." (find (fn [it] (= it.id state.manage)) data.games))
+(defstate filesShown false)
+
+(defcomputed manageGame "The game being managed." (find #(= (:id %) state.manage) data.games))
 
 ;;; The game's menu
 
 (defcomputed gameMenuItems "The game menu's items, for the game it is open on: what it can do now first."
-  (if (nil? computed.manageGame)
-    []
-    [{:title (t (cond (= computed.manageGame.status "ready") "menu.game.play"
-                      (= computed.manageGame.status "running") "menu.game.stop"
-                      (= computed.manageGame.status "update") "menu.game.update"
-                      (= computed.manageGame.status "downloading") "menu.game.downloading"
-                      :else "menu.game.install"))
-      :enabled (not= computed.manageGame.status "downloading")
+  (if (some? computed.manageGame)
+    [{:title (t (case computed.manageGame.status
+                  :ready "menu.game.play"
+                  :running "menu.game.stop"
+                  :update "menu.game.update"
+                  :downloading "menu.game.downloading"
+                  "menu.game.install"))
+      :enabled (not= computed.manageGame.status :downloading)
       :run "primary"
       :with {:game computed.manageGame}}
      {:separator true}
@@ -57,12 +82,12 @@
 ;;; Properties
 
 (defcomponent propertiesDialog
-  "A game's properties: launch options and in-game settings, updates, installed files, extra content."
+  "A game's properties: launch options and in-game settings, updates, installed files, compatibility, extra content."
   {}
   `(node :use dialog
      :with {:open state.properties.open
             :width 640
-            :height 400
+            :height 460
             :title ~(t "properties.title" {:game (or-else computed.manageGame.title "")})
             :color @color.panel
             :textColor @color.text
@@ -76,11 +101,12 @@
          ~(general-page)
          ~(updates-page)
          ~(files-page)
+         ~(compat-page)
          ~(extras-page)))))
 
 (defview properties-tabs "The properties' pages down the left side, the one shown lit." []
   `(column#properties-tabs :width 150 :alignSelf stretch :gap 2 :role tablist :arrows vertical
-     ~(repeat [tab ["general" "updates" "files" "dlc"]]
+     ~(repeat [tab ["general" "updates" "files" "compat" "dlc"]]
         `(label :id ~(str "properties-tab-" tab)
            :anchors {:left 0 :right 0}
            :height 30
@@ -94,7 +120,7 @@
            :color ~(if (= state.properties.tab tab) "@color.select" "transparent")
            :textColor ~(if (= state.properties.tab tab) "@color.bright" "@color.muted")
            :hover {:textColor @color.bright}
-           :onClick ~(handler showPropertiesTab tab)))))
+           :onClick ~(handler show-properties-tab tab)))))
 
 (defview caps-title "A section's title in caps, at a height of the page." [key top]
   `(label :font caps
@@ -120,7 +146,7 @@
          :label ~(t "properties.overlay")
          :checked ~(not= computed.manageGame.overlay false)
          :activeColor @color.accent
-         :onChange ~(handler setOverlay event.value)))
+         :onChange ~(handler set-overlay event.value)))
      (row#properties-cloud :anchors {:left 0 :right 0 :top 156} :height 30 :alignItems center
        (label :grow 1 :height 22 :text ~(t "properties.cloud") :textColor @color.text)
        (toggle#properties-cloud-toggle :width 40
@@ -128,7 +154,7 @@
          :label ~(t "properties.cloud")
          :checked ~(not= computed.manageGame.cloud false)
          :activeColor @color.accent
-         :onChange ~(handler setCloud event.value)))))
+         :onChange ~(handler set-cloud event.value)))))
 
 (defview launch-options "The game's launch options, a field that keeps what is typed." []
   `(textarea#properties-launch :anchors {:left 0 :right 0 :top 24}
@@ -146,7 +172,7 @@
      :placeholder ~(t "properties.launchHint")
      :label ~(t "properties.launch")
      :text ~(or-else computed.manageGame.launchOptions "")
-     :onChange ~(handler setLaunchOptions event.value)))
+     :onChange ~(handler set-launch-options event.value)))
 
 (defview updates-page "The updates page: when the game updates, one of three." []
   `(node :when ~(= state.properties.tab "updates") :fill true :color transparent
@@ -174,7 +200,7 @@
      :label ~(t (str "properties.updates." way))
      :radius 3
      :hover {:color @color.hover}
-     :onClick ~(handler setUpdates way)
+     :onClick ~(handler set-updates way)
      (panel :color transparent :width 2 :height 1)
      (panel :width 14
        :height 14
@@ -190,7 +216,10 @@
          :color @color.accent))
      (label :grow 1 :height 22 :text ~(t (str "properties.updates." way)) :textColor @color.text)))
 
-(defview files-page "The installed files page: the size, the folder, and checking the files." []
+(defview files-page
+  "The installed files page: the size, the drive and folder, browsing the files, checking them, and moving the game to the
+  other drive."
+  []
   `(node :when ~(= state.properties.tab "files") :fill true :color transparent
      ~(caps-title "properties.size" 0)
      (label#properties-size :text ~(t "properties.sizeValue"
@@ -199,26 +228,115 @@
        :font default
        :anchors {:left 0 :right 0 :top 24}
        :height 22)
-     ~(caps-title "properties.folder" 60)
-     (label#properties-folder :text ~(t "properties.folderPath" {:game computed.manageGame.title})
+     ~(caps-title "properties.folder" 56)
+     (label#properties-folder :runs [{:text ~(str computed.manageDrive "  ›  ")
+                                      :color @color.muted}
+                                     {:text ~(t "properties.folderPath" {:game computed.manageGame.title})}]
        :textColor @color.text
        :font small
-       :anchors {:left 0 :right 0 :top 84}
+       :anchors {:left 0 :right 0 :top 78}
        :height 22)
-     (node#properties-verify :use quietButton
-       :anchors {:left 0 :top 128}
-       :height 32
-       :with {:title ~(t "properties.verify") :icon shield-check}
-       :disabled ~(= state.properties.verify "running")
-       :onClick verifyFiles)
+     ~(file-actions)
      (label#properties-verify-result :live polite
        :font small
-       :anchors {:left 0 :right 0 :top 168}
+       :anchors {:left 0 :right 0 :top 152}
        :height 20
-       :text ~(cond (= state.properties.verify "running") (t "properties.verifying")
-                    (= state.properties.verify "done") (t "properties.verified")
-                    :else "")
-       :textColor ~(if (= state.properties.verify "done") "@color.play" "@color.muted"))))
+       :text ~(case state.properties.verify
+                :running (t "properties.verifying")
+                :done (t "properties.verified")
+                "")
+       :textColor ~(if (= state.properties.verify :done) "@color.play" "@color.muted"))
+     (column#properties-files :when ~state.filesShown
+       :anchors {:left 0 :right 0 :top 176 :bottom 0}
+       :scroll vertical
+       :role list
+       :label ~(t "properties.browse")
+       ~(repeat [f computed.gameFiles :key f.name] (file-row f)))))
+
+(defview file-actions "Browsing the files, checking them, and moving the game to the other drive." []
+  `(row :anchors {:left 0 :right 0 :top 108} :height 36 :gap 8 :alignItems center
+     (node#properties-browse :use quietButton
+       :with {:title ~(t (if state.filesShown "properties.hideFiles" "properties.browse"))
+              :icon folder-open
+              :on ~state.filesShown}
+       :onClick toggle-files)
+     (node#properties-verify :use quietButton
+       :with {:title ~(t "properties.verify") :icon shield-check}
+       :disabled ~(= state.properties.verify "running")
+       :onClick verify-files)
+     (node#properties-move :use quietButton
+       :with {:title ~(t "properties.move") :icon hard-drive}
+       :disabled ~(= computed.manageGame.status "running")
+       :tooltip ~(t (if (= computed.manageGame.status "running") "storage.moveRunning" "storage.moveAbout"))
+       :onClick ~(handler moveGame computed.manageGame.id))))
+
+(defview file-row "A file of the game's folder: its kind as an icon, its name and its size." [f]
+  `(row :id ~(str "properties-file-" (slug f.name)) :anchors {:left 0 :right 0} :height 26 :gap 10 :alignItems center
+     :role listitem
+     :label ~f.name
+     (label :icon ~f.icon :text "" :fitText true :textColor @color.muted)
+     (label :grow 1 :height 18 :font small :text ~f.name :textColor @color.text)
+     (label :font small
+       :fitText true
+       :text ~(if (< f.gb 0.01) (t "properties.tiny") (t "properties.sizeValue" {:size (formatNumber f.gb 1 2)}))
+       :textColor @color.muted)
+     (panel :width 8 :height 1 :color transparent)))
+
+(defview compat-page "The compatibility page: forcing a compatibility layer, and which one." []
+  `(node :when ~(= state.properties.tab "compat") :fill true :color transparent
+     ~(caps-title "properties.compatTitle" 0)
+     (row#properties-compat :anchors {:left 0 :right 0 :top 24} :height 30 :alignItems center
+       (label :grow 1 :height 22 :text ~(t "properties.compatForce") :textColor @color.text)
+       (toggle#properties-compat-toggle :width 40
+         :height 22
+         :label ~(t "properties.compatForce")
+         :checked ~(some? computed.compatLayer)
+         :activeColor @color.accent
+         :onChange ~(handler set-compat (when event.value (first compat-layers)))))
+     ~(compat-choice "bridge9" 64)
+     ~(compat-choice "bridge8" 96)
+     ~(compat-choice "experimental" 128)
+     (label :font small
+       :text ~(t "properties.compatNote")
+       :textColor @color.dim
+       :wrap true
+       :anchors {:left 0 :right 0 :top 168}
+       :height 40)))
+
+(defview compat-choice "A compatibility layer, a radio button, dimmed while no layer is forced." [layer top]
+  `(row :id ~(str "properties-compat-" layer)
+     :let {:on ~(= computed.compatLayer layer) :enabled ~(some? computed.compatLayer)}
+     :anchors {:left 0 :right 0 :top ~top}
+     :height 28
+     :gap 10
+     :alignItems center
+     :focusable ~enabled
+     :role radio
+     :selected ~on
+     :disabled ~(not enabled)
+     :cursor ~(if enabled "hand" "arrow")
+     :label ~(t (str "properties.compat." layer))
+     :radius 3
+     :hover {:color ~(if enabled "@color.hover" "transparent")}
+     :onClick ~(handler choose-compat layer)
+     (panel :color transparent :width 2 :height 1)
+     (panel :width 14
+       :height 14
+       :radius 7
+       :borderWidth 2
+       :borderColor ~(if on "@color.accent" "@color.dim")
+       :color transparent
+       (node :when ~on :anchors {:left 3 :top 3} :width 4 :height 4 :radius 2 :color @color.accent))
+     (label :grow 1
+       :height 22
+       :text ~(t (str "properties.compat." layer))
+       :textColor ~(if enabled "@color.text" "@color.dim"))))
+
+(defn set-compat "Forces a compatibility layer on the game being managed, or none (nil)." [layer]
+  (set (str "state.compat." computed.manageGame.id) layer))
+
+(defn choose-compat "Chooses the layer forced on the game being managed, while one is." [layer]
+  (when-some [_ computed.compatLayer] (set-compat layer)))
 
 (defview extras-page "The extra content page: none yet." []
   `(node :when ~(= state.properties.tab "dlc") :fill true :color transparent

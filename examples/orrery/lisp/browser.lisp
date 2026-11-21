@@ -1,5 +1,7 @@
 ;;; browser.lisp --- the browser over the view: the bodies, the bookmarked places and the eclipses
 
+(ns orrery.browser)
+
 ;;; The browser
 
 (defview browser "The browser over the view: its tabs, then the bodies, the bookmarked places or the eclipses." []
@@ -46,9 +48,9 @@
      :expanded ~state.expandedBodies
      :value ~state.selected
      :rowHeight 24
-     :onChange ~(handler chooseBody event.value)
-     :onOpen ~(handler flyToBody event.value)
-     :onExpand ~(handler expandBody event.id event.expanded)
+     :onChange ~(handler choose-body event.value)
+     :onOpen ~(handler fly-to-body event.value)
+     :onExpand ~(handler expand-body event.id event.expanded)
      :color @panel
      :textColor @text
      :selectedTextColor @text
@@ -71,10 +73,10 @@
        :accentColor @accent)
      ~(places-bar)))
 
-(defview places-bar "Bookmark this view, and delete the bookmark chosen." []
+(defview places-bar "Bookmark this view, delete the bookmark chosen, and play the tour of them all." []
   `(row#places-bar :width 220 :height 34 :gap 6 :alignItems center
      (label#add-bookmark :style button
-       :width 170
+       :width 132
        :height 28
        :icon bookmark-plus
        :text ~(t "command.addBookmark")
@@ -88,4 +90,12 @@
        :role button
        :label ~(t "command.deleteBookmark")
        :tooltip ~(t "command.deleteBookmark")
-       :onClick deleteBookmark)))
+       :onClick deleteBookmark)
+     (label#play-tour :style button
+       :width 32
+       :height 28
+       :icon ~(if state.touring "square" "play")
+       :role button
+       :label ~(t "command.playTour")
+       :tooltip ~(t "command.playTour.about")
+       :onClick playTour)))

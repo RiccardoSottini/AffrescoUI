@@ -15,7 +15,7 @@ python3 examples/arcadia/lisp/e2e_test.py build
 downloads, the cart and the wishlist, the library's filters, codes, backups, friends and chat. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen and its parts say what is
 shown and keep their keys, the download timer and the first page as data; `lisp/arcadia.lisp` says what happens: every
 action is a command, as it was written, with its title, category and description, and the handlers name them. Lists that
-hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `gameOf`).
+hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `game-of`).
 
 ## What it shows
 
@@ -39,14 +39,22 @@ hold a game, a swap of two places and a game by its id are one function each (`h
 - **Scenarios**: 33 in `index.scenarios.json`, covering each of the above, both themes, the three languages,
   keyboard-only use and the bugs found while walking the app across sizes, themes and languages.
 
-- **The client's own controls** (`parts/client.lisp`, `parts/hub.lisp`, their commands in `arcadia.lisp`): every menu item, bar button and link does
+- **The client's own controls** (`parts/client.lisp`, `parts/hub.lisp`, `parts/rewards.lisp`, `parts/game-panels.lisp`,
+  their commands in `arcadia.lisp`): every menu item, bar button and link does
   something, and `controls.scenarios.json` proves each one. A Settings window (`mod+,`) with Interface, Downloads
-  (a bandwidth limit, downloading while playing, clearing the cache), Storage (usage by game, uninstall) and Account
-  pages; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
+  (a download region, a bandwidth limit, a schedule that keeps downloads to 1:00 to 7:00 UTC, downloading while
+  playing, clearing the cache), Storage (two drives, usage by game, moving a game between them, uninstall) and Account
+  pages; a game's properties with its installed files to browse, its drive, a move to the other drive, and a compatibility
+  layer to force; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
   from this computer; backup and restore through the file dialogs; offline mode; signing out and in; a couch mode in
-  full screen, driven by the arrow keys; a game's player hub with discussions and guides; notes on a game; filters and
-  collapsing collections in the library; votes on reviews. The store bar's Rewards and Experiments are disabled with
-  a tooltip, as is Exit (a document can't close the window it runs in).
+  full screen with rows of your games, the store's, your friends and settings, driven by the arrow keys or a gamepad; a game's player hub with discussions, guides and screenshots, where a post opens
+  on its thread (replies, a helpful vote, a box to reply in) and a screenshot opens big; your own screenshots of a game
+  (F12 while it runs) in a viewer that steps and deletes; the controller's layout per game; browsing a game's installed
+  files in its properties; notes on a game; filters and collapsing collections in the library, and new ones
+  (`parts/collections.lisp`): games picked by hand, or dynamic, filled by a rule (installed, never played, favourites, a
+  genre), renamed, changed or deleted from a shelf's pencil or a right click on its heading; votes on reviews. The store bar's Rewards is a points shop (each euro spent earns 100 points, the rewards redeemed shown on the profile) and its
+  Experiments hold a discovery queue and a switch that hides owned games from the store. Exit is disabled with a tooltip
+  (a document can't close the window it runs in).
 - **The look**: aubergine and charcoal with an amber accent, a centred segmented navigation, flat pill bars, rounded
   cover tiles and a round mint play button, all through tokens.
 

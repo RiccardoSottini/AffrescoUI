@@ -12,18 +12,38 @@
 			"cover": { "type": "cover", "title": "" },
 			"devices": { "type": "device-tiles", "title": "", "actions": true }
 		},
-		"cardEdit": { "open": false, "id": "climate", "code": false, "draft": {}, "text": "", "error": "" }
+		"cardEdit": { "open": false, "id": "climate", "code": false, "draft": {}, "text": "", "error": "" },
+		"hiddenCards": [],
+		"addCardOpen": false
+	},
+
+	"stateTypes": {
+		"hiddenCards": { "type": "array", "items": { "type": "string" } },
+		"addCardOpen": { "type": "boolean" }
 	},
 
 	"computed": {
 		"cardTitle": "{{ { lights: state.cards.lights.title || t('lights.title'), scenes: state.cards.scenes.title || t('scenes.label'), security: state.cards.security.title || t('alarm.section'), climate: state.cards.climate.title || t('climate.title'), cover: state.cards.cover.title || t('blinds.title'), devices: state.cards.devices.title || t('devices.title') } }}",
 		"cardIcon": "{{ { lights: 'lightbulb', scenes: 'clapperboard', security: 'shield', climate: 'thermometer', cover: 'blinds', devices: 'cpu' } }}",
+		"cardShown": "{{ { lights: !contains(state.hiddenCards, 'lights'), scenes: !contains(state.hiddenCards, 'scenes'), security: !contains(state.hiddenCards, 'security'), climate: !contains(state.hiddenCards, 'climate'), cover: !contains(state.hiddenCards, 'cover'), devices: !contains(state.hiddenCards, 'devices') } }}",
+		"scenesTop": "{{computed.cardShown.lights ? '#lights.bottom + 16' : computed.compact ? 0 : 136}}",
+		"securityTop": "{{computed.cardShown.scenes ? '#scenes.bottom + 16' : computed.scenesTop}}",
+		"devicesTop": "{{computed.cardShown.cover ? '#blindsCard.bottom + 12' : computed.cardShown.climate ? '#climateCard.bottom + 12' : 116}}",
+		"hiddenChoices": "{{map(state.hiddenCards, { title: computed.cardTitle[it], icon: computed.cardIcon[it], run: 'addCard', with: { card: it }, separator: false })}}",
 		"cardCode": "{{'{\\n' + join(map(entries(state.cardEdit.draft), '  ' + json(it.key) + ': ' + json(it.value)), ',\\n') + '\\n}'}}"
 	},
 
 	"actions": {
 		"editDashboard": { "title": "Arrange cards", "category": "View", "icon": "pencil",
 			"do": [{ "set": "state.page", "to": "home" }, { "set": "state.editing", "to": true }] },
+		"hideCard": [
+			{ "note": "with: card, the key of the card in state.cards: it leaves the dashboard until Add card puts it back" },
+			{ "set": "state.hiddenCards", "to": "{{concat(state.hiddenCards, [card])}}" }
+		],
+		"addCard": [
+			{ "note": "with: card, the key of a card taken off the dashboard: it comes back" },
+			{ "set": "state.hiddenCards", "to": "{{filter(state.hiddenCards, it != card)}}" }
+		],
 		"doneEditing": [{ "set": "state.editing", "to": false }, { "set": "state.cardEdit.open", "to": false }],
 		"editCard": [
 			{ "note": "with: card, the key of the card in state.cards" },
@@ -50,15 +70,20 @@
 
 	"components": {
 		"editFrame": {
-			"note": "While editing, a card's outline and pencil: a click anywhere on the card opens its editor",
+			"note": "While editing, a card's outline, its pencil and a button that takes it off the dashboard: a click anywhere else on the card opens its editor",
 			"params": { "card": "", "name": "" },
 			"node": {
 				"when": "{{state.editing}}", "color": "transparent", "borderWidth": 2, "borderColor": "@editLine", "radius": 14,
 				"hover": { "borderColor": "@accent", "color": "@editVeil" }, "cursor": "hand", "focusable": true, "role": "button",
 				"label": "{{t('edit.card', { name: name })}}", "tooltip": "{{t('edit.card', { name: name })}}",
 				"onClick": { "run": "editCard", "with": { "card": "{{card}}" } },
-				"children": [{ "type": "label", "icon": "pencil", "font": "iconsSmall", "text": "", "textColor": "@onAccent", "color": "@accent",
-					"anchors": { "right": 8, "top": 4 }, "width": 28, "height": 28, "radius": 14, "align": "center" }]
+				"children": [
+					{ "type": "label", "id": "editHide", "icon": "eye-off", "font": "iconsSmall", "text": "", "textColor": "@muted", "color": "@card", "hover": { "color": "@cardHover" },
+						"anchors": { "right": 40, "top": 4 }, "width": 28, "height": 28, "radius": 14, "align": "center", "cursor": "hand", "focusable": true, "role": "button",
+						"label": "{{t('edit.hide', { name: name })}}", "tooltip": "{{t('edit.hide', { name: name })}}", "onClick": { "run": "hideCard", "with": { "card": "{{card}}" } } },
+					{ "type": "label", "icon": "pencil", "font": "iconsSmall", "text": "", "textColor": "@onAccent", "color": "@accent",
+					"anchors": { "right": 8, "top": 4 }, "width": 28, "height": 28, "radius": 14, "align": "center" }
+				]
 			}
 		},
 

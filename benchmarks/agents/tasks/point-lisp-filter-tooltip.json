@@ -1,0 +1,31 @@
+{
+	"id": "point-lisp-filter-tooltip",
+	"level": "edit",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Change the tooltip of the Filter button in the toolbar above the board to \"Filter cards (F)\".",
+	"point": "#filterButton",
+	"pointRequest": "Change the tooltip of this button to \"Filter cards (F)\".",
+	"scenarios": [
+		{
+			"name": "tooltip",
+			"steps": [
+				{
+					"expect": {
+						"node": "#filterButton",
+						"property": "tooltip",
+						"is": "Filter cards (F)"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": ["#topBar", "#statusBar", "#main", "#filterMenu", "/program/toolbar.lisp/member-row"],
+	"reference": [
+		{
+			"message": "Filter button tooltip",
+			"set": {
+				"/program/toolbar.lisp/filter-button": "(defview filter-button \"The Filter button, which opens the Filter menu below it.\" []\n  `(node#filterButton :style toolButton\n     :icon list-filter\n     :text ~(if (> (count computed.activeFilters) 0) \"\" (str \" \" (t \"filter.button\")))\n     :label ~(t \"filter.button\")\n     :tooltip \"Filter cards (F)\"\n     :isOpen ~state.filterOpen\n     :keys {:enter {:when ~(not context.textInputFocus) :do {:toggle state.filterOpen}}\n            :space {:when ~(not context.textInputFocus) :do {:toggle state.filterOpen}}}\n     :onClick [{:set state.filterProp :to \"\"} {:set state.filterQuery :to \"\"} {:toggle state.filterOpen}]\n     (node#filterMenu :overlay {:placement below :open state.filterOpen :dismiss outside}\n       :y 4\n       :width 220\n       :height ~(+ (* (if (= state.filterProp \"\")\n                          (count computed.filterPropsShown)\n                          (count computed.filterOptionsShown))\n                      30)\n                   48)\n       :radius @radius.card\n       :shadow {:y 6 :blur 16 :color \"#0000002e\"}\n       :borderWidth 1\n       :borderColor @color.border\n       :color @color.menu\n       ~(filter-field)\n       (node#filterFieldLine :anchors {:left 0 :right 0 :top 38} :height 1 :color @color.border)\n       ~(filter-list))))"
+			}
+		}
+	]
+}

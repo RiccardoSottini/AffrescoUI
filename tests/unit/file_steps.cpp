@@ -44,6 +44,11 @@ json fileScreen() {
 		  {"open", json::array({{{"openFile", "state.opened"},
 		                         {"onDone", json::array({{{"set", "state.saved"}, {"to", "{{result}}"}}})},
 		                         {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}})},
+		  {"openPicture",
+		   json::array({{{"openFile", "state.opened"},
+		                 {"as", "image"},
+		                 {"onDone", json::array({{{"set", "state.saved"}, {"to", "{{result}}"}}})},
+		                 {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}})},
 		  {"openSettings",
 		   json::array({{{"openFile", "state.opened"},
 		                 {"comments", true},
@@ -195,6 +200,51 @@ TEST_CASE("file steps: openFile with comments reads a settings file's comments a
 	window->runDeferredTasks();
 	state = json::parse(screen.stateJson());
 	CHECK(state["opened"] == json{{"name", "Night"}, {"colors", {1, 2}}});
+	affresco::setLogSink(nullptr);
+}
+
+TEST_CASE("file steps: openFile as an image reads a PNG or JPEG as a data URI, with its size, and nothing else") {
+	const affresco::test::TemporaryFolder folder;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(fileScreen().dump());
+	screen.build(*window);
+	std::string file;
+	std::vector<affresco::FileDialog> asked;
+	window->setFileDialogHandler([&](const affresco::FileDialog& dialog) {
+		asked.push_back(dialog);
+		return std::vector<std::string>{file};
+	});
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {});
+	const auto opened = [&](const std::string& name, const std::string& bytes) {
+		file = (folder.path() / name).string();
+		std::ofstream(file, std::ios::binary) << bytes;
+		screen.runAction("openPicture", window->root());
+		window->runDeferredTasks();
+		return json::parse(screen.stateJson());
+	};
+
+	// A PNG's header: the signature, then IHDR's length, name, width 300 and height 120
+	const std::string png = std::string("\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR\0\0\x01\x2c\0\0\0\x78", 24);
+	json state = opened("photo.png", png);
+	REQUIRE(asked.size() == 1);
+	CHECK(asked[0].filters.at(0).extensions == std::vector<std::string>{"png", "jpg", "jpeg"});
+	CHECK(state["opened"].get<std::string>().starts_with("data:image/png;base64,iVBORw0KGgo"));
+	CHECK(state["saved"]["name"] == "photo.png");
+	CHECK(state["saved"]["bytes"] == 24);
+	CHECK(state["saved"]["width"] == 300);
+	CHECK(state["saved"]["height"] == 120);
+
+	// A JPEG's start, an APP0 segment to skip, then a start-of-frame: height 40, width 64
+	const std::string jpeg = std::string("\xff\xd8\xff\xe0\0\x04zz\xff\xc0\0\x11\x08\0\x28\0\x40\x03xxxxxxxxx", 27);
+	state = opened("photo.jpg", jpeg);
+	CHECK(state["opened"].get<std::string>().starts_with("data:image/jpeg;base64,"));
+	CHECK(state["saved"]["width"] == 64);
+	CHECK(state["saved"]["height"] == 40);
+
+	CHECK(opened("notes.png", "not a picture")["error"].get<std::string>().contains("isn't a PNG or JPEG"));
+	CHECK(opened("large.png", png + std::string(std::size_t{8} << 20, 'a'))["error"].get<std::string>().contains(
+	    "larger than 8 MB"));
 	affresco::setLogSink(nullptr);
 }
 

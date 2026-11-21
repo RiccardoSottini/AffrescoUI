@@ -1,11 +1,13 @@
 ;;; library.lisp --- the main area: the page shown beside the queue; the playlist page (its header and its songs) and
 ;;; the library (its header and the table of its 3,000 songs)
 
+(ns tempo.library)
+
 ;;; The main area
 
 (defview main-area "The page shown (state.page), and the queue beside it; hidden in the mini player." []
   `(split#main :when ~(not state.mini)
-     :anchors {:left 248 :right 0 :top 0 :bottom 112}
+     :anchors {:left 248 :right 0 :top 0 :bottom ~(if settings.window.statusBar 112 84)}
      :bind state.sizes
      :defaultSizes [744]
      :minSize [480 240]
@@ -15,20 +17,20 @@
      (node#content :color transparent :role main
        ~(playlist-page)
        ~(library-page)
-       (node#browseView :when ~(or (= state.page "albums") (= state.page "artists")) :use browsePage :fill true)
-       (node#collectionView :when ~(= state.page "collection") :use collectionPage :fill true)
-       (node#searchView :when ~(= state.page "search") :use searchPage :fill true)
-       (node#nowPlayingView :when ~(= state.page "nowPlaying") :use nowPlayingPage :fill true)
-       (node#likedView :when ~(= state.page "liked") :use likedPage :fill true)
-       (node#soundView :when ~(= state.page "sound") :use soundPage :fill true))
+       (node#browseView :when ~(contains? #{:albums :artists} state.page) :use browsePage :fill true)
+       (node#collectionView :when ~(= state.page :collection) :use collectionPage :fill true)
+       (node#searchView :when ~(= state.page :search) :use searchPage :fill true)
+       (node#nowPlayingView :when ~(= state.page :nowPlaying) :use nowPlayingPage :fill true)
+       (node#likedView :when ~(= state.page :liked) :use likedPage :fill true)
+       (node#soundView :when ~(= state.page :sound) :use soundPage :fill true))
      ~(queue-pane)))
 
 ;;; A playlist
 
 (defview playlist-page "A playlist: its header, the columns' names, and its songs." []
-  `(node#playlistView :when ~(= state.page "playlist") :dir auto :fill true :color transparent
+  `(node#playlistView :when ~(= state.page :playlist) :dir auto :fill true :color transparent
      ~(playlist-header)
-     (label#playlistEmpty :when ~(= (count computed.list.tracks) 0)
+     (label#playlistEmpty :when ~(empty? computed.list.tracks)
        :text ~(t "playlist.empty")
        :textColor @muted
        :anchors {:left 52 :top 340}
@@ -63,14 +65,14 @@
        :text ~(t "play")
        :label ~(t "play.label" {:name computed.list.name})
        :anchors {:left 40 :top 196}
-       :disabled ~(= (count computed.list.tracks) 0)
+       :disabled ~(empty? computed.list.tracks)
        :onClick ~(handler play state.current 0))
      ~(list-more-button)))
 
 (defview playlist-cover "The playlist's cover, on the right of the header." []
   `(image#cover
      :file ~computed.list.cover
-     :fit cover
+     :fit cover :color @button
      :radius 24
      :anchors {:right 40 :top 48}
      :width 168
@@ -98,7 +100,7 @@
      :anchors {:left 164 :top 196}
      :label ~(t "playlist.more" {:name computed.list.name})
      :tooltip ~(t "playlist.more" {:name computed.list.name})
-     :onClick openListMenu))
+     :onClick open-list-menu))
 
 (defview name-field "The field that renames the playlist, while it is being renamed: Enter keeps the name, Escape leaves it." []
   `(textarea#nameField :when ~state.renaming
@@ -115,15 +117,15 @@
      :anchors {:left 32 :right 232 :top 78}
      :height 52
      :label ~(t "playlist.nameLabel")
-     :onSubmit renameList
+     :onSubmit rename-list
      :keys {:escape cancelRename}))
 
 (defview song-columns "The names of the songs' columns, over a line." []
   `(node#columns :anchors {:left 40 :right 40 :top 284} :height 28 :color transparent
      (node#label-caption :style caption :text ~(t "column.number") :anchors {:left 12 :top 6})
-     (node#label-title :style caption :text ~(upper-case (t "column.title")) :anchors {:left 52 :top 6})
-     (node#label-album :style caption :text ~(upper-case (t "column.album")) :x "55%" :y 6)
-     (node#label-time :style caption :text ~(upper-case (t "column.time")) :anchors {:right 16 :top 6})
+     (node#label-title :style caption :text ~(str/upper-case (t "column.title")) :anchors {:left 52 :top 6})
+     (node#label-album :style caption :text ~(str/upper-case (t "column.album")) :x "55%" :y 6)
+     (node#label-time :style caption :text ~(str/upper-case (t "column.time")) :anchors {:right 16 :top 6})
      (node#panel-columns :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @border)))
 
 (defview song-row "A song of the playlist: its number (bars while it plays), title, artist, album and time; a click plays it."
@@ -140,9 +142,9 @@
      :role button
      :label ~(str track.title ", " track.artist ", " track.time)
      :onClick ~(handler play state.current place)
-     :onContextMenu ~(handler openSongMenu state.current place)
+     :onContextMenu ~(handler open-song-menu state.current place)
      (label#label-t-1 :icon ~(if (and playing state.isPlaying) "audio-lines" "")
-       :text ~(if (and playing state.isPlaying) "" (+ place 1))
+       :text ~(if (and playing state.isPlaying) "" (inc place))
        :textColor ~(if playing "@accent" "@muted")
        :anchors {:left 12 :top 0 :bottom 0}
        :width 30
@@ -159,7 +161,7 @@
 ;;; The library
 
 (defview library-page "The library: its header, and every song in a table." []
-  `(node#libraryView :when ~(= state.page "library") :dir auto :fill true :color transparent
+  `(node#libraryView :when ~(= state.page :library) :dir auto :fill true :color transparent
      ~(library-header)
      ~(library-table)))
 
@@ -167,7 +169,7 @@
   `(node#libraryHeader :anchors {:left 0 :right 0 :top 0} :height 132 :color @surface
      (image#libraryCover
        :file ~state.libraryInfo.cover
-       :fit cover
+       :fit cover :color @button
        :radius 6
        :anchors {:left 32 :top 24}
        :width 84
@@ -202,6 +204,6 @@
      :selectedTextColor @text
      :selectedBackground @accentSoft
      :accentColor @accent
-     :onOpen playFromLibrary
-     :onContextMenu ~(handler openPickMenu state.libraryPick)
-     :onSort sortLibrary))
+     :onOpen play-from-library
+     :onContextMenu ~(handler open-pick-menu state.libraryPick)
+     :onSort sort-library))

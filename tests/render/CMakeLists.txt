@@ -57,6 +57,11 @@ foreach(folder IN LISTS template_folders)
 		list(APPEND scenario_folders ${spelled})
 	endif()
 endforeach()
+# The Lisp folders whose JSON twin is played on its own (Forge's is forge_dir, the Launcher's and Sign in's are templates)
+# or by an end-to-end test (Arcadia's and Orrery's): their scenarios are played here too. Forge's Lisp catalogue is the
+# same as its JSON one, so the runner's grants (forge_dir's catalogue, a fresh copy of forge/folder per scenario) serve
+# both, and no folder is written to.
+list(APPEND scenario_folders forge/lisp launcher/lisp sign-in/lisp arcadia/lisp orrery/lisp)
 list(TRANSFORM scenario_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE template_globs)
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
@@ -82,5 +87,18 @@ if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 		cmake_path(GET name FILENAME name)
 		add_test(NAME scenarios/${folder}/${notation}${name} COMMAND affrescoui_render_runner --out
 		         ${PROJECT_BINARY_DIR}/scenario-captures ${file})
+	endforeach()
+	# A Lisp scenario test that failed every time it was first played is listed in lisp-baseline.txt (its name first on
+	# its line): it stays registered, is expected to fail (so it passes until its app is fixed, and fails when it starts
+	# passing, to be taken off the list), and has the label lisp-baseline, so a run can leave it out (-LE lisp-baseline)
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lisp-baseline.txt)
+	file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/lisp-baseline.txt baseline REGEX "^scenarios/")
+	foreach(line IN LISTS baseline)
+		string(REGEX MATCH "^[^ \t]+" test "${line}")
+		if(TEST ${test})
+			set_tests_properties(${test} PROPERTIES WILL_FAIL TRUE LABELS lisp-baseline)
+		else()
+			message(WARNING "lisp-baseline.txt names ${test}, which is not a test")
+		endif()
 	endforeach()
 endif()

@@ -12,6 +12,7 @@
 #include <format>
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <string_view>
 #include <tuple>
 #include <unordered_map>
@@ -58,9 +59,8 @@ json contextOf(Engine& engine) {
 			engine.report(error.what());
 		}
 	}
-	bool overlay = false;
-	for(const auto& [panel, record] : engine.reconciler.records())
-		overlay = overlay || (record.overlayOpen && panel->isShown());
+	const bool overlay = overlayShown(engine);
+	engine.frame.contextBuilt(overlay); // the panels it read: UpdateFrame marks it changed when they change
 	context["focus"] = focused && !focused->id().empty() ? json(focused->id()) : json();
 	context["focusPath"] = std::move(path);
 	context["textInputFocus"] = dynamic_cast<const TextArea*>(focused) || dynamic_cast<const TextEditor*>(focused);
@@ -125,6 +125,7 @@ json keybindingsOf(Engine& engine) {
 		       std::tie(b["scope"].get_ref<const std::string&>(), b["key"].get_ref<const std::string&>());
 	});
 	for(json& entry : nodes) list.push_back(std::move(entry));
+	engine.frame.keysBuilt(keysFingerprint(engine)); // the panels it read: UpdateFrame marks it changed when they change
 	return list;
 }
 
@@ -411,6 +412,19 @@ void showMenuBar(Engine& engine) {
 	} catch(const DocumentError& error) {
 		engine.report(error.what());
 	}
+}
+
+std::size_t keysFingerprint(Engine& engine) {
+	std::size_t sum = 0;
+	for(const auto& [panel, record] : engine.reconciler.records())
+		if(!panel->id().empty() && record.keys.is_object() && !record.keys.empty())
+			sum += std::hash<std::string>{}(panel->id()) ^ (record.keysHash * 31u);
+	return sum;
+}
+
+bool overlayShown(Engine& engine) {
+	return std::ranges::any_of(engine.reconciler.records(),
+	                           [](const auto& entry) { return entry.second.overlayOpen && entry.first->isShown(); });
 }
 
 void hideMenuBar(Engine& engine) {

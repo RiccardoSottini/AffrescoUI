@@ -1,15 +1,55 @@
 {
-	"note": "Haven's logbook and history pages, included by index.screen.json: the logbook lists today's and yesterday's events with a search; history draws a day of on and off states per device and the living room's temperature. The events are invented.",
+	"note": "Haven's logbook and history pages, included by index.screen.json: the logbook lists the events of a period of the last seven days with a search; history draws a day of on and off states per device and the living room's temperature, today or one of the six days before it (invented from today's: each change of state a little earlier or later, and the temperature from pastTemps). The events are invented.",
 
 	"state": {
-		"logQuery": ""
+		"logQuery": "",
+		"logPeriod": "twoDays",
+		"logPeriodOpen": false,
+		"logRangeOpen": false,
+		"histDay": 0,
+		"histPeriodOpen": false,
+		"histRangeOpen": false,
+		"pastTemps": [
+			[19.7, 19.4, 19.4, 19, 19, 19, 19, 19.9, 20.5, 21.1, 21.1, 21, 21.4, 21.6, 21.1, 21.1, 21.4, 21.8, 21.8, 21.7, 21.7, 21.1, 21.2, 21.1],
+			[20.2, 19.8, 19.7, 19.7, 19.4, 19.4, 19.7, 20.3, 21.2, 21.4, 21.6, 21.6, 22, 22, 21.7, 21.7, 21.8, 22, 22.4, 22.3, 21.9, 21.8, 21.6, 21.9],
+			[19.7, 19.2, 19.3, 19, 19, 19, 19, 19.7, 20.3, 21, 21.2, 21, 21.4, 21.2, 21.2, 21, 21.1, 21.4, 21.7, 21.7, 21.3, 21.2, 20.7, 21.1],
+			[20.3, 20.1, 19.8, 19.4, 19.4, 19.4, 19.3, 20.3, 21, 21.3, 21.5, 21.7, 21.7, 21.8, 21.7, 21.7, 21.5, 22, 22.2, 22.3, 22, 21.8, 21.4, 21.6],
+			[19.8, 19.8, 19.6, 19.1, 19, 19, 19.1, 20, 20.8, 21.1, 21.2, 21.3, 21.4, 21.6, 21.6, 21.4, 21.4, 21.7, 22, 21.6, 21.8, 21.5, 21.3, 21.4],
+			[20.4, 20.1, 19.7, 19.8, 19.4, 19.3, 19.6, 20.4, 21.2, 21.5, 21.7, 21.7, 21.8, 22, 21.7, 21.9, 21.9, 22.1, 22.3, 22.2, 22, 21.7, 21.8, 22]
+		]
 	},
 
 	"stateTypes": {
-		"logQuery": { "type": "string", "maxLength": 64 }
+		"logQuery": { "type": "string", "maxLength": 64 },
+		"logPeriod": { "enum": ["today", "yesterday", "twoDays", "week"] },
+		"logPeriodOpen": { "type": "boolean" },
+		"logRangeOpen": { "type": "boolean" },
+		"histDay": { "type": "number" },
+		"histPeriodOpen": { "type": "boolean" },
+		"histRangeOpen": { "type": "boolean" },
+		"pastTemps": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } }
+	},
+
+	"actions": {
+		"pickLogPeriod": [
+			{ "note": "with: period, the logbook's: today, yesterday, twoDays or week" },
+			{ "set": "state.logPeriod", "to": "{{period}}" }
+		],
+		"pickHistDay": [
+			{ "note": "with: day, the one history shows: 0 is today, 6 the oldest kept" },
+			{ "set": "state.histDay", "to": "{{clamp(day, 0, 6)}}" }
+		]
 	},
 
 	"computed": {
+		"dayNames": "{{ { today: t('log.today'), yesterday: t('log.yesterday'), ago2: t('log.daysAgo', { n: 2 }), ago3: t('log.daysAgo', { n: 3 }), ago4: t('log.daysAgo', { n: 4 }), ago5: t('log.daysAgo', { n: 5 }), ago6: t('log.daysAgo', { n: 6 }) } }}",
+		"logDays": "{{state.logPeriod == 'today' ? ['today'] : state.logPeriod == 'yesterday' ? ['yesterday'] : state.logPeriod == 'week' ? ['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'] : ['today', 'yesterday']}}",
+		"logPeriodName": "{{t('log.p.' + state.logPeriod)}}",
+		"logPeriods": "{{map(['today', 'yesterday', 'twoDays', 'week'], { title: t('log.p.' + it), icon: it == state.logPeriod ? 'check' : '', run: 'pickLogPeriod', with: { period: it }, separator: false })}}",
+		"histTemps": "{{state.histDay == 0 ? state.tempHistory : state.pastTemps[state.histDay - 1]}}",
+		"histPeriodName": "{{state.histDay == 0 ? t('hist.today') : t('hist.day', { day: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][state.histDay]] })}}",
+		"histTitle": "{{state.histDay == 0 ? t('hist.timeline') : t('hist.timelineOn', { day: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][state.histDay]] })}}",
+		"histDays": "{{map(range(7), { title: computed.dayNames[['today', 'yesterday', 'ago2', 'ago3', 'ago4', 'ago5', 'ago6'][it]], icon: it == state.histDay ? 'check' : '', run: 'pickHistDay', with: { day: it }, separator: false })}}",
 		"logShown": "{{filter(data.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"
 	},
 
@@ -29,16 +69,22 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.logbook')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "type": "label", "id": "logRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
-								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.pick')}}",
-								"tooltip": "{{t('log.twoDays')}}", "cursor": "arrow", "disabled": true }
+							{ "type": "label", "id": "logRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+								"radius": 20, "align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
+								"tooltip": "{{t('energy.pick')}}", "isOpen": "{{state.logRangeOpen}}", "onClick": { "toggle": "state.logRangeOpen" }, "children": [
+								{ "use": "popMenu", "with": { "open": "state.logRangeOpen", "width": 220, "items": "{{computed.logPeriods}}" } }
+							] }
 						]
 					},
 					{ "type": "row", "id": "logFilters", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
 						"children": [
-							{ "type": "label", "id": "logPeriod", "icon": "calendar", "text": "  {{t('log.period')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
-								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
-								"role": "button", "label": "{{t('log.period')}}", "tooltip": "{{t('log.twoDays')}}", "cursor": "arrow", "disabled": true },
+							{ "type": "label", "id": "logPeriod", "icon": "calendar", "text": "  {{computed.logPeriodName}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+								"color": "@field", "borderWidth": 1, "borderColor": "{{state.logPeriodOpen ? '@accent' : '@border'}}", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
+								"hover": { "color": "@cardHover" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{computed.logPeriodName}}", "isOpen": "{{state.logPeriodOpen}}", "onClick": { "toggle": "state.logPeriodOpen" },
+								"children": [
+									{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 12, "top": 12 }, "width": 24, "height": 24, "align": "center" },
+									{ "use": "popMenu", "with": { "open": "state.logPeriodOpen", "width": 280, "items": "{{computed.logPeriods}}" } }
+								] },
 							{ "id": "logSearchBox", "width": 320, "height": 48, "radius": 24, "color": "transparent", "borderWidth": 1, "borderColor": "@border",
 								"hover": { "color": "@accentSoft" },
 								"children": [
@@ -63,16 +109,16 @@
 								"children": [
 									{
 										"id": "logDay",
-										"repeat": { "for": "day", "in": "['today', 'yesterday']", "key": "{{day}}" },
+										"repeat": { "for": "day", "in": "computed.logDays", "key": "{{day}}" },
 										"let": { "events": "{{filter(computed.logShown, it.day == day)}}" },
 										"when": "{{length(events) > 0}}",
 										"anchors": { "left": 0, "right": 0 },
 										"height": "{{40 + length(events) * 56}}",
 										"color": "transparent",
 										"role": "group",
-										"label": "{{t('log.' + day)}}",
+										"label": "{{computed.dayNames[day]}}",
 										"children": [
-											{ "style": "caption", "text": "{{upper(t('log.' + day))}}", "anchors": { "left": 24, "top": 16 } },
+											{ "style": "caption", "text": "{{upper(computed.dayNames[day])}}", "anchors": { "left": 24, "top": 16 } },
 											{
 												"type": "column",
 												"anchors": { "left": 0, "right": 0, "top": 40, "bottom": 0 },
@@ -120,17 +166,23 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.history')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "type": "label", "id": "histRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
-								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.pick')}}",
-								"tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true }
+							{ "type": "label", "id": "histRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+								"radius": 20, "align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
+								"tooltip": "{{t('energy.pick')}}", "isOpen": "{{state.histRangeOpen}}", "onClick": { "toggle": "state.histRangeOpen" }, "children": [
+								{ "use": "popMenu", "with": { "open": "state.histRangeOpen", "width": 220, "items": "{{computed.histDays}}" } }
+							] }
 						]
 					},
 					{
 						"type": "row", "id": "histFilters", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
 						"children": [
-							{ "type": "label", "id": "histPeriod", "icon": "calendar", "text": "  {{t('hist.today')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
-								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
-								"role": "button", "label": "{{t('hist.today')}}", "tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true },
+							{ "type": "label", "id": "histPeriod", "icon": "calendar", "text": "  {{computed.histPeriodName}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+								"color": "@field", "borderWidth": 1, "borderColor": "{{state.histPeriodOpen ? '@accent' : '@border'}}", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
+								"hover": { "color": "@cardHover" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{computed.histPeriodName}}", "isOpen": "{{state.histPeriodOpen}}", "onClick": { "toggle": "state.histPeriodOpen" },
+								"children": [
+									{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 12, "top": 12 }, "width": 24, "height": 24, "align": "center" },
+									{ "use": "popMenu", "with": { "open": "state.histPeriodOpen", "width": 280, "items": "{{computed.histDays}}" } }
+								] },
 							{ "type": "label", "id": "histTarget", "icon": "plus", "text": "  {{t('hist.choose')}}", "textColor": "@accent", "width": 320, "height": 48, "padding": 12,
 								"color": "transparent", "borderWidth": 1, "borderColor": "@border", "radius": 24, "align": { "horizontal": "start", "vertical": "center" },
 								"hover": { "color": "@accentSoft" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('hist.choose')}}",
@@ -143,9 +195,9 @@
 						"anchors": { "left": 24, "right": 24, "top": 136 },
 						"height": "{{76 + length(data.timeline) * 40 + 28}}",
 						"role": "group",
-						"label": "{{t('hist.timeline')}}",
+						"label": "{{computed.histTitle}}",
 						"children": [
-							{ "style": "cardTitle", "text": "{{t('hist.timeline')}}" },
+							{ "style": "cardTitle", "text": "{{computed.histTitle}}" },
 							{
 								"type": "column",
 								"anchors": { "left": 24, "right": 24, "top": 60 },
@@ -169,7 +221,7 @@
 												"height": 28,
 												"gap": 0,
 												"children": [
-													{ "type": "label", "repeat": { "for": "seg", "in": "ent.segs", "index": "si" }, "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 },
+													{ "type": "label", "repeat": { "for": "seg", "in": "{{map(ent.segs, merge(it, { h: it.h + (state.histDay == 0 || index >= length(ent.segs) - 1 ? 0 : ((state.histDay + 2 * index) % 3 - 1) * 0.45 * min(it.h, ent.segs[index + 1].h)) - (state.histDay == 0 || index == 0 ? 0 : ((state.histDay + 2 * index - 2) % 3 - 1) * 0.45 * min(ent.segs[index - 1].h, it.h)) }))}}", "index": "si" }, "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 },
 														"radius": { "topLeft": "{{si == 0 ? 4 : 0}}", "bottomLeft": "{{si == 0 ? 4 : 0}}", "topRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}", "bottomRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}" },
 														"color": "{{seg.on ? '@accent' : '@raised'}}", "textColor": "{{seg.on ? '@onAccent' : '@muted'}}", "font": "small", "align": "center",
 														"text": "{{seg.h >= 2 ? t(ent.k + (seg.on ? '.on' : '.off')) : ''}}", "tooltip": "{{t(ent.k + (seg.on ? '.on' : '.off'))}}" }
@@ -189,7 +241,7 @@
 									{ "style": "caption", "text": "06:00" },
 									{ "style": "caption", "text": "12:00" },
 									{ "style": "caption", "text": "18:00" },
-									{ "style": "caption", "text": "{{t('hist.now')}}" }
+									{ "style": "caption", "text": "{{state.histDay == 0 ? t('hist.now') : '24:00'}}" }
 								]
 							}
 						]
@@ -202,17 +254,17 @@
 						"label": "{{t('hist.temp', { name: state.rooms[0].name })}}",
 						"children": [
 							{ "style": "cardTitle", "text": "{{t('hist.temp', { name: state.rooms[0].name })}}" },
-							{ "style": "caption", "text": "{{t('hist.range', { min: min(state.tempHistory), max: max(state.tempHistory) })}}", "anchors": { "right": 24, "top": 24 } },
+							{ "style": "caption", "text": "{{t('hist.range', { min: min(computed.histTemps), max: max(computed.histTemps) })}}", "anchors": { "right": 24, "top": 24 } },
 							{ "type": "column", "id": "histScale", "anchors": { "left": 24, "right": 24, "top": 52, "bottom": 32 }, "justify": "space-between", "children": [{
 								"repeat": { "for": "deg", "in": "{{[23, 22, 21, 20, 19]}}" }, "anchors": { "left": 0, "right": 0 }, "height": 16, "color": "transparent", "children": [
 									{ "type": "label", "font": "small", "text": "{{deg}}°", "textColor": "@muted", "anchors": { "left": 0, "top": 0 }, "width": 28, "height": 16,
 										"align": { "horizontal": "end", "vertical": "center" } },
 									{ "anchors": { "left": 40, "right": 0, "top": 8 }, "height": 1, "color": "@divider" }
 								] }] },
-							{ "use": "lineChart", "with": { "values": "{{map(state.tempHistory, it - 19)}}", "top": 4, "color": "@warm", "lineWidth": 2 },
+							{ "use": "lineChart", "with": { "values": "{{map(computed.histTemps, it - 19)}}", "top": 4, "color": "@warm", "lineWidth": 2 },
 								"anchors": { "left": 64, "right": 24, "top": 60, "bottom": 40 } },
 							{ "type": "row", "anchors": { "left": 64, "right": 24, "bottom": 12 }, "height": 16, "justify": "space-between", "children": [{
-								"type": "label", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', t('hist.now')]}}" }, "font": "small", "text": "{{h}}",
+								"type": "label", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', state.histDay == 0 ? t('hist.now') : '24:00']}}" }, "font": "small", "text": "{{h}}",
 								"textColor": "@muted", "fitText": true }] }
 						]
 					}

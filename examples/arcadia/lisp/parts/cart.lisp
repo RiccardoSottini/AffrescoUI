@@ -4,6 +4,8 @@
 ;;; install button per game. The wishlist: ranked games with their price and Add to Cart, searched, sorted by rank,
 ;;; name, price or discount, and moved up or down. What buying does is in arcadia.lisp (purchase).
 
+(ns arcadia.parts.cart)
+
 ;;; What the cart and the wishlist keep
 
 (defstate cart [volt])
@@ -22,24 +24,26 @@
 
 (defstate receipt [])
 
-(defcomputed cartGames "The games in the cart." (filter (fn [it] (contains state.cart it.id)) data.games))
+(defcomputed cartGames "The games in the cart." (filter #(contains state.cart (:id %)) data.games))
 
 (defcomputed cartTotal "What the cart costs, after the discounts."
+  ; style: keep, sum is the expression's own function: the function it takes names its item it
   (/ (round (sum computed.cartGames (fn [it] (* it.price (- 100 it.discount))))) 100))
 
 (defcomputed wishGames "The wishlist's games whose title or one of whose tags holds its search."
   (filter (fn [it]
             (and (contains state.wishlist it.id)
                  (or (= state.wishQuery "")
-                     (contains (lower-case it.title) (lower-case state.wishQuery))
-                     (some (fn [it] (contains (lower-case it) (lower-case state.wishQuery))) it.tags))))
+                     (str/includes? (str/lower-case it.title) (str/lower-case state.wishQuery))
+                     (some #(str/includes? (str/lower-case %) (str/lower-case state.wishQuery)) it.tags))))
           data.games))
 
 (defcomputed wishSorted "The wishlist's games in the order chosen: by rank, name, price or discount."
-  (cond (= state.wishSort "name") (sort-by (fn [it] it.title) computed.wishGames)
-        (= state.wishSort "price") (sort-by (fn [it] (* it.price (- 100 it.discount))) computed.wishGames)
-        (= state.wishSort "discount") (sort-by (fn [it] it.discount) > computed.wishGames)
-        :else (sort-by (fn [it] (indexOf state.wishlist it.id)) computed.wishGames)))
+  (case state.wishSort
+    :name (sort-by :title computed.wishGames)
+    :price (sort-by #(* (:price %) (- 100 (:discount %))) computed.wishGames)
+    :discount (sort-by :discount > computed.wishGames)
+    (sort-by #(indexOf state.wishlist (:id %)) computed.wishGames)))
 
 ;;; The cart
 
@@ -59,7 +63,7 @@
 (defview cart-games "The receipt after buying, or that the cart is empty, and the games in the cart." []
   `(column :grow 1 :height ~(cart-height) :gap 6
      ~(receipt-card)
-     (column :when ~(and (= (count computed.cartGames) 0) (= (count state.receipt) 0))
+     (column :when ~(and (empty? computed.cartGames) (empty? state.receipt))
        :height 120
        :anchors {:left 0 :right 0}
        :color @store.card
@@ -168,7 +172,7 @@
      ~(repeat [id state.receipt]
         `(row :height 34 :anchors {:left 16 :right 16} :gap 10 :alignItems center
            (image :file ~(str "../assets/art/" id "/hero.svg") :fit cover :width 90 :height 34)
-           (label :text ~(:title (find (fn [it] (= it.id id)) data.games))
+           (label :text ~(:title (find #(= (:id %) id) data.games))
              :grow 1
              :textColor @store.text
              :height 34
@@ -194,7 +198,7 @@
          :height 40))
      ~(wish-tools)
      (panel :color transparent :height 8 :width 1)
-     (label :when ~(= (count computed.wishSorted) 0)
+     (label :when ~(empty? computed.wishSorted)
        :text ~(t "store.wishEmpty")
        :height 60
        :anchors {:left 0 :right 0}
@@ -265,7 +269,7 @@
 (defview wish-rank "A game's rank and, while ranked and not searched, the arrows that move it up or down." [g i]
   `(column :width 34 :height 100
      (label :font strong
-       :text ~(if (= state.wishSort "rank") (text (+ (indexOf state.wishlist g.id) 1)) "")
+       :text ~(if (= state.wishSort :rank) (text (inc (indexOf state.wishlist g.id))) "")
        :height 32
        :anchors {:left 0 :right 0}
        :align center
@@ -282,20 +286,20 @@
        :cursor hand
        :label ~(t "store.moveUp")
        :hover {:textColor "#ffffff"}
-       :onClick ~(handler wishUp i))
+       :onClick ~(handler wish-up i))
      (label :when ~(and (= state.wishSort "rank") (= state.wishQuery ""))
        :icon chevron-down
        :text ""
        :height 30
        :anchors {:left 0 :right 0}
        :align center
-       :textColor ~(if (< i (- (count state.wishlist) 1)) "@store.chipText" "@color.dim")
+       :textColor ~(if (< i (dec (count state.wishlist))) "@store.chipText" "@color.dim")
        :role button
        :focusable true
        :cursor hand
        :label ~(t "store.moveDown")
        :hover {:textColor "#ffffff"}
-       :onClick ~(handler wishDown i))))
+       :onClick ~(handler wish-down i))))
 
 (defview wish-details "A wished game's name (which opens its page), reviews, release, tags, and when it was added."
   [g]
@@ -336,7 +340,7 @@
        (node :use priceTag :with {:g ~g})
        (node :use ctaButton
          :with {:title ~(if (contains state.cart g.id) (t "store.inCart") (t "store.addToCart"))}
-         :onClick ~(handler cartOrAdd g.id)))
+         :onClick ~(handler cart-or-add g.id)))
      (row :height 18 :anchors {:left 0 :right 0}
        (panel :color transparent :grow 1 :height 1)
        (label :text ~(t "store.remove")

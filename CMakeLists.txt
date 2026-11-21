@@ -194,6 +194,10 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::automation)
 	target_compile_options(affrescoui_launcher PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
+	# The key whose signature on catalogue/index.json the Launcher trusts ("ed25519:..."): the release key's public half,
+	# set by the release job; empty in a development build, which then trusts no catalogue (catalogue/README.md)
+	set(AFFRESCOUI_CATALOGUE_KEY "" CACHE STRING "The public key that signs the Launcher's catalogue")
+	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_CATALOGUE_KEY="${AFFRESCOUI_CATALOGUE_KEY}")
 	if(WIN32) # the program's icon in Explorer and the taskbar: the AffrescoUI app icon (brand/)
 		file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc"
 			CONTENT "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico\"\n")
@@ -238,9 +242,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 		# tests/perf/tokens.py reads a screen's includes as the host merges them
-		# examples/<app>/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps, but for programs
+		# examples/shared/languages/ is what tools/notation/lisp_examples.py writes from its JSON; every app's lisp/ is
+		# written by hand
 		add_test(NAME cli_lisp_examples COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_examples.py --check --cli $<TARGET_FILE:affrescoui_cli>)
+		# The examples' Lisp code writes no old spelling: each place kept has its reason and is counted in its app's
+		# tools/notation/idioms/ file, and every example's code has one (the counter's own tests and the lock's first)
+		add_test(NAME cli_lisp_idioms COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_idioms.py --check --self-test)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The end-to-end tests of the apps written both as JSON and as a Lisp program: each version has its own
 		# (<name> for the JSON, <name>_lisp for the program)
@@ -263,6 +272,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
+		# The editor server end to end: run --nrepl, the port file, describe, clone and a client's own form
+		add_test(NAME nrepl_smoke COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tests/nrepl/smoke_test.py ${CMAKE_BINARY_DIR})
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
@@ -271,6 +283,10 @@ endif()
 
 if(AFFRESCOUI_BUILD_TOOLS)
 	add_subdirectory(tools/affrescoui) # the affrescoui command-line tool
+	if(AFFRESCOUI_BUILD_TESTS) # tests/unit/catalogue.cpp runs `affrescoui catalogue check`
+		target_compile_definitions(affrescoui_unit_tests PRIVATE AFFRESCOUI_CLI="$<TARGET_FILE:affrescoui_cli>")
+		add_dependencies(affrescoui_unit_tests affrescoui_cli)
+	endif()
 endif()
 
 # The fuzz targets' sources can also be compiled alone, without libFuzzer, so that clang-tidy finds them in
@@ -289,7 +305,9 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp
 		tests/perf/syntax.cpp
 		tests/perf/lisp.cpp
-		tests/perf/tempera.cpp)
+		tests/perf/tempera.cpp
+		tests/perf/commands.cpp
+		tests/perf/tracking.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)

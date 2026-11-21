@@ -1,0 +1,476 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Sinopia's checks of the key hints, the ribbon over the slide, the ribbon's galleries and the builds' sides: affrescoui test effects.scenarios.json.",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "sinopia-key-hints",
+			"note": "Alt pressed alone shows a key under every tab and quick command; a tab's letter opens it, and Alt again hides them",
+			"steps": [
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-g",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-1",
+						"exists": true
+					}
+				},
+				{
+					"key": "g"
+				},
+				{
+					"expect": {
+						"state": "tab",
+						"is": "design"
+					}
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#hint-g",
+						"exists": false
+					}
+				},
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": true
+					}
+				},
+				{
+					"key": "alt"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"expect": {
+						"state": "keyHints",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-ribbon-over-the-slide",
+			"note": "With the ribbon collapsed, a tab shows it over the slide; a click elsewhere hides it, and its pin keeps it open in its place",
+			"steps": [
+				{
+					"click": "#ribbon-collapse"
+				},
+				{
+					"expect": {
+						"node": "#ribbon",
+						"exists": false
+					}
+				},
+				{
+					"click": "#tab-design-label"
+				},
+				{
+					"expect": {
+						"node": "#ribbon-peek",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "ribbon",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#gal-themes",
+						"exists": true
+					}
+				},
+				{
+					"click": "#thumb-s2-row"
+				},
+				{
+					"expect": {
+						"state": "ribbonPeek",
+						"is": false
+					}
+				},
+				{
+					"click": "#tab-home-label"
+				},
+				{
+					"expect": {
+						"state": "ribbonPeek",
+						"is": true
+					}
+				},
+				{
+					"click": "#ribbon-pin"
+				},
+				{
+					"expect": {
+						"state": "ribbon",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#ribbon-peek",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#ribbon",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-transition-and-build-galleries",
+			"note": "The transitions' and the builds' galleries open their whole lists, which give the slide a transition and the selected object a build",
+			"steps": [
+				{
+					"click": "#tab-transitions-label"
+				},
+				{
+					"click": "#gal-transitions-all"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Split"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].transition.kind",
+						"is": "split"
+					}
+				},
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#tab-animations-label"
+				},
+				{
+					"click": "#gal-effects-all"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Spin"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].effect",
+						"is": "spin"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].kind",
+						"is": "emphasis"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-wipe-from-every-side",
+			"note": "A wipe build starts from the left; Motion's side button turns it to the top, the right and the bottom, and the show plays it",
+			"steps": [
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#tab-animations-label"
+				},
+				{
+					"click": "#fx-wipe"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].effect",
+						"is": "wipe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#motion-side",
+						"text": " From left"
+					}
+				},
+				{
+					"click": "#motion-side"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].direction",
+						"is": "top"
+					}
+				},
+				{
+					"click": "#motion-side"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].direction",
+						"is": "right"
+					}
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 1
+					}
+				},
+				{
+					"wait": 600
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#motion-side"
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].direction",
+						"is": "bottom"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-own-themes",
+			"note": "Design > Save Theme keeps the deck's look, its own colours too, as a theme of the gallery, first in it, and gives the deck that theme",
+			"steps": [
+				{
+					"click": "#tab-design-label"
+				},
+				{
+					"click": "#theme-ember"
+				},
+				{
+					"click": "#b-save-theme"
+				},
+				{
+					"expect": {
+						"state": "ownThemes[0].name",
+						"is": "My Theme 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "own1"
+					}
+				},
+				{
+					"expect": {
+						"node": "#theme-own1",
+						"exists": true
+					}
+				},
+				{
+					"click": "#theme-default"
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "default"
+					}
+				},
+				{
+					"click": "#theme-own1"
+				},
+				{
+					"expect": {
+						"state": "deck.theme",
+						"is": "own1"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-soft-edges-and-blurred-shadows",
+			"note": "Shape Effects gives a shape soft edges; its shadow and glow are blurred",
+			"steps": [
+				{
+					"click": "#thumb-s4-row"
+				},
+				{
+					"click": "#o10"
+				},
+				{
+					"click": "#b-effects"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Soft Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[3].objects[2].effect",
+						"is": "soft"
+					}
+				},
+				{
+					"capture": "soft"
+				},
+				{
+					"click": "#b-effects"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Shadow"
+					}
+				},
+				{
+					"capture": "shadow"
+				}
+			]
+		},
+		{
+			"name": "sinopia-custom-motion-path",
+			"note": "Motion > Custom: a drag on the slide draws the path the subtitle follows in the show, kept as offsets from where it starts; Escape gives up a drawing",
+			"steps": [
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#tab-animations-label"
+				},
+				{
+					"click": "#fx-pathCustom"
+				},
+				{
+					"expect": {
+						"node": "#motion-path-layer",
+						"exists": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "pathDrawing",
+						"is": false
+					}
+				},
+				{
+					"click": "#o2"
+				},
+				{
+					"click": "#fx-pathCustom"
+				},
+				{
+					"drag": [
+						640,
+						400
+					],
+					"to": [
+						900,
+						300
+					],
+					"moves": 10
+				},
+				{
+					"expect": {
+						"state": "pathDrawing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].effect",
+						"is": "pathCustom"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].kind",
+						"is": "path"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].animations[0].points[0]",
+						"is": [
+							0,
+							0
+						]
+					}
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"wait": 500
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 1
+					}
+				},
+				{
+					"wait": 600
+				},
+				{
+					"key": "escape"
+				}
+			]
+		}
+	]
+}

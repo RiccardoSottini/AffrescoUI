@@ -96,6 +96,11 @@ json appDocument(const std::filesystem::path& folder) {
 	return json::parse(Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()); // nothing kept
 }
 
+std::filesystem::path jsonNotation(const std::filesystem::path& folder) {
+	const std::filesystem::path json = folder.parent_path() / "json";
+	return folder.filename() == "lisp" && std::filesystem::exists(json) ? json : folder;
+}
+
 json screenDocument(const std::filesystem::path& file) {
 	const std::filesystem::path app = Screen::appOf(file);
 	const Screen screen = app.empty() ? Screen::fromString(readFile(file), file.parent_path())
@@ -132,16 +137,29 @@ json kanbanWithCards(const std::filesystem::path& directory, int cards) {
 	return document;
 }
 
+json fiftyThousandPanels() {
+	json items = json::array();
+	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
+	json document = json::parse(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
+		"root": { "type": "panel", "children": [{ "type": "column", "children": [
+			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
+				{ "type": "label", "text": "{{item.v}}" }
+			] }
+		] }] }
+	})json");
+	document["state"]["items"] = std::move(items);
+	return document;
+}
+
+std::size_t panelCount(const Panel& panel) {
+	std::size_t count = 1;
+	for(const auto& child : panel.children()) count += panelCount(*child);
+	return count;
+}
+
 namespace {
-
-/// @brief Runs the updates that state changes have queued, as the end of a routed event does, without drawing: a key
-/// release that no panel has the focus for and no shortcut uses.
-/// @param window The window.
-void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
-
-/// @brief Lays the window out, without drawing.
-/// @param window The window.
-void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 
 /// @brief The card counts the Kanban workloads fill the template to, the roadmap item's: the template has 12 cards, so
 /// even the smallest board has two copies.
@@ -166,7 +184,8 @@ std::vector<Workload> loadWorkloads(Context& context) {
 }
 
 /// @brief "build/<template>": building each template into a window, its document read and its fonts loaded
-/// beforehand. Each run keeps its screen, so `retainedBytes` is the memory of the panels built and what they keep.
+/// beforehand. Each run keeps its screen, so `retainedBytes` is the memory of the panels built and what they keep;
+/// "panels" is how many there are, so the two give the bytes per panel.
 /// @param context The context.
 /// @return One workload per template.
 std::vector<Workload> buildWorkloads(Context& context) {
@@ -183,6 +202,7 @@ std::vector<Workload> buildWorkloads(Context& context) {
 			*screen = &context.create(*text, folder);
 		};
 		workload.step = [window, screen] { (*screen)->build(**window); };
+		workload.report = [window](json& result) { result["panels"] = panelCount((*window)->root()); };
 		workloads.push_back(std::move(workload));
 	}
 	return workloads;
@@ -197,25 +217,6 @@ void renameBoard(const LoadedScreen& loaded, bool& renamed) {
 	loaded.screen.runAction("renameBoard", loaded.window.root(), event);
 	runQueuedUpdates(loaded.window);
 	layOut(loaded.window);
-}
-
-/// @brief A screen of 50,000 panels: a keyed list of 25,000 rows, each a row and a label showing its item's value,
-/// with a "touch" action that changes one item's value.
-/// @return The document.
-json fiftyThousandPanels() {
-	json items = json::array();
-	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
-	json document = json::parse(R"json({
-		"format": "affrescoui-screen", "version": 2,
-		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
-		"root": { "type": "panel", "children": [{ "type": "column", "children": [
-			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
-				{ "type": "label", "text": "{{item.v}}" }
-			] }
-		] }] }
-	})json");
-	document["state"]["items"] = std::move(items);
-	return document;
 }
 
 /// @brief "update/panels-50000": one changed value on a screen of 50,000 panels (fiftyThousandPanels()), its update
@@ -307,9 +308,67 @@ void applyEdit(EditedScreen& screen) {
 	layOut(screen.loaded.window);
 }
 
+/// @brief A key of a JSON Pointer, escaped.
+/// @param key The key.
+/// @return It, with "~" and "/" escaped.
+std::string pointerKey(const std::string& key) {
+	std::string escaped;
+	for(const char c : key) escaped += c == '~' ? "~0" : c == '/' ? "~1" : std::string(1, c);
+	return escaped;
+}
+
+/// @brief A definition's text with one change of an edit of tests/perf/edits/program applied: a text found exactly
+/// once replaced ("from", "to"), a child added at the end of the node the definition builds ("append"), or the whole
+/// text ("text", for a new definition).
+/// @param text The definition's text, "" for a new one.
+/// @param change The change.
+/// @return The new text.
+/// @throws std::logic_error If the text to replace isn't there exactly once, or the definition doesn't end its node.
+std::string changedDefinition(const std::string& text, const json& change) {
+	if(change.contains("text")) return change["text"].get<std::string>();
+	if(change.contains("append")) {
+		const std::size_t end = text.find_last_not_of(" \n");
+		if(end == std::string::npos || end < 1U || text.compare(end - 1U, 2U, "))") != 0)
+			throw std::logic_error("the definition doesn't end with its node: " + change.dump());
+		return text.substr(0, end - 1U) + "\n     " + change["append"].get<std::string>() + text.substr(end - 1U);
+	}
+	const std::string from = change.at("from").get<std::string>();
+	const std::size_t found = text.find(from);
+	if(found == std::string::npos || text.find(from, found + 1U) != std::string::npos)
+		throw std::logic_error("the text to change isn't in its definition exactly once: " + change.dump());
+	return text.substr(0, found) + change.at("to").get<std::string>() + text.substr(found + from.size());
+}
+
+/// @brief An edit of a template written as a program, as the revision an agent sends: the new text of each
+/// definition it changes, from the template's own texts, so it follows them as they change.
+/// @param document The template's document, with its "program".
+/// @param edit `{"message", "change": [{"definition": "<file>/<name>", ...}]}` (changedDefinition()).
+/// @return The revision: its message and a "set" of the definitions' texts.
+json programRevision(const json& document, const json& edit) {
+	json revision = {{"message", edit.at("message")}, {"set", json::object()}};
+	for(const json& change : edit.at("change")) {
+		const std::string definition = change.at("definition").get<std::string>();
+		const std::size_t slash = definition.rfind('/');
+		const std::string file = definition.substr(0, slash), name = definition.substr(slash + 1U);
+		const std::string path = "/program/" + pointerKey(file) + "/" + pointerKey(name);
+		json& set = revision["set"];
+		const json& program = document.at("program");
+		const bool written = program.contains(file) && program[file].contains(name);
+		if(!written && !change.contains("text"))
+			throw std::logic_error("no definition " + definition + " in the template's program");
+		const std::string text = set.contains(path) ? set[path].get<std::string>()
+		                         : written          ? program[file][name].get<std::string>()
+		                                            : std::string();
+		set[path] = changedDefinition(text, change);
+	}
+	return revision;
+}
+
 /// @brief "revision/<template>/<edit>": each canonical agent edit of tests/perf/edits applied as a revision (a commit,
-/// then reconciliation and layout). Between runs it is taken back, unmeasured. Taking it back commits too, so the
-/// history, and with it the cost, grows from run to run (tests/perf/README.md).
+/// then reconciliation and layout). A template written as a program can't have the tree its program builds written:
+/// an edit tests/perf/edits/program has for it changes the definition that builds the node instead. Between runs it is
+/// taken back, unmeasured. Taking it back commits too, so the history, and with it the cost, grows from run to run
+/// (tests/perf/README.md).
 /// @param context The context.
 /// @return One workload per edit.
 std::vector<Workload> revisionWorkloads(Context& context) {
@@ -318,17 +377,23 @@ std::vector<Workload> revisionWorkloads(Context& context) {
 		const std::filesystem::path file = context.edits() / (name + ".json");
 		if(!std::filesystem::exists(file)) continue;
 		const std::filesystem::path folder = context.templateFolder(name);
-		const json document = appDocument(folder);
+		const std::filesystem::path programFile = context.edits() / "program" / (name + ".json");
+		const json built = appDocument(folder);
+		const bool program = built.contains("program") && std::filesystem::exists(programFile);
+		// a program as it is written: what it builds is the program's to say
+		const json document =
+		    program ? Screen::fromApp(folder, {}, Screen::History::InMemory).versions().sourceDocument() : built;
 		const json edits = json::parse(readFile(file)); // named: items() refers to it during the loop
+		const json programEdits = program ? json::parse(readFile(programFile)) : json::object();
 		for(const auto& [editName, edit] : edits.items()) {
 			const LoadedScreen loaded = context.load(document, folder);
-			json revision = edit;
+			json revision = programEdits.contains(editName) ? programRevision(document, programEdits[editName]) : edit;
 			revision["author"] = "bench";
 			const json reset = {{"author", "bench"},
 			                    {"message", "Put the state back"},
 			                    {"set", {{"/state", json::parse(loaded.screen.stateJson())}}}};
 			const auto screen = std::make_shared<EditedScreen>(
-			    EditedScreen{loaded, revision.dump(), reset.dump(), changesDocument(edit)});
+			    EditedScreen{loaded, revision.dump(), reset.dump(), changesDocument(revision)});
 			Workload workload{.name = std::format("revision/{}/{}", name, editName), .runs = 15};
 			workload.prepare = [screen] { takeBack(*screen); };
 			workload.step = [screen] { applyEdit(*screen); };
@@ -345,15 +410,6 @@ void resize(Window& window, bool& smaller) {
 	smaller = !smaller;
 	window.setSize(smaller ? 1180 : 1280, smaller ? 760 : 800);
 	layOut(window);
-}
-
-/// @brief How many panels a tree has.
-/// @param panel The tree's root.
-/// @return The panels, the root included.
-std::size_t panelCount(const Panel& panel) {
-	std::size_t count = 1;
-	for(const auto& child : panel.children()) count += panelCount(*child);
-	return count;
 }
 
 /// @brief The cards that fill the Kanban template to at least 5,000 panels (checked when the workload is set up).
@@ -450,7 +506,8 @@ std::vector<Group> screenGroups() {
 	return {{"load", loadWorkloads},         {"build", buildWorkloads},   {"update", updateWorkloads},
 	        {"revision", revisionWorkloads}, {"layout", layoutWorkloads}, {"frame", frameWorkloads},
 	        {"editor", editorWorkloads},     {"forge", forgeWorkloads},   {"lisp", lispWorkloads},
-	        {"budgets", budgetWorkloads}};
+	        {"budgets", budgetWorkloads},   {"command", commandWorkloads},
+	        {"update", trackingUpdateWorkloads}, {"revision", trackingRevisionWorkloads}};
 }
 
 } // namespace affresco::bench

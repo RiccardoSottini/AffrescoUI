@@ -496,9 +496,18 @@
 						"state": "browserTab",
 						"is": "eclipses"
 					}
+				},
+				{
+					"click": { "role": "tab", "name": "Bodies" }
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "bodies"
+					}
 				}
 			],
-			"note": "The browser's Places tab opens on a click."
+			"note": "The browser's Places tab opens on a click; each tab is an element of its own (role tab) that a click on it by role picks."
 		},
 		{
 			"name": "notes-on-the-chart",

@@ -46,6 +46,13 @@ struct GradientPreset {
 /// @return 0 to 1.
 [[nodiscard]] float gradientPosition(GradientShape shape, Point from, Point to, float x, float y) noexcept;
 
+/// @brief How a gradient is laid besides its stops and shape.
+struct GradientOptions {
+	bool reverse = false;     ///< From its end to its start.
+	bool dither = false;      ///< With a little noise, so that smooth ramps show no bands.
+	bool transparency = true; ///< With its stops' opacity (else every stop is opaque).
+};
+
 /// @brief Lays a gradient over a layer as one step (within the selection when there is one).
 /// @param document The document.
 /// @param target The image.
@@ -54,9 +61,10 @@ struct GradientPreset {
 /// @param from Where it starts.
 /// @param to Where it ends.
 /// @param opacity 0 to 1.
+/// @param options Reverse, dither and transparency.
 /// @throws DocumentError when the target can't be painted.
 void drawGradient(Document& document, std::uint64_t target, const Gradient& gradient, GradientShape shape, Point from,
-                  Point to, float opacity);
+                  Point to, float opacity, const GradientOptions& options = {});
 
 /// @brief Lays a colour over a coverage of a layer as one step (within the selection when there is one).
 /// @param document The document.

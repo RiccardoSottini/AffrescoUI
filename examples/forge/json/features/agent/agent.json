@@ -267,9 +267,11 @@
 						  "textColor": "{{state.features.busy ? '@color.accent' : '@color.muted'}}", "tooltip": "Refresh",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "featuresRefresh" } }
 					  ] },
-					{ "type": "textarea", "id": "features-filter", "width": "100%", "height": 26, "padding": 6, "color": "@color.input",
-					  "textColor": "@color.text", "placeholderColor": "@color.muted", "bind": "state.features.filter",
-					  "placeholder": "Search the catalogue" },
+					{ "id": "features-filter-row", "use": "forgeInset", "height": 26, "children": [
+						{ "type": "textarea", "id": "features-filter", "grow": 1, "height": 26, "padding": 6, "color": "@color.input",
+						  "textColor": "@color.text", "placeholderColor": "@color.muted", "bind": "state.features.filter",
+						  "placeholder": "Search the catalogue" }
+					] },
 					{ "type": "label", "id": "features-error", "when": "{{!empty(state.features.error)}}", "icon": "circle-x", "wrap": true,
 					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.features.error}}" },
 					{ "type": "label", "id": "features-empty", "when": "{{length(state.features.catalog) == 0 && empty(state.features.error)}}",
@@ -278,17 +280,17 @@
 					{ "type": "column", "id": "features-list", "role": "listbox", "label": "Features", "width": "100%", "grow": 1, "scroll": "vertical",
 					  "children": [
 						{ "type": "row", "id": "{{'feature-' + f.name}}",
-						  "repeat": { "for": "f", "in": "{{computed.featureCards}}", "index": "fi", "key": "{{f.name}}" }, "role": "option", "label": "{{f.title + '. ' + f.description}}", "width": "100%", "height": 48,
+						  "repeat": { "for": "f", "in": "{{computed.featureCards}}", "index": "fi", "key": "{{f.name}}" }, "role": "option", "label": "{{f.title + '. ' + f.description}}", "width": "100%", "height": 56,
 						  "alignItems": "center", "gap": 8, "focusable": true, "cursor": "hand",
 						  "color": "{{state.features.selected == f.name ? '@color.selection' : '@color.sideBar'}}", "hover": { "color": "@color.hover" },
 						  "onClick": [{ "set": "state.features.selected", "to": "{{f.name}}" }],
 						  "children": [
 							{ "type": "label", "id": "{{'feature-icon-' + f.name}}", "icon": "{{!f.installed ? 'download' : f.enabled ? 'circle-check' : 'circle-pause'}}",
-							  "width": 32, "height": 48, "align": "center", "textColor": "{{f.installed && f.enabled ? '@color.accent' : '@color.muted'}}" },
-							{ "type": "column", "id": "{{'feature-text-' + f.name}}", "grow": 1, "height": 40, "children": [
+							  "width": 32, "height": 56, "align": "center", "textColor": "{{f.installed && f.enabled ? '@color.accent' : '@color.muted'}}" },
+							{ "type": "column", "id": "{{'feature-text-' + f.name}}", "grow": 1, "height": 48, "children": [
 								{ "type": "label", "id": "{{'feature-title-' + f.name}}", "width": "100%", "height": 20, "textColor": "@color.text",
 								  "text": "{{f.title + (empty(f.release) ? '' : '  ' + f.release)}}" },
-								{ "type": "label", "id": "{{'feature-description-' + f.name}}", "width": "100%", "height": 20, "textColor": "@color.muted",
+								{ "type": "label", "id": "{{'feature-description-' + f.name}}", "width": "100%", "height": 26, "wrap": true, "textColor": "@color.muted",
 								  "text": "{{f.description}}" }
 							] },
 							{ "id": "{{'feature-end-' + f.name}}", "width": 8 }

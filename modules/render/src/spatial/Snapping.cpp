@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace affresco {
 namespace {
@@ -68,14 +69,137 @@ std::optional<SnapLine> lineOf(const Pull& pull, bool vertical, const Rect& rect
 	return SnapLine{vertical, pull.target, from, to};
 }
 
+/// @brief Whether two rectangles overlap across an axis, so they sit in one row (along x) or one column (along y).
+/// @param a One rectangle.
+/// @param b The other.
+/// @param vertical The x axis (a row) or the y axis (a column).
+/// @return true when their spans on the other axis overlap.
+bool sameRow(const Rect& a, const Rect& b, bool vertical) noexcept {
+	return vertical ? a.top < b.bottom && b.top < a.bottom : a.left < b.right && b.left < a.right;
+}
+
+/// @brief The gaps between neighbouring items in the moving rectangle's row (or column): each item's end to the start
+/// of the next item that begins after it.
+/// @param moving The moving rectangle.
+/// @param vertical The x axis or the y axis.
+/// @param others The other items.
+/// @param visit Called with the earlier item and the later one of each gap.
+template <typename Visit>
+void eachGap(const Rect& moving, bool vertical, std::span<const Rect> others, const Visit& visit) {
+	for(const Rect& a : others) {
+		if(!sameRow(a, moving, vertical)) continue;
+		const Rect* next = nullptr;
+		const float end = stops(a, vertical)[2];
+		for(const Rect& b : others) {
+			const float start = stops(b, vertical)[0];
+			if(&a != &b && sameRow(b, moving, vertical) && start >= end && (!next || start < stops(*next, vertical)[0]))
+				next = &b;
+		}
+		if(next && stops(*next, vertical)[0] > end) visit(a, *next);
+	}
+}
+
+/// @brief The best pull on one axis that gives the moving rectangle a gap to an item of its row equal to a gap
+/// between two items there, or equal gaps to its two neighbours.
+/// @param moving The moving rectangle.
+/// @param vertical The x axis or the y axis.
+/// @param others The other items.
+/// @param tolerance The largest pull.
+/// @return The pull (an infinite distance when nothing is near).
+Pull gapPull(const Rect& moving, bool vertical, std::span<const Rect> others, float tolerance) noexcept {
+	Pull pull;
+	const std::array<float, 3> own = stops(moving, vertical);
+	const auto consider = [&](float delta) {
+		if(std::abs(delta) <= tolerance && std::abs(delta) < pull.distance)
+			pull = {delta, std::abs(delta), 0.0f, nullptr, false, 0};
+	};
+	eachGap(moving, vertical, others, [&](const Rect& a, const Rect& b) {
+		const float gap = stops(b, vertical)[0] - stops(a, vertical)[2];
+		for(const Rect& item : others) {
+			if(!sameRow(item, moving, vertical)) continue;
+			const std::array<float, 3> at = stops(item, vertical);
+			consider(at[2] + gap - own[0]); // after it, by that gap
+			consider(at[0] - gap - own[2]); // before it, by that gap
+		}
+	});
+	// Between two neighbours, as far from each
+	eachGap(moving, vertical, others, [&](const Rect& a, const Rect& b) {
+		const float room = stops(b, vertical)[0] - stops(a, vertical)[2], size = own[2] - own[0];
+		if(room > size) consider(stops(a, vertical)[2] + (room - size) / 2.0f - own[0]);
+	});
+	return pull;
+}
+
+/// @brief A distance indicator: a segment across the gap from `from` to `to` along an axis, halfway down the span the
+/// two rectangles share on the other axis.
+/// @param a The rectangle before the gap.
+/// @param b The rectangle after it.
+/// @param vertical The x axis (the segment is horizontal) or the y axis.
+/// @return The segment.
+SnapLine gapLine(const Rect& a, const Rect& b, bool vertical) noexcept {
+	const float shared = vertical ? (std::max(a.top, b.top) + std::min(a.bottom, b.bottom)) / 2.0f
+	                              : (std::max(a.left, b.left) + std::min(a.right, b.right)) / 2.0f;
+	return SnapLine{!vertical, shared, stops(a, vertical)[2], stops(b, vertical)[0]};
+}
+
+/// @brief How near two gaps must be to count as equal, in world units.
+constexpr float same = 0.5f;
+
+/// @brief A rectangle's nearest neighbours in its row (or column): the item that ends last before it, and the one
+/// that starts first after it.
+/// @param rect The rectangle.
+/// @param vertical The x axis or the y axis.
+/// @param others The other items.
+/// @return The one before and the one after (nullptr where there is none).
+std::pair<const Rect*, const Rect*> neighbours(const Rect& rect, bool vertical, std::span<const Rect> others) noexcept {
+	const std::array<float, 3> own = stops(rect, vertical);
+	const Rect* before = nullptr;
+	const Rect* after = nullptr;
+	for(const Rect& item : others) {
+		if(!sameRow(item, rect, vertical)) continue;
+		const std::array<float, 3> at = stops(item, vertical);
+		if(at[2] <= own[0] + same && (!before || at[2] > stops(*before, vertical)[2])) before = &item;
+		if(at[0] >= own[2] - same && (!after || at[0] < stops(*after, vertical)[0])) after = &item;
+	}
+	return {before, after};
+}
+
+/// @brief The distance indicators of a rectangle where it landed, along one axis: its gap to a neighbour, and the
+/// equal gap it matches (another pair's, or its other neighbour's).
+/// @param rect The rectangle.
+/// @param vertical The x axis or the y axis.
+/// @param others The other items.
+/// @param gaps The two slots to fill.
+void indicate(const Rect& rect, bool vertical, std::span<const Rect> others,
+              std::span<std::optional<SnapLine>, 2> gaps) noexcept {
+	const std::array<float, 3> own = stops(rect, vertical);
+	const auto [before, after] = neighbours(rect, vertical, others);
+	const float left = before ? own[0] - stops(*before, vertical)[2] : -1.0f;
+	const float right = after ? stops(*after, vertical)[0] - own[2] : -1.0f;
+	if(left > same && right > same && std::abs(left - right) < same) {
+		gaps[0] = gapLine(*before, rect, vertical);
+		gaps[1] = gapLine(rect, *after, vertical);
+		return;
+	}
+	eachGap(rect, vertical, others, [&](const Rect& a, const Rect& b) {
+		if(gaps[0]) return;
+		const float gap = stops(b, vertical)[0] - stops(a, vertical)[2];
+		if(left > same && std::abs(gap - left) < same) gaps[0] = gapLine(*before, rect, vertical);
+		else if(right > same && std::abs(gap - right) < same) gaps[0] = gapLine(rect, *after, vertical);
+		if(gaps[0]) gaps[1] = gapLine(a, b, vertical);
+	});
+}
+
 } // namespace
 
 SnapResult snapMove(Rect moving, const SnapTargets& targets, float tolerance) noexcept {
-	SnapResult result{moving, {}};
+	SnapResult result{moving, {}, {}};
 	if(!(tolerance > 0.0f)) return result;
 	for(const bool vertical : {true, false}) {
 		const std::array<float, 3> coordinates = stops(moving, vertical);
-		const Pull pull = bestPull(coordinates, vertical, targets, tolerance);
+		// An edge, a centre, a guide or the grid comes first; an equal gap only where none of them is near
+		Pull pull = bestPull(coordinates, vertical, targets, tolerance);
+		if(std::isinf(pull.distance)) pull = gapPull(moving, vertical, targets.others, tolerance);
 		if(std::isinf(pull.distance)) continue;
 		(vertical ? result.rect.left : result.rect.top) += pull.delta;
 		(vertical ? result.rect.right : result.rect.bottom) += pull.delta;
@@ -84,12 +208,14 @@ SnapResult snapMove(Rect moving, const SnapTargets& targets, float tolerance) no
 		const std::array<float, 3> coordinates = stops(result.rect, vertical);
 		const Pull pull = bestPull(coordinates, vertical, targets, 1e-3f * std::max(tolerance, 1.0f));
 		result.lines[vertical ? 0 : 1] = lineOf(pull, vertical, result.rect);
+		indicate(result.rect, vertical, targets.others,
+		         std::span<std::optional<SnapLine>, 2>(result.gaps.data() + (vertical ? 0 : 2), 2));
 	}
 	return result;
 }
 
 SnapResult snapResize(Rect resized, SnapEdges edges, const SnapTargets& targets, float tolerance) noexcept {
-	SnapResult result{resized, {}};
+	SnapResult result{resized, {}, {}};
 	if(!(tolerance > 0.0f)) return result;
 	for(const bool vertical : {true, false}) {
 		const bool startMoves = vertical ? edges.left : edges.top, endMoves = vertical ? edges.right : edges.bottom;

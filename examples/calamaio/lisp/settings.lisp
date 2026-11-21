@@ -4,6 +4,8 @@
 ;;; variables share their name with the command that toggles them (menu-bar-mode is both, as in the editor Calamaio
 ;;; follows), and a program has one name for one thing: so they are the settings of one part, not defcustoms.
 
+(ns calamaio.settings)
+
 ;;; The editor's variables
 
 (defpart variables "The editor's variables, by the names the editor Calamaio follows gives them."
@@ -32,6 +34,15 @@
              :show-paren-mode
              (boolean :default true
                :title ~(t "setting.show-paren-mode") :description ~(t "setting.show-paren-mode.about"))
+             :electric-pair-mode
+             (boolean :default false
+               :title ~(t "setting.electric-pair-mode") :description ~(t "setting.electric-pair-mode.about"))
+             :whitespace-mode
+             (boolean :default false
+               :title ~(t "setting.whitespace-mode") :description ~(t "setting.whitespace-mode.about"))
+             :auto-fill-mode
+             (boolean :default false
+               :title ~(t "setting.auto-fill-mode") :description ~(t "setting.auto-fill-mode.about"))
              :display-fill-column-indicator-mode
              (boolean :default false
                :title ~(t "setting.display-fill-column-indicator-mode")

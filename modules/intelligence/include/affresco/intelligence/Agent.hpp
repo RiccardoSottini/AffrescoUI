@@ -37,17 +37,18 @@ using ClaudeRunner = std::function<ClaudeAnswer(const std::string& model, const 
 
 /// @brief The bounds and the parts an agent works with.
 struct AgentOptions {
-	std::filesystem::path dataDir;                  ///< Where intelligence.json is (read at each request).
-	Catalog catalog;                                ///< The providers.
-	std::string guide;                              ///< SCREEN_FORMAT.md's text (readFormatGuide()).
-	std::shared_ptr<affresco::SecretStore> keys;    ///< The keys (systemKeys()).
-	NetworkFactory network = systemNetwork();       ///< Makes the HTTP client of a request.
-	ClaudeRunner claude;                            ///< Runs claude-code; empty: the installed command line.
-	bool hiddenProviders = true;                    ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
-	int maxSteps = 12;                              ///< The most answers of the model per request.
-	int maxRevisions = 6;                           ///< The most revisions per request.
-	long long maxOutputTokens = 60000;              ///< The most tokens the model writes per request.
-	std::chrono::milliseconds budget{240000};       ///< The longest a request may take.
+	std::filesystem::path dataDir;               ///< Where intelligence.json is (read at each request).
+	Catalog catalog;                             ///< The providers.
+	std::string guide;                           ///< SCREEN_FORMAT.md's text (readFormatGuide()).
+	std::shared_ptr<affresco::SecretStore> keys; ///< The keys (systemKeys()).
+	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a request.
+	ClaudeRunner claude;                         ///< Runs claude-code; empty: the installed command line.
+	bool hiddenProviders = true;              ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
+	int maxSteps = 12;                        ///< The most answers of the model per request.
+	int maxRevisions = 6;                     ///< The most revisions per request.
+	int maxRuns = 12;                         ///< The most of the app's commands run per request.
+	long long maxOutputTokens = 60000;        ///< The most tokens the model writes per request.
+	std::chrono::milliseconds budget{240000}; ///< The longest a request may take.
 	std::chrono::milliseconds screenTimeout{30000}; ///< The longest the screen may take to answer the agent.
 	std::size_t inlineDocument = 32 * 1024;         ///< A screen this large or smaller is sent whole, else its outline.
 	/// The most requests taken in any minute; the rest are answered "too many requests", so a step the screen runs
@@ -96,8 +97,18 @@ private:
 		std::string model;       ///< The model it asks for (`options.model`), or "" for the person's default.
 		affresco::json attached; ///< What the person attached to it: [{ id, name, type, size, ... }].
 		affresco::json earlier;  ///< What was attached to the conversation's earlier requests, the same way.
+		affresco::json picks;    ///< What the person pointed at on the screen (its "picks", kept to their sizes).
 	};
 
+	/// @brief Queues a request from the app's own chat, or answers it "busy" or "too many requests". Main thread.
+	/// @param in The request.
+	void queue(const affresco::json& in);
+	/// @brief Keeps a request's attachments for the later requests, the newest maxAttachments. Main thread.
+	/// @param attached The attachments.
+	void remember(const affresco::json& attached);
+	/// @brief Hands the screen's answer to the agent's own question to the question waiting for it. Main thread.
+	/// @param in The answer.
+	void receive(const affresco::json& in);
 	/// @brief The thread: works on the jobs, one at a time.
 	void work();
 	/// @brief Works on one request and replies to it.
@@ -107,6 +118,12 @@ private:
 	/// @param message The message (an id is added).
 	/// @return The answer, or nullopt if none came in time or the agent stopped.
 	std::optional<affresco::json> ask(affresco::json message);
+	/// @brief Asks the screen to run a command and waits for how it ended: after a "waiting" answer, for the run's
+	/// second answer (the same id) until @p until, the person's cancel or the stop. Worker thread.
+	/// @param message The runCommand (an id is added).
+	/// @param until The latest it waits for a run that waits for the person's yes.
+	/// @return The last answer (a "waiting" one when the run still waits), or nullopt if none came in time.
+	std::optional<affresco::json> askRun(affresco::json message, std::chrono::steady_clock::time_point until);
 	/// @brief Sends a message to the screen, on the main thread.
 	/// @param message The message.
 	void deliver(const affresco::json& message);

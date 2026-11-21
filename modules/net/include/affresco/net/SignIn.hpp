@@ -127,4 +127,10 @@ private:
 /// @param url An https:// (or loopback http://) URL.
 void openInBrowser(const std::string& url);
 
+/// @brief Opens a web address in the system's default browser, without a shell: any well-formed http:// or https://
+/// URL (parseUrl()). The caller asks the person first (the openUrl step does); anything else is refused and logged.
+/// @param url The address.
+/// @return Whether the browser was started with it.
+bool openWebAddress(const std::string& url);
+
 } // namespace affresco::net

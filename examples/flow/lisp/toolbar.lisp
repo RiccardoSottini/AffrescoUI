@@ -1,12 +1,14 @@
 ;;; toolbar.lisp --- the top bar and the toolbar: scopes, members, filters, search and the Display menu
 
+(ns flow.toolbar)
+
 ;;; The top bar
 
 (defview top-bar "The top bar: the logo and the board's name, the scope tabs and who is on the board." []
   `(node#topBar :dir auto :anchors {:left 220 :right 0 :top 0} :height 48 :color @color.topBar
      (label#logo :runs [{:icon box}
                         "  Flow  "
-                        {:text ~(str "›  " (:label (find (fn [it] (= it.id state.boardId)) state.boards)))
+                        {:text ~(str "›  " (:label (find #(= (:id %) state.boardId) state.boards)))
                          :color @color.topMuted}]
        :textColor @color.topText
        :anchors {:left 16 :top 0 :bottom 0}
@@ -146,7 +148,7 @@
      :label ~(t "filter.placeholder")
      :autofocus true
      :bind state.filterQuery
-     :onSubmit submitFilter
+     :onSubmit submit-filter
      :keys {:escape {:set state.filterOpen :to false}}))
 
 (defview filter-list "The Filter menu's list: the properties, or the values of the one chosen, each with its icon." []
@@ -157,7 +159,7 @@
           :runs [{:icon ~p.1 :color @color.muted} ~(str "  " (t (str "filter." p.0)))]
           :role menuitem
           :label ~(t (str "filter." p.0))
-          :onClick ~(handler pickFilterProp p.0)
+          :onClick ~(handler pick-filter-prop p.0)
           (label#label-filter-prop :font small
             :icon chevron-right
             :mirror true
@@ -174,7 +176,7 @@
           :role menuitemcheckbox
           :selected ~opt.on
           :label ~opt.title
-          :onClick ~(handler setFilter state.filterProp opt.v opt.on)))))
+          :onClick ~(handler set-filter state.filterProp opt.v opt.on)))))
 
 (defview filter-chip "A filter that is on, as a chip: its property and value, and an x that removes it." [f]
   `(node#filterChip :style toolButtonOn
@@ -196,7 +198,7 @@
        :focusable true
        :role button
        :label ~(t "filter.clear")
-       :onClick ~(handler clearFilter f.prop))))
+       :onClick ~(handler clear-filter f.prop))))
 
 (defview search-field "The search field, shown while it is open or holds a search." []
   `(textarea#search :when ~(or state.searchOpen (not= state.query ""))
@@ -220,7 +222,7 @@
   `(node#displayMenu :overlay {:placement below-end :open state.displayOpen :dismiss outside}
      :y 4
      :width 280
-     :height 288
+     :height 308
      :radius @radius.card
      :shadow {:y 6 :blur 16 :color "#0000002e"}
      :borderWidth 1
@@ -230,8 +232,8 @@
      ~(views)
      (node#displayGrouping :style caption :text ~(t "display.grouping") :anchors {:left 12 :top 100})
      ~(groupings)
-     (node#displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 134})
-     (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 154} :height 24 :role radiogroup :arrows horizontal
+     (node#displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 154})
+     (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 174} :height 24 :role radiogroup :arrows horizontal
        ~(repeat [o ["manual" "priority" "due"]]
          `(node#ordering :style displayPill
             :role radio
@@ -239,9 +241,9 @@
             :selected ~(= state.order o)
             :borderColor ~(if (= state.order o) "@color.accent" "@color.border")
             :textColor ~(if (= state.order o) "@color.text" "@color.muted")
-            :onClick ~(handler orderBy o))))
-     (node#displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 192})
-     (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 212} :height 76
+            :onClick ~(handler order-by o))))
+     (node#displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 212})
+     (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 232} :height 76
        ~(repeat [prop ["id" "priority" "label" "due" "estimate" "assignee"]]
          `(node#displayProp :style displayPill
             :role switch
@@ -251,33 +253,33 @@
             :color ~(if on "@color.chipHover" "transparent")
             :borderColor ~(if on "@color.chipHover" "@color.border")
             :textColor ~(if on "@color.text" "@color.muted")
-            :onClick ~(handler toggleProperty prop))))))
+            :onClick ~(handler toggle-property prop))))))
 
 (defview groupings "The Display menu's grouping choices." []
-  `(row#groupings :gap 4 :anchors {:left 120 :right 12 :top 96} :height 24 :role radiogroup :arrows horizontal
+  `(row#groupings :gap 4 :anchors {:left 12 :right 12 :top 120} :height 24 :role radiogroup :arrows horizontal
      ~(repeat [g ["status" "assignee"]]
        `(node#grouping :let {:on ~(= state.swimlanes (= g "assignee"))}
           :style displayPill
           :role radio
           :text ~(t (str "prop." g))
           :selected ~on
-          :disabled ~(not= state.view "board")
+          :disabled ~(not= state.view :board)
           :borderColor ~(if on "@color.accent" "@color.border")
-          :textColor ~(if (and on (= state.view "board")) "@color.text" "@color.muted")
+          :textColor ~(if (and on (= state.view :board)) "@color.text" "@color.muted")
           :tooltip ~(if (= g "assignee") (t "view.lanes") "")
           :onClick ~(handler groupBy on)))))
 
 (defview views "The Display menu's layouts: board, list, table and timeline." []
   `(row#views :gap 4 :anchors {:left 12 :right 12 :top 34} :height 52 :role radiogroup :arrows horizontal
      (node#viewBoard :use layoutChoice
-       :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view "board")}
+       :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view :board)}
        :onClick showBoard)
      (node#viewList :use layoutChoice
-       :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view "list")}
+       :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view :list)}
        :onClick showList)
      (node#viewTable :use layoutChoice
-       :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view "table")}
+       :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view :table)}
        :onClick showTable)
      (node#viewTimeline :use layoutChoice
-       :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view "timeline")}
+       :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view :timeline)}
        :onClick showTimeline)))

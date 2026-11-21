@@ -176,6 +176,11 @@ void Stroke::stamp(float x, float y, float pressure) {
 	const float radius = tip_.size / 2.0f * (tip_.pressureSize ? std::max(pressure, 0.05f) : 1.0f);
 	const float cap = tip_.opacity * (tip_.pressureOpacity ? pressure : 1.0f);
 	if(cap <= 0.0f) return;
+	if(mode_ == StrokeMode::smudge) {
+		smudgeX_ = lastStamp_ ? x - lastStamp_->x : 0.0f;
+		smudgeY_ = lastStamp_ ? y - lastStamp_->y : 0.0f;
+		lastStamp_ = StrokePoint{x, y, pressure};
+	}
 	const Image& image = *document_->image(target_);
 	if(x + radius < 0.0f || y + radius < 0.0f) return;
 	// Past the right or bottom no tile is touched; the dab still counts, and its far edge is never cast to an int
@@ -228,6 +233,11 @@ Stroke::Touched& Stroke::touched(int column, int row) {
 	    .first->second;
 }
 
+std::span<const std::string_view> retouchNames() noexcept {
+	static constexpr std::array<std::string_view, 6> names{"dodge", "burn", "sponge", "blur", "sharpen", "smudge"};
+	return names;
+}
+
 Pixel Stroke::original(int x, int y) const {
 	const Image& image = *document_->image(target_);
 	if(x < 0 || y < 0 || x >= image.width() || y >= image.height()) return {};
@@ -236,7 +246,72 @@ Pixel Stroke::original(int x, int y) const {
 	return image.pixel(x, y);
 }
 
+Pixel Stroke::neighbourhood(int x, int y) const {
+	Pixel sum{0.0f, 0.0f, 0.0f, 0.0f};
+	int count = 0;
+	for(int dy = -2; dy <= 2; ++dy)
+		for(int dx = -2; dx <= 2; ++dx) {
+			const Image& image = *document_->image(target_);
+			if(x + dx < 0 || y + dy < 0 || x + dx >= image.width() || y + dy >= image.height()) continue;
+			const Pixel near = original(x + dx, y + dy);
+			sum = {sum.red + near.red, sum.green + near.green, sum.blue + near.blue, sum.alpha + near.alpha};
+			++count;
+		}
+	const auto share = 1.0f / static_cast<float>(std::max(count, 1));
+	return {sum.red * share, sum.green * share, sum.blue * share, sum.alpha * share};
+}
+
+Pixel Stroke::retouched(const Pixel& under, int x, int y, float coverage) const {
+	constexpr float strength = 0.5f; // the most one stroke changes, as a share
+	const float amount = coverage * strength;
+	const auto each = [&](const auto& change) {
+		return Pixel{std::clamp(change(under.red), 0.0f, 1.0f), std::clamp(change(under.green), 0.0f, 1.0f),
+		             std::clamp(change(under.blue), 0.0f, 1.0f), under.alpha};
+	};
+	switch(mode_) {
+	case StrokeMode::dodge:
+		return each([&](float value) { return value + (1.0f - value) * amount; });
+	case StrokeMode::burn:
+		return each([&](float value) { return value * (1.0f - amount); });
+	case StrokeMode::heal: { // the source's texture over the covered pixels' own tone
+		const int fromX = x + static_cast<int>(std::lround(cloneX_)),
+		          fromY = y + static_cast<int>(std::lround(cloneY_));
+		const Pixel source = original(fromX, fromY), there = neighbourhood(x, y), here = neighbourhood(fromX, fromY);
+		const float share = std::min(1.0f, coverage);
+		const auto healed = [&](float was, float from, float tone, float sourceTone) {
+			return std::clamp(was + (from + tone - sourceTone - was) * share, 0.0f, 1.0f);
+		};
+		return {healed(under.red, source.red, there.red, here.red),
+		        healed(under.green, source.green, there.green, here.green),
+		        healed(under.blue, source.blue, there.blue, here.blue), under.alpha};
+	}
+	case StrokeMode::smudge: { // the paint from behind the stamp, as it is now, drawn along
+		const Image& image = *document_->image(target_);
+		const int fromX = std::clamp(x - static_cast<int>(std::lround(smudgeX_)), 0, image.width() - 1);
+		const int fromY = std::clamp(y - static_cast<int>(std::lround(smudgeY_)), 0, image.height() - 1);
+		const Pixel behind = image.pixel(fromX, fromY);
+		const float share = std::min(1.0f, coverage * 1.6f);
+		return {under.red + (behind.red - under.red) * share, under.green + (behind.green - under.green) * share,
+		        under.blue + (behind.blue - under.blue) * share, under.alpha + (behind.alpha - under.alpha) * share};
+	}
+	case StrokeMode::sponge: {
+		const float grey = lightness(under);
+		return each([&](float value) { return value + (grey - value) * amount; });
+	}
+	default: {
+		const Pixel average = neighbourhood(x, y);
+		const float sign = mode_ == StrokeMode::blur ? 1.0f : -1.0f;
+		const auto mixed = [&](float value, float near) { return value + (near - value) * amount * 2.0f * sign; };
+		return {std::clamp(mixed(under.red, average.red), 0.0f, 1.0f),
+		        std::clamp(mixed(under.green, average.green), 0.0f, 1.0f),
+		        std::clamp(mixed(under.blue, average.blue), 0.0f, 1.0f),
+		        mode_ == StrokeMode::blur ? std::clamp(mixed(under.alpha, average.alpha), 0.0f, 1.0f) : under.alpha};
+	}
+	}
+}
+
 Pixel Stroke::painted(const Pixel& under, int x, int y, float coverage) const {
+	if(mode_ >= StrokeMode::dodge) return mask_ ? under : retouched(under, x, y, coverage);
 	if(mask_) {
 		float value = 0.0f;
 		if(mode_ == StrokeMode::paint) value = lightness(colour_);

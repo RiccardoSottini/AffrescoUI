@@ -1,5 +1,7 @@
 ;;; views.lisp --- the palette over the workbench, and the settings and keyboard shortcuts pages
 
+(ns forge.features.palette.views)
+
 ;;; The palette
 
 (defcomponent forgePalette "The quick pick: each provider its prefix, its items, what a pick runs and its hint."
@@ -12,18 +14,19 @@
             :accent @color.accent
             :highlight @color.selection
             :field @color.input
-            :providers [{:items ~(or-else state.folder.files []) :run openPicked :placeholder ~(t "palette.searchFilesBy")}
+            :providers [{:items ~(or-else state.folder.files []) :run open-picked :placeholder ~(t "palette.searchFilesBy")}
                         {:prefix ">" :items ~computed.commandItems :placeholder ~(t "palette.runACommand")}
-                        {:prefix ":" :items ~computed.lineItems :run goToPicked :placeholder ~(t "palette.typeALine")}
+                        {:prefix ":" :items ~computed.lineItems :run go-to-picked :placeholder ~(t "palette.typeALine")}
                         {:prefix "theme "
                          :items ~state.themes
                          :key name
-                         :run setTheme
+                         :run set-theme
                          :placeholder ~(t "palette.chooseAColour")}
-                        {:prefix "task " :items ~state.tasks.items :run taskStart :placeholder ~(t "palette.chooseATask")}
+                        {:prefix "task " :items ~state.tasks.items :run task-start :placeholder ~(t "palette.chooseATask")}
                         {:prefix "indent " :items ~computed.indentItems :placeholder ~(t "palette.selectTheSpaces")}
                         {:prefix "eol " :items ~computed.eolItems :placeholder ~(t "palette.selectTheEnd")}
-                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}]}))
+                        {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}
+                        {:prefix "clone " :items ~computed.cloneItems :run clone-picked :placeholder ~(t "palette.cloneAddress")}]}))
 
 ;;; The settings page
 
@@ -37,7 +40,7 @@
   {}
   `(node :label ~s.title
      :width "100%"
-     :height ~(if (= s.type "boolean") 58 86)
+     :height ~(if (= s.type :boolean) 58 86)
      :color @color.editor
      :hover {:color @color.hover}
      :radius 4
@@ -47,15 +50,15 @@
      (label#setting-description :text ~(or-else s.description "")
        :textColor @color.muted
        :height 18
-       :anchors {:left ~(if (= s.type "boolean") 38 16) :right 90 :top 31})
+       :anchors {:left ~(if (= s.type :boolean) 38 16) :right 90 :top 31})
      ~(setting-choices)
      ~(setting-slider)
-     (label#setting-slider-value :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
+     (label#setting-slider-value :when ~(and (not= s.type :boolean) (some? s.minimum) (some? s.maximum))
        :text ~(text s.value)
        :textColor @color.text
        :fitText true
        :anchors {:left 228 :top 58})
-     (textarea#setting-text :when ~(and (= s.type "string") (nil? s.enum))
+     (textarea#setting-text :when ~(and (= s.type :string) (nil? s.enum))
        :label ~s.title
        :bind ~(str "settings." s.key)
        :width 260
@@ -67,16 +70,25 @@
      ~(setting-number)
      ~(setting-reset)))
 
-(defview setting-check "A boolean setting's check box." []
-  `(checkbox#setting-check :when ~(= s.type "boolean")
+(defview setting-check "A boolean setting's check box: the accent with a tick while it is on." []
+  `(label#setting-check :when ~(= s.type :boolean)
+     :role checkbox
      :label ~s.title
-     :bind ~(str "settings." s.key)
-     :width 14
-     :height 14
-     :anchors {:left 16 :top 33}
-     :activeColor @color.accent
-     :trackColor @color.input
-     :knobColor @color.text))
+     :selected ~(true? s.value)
+     :icon ~(if (true? s.value) "check" "")
+     :width 16
+     :height 16
+     :align center
+     :radius 4
+     :color ~(if (true? s.value) "@color.accent" "@color.input")
+     :borderWidth 1
+     :borderColor ~(if (true? s.value) "@color.accent" "@color.border")
+     :textColor "#ffffff"
+     :focusable true
+     :cursor hand
+     :hover {:borderColor @color.accent}
+     :anchors {:left 16 :top 32}
+     :onClick ~(handler toggle-setting s.key s.value)))
 
 (defview setting-title "A setting's title; its key in the tooltip." []
   `(label#setting-title :text ~s.title :textColor @color.text :fitText true :tooltip ~s.key :anchors {:left 16 :top 8}))
@@ -92,15 +104,15 @@
      :cursor hand
      :fitText true
      :anchors {:right 16 :top 8}
-     :onClick ~(handler resetSetting s.key)))
+     :onClick ~(handler reset-setting s.key)))
 
 (defview setting-slider "A number setting with bounds: a slider." []
-  `(slider#setting-slider :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
+  `(slider#setting-slider :when ~(and (not= s.type :boolean) (some? s.minimum) (some? s.maximum))
      :label ~s.title
      :bind ~(str "settings." s.key)
      :min ~(or-else s.minimum 0)
      :max ~(or-else s.maximum 1)
-     :step ~(if (= s.type "integer") 1 0)
+     :step ~(if (= s.type :integer) 1 0)
      :width 200
      :height 20
      :anchors {:left 16 :top 56}
@@ -109,8 +121,8 @@
      :knobColor @color.text))
 
 (defview setting-number "A number setting without bounds: a field, kept while it reads as a number." []
-  `(textarea#setting-number :when ~(and (not= s.type "boolean")
-                                        (not= s.type "string")
+  `(textarea#setting-number :when ~(and (not= s.type :boolean)
+                                        (not= s.type :string)
                                         (or (nil? s.minimum) (nil? s.maximum)))
      :label ~s.title
      :text ~(text s.value)
@@ -120,7 +132,7 @@
      :anchors {:left 16 :top 52}
      :color @color.input
      :textColor @color.text
-     :onChange ~(handler setNumberSetting s.key event.value)))
+     :onChange ~(handler set-number-setting s.key event.value)))
 
 ;;; The keyboard shortcuts page
 
@@ -164,7 +176,7 @@
           :radius 4
           :color ~(if (= state.settingsQuery group.query) "@color.selection" "@color.editor")
           :tooltip ~(if (empty? group.query) (t "settings-toc.every") (t "settings-toc.group" {:group group.label}))
-          :onClick ~(handler showSettingsGroup group.query)
+          :onClick ~(handler show-settings-group group.query)
           (label :text ~group.label
             :anchors {:left 16 :top 5}
             :fitText true
@@ -193,7 +205,7 @@
          `(node#settings-row :use forgeSettingRow)))))
 
 (defview setting-choices "A setting with a few values: a button for each, the chosen one outlined." []
-  `(row#setting-choices :when ~(and (= s.type "string") (some? s.enum))
+  `(row#setting-choices :when ~(and (= s.type :string) (some? s.enum))
      :gap 4
      :width 480
      :height 24
@@ -213,4 +225,4 @@
           :borderColor ~(if (= s.value choice) "@color.accent" "@color.border")
           :color ~(if (= s.value choice) "@color.selection" "@color.input")
           :textColor @color.text
-          :onClick ~(handler setSetting s.key choice)))))
+          :onClick ~(handler set-setting s.key choice)))))

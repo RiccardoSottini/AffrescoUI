@@ -159,6 +159,7 @@ void TreeView::paintItem(Painter& painter, const Font& font, std::size_t item, s
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
 	const Vec2 origin{left + chevronSize + chevronGap, baseline};
 	const float shift = paintIcon(painter, font, entry, origin, color);
+	paintMarks(painter, font, entry, label, origin.x + shift, area);
 	painter.drawText(font, label, {origin.x + shift, baseline}, color);
 }
 

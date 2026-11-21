@@ -6,6 +6,7 @@
 
 #include "platform/Desktop.hpp"
 #include "platform/Platform.hpp"
+#include "platform/UnitScale.hpp"
 
 #include "affresco/core/Log.hpp"
 #include "affresco/render/Bitmap.hpp"
@@ -21,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -53,6 +55,37 @@ void hintContext() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
 }
+
+/// @brief Whether the windowing system's coordinates are pixels, whatever the display's scale (Win32, X11): there a
+/// window unit is unitScale() pixels, converted at the edge by GlfwWindow. Elsewhere (Cocoa, Wayland, the web, the
+/// null platform of headless runs) GLFW already speaks in units and scales the framebuffer itself.
+/// @return true on Win32 and X11.
+bool unitsArePixels() {
+#ifdef __EMSCRIPTEN__
+	return false;
+#else
+	return glfwGetPlatform() == GLFW_PLATFORM_WIN32 || glfwGetPlatform() == GLFW_PLATFORM_X11;
+#endif
+}
+
+/// @brief The unit scale a new window starts with: the primary display's, where it opens (GlfwWindow corrects it if
+/// the window lands on another display).
+/// @param scalesUnits Whether window units are scaled here (unitsArePixels()).
+/// @return Pixels per window unit; exactly 1 where units aren't scaled.
+float startingUnitScale(bool scalesUnits) {
+	if(!scalesUnits) return 1.0f;
+	GLFWmonitor* primary = glfwGetPrimaryMonitor();
+	if(!primary) return 1.0f;
+	float x = 1.0f, y = 1.0f;
+	glfwGetMonitorContentScale(primary, &x, &y);
+	return unitScale(x);
+}
+
+/// @brief Leaves the scaling of the windows created next to GlfwWindow: GLFW_SCALE_TO_MONITOR stays off (its default,
+/// said here so no earlier hint changes it), as GlfwWindow sizes Win32 and X11 windows by the rounded unit scale
+/// itself and keeps them in units when the scale changes. GLFW_SCALE_FRAMEBUFFER keeps its default (on), which gives
+/// Cocoa and Wayland windows their framebuffer at the display's scale.
+void hintScale() { glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE); }
 
 /// @brief Tells GLFW, before it starts, which of the system's graphics APIs ANGLE draws with: Metal on macOS,
 /// Direct3D 11 on Windows. Other EGLs (Mesa's) ignore it, and the gl41 backend doesn't use EGL.
@@ -97,21 +130,64 @@ GLFWimage iconImage(const Bitmap& icon, std::vector<std::uint8_t>& pixels) {
 #endif
 
 /// @brief A GLFW window and its OpenGL context.
+/// @brief What the platform's windows tell its event loop, and what it tells them. Main thread only.
+struct LoopState {
+	bool waiting = false;            ///< Inside waitEvents(): only then must a window's wake() post an event.
+	std::uint64_t events = 0;        ///< The events the windows were delivered (Platform::eventsDelivered()).
+	GLFWwindow* focused = nullptr;   ///< The window with the keyboard focus, where a gamepad's presses go, or nullptr.
+	std::array<double, 9> padHeld{}; ///< When each gamepad key (gamepadKeys) was pressed, by GLFW's clock; 0 if up.
+	std::array<double, 9> padRepeated{}; ///< When each held gamepad key last repeated.
+};
+
+/// @brief A gamepad control and the key it presses: a button, or a direction of the left stick as well.
+struct GamepadKey {
+	int button;   ///< GLFW_GAMEPAD_BUTTON_*.
+	int axis;     ///< GLFW_GAMEPAD_AXIS_* that presses it too, or -1.
+	float sign;   ///< The stick's direction along axis: -1 or 1.
+	int key;      ///< The GLFW_KEY_* it presses.
+	int mods;     ///< The GLFW_MOD_* held with it.
+	bool repeats; ///< Whether holding it repeats the key, as an arrow key does.
+};
+
+/// @brief What a gamepad presses: the D-pad and the left stick the arrows, A Enter, B Escape, X Space, and the bumpers
+/// Tab and Shift+Tab, so every keyboard path of a screen works from the sofa.
+constexpr std::array<GamepadKey, 9> gamepadKeys{{
+    {GLFW_GAMEPAD_BUTTON_DPAD_UP, GLFW_GAMEPAD_AXIS_LEFT_Y, -1.0F, GLFW_KEY_UP, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_DOWN, GLFW_GAMEPAD_AXIS_LEFT_Y, 1.0F, GLFW_KEY_DOWN, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_LEFT, GLFW_GAMEPAD_AXIS_LEFT_X, -1.0F, GLFW_KEY_LEFT, 0, true},
+    {GLFW_GAMEPAD_BUTTON_DPAD_RIGHT, GLFW_GAMEPAD_AXIS_LEFT_X, 1.0F, GLFW_KEY_RIGHT, 0, true},
+    {GLFW_GAMEPAD_BUTTON_A, -1, 0.0F, GLFW_KEY_ENTER, 0, false},
+    {GLFW_GAMEPAD_BUTTON_B, -1, 0.0F, GLFW_KEY_ESCAPE, 0, false},
+    {GLFW_GAMEPAD_BUTTON_X, -1, 0.0F, GLFW_KEY_SPACE, 0, false},
+    {GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, -1, 0.0F, GLFW_KEY_TAB, 0, false},
+    {GLFW_GAMEPAD_BUTTON_LEFT_BUMPER, -1, 0.0F, GLFW_KEY_TAB, GLFW_MOD_SHIFT, false},
+}};
+constexpr double gamepadPollSeconds = 1.0 / 30.0; ///< How often the loop looks at the gamepads while one is connected.
+constexpr double gamepadRepeatDelay = 0.4;        ///< Seconds a direction is held before it repeats.
+constexpr double gamepadRepeatEvery = 0.1;        ///< Seconds between its repeats.
+constexpr float gamepadStickPress = 0.6F;         ///< How far the stick leans before it presses a direction.
+
 class GlfwWindow final : public NativeWindow {
 public:
-	/// @brief Opens the window, makes its context current and turns vsync on.
+	/// @brief Opens the window, makes its context current and turns vsync on. On Win32 and X11 it opens unitScale_
+	/// times larger in pixels, so it is the given size in window units at the display's scale.
 	/// @param title The title.
 	/// @param width In window units.
 	/// @param height In window units.
 	/// @param sharing A window whose context shares its objects with this one's, or nullptr.
 	/// @param hidden Whether it stays hidden for its whole life: setVisible(true) leaves it off screen.
+	/// @param loop The platform's loop state, which outlives the window.
 	/// @throws std::runtime_error If the window or its context can't be created.
-	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing, bool hidden)
-	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)), hidden_(hidden) {
+	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing, bool hidden, LoopState& loop)
+	    : loop_(loop), scalesUnits_(unitsArePixels()), unitScale_(startingUnitScale(scalesUnits_)),
+	      handle_(glfwCreateWindow(unitsToPixels(width, unitScale_), unitsToPixels(height, unitScale_), title.c_str(),
+		                           nullptr, sharing)),
+	      hidden_(hidden) {
 		if(!handle_)
 			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
+		if(scalesUnits_) rescale(windowUnitScale()); // it opened on a display of another scale than the primary's
 		glfwMakeContextCurrent(handle_);
-		glfwSwapInterval(1); // vsync: never render faster than the display
+		glfwSwapInterval(1);                                      // vsync: never render faster than the display
 		glfwSetInputMode(handle_, GLFW_LOCK_KEY_MODS, GLFW_TRUE); // key events tell whether caps lock is on
 #ifdef __EMSCRIPTEN__
 		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
@@ -123,6 +199,7 @@ public:
 
 	/// @brief Destroys the menu bar, the cursors and the window.
 	~GlfwWindow() override {
+		if(loop_.focused == handle_) loop_.focused = nullptr;
 		menuBar_.reset();
 		for(GLFWcursor* cursor : cursors_)
 			if(cursor) glfwDestroyCursor(cursor);
@@ -138,9 +215,12 @@ public:
 
 	void setTitle(const std::string& title) override { glfwSetWindowTitle(handle_, title.c_str()); }
 	void setIcon(const Bitmap* icon) override;
-	void setSize(int width, int height) override { glfwSetWindowSize(handle_, width, height); }
+	void setSize(int width, int height) override {
+		glfwSetWindowSize(handle_, unitsToPixels(width, unitScale_), unitsToPixels(height, unitScale_));
+	}
 	void setMinSize(int width, int height) override {
-		glfwSetWindowSizeLimits(handle_, width, height, GLFW_DONT_CARE, GLFW_DONT_CARE);
+		minSize_ = {width, height};
+		applyMinSize();
 	}
 	[[nodiscard]] bool isVisible() const override { return glfwGetWindowAttrib(handle_, GLFW_VISIBLE) == GLFW_TRUE; }
 	void setVisible(bool visible) override {
@@ -157,6 +237,10 @@ public:
 		return text ? text : "";
 	}
 	void setClipboardText(const std::string& utf8) override { glfwSetClipboardString(handle_, utf8.c_str()); }
+	[[nodiscard]] std::vector<std::uint8_t> clipboardImagePng(std::size_t most) const override {
+		return desktop::clipboardImagePng(most);
+	}
+	bool setClipboardImage(const Bitmap& image) override { return desktop::setClipboardImage(image); }
 	void setCursor(Cursor cursor) override;
 
 	[[nodiscard]] PixelSize framebufferSize() const override {
@@ -171,9 +255,14 @@ public:
 	[[nodiscard]] ProcAddressLoader procAddressLoader() const override {
 		return reinterpret_cast<ProcAddressLoader>(glfwGetProcAddress);
 	}
-	void wake() override { glfwPostEmptyEvent(); }
+	// Outside the wait, the loop works out how long it may sleep before it sleeps: an empty event would only turn it
+	// once more for nothing
+	void wake() override {
+		if(loop_.waiting) glfwPostEmptyEvent();
+	}
 	[[nodiscard]] void* handle() const noexcept override { return handle_; }
 	[[nodiscard]] float contentScale() const override {
+		if(scalesUnits_) return unitScale_; // pixels per window unit, which the display's scale rounded gives
 		float x = 1.0f, y = 1.0f;
 		glfwGetWindowContentScale(handle_, &x, &y);
 		return x;
@@ -189,17 +278,78 @@ private:
 	/// @param window The GLFW window.
 	/// @return Its Window (set by connect()).
 	static Window& owner(GLFWwindow* window) { return *static_cast<Window*>(glfwGetWindowUserPointer(window)); }
+	/// @brief The GlfwWindow of a connected GLFW window.
+	/// @param window The GLFW window.
+	/// @return It.
+	static GlfwWindow& self(GLFWwindow* window) {
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): GlfwPlatform makes only GlfwWindows
+		return static_cast<GlfwWindow&>(of(owner(window)));
+	}
+	/// @brief The Window a GLFW window delivers an event to, counting the event (Platform::eventsDelivered()).
+	/// @param window The GLFW window.
+	/// @return Its Window.
+	static Window& delivered(GLFWwindow* window) {
+		++self(window).loop_.events;
+		return owner(window);
+	}
+	/// @brief The pointer's position now, in window units.
+	/// @return The position.
+	[[nodiscard]] Vec2 pointer() const {
+		double x = 0.0, y = 0.0;
+		glfwGetCursorPos(handle_, &x, &y);
+		return {pointToUnits(x, unitScale_), pointToUnits(y, unitScale_)};
+	}
+	/// @brief The unit scale for the display the window is on now.
+	/// @return Pixels per window unit.
+	[[nodiscard]] float windowUnitScale() const {
+		float x = 1.0f, y = 1.0f;
+		glfwGetWindowContentScale(handle_, &x, &y);
+		return unitScale(x);
+	}
+	/// @brief Gives GLFW setMinSize()'s limits in pixels at the unit scale now.
+	void applyMinSize();
+	/// @brief Moves to another unit scale, keeping the window's size in window units (see the definition).
+	/// @param scale The new unit scale.
+	void rescale(float scale);
 
+	LoopState& loop_;                           ///< The platform's; outlives the window.
+	bool scalesUnits_;                          ///< Window units are scaled to pixels here (unitsArePixels()).
+	float unitScale_;                           ///< Pixels per window unit; exactly 1 unless scalesUnits_.
 	GLFWwindow* handle_;                        ///< The window and its context; destroyed with this object.
 	bool hidden_;                               ///< It never comes on screen (see the constructor).
 	Window* window_ = nullptr;                  ///< The Window it was connected to.
 	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
 	bool noMenuBar_ = false;                    ///< Native menus aren't supported here.
-	std::array<GLFWcursor*, 5> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
-	std::array<int, 4> windowed_{};             ///< Where it was before it filled a display: x, y, width, height.
+	std::array<GLFWcursor*, 6> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
+	std::array<int, 4> windowed_{};             ///< Where it was before it filled a display: x, y (screen
+	                                            ///< coordinates), width, height (window units).
+	std::array<int, 2> minSize_{GLFW_DONT_CARE, GLFW_DONT_CARE}; ///< setMinSize()'s, in window units.
 };
 
-/// @brief The display that holds the most of a window, or the primary one.
+void GlfwWindow::applyMinSize() {
+	const auto pixels = [this](int units) {
+		return units == GLFW_DONT_CARE ? units : unitsToPixels(units, unitScale_);
+	};
+	glfwSetWindowSizeLimits(handle_, pixels(minSize_[0]), pixels(minSize_[1]), GLFW_DONT_CARE, GLFW_DONT_CARE);
+}
+
+// The window is resized to the same units at the new scale. This code is the only owner of that resize (windows are
+// made without GLFW_SCALE_TO_MONITOR, under which Win32 would resize them by the display's raw scale, not the rounded
+// one); the size callback the resize causes is converted at the new scale, so it gives back the same units. A window
+// filling a display keeps the display's size; it returns to its units at the new scale.
+void GlfwWindow::rescale(float scale) {
+	if(scale == unitScale_) return;
+	int width = 0, height = 0;
+	glfwGetWindowSize(handle_, &width, &height);
+	width = pixelsToUnits(width, unitScale_);
+	height = pixelsToUnits(height, unitScale_);
+	unitScale_ = scale;
+	applyMinSize();
+	if(!isFullscreen()) setSize(width, height);
+}
+
+/// @brief The display that holds the most of a window, or the primary one. All in the windowing system's screen
+/// coordinates (the window's size from GLFW as it is, like the displays'), so no window units here.
 /// @param window The window.
 /// @return The display, or nullptr if there is none.
 GLFWmonitor* displayOf(GLFWwindow* window) {
@@ -229,7 +379,8 @@ GLFWmonitor* displayOf(GLFWwindow* window) {
 void GlfwWindow::setFullscreen(bool fullscreen) {
 	if(fullscreen == isFullscreen()) return;
 	if(!fullscreen) {
-		glfwSetWindowMonitor(handle_, nullptr, windowed_[0], windowed_[1], windowed_[2], windowed_[3], GLFW_DONT_CARE);
+		glfwSetWindowMonitor(handle_, nullptr, windowed_[0], windowed_[1], unitsToPixels(windowed_[2], unitScale_),
+		                     unitsToPixels(windowed_[3], unitScale_), GLFW_DONT_CARE);
 		return;
 	}
 	GLFWmonitor* display = displayOf(handle_);
@@ -237,6 +388,8 @@ void GlfwWindow::setFullscreen(bool fullscreen) {
 	if(!mode) return; // no display to fill
 	glfwGetWindowPos(handle_, &windowed_[0], &windowed_[1]);
 	glfwGetWindowSize(handle_, &windowed_[2], &windowed_[3]);
+	windowed_[2] = pixelsToUnits(windowed_[2], unitScale_);
+	windowed_[3] = pixelsToUnits(windowed_[3], unitScale_);
 	glfwSetWindowMonitor(handle_, display, 0, 0, mode->width, mode->height, mode->refreshRate);
 }
 
@@ -247,49 +400,56 @@ void GlfwWindow::connect(Window& window) {
 
 	// Size changes only mark the window dirty; the main loop or the refresh callback draws once.
 	// (During a live resize on macOS the loop is blocked and the refresh callback fires after every step.)
-	glfwSetWindowSizeCallback(handle_,
-	                          [](GLFWwindow* native, int width, int height) { resized(owner(native), width, height); });
-	glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow* native, int, int) { framebufferResized(owner(native)); });
-	glfwSetWindowRefreshCallback(handle_, [](GLFWwindow* native) { refresh(owner(native)); });
+	glfwSetWindowSizeCallback(handle_, [](GLFWwindow* native, int width, int height) {
+		const float scale = self(native).unitScale_;
+		resized(delivered(native), pixelsToUnits(width, scale), pixelsToUnits(height, scale));
+	});
+	glfwSetFramebufferSizeCallback(handle_,
+	                               [](GLFWwindow* native, int, int) { framebufferResized(delivered(native)); });
+	glfwSetWindowRefreshCallback(handle_, [](GLFWwindow* native) { refresh(delivered(native)); });
 
 	glfwSetKeyCallback(handle_, [](GLFWwindow* native, int key, int scancode, int action, int mods) {
-		owner(native).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
+		delivered(native).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
 	});
 	glfwSetCharCallback(handle_, [](GLFWwindow* native, unsigned int codepoint) {
-		owner(native).routeChar({static_cast<char32_t>(codepoint)});
+		delivered(native).routeChar({static_cast<char32_t>(codepoint)});
 	});
 	glfwSetCursorPosCallback(handle_, [](GLFWwindow* native, double x, double y) {
-		owner(native).routeMouseMove({static_cast<float>(x), static_cast<float>(y)});
+		const float scale = self(native).unitScale_;
+		delivered(native).routeMouseMove({pointToUnits(x, scale), pointToUnits(y, scale)});
 	});
 	glfwSetMouseButtonCallback(handle_, [](GLFWwindow* native, int button, int action, int mods) {
 		// Asked rather than taken from the last move: a click can come before any move event
-		double x = 0.0, y = 0.0;
-		glfwGetCursorPos(native, &x, &y);
-		owner(native).routeMouseButton({static_cast<MouseButton>(button),
-		                                static_cast<Action>(action),
-		                                Mods{mods},
-		                                {static_cast<float>(x), static_cast<float>(y)}});
+		delivered(native).routeMouseButton(
+		    {static_cast<MouseButton>(button), static_cast<Action>(action), Mods{mods}, self(native).pointer()});
 	});
-	glfwSetScrollCallback(handle_, [](GLFWwindow* native, double dx, double dy) {
-		Window& w = owner(native);
+	glfwSetScrollCallback(handle_, [](GLFWwindow* native, double dx, double dy) { // steps, not positions: not scaled
+		Window& w = delivered(native);
 		w.routeScroll({{static_cast<float>(dx), static_cast<float>(dy)}, w.pointer()});
 	});
 	glfwSetCursorEnterCallback(
-	    handle_, [](GLFWwindow* native, int entered) { owner(native).routeCursorEnter(entered == GLFW_TRUE); });
+	    handle_, [](GLFWwindow* native, int entered) { delivered(native).routeCursorEnter(entered == GLFW_TRUE); });
 
 	glfwSetDropCallback(handle_, [](GLFWwindow* native, int count, const char** paths) {
-		double x = 0.0, y = 0.0;
-		glfwGetCursorPos(native, &x, &y);
-		const DropEvent event{std::vector<std::string>(paths, paths + count),
-		                      {static_cast<float>(x), static_cast<float>(y)}};
-		dropped(owner(native), event);
+		const DropEvent event{std::vector<std::string>(paths, paths + count), self(native).pointer()};
+		dropped(delivered(native), event);
 	});
-	glfwSetWindowContentScaleCallback(handle_,
-	                                  [](GLFWwindow* native, float x, float) { displayChanged(owner(native), x); });
+	// Another display, or the setting changed: on Win32 and X11 the window keeps its units at the new scale
+	glfwSetWindowContentScaleCallback(handle_, [](GLFWwindow* native, float x, float) {
+		GlfwWindow& changed = self(native);
+		if(!changed.scalesUnits_) {
+			displayChanged(delivered(native), x);
+			return;
+		}
+		changed.rescale(unitScale(x));
+		displayChanged(delivered(native), changed.unitScale_);
+	});
 	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
-		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): GlfwPlatform makes only GlfwWindows
-		auto* self = static_cast<GlfwWindow*>(&of(owner(native)));
-		if(focused == GLFW_TRUE && self->menuBar_) self->menuBar_->activate(); // macOS: the bar is the app's
+		GlfwWindow& focusedWindow = self(native);
+		if(focused == GLFW_TRUE) focusedWindow.loop_.focused = native;
+		else if(focusedWindow.loop_.focused == native) focusedWindow.loop_.focused = nullptr;
+		if(focused == GLFW_TRUE && focusedWindow.menuBar_)
+			focusedWindow.menuBar_->activate(); // macOS: the bar is the app's
 	});
 }
 
@@ -329,8 +489,9 @@ void GlfwWindow::setCursor(Cursor cursor) {
 		return;
 	}
 
-	static constexpr std::array<int, 5> standardShapes = {
-	    GLFW_ARROW_CURSOR, GLFW_IBEAM_CURSOR, GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR, GLFW_RESIZE_NS_CURSOR};
+	static constexpr std::array<int, 6> standardShapes = {GLFW_ARROW_CURSOR,         GLFW_IBEAM_CURSOR,
+	                                                      GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR,
+	                                                      GLFW_RESIZE_NS_CURSOR,     GLFW_CROSSHAIR_CURSOR};
 	const auto index = static_cast<std::size_t>(cursor);
 	if(!cursors_[index]) cursors_[index] = glfwCreateStandardCursor(standardShapes[index]);
 	glfwSetCursor(handle_, cursors_[index]);
@@ -353,10 +514,16 @@ public:
 #endif
 		if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
 		if(hiddenWindows) desktop::keepOutOfSwitcher();
-		desktop::watchColorScheme();
+		appearance_ = desktop::watchColorScheme([this] {
+			++appearanceChanges_;
+			glfwPostEmptyEvent();
+		});
 	}
 	/// @brief Stops GLFW; every window must be gone.
-	~GlfwPlatform() override { glfwTerminate(); }
+	~GlfwPlatform() override {
+		appearance_.reset(); // nothing announced after GLFW stops
+		glfwTerminate();
+	}
 
 	GlfwPlatform(const GlfwPlatform&) = delete;
 	GlfwPlatform& operator=(const GlfwPlatform&) = delete;
@@ -366,27 +533,95 @@ public:
 	[[nodiscard]] std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width, int height) override {
 		hintContext(); // other hints (e.g. GLFW_VISIBLE, set by tests) stay
 		hintVisibility();
-		return std::make_unique<GlfwWindow>(title, width, height, nullptr, hiddenWindows_);
+		hintScale();
+		return std::make_unique<GlfwWindow>(title, width, height, nullptr, hiddenWindows_, loop_);
 	}
 
 	[[nodiscard]] std::unique_ptr<NativeWindow> createSharedWindow(const std::string& title, int width, int height,
 	                                                               void* sharing) override {
 		hintContext();
 		hintVisibility();
-		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing), hiddenWindows_);
+		hintScale();
+		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing), hiddenWindows_,
+		                                    loop_);
 	}
 
 	void waitEvents(std::optional<double> timeoutSeconds) override {
+		const bool pads = gamepadConnected();
+		if(pads) timeoutSeconds = std::min(timeoutSeconds.value_or(gamepadPollSeconds), gamepadPollSeconds);
+		loop_.waiting = true;
 		if(timeoutSeconds) glfwWaitEventsTimeout(*timeoutSeconds);
 		else glfwWaitEvents();
+		loop_.waiting = false;
+		if(pads) pollGamepads();
 	}
 
 	void wake() override { glfwPostEmptyEvent(); }
 
 	[[nodiscard]] ColorScheme colorScheme() const override { return desktop::colorScheme(); }
 	[[nodiscard]] bool reducedMotion() const override { return desktop::reducedMotion(); }
+	[[nodiscard]] std::uint64_t eventsDelivered() const noexcept override { return loop_.events; }
+	[[nodiscard]] std::optional<std::uint64_t> appearanceChanges() const noexcept override {
+		return appearance_ ? std::optional(appearanceChanges_) : std::nullopt;
+	}
 
 private:
+	/// @brief Whether a gamepad is connected; then the loop wakes gamepadPollSeconds apart to look at it.
+	/// @return Whether one is.
+	[[nodiscard]] static bool gamepadConnected() {
+#ifdef __EMSCRIPTEN__
+		return false;
+#else
+		for(int pad = GLFW_JOYSTICK_1; pad <= GLFW_JOYSTICK_LAST; ++pad)
+			if(glfwJoystickIsGamepad(pad) == GLFW_TRUE) return true;
+		return false;
+#endif
+	}
+
+	/// @brief Whether any connected gamepad holds a control down: its button, or its stick leaning that way.
+	/// @param control The control.
+	/// @return Whether one does.
+	[[nodiscard]] static bool gamepadHolds(const GamepadKey& control) {
+#ifndef __EMSCRIPTEN__
+		for(int pad = GLFW_JOYSTICK_1; pad <= GLFW_JOYSTICK_LAST; ++pad) {
+			GLFWgamepadstate state{};
+			if(glfwGetGamepadState(pad, &state) != GLFW_TRUE) continue;
+			if(state.buttons[control.button] == GLFW_PRESS) return true;
+			if(control.axis >= 0 && state.axes[control.axis] * control.sign > gamepadStickPress) return true;
+		}
+#endif
+		return false;
+	}
+
+	/// @brief Presses, repeats and releases the keys the gamepads' controls stand for (gamepadKeys), in the window with
+	/// the keyboard focus, as its own keys would.
+	void pollGamepads() {
+		const double now = glfwGetTime();
+		for(std::size_t i = 0; i < gamepadKeys.size(); ++i) {
+			const GamepadKey& control = gamepadKeys.at(i);
+			const bool down = gamepadHolds(control);
+			double& since = loop_.padHeld.at(i);
+			double& repeated = loop_.padRepeated.at(i);
+			std::optional<Action> action;
+			if(down && since == 0.0) {
+				since = repeated = now;
+				action = Action::Press;
+			} else if(down && control.repeats && now - since >= gamepadRepeatDelay &&
+			          now - repeated >= gamepadRepeatEvery) {
+				repeated = now;
+				action = Action::Repeat;
+			} else if(!down && since != 0.0) {
+				since = 0.0;
+				action = Action::Release;
+			}
+			if(!action || !loop_.focused) continue;
+			auto* window = static_cast<Window*>(glfwGetWindowUserPointer(loop_.focused));
+			if(!window) continue;
+			++loop_.events;
+			window->routeKey({static_cast<Key>(control.key), 0, *action, Mods{control.mods}});
+		}
+	}
+
 	/// @brief Keeps the next window off screen and unfocused when windows open hidden.
 	void hintVisibility() const {
 		if(!hiddenWindows_) return;
@@ -396,6 +631,9 @@ private:
 	}
 
 	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows or AFFRESCOUI_HIDDEN).
+	LoopState loop_;     ///< Shared with the windows, which it outlives.
+	std::uint64_t appearanceChanges_ = 0;                  ///< Announced by appearance_ (main thread).
+	std::unique_ptr<desktop::AppearanceWatch> appearance_; ///< The system's announcements, or nullptr if none.
 };
 
 } // namespace

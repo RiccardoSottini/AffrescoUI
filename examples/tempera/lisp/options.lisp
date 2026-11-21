@@ -4,6 +4,8 @@
 ;;; selecting, filling, gradients, cropping, moving, the view), each a control of controls.lisp. What isn't available
 ;;; yet is shown disabled, its tooltip saying so.
 
+(ns tempera.options)
+
 ;;; The bar
 
 (defview options-bar "The options bar: the current tool, its options, the search and the workspace switcher." []
@@ -21,6 +23,10 @@
      ~(fill-options)
      ~(gradient-options)
      ~(crop-options)
+     ~(selection-box-options)
+     ~(type-options)
+     ~(shape-options)
+     ~(path-options)
      (node#option-sample-all :use tCheck
        :when ~(= state.doc.tool "eyedropper")
        :with {:title ~(t "option.sampleAllLayers") :key allLayers :checked ~state.doc.options.allLayers})
@@ -41,12 +47,84 @@
      (label :icon ~computed.tool.icon :textColor @accent :width 26 :height 26 :align center)
      (label#options-tool-name :text ~computed.toolName :textColor @text :fitText true)))
 
+;;; Type, shapes and paths
+
+(defview type-options "The Type tool's options: size, bold and italic, alignment, and the colour (the foreground)." []
+  `(row#options-type :when ~(= state.doc.gesture "text") :grow 100 :alignItems center :gap 8 :height 30
+     (node#option-type-size :use tField
+       :with {:title ~(t "option.typeSize") :key size :value ~state.doc.vector.size :low 4 :high 1000 :unit " px"
+              :width 52 :pop false :run set-vector})
+     (node :style sep)
+     (node#option-type-bold :use tIcon
+       :with {:icon bold :tip ~(t "option.bold") :on ~state.doc.vector.bold :run set-vector
+              :args {:bold ~(not state.doc.vector.bold)}})
+     (node#option-type-italic :use tIcon
+       :with {:icon italic :tip ~(t "option.italic") :on ~state.doc.vector.italic :run set-vector
+              :args {:italic ~(not state.doc.vector.italic)}})
+     (node :style sep)
+     ~@(map (fn [it]
+              `(node :id ~(str "option-align-" (first it))
+                 :use tIcon
+                 :with {:icon ~(second it) :tip ~(t (str "option.align." (first it)))
+                        :on ~(= state.doc.vector.align (first it)) :run set-vector :args {:align ~(first it)}}))
+            [["left" "align-left"] ["center" "align-center"] ["right" "align-right"]])
+     (node :style sep)
+     (node#option-type-colour :role button :label ~(t "option.typeColour") :tooltip ~(t "option.typeColour.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler toggle-open "state.pop.vectorFill")
+       ~(colour-pop "option-shape-fill" "vectorFill" 'state.doc.foreground))
+     (label :style dim :text ~(t "option.typeHint") :fitText true)))
+
+(defview shape-options "A shape tool's options: the fill (the foreground), the stroke, its width, and the corners." []
+  `(row#options-shape :when ~(= state.doc.gesture "shape") :grow 100 :alignItems center :gap 8 :height 30
+     (node :style dim :text ~(str (t "option.shapeFill") ":"))
+     (node#option-shape-fill :role button :label ~(t "option.shapeFill") :tooltip ~(t "option.shapeFill.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.foreground :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler set-vector {:fill state.doc.foreground}))
+     (node :style dim :text ~(str (t "option.shapeStroke") ":"))
+     (node#option-shape-stroke :role button :label ~(t "option.shapeStroke") :tooltip ~(t "option.shapeStroke.tip")
+       :width 22 :height 22 :radius @kit.radius :color ~state.doc.vector.stroke :borderWidth 1 :borderColor @border
+       :cursor hand :onClick ~(handler toggle-open "state.pop.vectorStroke")
+       ~(colour-pop "option-shape-stroke" "vectorStroke" 'state.doc.vector.stroke))
+     (node#option-stroke-width :use tField
+       :with {:title "" :key strokeWidth :value ~state.doc.vector.strokeWidth :low 0 :high 200 :unit " px"
+              :width 48 :pop false :run set-vector :tip ~(t "option.strokeWidth")})
+     (node#option-shape-radius :use tField
+       :when ~(= state.doc.vector.shape "rectangle")
+       :with {:title ~(t "option.radius") :key radius :value ~state.doc.vector.radius :low 0 :high 1000 :unit " px"
+              :width 48 :pop false :run set-vector})
+     (node#option-shape-sides :use tField
+       :when ~(= state.doc.vector.shape "polygon")
+       :with {:title ~(t "option.sides") :key sides :value ~state.doc.vector.sides :low 3 :high 64 :unit ""
+              :width 36 :pop false :run set-vector})))
+
+(defview path-options "The pen's and the path selection's options: what to make of the active path." []
+  `(row#options-path :when ~(contains ["pen" "path-select"] state.doc.gesture)
+     :grow 100
+     :alignItems center
+     :gap 6
+     :height 30
+     (node :style dim :text ~(str (t "option.makePath") ":"))
+     (node#option-path-selection :use tButton
+       :with {:title ~(t "option.path.selection") :run selectActivePath :off ~(not computed.hasPath)})
+     (node#option-path-shape :use tButton
+       :with {:title ~(t "option.path.shape") :run shapeFromPath :off ~(not computed.hasPath)})
+     (node#option-path-stroke :use tButton
+       :with {:title ~(t "option.path.stroke") :run strokeActivePath :off ~(not computed.hasPath)})
+     (node#option-path-fill :use tButton
+       :with {:title ~(t "option.path.fill") :run fillActivePath :off ~(not computed.hasPath)})
+     (node :style sep)
+     (label :style dim :text ~(t (if (= state.doc.gesture "pen") "option.penHint" "option.pathSelectHint"))
+       :fitText true)))
+
 ;;; Painting
 
 (defview paint-options "A painting tool's options: the brush, the mode, opacity and flow, and what isn't there yet." []
   `(row#options-paint :when ~computed.paints :alignItems center :gap 8 :height 30 :grow 100
      ~(brush-picker)
-     (node#brush-settings :use tIcon :with {:icon sliders-horizontal :tip ~(t "option.brushSettings") :off true})
+     (node#brush-settings :use tIcon
+       :with {:icon sliders-horizontal :tip ~(t "option.brushSettings") :run show-panel
+              :args {:slot properties :id brushes} :on ~(= state.panels.properties "brushes")})
      (node :style sep)
      (node#paint-mode :use tPicker
        :with {:title ~(t "blend.normal")
@@ -120,7 +198,7 @@
             :textColor @text
             :cursor hand
             :hover {:color @menuHover}
-            :onClick ~(handler chooseBrush b.preset))))))
+            :onClick ~(handler choose-brush b.preset))))))
 
 (defview brush-option "One of the brush's numbers, from 1 to high: its title, its slider, its value in unit (a key)."
   [key high unit]
@@ -149,8 +227,11 @@
                       {:id "subtract" :icon "copy-minus" :title (t "selectionMode.subtract")}
                       {:id "intersect" :icon "copy-x" :title (t "selectionMode.intersect")}]})
      (node :style sep)
+     (node#option-quick-size :use tField
+       :when ~(= state.doc.tool "quick-select")
+       :with {:title ~(t "option.size") :key size :value ~state.doc.options.size :high 500 :unit " px" :width 40})
      (node#option-wand-tolerance :use tField
-       :when ~(= state.doc.tool "wand")
+       :when ~(contains ["wand" "quick-select"] state.doc.tool)
        :with {:title ~(t "option.tolerance") :key tolerance :value ~state.doc.options.tolerance :high 255 :unit ""
               :pop false :width 36})
      (node#option-anti-alias :use tCheck :with {:title ~(t "option.antiAlias") :checked true :off true})
@@ -158,7 +239,7 @@
        :when ~(= state.doc.tool "wand")
        :with {:title ~(t "option.contiguous") :key contiguous :checked ~state.doc.options.contiguous})
      (node#option-wand-all :use tCheck
-       :when ~(= state.doc.tool "wand")
+       :when ~(contains ["wand" "quick-select"] state.doc.tool)
        :with {:title ~(t "option.sampleAllLayers") :key allLayers :checked ~state.doc.options.allLayers})
      (node#option-feather :use tButton
        :with {:title ~(t "option.feather") :tip ~(t "option.feather.tip") :run featherSelection
@@ -195,7 +276,7 @@
        :focusable true
        :value ~state.gradientEdit
        :accentColor @accent
-       :onChange ~(handler setGradient event.value))
+       :onChange ~(handler set-gradient event.value))
      (node#gradient-preset :use tPicker
        :with {:title ""
               :width 20
@@ -219,13 +300,52 @@
               :items ~[{:title (t "blend.normal") :checked true}]})
      (node#option-gradient-opacity :use tField
        :with {:title ~(t "option.opacity") :key fillOpacity :value ~state.doc.options.fillOpacity})
-     (node#gradient-reverse :use tCheck :with {:title ~(t "option.reverse") :checked false :off true})
-     (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :checked false :off true})
-     (node#gradient-transparency :use tCheck :with {:title ~(t "option.transparency") :checked true :off true})))
+     (node#gradient-reverse :use tCheck
+       :with {:title ~(t "option.reverse") :key reverse :checked ~state.doc.options.reverse})
+     (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :key dither :checked ~state.doc.options.dither})
+     (node#gradient-transparency :use tCheck
+       :with {:title ~(t "option.transparency") :key transparency :checked ~state.doc.options.transparency})))
 
-(defview crop-options "The crop tool's ratios: the selection's box, or a centred box of a ratio." []
+(defview selection-box-options
+  "The handles of Transform Selection and Free Transform: what a drag does, the numbers, and Done." []
+  `(row#options-selection-box :when ~(contains ["transform-selection" "free-transform"] state.doc.tool)
+     :alignItems center :gap 8 :height 30
+     :grow 100
+     (node :style dim :text ~(t "option.selectionBox.hint") :fitText true)
+     (node#option-selection-box-numbers :use tButton
+       :when ~(= state.doc.tool "transform-selection")
+       :with {:title ~(t "option.selectionBox.numbers") :tip ~(t "command.showTransformSelection.about")
+              :run showTransformSelection :off ~(not state.doc.selection)})
+     (node#option-layer-box-numbers :use tButton
+       :when ~(= state.doc.tool "free-transform")
+       :with {:title ~(t "option.selectionBox.numbers") :tip ~(t "command.showTransform.about") :run showTransform})
+     (node#option-selection-box-done :use tButton
+       :with {:title ~(t "option.selectionBox.done")
+              :tip ~(if (= state.doc.tool "free-transform") (t "option.freeTransform.done.tip")
+                      (t "option.selectionBox.done.tip"))
+              :run setTool
+              :args {:tool ~(if (= state.doc.tool "free-transform") "move" "marquee")}})))
+
+(defview crop-options
+  "The crop tool's options: the ratio a drag keeps, then crops to the selection's box or a centred box of a ratio." []
+  `(row#options-crop :when ~(= state.doc.tool "crop") :alignItems center :gap 8 :height 30 :grow 100
+     (node#option-crop-drag :use tPicker
+       :with {:title ~(:title (or (find #(= (:ratio %) (or state.doc.options.cropRatio 0)) computed.cropRatios)
+                                  (first computed.cropRatios)))
+              :tip ~(t "crop.dragRatio")
+              :width 110
+              :open state.cropDragMenu
+              :items ~(map (fn [it]
+                             {:title it.title
+                              :checked (= it.ratio (or state.doc.options.cropRatio 0))
+                              :run "setOptions"
+                              :with {:args {:cropRatio it.ratio}}})
+                           computed.cropRatios)})
+     (node :style sep)
+     ~(crop-now)))
+
+(defview crop-now "The crop tool's crops at once: to the selection's box, or to a centred box of a ratio." []
   `(node#option-crop :use tPicker
-     :when ~(= state.doc.tool "crop")
      :with {:title ~(t "crop.ratio")
             :tip ~(t "crop.tip")
             :open state.cropMenu
@@ -281,7 +401,17 @@
          :with {:open state.workspaceMenu
                 :placement below-end
                 :width 200
-                :items ~[{:title (t "workspace.standard") :checked true :run "resetWorkspace"}
-                         {:separator true}
-                         {:title (t "command.resetWorkspace") :run "resetWorkspace"}]}))
+                :items ~(concat
+                          [{:title (t "workspace.standard") :checked (= state.workspace "standard")
+                            :run "chooseWorkspace" :with {:args {:name "standard"}}}
+                           {:title (t "workspace.painting") :checked (= state.workspace "painting")
+                            :run "chooseWorkspace" :with {:args {:name "painting"}}}]
+                          (map #(hash-map :title (:name %) :checked (= state.workspace (:name %))
+                                          :run "chooseWorkspace" :with {:args {:name (:name %)}})
+                               state.workspaces)
+                          [{:separator true}
+                           {:title (t "command.saveWorkspace") :run "saveWorkspace"}
+                           {:title (t "command.deleteWorkspace") :run "deleteWorkspace"
+                            :enabled computed.workspaceSaved}
+                           {:title (t "command.resetWorkspace") :run "resetWorkspace"}])}))
      (node :width 6 :height 1 :style clear)))

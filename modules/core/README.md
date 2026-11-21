@@ -19,9 +19,11 @@ match text (render, services) link privately.
 | `CallProgress.hpp` | `CallProgress`: what a slow native call on a worker thread reads (`cancelled`) and reports (`progress`, `partial`); thread-safe |
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
-| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `checkOwnChange`, a change the person's own input made, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied, `reviewLines`, what a change does that always needs a reviewer, and `behaviourLines`, what it does to behaviour), `PermissionRule`, `Permissions`, `ReviewPolicy` |
+| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `checkOwnChange`, a change the person's own input made, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied, `reviewLines`, what a change does that always needs a reviewer, and `behaviourLines`, what it does to behaviour), `PermissionRule`, `Permissions`, `ReviewPolicy`, `RunRules` (the rules of `permissions.run`) |
 | `ComponentLibrary.hpp` | `ComponentLibrary`: the components and design tokens every document may use without defining them (the kits and themes, `modules/themes`); `installComponentLibrary` and `componentLibrary`, the one a program installs (written once at start-up, read by the format) |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
+| `Commands.hpp` | An app's commands as tools for peers: `RunControl` (who may run which command, the runs that wait, the run grants; `vcs::Runs`) and `CommandService` (what a session asks: list, run, undo, decide, `pending`; the screen's `ScreenCommands`); `CommandReach`, `RunVerdict`, `RunJudgement`, `RunState`, `Undoable`, `RunRecord`, `RunDecision`, `CommandRun`, `CommandOutcome`; their JSON; `maxKeptRuns`, `maxUndoableRuns`, `maxWaitingRuns`, `runWaitMilliseconds` |
+| `ProgramConsole.hpp` | `ProgramConsole`: a screen's running program as an editor connected to the app sees it (`ConsoleRequest`, `ConsoleResult`, `ConsoleName`); the format module's runtime implements it, the net module's editor server uses it |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`); `ScreenImages::evidence`: a proposal's evidence (`Evidence`); `ScreenImages::inspect`: the host's inspector on or off |
 | `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers`; `Stream` (none, server-sent events, lines, or raw bytes as they arrive) |
 | `Services.hpp` | `services::Services` (`load`, `method`, `invoke`, `subscribe`, `status`, `onStatus`, `onRequest`): what the `services` module offers to the others; `Call` (one call or subscription: `arguments`, `stopToken`, `progress`, `event`, `finish`, `fail`), `MethodSpec`, `Effect`, `RequestHandler` |
@@ -88,6 +90,7 @@ goes first.
 ```
 include/affresco/core/
   Channel.hpp         the Channel interface and the message size limit
+  Commands.hpp        commands as tools for peers: RunControl, CommandService, runs and their records
   DataModel.hpp       DataModel, ModelChange and ListModel: rows a document shows
   DocumentRules.hpp   what version control needs to know about a document format
   ComponentLibrary.hpp  the kits' components and the themes' tokens a program installs for every document
@@ -98,6 +101,7 @@ include/affresco/core/
   Log.hpp             levels, the sink, log()
   Network.hpp         the Network interface the net module implements
   Portable.hpp        environment and time calls, portable
+  ProgramConsole.hpp  the ProgramConsole interface the format module implements
   Services.hpp        the Services interface the services module implements
   TextPattern.hpp     plain, whole-word and PCRE2 patterns, bounded
   TextDiff.hpp        line and sequence diffs, bounded

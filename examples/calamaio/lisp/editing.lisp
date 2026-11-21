@@ -3,6 +3,8 @@
 ;;; A change presses the selected window's editor's keys or asks it for an edit, and only in a buffer that isn't
 ;;; read-only: there it says so.
 
+(ns calamaio.editing)
+
 ;;; Changing what is at point
 
 (defn read-only "Says that the selected window's buffer can't be changed." []
@@ -10,11 +12,29 @@
 
 (defn edit-key
   "Presses an editing key of the selected window's editor, the argument's count of times, if its buffer can change." [k]
-  (when (some? state.arg) (set "state.echo" ""))
+  (when-some [_ state.arg] (set "state.echo" ""))
   (if (and computed.text (not computed.buf.readOnly))
     (press k :in computed.ed :times computed.n)
     (read-only))
   (set "state.arg" nil))
+
+(def pairs "The closing character electric-pair-mode types after each opening one." {"(" ")" "[" "]" "{" "}" "\"" "\""})
+
+(defn char-after "The character after point in the selected window, or an empty text at the end of a line." []
+  (let [{:keys [line column]} (point)
+        text (get (str/split (or computed.buf.text "") "\n" -1) (dec line) "")]
+    (subs text (min (dec column) (count text)) (min column (count text)))))
+
+(defn electric-pair
+  "A bracket or a quote typed while electric-pair-mode is on: an opening one types its closing one too, point between;
+  a closing one steps over the same character after point instead of typing another."
+  [c]
+  (set "state.arg" nil)
+  (cond (not (editable?)) nil
+        (and (#{")" "]" "}" "\""} c) (= c (char-after))) (press "right" :in computed.ed)
+        (contains? pairs c) (do (edit "type" :in computed.ed :text (str c (get pairs c)))
+                                (press "left" :in computed.ed))
+        :else (edit "type" :in computed.ed :text c)))
 
 (defcommand delete-char "Deletes the character after point."
   :title ~(t "command.delete-char") :category ~(t "category.editing")
@@ -51,7 +71,7 @@
   "Asks the editor for an edit of the region (or of the line, unless need), with the mode's comment marker." [c need]
   (cond (not computed.text) nil
         computed.buf.readOnly (read-only)
-        (and need (= (or (:selected (caret)) 0) 0)) (message (t "echo.regionEmpty"))
+        (and need (zero? (or (:selected (caret)) 0))) (message (t "echo.regionEmpty"))
         :else (do (edit c :in computed.ed :prefix (or (get-in state.modes [computed.buf.mode :comment]) "#"))
                   (set "state.mark.on" false))))
 
@@ -94,7 +114,7 @@
 ;;; Point and the mark
 
 (defn end-of-text "Where a text ends: its last line, and the column after its last character." [text]
-  (let [lines (split text "\n")]
+  (let [lines (str/split text "\n" -1)]
     {:line (count lines) :column (inc (count (last lines)))}))
 
 (defcommand mark-whole-buffer

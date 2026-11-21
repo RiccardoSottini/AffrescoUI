@@ -85,6 +85,8 @@ std::vector<std::string> Screen::inspectorTrace() const {
 	return {trace.begin(), trace.end()};
 }
 
+const format::UpdateStatistics& Screen::lastUpdate() const noexcept { return impl_->runtime.lastUpdate(); }
+
 std::vector<CommitInfo> Screen::log() const { return impl_->repository.log(); }
 
 bool Screen::restore(int revision, std::string* error) {
@@ -111,6 +113,36 @@ bool Screen::revert(int revision, std::string* error) {
 	}
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only running out of memory escapes, which ends the program anyway
+std::string Screen::undoPlan(int revision, std::string_view optionsJson) const {
+	UndoPlan plan;
+	std::string error;
+	const std::optional<json> options =
+	    optionsJson.empty() ? std::optional<json>(json::object()) : parseJson(optionsJson, "undo", &error);
+	try {
+		if(options && options->is_object())
+			plan = impl_->repository.undoPlan(revision, "user", undoOptionsFrom(*options, "undo"));
+		else if(options) plan.blocked = "undo: expected an object of choices";
+		else plan.blocked = error;
+	} catch(const DocumentError& failure) {
+		plan.blocked = failure.what();
+	}
+	return toJson(plan).dump();
+}
+
+bool Screen::revert(int revision, std::string_view optionsJson, std::string* error) {
+	const std::optional<json> options =
+	    optionsJson.empty() ? std::optional<json>(json::object()) : parseJson(optionsJson, "undo", error);
+	if(!options) return false;
+	if(!options->is_object()) return succeeded("undo: expected an object of choices", error);
+	try {
+		const UndoOptions choices = undoOptionsFrom(*options, "undo");
+		return succeeded(impl_->repository.commit(impl_->repository.undoRevision(revision, "user", choices)), error);
+	} catch(const DocumentError& failure) {
+		return succeeded(failure.what(), error);
+	}
+}
+
 bool Screen::undo(std::string* error) {
 	if(revision() == 0) return succeeded("AffrescoUI screen: nothing to undo", error);
 	return revert(revision(), error);
@@ -121,6 +153,28 @@ int Screen::revision() const noexcept { return impl_->repository.head().number; 
 
 std::string Screen::exportChanges(int fromRevision, std::string_view name) const {
 	return impl_->repository.exportChanges(fromRevision, name).dump(2);
+}
+
+format::Package Screen::exportPackage(const format::PackageOptions& options) const {
+	if(!impl_->app) throw DocumentError("AffrescoUI package: the screen isn't an app's (open its folder or app.json)");
+	const format::AppManifest& app = *impl_->app;
+	const std::filesystem::path entry(app.entry);
+	const std::string notation = entry.extension() == ".lisp" ? "lisp" : "json";
+	json files;
+	if(options.kind == format::PackageKind::App) {
+		// the app's folder: the entry's, less the folders the manifest names it in
+		std::filesystem::path folder = impl_->screenFolder;
+		for(auto part = entry.parent_path(); !part.empty() && part != part.parent_path(); part = part.parent_path())
+			folder = folder.parent_path();
+		std::error_code error;
+		const std::filesystem::path manifest =
+		    std::filesystem::exists(folder / "app.json", error) ? folder / "app.json" : folder / "app.lisp";
+		files = format::appFiles(manifest);
+	}
+	const vcs::Repository& repository = impl_->repository;
+	return format::buildPackage(
+	    repository.versionParts(), options, app, notation,
+	    [&repository](std::string_view name) { return repository.assetBytes(name); }, files);
 }
 
 bool Screen::importChanges(std::string_view changesJson, std::string* error) {
@@ -176,8 +230,10 @@ std::shared_ptr<const std::string> Screen::assetBytes(std::string_view name) con
 Attached Screen::attach(std::string_view name, std::string bytes) {
 	const std::string_view type = assetTypeOf(name);
 	if(type.empty())
-		return {{}, "'" + std::string(name.substr(0, 100)) + "' isn't a kind of file an asset may be (PNG, JPEG, SVG, "
-		                                                      "WAV, MP3, FLAC, JSON or text)"};
+		return {{},
+		        "'" + std::string(name.substr(0, 100)) +
+		            "' isn't a kind of file an asset may be (PNG, JPEG, SVG, "
+		            "WAV, MP3, FLAC, JSON or text)"};
 	return impl_->repository.attach(name, type, std::move(bytes), json::object());
 }
 

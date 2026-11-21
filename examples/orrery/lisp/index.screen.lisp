@@ -6,23 +6,24 @@
 ;;; orrery.lisp. Space plays, J reverses, K and L slow down and speed up, G goes to the selected body, C centres it,
 ;;; F follows it, B shows the browser, Cmd+D bookmarks the view.
 
-(include "locales/en.lisp"
-         "locales/es.lisp"
-         "locales/fr.lisp"
-         "offers.lisp"
-         "features.lisp"
-         "state.lisp"
-         "bodies.lisp"
-         "time.lisp"
-         "look.lisp"
-         "keys.lisp"
-         "bars.lisp"
-         "view.lisp"
-         "browser.lisp"
-         "chart.lisp"
-         "sky.lisp"
-         "orrery.lisp"
-         "../../shared/addons/assistant/assistant.lisp")
+(ns orrery.index
+  (:require "locales/en.lisp"
+            "locales/es.lisp"
+            "locales/fr.lisp"
+            "offers.lisp"
+            "features.lisp"
+            orrery.state
+            orrery.bodies
+            orrery.time
+            orrery.look
+            orrery.keys
+            orrery.bars
+            orrery.view
+            orrery.browser
+            orrery.chart
+            orrery.sky
+            orrery.orrery
+            "../../shared/addons/assistant/assistant.lisp"))
 
 ;;; The window, and what is in it, in the order it is drawn
 
@@ -48,4 +49,5 @@
       ~(timeline)
       (column#dock :point bodies.dock :width "100%" :height 136 :color @panel :children [])
       ~(status-bar))
-    ~(render-dialog)))
+    ~(render-dialog)
+    ~(search-dialog)))

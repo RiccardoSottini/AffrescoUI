@@ -5,6 +5,8 @@
 
 #include "Library.hpp"
 #include "CheckerImpl.hpp"
+#include "Contributions.hpp"
+#include "RunRules.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
@@ -329,6 +331,7 @@ void Checker::pass() {
 	walkNodes();
 	walkHandlers();
 	walkUnreached();
+	walkRunRules();
 }
 
 void Checker::walkNodes() {
@@ -397,6 +400,22 @@ void Checker::walkDeclaredTexts(const Scope& scope) {
 	if(const json* settings = section("settings"))
 		for(const auto& [name, setting] : settings->items())
 			readTexts(setting, {"title", "description"}, std::format("settings.{}", name), scope);
+}
+
+void Checker::walkRunRules() {
+	const json* permissions = section("permissions");
+	const json* actions = section("actions");
+	if(!permissions || !permissions->contains("run") || !(*permissions)["run"].is_object()) return;
+	for(const auto& [key, list] : (*permissions)["run"].items()) {
+		if(!list.is_array()) continue;
+		for(std::size_t i = 0; i < list.size(); ++i) {
+			const std::optional<PermissionRule> rule =
+			    list[i].is_string() ? parseRunRule(list[i].get<std::string>()) : std::nullopt;
+			if(!rule || rule->pattern.empty() || rule->pattern.ends_with('*')) continue;
+			if(actions && actions->contains(rule->pattern) && isCommand((*actions)[rule->pattern])) continue;
+			report(std::format("permissions.run.{}[{}]", key, i), "there is no command '" + rule->pattern + "'");
+		}
+	}
 }
 
 /* Findings and limits */

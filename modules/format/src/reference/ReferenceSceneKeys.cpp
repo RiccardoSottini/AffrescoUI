@@ -27,10 +27,13 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 		"description": "scene: { nodes, materials }"})json",
 	 "The scene, usually `{{state.scene}}`: `{ \"nodes\": [...], \"materials\": [...] }`. A node: `{ \"id\", "
 	 "\"name\", \"parent\", \"translation\": [x, y, z], \"rotation\": [x, y, z, w] (or `\"rotationDegrees\": [x, y, "
-	 "z]`), \"scale\", \"mesh\", \"material\", \"light\", \"camera\", \"visible\", \"asset\" }`; `mesh` is `\"cube\"`, "
+	 "z]`), \"scale\", \"mesh\", \"material\", \"light\", \"camera\", \"visible\", \"display\", \"asset\" }`; "
+	 "`display` is `\"solid\"` (the default), `\"wire\"` (its edges) or `\"bounds\"` (the box around it), and a node "
+	 "is picked by its surfaces however it is drawn; `mesh` is `\"cube\"`, "
 	 "`\"sphere\"`, `\"cylinder\"`, `\"cone\"`, `\"torus\"`, `\"plane\"` or a mesh of an asset; `light` is `{ "
 	 "\"type\": "
-	 "\"directional\" | \"point\" | \"spot\", \"color\", \"intensity\", \"range\", \"innerCone\", \"outerCone\" }`. "
+	 "\"directional\" | \"point\" | \"spot\", \"color\", \"intensity\", \"range\", \"innerCone\", \"outerCone\", "
+	 "\"castsShadow\" }`. "
 	 "A material (PBR): `{ \"id\", \"name\", \"baseColor\": [r, g, b, a], \"metallic\", \"roughness\", "
 	 "\"emissive\", \"alphaMode\", \"alphaCutoff\", \"doubleSided\" }`. Read when it changes, checked and bounded.",
 	 "scene"},
@@ -87,7 +90,8 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 	 "light only, the scene's lights left out: a material preview).",
 	 "scene"},
     {"gizmo", R"json({"anyOf": [{"type": "object", "properties": {"visible": {"type": "boolean"},
-		"mode": {"enum": ["translate", "rotate", "scale"]}, "space": {"enum": ["world", "local"]},
+		"mode": {"enum": ["translate", "rotate", "scale"]}, "space": {"enum": ["world", "local", "view"]},
+		"individual": {"type": "boolean"},
 		"pixels": {"type": "number", "minimum": 10, "maximum": 400},
 		"pivot": {"anyOf": [{"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, {"type": "null"}]},
 		"snap": {"type": "object", "properties": {
@@ -95,8 +99,8 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 		"scale": {"type": "number", "minimum": 0}}}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "scene: the transform gizmo on the selection"})json",
 	 "A gizmo on the selection (none without it): `{ \"visible\", \"mode\": \"translate\" | \"rotate\" | \"scale\", "
-	 "\"space\": \"world\" | \"local\", \"pixels\" (its size), \"pivot\": [x, y, z] (where it turns and scales "
-	 "about, if not the selection's centre), \"snap\": { \"translate\", \"rotate\" (degrees), \"scale\" } }`. "
+	 "\"space\": \"world\" | \"local\" | \"view\", \"pixels\" (its size), \"pivot\": [x, y, z] (where it turns and scales "
+	 "about, if not the selection's centre), \"individual\" (each node about its own origin), \"snap\": { \"translate\", \"rotate\" (degrees), \"scale\" } }`. "
 	 "Dragging a handle runs `onTransform`.",
 	 "scene"},
     {"controls", R"json({"anyOf": [{"type": "object", "properties": {"orbit": {"type": "string"},

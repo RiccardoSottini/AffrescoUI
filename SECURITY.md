@@ -115,9 +115,9 @@ app's time or memory from the others:
 - a message larger than its limit is refused before it is parsed;
 - `convert` (text in the Lisp notation into JSON, and back) reads nothing of the document and changes nothing: it
   holds to the JSON limits (256 levels, 64 MiB of text) and is fuzzed (`tests/fuzz/notation.cpp`);
-- messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen), each have a
-  rate, kept by a token bucket: a burst after a quiet time, then a steady rate. A message over the rate gets an error
-  and costs no more than that; the first refusal in a row is logged;
+- messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen, and
+  `undoPlan`, which costs a merge), each have a rate, kept by a token bucket: a burst after a quiet time, then a
+  steady rate. A message over the rate gets an error and costs no more than that; the first refusal in a row is logged;
 - what the host sends a socket peer is written by a thread of its own, never on the main thread. A peer that falls
   further behind in reading than the send queue's limit is disconnected, not buffered without end, and can't block
   the app.
@@ -190,6 +190,20 @@ files the person just dropped on the window: a `from` naming any other path is r
 their bytes or where they were, and may name one in a revision's assets, which the person then reviews. No revision
 or peer can open the dialog or read the disk.
 
+**Picks** are what the person points at (SCREEN_FORMAT.md, "Pointing at a node"). A `pick` step is a control step
+that starts only from the person's own press: no revision, timer, reply or peer can put the window in pick mode or
+make a record. The engine makes every record from the document as written, never from what a document hands it, and a
+record holds no value from the state, no record of the app's data and no text a panel shows, only where a node is
+written and its bindings as written (at most 4 KiB: a node whose ids or pointer are too long for that gives no record,
+and the pick is cancelled). Agents read the records not yet sent (`getPicks`) and where a node is written
+(`getSource`, the versioned document only, never a file, at most 16 KiB); a peer whose reads are limited is refused
+both and gets `request` without `picks`, since where a person points can tell what they look at. Only the screen's
+own requests carry picks: the host drops `picks` from a request a peer sends, as it drops `source`, and the MCP server
+keeps them only on a request from the app. A record's bindings and source text are the document's own words, so an
+agent reads them as data, never as instructions; the MCP server tells each pick on one line, its texts without line
+breaks or control characters. A record a step writes `into` the state is as readable as the rest of the state (see
+"Known gaps").
+
 **The permission rules** (`permissions`: `allow`, `ask`, `deny`) are judged by the change's effect, by comparing the
 screen before and after, not by how the patch is written:
 - a matching `deny` refuses it, for everyone, including reviewers and the app itself; deny rules are checked again
@@ -250,6 +264,29 @@ refused and the proposal stays open for another look. An approval without a head
 three ways to accept: an `accept` message from a reviewer's peer (on `studio.sock`), the C++ call
 `Screen::acceptProposal(id, head, error)`, and an `accept` step in the screen, which names it with `"head"` (for
 example `"{{proposals[0].head}}"`).
+
+### Undo that keeps what came later
+An undo of an earlier commit (VERSION_CONTROL.md, "Undo that keeps what came later") is a change like any other, and
+never authority:
+- **The plan costs a merge.** `undoPlan` changes nothing, but it merges the commit's undo with every later commit, so
+  it counts against the same rate as the changes. A peer whose reads are limited (`permissions.data`) is refused it:
+  the plan shows the commit's parts and the later changes, which can be data that peer may not read.
+- **The choices are bounded.** `drop` and `keep` together name at most 256 paths of 1,024 bytes each. A plan lists at
+  most 64 later commits and 64 conflicts (the rest are counted), cuts every value it shows at 16 KiB, and walks back
+  through at most 65,536 commits to find who built on what it undoes.
+- **The undo mark is checked when the commit lands.** Its patch must be exactly that undo of that commit on main as it
+  is then, worked out again by the host, with the paths it drops and the operations it rebuilds. A mark that names
+  another commit or an unknown one, or a patch that does more, is refused. The mark only records what happened: it
+  allows nothing, and the permission rules judge the change as they would any other.
+- **Taking out what others built is reviewed.** An undo that drops a later change or rebuilds one (`drop`, `then`)
+  becomes a proposal whenever its author may not review, whatever the mode and the grants. "Always allow" never
+  remembers it, so each one is the person's choice. A screen without `permissions` lets anyone change it and anyone
+  review, but there such an undo lands at once only from the person (`user`): an agent's is proposed, and accepted
+  by someone else.
+- **You accept what you saw.** The choices name the head they were made on; if main moved since, the undo is refused
+  and the peer asks for the plan again. A short or wrong head is refused too.
+- **Models and records.** An undo never undoes part of a model that a later commit changed, and the records follow the
+  rules of revert and restore: only a migration's undo touches them, and it is reviewed like the migration.
 
 ### Previews
 Previewing a proposal makes its document live before anyone approves it, timers and all. While a proposal is shown,
@@ -512,12 +549,36 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
 
+**Features that hold programs** (`tests/unit/features_authority.cpp`, each case with the static checks on and off). A feature's
+definitions run as `features/<name>/<file>`, by the author `feature:<name>`, never the person's nor the file's, except what the
+app's own file shipped of a feature it never installed, which is the app's own code:
+
+- **Installed is for good.** A feature is installed when its record says where it came from (`release`, `source`, `digest`,
+  `publisher` or `installed`, which every install writes, and every record has its `release`), in the screen file, on `main`'s
+  head or in any commit on `main` (VERSION_CONTROL.md, "Authors"). Taking those keys away doesn't make it the app's, a restart
+  doesn't either (the history on disk keeps the commits), and an installed feature written back into a file keeps its record.
+  Only an app's own `features/<name>/` files with no such record are the app's.
+- **Two lines.** Composition refuses a feature whose code steps outside its own names or reaches past what it is handed; at run
+  time, `Programs::checkStep` holds whatever got past it, an installed feature kept in the app's own file included: what a
+  `features/<name>/` definition led to writes only `state.<name>`, runs only `<name>.<command>` or `app.<need>`, and never a
+  record step, `invoke`, `request`, `subscribe`, `image`, a control or a review step.
+- **Reached from is who wrote it.** "A feature's code led here" follows the same authors as authority: the person's command
+  that calls a feature's function loses its control steps for the rest of that run, and advice a feature puts on the person's
+  command lends it none.
+- **What the app hands it runs apart.** `app.<need>` runs the app's `<name>.adapted.<need>` under `feature:<name>/app`: not the
+  feature's reach, and no control step.
+- **The error names the feature, the definition and the step**, never a value.
+- **Off is gone.** A feature switched off or removed is gone at the next version, with its callbacks.
+
 **The loop: evaluating from inside the app** (`tests/unit/lisp_loop.cpp`). The step `evaluate` is what makes an app extensible from inside, and it is what the person may do and nobody else:
 
 - **Only on the person's own press,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, even from a binding of their own key, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
   no revision may add it. While a proposal is previewed it is refused.
 - **Only what they typed has their authority** (RFC 0005, decision 5). Text in a buffer can be anyone's, and can hide past the visible screen: a revision on `/state` writes it, a key's `edit` or `press` step types it, a paste brings what any code's `copy` put on the clipboard, undo brings it back, and a person's own command copies it on. So nothing marks what a stranger writes, as a mark can be lost: `format::TypedText` records what is known, the bytes of a bound value that came from the person's own keystrokes, delivered to the widget itself (`Panel::takeTyped()`, `Window::routingOwnPress()`). Any other change is seen as a difference when the value is next looked at, what it changed stops being theirs, and the two sides stay separate runs, so an agent can't make a form by taking characters out. A form that isn't, whole, one run has **none** of their authority: its definitions go through `propose` in the name `plugin:evaluated`, and text holding anything else doesn't run. The record isn't kept across runs of the app, and a secret field is never recorded. Input from the desktop itself (an accessibility tool, another program sending keystrokes, the C API) counts as the person's, as it does for every other step.
 - **Unless the person says yes, in a question the host draws** (`"confirm": true`; `tests/unit/lisp_confirm.cpp`). For a text they didn't type, `Window::confirm()` asks them: a question the window draws itself, last, above everything a screen draws (overlays, the inspection layer and the full-screen hint included), with the whole text, its lines numbered and wrapped so nothing is past an edge or out of reach, and two buttons. No document has a way to it: it isn't in the screen's tree, so no id, `press` step, revision or overlay reaches it; while it is shown every key, click, wheel turn and drop goes to it and none to the screen. Only the person's own press answers it (`routingOwnPress()`): a click begun and ended on a button, or Enter or Escape pressed and let go while it is shown, so the key that brought it up can't answer it; and a yes only from a press begun once it has been shown half a second, so a press already on its way when it comes up (a double click's second click on where Run as Me then is, Enter typed on after the evaluating key) can't say yes to a text not read. A yes runs **exactly the text it showed**, as if they had typed it, **once**: a buffer changed meanwhile changes nothing, and nothing runs if the program changed while it was shown (what the text calls could mean something else), if a proposal is being previewed, or if a question is shown already. A text holding a character that doesn't show as itself (a control character, a bidirectional or zero-width format character, a line separator, a variation selector, a letter that draws as a space, invalid UTF-8) isn't asked about: nothing runs. Text a commit on `main` first wrote stays its author's, confirmed or not (VERSION_CONTROL.md, "Programs"). **What it doesn't tell:** the person reads what runs, but not what a name in it means beyond what they see (a function the text calls is the program's, under the authority rules above); names that look alike, in different scripts, look alike there too; and screen readers don't see the question yet (the window's accessibility tree is the screen's).
+- **Or from an editor the person paired** (`--nrepl`; "Editors (nREPL)" below). The same question pairs one connection
+  of an nREPL client, showing the first text it wants to run; what that connection evaluates afterwards lands as if the
+  person had typed it, until it disconnects.
 - **It may change what reaches a control step,** and no more (VERSION_CONTROL.md, "Programs"): what no revision may change, it can't either. No peer has a way to that: it is a call in the host's code, not a message or a name an author can claim. An evaluated form is the
   person's decision about text they have in front of them, as a line typed in a terminal is.
 - **An agent's macro in it stays the agent's:** the person's function or expression holding what it wrote has its authority. A macro runs while the form is read, reaching nothing.
@@ -569,6 +630,105 @@ What holds for whatever text it is given:
   interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
   and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
 
+### Updates that build only what changed
+
+An update builds again only what read a place that changed (`Tracker`, `PlaceIndex`), and a program's change may be made in
+the running interpreter instead of a new one. Neither is a way around a rule:
+
+- **What is judged is what is built.** A revision's rules and the checker run on the tree the update builds, in part or in
+  full alike, and a feature's checks on every step it runs; where tracking can't tell what a change reaches, the update is
+  a full one, and a step that fails marks the places it made on its way before it failed. Verify mode
+  (`AFFRESCOUI_VERIFY_UPDATES=1`) builds every update in full beside it and logs any difference, and the property test and
+  the `updates` fuzz target compare the two after random sequences of changes.
+- **A change made in place is bounded as a load is.** At most 64 changes, and together at most what one load may allocate
+  (16 MiB), are made in one interpreter; the next change loads the program afresh. A change that removes a macro, touches
+  a name the language or the host defines, or adds, removes, moves or changes a file's `ns` form, is never made in place,
+  and the last is built in full: the aliases code is compiled with come only from those forms.
+- **What is counted holds no value.** The update counters (`UpdateStatistics`) are numbers of panels and places; a
+  difference verify mode logs in a secret text field names its place, never what the field holds.
+- **What follows a panel follows its change.** The keybindings list is built again when any panel's keys change, even to
+  as many keys, so a key a revision rebinds is never shown or run with its former action.
+
+### Commands run by peers
+
+A peer may run one of the app's commands (`Runtime::runCommandAs()`, `format/src/commands/CommandRuns.*`;
+`tests/unit/command_authority.cpp`, `tests/unit/command_runs.cpp`). The check before a run (what a command can reach) is a
+convenience; what holds is how the run executes:
+
+- **A run executes under its runner's name, never the person's.** It is refused at once when the runner is the person
+  (`user`, `user/...`), the app's file or nobody. Every step it reaches is judged with the runner among the authors that
+  led there, so each control and review step (`call`, `invoke`, `saveFile`, `accept`, `allowRun`, `undoRun`, `evaluate`...)
+  and each native action is refused, wherever it is: in the command, in an action or command it runs, in a function,
+  advice or hook of the program, written by the person or anyone else, or in a record write's `then`.
+- **What a run schedules keeps the runner's authority.** An `after` or `debounce`, a Lisp timer, a service call's or
+  an asynchronous call's `onDone` and `onError`, and a sound's actions run later with the authority of the step that
+  started them, so a run can't reach the person's authority by waiting. What that later work changes in the state is
+  judged by effect with the runner's data rules, as the run was, and put back when they refuse it; once a run is
+  refused, what it scheduled runs no step.
+- **What the check before a run follows**: actions named in text under `run`, `do`, `then`, `else`, `onDone`,
+  `onError` and `onEvent`, so a service that writes or runs, reached through any of them, still needs the person.
+- **Its records are written under the runner's name**, and `permissions.data` judges them as that author's, and as
+  every other author whose code led there: a function of another peer's that a run calls writes nothing that peer
+  may not.
+- **A run refused while it ran leaves nothing.** One that ends with an error, or whose effect the run control refuses
+  (`RunControl::stateDenial()`), has its state put back as it was and its record writes undone. A run's own record
+  writes are groups of their own, apart from the person's.
+- **One run at a time**, and none while a proposal is previewed; no undo while a run runs or a proposal is previewed.
+- **Undo puts back only what still holds.** A run is undone only while each place it changed still holds what the run
+  left there, what holds that place is still there and still an object or array, and no later record write came after
+  its own; otherwise nothing is changed. What reaches outside the state
+  and the records (the clipboard, a channel, a file) isn't undone, and the run says it is partly undoable.
+- **What a run reports is bounded**: its errors and what it changed (below, "Limits"); a value past those limits is never
+  reported, only its path. A peer whose reads are limited gets neither what it changed nor what its steps said (an
+  error can quote a value it read): a run a step ended is told only as failed.
+- **The person's question can't be worn out.** A run only the person may allow asks in the window's own question,
+  which shows at most 64 bytes of the runner's name. After three "Don't run" to one channel, that channel's runs that
+  need the person are refused without asking until the host restarts. A waiting run whose command now needs the person
+  is refused when a reviewer allows it.
+- **A reply to the app's own agent comes from the screen.** A peer's message relayed to it, which always carries
+  `from`, is never taken for the answer it waits on, whatever its `id`.
+
+### Editors (nREPL)
+
+`--nrepl` (on `affrescoui_launcher <app>` and `affrescoui run <app>`) lets an nREPL client (CIDER, Calva, Conjure)
+evaluate Lisp in a running app as the person (`Screen::listenEditor()`, `modules/net`; LISP.md, "Connecting an
+editor"). That is the authority of the step `evaluate` on text the person typed, so the server is built as the door to
+it:
+
+- **Off unless asked, and never for the Launcher.** Nothing listens without `--nrepl`, which needs an app: the Launcher
+  refuses it, a JSON app throws, and a plain screenshot run doesn't listen. No environment variable turns it on.
+- **The loopback only.** It binds 127.0.0.1, on the port given or one the system picks; there is no option for another
+  address. The port goes to the terminal and to `.nrepl-port` in the app's folder, written beside the name and renamed
+  over it (never through a link), and removed when the host ends if it still holds that port.
+- **Nothing of the app before the person's yes.** An unpaired connection gets `describe`, `clone`, `close`,
+  `ls-sessions`, `interrupt`, and the clients' own forms that need no program (`*ns*`, `(in-ns ...)`, the setup forms
+  CIDER, Calva and Conjure send first), answered from the connection's own sessions. Any request that reads or runs
+  the program (`eval` of anything else, `load-file`, `completions`, `lookup`, `info`, `eldoc` of a name) waits, with
+  every request after it, while the window asks the person (`tests/unit/nrepl_loop.cpp`).
+- **Only the person's own press pairs a connection.** The question is the one `evaluate`'s `confirm` draws ("The
+  loop" above): the window's own, above the screen, out of any document's reach, answered only by a press begun on a
+  button once it has been shown half a second. It shows the first text the connection wants to run, whole; a text
+  holding a character that doesn't show as itself, or longer than a program's file may be (4 MiB), is refused without
+  asking, and the connection stays open. A yes runs only the text it showed: interrupting that request takes the
+  question away and asks again with the next one's text. No flag, variable, peer or test hook answers it. One
+  question at a time: the other connections wait their turn.
+- **A no closes the connection,** its waiting requests ended with `not-paired`. After three refusals the server asks
+  no more until the host restarts, and refuses every new request that needs the app.
+- **A yes pairs that connection until it closes,** and nothing else: another connection is asked again. What it
+  evaluates is the person's own input (VERSION_CONTROL.md, "The person's own input"): a revision by `user`, marked
+  `ownInput`, its message ending `(editor)`, judged by the same rules, refused while a proposal is previewed, and
+  bounded by the program's budget like any evaluation. Like the person's own typed `evaluate`, that includes the
+  review steps: a paired editor can `accept`, `reject`, `preview` or `revert`, as the person could at the console.
+  `load-file` lands only the definitions that changed.
+- **Bounded on the wire.** Four connections at once, sixteen sessions each, messages and their nesting limited, a rate
+  per connection and a queue per connection (Limits below), every waiting request counted whole; a connection's
+  reading pauses while the main thread hasn't taken what it read, and sending never waits on a client that doesn't
+  read. A first byte that isn't bencode's `d` (an HTTP request from a web page) closes the connection. Read on a
+  thread of its own per connection; the program runs only on the main thread. Fuzzed: `tests/fuzz/bencode.cpp` and
+  `tests/fuzz/nrepl.cpp`.
+- **What it doesn't tell:** who connected. Any program of any user on the computer can connect to 127.0.0.1 and ask;
+  the question is the only check (Known gaps).
+
 ### What documents can't do
 A JSON document has no scripts, and a program's only way out is the steps (above). Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
@@ -585,7 +745,13 @@ code calls `Features::trustPublisher`; a catalogue installs only if its index an
 keys, the manifest by the very publisher the index names, and an upgrade never changes the publisher. A release's
 URL is a path inside the catalogue's folder. Whatever is installed is a revision under the document's
 `permissions`, and a feature can't bring a capability (`channels`, `services`, `connections`, `persist`) or a
-control step, so a feature never widens what the app can do. `affrescoui sign --new-key` writes a key only its owner
+control step, so a feature never widens what the app can do. A feature's program (its Lisp definitions) is built alone, within
+the build's budget, and refused unless every name is in its namespace, it builds only the parts a feature gives, and
+its code reaches only its own state and commands, the language, and the actions it needs: no other step, no
+undefined name, and a function reads none of the app's values. The steps it builds as data (a quoted list, a map)
+are checked like its code, and it may not write the names the language keeps for what it compiles (`%read`), nor
+build a name from text (`symbol`). A record whose `enabled` isn't `true` or `false` is off. Its hooks and advice join only what the app offers the
+points it is placed in. `affrescoui sign --new-key` writes a key only its owner
 can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
 key that was then deleted).
 
@@ -600,6 +766,73 @@ refused. An adapter is expressions only and can't give a capability or a permiss
 again on the document it lands on; signatures and trust apply unchanged. The MCP tools return a proof's reasons,
 never the document.
 
+### Packages
+A package (VERSION_CONTROL.md, "Sharing a version: packages") is a file people pass around: what reads it treats it as
+untrusted input, and what writes it treats the person's own data as something to keep out. Reading
+(`readPackage`) refuses a file over 16 MiB before parsing it, then every key it doesn't know, by name; the JSON nesting
+limit and the document's; a delta of anything but add, remove and replace; a base the delta doesn't give (its tree);
+a file outside the app's folder, with a `.` part, over 4 MiB, or beyond 1,024; a manifest whose id isn't the base's;
+an asset the document doesn't list with that size and SHA-256; a state key the base has; and a signature that doesn't
+verify. Its `author` is shown as written, not as a proof, and `affrescoui` prints a package's texts with the
+characters that steer a terminal written out (`\x1b`), so a name can't redraw the review it is shown in. Writing
+(`affrescoui pack`) keeps out the records, the state, the history and every file the manifest doesn't reach (a link
+to a folder among its assets is left out), and refuses to write a package holding the person's paths or what looks
+like a key or a token.
+
+Installing one (`affrescoui install`, `Screen::proposePackage`; VERSION_CONTROL.md, "Installing a package") gives its
+code no more authority than a revision:
+- **Only the person accepts it.** It is a proposal by `plugin:<name>`, which only the person can accept (an agent, a
+  reviewer that isn't the person, and its own author are refused), and it is never applied as it is proposed. The
+  `install` command never accepts it. A trusted signature changes none of this: it names who made the file.
+- **Checked from its content.** The summary the person reviews is worked out from the document, never from what the
+  package says of itself; what refuses it is listed with its place. A package of changes can't touch `permissions`,
+  `channels`, `persist`, `services` or `connections`, nor add or take away the `program` as a whole; a definition that
+  holds a form that isn't a definition is refused, since it would run as the program is built.
+- **The revision rules hold.** A package can't bring or add a control step (`call`, ...) nor run a function that has
+  one; its `:around` advice that reaches one through `(proceed)` is refused as it runs. Capabilities are never widened
+  by it: a kind `app` package's are the new copy's manifest, shown to the person with what is new to them.
+- **The person's own stays.** What a three-way merge can't merge is left out, the person's value staying, until they
+  choose (only a reviewer of the person's channel, never the author); taking theirs moves the proposal's head, so an
+  approval given before is refused. A state key the person has is kept. Records aren't touched: models change only
+  the description.
+- **Files.** `install --new` writes a kind `app` package's files only into a folder that doesn't exist yet (not even
+  as a link), refusing an absolute path or one that leaves it, and two files the disk takes as one (`app.json` and
+  `APP.json` on a disk that ignores case), and leaves nothing behind if a file can't be written. The files must then
+  open, where they were written, as the base the package describes (its `base.tree`): the summary is worked out from
+  the document, so files that hold anything else (a definition only they have) aren't what the person reviewed, and
+  are removed with their folder.
+- **Trusted publishers** (`publishers.json` in the data folder) are read whole or refused: at most 64 KiB and 256 keys,
+  each an Ed25519 public key at its fixed length; small-order and non-canonical keys don't verify.
+
+**The `packages` service** (`makePackagesProvider`, `PackagesGrant`) is what a host grants a screen, the Launcher, to
+export one of the person's apps and to install a file someone gave them; nothing has it unless the host grants it, and
+a screenshot run never does. Its arguments are checked by their schema, which takes no path: an app is a folder name
+in a root the grant names (`examples`, `apps`), refused if it is anything else (`..`, `/`, a capital, a leading `-`).
+An install never takes the id `shared`, whose kits every app of the root includes, nor `launcher`.
+`export` reads the app's history from a copy of its data, so the person's own data folder isn't written nor its lock
+taken, and leaves out what `affrescoui pack` leaves out. `inspect` and `install` refuse a package over 16 MiB before
+it is read. `install` writes only into the writable root (`apps`), only into a folder that doesn't exist yet, removes
+only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. Results and
+errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
+
+### The AffrescoUI catalogue
+The Launcher lists the catalogue in the repository (`catalogue/`, its `README.md`): versions of apps and features,
+each added by a pull request that `affrescoui catalogue check` and a reviewer pass ("Adding to the catalogue" in
+`CONTRIBUTING.md`).
+- **Who signs.** The maintainer signs `catalogue/index.json` with the release key, in the release job only. The key's
+  private half is never in the repository, and the index is committed unsigned. The Launcher of a release trusts only
+  the public half built into it (`AFFRESCOUI_CATALOGUE_KEY`). A development build has no key built in, so it refuses
+  every index. It reads one unsigned only with `--catalogue DIR --trust-unsigned-catalogue`, and then prints a
+  warning. An app's own host is given no catalogue.
+- **What the signature says.** It says that the maintainer published this index and that it is unchanged since. Each
+  file the index lists is pinned by its SHA-512 digest and its size, so a changed file is refused before it is read.
+  The signature is not a promise that an entry is safe. It means that the entry was reviewed and is unchanged.
+- **What installing does.** An entry installs as a file from disk would. The `packages` service reads it from the
+  catalogue's folder, and the person sees the same review, with the date the index was checked. The package's
+  changes are a proposal that only the person accepts. A feature is reviewed from the catalogue and installed from
+  inside the app that binds what it needs. The service takes a catalogue entry by its id and release, never by a path,
+  and a release's file is a path inside the catalogue's folder.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
@@ -612,6 +845,9 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
   pixels a side is refused before anything is drawn.
 - `test` plays a scenarios file the same way: every channel the screen declares, by an absolute path or from an
   `include` too, is pointed at a folder that is never created, so a played screen never reaches a running host.
+- `source` loads a screen as `check` does, and to give a program's line in its file reads only a regular file of at
+  most 16 MiB inside the screen's folder once its links are resolved, whatever a `/program` key names (an absolute
+  name, `..`, a device): otherwise it gives the line within the definition.
 - `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
   `import` or `run --plugin` is trusted like one given to `affrescoui_launcher --plugin`. `import` refuses a history
   another program is writing.
@@ -641,18 +877,19 @@ the reason it has none.
 
 ### Services
 
-Services are `process`, `pty`, `fs`, `watch`, `search` and `jsonrpc`; language servers (LSP) and debug adapters (DAP)
-are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built into the
-library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and read no
-grammar from outside; the `syntax` fuzz target covers them.
+Services are `process`, `pty`, `fs`, `watch`, `search`, `jsonrpc` and `packages`; language servers (LSP) and debug
+adapters (DAP) are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built
+into the library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and
+read no grammar from outside; the `syntax` fuzz target covers them.
 
 | | |
 |---|---|
 | Assets | The user's files and folders, what the programs the host allows can do, and the host's memory and main thread |
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
-| Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
+| Limits | "Limits" below: the `process`, `fs`, `pty`, `search`, `packages` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
 | Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs, patterns and terminal output are fuzzed (`frames`, `search_glob`, `find_pattern`, `terminal`); PCRE2's match limits end catastrophic backtracking |
+| Packages | `packages` takes roots by name, never a path; installs only into a new folder of its writable root, removed on failure; a package refused over 16 MiB before it is read; what it installs waits as a proposal only the person accepts ("Packages" above) |
 | Known gaps | Programs aren't sandboxed (G-02) |
 
 ### The network
@@ -680,7 +917,7 @@ catalogues" above).
 | Who attacks | A catalogue's server or whoever answers in its place; a publisher whose key was stolen; a publisher that turns hostile in an upgrade |
 | Entry points | A catalogue's index, a manifest, a release's archive, public keys and signatures |
 | Limits | Index and manifest sizes, checked before parsing; the JSON nesting limit; fixed-length keys and digests |
-| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
+| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. A hostile upgrade meets the merge: it is still one revision, reviewed like any other, merged with what was edited locally (conflicts kept local and listed), or a proposal naming the edits it would drop, so local edits are never dropped silently. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
 | Known gaps | None of its own: a feature is a revision, so the revision gaps apply (G-06 to G-12) |
 
 ### Installing across apps
@@ -695,6 +932,19 @@ Features from another app, the adapters that bind their needs, and their proofs 
 | Limits | Manifest and proof 256 KiB, adapter 64 KiB, 64 needs, 64 bindings of 2,048 characters, 8 levels, 16 reasons per check, 256 scenarios per proof |
 | Mitigations | Expressions read only the host's exports; actions only those its point receives; no capability, permission or control step can be added; the composed document is checked and the scenarios played before the install; the install is a reviewed revision. Fuzzed: `composition` |
 | Known gaps | A proof's scenarios are those the feature and the host ship: behaviour they don't cover isn't proven |
+
+### Packages
+
+A version of an app as one file, shared from person to person ("Packages" above).
+
+| | |
+|---|---|
+| Assets | The reader's app and data; the writer's records, state, history, paths and keys |
+| Who attacks | Whoever made or changed the file; and, for the writer, a stray secret in the app's folder or its history |
+| Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`); `Screen::proposePackage`, `installAppFiles` and `readTrustedPublishers` (`affrescoui install`, `trust`); `resolveLeftOut` (`resolve`) |
+| Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000; trusted publishers 64 KiB and 256 keys |
+| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Installing: a proposal only the person accepts, never applied as proposed; sections a revision can't change refused; the revision rules on its code (no control step, advice refused at one); what doesn't merge left out until the person chooses, a choice moving the head; the person's state keys kept; new files only in a new folder; the same file once. Tested: `packages_threats.cpp` (11 threats). Fuzzed: `package` (reading, the summary against a copy, installing on a JSON template and on a program) |
+| Known gaps | The scan finds the patterns it knows, not every secret; the summary shows what the code may write and use, not what it will do: the person reads the definitions in the changes window |
 
 ### Dependencies
 
@@ -751,16 +1001,28 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Lines a channel read and the main thread hasn't handled yet (`Delivery::maxWaitingBytes`) | 96 MiB; the channel isn't read meanwhile |
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
 | One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
+| A command run's errors (`CommandRuns::maxErrors`, `maxErrorBytes`) | 8, each at most 512 bytes |
+| What a command run reports it changed (`CommandRuns::maxChangedOperations`, `maxChangedBytes`) | 64 operations and 16 KiB; past either, only the paths, within 16 KiB |
+| Command runs kept for undo (`maxUndoableRuns`, `core/Commands.hpp`; `RunUndo::maxBytes`) | the newest 32, and at most 1 MiB of what they changed; a run past 1 MiB can't be undone |
+| The person's "Don't run" to one channel before its runs aren't asked (`maxPersonNos`, `screen/src/commands/ScreenCommands.cpp`) | 3, until the host restarts |
+| A runner's name in the person's question (`maxShownAuthorBytes`) | 64 bytes, then "…" |
+| A run grant (`maxGrantSeconds`, `vcs/src/runs/RunGrants.cpp`) | a year, also when `review.grantsLast` can't be read |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
 | Assets of one screen (`maxAssets`) | 1,000 |
 | Attachments waiting (`maxAttachments`, `maxAttachmentBytes`) | 32 and 128 MiB, the oldest dropped first; kept for the run only |
 | A revision's `run` steps | 1,000 steps, 1 MiB as JSON |
 | A sound description (`audio::SoundLimits`) | 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes |
 | Messages from one peer, of any kind | 100 a second, 200 at once |
-| Changes from one peer (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once |
+| Changes from one peer (`revision`, `restore`, `revert`, `undo`, `undoPlan`) | 120 a minute, 30 at once |
+| Choices of one undo (`drop` and `keep`) | 256 paths together, 1,024 bytes each |
+| What an undo's plan lists and walks | 64 later commits and 64 conflicts (the rest counted), values cut at 16 KiB, 65,536 commits walked back |
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
+| A program's binding written as an expression (`maxBindingText`, `lisp/src/CompilerLowering.cpp`): a `let`'s names and the value a set called on it gives (`(#{:a} x)` writes `x` twice), written in | 4,000 characters; past it the binding is refused, naming its place |
+| Where definitions read from files start, kept so an error names its file's line (`keptPlaces`, `lisp/src/Document.cpp`) | 65,536 definitions for the process, about 4 MB; past it all are forgotten at once, and an error in one read before says its line within the definition |
+| A feature's program | within its manifest's 1 MiB; built with the Lisp build's budget, a build past it refused |
+| Feature builds kept (`Composition.cpp`) | 16 per thread |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
@@ -771,6 +1033,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Computed values reading computed values | 32 levels |
 | Panels built inside each other (components and outlets included; a component or a screen inside itself stops here) | 256 levels |
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
+| A package (`maxPackageBytes`, `format/Package.hpp`) | 16 MiB, refused before it is parsed |
+| A package's files (`maxPackageFiles`, `maxPackageFileBytes`) | 1,024, each at most 4 MiB |
+| A package's delta and state | 100,000 operations, paths of 4,096 bytes; 10,000 keys of 256 bytes |
+| A package's name and description | 80 and 2,000 characters |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
@@ -785,7 +1051,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` (each copies the whole text) | 500, and 256 MiB in all: the oldest go first |
 | A font's size (a document can ask for any: a larger one is refused) | 4,096 pixels |
-| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
+| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel; below a display scale of 2, the up to four bitmaps of a glyph moved by quarters of a pixel count in it, and past it a glyph is drawn plain) |
 | A font file (regular files only: no devices or pipes) | 256 MiB |
 | An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
 | A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |
@@ -856,6 +1122,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
 | What a service program writes (`services`: a JSON-RPC frame or line) | Headers 8 KiB, a body or a line 8 MiB; a larger one stops the service. An error message from it is cut to 1,000 bytes |
 | A JSON-RPC service | 256 calls waiting for an answer, 256 subscriptions, 16 MiB waiting to be written to it |
+| A `packages` service | 4 calls at once; a package 16 MiB, refused before it is read; names 80 characters, a description 2,000, an author 200; ids a to z, 0 to 9 and `-`, 64 characters |
 | A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
 | An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
 | Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
@@ -883,6 +1150,14 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
 | A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down and 256 megapixels in all (`imageFilePixels`: a file of half a megabyte can hold a gigapixel of one colour, so only a host raises it), checked from the header before decoding; the pixels are tiled from the decoder's own buffer, never copied |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| Editor connections at once (`net::EditorServerOptions::maxConnections`) | 4, paired or not; another is closed at once |
+| nREPL sessions of one editor connection (`maxSessions`) | 16 |
+| One message from an editor (`maxMessageBytes`, `maxDepth`, `maxKeys`) | 8 MiB, 16 levels, 64 keys in a dictionary; more closes the connection |
+| Messages a second from one editor connection (`messagesPerSecond`) | 100; more closes it |
+| Bytes waiting to go to one editor connection (`maxQueuedBytes`) | 16 MiB; more closes it, the main thread never waits |
+| Requests of one editor connection waiting to run (`maxQueuedBytes`) | 64, and 16 MiB encoded, keys nothing reads included; more are refused (`too many requests wait`) |
+| Bytes read from one editor connection the main thread hasn't taken (`maxQueuedBytes`) | 16 MiB; reading pauses until it takes them |
+| Pairing questions refused before an editor server asks no more (`maxRefusals`) | 3, until the host restarts |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
 | A CSV import (`data::Limits`) | 16 MiB, 100,000 rows, 256 columns |
@@ -941,6 +1216,10 @@ removes the gap from this list.
   JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
   writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
   programs and folders you trust the screen with. Tracking: G-02.
+- **`inspect` can't open a whole app that includes the shared folder.** Away from where it is installed, a kind `app`
+  package's files that include the shared folder beside them don't open, so `affrescoui inspect` (without `--app`) and
+  the Launcher's review check them against their base only when they are installed: `install` refuses them then, and
+  writes nothing. Tracking: G-32.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
@@ -991,8 +1270,9 @@ removes the gap from this list.
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
   every change of theirs is reviewed). Tracking: G-10.
-- **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
-  it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
+- **A revision or a command run can change the state control steps read.** Neither can add, move or newly trigger a
+  control step, but each can change the state their expressions read. Data rules judge a run's changes by effect, so
+  the same `never` paths keep runs out. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
   screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
   in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes. Tracking: G-11.
@@ -1005,9 +1285,10 @@ removes the gap from this list.
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
   more hardened than stb_truetype was; still, a malformed font is untrusted input to C and C++ libraries, and the
   `text` fuzz target here fuzzes the text, not the font files (`lookups` fuzzes the GSUB and GPOS tables the fast
-  path for plain text reads itself). A picture of a proposal (`render`) loads the proposal's fonts, and any peer may
-  ask for one, so the font a proposal names is read and parsed before a reviewer looks at it. Fonts no screen uses
-  are bounded (the limits above),
+  path for plain text reads itself). Below a display scale of 2 glyphs are hinted lightly, so FreeType's hinting code
+  (its auto-hinter, or the font's own hinting) also runs on the font's outlines there. A picture of a proposal
+  (`render`) loads the proposal's fonts, and any peer may ask for one, so the font a proposal names is read and
+  parsed before a reviewer looks at it. Fonts no screen uses are bounded (the limits above),
   but the fonts the current document declares are all kept, however many it declares: only the document's size
   bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes). Tracking: G-13.
 - **Image files are decoded by stb_image.** A revision can point an `image` node at any file inside the screen's
@@ -1061,3 +1342,19 @@ removes the gap from this list.
   SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
   the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is
   found only when someone looks. Tracking: G-25.
+- **An editor's pairing question shows only the first text.** The person reads what the connection first asks to
+  run; what it sends after a yes runs without being shown, until it disconnects, as a terminal runs what is typed into
+  it. The question says so. Tracking: G-29.
+- **Who connects to an editor server isn't checked.** The server listens on 127.0.0.1, which any program of any user
+  on the computer can reach, unlike the host's sockets, whose peer's user is checked. Only the person's yes pairs a
+  connection, and three refusals end the asking; on a shared computer, a question you didn't expect is a reason to
+  say no. A host ended by a signal leaves `.nrepl-port` behind; the next start replaces it. Tracking: G-30.
+- **A command run can set off the file's own handlers.** A `watch` of the screen's file, or a node's `onShow`, that
+  the state a run changed sets off runs as its own author's, not as the runner's (above, "A state change is no
+  authority"), as when a revision on `/state` sets it off. A control step there still needs the person's own press,
+  but a service write the handler makes isn't the person's to approve; keep such handlers off state a run may change.
+  Tracking: G-31.
+- **A pick kept in the state is as readable as the state.** A `pick` step's `into` writes the record into the state,
+  and a peer whose data rules leave that path readable reads it, though `getPicks` refuses that peer and its `request`
+  comes without `picks`. Where the person points can tell what they look at: keep such a path out of what a limited
+  peer may read. Tracking: G-28.

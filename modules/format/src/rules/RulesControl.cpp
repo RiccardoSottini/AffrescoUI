@@ -4,6 +4,7 @@
 #include "RulesControl.hpp"
 
 #include "CheckerShapes.hpp"
+#include "ContributionPoints.hpp"
 #include "Library.hpp"
 #include "Limits.hpp"
 #include "ProgramRules.hpp"
@@ -21,12 +22,15 @@ namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 /// "ask" and "cancelAsk" reach the agents: the person's request, which an agent may act on, is never a revision's.
+/// "pick" and "unpick" are the person pointing at what an agent then reads: never a revision's to start or drop.
 /// "fullscreen", a step's or an openWindow's, fills the display, where a screen could look like the system.
-constexpr std::array<std::string_view, 28> controlSteps{
+/// "paste" reads what the person copied, which a revision must never get to read for an agent.
+constexpr std::array<std::string_view, 34> controlSteps{
     "accept",        "reject",        "preview",       "endPreview", "restore",  "revert",   "undo",
     "patch",         "call",          "send",          "connect",    "respond",  "signIn",   "signOut",
     "ask",           "cancelAsk",     "chooseFolder",  "attach",     "saveFile", "openFile", "export",
-    "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen", "evaluate", "propose",  "exportChanges"};
+    "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen", "evaluate", "propose",  "exportChanges",
+    "pick",          "unpick",        "allowRun",      "denyRun",    "undoRun",  "paste"};
 
 /// @brief Whether an object is an "image" step that shows a file dialog: "open" (unless from an asset) or "save", or an
 /// operation computed at run time, which may be either.
@@ -532,6 +536,24 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 	}
 	std::ranges::sort(found);
 	return found;
+}
+
+ControlFindings controlFindings(const json& doc, const std::vector<std::string>& names) {
+	ControlFindings result;
+	if(!doc.is_object() || !doc.contains("actions") || !doc["actions"].is_object()) return result;
+	static const json none;
+	const std::set<std::string, std::less<>> granted = grantedActions(doc);
+	result.program = settledReach(doc, granted);
+	result.control = controlActions(doc, granted, result.program);
+	const std::set<std::string> runners = runningComponents(doc, result.control, result.program);
+	const ControlScan scan(doc["actions"], result.control, runners,
+	                       doc.contains("components") ? doc["components"] : none, result.program);
+	for(const std::string& name : names)
+		if(const json* steps = scan.action(name)) {
+			std::vector<std::string>& found = result.findings[name];
+			scan.walk(*steps, "actions." + name, Part::Steps, found);
+		}
+	return result;
 }
 
 } // namespace affresco::format

@@ -16,10 +16,6 @@
 namespace affresco::bench {
 namespace {
 
-/// @brief Runs the updates that state changes have queued, without drawing (as screens.cpp does).
-/// @param window The window.
-void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action::Release, {}}); }
-
 /// @brief The first text field in a tree, depth first.
 /// @param panel Where to start.
 /// @return The field, or nullptr.
@@ -30,18 +26,15 @@ TextArea* firstTextArea(Panel& panel) {
 	return nullptr;
 }
 
-/// @brief Lays the window out, without drawing.
-/// @param window The window.
-void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
-
 /// @brief The Kanban template with n cards and a "renameBoard" action, loaded into a hidden window.
 /// @param context The context.
 /// @param cards n.
 /// @return The screen.
 LoadedScreen loadKanban(Context& context, int cards) {
-	json document = kanbanWithCards(context.templateFolder("kanban"), cards);
+	const std::filesystem::path folder = jsonNotation(context.templateFolder("kanban")); // the revisions are JSON's
+	json document = kanbanWithCards(folder, cards);
 	document["actions"]["renameBoard"] = json::parse(R"([{"set": "state.board", "to": "{{event.name}}"}])");
-	return context.load(document, context.templateFolder("kanban"));
+	return context.load(document, folder);
 }
 
 /// @brief "scaling/update/<cards>": one state change (renaming the board), its reconciliation and layout.

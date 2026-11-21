@@ -135,6 +135,47 @@ void pushSeeds(std::vector<std::pair<int, int>>& stack, int left, int right, int
 	return std::move(marks).coverage();
 }
 
+/// @brief Whether a pixel is in the image and its centre no farther from a point than a reach.
+/// @param document The document.
+/// @param point The point.
+/// @param reach The distance.
+/// @param x The pixel across.
+/// @param y The pixel down.
+[[nodiscard]] bool withinDab(const Document& document, Point point, float reach, int x, int y) noexcept {
+	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
+	const float dx = static_cast<float>(x) + 0.5f - point.x, dy = static_cast<float>(y) + 0.5f - point.y;
+	return dx * dx + dy * dy <= reach * reach;
+}
+
+/// @brief A scanline flood fill from a point over the pixels like the one under it, no farther from it than a reach
+/// (the quick-selection brush's dab), marking what it fills.
+/// @param document The document.
+/// @param sampler What is sampled.
+/// @param marks The pixels filled so far, which it doesn't cross.
+/// @param point The point.
+/// @param reach The distance.
+/// @param tolerance The largest difference.
+void floodNear(const Document& document, Sampler& sampler, Marks& marks, Point point, float reach, float tolerance) {
+	const int x = static_cast<int>(std::floor(point.x)), y = static_cast<int>(std::floor(point.y));
+	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return;
+	const Pixel seed = sampler.at(x, y);
+	const auto like = [&](int px, int py) {
+		return withinDab(document, point, reach, px, py) && !marks.marked(px, py) &&
+		       difference(sampler.at(px, py), seed) <= tolerance;
+	};
+	std::vector<std::pair<int, int>> stack{{x, y}};
+	while(!stack.empty()) {
+		auto [px, py] = stack.back();
+		stack.pop_back();
+		if(!like(px, py)) continue;
+		int left = px, right = px;
+		while(like(left - 1, py)) --left;
+		while(like(right + 1, py)) ++right;
+		for(int fill = left; fill <= right; ++fill) marks.mark(fill, py);
+		for(const int next : {py - 1, py + 1}) pushSeeds(stack, left, right, next, like);
+	}
+}
+
 /// @brief Each tile's coverage by a function of its pixels, absent where it selects nothing.
 /// @param document The document.
 /// @param sampler What is sampled.
@@ -211,6 +252,15 @@ Coverage wandCoverage(const Document& document, int x, int y, const SampleOption
 	const Pixel seed = sampler.at(x, y);
 	return byPixel(document, sampler,
 	               [&](const Pixel& pixel) { return difference(pixel, seed) <= tolerance ? 1.0f : 0.0f; });
+}
+
+Coverage quickCoverage(const Document& document, std::span<const Point> points, float radius,
+                       const SampleOptions& options) {
+	Marks marks(document.limits());
+	Sampler sampler(document, sampledImage(document, options.allLayers));
+	const auto tolerance = static_cast<float>(std::clamp(options.tolerance, 0, 255)) + 0.5f;
+	for(const Point& point : points) floodNear(document, sampler, marks, point, std::max(radius, 0.5f), tolerance);
+	return std::move(marks).coverage();
 }
 
 Coverage colorRangeCoverage(const Document& document, const Pixel& colour, int fuzziness, bool allLayers) {

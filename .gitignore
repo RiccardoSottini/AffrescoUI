@@ -16,6 +16,9 @@ compile_commands.json
 # Screenshots produced by AFFRESCOUI_SCREENSHOT
 *.ppm
 
+# The port of a host's editor server (--nrepl), written in the app's folder while it runs
+.nrepl-port
+
 # Personal project notes and screenshots stay local
 docs/
 CLAUDE.local.md
@@ -40,3 +43,6 @@ dist/
 # The VS Code extension's installed devDependencies and its package
 node_modules/
 *.vsix
+
+# Coverage profiles a run of an instrumented build leaves where it ran
+*.profraw

@@ -5,19 +5,23 @@
 /// The input is UTF-8 text (invalid sequences become U+FFFD, as the labels decode them). Its first byte, when there is
 /// one, chooses the width it is wrapped to. The font is Roboto with the rendering check's subsets as fallbacks
 /// (Arabic, Devanagari, Chinese, colour emoji), so every path is taken: words, right-to-left runs, fallbacks, marks,
-/// colour glyphs.
+/// colour glyphs. It is drawn too, below a display scale of 2 (fitted to pixel columns, Font::fitGlyph()) and at it.
 
 #include "Fuzz.hpp"
 
 #include "detail/Utf8.hpp"
+#include "paint/PaintRecorder.hpp"
+#include "paint/RetainedGeometry.hpp"
 
 #include <affresco/render/Font.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -56,6 +60,33 @@ void checkShaped(std::u32string_view text) {
 		if(!glyph.glyph || !std::isfinite(glyph.x) || !std::isfinite(glyph.y)) affresco::fuzz::broken("glyphs placed");
 }
 
+/// @brief Checks what drawing one text promises at some display scales: its glyphs' quads are finite and, below a scale
+/// of 2, start on a pixel column.
+/// @param text The text.
+void checkDrawn(std::u32string_view text) {
+	for(const float scale : {1.0f, 1.25f, 1.5f, 2.0f}) {
+		affresco::detail::PaintRecord record;
+		const affresco::Rect clip{0.0f, 0.0f, 4000.0f, 400.0f};
+		affresco::detail::PaintRecorder recorder(record, clip, clip, scale);
+		recorder.drawText(font(), text, {10.3f, 40.0f}, affresco::colors::black);
+		for(const affresco::detail::PaintOp& op : record.ops) {
+			if(op.step != affresco::detail::PaintStep::glyphs) continue;
+			for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
+				float left = std::numeric_limits<float>::infinity();
+				for(std::size_t index = 0; index < affresco::detail::verticesPerQuad; ++index) {
+					const affresco::detail::Vertex& vertex =
+					    record.vertices[quad * affresco::detail::verticesPerQuad + index];
+					if(!std::isfinite(vertex.x) || !std::isfinite(vertex.y)) affresco::fuzz::broken("glyphs drawn finite");
+					left = std::min(left, vertex.x);
+				}
+				const float pixels = left * scale;
+				if(scale < 2.0f && std::abs(pixels - std::round(pixels)) > 0.01f + 1e-6f * std::abs(pixels))
+					affresco::fuzz::broken("below 2, glyphs start on a pixel column");
+			}
+		}
+	}
+}
+
 } // namespace
 
 extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
@@ -68,6 +99,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	const std::u32string text = affresco::detail::fromUtf8(affresco::fuzz::text(data, size));
 
 	checkShaped(text);
+	checkDrawn(text);
 	if(std::abs(font().measure(text) - font().shape(text).width) > 0.01f * (1.0f + font().shape(text).width))
 		affresco::fuzz::broken("measuring gives the shaped width");
 

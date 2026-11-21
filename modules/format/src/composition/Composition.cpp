@@ -5,11 +5,15 @@
 #include "Composition.hpp"
 #include "AdapterMapping.hpp"
 #include "FeatureManifest.hpp"
+#include "FeaturePrograms.hpp"
 #include "NodeKeys.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
+#include <affresco/lisp/Document.hpp>
+
 #include <algorithm>
+#include <deque>
 #include <array>
 #include <format>
 #include <map>
@@ -174,14 +178,33 @@ std::optional<std::string> keyStartingWith(const json& object, const std::string
 	return std::nullopt;
 }
 
-/// @brief A check's error as a problem: its place and message, without the prefix every load error has.
-/// @param error The error.
-/// @return "place: message", as Composer::problem() makes them.
-std::string problemOf(const DocumentError& error) {
-	constexpr std::string_view prefix = "AffrescoUI screen: ";
-	std::string_view text = error.what();
-	if(text.starts_with(prefix)) text.remove_prefix(prefix.size());
-	return std::string(text);
+/// @brief Tells whether two values are the same, whatever the order of their keys.
+/// @param a One.
+/// @param b The other.
+/// @return true if they are.
+bool sameValue(const json& a, const json& b) {
+	return nlohmann::json::parse(a.dump()) == nlohmann::json::parse(b.dump());
+}
+
+/// @brief What a feature's program built, kept for the next composition: a revision recomposes the screen, and each
+/// feature's program builds once while it doesn't change.
+/// @param feature The feature.
+/// @param provides Its record's `provides`, with a `program`.
+/// @return What its build gave.
+const BuiltFeature& cachedBuild(const std::string& feature, const json& provides) {
+	struct Built {
+		std::string feature; ///< The feature.
+		json program;        ///< Its program.
+		BuiltFeature built;  ///< What it built.
+	};
+	constexpr std::size_t kept = 16;
+	thread_local std::deque<Built> cache;
+	const json& program = provides.at("program");
+	for(const Built& entry : cache)
+		if(entry.feature == feature && entry.program == program) return entry.built;
+	if(cache.size() == kept) cache.pop_front();
+	cache.push_back({feature, program, builtFeature(feature, provides)});
+	return cache.back().built;
 }
 
 /// @brief Merges a document's features into its screen, one at a time, checking each first.
@@ -216,6 +239,10 @@ public:
 		for(const std::string& name : mergeOrder()) {
 			const json& record = *features_.at(name);
 			const std::string place = "features." + name;
+			if(record["provides"].contains("program")) {
+				runProgram(name, record, place);
+				continue;
+			}
 			const std::size_t before = problems_.size();
 			AdaptedFeature adapted = adaptFeature(name, record, exports_); // its needs bound (AdapterMapping.hpp)
 			problems_.insert(problems_.end(), adapted.problems.begin(), adapted.problems.end());
@@ -226,10 +253,106 @@ public:
 		}
 		resolve();
 		for(const auto& [point, pointer] : points_) dropPoints(screen_[json::json_pointer(pointer)]);
-		return {std::move(screen_), std::move(problems_)};
+		std::vector<std::string> merged;
+		merged.reserve(merged_.size());
+		for(const auto& [name, release] : merged_) merged.push_back(name);
+		return {std::move(screen_), std::move(problems_), std::move(extensions_), std::move(merged)};
 	}
 
 private:
+	/// @brief Checks and merges a feature that holds a program: its build joins its JSON parts, then it is checked
+	/// and merged as a JSON feature is, with its built members under their own names.
+	/// @param name The feature.
+	/// @param record Its record.
+	/// @param place Its place.
+	void runProgram(const std::string& name, const json& record, const std::string& place) {
+		if(!lisp::hasProgram(document_)) {
+			problem(place + ".provides.program", "this feature holds code, and this app is static: install its JSON "
+			                                     "version");
+			return;
+		}
+		const std::size_t before = problems_.size();
+		const BuiltFeature& built = cachedBuild(name, record["provides"]);
+		problems_.insert(problems_.end(), built.problems.begin(), built.problems.end());
+		if(problems_.size() != before) return;
+		for(std::string& each : programReachProblems(name, built, record.value("needs", json::object())))
+			problems_.push_back(std::move(each));
+		json joined = record;
+		joined["provides"].erase("program");
+		json full = json::object();
+		joinBuilt(name, built.parts, joined["provides"], full, place + ".provides");
+		AdaptedFeature adapted = adaptFeature(name, joined, exports_);
+		problems_.insert(problems_.end(), adapted.problems.begin(), adapted.problems.end());
+		checkRequirements(name, joined, place);
+		checkNamespace(name, adapted.provides, place + ".provides");
+		checkFullNames(full, place + ".provides.program");
+		checkConflicts(name, adapted.provides, place + ".provides");
+		std::vector<std::string> placed;
+		const auto required = joined.find("requires"); // a record may have none
+		if(required != joined.end() && required->is_object())
+			for(const json& point : required->value("points", json::array())) placed.push_back(point.get<std::string>());
+		// Named, not iterated as a temporary: items() keeps a reference to it, which a range-for doesn't extend
+		const json views = adapted.provides.value("views", json::object());
+		for(const auto& [point, nodes] : views.items()) placed.push_back(point);
+		std::vector<FeatureExtension> accepted;
+		for(std::string& each : programExtensionProblems(name, built, document_, placed, accepted))
+			problems_.push_back(std::move(each));
+		if(problems_.size() != before) return;
+		if(merge(name, record, std::move(adapted), std::move(full)))
+			extensions_.insert(extensions_.end(), accepted.begin(), accepted.end());
+	}
+
+	/// @brief Joins a feature's built parts to its JSON parts: a member a JSON feature's merge names the same way joins
+	/// them by its short name (`wordCount.toggle` as the action `toggle`), the others are kept under their full names
+	/// (`state.wordCount`, the style `wordCount-badge`). A member both give must be the same.
+	/// @param name The feature.
+	/// @param parts The built parts.
+	/// @param provides The JSON parts, joined.
+	/// @param full Receives the members kept under their full names, by section.
+	/// @param place The parts' place.
+	void joinBuilt(const std::string& name, const json& parts, json& provides, json& full, const std::string& place) {
+		const std::string dotted = name + ".";
+		for(const auto& [section, members] : parts.items())
+			for(const auto& [key, value] : members.items()) {
+				const std::string at = std::format("{}.{}.{}", place, section, key);
+				if(section == "state") joinMember(provides, "state", value, at);
+				else if(section == "keys") joinMember(provides["keys"], key, value, at);
+				else if(section == "views" || section == "menus")
+					for(const auto& [item, node] : value.items())
+						joinMember(provides[section][key], section == "menus" ? item.substr(dotted.size()) : item, node,
+						           std::format("{}.{}", at, item));
+				else if(section != "computed" && key.starts_with(dotted))
+					joinMember(provides[section], key.substr(dotted.size()), value, at);
+				else if(provides.contains(section) && !provides[section].empty() &&
+				        (section == "computed" || provides[section].contains(key)))
+					problem(at, "both the JSON parts and the program give it, differently");
+				else full[section][key] = value;
+			}
+	}
+
+	/// @brief Joins one built member to the JSON parts: added if they don't have it, else it must be the same.
+	/// @param into The JSON parts' section.
+	/// @param key The member's key there.
+	/// @param value The built member.
+	/// @param at Its place.
+	void joinMember(json& into, const std::string& key, const json& value, const std::string& at) {
+		if(!into.is_object()) into = json::object();
+		if(!into.contains(key)) into[key] = value;
+		else if(!sameValue(into[key], value)) problem(at, "both the JSON parts and the program give it, differently");
+	}
+
+	/// @brief Checks the members a feature's program gives under their full names: the app has none of them.
+	/// @param full The members, by section.
+	/// @param place Their place.
+	void checkFullNames(const json& full, const std::string& place) {
+		for(const auto& [section, members] : full.items())
+			for(const auto& [key, value] : members.items())
+				if((screen_.contains(section) && screen_[section].is_object() && screen_[section].contains(key)) ||
+				   (section == "exports" && exports_.contains(key)))
+					problem(std::format("{}.{}.{}", place, section, key),
+					        std::format("the name is taken: the app's {} has '{}'", section, key));
+	}
+
 	/// @brief Keeps the document's feature records that pass checkFeatureRecord(); each other one is a problem.
 	void keepValidFeatures() {
 		const auto features = document_.find("features");
@@ -242,7 +365,7 @@ private:
 				checkFeatureRecord(name, record, "features." + name);
 				features_.emplace(name, &record);
 			} catch(const DocumentError& error) {
-				problems_.push_back(problemOf(error));
+				problems_.push_back(plainMessage(error));
 			}
 	}
 
@@ -257,7 +380,7 @@ private:
 			check(*found, section);
 			return *found;
 		} catch(const DocumentError& error) {
-			problems_.push_back(problemOf(error));
+			problems_.push_back(plainMessage(error));
 			return json::object();
 		}
 	}
@@ -432,15 +555,20 @@ private:
 	/// @param name The feature.
 	/// @param record Its record.
 	/// @param adapted What it provides with its bindings applied, and what its needs stand for.
-	void merge(const std::string& name, const json& record, AdaptedFeature adapted) {
+	/// @param full What its program gives under full names, by section (joinBuilt()).
+	/// @return false if it grew too much to merge (a problem then).
+	bool merge(const std::string& name, const json& record, AdaptedFeature adapted, json full = json::object()) {
 		json provides = std::move(adapted.provides);
+		provides.erase("program");
 		// A feature's exports join exports_ expanded, so a later feature that uses one many times would multiply its
 		// text, and a chain of them would double it at each step: what the expansions add is bounded per feature.
 		std::size_t room = maxManifestBytes;
-		if(!replaceExports(provides, adapted.replacements, room) || !replaceExports(provides, exportsByLength(), room)) {
+		const auto exports = exportsByLength();
+		if(!replaceExports(provides, adapted.replacements, room) || !replaceExports(provides, exports, room) ||
+		   !replaceExports(full, adapted.replacements, room) || !replaceExports(full, exports, room)) {
 			problem(std::format("features.{}.provides", name),
 			        std::format("its uses of the exports grow it by more than {} bytes", maxManifestBytes));
-			return;
+			return false;
 		}
 		if(provides.contains("state")) screen_["state"][name] = provides["state"];
 		if(provides.contains("computed") && !provides["computed"].empty()) mergeComputed(name, provides["computed"]);
@@ -454,7 +582,10 @@ private:
 			for(const auto& [id, node] : nodes.items()) mergeView(point, id, node);
 		for(const json entries = provides.value("exports", json::object()); const auto& [key, entry] : entries.items())
 			exports_[concatenate(name, ".", key)] = entry;
+		for(const auto& [section, members] : full.items())
+			for(const auto& [key, value] : members.items()) screen_[section][key] = value;
 		merged_.emplace(name, record["release"].get<std::string>());
+		return true;
 	}
 
 	/// @brief Merges a feature's key bindings, and notes it as their owner.
@@ -553,6 +684,7 @@ private:
 	std::map<std::string, std::string, std::less<>> keyOwners_;    ///< Key to who binds it, for messages.
 	std::map<std::string, std::string, std::less<>> merged_;       ///< Merged feature to its release.
 	std::vector<std::string> problems_;                            ///< See Composition::problems.
+	std::vector<FeatureExtension> extensions_;                     ///< See Composition::extensions.
 };
 
 /// @brief Finds a node with an id in a view, depth first.
@@ -612,10 +744,16 @@ json featureStates(const json& document) {
 	json states = json::object();
 	const auto features = document.find("features");
 	if(features == document.end() || !features->is_object()) return states;
-	for(const auto& [name, record] : features->items())
-		if(record.is_object() && record.value("enabled", false) && record.contains("provides") &&
-		   record["provides"].contains("state"))
-			states[name] = record["provides"]["state"];
+	for(const auto& [name, record] : features->items()) {
+		// a record not yet checked may say anything: only `"enabled": true` turns it on
+		if(!record.is_object() || record.value("enabled", json()) != true || !record.contains("provides")) continue;
+		const json& provides = record["provides"];
+		if(provides.contains("state")) states[name] = provides["state"];
+		else if(provides.contains("program")) { // its defstate, when its program builds
+			const json& built = cachedBuild(name, provides).parts;
+			if(built.contains("state") && built["state"].contains(name)) states[name] = built["state"][name];
+		}
+	}
 	return states;
 }
 

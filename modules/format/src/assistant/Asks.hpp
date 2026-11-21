@@ -51,11 +51,13 @@ public:
 	/// @param options What the agents are told with it (`options`: e.g. the model to use), an object or null.
 	/// @param attachments What the person attached for it: the attachments' metadata (VersionControl::attachment()),
 	/// sent as the request's "attachments"; never their bytes.
+	/// @param picks What the person pointed at for it: the engine's pick records (Picks), sent as the request's
+	/// "picks".
 	/// @return The request's id, unique across runs ("ask-<milliseconds>-<n>").
 	/// @throws DocumentError If the text is empty or longer than maxAsk, or the options aren't an object of at most
 	/// maxOptions bytes.
 	std::string send(const std::string& text, const std::string& where, const json& options = json(),
-	                 const json& attachments = json::array());
+	                 const json& attachments = json::array(), const json& picks = json::array());
 
 	/// @brief Cancels a request still in progress ("sent" or "working"): it becomes "cancelled", the peers are told
 	/// after the event (`{"type": "cancel", "request", "from": "user", "source": "screen"}`), and its later replies

@@ -3,13 +3,15 @@
 ;;; Time is in days from day 0 (1 January 2030); eclipses happen where the Moon crosses the Earth's orbit, and
 ;;; conjunctions and oppositions where two planets line up with the Sun.
 
+(ns orrery.time)
+
 ;;; The day and the rate
 
 (defcomputed clock "The day shown, as a date and a time in UTC."
   (t "time.clock"
      {:date (formatDate (+ (dateMs "2030-01-01") (* state.time 86400000)) "yyyy-MM-dd HH:mm:ss" "utc")}))
 
-(defcomputed realTime "Whether time runs at real time." (< (abs (- (* (abs state.speed) 1728000) 1)) 0.01))
+(defcomputed realTime "Whether time runs at real time." (-> state.speed abs (* 1728000) dec abs (< 0.01)))
 
 (defmacro speed-text
   ;; A macro: the text stays an expression, for the rate to say forwards or reversed.
@@ -22,7 +24,8 @@
          :perSecond (if (< (abs state.speed) 0.0005)
                       ""
                       (t "time.perSecond"
-                         {:days (fixed (* (abs state.speed) 20) (if (< (abs state.speed) 0.05) 2 0))}))})))
+                         {:days (fixed (* (abs state.speed) 20)
+                                       (if (< (abs state.speed) 0.05) 2 0))}))})))
 
 (defcomputed rate "How fast time runs, said in words: paused, or the speed, reversed or not."
   (cond (not state.playing) (t "time.paused")
@@ -44,15 +47,15 @@
                                (max (- it.phase it.host.phase)
                                     (+ (- it.phase it.host.phase)
                                        (* (- (/ 1 it.period) (/ 1 it.host.period)) state.duration)))))}))
-       (filter (fn [it] (and (= it.host.parent "sun") (not= it.period it.host.period)))
-               (map (fn [it] (merge it {:host (get state.bodies (indexOf computed.ids it.parent))}))
-                    (filter (fn [it] (and (not= it.parent "") (not= it.parent "sun"))) state.bodies)))))
+       (filter #(and (= (-> % :host :parent) "sun") (not= (:period %) (-> % :host :period)))
+               (map #(merge % {:host (get state.bodies (indexOf computed.ids (:parent %)))})
+                    (filter #(and (not= (:parent %) "") (not= (:parent %) "sun")) state.bodies)))))
 
 (defcomputed eclipseSpan "The longest run of those days."
-  (max (concat [0] (map (fn [it] (+ (- it.to it.from) 1)) computed.eclipseOrbits))))
+  (max (concat [0] (map #(+ (- (:to %) (:from %)) 1) computed.eclipseOrbits))))
 
 (defcomputed eclipses "The eclipses, solar and lunar, in order."
-  (sort-by (fn [it] it.time)
+  (sort-by :time
            (map (fn [it]
                   {:id (str it.m.id "-" it.n)
                    :time (/ (round (* it.time 10)) 10)
@@ -61,20 +64,23 @@
                    :moonName it.m.name
                    :host it.m.host.id
                    :hostName it.m.host.name
-                   :hours (/ (* (if (not= (mod it.n 2) 0) 0.0186 0.0405) 24) (* 2 (pi) (abs it.m.d)))
-                   :label (if (not= (mod it.n 2) 0)
+                   :hours (-> (if (odd? it.n) 0.0186 0.0405)
+                              (* 24)
+                              (/ (* 2 (pi) (abs it.m.d))))
+                   :label (if (odd? it.n)
                             (str it.m.name " eclipses the Sun")
                             (str it.m.name " in the shadow of " it.m.host.name))})
                 (filter (fn [it]
                           (or (nil? it.m.eclipseYear)
                               (< (* (abs (- (- it.time it.m.nodeDay)
+                                            ; style: keep, threading would move the operands: another binding's text
                                             (/ (* (round (/ (* (- it.time it.m.nodeDay) 2) it.m.eclipseYear))
                                                   it.m.eclipseYear)
                                                2)))
                                     2)
                                  it.m.eclipseSeason)))
-                        (map (fn [it] (merge it {:time (/ (- (/ it.n 2) it.m.o) it.m.d)}))
-                             (filter (fn [it] (<= it.n it.m.to))
+                        (map #(merge % {:time (-> % :n (/ 2) (- (-> % :m :o)) (/ (-> % :m :d)))})
+                             (filter #(<= (:n %) (-> % :m :to))
                                      (map (fn [it]
                                             {:m (get computed.eclipseOrbits (floor (/ it computed.eclipseSpan)))
                                              :n (+ (get-in computed.eclipseOrbits
@@ -83,7 +89,7 @@
                                           (range (* (count computed.eclipseOrbits) computed.eclipseSpan)))))))))
 
 (defcomputed events "Every event, eclipses, conjunctions and oppositions, in order."
-  (sort-by (fn [it] it.time)
+  (sort-by :time
            (concat state.events
                    (map (fn [it]
                           {:id it.id
@@ -93,12 +99,12 @@
                         computed.eclipses))))
 
 (defcomputed next "The next event the timeline shows, not muted."
-  (find (fn [it] (and (> it.time (+ state.time 0.5)) (< (indexOf state.muted it.kind) 0))) computed.events))
+  (find #(and (> (:time %) (+ state.time 0.5)) (< (indexOf state.muted (:kind %)) 0)) computed.events))
 
 (defcomputed previous "The event before now, not muted."
-  (get (sort-by (fn [it] it.time)
+  (get (sort-by :time
                 >
-                (filter (fn [it] (and (< it.time (- state.time 0.5)) (< (indexOf state.muted it.kind) 0)))
+                (filter #(and (< (:time %) (- state.time 0.5)) (< (indexOf state.muted (:kind %)) 0))
                         computed.events))
        0))
 
@@ -108,11 +114,12 @@
   (map (fn [it]
          {:id it.id
           :label (t (if it.solar "eclipse.solarRow" "eclipse.lunarRow")
+                    ; style: keep, threading would move the operands: another binding's text
                     {:date (formatDate (+ (dateMs "2030-01-01") (* (- it.time (/ it.hours 48)) 86400000))
                                        "yyyy-MM-dd HH:mm"
                                        "utc")
                      :hours (text (floor it.hours))
-                     :minutes (text (round (* (mod it.hours 1) 60)))
+                     :minutes (-> it.hours (mod 1) (* 60) round text)
                      :host it.hostName
                      :moon it.moonName})
           :icon (if it.solar "sun" "moon")})
@@ -126,7 +133,9 @@
     :label (t ~title)
     :locked (>= (indexOf state.locked ~kind) 0)
     :muted (>= (indexOf state.muted ~kind) 0)
-    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color ~colour})
+    ; style: keep, #(...) can't give a map, and the clip's colour is the macro's
+    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color (if (= state.theme :night) "#8a2418" ~colour)})
+                ; style: keep, in the macro's template, the kind unquoted
                 (filter (fn [it] (= it.kind ~kind)) computed.events))})
 
 (defmacro all-tracks
@@ -153,14 +162,15 @@
      :timeFormat frames
      :pixelsPerSecond 2.6
      :headerWidth 130
+     ; style: keep, #(...) can't give a map
      :markers ~(map (fn [it] {:time it.time :label ""})
-                    (filter (fn [it] (and (= it.kind "eclipse") (< (indexOf state.muted "eclipse") 0)))
+                    (filter #(and (= (:kind %) "eclipse") (< (indexOf state.muted "eclipse") 0))
                             computed.events))
      :headerColor @panel
      :textColor @text
      :accentColor @accent
      :color @background
      :label ~(t "events.label")
-     :onChange trackChanged
-     :onScrub ~(handler scrubTo event.time)
-     :onSelect ~(handler goToEvent event.ids.0)))
+     :onChange track-changed
+     :onScrub ~(handler scrub-to event.time)
+     :onSelect ~(handler go-to-event event.ids.0)))

@@ -4,6 +4,8 @@
 ;;; do) beside the trace of its last run. The flow tab shows the rules as a node graph, and the schedules of the day
 ;;; on a timeline whose clips move and stretch by the hour.
 
+(ns haven.automations)
+
 ;;; What the page keeps
 
 (defstate autoTab list "The tab shown: the list, or the flow.")
@@ -99,22 +101,23 @@
   `(t (str "rule." (or-else (:title ~rule) (:id ~rule)))))
 
 (defmacro matches-search "Whether an automation's name holds the list's search, or there is none." [rule]
-  `(or (= state.autoQuery "") (contains (lower-case (rule-name ~rule)) (lower-case (trim state.autoQuery)))))
+  `(or (= state.autoQuery "")
+       (str/includes? (str/lower-case (rule-name ~rule)) (str/lower-case (str/trim state.autoQuery)))))
 
 (defcomputed openAuto "The automation open in the editor." (get state.automations (max state.autoOpen 0)))
 
-(defcomputed autoOnCount "How many automations are on." (count (filter (fn [it] it.on) state.automations)))
+(defcomputed autoOnCount "How many automations are on." (count (filter :on state.automations)))
 
 (defcomputed autoShown "How many automations the list shows."
-  (count (filter (fn [it] (matches-search it)) state.automations)))
+  (count (filter #(matches-search %) state.automations)))
 
 (defcomputed autoGraph "The flow's nodes, named in the language shown, as the graph draws them."
   (map (fn [it]
          (merge it
                 {:title (t (str "auto." it.kind))
                  :width 170
-                 :inputs (map (fn [it] (merge it {:label (t (str "port." it.id))})) (or-else it.inputs []))
-                 :outputs (map (fn [it] (merge it {:label (t (str "port." it.id))})) (or-else it.outputs []))}))
+                 :inputs (map #(merge % {:label (t (str "port." (:id %)))}) (or-else it.inputs []))
+                 :outputs (map #(merge % {:label (t (str "port." (:id %)))}) (or-else it.outputs []))}))
        state.autoNodes))
 
 (defcomputed scheduleTracks "The schedules, named in the language shown, as the timeline draws them."
@@ -133,7 +136,7 @@
   {}
   `(node :color transparent
      (node#automationsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @header :role banner)
-     (label#automationsTitle :when ~(or (< state.autoOpen 0) (= state.autoTab "flow"))
+     (label#automationsTitle :when ~(or (< state.autoOpen 0) (= state.autoTab :flow))
        :font heading
        :text ~(t "page.automations")
        :textColor @onHeader
@@ -147,17 +150,17 @@
      ~(delete-question)
      ~(rule-list)
      ~(rule-editor)
-     (node#automationsSummary :when ~(= state.autoTab "flow") :style caption :text ~(t "auto.summary")
+     (node#automationsSummary :when ~(= state.autoTab :flow) :style caption :text ~(t "auto.summary")
        :anchors {:left 308 :top 73})
      ~(add-node-buttons)
-     (node#autoCard :when ~(= state.autoTab "flow")
+     (node#autoCard :when ~(= state.autoTab :flow)
        :style card
        :anchors {:left 32 :right 32 :top 104 :bottom "#scheduleCard.top - 16"}
        ~(rule-graph))
      ~(schedule-card)))
 
 (defview page-tabs "The two tabs: the list and the flow." []
-  `(row#autoTabs :when ~(or (< state.autoOpen 0) (= state.autoTab "flow"))
+  `(row#autoTabs :when ~(or (< state.autoOpen 0) (= state.autoTab :flow))
      :anchors {:left 32 :top 68}
      :width 260
      :height 28
@@ -177,10 +180,10 @@
      :basis 0
      :anchors {:top 0 :bottom 0}
      :selected ~(= state.autoTab tab)
-     :onClick ~(handler showAutomationTab tab)))
+     :onClick ~(handler show-automation-tab tab)))
 
 (defview list-search "The search over the list's names." []
-  `(node#autoSearchBox :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoSearchBox :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :anchors {:left 308 :top 64}
      :width 300
      :height 36
@@ -196,14 +199,14 @@
        :label ~(t "auto.search"))))
 
 (defview new-button "The floating button that makes a new automation." []
-  `(node#autoNew :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoNew :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :style button
      :icon plus
      :text ~(t "auto.new")
      :color @accent
      :hover {:color @accent}
      :textColor @onAccent
-     :anchors {:right 32 :bottom 32}
+     :anchors {:right 72 :bottom 32}
      :width 208
      :height 52
      :radius 16
@@ -245,15 +248,15 @@
       :width 88
       :height 36
       :radius 18
-      :onClick deleteAutomation}))
+      :onClick delete-automation}))
 
 ;;; The list
 
 (defview rule-list "The automations, a row each, under the columns' names." []
-  `(node#autoList :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+  `(node#autoList :when ~(and (= state.autoTab :list) (< state.autoOpen 0))
      :style card
      :anchors {:left 32 :right 32 :top 112}
-     :height ~(min (+ (* (max 1 computed.autoShown) 64) 56) (if computed.compact 420 520))
+     :height ~(-> computed.autoShown (max 1) (* 64) (+ 56) (min (if computed.compact 420 520)))
      {:style caption :text ~(t "auto.colName") :anchors {:left 88 :top 14}}
      {:style caption
       :text ~(t "auto.colRan")
@@ -273,7 +276,7 @@
             :role listitem
             ~(rule-row auto i)
             ~(rule-menu auto i)
-            {:when ~(< i (- (count state.automations) 1)) :anchors {:left 24 :right 24 :bottom 0} :height 1
+            {:when ~(< i (dec (count state.automations))) :anchors {:left 24 :right 24 :bottom 0} :height 1
              :color @border})))))
 
 (defview rule-row "A row of the list: the automation's icon, name and last run; it opens the editor." [auto i]
@@ -285,7 +288,7 @@
      :focusable true
      :role button
      :label ~(rule-name auto)
-     :onClick ~(handler openAutomation i)
+     :onClick ~(handler open-automation i)
      (label :icon ~auto.icon
        :text ""
        :anchors {:left 12 :top 8}
@@ -320,23 +323,23 @@
      :label ~(str (t "auto.more") ": " (rule-name auto))
      :tooltip ~(t "auto.more")
      :isOpen ~(= (get state.autoRowMenu auto.id) true)
-     :onClick ~(handler toggleRowMenu auto.id)
+     :onClick ~(handler toggle-row-menu auto.id)
      (node :use popMenu
        :with {:open ~(str "state.autoRowMenu." auto.id)
               :width 200
-              :items [{:title ~(t "auto.run") :icon play :run rowAction :with {:i ~i :what run}}
-                      {:title ~(t "auto.duplicate") :icon copy :run rowAction :with {:i ~i :what duplicate}}
+              :items [{:title ~(t "auto.run") :icon play :run row-action :with {:i ~i :what run}}
+                      {:title ~(t "auto.duplicate") :icon copy :run row-action :with {:i ~i :what duplicate}}
                       {:title ~(t (if auto.on "auto.disable" "auto.enable"))
                        :icon ~(if auto.on "circle-off" "check-circle")
-                       :run rowAction
+                       :run row-action
                        :with {:i ~i :what enable}}
                       {:separator true}
-                      {:title ~(t "auto.delete") :icon trash-2 :run rowAction :with {:i ~i :what delete}}]})))
+                      {:title ~(t "auto.delete") :icon trash-2 :run row-action :with {:i ~i :what delete}}]})))
 
 ;;; The editor
 
 (defview rule-editor "The automation open: its bar and menu, a banner while it is off, its parts, and its last run." []
-  `(node#autoEditor :when ~(and (= state.autoTab "list") (>= state.autoOpen 0))
+  `(node#autoEditor :when ~(and (= state.autoTab :list) (>= state.autoOpen 0))
      :anchors {:left 0 :right 0 :top 0 :bottom 0}
      :color transparent
      (node#autoBack :style button
@@ -352,7 +355,7 @@
        :radius 20
        :label ~(t "auto.back")
        :tooltip ~(t "auto.back")
-       :onClick ~(handler openAutomation -1))
+       :onClick ~(handler open-automation -1))
      (label#autoName :font heading
        :icon ~computed.openAuto.icon
        :text ~(rule-name computed.openAuto)
@@ -387,14 +390,14 @@
      (node#autoMenu :use popMenu
        :with {:open state.autoMenu
               :width 200
-              :items [{:title ~(t "auto.run") :icon play :run runAutomation :with nil}
+              :items [{:title ~(t "auto.run") :icon play :run run-automation :with nil}
                       {:title ~(t (if computed.openAuto.on "auto.disable" "auto.enable"))
                        :icon ~(if computed.openAuto.on "circle-off" "check-circle")
-                       :run rowAction
+                       :run row-action
                        :with {:i ~state.autoOpen :what enable}}
-                      {:title ~(t "auto.duplicate") :icon copy :run duplicateAutomation}
+                      {:title ~(t "auto.duplicate") :icon copy :run duplicate-automation}
                       {:separator true}
-                      {:title ~(t "auto.delete") :icon trash-2 :run confirmDelete}]})))
+                      {:title ~(t "auto.delete") :icon trash-2 :run confirm-delete}]})))
 
 (defview off-banner "While the automation is off, a banner that says so and turns it on." []
   `(node#autoOffBanner :when ~(not computed.openAuto.on)
@@ -418,7 +421,7 @@
        :fitText true
        :height 36
        :radius 18
-       :onClick ~(handler rowAction state.autoOpen "enable"))))
+       :onClick ~(handler row-action state.autoOpen "enable"))))
 
 (defview rule-parts "The automation's three parts, a card each: when, and if, then do." []
   `(column#autoParts :anchors {:left 32 :right ~(if computed.compact 32 364) :top ~(if computed.openAuto.on 88 144)
@@ -433,18 +436,18 @@
      {:anchors {:left 0 :right 0} :height 12 :color transparent}))
 
 (defmacro part-steps "The open automation's steps of a part." [part]
-  `(filter (fn [it] (= it.part ~part)) computed.openAuto.steps))
+  `(filter #(= (:part %) ~part) computed.openAuto.steps))
 
 (defcomponent autoSection "A part of the automation editor as a card: its steps, each with its menu, and an add button."
   {:part when :title "" :hint "" :addLabel ""}
   `(node :style card
      :anchors {:left 0 :right 12}
-     :height ~(+ (* (max 1 (count (part-steps part))) 54) 116)
+     :height ~(-> (part-steps part) count (max 1) (* 54) (+ 116))
      :role group
      :label ~title
      {:style cardTitle :text ~title :anchors {:left 20 :top 16}}
      {:style caption :text ~hint :anchors {:left 20 :top 42}}
-     {:style caption :when ~(= (count (part-steps part)) 0) :text ~(t "auto.empty") :anchors {:left 24 :top 80}}
+     {:style caption :when ~(empty? (part-steps part)) :text ~(t "auto.empty") :anchors {:left 24 :top 80}}
      (column :anchors {:left 12 :right 12 :top 68} :height ~(* (count (part-steps part)) 54) :gap 6 :role list
        :label ~title
        ~(repeat [step computed.openAuto.steps :index s]
@@ -462,7 +465,7 @@
        :width 196
        :height 36
        :radius 18
-       :onClick ~(handler addStep part))))
+       :onClick ~(handler add-step part))))
 
 (defview part-step "A step of a part: its icon and words, and its menu." [part step s]
   `(node#autoStep :when ~(= step.part part)
@@ -476,10 +479,8 @@
      (label :icon ~step.icon :text "" :textColor @accent :anchors {:left 16 :top 0 :bottom 0} :width 24 :align center)
      (label :text ~(t (str "rule." step.key))
        :textColor @text
-       :anchors {:left 48 :right 96 :top 0 :bottom 0}
+       :anchors {:left 48 :right 56 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
-     (label :icon chevron-down :text "" :textColor @muted :anchors {:right 56 :top 12} :width 24 :height 24
-       :align center)
      ~(step-menu step s)))
 
 (defview step-menu "A step's menu: duplicate, delete." [step s]
@@ -496,13 +497,13 @@
      :label ~(str (t "auto.more") ": " (t (str "rule." step.key)))
      :tooltip ~(t "auto.more")
      :isOpen ~(= (get state.stepMenu (str "s" s)) true)
-     :onClick ~(handler toggleStepMenu s)
+     :onClick ~(handler toggle-step-menu s)
      (node :use popMenu
        :with {:open ~(str "state.stepMenu.s" s)
               :width 200
-              :items [{:title ~(t "auto.duplicate") :icon copy :run stepAction :with {:s ~s :what duplicate}}
+              :items [{:title ~(t "auto.duplicate") :icon copy :run step-action :with {:s ~s :what duplicate}}
                       {:separator true}
-                      {:title ~(t "auto.delete") :icon trash-2 :run stepAction :with {:s ~s :what delete}}]})))
+                      {:title ~(t "auto.delete") :icon trash-2 :run step-action :with {:s ~s :what delete}}]})))
 
 (defview rule-trace "The automation's last run, step by step." []
   `(node#autoTrace :when ~(not computed.compact)
@@ -525,7 +526,7 @@
 
 (defview trace-step "A step of the last run: a tick, its words, its part and when it ran." [step s]
   `(node :anchors {:left 0 :right 0} :height 52 :color transparent :role listitem
-     {:when ~(< s (- (count computed.openAuto.steps) 1)) :anchors {:left 11 :top 26 :bottom 0} :width 2 :color @border}
+     {:when ~(< s (dec (count computed.openAuto.steps))) :anchors {:left 11 :top 26 :bottom 0} :width 2 :color @border}
      (label :icon check
        :text ""
        :font small
@@ -549,7 +550,7 @@
 ;;; The flow and the schedules
 
 (defview add-node-buttons "The buttons that add a node to the flow: a time, a check of the dark, a scene." []
-  `(row#autoAdd :when ~(= state.autoTab "flow")
+  `(row#autoAdd :when ~(= state.autoTab :flow)
      :anchors {:right 32 :top 28}
      :width 330
      :height 30
@@ -570,7 +571,7 @@
      :text ~(t key)
      :grow 1
      :anchors {:top 0 :bottom 0}
-     :onClick ~(handler addAutoNode node)))
+     :onClick ~(handler add-auto-node node)))
 
 (defview rule-graph "The rules as a node graph: links drawn between ports, nodes moved and deleted." []
   `(graph#autoGraph :fill 8
@@ -585,14 +586,14 @@
      :textColor @text
      :accentColor @accent
      :kindColors {:event @warm}
-     :onConnect linkNodes
-     :onDisconnect unlinkNodes
-     :onMove moveNodes
-     :onSelect selectNodes
-     :onDelete deleteNodes))
+     :onConnect link-nodes
+     :onDisconnect unlink-nodes
+     :onMove move-nodes
+     :onSelect select-nodes
+     :onDelete delete-nodes))
 
 (defview schedule-card "The day's schedules on a timeline: a track each, the hours across." []
-  `(node#scheduleCard :when ~(= state.autoTab "flow")
+  `(node#scheduleCard :when ~(= state.autoTab :flow)
      :style card
      :anchors {:left 32 :right 32 :bottom 24}
      :height ~(if computed.compact 156 196)
@@ -604,7 +605,8 @@
        :tracks ~computed.scheduleTracks
        :duration 24
        :fps 1
-       :pixelsPerSecond ~(max 16 (/ (- (- (- (- window.width computed.sideWidth) 64) 16) 140) 24))
+       :pixelsPerSecond ~(max 16 (/ (- window.width computed.sideWidth 64 16 140) 24))
+
        :offset 0
        :time 14
        :headerWidth 140
@@ -615,7 +617,7 @@
        :headerColor @field
        :textColor @text
        :accentColor @accent
-       :onClipChange changeSchedule
+       :onClipChange change-schedule
        ~(repeat [track computed.scheduleTracks]
          `(label#scheduleHeader :font small
             :text ~track.label

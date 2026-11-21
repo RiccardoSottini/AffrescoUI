@@ -32,7 +32,8 @@ inline constexpr std::array<std::string_view, 9> needKinds = {"value",   "state"
 /// Most needs one feature may declare.
 inline constexpr std::size_t maxNeeds = 64;
 
-/// @brief Checks the "points" section: `"<point>": { "slot", "receives": [<export>], "description", "note" }`.
+/// @brief Checks the "points" section: `"<point>": { "slot", "receives": [<export>], "hooks": [<hook point>],
+/// "description", "note" }`; a feature placed in the point may add to the hook points it lists.
 /// @param section The section.
 /// @param name "points".
 /// @throws DocumentError If a point is malformed.

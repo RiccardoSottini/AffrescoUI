@@ -128,6 +128,17 @@ TEST_CASE("app manifest: every bad part is refused, with its place") {
 	CHECK(with("/data/runs", "x").contains("data"));
 }
 
+TEST_CASE("app manifest: a release is optional, three numbers when it is there") {
+	CHECK(affresco::format::parseApp(fullManifest()).release.empty());
+	json manifest = fullManifest();
+	manifest["release"] = "1.2.0";
+	CHECK(affresco::format::parseApp(manifest).release == "1.2.0");
+	for(const json& malformed : {json("1.2"), json("1.2.0-beta"), json("v1.2.0"), json(""), json(1), json("1..0")}) {
+		manifest["release"] = malformed;
+		CHECK(errorOf(manifest) == "AffrescoUI app: release: expected three numbers such as 1.0.0");
+	}
+}
+
 TEST_CASE("app manifest: ids and paths") {
 	CHECK(affresco::format::appId("Flow") == "flow");
 	CHECK(affresco::format::appId("habit tracker!") == "habit-tracker");

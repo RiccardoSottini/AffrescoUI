@@ -1,0 +1,28 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "One text screen at the display scales people use (100%, 125%, 150%, 175%, 200%): the before and after of any change to how text is drawn below a scale of 2. Measure them with tools/media/sharpness.py.",
+	"screens": "../screens",
+	"scenarios": [
+		{ "name": "text-scale-100", "screen": "text-scales.screen.json", "scale": 1, "steps": [{ "expect": { "image": "first-frame" } }] },
+		{ "name": "text-scale-125", "screen": "text-scales.screen.json", "scale": 1.25, "steps": [{ "expect": { "image": "first-frame" } }] },
+		{ "name": "text-scale-150", "screen": "text-scales.screen.json", "scale": 1.5, "steps": [{ "expect": { "image": "first-frame" } }] },
+		{ "name": "text-scale-175", "screen": "text-scales.screen.json", "scale": 1.75, "steps": [{ "expect": { "image": "first-frame" } }] },
+		{ "name": "text-scale-200", "screen": "text-scales.screen.json", "scale": 2, "steps": [{ "expect": { "image": "first-frame" } }] },
+		{
+			"name": "text-scale-125-selected",
+			"screen": "text-scales.screen.json",
+			"scale": 1.25,
+			"note": "A caret and a selection at 125%: the word typed, its last four letters selected.",
+			"steps": [
+				{ "click": "#input" },
+				{ "type": "Pinned waffle" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "expect": { "image": "selected" } }
+			]
+		}
+	]
+}

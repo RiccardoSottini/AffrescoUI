@@ -5,11 +5,15 @@
 #include "NodeKeys.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace affresco::format {
 
 namespace {
+
+constexpr std::size_t maxMarks = 64;              ///< An item's marked parts, at most.
+constexpr std::uint64_t maxMarkedText = 1u << 20; ///< A part's first character and length, at most.
 
 /// @brief A list of children being read.
 struct Level {
@@ -57,8 +61,31 @@ void readIcon(const json& value, const auto& place, ListItem& item) {
 	if(!item.iconColor) fail(place() + ".iconColor", "expected a hex colour: #rgb, #rrggbb or #rrggbbaa");
 }
 
+/// @brief Reads an item's "marks": [[first, count], ...], the parts of its label drawn highlighted.
+/// @param value The item, an object.
+/// @param place Its place, for errors.
+/// @param item Gets them.
+void readMarks(const json& value, const auto& place, ListItem& item) {
+	const auto marks = value.find("marks");
+	if(marks == value.end() || marks->is_null()) return;
+	if(!marks->is_array() || marks->size() > maxMarks) fail(place() + ".marks", "expected a list of at most 64 parts");
+	// An expression's numbers are doubles: a whole one from 0 counts as well
+	const auto whole = [](const json& number) {
+		return number.is_number_unsigned() || (number.is_number() && number.get<double>() >= 0.0 &&
+		                                       std::floor(number.get<double>()) == number.get<double>());
+	};
+	const auto bounded = [](const json& number) {
+		return static_cast<std::uint32_t>(std::min(number.get<double>(), static_cast<double>(maxMarkedText)));
+	};
+	for(const json& mark : *marks) {
+		if(!mark.is_array() || mark.size() != 2 || !whole(mark[0]) || !whole(mark[1]))
+			fail(place() + ".marks", "expected parts as [first, count], each a whole number from 0");
+		item.marks.emplace_back(bounded(mark[0]), bounded(mark[1]));
+	}
+}
+
 /// @brief Reads one item, without its children.
-/// @param value A string, or {id, label, cells, expandable, icon, iconColor}.
+/// @param value A string, or {id, label, cells, expandable, icon, iconColor, marks}.
 /// @param level The list it is in.
 /// @param index Its place there.
 /// @return The item, its depth and end not set.
@@ -81,6 +108,7 @@ ListItem readItem(const json& value, const Level& level, std::size_t index) {
 	if(const auto expandable = value.find("expandable"); expandable != value.end())
 		item.expandable = boolean(*expandable, place() + ".expandable");
 	readIcon(value, place, item);
+	readMarks(value, place, item);
 	return item;
 }
 

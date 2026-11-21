@@ -1,0 +1,11 @@
+{
+	"folders": [
+		"sign-in/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 16
+	},
+	"kept": {
+		"camel-case-name": 38
+	}
+}

@@ -4,6 +4,8 @@
 ;;; The sections (profile, emails, security, devices, connected accounts, activity, data) are tabs down the side on a
 ;;; wide window, and chips across the top on a narrow one. What the buttons run is in profile.lisp.
 
+(ns sign-in.account)
+
 ;;; The screen
 
 (defview account-screen "The account page: its card, the session ticking each second, and the photo's colours." []
@@ -71,7 +73,7 @@
        :style smallLink
        :height 20
        :text ~(t "stay")
-       :onClick staySignedIn)))
+       :onClick stay-signed-in)))
 
 ;;; The sections' tabs
 
@@ -121,14 +123,14 @@
     (photo-row)
     `(node#label-account-name :style fieldLabel :text ~(t "name"))
     `(node#account-name :use checkedField
-       :with {:submit saveProfile
+       :with {:submit save-profile
               :bind state.profile.name
               :content ~state.profile.name
               :key accountName
               :icon user
               :fieldName ~(t "name")
               :placeholder ~(t "namePlaceholder")
-              :valid ~(> (count (trim state.profile.name)) 0)
+              :valid ~(> (count (str/trim state.profile.name)) 0)
               :message ~(t "enterName")
               :submitted ~state.profile.submitted
               :maxLength 60})
@@ -142,7 +144,7 @@
          :icon ~(if (= state.busy "save") "loader" "save")
          :text ~(if (= state.busy "save") computed.busyText (t "saveChanges"))
          :disabled ~(not= state.busy "")
-         :onClick saveProfile
+         :onClick save-profile
          :width 200
          :height 42))))
 
@@ -197,11 +199,11 @@
      :font iconsSmall
      :align center
      :icon ~(if (= (or-else state.user.avatar 0) colour) "check" "")
-     :label ~(if (= colour 0) (t "photoColor" {:n 1}) (t "photoColor" {:n (+ colour 1)}))
+     :label ~(if (= colour 0) (t "photoColor" {:n 1}) (t "photoColor" {:n (inc colour)}))
      :selected ~(= (or-else state.user.avatar 0) colour)
      :color ~(if (= colour 0) "@color.accentSoft" (str "@color.avatar" colour))
      :textColor ~(if (= colour 0) "@color.accent" "@color.avatarText")
      :borderWidth ~(if (= (or-else state.user.avatar 0) colour) 2 0)
      :borderColor @color.text
-     :onClick ~(handler setAvatar colour)
-     :keys {:enter ~(handler setAvatar colour) :space ~(handler setAvatar colour)}))
+     :onClick ~(handler set-avatar colour)
+     :keys {:enter ~(handler set-avatar colour) :space ~(handler set-avatar colour)}))

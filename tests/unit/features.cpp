@@ -142,6 +142,14 @@ TEST_CASE("features: a manifest can never widen a capability") {
 		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signOut": "api"}])");
 		CHECK(refused(manifest, "'signOut'"));
 	}
+	SUBCASE("a pick step, though an action may be named pick") { // pointing is the person's, never a feature's
+		manifest["provides"]["actions"]["pick"] = manifest["provides"]["actions"]["toggle"];
+		CHECK_NOTHROW(affresco::format::checkManifest(manifest, "wordCount"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"pick": "node"}])");
+		CHECK(refused(manifest, "'pick'"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"unpick": "pick-1"}])");
+		CHECK(refused(manifest, "'unpick'"));
+	}
 	SUBCASE("a node id outside the namespace") {
 		manifest["provides"]["views"]["statusBar.right"]["label"] = manifest["provides"]["views"]["statusBar.right"]
 		                                                                    ["wordCount-label"];
@@ -174,6 +182,9 @@ TEST_CASE("features: composing merges a feature into its namespace and its point
 	CHECK_FALSE(screen.contains("features"));
 	CHECK_FALSE(screen.contains("exports"));
 	CHECK(affresco::format::featureStates(document) == json::parse(R"({"wordCount": {"characters": false}})"));
+	json unchecked = document; // not yet checked: an "enabled" that isn't true or false is off, never an error
+	unchecked["features"]["wordCount"]["enabled"] = "yes";
+	CHECK(affresco::format::featureStates(unchecked) == json::object());
 	CHECK(affresco::format::findFeatureNode(document, "wordCount-label") ==
 	      "/features/wordCount/provides/views/statusBar.right/wordCount-label");
 }

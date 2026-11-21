@@ -16,14 +16,14 @@ namespace affresco::imaging {
 
 namespace {
 
-constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "unsharp-mask", "add-noise",
-                                                "motion-blur"}; ///< By FilterKind.
+constexpr std::array<std::string_view, 6> names{"gaussian-blur", "sharpen",     "unsharp-mask",
+                                                "add-noise",     "motion-blur", "high-pass"}; ///< By FilterKind.
 
 /// @brief The step's name of a filter.
 /// @param kind The filter.
 [[nodiscard]] std::string stepName(FilterKind kind) {
-	constexpr std::array<std::string_view, 5> titles{"Gaussian Blur", "Sharpen", "Unsharp Mask", "Add Noise",
-	                                                 "Motion Blur"};
+	constexpr std::array<std::string_view, 6> titles{"Gaussian Blur", "Sharpen",     "Unsharp Mask",
+	                                                 "Add Noise",     "Motion Blur", "High Pass"};
 	return std::string(titles[static_cast<std::size_t>(kind)]);
 }
 
@@ -185,6 +185,13 @@ void FilterRun::filterTile(int column, int row) {
 	}
 	kernels::gaussianBlur(region_, side, filter_.radius, scratch_);
 	copyCentre(after_);
+	if(filter_.kind == FilterKind::highPass) { // the detail the blur took, over a grey of half the pixel's alpha
+		for(std::size_t at = 0; at < after_.size(); at += 4)
+			for(std::size_t channel = 0; channel < 3; ++channel)
+				after_[at + channel] = before_[at + channel] - after_[at + channel] + 0.5f * before_[at + 3];
+		for(std::size_t at = 3; at < after_.size(); at += 4) after_[at] = before_[at];
+		return;
+	}
 	if(filter_.kind != FilterKind::unsharpMask) return;
 	for(std::size_t at = 0; at < after_.size(); ++at) {
 		const float detail = before_[at] - after_[at];

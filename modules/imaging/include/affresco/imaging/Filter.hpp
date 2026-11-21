@@ -1,8 +1,9 @@
 #pragma once
 
 /// @file
-/// @brief Filters: Gaussian blur, sharpen, unsharp mask, add noise and motion blur, tile by tile with a halo, within
-/// the selection; the feather of a selection; and runs a live preview filters tile by tile before committing.
+/// @brief Filters: Gaussian blur, sharpen, unsharp mask, add noise, motion blur and high pass, tile by tile with a
+/// halo, within the selection; the feather of a selection; and runs a live preview filters tile by tile before
+/// committing.
 
 #include "affresco/imaging/Document.hpp"
 
@@ -24,6 +25,7 @@ enum class FilterKind : std::uint8_t {
 	unsharpMask,  ///< Sharpens by an amount, a radius and a threshold.
 	addNoise,     ///< Adds random noise by an amount.
 	motionBlur,   ///< Smears along an angle by a distance.
+	highPass,     ///< Keeps the detail finer than a radius, over a mid grey.
 };
 
 /// @brief A filter's kind's names as stored and named in screens: "gaussian-blur", "sharpen", …
@@ -37,7 +39,7 @@ enum class FilterKind : std::uint8_t {
 /// @brief A filter and its settings.
 struct Filter {
 	FilterKind kind = FilterKind::gaussianBlur; ///< What it does.
-	float radius = 2.0f;                        ///< gaussianBlur, unsharpMask: the blur's standard deviation in pixels.
+	float radius = 2.0f;                        ///< gaussianBlur, unsharpMask, highPass: the blur's sigma in pixels.
 	float amount = 1.0f;                        ///< unsharpMask: 0 to 5 (500 %); addNoise: 0 to 1.
 	int threshold = 0;                          ///< unsharpMask: the smallest difference sharpened, 0 to 255.
 	float angle = 0.0f;                         ///< motionBlur: degrees, anticlockwise from across.

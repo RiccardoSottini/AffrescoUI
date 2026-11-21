@@ -361,6 +361,12 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 		if(!entry["conflicts"].is_array()) expect::fail(where + ".conflicts", "expected a list");
 		proposal.conflicts = entry["conflicts"];
 	}
+	// A merge's parts left out, and who may accept it: optional, so histories written before them still load
+	if(entry.contains("leftOut")) {
+		if(!entry["leftOut"].is_array()) expect::fail(where + ".leftOut", "expected a list");
+		proposal.leftOut = entry["leftOut"];
+	}
+	if(entry.contains("personOnly")) proposal.personOnly = expect::boolean(entry["personOnly"], where + ".personOnly");
 	return proposal;
 }
 
@@ -412,6 +418,10 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 		if(const auto own = object.find("ownInput"); own != object.end()) { // only the person's own commit has it
 			if(!own->is_boolean() || !own->get<bool>()) expect::fail("ownInput", "expected true");
 			commit.ownInput = true;
+		}
+		if(const auto undo = object.find("undo"); undo != object.end()) { // only an undo has it
+			checkUndoMark(*undo, "undo");
+			commit.undo = std::move(*undo);
 		}
 		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
 		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
@@ -495,6 +505,7 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 	for(const Commit* commit : branch | std::views::reverse) {
 		proposal.patch.insert(proposal.patch.end(), commit->patch.begin(), commit->patch.end());
 		if(commit->run.is_array()) proposal.run.insert(proposal.run.end(), commit->run.begin(), commit->run.end());
+		if(!commit->undo.is_null()) proposal.undo = commit->undo;
 	}
 }
 
@@ -512,12 +523,13 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
 		proposal.impact = rules_.impact(next.before, next.after);
 		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
-		proposal.person = personNeeds(next.before, next.after, proposal.run);
+		proposal.person = personNeeds(proposal, next.before, next.after);
 		proposal.assets = assetChanges(next.before, next.after);
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
 		proposal.person = {"can't be checked again (it doesn't apply as it was written)"}; // nobody else accepts it
 	}
+	if(undoNeedsReview(proposal.undo)) proposal.remember.clear(); // what an undo takes out is never remembered
 }
 
 /* Writing */
@@ -528,6 +540,7 @@ json Repository::objectOf(const Commit& commit) {
 	               {"patch", commit.patch},     {"tree", commit.tree}};
 	if(!commit.run.is_null()) object["run"] = commit.run;
 	if(commit.ownInput) object["ownInput"] = true;
+	if(!commit.undo.is_null()) object["undo"] = commit.undo;
 	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
 		object["delta"] = commit.delta;
 		object["snapshot"] = commit.snapshot != nullptr;
@@ -560,7 +573,9 @@ json Repository::refsJson() const {
 		                     {"reason", p.reason},
 		                     {"approvals", p.approvals},
 		                     {"reviewedHeads", p.reviewedHeads},
-		                     {"conflicts", p.conflicts}});
+		                     {"conflicts", p.conflicts},
+		                     {"leftOut", p.leftOut},
+		                     {"personOnly", p.personOnly}});
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {{"format", historyFormat},

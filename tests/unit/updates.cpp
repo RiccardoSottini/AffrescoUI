@@ -153,7 +153,7 @@ TEST_CASE("format: updates of a long list, looked up by item, give the panels a 
 	text.replace(text.find(shared), shared.size(), R"("when": "{{card.done}}", "text": "{{card.id}}")"); // only its item
 	json document = json::parse(text);
 	json& cards = document["state"]["columns"][0]["cards"];
-	for(int id = 10; id < 90; ++id) // more than ItemIndex::minChildren
+	for(int id = 10; id < 90; ++id) // a long list
 		cards.push_back({{"id", id}, {"title", id % 2 ? "a" : "b"}, {"done", id % 3 == 0}});
 	checkUpdates(document.dump(), 5);
 }

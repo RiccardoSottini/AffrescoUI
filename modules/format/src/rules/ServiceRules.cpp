@@ -231,4 +231,15 @@ std::vector<std::string> serviceReviewLines(const json& before, const json& afte
 	return lines;
 }
 
+std::optional<std::string> serviceUseLine(const json& document, const std::string& step, const std::string& name,
+                                          const services::Services* services) {
+	const std::size_t dot = name.find('.');
+	const ConnectionMap connections = connectionsIn(document);
+	const auto connection = dot == std::string::npos ? connections.end() : connections.find(name.substr(0, dot));
+	if(connection != connections.end() && (step == "request" || step == "subscribe") &&
+	   !connection->second.operations.contains(name.substr(dot + 1)))
+		return "uses " + name + " (a method the screen can't describe yet)";
+	return useLine(step, name, connections, services);
+}
+
 } // namespace affresco::format

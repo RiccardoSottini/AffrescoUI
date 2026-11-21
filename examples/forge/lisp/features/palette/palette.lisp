@@ -5,6 +5,8 @@
 ;;; pickers. The settings page lists every setting the features define, searchable, in groups; the keyboard
 ;;; shortcuts page lists every key.
 
+(ns forge.features.palette.palette)
+
 ;;; The quick pick
 
 (defstate quickPick {:open false :query ""})
@@ -13,10 +15,10 @@
 
 (defcomputed commandItems
   (map (fn [it]
-           {:title (+ (if it.category (str it.category ": ") "") it.title)
+           {:title (if (or (empty? it.category) (= it.category it.title)) it.title (str it.category ": " it.title))
             :detail (or-else it.keyLabel "")
             :run it.name})
-         (filter (fn [it] it.enabled) commands)))
+         (filter :enabled commands)))
 
 (defcomputed lineItems
   (if (> (or-else (number (slice (or-else state.quickPick.query "") 1)) 0) 0)
@@ -41,13 +43,13 @@
   (set "state.quickPick.query" ":")
   (set "state.quickPick.open" true))
 
-(defn openPicked "A file picked in the palette opens in a tab." [item]
-  (openPath item.id item.title))
+(defn open-picked "A file picked in the palette opens in a tab." [item]
+  (open-path item.id item.title))
 
-(defn goToPicked "A line picked in the palette: the caret goes there." [item]
-  (goToLine item.line))
+(defn go-to-picked "A line picked in the palette: the caret goes there." [item]
+  (go-to-line item.line))
 
-(defn goToLine "The active editor's caret goes to a line, from 1." [line]
+(defn go-to-line "The active editor's caret goes to a line, from 1." [line]
   (set "state.goTo.line" line)
   (increment "state.goTo.request" :by 1))
 
@@ -86,7 +88,7 @@
 (defcommand changeIndentation "Change Indentation"
   :title ~(t "command.changeIndentation")
   :description ~(t "command.changeIndentation") :category ~(t "category.view") :icon "indent-increase"
-  :enablement ~(= computed.activeDoc.kind "file") []
+  :enablement ~(= computed.activeDoc.kind :file) []
   (set "state.quickPick.query" "indent ")
   (set "state.quickPick.open" true))
 
@@ -104,19 +106,21 @@
   (set "state.quickPick.query" "language ")
   (set "state.quickPick.open" true))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setTabSize "The spaces per indentation level, for every editor (a file's text keeps the spaces it has)."
   [spaces]
   (set "settings.editor.tabSize" spaces))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setEol "The line endings the active file is saved with, LF or CRLF: a change to save, like an edit."
   [eol]
-  (doseq [doc (filter (fn [it] (= it.id computed.activeDoc.id)) state.docs)]
-    (markDirty doc.id (or (not= doc.text doc.saved) (not= eol doc.savedEol)))
-    (set "state.docs" (map (fn [it] (if (= it.id doc.id) (merge it {:eol eol}) it)) state.docs))))
+  (doseq [doc (filter #(= (:id %) computed.activeDoc.id) state.docs)]
+    (mark-dirty doc.id (or (not= doc.text doc.saved) (not= eol doc.savedEol)))
+    (set "state.docs" (map #(if (= (:id %) doc.id) (assoc % :eol eol) %) state.docs))))
 
+; style: keep, a string of the code names it, and a rename never changes a string
 (defn setLanguage "The active file's language, as state.languages names them ('' is plain text)." [language]
-  (set "state.docs"
-       (map (fn [it] (if (= it.id computed.activeDoc.id) (merge it {:language language}) it)) state.docs)))
+  (set "state.docs" (map #(if (= (:id %) computed.activeDoc.id) (assoc % :language language) %) state.docs)))
 
 ;;; The settings and keyboard shortcuts pages
 
@@ -124,16 +128,17 @@
 
 (defstate keysQuery "")
 
-(defcomputed settingsGroups (map (fn [it] (get (split it.key ".") 0)) settingsList))
+(defcomputed settingsGroups (map #(get (split (:key %) ".") 0) settingsList))
 
 (defcomputed settingsToc
   (concat [{:query "" :label (t "settingsToc.all")}]
             (map (fn [it]
                    {:query (str it ".")
-                    :label (cond (= it "editor") (t "settingsToc.editor")
-                                 (= it "diffEditor") (t "settingsToc.diffEditor")
-                                 (= it "accounts") (t "settingsToc.accounts")
-                                 :else (+ (upper-case (slice it 0 1)) (slice it 1)))})
+                    :label (case it
+                             "editor" (t "settingsToc.editor")
+                             "diffEditor" (t "settingsToc.diffEditor")
+                             "accounts" (t "settingsToc.accounts")
+                             (+ (upper-case (slice it 0 1)) (slice it 1)))})
                  (filter (fn [it index] (= (indexOf computed.settingsGroups it) index)) computed.settingsGroups))))
 
 (defcomputed settingsRows
@@ -154,12 +159,12 @@
 (defcommand openSettings "Open Settings"
   :title ~(t "command.openSettings")
   :description ~(t "command.openSettings") :category ~(t "category.preferences") :icon "settings" []
-  (openPage "forge:settings" (t "page.settings") "settings"))
+  (open-page "forge:settings" (t "page.settings") "settings"))
 
 (defcommand openKeybindings "Open Keyboard Shortcuts"
   :title ~(t "command.openKeybindings")
   :description ~(t "command.openKeybindings") :category ~(t "category.preferences") :icon "keyboard" []
-  (openPage "forge:keybindings" (t "page.keybindings") "keybindings"))
+  (open-page "forge:keybindings" (t "page.keybindings") "keybindings"))
 
 (defkey "mod+," openSettings)
 
@@ -167,16 +172,19 @@
 
 ;;; Settings
 
-(defn showSettingsGroup "The settings page shows one group's settings ('' for every one)." [query]
+(defn show-settings-group "The settings page shows one group's settings ('' for every one)." [query]
   (set "state.settingsQuery" query))
 
-(defn setSetting "A setting's new value, by its key." [key value]
+(defn set-setting "A setting's new value, by its key." [key value]
   (set (str "settings." key) value))
 
-(defn setNumberSetting "A number typed for a setting, kept once it reads as one." [key text]
-  (when (some? (number text)) (setSetting key (number text))))
+(defn set-number-setting "A number typed for a setting, kept once it reads as one." [key text]
+  (when-some [n (number text)] (set-setting key n)))
 
-(defn resetSetting "A setting back to its default: the value set is taken away." [key]
+(defn toggle-setting "A boolean setting turned the other way, from its value now." [key value]
+  (set (str "settings." key) (not (true? value))))
+
+(defn reset-setting "A setting back to its default: the value set is taken away." [key]
   (remove-state (str "settings." key)))
 
 (defcustom workbench.statusBar.visible true

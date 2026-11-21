@@ -252,7 +252,7 @@ void warnExtensions(detail::GltfContext& context) {
 	const bool jpeg = bytes.size() > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
 	if(!png && !jpeg) throw GltfError("only PNG and JPEG images are read");
 	const auto bitmap = Bitmap::decode(bytes, Bitmap::Limits{limits.fileBytes, limits.imageSide, limits.imagePixels});
-	TextureData texture{bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, srgb};
+	TextureData texture{bitmap->width(), bitmap->height(), {bitmap->pixels().begin(), bitmap->pixels().end()}, srgb, {}};
 	for(std::size_t i = 0; i + 3 < texture.pixels.size(); i += 4) {
 		const unsigned alpha = texture.pixels[i + 3];
 		if(alpha == 0 || alpha == 255) continue;

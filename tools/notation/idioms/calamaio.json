@@ -1,0 +1,13 @@
+{
+	"folders": [
+		"calamaio/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 43
+	},
+	"kept": {
+		"fn-one-parameter": 1,
+		"four-nested-calls": 1,
+		"string-function": 1
+	}
+}

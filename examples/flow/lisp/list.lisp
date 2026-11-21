@@ -1,6 +1,8 @@
 ;;; list.lisp --- Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row
 ;;; each.
 
+(ns flow.list)
+
 ;;; Components
 
 (defcomponent listView "The cards grouped by column: a header with the column's name and count, then a row a card"
@@ -11,7 +13,7 @@
           :height ~(+ 36
                       (if (contains state.collapsedGroups c)
                           0
-                          (* 36 (count (filter (fn [it] (contains computed.visibleRefs it.ref)) column.cards)))))
+                          (* 36 (count (filter #(contains computed.visibleRefs (:ref %)) column.cards)))))
           :color transparent
           :role group
           :label ~column.name
@@ -42,7 +44,7 @@
      :label ~(t "list.collapse" {:name column.name})
      :onClick {:set state.collapsedGroups
                :to ~(if (contains state.collapsedGroups c)
-                        (filter (fn [it] (not= it c)) state.collapsedGroups)
+                        (filter #(not= % c) state.collapsedGroups)
                         (concat state.collapsedGroups [c]))}))
 
 (defview list-header "A group's header in the list: its column's name and count." [column c]
@@ -81,7 +83,7 @@
        :role button
        :label ~(t "composer.in" {:column column.name})
        :tooltip ~(t "composer.in" {:column column.name})
-       :onClick ~(handler openComposer c))))
+       :onClick ~(handler open-composer c))))
 
 (defview list-row "A card as a row of the list." [column c row]
   `(node#listRow :let {:i ~row.at :card ~(get column.cards row.at)}
@@ -102,14 +104,14 @@
      :label ~(t "card.label"
                 {:title card.title
                  :tag (t (str "tag." card.tag))
-                 :who (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)
+                 :who (or-else (:name (find #(= (:who %) card.who) state.members)) card.who)
                  :column column.name})
-     :onFocus ~(handler selectCard c i)
+     :onFocus ~(handler select-card c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
-     :onClick ~(handler selectCard c i)
-     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
-     :onContextMenu ~(handler openCardMenu c i)
+     :onClick ~(handler select-card c i)
+     :onDoubleClick [~(handler select-card c i) ~(handler openIssue)]
+     :onContextMenu ~(handler open-card-menu c i)
      (node#rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
      ~(row-priority)
      ~(row-ref)
@@ -169,9 +171,9 @@
      :height 22
      :radius 999
      :anchors {:right 20 :top 7}
-     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :color ~(or-else (:color (find #(= (:who %) card.who) state.members)) "@color.muted")
      :textColor "#ffffff"
-     :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
+     :tooltip ~(or-else (:name (find #(= (:who %) card.who) state.members)) card.who)))
 
 (defview row-tag "A list row's label." []
   `(label#rowTag :when ~(not (contains state.hidden "label"))

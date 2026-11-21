@@ -5,9 +5,13 @@
 #include "JsonText.hpp"
 
 #include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
+#ifndef __EMSCRIPTEN__
+#include "EditorPort.hpp" // from apps/shared: the .nrepl-port file, shared with affrescoui_launcher
+#endif
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
+#include <affresco/core/Portable.hpp>        // environmentVariable()
 #include <affresco/notation/Notation.hpp>
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
@@ -15,8 +19,12 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <iostream>
+#include <memory>
 #include <optional>
 
 namespace affresco::cli {
@@ -38,6 +46,26 @@ int wholeNumber(std::string_view text, std::string_view option) {
 	if(error != std::errc() || end != text.data() + text.size() || value < 1 || value > 100000)
 		throw UsageError(std::string(option) + ": expected a whole number, got '" + std::string(text) + "'");
 	return value;
+}
+
+/// @brief Reads a display scale from the command line: a whole number of quarters from 1 to ScreenImages::maxScale
+/// (1, 1.25, 1.5, 1.75, 2), the scales displays are set to; text is rasterised at a quarter, so it matches exactly.
+/// @param text The number, e.g. "1.25".
+/// @return The scale.
+/// @throws UsageError If it isn't one of them; the message lists them.
+float quarterScale(std::string_view text) {
+	constexpr int mostQuarters = ScreenImages::maxScale * 4;
+	std::string accepted = "1";
+	for(int quarters = 5; quarters <= mostQuarters; ++quarters)
+		accepted += std::format("{}{}", quarters == mostQuarters ? " or " : ", ", quarters / 4.0);
+	const std::string digits(text);
+	char* end = nullptr;
+	const double scale = digits.empty() ? 0.0 : std::strtod(digits.c_str(), &end); // the "C" locale: a dot
+	const double quarters = scale * 4.0;
+	if(end != digits.c_str() + digits.size() || !std::isfinite(scale) || scale < 1.0 ||
+	   scale > ScreenImages::maxScale || quarters != std::floor(quarters))
+		throw UsageError("--scale: expected " + accepted + ", got '" + digits + "'");
+	return static_cast<float>(scale);
 }
 
 /// @brief Reads a mode.
@@ -71,8 +99,20 @@ struct RunOptions {
 	std::filesystem::path data = Screen::defaultDataDirectory();              ///< The history and "persist" state.
 	std::optional<Mode> mode;                                                 ///< For this run only, if given.
 	std::vector<std::string> plugins;                                         ///< Change sets to apply once.
-	bool print = false; ///< Print a Lisp file's built tree instead of showing it.
+	bool print = false;           ///< Print a Lisp file's built tree instead of showing it.
+	bool editor = false;          ///< Let nREPL clients connect (--nrepl), each once the person says yes.
+	std::uint16_t editorPort = 0; ///< Their port on 127.0.0.1 (--nrepl PORT); 0 for any free one.
 };
+
+/// @brief Reads the port that may follow --nrepl.
+/// @param text The argument after it.
+/// @return The port, or nothing if the argument isn't one (then it is read as itself).
+std::optional<std::uint16_t> portOf(std::string_view text) {
+	unsigned port = 0;
+	const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), port);
+	if(text.empty() || error != std::errc() || end != text.data() + text.size() || port > 65535U) return std::nullopt;
+	return static_cast<std::uint16_t>(port);
+}
 
 /// @brief Reads `run`'s command line. Options repeat (--plugin), so Arguments doesn't read it.
 /// @param args The arguments.
@@ -89,6 +129,14 @@ RunOptions runOptions(std::span<const std::string_view> args) {
 		}
 		if(arg == "--print") {
 			options.print = true;
+			continue;
+		}
+		if(arg == "--nrepl") {
+			options.editor = true;
+			if(const std::optional<std::uint16_t> port = i + 1 < args.size() ? portOf(args[i + 1]) : std::nullopt) {
+				options.editorPort = *port;
+				++i;
+			}
 			continue;
 		}
 		if(i + 1 >= args.size()) throw UsageError(std::string(arg) + " needs a value, or isn't an option of run");
@@ -116,6 +164,27 @@ std::optional<std::filesystem::path> appLocation(const std::filesystem::path& fi
 	return std::nullopt;
 }
 
+#ifndef __EMSCRIPTEN__
+/// @brief With --nrepl, lets nREPL clients connect to the app's program (Screen::listenEditor()), and keeps the port
+/// in .nrepl-port in the app's folder while it runs; a plain screenshot (AFFRESCOUI_SCREENSHOT alone) takes none.
+/// @param screen The screen, with its window.
+/// @param app The application, which delivers the server's messages.
+/// @param options The command line.
+/// @param folder The app's folder, or the screen file's.
+/// @return The port file, or nullptr when there is no server.
+/// @throws std::runtime_error If the screen isn't a program, or the port is taken.
+std::unique_ptr<EditorPort> listenForEditors(Screen& screen, Application& app, const RunOptions& options,
+                                             const std::filesystem::path& folder) {
+	if(!options.editor ||
+	   (environmentVariable("AFFRESCOUI_SCREENSHOT") && !environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER")))
+		return nullptr;
+	net::EditorServerOptions server;
+	server.port = options.editorPort;
+	const std::uint16_t port = screen.listenEditor(app, std::move(server));
+	return std::make_unique<EditorPort>(std::filesystem::absolute(folder), port);
+}
+#endif
+
 } // namespace
 
 Exit runScreen(std::span<const std::string_view> args) {
@@ -141,6 +210,11 @@ Exit runScreen(std::span<const std::string_view> args) {
 	screen.listen(app, options.socketDirectory / "agent.sock", "agent");
 	std::cerr << "affrescoui run: listening in " << options.socketDirectory.string()
 	          << " (studio.sock, agent.sock), mode " << toString(screen.versions().mode()) << '\n';
+#ifndef __EMSCRIPTEN__
+	// Goes before the screen: the file first, then the server with it
+	const std::unique_ptr<EditorPort> editorPort =
+	    listenForEditors(screen, app, options, location ? *location : options.file.parent_path());
+#endif
 	return app.run() == 0 ? Exit::Success : Exit::Failure;
 }
 
@@ -152,8 +226,7 @@ Exit renderScreen(std::span<const std::string_view> args) {
 	const std::filesystem::path file = arguments.file();
 	const std::optional<std::string> out = arguments.value("-o");
 	if(!out) throw UsageError("expected -o out.png");
-	const int scale = wholeNumber(arguments.value("--scale").value_or("1"), "--scale");
-	if(scale > ScreenImages::maxScale) throw UsageError("--scale: at most " + std::to_string(ScreenImages::maxScale));
+	const float scale = quarterScale(arguments.value("--scale").value_or("1"));
 
 	Application app(ApplicationOptions{nullptr, true}); // never on screen
 	const std::filesystem::path frame = std::filesystem::path(*out).concat(".ppm");
@@ -167,8 +240,9 @@ Exit renderScreen(std::span<const std::string_view> args) {
 		window.setSize(wholeNumber(std::string_view(*size).substr(0, x), "--size"),
 		               wholeNumber(std::string_view(*size).substr(x + 1), "--size"));
 	}
-	// The window's size comes from --size or the file. Divided, not multiplied, so a huge one can't overflow
-	if(std::max(window.width(), window.height()) > maxFrameSide / scale)
+	// The window's size comes from --size or the file. In double, so a huge one can't overflow, rounded as the
+	// picture's sides are
+	if(std::round(std::max(window.width(), window.height()) * static_cast<double>(scale)) > maxFrameSide)
 		throw std::runtime_error(std::format("a frame of {}x{} at scale {} is larger than {} pixels a side",
 		                                     window.width(), window.height(), scale, maxFrameSide));
 

@@ -47,11 +47,15 @@ void runCounted(Engine& engine, const Record& record, Panel& panel, std::string_
 /* Connections */
 
 void Events::connect(Window& window) {
-	// Bindings can use the window size
-	windowHooks_.resized =
-	    window.onResize.connect([this](const ResizeEvent&) { engine_.reconciler.requestReconcile(); });
+	// What reads `window` is evaluated again: its size, scale, colour scheme or caps lock changed
+	const auto windowChanged = [this] {
+		engine_.document.markGlobalChanged("window");
+		engine_.reconciler.requestStateUpdate();
+	};
+	windowHooks_.resized = window.onResize.connect([windowChanged](const ResizeEvent&) { windowChanged(); });
 	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
-	windowHooks_.key = window.onKey.connect([this](const KeyEvent& event) {
+	windowHooks_.key = window.onKey.connect([this, windowChanged](const KeyEvent& event) {
+		keepModifiers(event);
 		if(!keyResolved_ && engine_.window) {
 			Panel* focused = engine_.window->focusedPanel();
 			if(!resolve(focused, event)) navigate(focused, event);
@@ -60,12 +64,11 @@ void Events::connect(Window& window) {
 		// Bindings can use window.capsLock
 		if(event.mods.capsLock() != capsLock_) {
 			capsLock_ = event.mods.capsLock();
-			engine_.reconciler.requestReconcile();
+			windowChanged();
 		}
 	});
 	// The display's scale or the system's colour scheme changed: bindings can use them
-	windowHooks_.display =
-	    window.onDisplay.connect([this](const DisplayEvent&) { engine_.reconciler.requestReconcile(); });
+	windowHooks_.display = window.onDisplay.connect([windowChanged](const DisplayEvent&) { windowChanged(); });
 	// Files dropped from the OS: the node under the pointer with "onDrop" (or an ancestor) gets their paths
 	windowHooks_.drop = window.onDrop.connect([this](const DropEvent& event) {
 		if(!engine_.window) return;
@@ -75,6 +78,8 @@ void Events::connect(Window& window) {
 	});
 	// A press outside an open overlay that closes on it
 	windowHooks_.button = window.onMouseButton.connect([this](const MouseButtonEvent& event) {
+		altAlone_ = false; // Alt held for a click isn't Alt pressed alone
+		modifiers_ = event.mods;
 		if(event.action == affresco::Action::Press) dismissOverlays(&event.position);
 	});
 }
@@ -169,8 +174,11 @@ Connection Events::hookView(Panel& panel) {
 			const std::string where = record->path + ".viewport";
 			const json::json_pointer pointer =
 			    format::statePointer(*record->view, engine_.document.context(*record->locals, json::object()), where);
-			statePlace(engine_.versions.state(), pointer, where) =
-			    json{{"first", view.first}, {"last", view.last}, {"rows", view.rows}, {"lines", view.lines}};
+			statePlace(engine_.versions.state(), pointer, where) = json{{"first", view.first},
+			                                                            {"last", view.last},
+			                                                            {"rows", view.rows},
+			                                                            {"lines", view.lines},
+			                                                            {"rowHeight", view.rowHeight}};
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {
@@ -293,6 +301,29 @@ json Events::pointerEvent(std::string_view type, const Panel& panel, Vec2 positi
 	        {"top", position.y - f.top}, {"width", f.width()}, {"height", f.height()}};
 }
 
+void Events::addModifiers(json& event) const {
+	event["shift"] = modifiers_.shift();
+	event["ctrl"] = modifiers_.control();
+	event["alt"] = modifiers_.alt();
+	event["cmd"] = modifiers_.super();
+#ifdef __APPLE__
+	event["mod"] = modifiers_.super();
+#else
+	event["mod"] = modifiers_.control();
+#endif
+}
+
+void Events::keepModifiers(const KeyEvent& event) noexcept {
+	int bit = 0;
+	if(event.key == Key::LeftShift || event.key == Key::RightShift) bit = 0x1;
+	else if(event.key == Key::LeftControl || event.key == Key::RightControl) bit = 0x2;
+	else if(event.key == Key::LeftAlt || event.key == Key::RightAlt) bit = 0x4;
+	else if(event.key == Key::LeftSuper || event.key == Key::RightSuper) bit = 0x8;
+	modifiers_ = event.mods;
+	if(event.action == affresco::Action::Release) modifiers_.bits &= ~bit;
+	else modifiers_.bits |= bit;
+}
+
 bool Events::bubble(Panel& from, std::string_view handler, json event, const Vec2* position) {
 	Panel* target = handlerOwner(&from, handler);
 	if(!target) return false;
@@ -301,6 +332,7 @@ bool Events::bubble(Panel& from, std::string_view handler, json event, const Vec
 		fields.update(event);
 		event = std::move(fields);
 	}
+	if(position || event.value("type", "") == "scroll") addModifiers(event);
 	fire(*target, handler, event);
 	return true;
 }

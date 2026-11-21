@@ -1,0 +1,12 @@
+{
+	"folders": [
+		"arcadia/lisp"
+	],
+	"allowed": {
+		"four-nested-calls": 40
+	},
+	"kept": {
+		"fn-one-parameter": 9,
+		"four-nested-calls": 3
+	}
+}

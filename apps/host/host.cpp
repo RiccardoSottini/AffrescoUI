@@ -4,7 +4,7 @@
 //
 //   affrescoui_launcher [APP] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
 //               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...] [--ask TEXT]
-//               [--apps DIR] [--grant KEY ...]
+//               [--apps DIR] [--grant KEY ...] [--nrepl [PORT]]
 //   affrescoui_launcher --permissions APP
 //
 // APP is an app's folder, its app.json, or a screen file (SCREEN_FORMAT.md, "Apps: app.json"): a screen that is the
@@ -39,13 +39,22 @@
 // what it needs (grantLauncher()): the examples folder to read, the person's apps folder ("apps": --apps DIR, else
 // AffrescoUI in the home folder) and the sibling programs, each app opened with --data DIR and a socket folder of its
 // own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
+// --nrepl [PORT] lets an nREPL client (CIDER, Calva, Conjure) evaluate Lisp into an app written as a program
+// (Screen::listenEditor(), SECURITY.md, "Editors (nREPL)"): it listens on 127.0.0.1 only, on PORT or any free port,
+// writes the port into .nrepl-port in the app's folder while it runs, and the person says yes in the app to each
+// connection before it reaches anything. Only this switch turns it on; it needs an app (the Launcher takes no
+// editor), and does nothing in a screenshot or in the browser.
 
 #include "Assets.hpp"
 #include "ChangesWindow.hpp"
 #include "HostScreens.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
+#ifndef __EMSCRIPTEN__
+#include "EditorPort.hpp"
+#endif
 
+#include <affresco/PackagesProvider.hpp>
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/App.hpp>
@@ -56,6 +65,8 @@
 #include <affresco/services/Grants.hpp>
 
 #include <algorithm>
+#include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <format>
 #include <fstream>
@@ -268,6 +279,10 @@ struct Options {
 	std::filesystem::path apps;       ///< The Launcher's apps folder; empty for AffrescoUI in the home folder.
 	std::vector<std::string> grants;  ///< Capabilities allowed for this run, by key (--grant).
 	std::string forget;               ///< The app whose decisions to forget (--permissions), or "".
+	bool editor = false;              ///< Let nREPL clients connect (--nrepl), each once the person says yes.
+	std::uint16_t editorPort = 0;     ///< Their port on 127.0.0.1 (--nrepl PORT); 0 for any free one.
+	std::filesystem::path catalogue;  ///< The Launcher's catalogue (--catalogue DIR); empty for the one shipped.
+	bool trustUnsignedCatalogue = false; ///< Read --catalogue DIR's index unsigned: development only, with a warning.
 };
 
 /// @brief Reads one option of the command line that takes a value.
@@ -285,6 +300,7 @@ bool readOption(Options& options, std::string_view arg, const char* value) {
 	else if(arg == "--apps") options.apps = value;
 	else if(arg == "--grant") options.grants.emplace_back(value);
 	else if(arg == "--permissions") options.forget = value;
+	else if(arg == "--catalogue") options.catalogue = value;
 	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
 	else return false;
 	return true;
@@ -304,6 +320,19 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 		options.usage = true;
 		return 1;
 	}
+	if(arg == "--trust-unsigned-catalogue") {
+		options.trustUnsignedCatalogue = true;
+		return 1;
+	}
+	if(arg == "--nrepl") {
+		options.editor = true;
+		const std::string_view digits = value ? std::string_view(value) : std::string_view();
+		unsigned port = 0;
+		const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), port);
+		if(digits.empty() || error != std::errc() || end != digits.data() + digits.size() || port > 65535U) return 1;
+		options.editorPort = static_cast<std::uint16_t>(port);
+		return 2;
+	}
 	if(!arg.starts_with("--")) {
 		options.file = arg;
 		return 1;
@@ -322,7 +351,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_launcher [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
-			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT] [--apps DIR] [--grant KEY]\n"
+			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT] [--apps DIR] [--grant KEY] "
+			             "[--nrepl [PORT]] [--catalogue DIR [--trust-unsigned-catalogue]]\n"
 			             "       affrescoui_launcher --permissions APP\n";
 			return std::nullopt;
 		}
@@ -394,9 +424,45 @@ std::filesystem::path appsFolder(const Options& options) {
 #endif
 }
 
+/// @brief The catalogue the Launcher lists (catalogue/README.md): the one shipped beside the examples (or --catalogue
+/// DIR), its index signed by the release key built into this program (AFFRESCOUI_CATALOGUE_KEY, empty in a
+/// development build, which so trusts no catalogue). --trust-unsigned-catalogue reads DIR's index unsigned, saying so.
+/// @param options The command line.
+/// @param examples The examples' folder: the shipped catalogue is beside it.
+/// @return The catalogue, its folder empty for none.
+/// @throws std::runtime_error If --trust-unsigned-catalogue comes without --catalogue DIR.
+affresco::PackagesCatalogue launcherCatalogue(const Options& options, const std::filesystem::path& examples) {
+	affresco::PackagesCatalogue catalogue;
+	if(options.trustUnsignedCatalogue) {
+		if(options.catalogue.empty())
+			throw std::runtime_error("--trust-unsigned-catalogue reads the folder --catalogue DIR names: pass it too");
+		std::cerr << "warning: the catalogue in " << options.catalogue.string()
+		          << " is read without a signature (--trust-unsigned-catalogue): what it lists is unchecked\n";
+		catalogue.folder = std::filesystem::absolute(options.catalogue);
+		catalogue.trustUnsigned = true;
+		return catalogue;
+	}
+	const std::string_view key = AFFRESCOUI_CATALOGUE_KEY;
+	if(key.empty()) {
+		if(!options.catalogue.empty())
+			std::cerr << "warning: this build trusts no catalogue's key, so --catalogue is ignored: a development "
+			             "build reads one with --trust-unsigned-catalogue\n";
+		return catalogue;
+	}
+	const std::filesystem::path folder =
+	    options.catalogue.empty() ? examples.parent_path() / "catalogue" : std::filesystem::absolute(options.catalogue);
+	std::error_code error;
+	if(!std::filesystem::is_regular_file(folder / "index.json", error)) return catalogue;
+	catalogue.folder = folder;
+	catalogue.trusted = {std::string(key)};
+	return catalogue;
+}
+
 /// @brief Grants the Launcher (the screen the host opens without a file) what it uses: the examples folder to read
 /// ("examples"), the person's apps folder ("apps", made if missing), and the sibling programs that open the apps
-/// ("affresco", detached: each with --data DIR and a socket folder of its own in DIR; Grants.hpp, grantAppPrograms).
+/// ("affresco", detached: each with --data DIR and a socket folder of its own in DIR; Grants.hpp, grantAppPrograms),
+/// the packages service on both folders, installing into the apps folder (PackagesProvider.hpp) and listing the
+/// catalogue (launcherCatalogue()), and the file dialogs that save and open a package.
 /// @param screen The Launcher's screen.
 /// @param options The command line.
 /// @throws std::runtime_error If the apps folder can't be made.
@@ -420,6 +486,13 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	programs.reveal = true;
 	if(const auto refused = services::grantAppPrograms(screen.services(), "affresco", std::move(programs)))
 		throw std::runtime_error("the Launcher's programs: " + *refused);
+	affresco::PackagesGrant packages;
+	packages.roots = {{"examples", examples}, {"apps", apps}};
+	packages.writable = "apps";
+	packages.dataDirectory = std::filesystem::absolute(options.dataDir);
+	packages.catalogue = launcherCatalogue(options, examples);
+	screen.services().add(affresco::makePackagesProvider(std::move(packages)));
+	screen.allowFileDialogs(true);
 }
 
 /// @brief Decides what the app may use: what the person decided before, and, when @p ask, what the person answers
@@ -485,6 +558,25 @@ affresco::Screen openScreen(const Opened& opened, const Options& options, affres
 	return screen;
 }
 
+#ifndef __EMSCRIPTEN__
+/// @brief With --nrepl, lets nREPL clients connect to the app's program (Screen::listenEditor()), and keeps the port
+/// in .nrepl-port in the app's folder while it runs.
+/// @param screen The app's screen, with its window.
+/// @param app The application, which delivers the server's messages.
+/// @param options The command line.
+/// @param opened The app.
+/// @return The port file, or nullptr without --nrepl.
+/// @throws std::runtime_error If the app isn't a program, or the port is taken.
+std::unique_ptr<EditorPort> listenForEditors(affresco::Screen& screen, affresco::Application& app,
+                                             const Options& options, const Opened& opened) {
+	if(!options.editor) return nullptr;
+	affresco::net::EditorServerOptions server;
+	server.port = options.editorPort;
+	const std::uint16_t port = screen.listenEditor(app, std::move(server));
+	return std::make_unique<EditorPort>(std::filesystem::absolute(opened.entry).parent_path(), port);
+}
+#endif
+
 /// @brief Shows the screen and lets peers change it, until the window closes.
 /// @param options The command line.
 /// @return The exit status.
@@ -535,6 +627,9 @@ int run(const Options& options) {
 		std::cerr << "affrescoui_launcher: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
 		          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
 	}
+	// Goes before the screen: the file first, then the server with it
+	const std::unique_ptr<EditorPort> editorPort =
+	    screenshotOnly ? nullptr : listenForEditors(screen, app, options, opened);
 #endif
 	return app.run();
 }
@@ -545,6 +640,10 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);
 		if(!options) return 2;
+		if(options->editor && options->file.empty() && options->forget.empty()) {
+			std::cerr << "affrescoui_launcher: --nrepl needs an app: the Launcher itself takes no editor\n";
+			return 2;
+		}
 		return options->forget.empty() ? run(*options) : forgetPermissions(*options);
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_launcher: " << error.what() << '\n';

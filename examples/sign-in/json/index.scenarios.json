@@ -435,6 +435,30 @@
 				},
 				{
 					"expect": {
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "Your Example ID jon@example.com is ready, and you're signed in on this device."
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": false
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
 						"state": "name",
 						"is": "Jon Doe"
 					}
@@ -1031,14 +1055,20 @@
 				},
 				{
 					"expect": {
-						"node": "#avatar",
-						"text": "J"
+						"node": "#label-done-title",
+						"text": "Welcome, jon snow"
 					}
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, jon snow"
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]
@@ -1702,7 +1732,10 @@
 			"note": "Bug: at the smallest window the create card with its errors ran past the window and over the footer; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"wait": 50
@@ -1732,14 +1765,20 @@
 					"expect": {
 						"node": "#panel-card",
 						"property": "width",
-						"is": 420
+						"is": 480
 					}
 				},
 				{
 					"expect": {
 						"node": "#panel-card",
 						"property": "x",
-						"is": 30
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#glow",
+						"exists": false
 					}
 				},
 				{
@@ -1776,14 +1815,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 71
+						"is": 68
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 510
+						"is": 516
 					}
 				},
 				{
@@ -1806,7 +1845,10 @@
 			"note": "Bug: sizes worked out in computed values kept the old window size until the next click, so the first click after a resize hit the wrong field; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"expect": {
@@ -1818,14 +1860,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 71
+						"is": 68
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 510
+						"is": 516
 					}
 				},
 				{
@@ -1847,7 +1889,10 @@
 					}
 				},
 				{
-					"resize": [960, 720]
+					"resize": [
+						960,
+						720
+					]
 				},
 				{
 					"expect": {
@@ -1859,7 +1904,7 @@
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 578
+						"is": 584
 					}
 				}
 			]
@@ -1869,7 +1914,10 @@
 			"note": "At 1920 by 1080 the card stays 420 wide in the middle, with the logo and the footer",
 			"steps": [
 				{
-					"resize": [1920, 1080]
+					"resize": [
+						1920,
+						1080
+					]
 				},
 				{
 					"expect": {
@@ -2788,14 +2836,48 @@
 				},
 				{
 					"expect": {
+						"node": "#label-done-title",
+						"text": "Password updated"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "The new password for ada@example.com is set. Use it to sign in from now on."
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": false
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#doneButton",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
 						"node": "#label-welcome-back",
 						"exists": true
 					}
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Your password was changed. Sign in with the new one."
+						"state": "step",
+						"is": "password"
 					}
 				},
 				{
@@ -4655,8 +4737,26 @@
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, Jon Doe. You joined Example Team."
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-done-text",
+						"text": "You joined Example Team. Your Example ID jon@example.com is ready, and you're signed in on this device."
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]
@@ -4775,14 +4875,20 @@
 				},
 				{
 					"expect": {
-						"node": "#avatar",
-						"text": "J"
+						"node": "#label-done-title",
+						"text": "Welcome, Jon Doe"
 					}
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Welcome, Jon Doe"
+						"node": "#avatar",
+						"text": "J"
 					}
 				}
 			]
@@ -5632,6 +5738,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
 						"state": "formError",
 						"is": ""
@@ -5818,6 +5930,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -5933,6 +6051,12 @@
 				},
 				{
 					"wait": 800
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -6133,6 +6257,12 @@
 					"wait": 800
 				},
 				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"click": "#password"
 				},
 				{
@@ -6302,7 +6432,10 @@
 					}
 				},
 				{
-					"resize": [600, 720]
+					"resize": [
+						600,
+						720
+					]
 				},
 				{
 					"wait": 50
@@ -7041,9 +7174,27 @@
 				},
 				{
 					"expect": {
-						"state": "toast.message",
-						"is": "Your account was deleted"
+						"node": "#label-done-title",
+						"text": "Account deleted"
 					}
+				},
+				{
+					"expect": {
+						"state": "done.email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneOther",
+						"exists": true
+					}
+				},
+				{
+					"click": "#doneButton"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {

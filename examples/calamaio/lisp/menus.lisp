@@ -3,6 +3,8 @@
 ;;; An item runs a command, and shows the command's title unless it has its own. A major mode's menu is shown after
 ;;; Tools while a buffer in that mode is selected; Buffers is made from the buffer list (bars.lisp).
 
+(ns calamaio.menus)
+
 ;;; The menu bar
 
 (defmenu file "The File menu: visiting, saving and closing, then the windows."
@@ -38,12 +40,19 @@
    :downcase {:run downcase-region :group "5_region" :order 2}
    :capitalize {:run capitalize-region :group "5_region" :order 3}
    :sort {:run sort-lines :group "5_region" :order 4}
-   :comment {:run comment-line :group "5_region" :order 5}})
+   :comment {:run comment-line :group "5_region" :order 5}
+   :killRect {:run kill-rectangle :group "6_rect" :order 1}
+   :yankRect {:run yank-rectangle :group "6_rect" :order 2}
+   :stringRect {:run string-rectangle :group "6_rect" :order 3}})
 
 (defmenu options "The Options menu: the minor modes, the frame's bars, the theme and what happens at start."
   {:lines {:run display-line-numbers-mode :group "1_modes" :order 1}
    :wrap {:run visual-line-mode :group "1_modes" :order 2}
    :paren {:run show-paren-mode :group "1_modes" :order 3}
+   :pair {:run electric-pair-mode :group "1_modes" :order 4}
+   :fill {:run auto-fill-mode :group "1_modes" :order 5}
+   :blanks {:run whitespace-mode :group "1_modes" :order 6}
+   :indicator {:run display-fill-column-indicator-mode :group "1_modes" :order 7}
    :toolbar {:run tool-bar-mode :group "4_frame" :order 1}
    :theme {:run load-theme :title ~(t "menu.options.theme") :group "5_look"}
    :splash {:run toggle-splash :title ~(t "menu.options.splash") :group "6_start" :order 1}
@@ -52,7 +61,9 @@
 
 (defmenu tools "The Tools menu."
   {:command {:run execute-extended-command :group "1_run"}
-   :buffers {:run list-buffers :group "1_run" :order 2}})
+   :buffers {:run list-buffers :group "1_run" :order 2}
+   :macroStart {:run kmacro-start-macro :group "2_macro" :order 1}
+   :macroEnd {:run kmacro-end-or-call-macro :group "2_macro" :order 2}})
 
 (defmenu help "The Help menu: the guides, the describe commands and the messages."
   {:tutorial {:run help-with-tutorial :group "1_start" :order 1}

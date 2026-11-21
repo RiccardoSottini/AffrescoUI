@@ -3,6 +3,8 @@
 ;;; A letter chooses a tool, as in other image editors; the rest run a command of commands.lisp by name. The
 ;;; clipboard's keys leave a text field's own copy and paste alone.
 
+(ns tempera.keys)
+
 ;;; Tools
 
 (defkey "v" {:do setTool :with {:args {:tool move}}})
@@ -16,6 +18,11 @@
 (defkey "shift+l" {:do setTool :with {:args {:tool polygon}}})
 
 (defkey "w" {:do setTool :with {:args {:tool wand}}})
+(defkey "shift+w" {:do setTool :with {:args {:tool quick-select}}})
+(defkey "r" {:do setTool :with {:args {:tool blur}}})
+(defkey "j" {:do setTool :with {:args {:tool healing}}})
+(defkey "o" {:do setTool :with {:args {:tool dodge}}})
+(defkey "shift+o" {:do setTool :with {:args {:tool burn}}})
 
 (defkey "c" {:do setTool :with {:args {:tool crop}}})
 
@@ -32,6 +39,16 @@
 (defkey "shift+g" {:do setTool :with {:args {:tool fill}}})
 
 (defkey "i" {:do setTool :with {:args {:tool eyedropper}}})
+
+(defkey "p" {:do setTool :with {:args {:tool pen}}})
+
+(defkey "t" {:do setTool :with {:args {:tool type}}})
+
+(defkey "a" {:do setTool :with {:args {:tool path-select}}})
+
+(defkey "u" {:do setTool :with {:args {:tool rectangle-shape}}})
+
+(defkey "shift+u" {:do setTool :with {:args {:tool ellipse-shape}}})
 
 (defkey "h" {:do setTool :with {:args {:tool hand}}})
 
@@ -73,7 +90,19 @@
 
 (defkey "mod+alt+shift+w" exportPng)
 
+(defkey "mod+alt+shift+s" exportJpeg)
+
 (defkey "f12" revert)
+
+;;; Panels and filters
+
+(defkey "f5" {:do show-panel :with {:args {:slot properties :id brushes}}})
+
+(defkey "f6" {:do show-panel :with {:args {:slot colour :id colour}}})
+
+(defkey "f7" {:do show-panel :with {:args {:slot layers :id layers}}})
+
+(defkey "mod+alt+f" lastFilter)
 
 ;;; Edit
 
@@ -93,7 +122,7 @@
 
 (defkey "delete" clearPixels)
 
-(defkey "mod+t" showTransform)
+(defkey "mod+t" freeTransformHandles)
 
 ;;; Image
 
@@ -149,6 +178,8 @@
 
 (defkey "mod+d" deselect)
 
+(defkey "mod+shift+d" reselect)
+
 (defkey "mod+shift+i" invertSelection)
 
 (defkey "shift+f6" featherSelection)
@@ -165,6 +196,10 @@
 
 (defkey "mod+r" toggleRulers)
 
+(defkey "mod+semicolon" toggleGuides)
+
 (defkey "f" cycleScreenMode)
 
 (defkey "mod+f" showSearch)
+
+(defkey "f1" showAbout)

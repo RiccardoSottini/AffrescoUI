@@ -1,5 +1,7 @@
 ;;; keys.lisp --- Tempo's keyboard shortcuts, each running a command of tempo.lisp, and its settings
 
+(ns tempo.keys)
+
 ;;; Keys
 
 (defkey "space" playPause)
@@ -53,6 +55,10 @@
 (defcustom playback.crossfade
   0 "How many seconds the end of a song overlaps the start of the next; 0 for none."
   :type integer :minimum 0 :maximum 12 :title ~(t "settings.crossfade") :description ~(t "settings.crossfade.about"))
+
+(defcustom window.statusBar
+  false "Show the revision on screen and the window's size in a bar at the bottom of the window: for developers."
+  :type boolean :title ~(t "settings.developerStatusBar") :description ~(t "settings.developerStatusBar.about"))
 
 (defcustom ui.language "en" "English, Spanish or French."
   :type string :enum [en es fr] :title ~(t "settings.language") :description ~(t "settings.language.about"))

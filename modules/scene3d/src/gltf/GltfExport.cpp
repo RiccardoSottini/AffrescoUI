@@ -108,10 +108,25 @@ std::size_t writeMesh(Writer& writer, const MeshData& mesh, int material) {
 	return writer.root["meshes"].size() - 1;
 }
 
-/// @brief A material's JSON, naming its textures in the warnings (they aren't written).
-/// @param material It. @param warnings Receives them.
+/// @brief A texture's index in the file: the picture it was decoded from embedded once, as its `data:` URI.
+/// @param writer The file. @param id The texture's id. @param source Its URI. @return The index.
+[[nodiscard]] std::size_t textureIndex(Writer& writer, const std::string& id, const std::string& source) {
+	json& textures = writer.root["textures"];
+	if(!textures.is_array()) textures = json::array();
+	for(std::size_t i = 0; i < textures.size(); ++i)
+		if(textures[i].value("name", "") == id) return i;
+	if(!writer.root["images"].is_array()) writer.root["images"] = json::array();
+	writer.root["images"].push_back({{"uri", source}});
+	writer.root["textures"].push_back({{"name", id}, {"source", writer.root["images"].size() - 1}});
+	return writer.root["textures"].size() - 1;
+}
+
+/// @brief A material's JSON: a base colour texture whose picture was kept is embedded, the others are named in the
+/// warnings (they aren't written).
+/// @param writer The file. @param material It. @param assets Its textures. @param warnings Receives them.
 /// @return The object.
-[[nodiscard]] json materialJson(const Material& material, std::vector<std::string>& warnings) {
+[[nodiscard]] json materialJson(Writer& writer, const Material& material, const Assets& assets,
+                                std::vector<std::string>& warnings) {
 	const auto& c = material.baseColor;
 	json out{{"name", material.name},
 	         {"pbrMetallicRoughness",
@@ -124,8 +139,13 @@ std::size_t writeMesh(Writer& writer, const MeshData& mesh, int material) {
 	                                                               : "OPAQUE"},
 	         {"doubleSided", material.doubleSided}};
 	if(material.alphaMode == AlphaMode::Mask) out["alphaCutoff"] = material.alphaCutoff;
-	for(const auto* texture : {&material.baseColorTexture, &material.metallicRoughnessTexture, &material.normalTexture,
-	                           &material.emissiveTexture})
+	if(const auto base = material.baseColorTexture.empty() ? nullptr : assets.texture(material.baseColorTexture);
+	   base && !base->source.empty())
+		out["pbrMetallicRoughness"]["baseColorTexture"] = {
+		    {"index", textureIndex(writer, material.baseColorTexture, base->source)}};
+	else if(!material.baseColorTexture.empty())
+		warnings.push_back("the texture " + material.baseColorTexture + " of " + material.id + " is not exported");
+	for(const auto* texture : {&material.metallicRoughnessTexture, &material.normalTexture, &material.emissiveTexture})
 		if(!texture->empty()) warnings.push_back("the texture " + *texture + " of " + material.id + " is not exported");
 	return out;
 }
@@ -205,14 +225,16 @@ void writeAnimations(Writer& writer, const std::vector<AnimationClip>& animation
 	}
 }
 
-/// @brief Writes the materials. @param writer The file. @param scene Its materials.
+/// @brief Writes the materials. @param writer The file. @param scene Its materials. @param assets Their textures.
 /// @param skipped Receives what couldn't be written. @return Material indices by id.
 [[nodiscard]] std::map<std::string, std::size_t, std::less<>> writeMaterials(Writer& writer, const Scene& scene,
+                                                                             const Assets& assets,
                                                                              std::vector<std::string>& skipped) {
 	std::map<std::string, std::size_t, std::less<>> materials;
 	for(const auto& material : scene.materials) {
 		materials.emplace(material.id, materials.size());
-		writer.root["materials"].push_back(materialJson(material, skipped));
+		json written = materialJson(writer, material, assets, skipped); // first: it may add images and textures
+		writer.root["materials"].push_back(std::move(written));
 	}
 	return materials;
 }
@@ -236,7 +258,7 @@ std::string exportGltf(const Scene& scene, const Assets& assets, const std::vect
                        std::vector<std::string>* warnings) {
 	std::vector<std::string> skipped;
 	Writer writer;
-	const auto materials = writeMaterials(writer, scene, skipped);
+	const auto materials = writeMaterials(writer, scene, assets, skipped);
 	std::map<std::string, std::size_t, std::less<>> nodes;
 	for(const auto& node : scene.nodes) nodes.emplace(node.id, nodes.size());
 	std::map<std::pair<std::string, int>, std::size_t> meshes;

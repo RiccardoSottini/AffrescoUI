@@ -382,6 +382,16 @@ void Machine::defineLazyNatives(std::span<const LazyNative> natives) {
 	throw std::logic_error("Machine::lazyNatives_ has room for no more tables");
 }
 
+std::vector<std::string> Machine::globalNames() const {
+	std::vector<std::string> names;
+	names.reserve(globals_.size());
+	for(const auto& [name, cell] : globals_) // a cell is made for a name only used, too: those name nothing yet
+		if(cell->state != Global::State::Undefined) names.emplace_back(name);
+	for(const std::span<const LazyNative> natives : lazyNatives_)
+		for(const LazyNative& native : natives) names.emplace_back(native.name);
+	return names;
+}
+
 bool Machine::makeLazyNative(std::string_view name) {
 	if(!started_) return false; // the language's own definitions, many: none looks for a lazy native
 	for(const std::span<const LazyNative> natives : lazyNatives_) {
@@ -473,6 +483,40 @@ Definition& Machine::addDefinition(const Value& form, const std::string& kind, c
 		definitions_.push_back(std::move(definition));
 	}
 	return made;
+}
+
+void Machine::forgetDefinition(std::string_view name) {
+	const auto found = definitionNames_.find(name);
+	if(found == definitionNames_.end()) return;
+	const std::size_t at = found->second;
+	if(Global* cell = definitions_[at]->global; cell && !cell->library && !cell->host) {
+		cell->state = Global::State::Undefined;
+		cell->value = Value();
+		cell->thunk = nullptr;
+		cell->macro = false;
+		cell->view = false;
+		cell->pending = nullptr;
+	}
+	definitions_.erase(definitions_.begin() + static_cast<std::ptrdiff_t>(at));
+	definitionNames_.erase(found);
+	for(auto& [other, index] : definitionNames_)
+		if(index > at) --index;
+	compiled_ = std::min(compiled_, at);
+}
+
+void Machine::orderDefinitions(const std::vector<std::string>& names) {
+	std::vector<std::unique_ptr<Definition>> ordered;
+	ordered.reserve(definitions_.size());
+	for(const std::string& name : names)
+		if(const auto found = definitionNames_.find(name);
+		   found != definitionNames_.end() && definitions_[found->second])
+			ordered.push_back(std::move(definitions_[found->second]));
+	for(auto& definition : definitions_)
+		if(definition) ordered.push_back(std::move(definition));
+	definitions_ = std::move(ordered);
+	definitionNames_.clear();
+	for(std::size_t at = 0; at < definitions_.size(); ++at) definitionNames_.emplace(definitions_[at]->name, at);
+	compiled_ = 0; // compilePending() passes over what is compiled
 }
 
 Value Machine::commandData(Definition& definition, const Value& form, const CompileContext& context) {

@@ -34,15 +34,27 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		return identity ? identity->status() : json::object();
 	});
 	connections.onStatus([this] {
-		document.globalsChanged(); // the "connections" variable
-		reconciler.requestReconcile();
+		document.markVariableChanged("connections");
+		reconciler.requestStateUpdate();
 	});
 	document.addVariable("requests", [this] { return asks.list(); }); // the person's requests ("ask") and replies
-	document.addVariable("peers", [this] { // [{author, role}]: who is connected
+	document.addVariable("peers", [this] {                            // [{author, role}]: who is connected
 		const json coordination = versions.coordination();
 		return coordination.contains("peers") ? coordination["peers"] : json::array();
 	});
 	document.addVariable("windows", [this] { return otherWindows.status(); }); // {main: {fullscreen}, name: {open, ..}}
+	document.addVariable("runs", [this] { // [run]: the runs peers asked for, waiting or done, oldest first
+		json runs = json::array();
+		for(const RunRecord& run : runControl ? runControl->runs() : std::vector<RunRecord>())
+			runs.push_back(toJson(run));
+		return runs;
+	});
+	document.addVariable("runGrants", [this] { // [grant]: what "always" allowed, oldest first
+		json grants = json::array();
+		for(const Grant& grant : runControl ? runControl->grants() : std::vector<Grant>())
+			grants.push_back(toJson(grant));
+		return grants;
+	});
 	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
 
@@ -50,23 +62,6 @@ Engine::~Engine() {
 	versions.onReviewChanged.disconnect(peersChanged);
 	detachImageDocuments(*this);
 	terminals->forget();
-}
-
-void Engine::documentChanged() {
-	data.documentChanged();  // the records follow its models first: records that don't fit refuse the version
-	programs.load();         // and its program: one that can't be loaded refuses it too
-	builder.forgetVersion(); // what was compiled belongs to the version before
-	document.readDerived();
-	document.bumpStateVersion(); // a revision may change the state too
-	serviceCalls.load();         // a restore may change the services or the connections
-	audio.documentChanged();     // and the sounds, through an include or a feature
-	otherWindows.documentChanged(); // and the other windows
-	reconciler.reconcile();
-}
-
-void Engine::proposalsChanged() {
-	document.globalsChanged();
-	reconciler.requestReconcile();
 }
 
 void Engine::report(const std::string& message) {

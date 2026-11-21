@@ -3,6 +3,8 @@
 ;;; Help is worked out from the document itself: its commands (the `commands` variable), its keys (`keybindings`) and
 ;;; its settings (`settingsList`), so what it says is always what Calamaio does now.
 
+(ns calamaio.help)
+
 ;;; What help reads
 
 (defcomputed keyList
@@ -27,7 +29,7 @@
 (defn help-show
   "Shows a text in the *Help* buffer, in the window after the selected one (split in two if it is alone)." [text]
   (set "state.bufs.bh" {:name "*Help*" :mode "help" :readOnly true :text text})
-  (when (not (contains state.order "bh"))
+  (when-not (contains state.order "bh")
     (set "state.order" (concat state.order ["bh"])))
   (when (= (count computed.wins) 1)
     (split-window true))
@@ -38,10 +40,10 @@
 ;;; Commands
 
 (defn command-named "The command of a name, as the commands variable describes it." [f]
-  (find (fn [c] (= (:name c) f)) computed.commandList))
+  (find #(= (:name %) f) computed.commandList))
 
 (defn keys-of "The keys that run a command, as they are shown." [f]
-  (map (fn [b] (:keyLabel b)) (filter (fn [b] (= (:command b) f)) computed.keyList)))
+  (->> computed.keyList (filter #(= (:command %) f)) (map :keyLabel)))
 
 (defn ask-function "C-h f: asks for a command's name, to describe it." []
   (minibuffer-read "function" (t "prompt.describeFunction") "" ""))
@@ -52,14 +54,14 @@
     (message (t "echo.noCommand" {:name value}))))
 
 (defn help-function "Describes a command: its category, its keys, what it does and its title." [f]
-  (let [c (command-named f)
+  (let [{:keys [category description title]} (command-named f)
         found (keys-of f)]
     (help-show (t "help.function"
                   {:name f
-                   :category (:category c)
-                   :keys (if (empty? found) (t "help.noKey" {:name f}) (t "help.keys" {:keys (join ", " found)}))
-                   :description (:description c)
-                   :title (:title c)}))))
+                   :category category
+                   :keys (if (empty? found) (t "help.noKey" {:name f}) (t "help.keys" {:keys (str/join ", " found)}))
+                   :description description
+                   :title title}))))
 
 ;;; Variables
 
@@ -67,10 +69,9 @@
   (minibuffer-read "variable" (t "prompt.describeVariable") "" ""))
 
 (defn mb-variable "Describes the variable named." [value]
-  (let [s (find (fn [it] (= (:key it) value)) computed.variables)]
-    (if (some? s)
-      (help-variable s)
-      (message (t "echo.noVariable" {:name value})))))
+  (if-some [s (find #(= (:key %) value) computed.variables)]
+    (help-variable s)
+    (message (t "echo.noVariable" {:name value}))))
 
 (defn help-variable "Describes a variable: its value, its default, what it changes and what it can be." [s]
   (help-show (t "help.variable"
@@ -79,10 +80,9 @@
                  :default (if (:modified s) (t "help.changedFrom" {:default (json (:default s))}) (t "help.isDefault"))
                  :description (:description s)
                  :type (str (:type s)
-                            (if (:enum s) (t "help.oneOf" {:values (join ", " (:enum s))}) "")
-                            (if (some? (:minimum s))
-                              (t "help.range" {:from (str (:minimum s)) :to (str (:maximum s))})
-                              ""))})))
+                            (when-let [values (:enum s)] (t "help.oneOf" {:values (str/join ", " values)}))
+                            (when-some [from (:minimum s)]
+                              (t "help.range" {:from (str from) :to (str (:maximum s))})))})))
 
 ;;; Keys
 
@@ -100,14 +100,14 @@
 
 (defn key-read
   "A key while C-h k reads: a whole binding is described, a prefix waits for more, anything else has none." [event]
-  (let [sequence (trim (str state.keyread.seq " " event.key))
-        bound (find (fn [b] (= (:key b) sequence)) computed.keyList)]
+  (let [sequence (str/trim (str state.keyread.seq " " event.key))
+        bound (find #(= (:key %) sequence) computed.keyList)]
     (set "state.keyread.seq" sequence)
-    (cond (or (= sequence "ctrl+g") (= sequence "escape"))
+    (cond (#{"ctrl+g" "escape"} sequence)
           (do (key-read-end) (set "state.echo" (t "echo.quit")))
           (some? bound)
           (do (key-read-end) (help-key bound))
-          (some (fn [b] (starts-with? (:key b) (str sequence " "))) computed.keyList)
+          (some #(str/starts-with? (:key %) (str sequence " ")) computed.keyList)
           nil
           :else
           (do (key-read-end) (message (t "echo.noBinding" {:keys (keyLabel sequence "letters")}))))))
@@ -124,8 +124,10 @@
   :description ~(t "command.describe-bindings.about")
   []
   (help-show (str (t "help.bindings")
-                  (join "\n" (map (fn [b] (str (pad (:keyLabel b) 20 " ") (:command b)))
-                                  (filter (fn [b] (= (:scope b) "screen")) computed.keyList)))
+                  (->> computed.keyList
+                       (filter #(= (:scope %) "screen"))
+                       (map #(str (pad (:keyLabel %) 20 " ") (:command %)))
+                       (str/join "\n"))
                   "\n")))
 
 ;;; The describe commands
@@ -150,12 +152,23 @@
 
 ;;; Modes and messages
 
+(def minor-modes "Each minor mode's variable, and the key of its name."
+  [["global-display-line-numbers-mode" "mode.lineNumbers"] ["visual-line-mode" "mode.lineWrapping"]
+   ["show-paren-mode" "mode.bracketMatching"] ["electric-pair-mode" "mode.electricPair"]
+   ["auto-fill-mode" "mode.autoFill"] ["whitespace-mode" "mode.whitespace"]
+   ["display-fill-column-indicator-mode" "mode.fillIndicator"]])
+
 (defcommand describe-mode "Describes the selected buffer's major mode and the minor modes that are on."
   :title ~(t "command.describe-mode") :category ~(t "category.help")
   :description ~(t "command.describe-mode.about")
   []
-  (let [mode (get state.modes computed.buf.mode)]
-    (help-show (t "help.mode" {:mode (:title mode) :about (or (:about mode) (t "help.noModeKeys"))}))))
+  (let [{:keys [title about]} (get state.modes computed.buf.mode)
+        on (filter #(get settings (first %)) minor-modes)]
+    (help-show (str (t "help.mode" {:mode title :about (or about (t "help.noModeKeys"))}) "\n"
+                    (if (empty? on)
+                      (t "help.noMinorModes")
+                      (t "help.minorModes" {:modes (str/join ", " (map #(t (second %)) on))}))
+                    "\n"))))
 
 (defcommand show-messages "Shows the messages buffer: everything the echo area said."
   :title ~(t "command.show-messages") :category ~(t "category.help")

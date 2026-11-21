@@ -228,6 +228,32 @@ bool Properties::widgetProperty(Look& look, Slot slot, const json& value, const 
 	       (look.grid && gridProperty(*look.grid, slot, value, at));
 }
 
+namespace {
+
+/// @brief Takes "justify" out of a label's align: a horizontal placement of labels only, lines from the start,
+/// stretched to the width. "justify" alone, or "justify center": the vertical placement stays.
+/// @param written The align value, rewritten with "start" in place of "justify".
+/// @return Whether it justified.
+bool takeJustify(json& written) {
+	if(written.is_string()) {
+		const std::string both = written.get<std::string>();
+		const std::size_t first = std::min(both.find_first_not_of(' '), both.size());
+		const std::size_t after = first + std::string_view("justify").size();
+		const bool justify =
+		    both.compare(first, after - first, "justify") == 0 && (after >= both.size() || both[after] == ' ');
+		if(justify)
+			written = both.find_first_not_of(' ', after) == std::string::npos ? "start" : "start" + both.substr(after);
+		return justify;
+	}
+	if(written.is_object() && written.value("horizontal", json()) == "justify") {
+		written["horizontal"] = "start";
+		return true;
+	}
+	return false;
+}
+
+} // namespace
+
 // Labels and text areas
 bool Properties::textProperty(Look& look, Slot slot, const json& value, const std::string& at) const {
 	Label& label = *look.label;
@@ -236,8 +262,11 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
 	else if(slot == Slot::Font) label.setFont(font(value, at));
 	else if(slot == Slot::Align) {
-		const auto [horizontal, vertical] = alignments(value, at);
+		json written = value;
+		const bool justify = takeJustify(written);
+		const auto [horizontal, vertical] = alignments(written, at);
 		label.setAlignment(horizontal, vertical);
+		label.setJustify(justify);
 	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
 	else if(slot == Slot::FitText)
 		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));

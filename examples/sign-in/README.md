@@ -2,7 +2,7 @@
 
 Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Italian and Arabic, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
 
-**JSON or Lisp:** it has real behaviour (validation of every field, password strength, two-step codes, session expiry), and it stays JSON on purpose: it is the reference JSON app, the template the fuzzers and some version-control tests read (`tests/fuzz`), and one of the templates the benchmarks load (`tests/perf`), so a JSON app keeps being measured and attacked as Lisp apps join. `json/` is its source.
+**JSON or Lisp:** it has real behaviour (validation of every field, password strength, two-step codes, session expiry), and it stays JSON on purpose: it is the reference JSON app, the template the fuzzers and some version-control tests read (`tests/fuzz`), and one of the templates the benchmarks load (`tests/perf`), so a JSON app keeps being measured and attacked as Lisp apps join. `json/` stays the reference; `lisp/` beside it is the same app written by hand as a program, which the same scenarios check.
 
 ```sh
 ./build/affrescoui_launcher examples/sign-in/json/index.screen.json
@@ -15,6 +15,9 @@ Sign in, create an account, two-step verification, a password reset, provider si
 - **Components of its own:** `checkedField` (a field with its icon, label, description and `check` rule) and `strengthMeter`; the built-in `dialog` (forgot password, change password, keyboard shortcuts) and `toast`.
 - **Validation:** `check` rules with their messages, shown per field once a form is sent, and given to the field as its accessible description.
 - **Screens:** `screens` with `navigate`, Escape going back from the inner ones, and `focus` steps that move focus where the work goes on.
+- **Success screens:** a finished flow (a new password, a new account, a deleted account) ends on a screen of its own, a tick or a greeting and the one way on, its button focused, instead of a notice that leaves after a few seconds.
+- **Responsive:** below 560 px the card lies flat on the page (no frame, no glows), and the account page's sections become chips.
+- **Type:** bold title and heading fonts made from the one Roboto file (`"bold": true`), strong words on the main buttons, field labels set close to their fields.
 - **Strings:** a `strings` section in `en`, `it` and `ar`, `t()` with ICU plurals and selects, `"dir": "auto"` so Arabic runs right to left, and fields kept left to right where they must be (email, codes).
 - **Commands and keys:** a `keys` section (Cmd+J theme, Cmd+L language, Shift+Cmd+H password, Shift+Cmd+Q sign out, Shift+Cmd+N slow network, F1 shortcuts), actions that describe themselves as commands (`title`, `description`), and the `commands` list shown with readable key names.
 - **Time:** `every` for the session and resend countdowns, `after` for the fake server's delay (longer with Slow network on), `debounce` to close the toasts.

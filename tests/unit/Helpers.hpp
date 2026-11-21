@@ -8,7 +8,12 @@
 #include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <cstddef>
 #include <functional>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -108,6 +113,58 @@ constexpr double timeLimit(double seconds) {
 	return underSanitizer() ? seconds * 24 : seconds;
 #else
 	return seconds * 24;
+#endif
+}
+
+/// @brief How many times longer a piece of work takes at four times a size: about 4 when its cost follows the size,
+/// 16 when it grows with its square. Each size takes the fastest of a few runs, and a loaded or instrumented machine
+/// slows both sizes alike, so the ratio holds where a wall-clock limit fails.
+/// @param seconds Runs the work at a size, and says how many seconds what it measures took.
+/// @param size The larger size.
+/// @param runs Runs at each size.
+/// @return The larger size's time over the smaller's.
+inline double growthOfFour(const std::function<double(std::size_t)>& seconds, std::size_t size, int runs = 3) {
+	const auto fastest = [&](std::size_t at) {
+		double best = std::numeric_limits<double>::max();
+		for(int run = 0; run < runs; ++run) best = std::min(best, seconds(at));
+		return std::max(best, 1e-9);
+	};
+	return fastest(size) / fastest(size / 4U);
+}
+
+/// @brief growthOfFour(), measured again, at most twice, while it isn't below a limit, keeping the lowest. A machine
+/// busy for a moment (another job on a shared runner) gives one high ratio; work that grows faster than its size gives
+/// a high one every time, so it still fails.
+/// @param limit The ratio it must stay below.
+/// @param seconds Runs the work at a size, and says how many seconds what it measures took.
+/// @param size The larger size.
+/// @param runs Runs at each size.
+/// @return The lowest ratio measured.
+inline double growthBelow(double limit, const std::function<double(std::size_t)>& seconds, std::size_t size,
+                          int runs = 3) {
+	double growth = growthOfFour(seconds, size, runs);
+	for(int again = 0; again < 2 && growth >= limit; ++again)
+		growth = std::min(growth, growthOfFour(seconds, size, runs));
+	return growth;
+}
+
+/// @brief How long something takes, in seconds.
+/// @param work It.
+/// @return The seconds.
+inline double secondsOf(const std::function<void()>& work) {
+	const auto started = std::chrono::steady_clock::now();
+	work();
+	return std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+}
+
+/// @brief Turns verify mode on or off for the runtimes made next: each reads AFFRESCOUI_VERIFY_UPDATES as it starts.
+/// @param on Whether it is on.
+inline void verifyNextRuntimes(bool on) {
+#ifdef _WIN32
+	_putenv_s("AFFRESCOUI_VERIFY_UPDATES", on ? "1" : ""); // an empty value unsets it
+#else
+	if(on) ::setenv("AFFRESCOUI_VERIFY_UPDATES", "1", 1);
+	else ::unsetenv("AFFRESCOUI_VERIFY_UPDATES");
 #endif
 }
 

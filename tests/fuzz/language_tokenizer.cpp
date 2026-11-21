@@ -31,8 +31,10 @@ using affresco::format::TokenizedLine;
 /// @return Them.
 const std::vector<std::shared_ptr<const Language>>& shipped() {
 	static const std::vector<std::shared_ptr<const Language>> languages = [] {
-		const std::filesystem::path folder =
-		    std::filesystem::path(AFFRESCOUI_FUZZ_TEMPLATE).parent_path().parent_path() / "shared" / "languages";
+		// The template is examples/<app>/json/index.screen.json: examples/ is three folders up
+		const std::filesystem::path examples =
+		    std::filesystem::path(AFFRESCOUI_FUZZ_TEMPLATE).parent_path().parent_path().parent_path();
+		const std::filesystem::path folder = examples / "shared" / "languages";
 		std::vector<std::shared_ptr<const Language>> read;
 		for(const char* file : {"cpp.json", "javascript.json", "typescript.json", "python.json", "json.json",
 		                        "cmake.json", "markdown.json", "shell.json"}) {

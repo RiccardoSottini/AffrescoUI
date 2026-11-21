@@ -6,6 +6,7 @@
 /// @brief affresco::Screen::Impl, the screen's modules and peers, shared by the files that make up affresco::Screen.
 
 #include "affresco/Screen.hpp"
+#include "commands/ScreenCommands.hpp"
 #include "pictures/OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
@@ -13,9 +14,11 @@
 #include "affresco/data/Store.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/net/EditorServer.hpp"
 #include "affresco/net/RemotePeers.hpp"
 #include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
+#include "affresco/vcs/Runs.hpp"
 
 #include <filesystem>
 #include <map>
@@ -77,6 +80,7 @@ struct Screen::Impl {
 		std::string token;               ///< The token for url, from the host (never from the document).
 		std::unique_ptr<Channel> remote; ///< While connected to url.
 		std::string refused;             ///< Why the socket may not be connected (confineChannels()), or "".
+		bool closedRun = false;          ///< "<name>:closed" ran since it last opened (or was first tried): not again.
 	};
 
 	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
@@ -93,21 +97,26 @@ struct Screen::Impl {
 	format::Rules rules;                                 ///< The format's rules.
 	vcs::Repository repository;                          ///< Document, state, history, review.
 	vcs::ChangeSetRepairs repairs{repository, "screen"}; ///< Installed change sets and their repairs.
+	vcs::Runs runs{repository, rules};                   ///< Who may run the commands as peers; outlives the runtime.
 	format::Runtime runtime;                             ///< Panels and actions.
 	detail::OffscreenImages images{repository, runtime}; ///< Pictures for peers ("render").
+	detail::ScreenCommands commands{runtime, runs, repository, images}; ///< The commands as tools for peers.
 	std::vector<std::unique_ptr<Peer>> peers;            ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
+	std::unique_ptr<net::EditorServer> editor; ///< From listenEditor(); after the runtime, so it stops first.
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 
 	Executor* executor = nullptr;                    ///< For channels (set by startChannels()).
 	std::filesystem::path socketDirectory;           ///< Where relative channel sockets are.
 	bool channelsAllowed = true;                     ///< Screen::allowChannels().
+	bool commandsAllowed = true;                     ///< Screen::allowCommandRuns().
 	bool channelsConfined = false;                   ///< Screen::confineChannels().
 	std::map<std::string, DeclaredChannel> channels; ///< From "channels".
 	std::filesystem::path stateFile;                 ///< Where "persist" paths are kept.
 	json saved;                                      ///< What was last loaded or written there.
+	bool saveDue = false; ///< A change wasn't saved yet (a write failed, or came while a picture was drawn).
 
 	/// @brief Builds the modules and forwards runtime events and errors to every peer.
 	/// @param document The screen.
@@ -140,8 +149,14 @@ struct Screen::Impl {
 	/// @param event Its event.
 	void run(const std::string& action, const json& event);
 
-	/// @brief Connects a declared channel; on failure runs "<name>:closed" and tries again later if it should (never
-	/// when it is refused).
+	/// @brief Runs a declared channel's "<name>:closed", once per closing: when it was open, or on the first try, and
+	/// not on every failed retry after (an app with no host would run it every few seconds for nothing).
+	/// @param channel The channel.
+	/// @param message Why, for the event.
+	void closed(DeclaredChannel& channel, const std::string& message);
+
+	/// @brief Connects a declared channel; on failure runs "<name>:closed" (closed()) and tries again later if it
+	/// should (never when it is refused).
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel);
 

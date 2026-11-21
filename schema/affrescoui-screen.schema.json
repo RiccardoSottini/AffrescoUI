@@ -506,6 +506,11 @@
 						},
 						"description": "Screen-wide shortcuts: \"mod+k\" -> handler"
 					},
+					"keyBindings": {
+						"type": "string",
+						"pattern": "^state\\.",
+						"description": "The state path of the person's own key bindings, [{keys, command}], run before keys"
+					},
 					"menus": {
 						"type": "object",
 						"description": "menu -> item key -> item, listed by the menus variable",
@@ -866,6 +871,22 @@
 								"type": "array",
 								"items": {
 									"type": "string"
+								}
+							},
+							"run": {
+								"type": "object",
+								"additionalProperties": false,
+								"description": "Who may run which of the commands as a peer (rules of their own: no change rule covers a run).",
+								"properties": {
+									"allow": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"ask": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"deny": {
+										"$ref": "#/$defs/v2/runRules"
+									}
 								}
 							},
 							"review": {
@@ -1779,6 +1800,19 @@
 						],
 						"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"
 					},
+					"opacity": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "How opaque the node and its children are, drawn as one group like CSS opacity (0 to 1)"
+					},
 					"cursor": {
 						"anyOf": [
 							{
@@ -2057,9 +2091,19 @@
 								"type": "number"
 							},
 							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 4,
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
-						]
+						],
+						"description": "label: pixels between the edges and the text; row, column, stack, grid: also [vertical, horizontal] or [top, right, bottom, left]"
 					},
 					"align": {
 						"oneOf": [
@@ -2067,15 +2111,25 @@
 								"$ref": "#/$defs/v2/align"
 							},
 							{
+								"const": "justify"
+							},
+							{
 								"type": "string",
-								"pattern": "^(start|center|end) (start|center|end)$"
+								"pattern": "^(start|center|end|justify) (start|center|end)$"
 							},
 							{
 								"type": "object",
 								"additionalProperties": false,
 								"properties": {
 									"horizontal": {
-										"$ref": "#/$defs/v2/align"
+										"anyOf": [
+											{
+												"$ref": "#/$defs/v2/align"
+											},
+											{
+												"const": "justify"
+											}
+										]
 									},
 									"vertical": {
 										"$ref": "#/$defs/v2/align"
@@ -2192,6 +2246,18 @@
 					"selectionColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"letterSpacing": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": -16,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"bind": {
 						"type": "string",
 						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
@@ -2202,7 +2268,7 @@
 					},
 					"viewport": {
 						"type": "string",
-						"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines } (lines from 1)"
+						"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines, rowHeight } (lines from 1)"
 					},
 					"lineNumbers": {
 						"type": "boolean",
@@ -2350,6 +2416,12 @@
 						]
 					},
 					"indentGuides": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"whitespace": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"foldMarkers": {
 						"$ref": "#/$defs/v2/flag"
 					},
 					"tabSize": {
@@ -3136,6 +3208,22 @@
 														"null"
 													]
 												},
+												"marks": {
+													"type": [
+														"array",
+														"null"
+													],
+													"maxItems": 64,
+													"items": {
+														"type": "array",
+														"minItems": 2,
+														"maxItems": 2,
+														"items": {
+															"type": "integer",
+															"minimum": 0
+														}
+													}
+												},
 												"cells": {
 													"type": "array",
 													"minItems": 1,
@@ -3158,7 +3246,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"
+						"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, marks, children (tree), expandable (tree), cells (table) }"
 					},
 					"expanded": {
 						"anyOf": [
@@ -3353,6 +3441,18 @@
 							}
 						],
 						"description": "path: the inside as a gradient, { kind, angle, stops }"
+					},
+					"feather": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"stroke": {
 						"$ref": "#/$defs/v2/color"
@@ -3734,7 +3834,8 @@
 								"enum": [
 									"frames",
 									"seconds",
-									"timecode"
+									"timecode",
+									"none"
 								]
 							},
 							{
@@ -3768,6 +3869,9 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
+					},
+					"trackButtons": {
+						"$ref": "#/$defs/v2/flag"
 					},
 					"pixelsPerSecond": {
 						"anyOf": [
@@ -4023,8 +4127,12 @@
 									"space": {
 										"enum": [
 											"world",
-											"local"
+											"local",
+											"view"
 										]
+									},
+									"individual": {
+										"type": "boolean"
 									},
 									"pixels": {
 										"type": "number",
@@ -4438,7 +4546,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), cancelAsk, attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), saveFile(+name, title, onDone, onError), openFile(+extensions, comments, title, onDone, onError), export(+pages, size, scale, title, name, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), runInTerminal(+text), clearTerminal, closeTerminal, insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError), openWindow(+fullscreen), closeWindow, fullscreen(+of), lisp(+with), evaluate(+file, confirm, then), propose(+as, file, then, onError), exportChanges(+from, only, into), runHooks(+with); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments, picks), cancelAsk, attach(+into, onDone, onError), pick(+hint, into, onDone, onCancel), unpick, chooseFolder(+title, onDone, onError), saveFile(+name, title, onDone, onError), openFile(+extensions, comments, as, title, onDone, onError), export(+pages, size, scale, title, name, onDone, onError), undoPlan(+into, drop, keep, head, then, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, paste(+into, onDone, as), copyImage, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), runInTerminal(+text), clearTerminal, closeTerminal, insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError), openWindow(+fullscreen), closeWindow, fullscreen(+of), openUrl, lisp(+with), evaluate(+file, confirm, then), propose(+as, file, then, onError), exportChanges(+from, only, into), runHooks(+with); review: accept(+head), reject(+reason), preview, endPreview, restore, revert(+drop, keep, head), undo, allowRun(+always, for), denyRun(+reason), undoRun",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4464,6 +4572,10 @@
 					"ask": {},
 					"cancelAsk": {},
 					"attach": {},
+					"pick": {
+						"const": "node"
+					},
+					"unpick": {},
 					"chooseFolder": {},
 					"saveFile": {},
 					"openFile": {},
@@ -4479,6 +4591,10 @@
 					"undo": {
 						"const": true
 					},
+					"undoPlan": {},
+					"allowRun": {},
+					"denyRun": {},
+					"undoRun": {},
 					"focus": {},
 					"scrollTo": {},
 					"navigate": {},
@@ -4491,6 +4607,13 @@
 					"debounce": {},
 					"animate": {},
 					"copy": {},
+					"paste": {
+						"enum": [
+							"text",
+							"image"
+						]
+					},
+					"copyImage": {},
 					"log": {},
 					"stop": {},
 					"note": {},
@@ -4510,6 +4633,7 @@
 									"pan",
 									"rate",
 									"loop",
+									"eq",
 									"master"
 								]
 							},
@@ -4540,6 +4664,18 @@
 							},
 							{
 								"const": "toggle"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"openUrl": {
+						"anyOf": [
+							{
+								"type": "string",
+								"pattern": "^[Hh][Tt][Tt][Pp][Ss]?://",
+								"maxLength": 2048
 							},
 							{
 								"$ref": "#/$defs/v2/dynamic"
@@ -4589,6 +4725,14 @@
 							},
 							{
 								"type": "string"
+							},
+							{
+								"type": "array",
+								"maxItems": 256,
+								"items": {
+									"type": "string",
+									"maxLength": 1024
+								}
 							}
 						]
 					},
@@ -4611,6 +4755,11 @@
 						]
 					},
 					"attachments": {},
+					"picks": {},
+					"hint": {},
+					"onCancel": {
+						"$ref": "#/$defs/v2/steps"
+					},
 					"title": {},
 					"name": {},
 					"extensions": {},
@@ -4622,6 +4771,23 @@
 					"scale": {},
 					"head": {},
 					"reason": {},
+					"drop": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"maxItems": 256,
+								"items": {
+									"type": "string",
+									"maxLength": 1024
+								}
+							}
+						]
+					},
+					"always": {},
+					"for": {},
 					"in": {},
 					"line": {},
 					"column": {},
@@ -4882,7 +5048,31 @@
 						"$formAround",
 						"$printForm",
 						"$formKeyword",
-						"$setFormKeyword"
+						"$setFormKeyword",
+						"$meshPrimitive",
+						"$meshExtrude",
+						"$meshInset",
+						"$meshDeleteFaces",
+						"$meshDeleteVertices",
+						"$meshLoopCut",
+						"$meshBevel",
+						"$meshMove",
+						"$meshScale",
+						"$meshRotate",
+						"$meshFaceVertices",
+						"$meshFaces",
+						"$meshCentre",
+						"$meshModifiers",
+						"$meshEdges",
+						"$meshFlip",
+						"$meshMirror",
+						"$meshArray",
+						"$meshSubdivide",
+						"$meshPick",
+						"$meshStats",
+						"$gltfScene",
+						"$transformCompose",
+						"$transformRelative"
 					]
 				}
 			},
@@ -4890,6 +5080,16 @@
 				"type": "string",
 				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"runRules": {
+				"type": "array",
+				"maxItems": 64,
+				"items": {
+					"type": "string",
+					"maxLength": 256,
+					"pattern": "^[^() ]+(\\([^()/# ][^() ]*\\))?$",
+					"description": "\"author\" or \"author(command)\": a name, or a prefix ending in *: \"agent(moveCard)\""
+				}
 			},
 			"characterPairs": {
 				"type": "array",
@@ -5181,10 +5381,25 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"arguments": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
+						"description": "Its arguments: names, or a type for each (the state's types)",
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"type": "object",
+								"maxProperties": 32,
+								"propertyNames": {
+									"pattern": "^[A-Za-z0-9_-]{1,64}$"
+								},
+								"additionalProperties": {
+									"$ref": "#/$defs/v2/stateType"
+								}
+							}
+						]
 					}
 				}
 			},

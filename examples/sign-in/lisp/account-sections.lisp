@@ -4,6 +4,8 @@
 ;;; Each is an `account-section` (account.lisp): a column shown while it is the one chosen, under its heading. A
 ;;; list's rows are itemRows (components.lisp), their links and buttons the row's own children.
 
+(ns sign-in.account-sections)
+
 ;;; Emails
 
 (defview emails-section "The account's emails, at most five, and a form to add one." []
@@ -14,7 +16,7 @@
        :style smallButton
        :icon plus
        :text ~(t "addEmail")
-       :onClick openAddEmail)
+       :onClick open-add-email)
     (new-email-form)))
 
 (defview email-row "An email: whether it is primary or verified, and what can be done with it." [address]
@@ -46,7 +48,7 @@
        :height 20
        :text ~(t "remove")
        :label ~(str (t "remove") " " address.address)
-       :onClick ~(handler removeEmail address.address))))
+       :onClick ~(handler remove-email address.address))))
 
 (defview new-email-form "The email being added, with Add and Cancel." []
   `(column#newEmailForm :when ~state.newEmail.open :fitContent height :gap 8 :anchors {:left 0 :right 0}
@@ -75,7 +77,7 @@
          :text ~(if (= state.busy "verifyEmail") computed.busyText (t "add"))
          :disabled ~(not= state.busy "")
          :onClick addEmail)
-       (node#cancelEmail :style smallButton :text ~(t "cancel") :onClick closeAddEmail))))
+       (node#cancelEmail :style smallButton :text ~(t "cancel") :onClick close-add-email))))
 
 ;;; Security
 
@@ -91,13 +93,13 @@
          :icon key-round
          :text ~(t "changePassword")
          :isOpen ~state.change.open
-         :onClick openChange))
+         :onClick open-change))
     (two-step-box)
-    `(node#label-passkeys :style fieldLabel :text ~(t "passkeys") :role heading)
+    `(node#label-passkeys :style subheading :text ~(t "passkeys") :role heading)
     `(node#passkeysCaption :style hint :text ~(t "passkeysCaption"))
     (repeat [passkey state.myPasskeys :key passkey.id]
       (passkey-row passkey))
-    `(node#noPasskeys :when ~(= (count state.myPasskeys) 0)
+    `(node#noPasskeys :when ~(empty? state.myPasskeys)
        :style hint
        :icon fingerprint-pattern
        :text ~(t "noPasskeys"))
@@ -128,29 +130,39 @@
        :anchors {:left 12 :right 12})
      ~(repeat [device computed.myTrusted :index i :key device.device]
         (trusted-device device))
-     (node#noTrusted :when ~(and state.user.twoStep (= (count computed.myTrusted) 0))
+     (node#noTrusted :when ~(and state.user.twoStep (empty? computed.myTrusted))
        :style hint
        :text ~(t "noTrusted")
        :anchors {:left 12 :right 12})
      (node#twoStepBox-end :height 4 :color transparent)))
 
 (defview two-step-switch "Two-step on or off: turning it on sets it up first, turning it off asks the password." []
-  `(row#row-two-step :height 36 :gap 12 :alignItems center :anchors {:left 12 :right 12}
-     (toggle#twoStep :width 44
-       :height 24
-       :role switch
-       :focusable true
-       :label ~(t "twoStep")
-       :description ~(t "twoStepState" {:on state.user.twoStep})
-       :checked ~state.user.twoStep
-       :activeColor @color.accent
-       :trackColor @color.border
-       :onChange ~(handler setTwoStep event.value)
-       :keys {:space ~(handler setTwoStep (not state.user.twoStep))
-              :enter ~(handler setTwoStep (not state.user.twoStep))})
-     (column#column-two-step :grow 1 :height 36
-       (node#label-two-step-name :style fieldLabel :text ~(t "twoStep"))
-       (node#label-two-step-state :style hint :text ~(t "twoStepState" {:on state.user.twoStep})))))
+  `(row#row-two-step :height 52 :gap 12 :alignItems center :anchors {:left 12 :right 12}
+     (node#two-step-icon :style itemIcon :icon shield-check)
+     (column#column-two-step :style itemText
+       (node#label-two-step-name :style itemTitle :text ~(t "twoStep"))
+       (node#label-two-step-state :style itemHint :text ~(t "twoStepState" {:on state.user.twoStep})))
+     ~(two-step-toggle)))
+
+(defview two-step-toggle "Two-step's switch: a pill, the accent while on, its knob sliding to the side it is at." []
+  `(node#twoStep :width 44
+     :height 24
+     :radius 12
+     :color ~(if state.user.twoStep "@color.accent" "@color.border")
+     :cursor hand
+     :role switch
+     :focusable true
+     :label ~(t "twoStep")
+     :description ~(t "twoStepState" {:on state.user.twoStep})
+     :selected ~state.user.twoStep
+     :transition {:color 120}
+     :onClick ~(handler set-two-step (not state.user.twoStep))
+     (node#twoStep-knob :width 18
+       :height 18
+       :radius 9
+       :color "#ffffff"
+       :anchors {:left ~(if state.user.twoStep 23 3) :top 3}
+       :shadow {:y 1 :blur 3 :color @color.shadow})))
 
 (defview trusted-device "A device two-step remembers, for how long, and a way to forget it." [device]
   `(row#row-trusted :when ~state.user.twoStep :height 18 :gap 12 :alignItems center :anchors {:left 12 :right 12}
@@ -162,7 +174,7 @@
      (node#trusted-remove :style smallLink
        :text ~(t "removeDevice")
        :label ~(str (t "removeDevice") " " (t (str "device_" device.device)))
-       :onClick ~(handler removeTrusted device.device))))
+       :onClick ~(handler remove-trusted device.device))))
 
 (defview passkey-row "A passkey: its device, when it was added and last used, and Remove." [passkey]
   `(node#passkeyRow :use itemRow
@@ -176,7 +188,7 @@
        :height 20
        :text ~(t "remove")
        :label ~(str (t "remove") " " (t (str "device_" passkey.device)))
-       :onClick ~(handler removePasskey passkey.id))))
+       :onClick ~(handler remove-passkey passkey.id))))
 
 ;;; Devices
 
@@ -210,7 +222,7 @@
        :height 20
        :text ~(t "signOutDevice")
        :label ~(str (t "signOutDevice") ": " (t (str "device_" session.device)))
-       :onClick ~(handler signOutSession session.id))))
+       :onClick ~(handler sign-out-session session.id))))
 
 ;;; Connected accounts
 
@@ -220,7 +232,7 @@
       (provider-row provider))))
 
 (defmacro connected-to? "Whether the account is connected to a provider, by its name." [provider]
-  `(some (fn [it] (= it.provider ~provider)) state.connected))
+  `(some #(= (:provider %) ~provider) state.connected))
 
 (defview provider-row "A provider: the account it is connected as, and Connect or Disconnect." [provider]
   `(node#providerRow :use itemRow
@@ -228,7 +240,7 @@
             :title ~(t (str "provider_" provider.name))
             :hint ~(if (connected-to? provider.name)
                        (t "connectedAs"
-                          {:account (:account (find (fn [it] (= it.provider provider.name)) state.connected))})
+                          {:account (:account (find #(= (:provider %) provider.name) state.connected))})
                        (t "notConnected"))}
      (node#connectProvider :when ~(not (connected-to? provider.name))
        :style smallButton
@@ -236,13 +248,13 @@
        :text ~(t "connect")
        :label ~(str (t "connect") " " (t (str "provider_" provider.name)))
        :disabled ~(not= state.busy "")
-       :onClick ~(handler connectProvider provider.name))
+       :onClick ~(handler connect-provider provider.name))
      (node#disconnectProvider :when ~(connected-to? provider.name)
        :style smallButton
        :icon link-2-off
        :text ~(t "disconnect")
        :label ~(str (t "disconnect") " " (t (str "provider_" provider.name)))
-       :onClick ~(handler disconnectProvider provider.name))))
+       :onClick ~(handler disconnect-provider provider.name))))
 
 ;;; Activity
 
@@ -265,7 +277,7 @@
        :style smallLink
        :height 20
        :text ~(t "notYouLink")
-       :onClick openChange)))
+       :onClick open-change)))
 
 ;;; Data
 
@@ -289,4 +301,4 @@
          :icon trash-2
          :text ~(t "deleteButton")
          :isOpen ~state.deleting.open
-         :onClick openDelete))))
+         :onClick open-delete))))

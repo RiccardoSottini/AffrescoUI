@@ -3,9 +3,11 @@
 
 #include "ScreenImpl.hpp"
 #include "StateFile.hpp"
+#include "Reads.hpp"
 #include "features/FeaturesService.hpp"
 
 #include "affresco/core/Log.hpp"
+#include "affresco/net/SignIn.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -16,6 +18,7 @@ namespace affresco {
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
     : screenFolder(baseDirectory), repository(rules, std::move(document)),
       runtime(repository, std::move(baseDirectory)) {
+	runtime.setRunControl(&runs);
 	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
 	repository.onCommit.connect([this](const CommitInfo& commit) {
 		if(commit.run.is_array() && !commit.run.empty() && !images.rendering()) runtime.runOnce(commit.run, commit.id);
@@ -38,6 +41,11 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 	});
 	runtime.onUpdated.connect([this] { save(); });
 	runtime.onAsk.connect([this](const json& request) { askAgents(request); });
+	runtime.setFileOf([this](std::string_view pointer) {
+		const std::string owner = sources.ownerOf(pointer);
+		return format::FileOf{detail::shownName(owner, entryFile, screenFolder), detail::sharedFile(owner, screenFolder)};
+	});
+	runtime.setWebOpener([](const std::string& url) { return net::openWebAddress(url); }); // after the person's yes
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
@@ -63,8 +71,11 @@ void Screen::Impl::askAgents(const json& request) {
 	// peer, a client, still sees it
 	const auto agent = std::ranges::find_if(peers.rbegin(), peers.rend(),
 	                                        [](const auto& peer) { return peer->session->author() == "agent"; });
+	json withoutPicks = request; // a peer limited to parts of the document doesn't learn where the person pointed
+	withoutPicks.erase("picks");
 	for(const auto& peer : peers)
-		if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent) peer->session->send(request);
+		if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent)
+			peer->session->send(repository.readable(peer->session->author()) ? withoutPicks : request);
 }
 
 Screen::Impl::~Impl() {
@@ -136,9 +147,22 @@ void Screen::Impl::load() {
 }
 
 void Screen::Impl::save() {
-	if(stateFile.empty() || persisted().empty()) return; // no state file: a screen from fromString()
-	if(images.rendering()) return;                       // a proposal's state, shown only for a picture
+	if(stateFile.empty()) return; // no state file: a screen from fromString()
+	const std::vector<json::json_pointer> pointers = persisted();
+	if(pointers.empty()) return;
+	if(!saveDue) { // only when a persisted place, or a place around or inside one, changed
+		const auto changes = runtime.lastChanges();
+		if(changes && std::ranges::none_of(*changes, [&pointers](const std::string& changed) {
+			   return std::ranges::any_of(pointers, [&changed](const json::json_pointer& pointer) {
+				   return format::overlaps(pointer.to_string(), changed);
+			   });
+		   }))
+			return;
+	}
+	saveDue = true;
+	if(images.rendering()) return; // a proposal's state, shown only for a picture
 	json now = persistedState();
+	saveDue = false;
 	if(now == saved) return;
 	std::error_code error;
 	std::filesystem::create_directories(stateFile.parent_path(), error);
@@ -146,6 +170,7 @@ void Screen::Impl::save() {
 		std::ostringstream message; // a path prints quoted, as it always has
 		message << "AffrescoUI screen: could not write " << stateFile;
 		affresco::log(LogLevel::Error, message.str());
+		saveDue = true; // tried again after the next update
 		return;
 	}
 	saved = std::move(now);
@@ -175,6 +200,9 @@ Screen::Impl::Peer& Screen::Impl::add(Channel& channel, std::unique_ptr<Channel>
 	peer->session = std::make_unique<channel::Session>(
 	    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
 	peer->session->setFileChanges([this](const json& request) { return fileChanges(request); });
+	peer->session->setPicks([this] { return runtime.picks(); });
+	peer->session->setSource([this](const std::string& at) { return runtime.source(at); });
+	peer->session->setCommands(commandsAllowed ? &commands : nullptr);
 	peer->session->setUsage([this](bool clear) -> std::optional<json> {
 		if(!runtime.usage.enabled()) return std::nullopt;
 		if(clear) runtime.usage.clear();
