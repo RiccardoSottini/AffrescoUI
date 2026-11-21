@@ -182,7 +182,7 @@ std::vector<ImageOperation> viewOperations() {
 	     {"preset", "size", "sizeStep", "hardness", "spacing", "opacity", "flow", "mode", "tolerance", "contiguous",
 	      "allLayers", "fillOpacity", "shape", "gradientPreset", "gradient", "foreground", "background", "swap", "reset",
 	      "quickMask", "cloneSource", "autoSelect", "vector", "cropRatio",
-	      "retouch", "reverse", "dither", "transparency"},
+	      "retouch", "reverse", "dither", "transparency", "healing"},
 	     "Sets the tools' options and the colours.",
 	     setToolOptions},
 	    {"setProfile", {"working", "display", "proof"}, "Sets the working, display or proof colour profile.",

@@ -414,6 +414,7 @@
 		"w": { "do": "setTool", "with": { "args": { "tool": "wand" } } },
 		"shift+w": { "do": "setTool", "with": { "args": { "tool": "quick-select" } } },
 		"r": { "do": "setTool", "with": { "args": { "tool": "blur" } } },
+		"j": { "do": "setTool", "with": { "args": { "tool": "healing" } } },
 		"o": { "do": "setTool", "with": { "args": { "tool": "dodge" } } },
 		"shift+o": { "do": "setTool", "with": { "args": { "tool": "burn" } } },
 		"c": { "do": "setTool", "with": { "args": { "tool": "crop" } } },

@@ -114,6 +114,7 @@ constexpr int navigatorSide = 160;
 	        {"quickMask", settings.quickMask},
 	        {"autoSelect", settings.autoSelect},
 	        {"cropRatio", settings.cropRatio},
+	        {"healing", settings.healing},
 	        {"reverse", settings.gradientOptions.reverse},
 	        {"dither", settings.gradientOptions.dither},
 	        {"transparency", settings.gradientOptions.transparency},

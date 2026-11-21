@@ -26,7 +26,8 @@
                          :brush {:gesture paint}
                          :pencil {:gesture paint :hardness 100}
                          :eraser {:gesture erase}
-                         :clone {:gesture clone}
+                         :clone {:gesture clone :healing false}
+                         :healing {:gesture clone :healing true}
                          :blur {:gesture retouch :retouch blur}
                          :sharpen {:gesture retouch :retouch sharpen}
                          :smudge {:gesture retouch :retouch smudge}

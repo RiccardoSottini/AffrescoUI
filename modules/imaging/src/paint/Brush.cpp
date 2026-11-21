@@ -273,6 +273,17 @@ Pixel Stroke::retouched(const Pixel& under, int x, int y, float coverage) const 
 		return each([&](float value) { return value + (1.0f - value) * amount; });
 	case StrokeMode::burn:
 		return each([&](float value) { return value * (1.0f - amount); });
+	case StrokeMode::heal: { // the source's texture over the covered pixels' own tone
+		const int fromX = x + static_cast<int>(std::lround(cloneX_)), fromY = y + static_cast<int>(std::lround(cloneY_));
+		const Pixel source = original(fromX, fromY), there = neighbourhood(x, y), here = neighbourhood(fromX, fromY);
+		const float share = std::min(1.0f, coverage);
+		const auto healed = [&](float was, float from, float tone, float sourceTone) {
+			return std::clamp(was + (from + tone - sourceTone - was) * share, 0.0f, 1.0f);
+		};
+		return {healed(under.red, source.red, there.red, here.red),
+		        healed(under.green, source.green, there.green, here.green),
+		        healed(under.blue, source.blue, there.blue, here.blue), under.alpha};
+	}
 	case StrokeMode::smudge: { // the paint from behind the stamp, as it is now, drawn along
 		const Image& image = *document_->image(target_);
 		const int fromX = std::clamp(x - static_cast<int>(std::lround(smudgeX_)), 0, image.width() - 1);

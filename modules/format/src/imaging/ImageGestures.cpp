@@ -86,7 +86,8 @@ bool pressCloneSource(ImageDocument& image, Point at) {
 		return names.at(static_cast<std::size_t>(settings.retouch) -
 		                static_cast<std::size_t>(imaging::StrokeMode::dodge));
 	}
-	return settings.gesture == Gesture::clone ? "Clone Stamp" : "Brush";
+	if(settings.gesture == Gesture::clone) return settings.healing ? "Healing Brush" : "Clone Stamp";
+	return "Brush";
 }
 
 /// @brief Starts a brush, eraser or clone stroke.
@@ -99,12 +100,13 @@ bool startStroke(ImageDocument& image, Point at) {
 	const auto target = paintTarget(image);
 	if(!target) return true;
 	const auto mode = settings.gesture == Gesture::erase     ? imaging::StrokeMode::erase
-	                  : settings.gesture == Gesture::clone   ? imaging::StrokeMode::clone
+	                  : settings.gesture == Gesture::clone
+	                      ? (settings.healing ? imaging::StrokeMode::heal : imaging::StrokeMode::clone)
 	                  : settings.gesture == Gesture::retouch ? settings.retouch
 	                                                         : imaging::StrokeMode::paint;
 	image.stroke = std::make_unique<imaging::Stroke>(image.canvas->document(), *target, settings.tip, mode,
 	                                                   settings.foreground, strokeName(settings));
-	if(mode == imaging::StrokeMode::clone && settings.cloneSource) {
+	if((mode == imaging::StrokeMode::clone || mode == imaging::StrokeMode::heal) && settings.cloneSource) {
 		// The offset is kept between strokes, so that the source follows the brush as in other editors
 		if(!image.cloneOffset)
 			image.cloneOffset = Point{settings.cloneSource->x - at.x, settings.cloneSource->y - at.y};

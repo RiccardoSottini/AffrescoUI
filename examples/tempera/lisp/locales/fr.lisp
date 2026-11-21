@@ -680,6 +680,7 @@
                 :tool.hand "Outil Main"
                 :tool.hand.short "Main"
                 :tool.healing "Outil Correcteur"
+                :tool.healing.short "Correcteur"
                 :tool.lasso "Outil Lasso"
                 :tool.lasso.short "Lasso"
                 :tool.lineShape "Outil Trait"

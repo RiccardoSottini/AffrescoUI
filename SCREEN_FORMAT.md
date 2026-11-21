@@ -1517,7 +1517,7 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector`, `cropRatio`, `retouch`, `reverse`, `dither`, `transparency` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect`, `vector`, `cropRatio`, `retouch`, `reverse`, `dither`, `transparency`, `healing` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
 | `addText` | `text`, `x`, `y`, `size`, `font`, `bold`, `italic`, `align`, `leading`, `tracking`, `kerning`, `fill` | Adds a type layer. |
@@ -1569,7 +1569,8 @@ per contour. `quick-select` selects, at the release, the pixels like the one und
 `tolerance`) and connected to it, no farther than the brush's radius (`size`), so it stops at edges.
 `retouch` strokes with the brush and changes the pixels under it as its `retouch` option says: `dodge` lightens,
 `burn` darkens, `sponge` takes the colour away, `blur` and `sharpen` move each pixel towards or away from its
-neighbours' average, `smudge` drags the paint along the stroke. `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
+neighbours' average, `smudge` drags the paint along the stroke. A `clone` tool with the `healing` option lays the
+source's texture in the tone of the pixels it covers (the healing brush). `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
 stays), a drag inside moves it, one step each; `layer-box` does the same to the active pixel layer, around its pixels
 (a Free Transform step). The
 paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the

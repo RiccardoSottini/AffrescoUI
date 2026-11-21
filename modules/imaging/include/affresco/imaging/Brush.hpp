@@ -52,10 +52,11 @@ enum class StrokeMode : std::uint8_t {
 	blur,    ///< Softens them: each towards the average of its neighbours.
 	sharpen, ///< Sharpens them: each away from the average of its neighbours.
 	smudge,  ///< Drags them along the stroke, as a finger through wet paint.
+	heal,    ///< Clones from an offset, its tone matched to the pixels it covers (the healing brush).
 };
 
 /// @brief The names of the retouching modes ("dodge", "burn", "sponge", "blur", "sharpen", "smudge"), from
-/// StrokeMode::dodge on.
+/// StrokeMode::dodge on (heal, a clone, has none).
 [[nodiscard]] std::span<const std::string_view> retouchNames() noexcept;
 
 /// @brief A point of a stroke and the pen's pressure there.

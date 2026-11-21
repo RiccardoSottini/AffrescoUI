@@ -63,7 +63,7 @@
    [{:id crop :name crop :icon crop :key "C"}]
    []
    [{:id eyedropper :name eyedropper :icon pipette :key "I"}]
-   [{:name healing :icon bandage}]
+   [{:id healing :name healing :icon bandage :key "J"}]
    [{:id brush :name brush :icon paintbrush :key "B"} {:id pencil :name pencil :icon pencil :key "Shift+B"}]
    [{:id clone :name clone :icon copy-plus :key "S"}]
    [{:name restore :icon undo-dot}]

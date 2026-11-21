@@ -14,7 +14,7 @@
 		"rulerMinorX": "{{map(range(min(400, 5 * length(computed.rulerTicksX))), computed.rulerTicksX[0] + it * computed.rulerStep / 5)}}",
 		"rulerMinorY": "{{map(range(min(400, 5 * length(computed.rulerTicksY))), computed.rulerTicksY[0] + it * computed.rulerStep / 5)}}",
 		"px": "{{state.doc.view.zoom / (window.scale ?? 1)}}",
-		"paints": "{{contains(['brush', 'pencil', 'eraser', 'clone', 'blur', 'sharpen', 'smudge', 'dodge', 'burn', 'sponge'], state.doc.tool)}}",
+		"paints": "{{contains(['brush', 'pencil', 'eraser', 'clone', 'healing', 'blur', 'sharpen', 'smudge', 'dodge', 'burn', 'sponge'], state.doc.tool)}}",
 		"selects": "{{contains(['marquee', 'ellipse', 'lasso', 'polygon', 'wand', 'quick-select'], state.doc.tool)}}",
 		"tool": "{{find(find(state.tools, some(it, it.id == state.doc.tool)) ?? [], it.id == state.doc.tool) ?? state.modeTools[state.doc.tool] ?? {}}}",
 		"toolName": "{{split(computed.tool.title ?? '', ' Tool')[0]}}",

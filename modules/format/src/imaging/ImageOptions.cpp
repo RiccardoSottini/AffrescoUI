@@ -24,11 +24,11 @@ constexpr std::array<std::string_view, 23> gestureNameList{
     "retouch"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
-constexpr std::array<std::string_view, 28> optionKeyList{
+constexpr std::array<std::string_view, 29> optionKeyList{
     "preset",     "size",       "sizeStep",  "hardness",    "spacing",     "opacity",        "flow",     "mode",
     "tolerance",  "contiguous", "allLayers", "fillOpacity", "shape",       "gradientPreset", "gradient", "foreground",
     "background", "swap",       "reset",     "quickMask",   "cloneSource", "autoSelect",     "vector",   "cropRatio",
-    "retouch",    "reverse",    "dither",    "transparency"};
+    "retouch",    "reverse",    "dither",    "transparency", "healing"};
 
 /// @brief A gradient argument: {stops: [{at, color}]} as a gradient editor gives it (or "position" for "at").
 /// @param value The value.
@@ -99,8 +99,8 @@ void setGradient(ToolSettings& settings, const json& arguments) {
 	options.transparency = flagOf(arguments, "transparency", options.transparency);
 }
 
-/// @brief Sets the selection, fill, move, crop and retouch options: mode, tolerance, contiguous, allLayers,
-/// fillOpacity, autoSelect, cropRatio, retouch.
+/// @brief Sets the selection, fill, move, crop, retouch and healing options: mode, tolerance, contiguous, allLayers,
+/// fillOpacity, autoSelect, cropRatio, retouch, healing.
 /// @param settings The settings.
 /// @param arguments The options set.
 void setSampling(ToolSettings& settings, const json& arguments) {
@@ -109,6 +109,7 @@ void setSampling(ToolSettings& settings, const json& arguments) {
 	settings.sample.contiguous = flagOf(arguments, "contiguous", settings.sample.contiguous);
 	settings.sample.allLayers = flagOf(arguments, "allLayers", settings.sample.allLayers);
 	settings.autoSelect = flagOf(arguments, "autoSelect", settings.autoSelect);
+	settings.healing = flagOf(arguments, "healing", settings.healing);
 	if(const std::string retouch = textOf(arguments, "retouch"); !retouch.empty()) {
 		const auto names = imaging::retouchNames();
 		const auto found = std::ranges::find(names, retouch);

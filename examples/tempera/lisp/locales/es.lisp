@@ -680,6 +680,7 @@
                 :tool.hand "Herramienta Mano"
                 :tool.hand.short "Mano"
                 :tool.healing "Herramienta Pincel corrector"
+                :tool.healing.short "Pincel corrector"
                 :tool.lasso "Herramienta Lazo"
                 :tool.lasso.short "Lazo"
                 :tool.lineShape "Herramienta Línea"

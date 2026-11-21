@@ -6520,7 +6520,7 @@
 		},
 		{
 			"name": "tempera-retouch-tools",
-			"note": "Dodge (O), Burn (Shift+O), Blur (R), Sharpen, Sponge and Smudge retouch the active layer's pixels with the brush, a step each",
+			"note": "Dodge (O), Burn (Shift+O), Blur (R), Sharpen, Sponge, Smudge and the Healing Brush (J) retouch the active layer's pixels with the brush, a step each",
 			"steps": [
 				{
 					"note": "onLoad draws the sample at the first frame",
@@ -6800,6 +6800,88 @@
 					"expect": {
 						"state": "doc.history[6].label",
 						"is": "Smudge"
+					}
+				},
+				{
+					"key": "j"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "healing"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.healing",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 800,
+									"y": 700,
+									"pressure": 1,
+									"button": "right"
+								},
+								{
+									"kind": "release",
+									"x": 800,
+									"y": 700,
+									"pressure": 1,
+									"button": "right"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 300,
+									"y": 700,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 320,
+									"y": 700,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 340,
+									"y": 700,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[7].label",
+						"is": "Healing Brush"
+					}
+				},
+				{
+					"key": "s"
+				},
+				{
+					"expect": {
+						"state": "doc.options.healing",
+						"is": false
 					}
 				}
 			]
