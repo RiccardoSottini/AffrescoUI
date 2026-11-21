@@ -106,10 +106,10 @@
           (map (fn [it]
                  {:id it.id
                   :cells [it.name
-                          (get-in computed.deviceMakers [it.id 0])
-                          (t (str "kind." it.id))
-                          (get-in state.rooms [(get-in computed.deviceMakers [it.id 1]) :name])
-                          (get-in computed.deviceMakers [it.id 2])]})
+                          (or-else (get-in computed.deviceMakers [it.id 0]) it.maker)
+                          (t (str "kind." it.kind))
+                          (get-in state.rooms [(or-else (get-in computed.deviceMakers [it.id 1]) it.room) :name])
+                          (or-else (get-in computed.deviceMakers [it.id 2]) it.link)]})
                state.devices)))
 
 (defcomputed deviceColumns "The devices table's columns."
@@ -202,8 +202,8 @@
      ~(device-filters)
      ~(device-search)
      ~(device-empty)
-     ~(device-add)
      ~(device-tables)
+     ~(device-add)
      ~(profile-user)
      ~(profile-choices)
      ~(general-settings)
@@ -354,14 +354,16 @@
        :height 24
        :align center)))
 
-(defview device-add "The floating button that adds to the tab shown (not there yet)." []
+(defview device-add
+  "The floating button that adds to the tab shown: a device, in a dialog; the other tabs' kinds are not there yet." []
   `(node#devAdd :when ~(= state.settingsView :devices)
+     :let {:can ~(= state.devTab :devices)}
      :style button
      :icon plus
      :text ~(t (str "dev.add." state.devTab))
-     :color @raised
-     :hover {:color @raised}
-     :textColor @muted
+     :color ~(if can "@accentSoft" "@raised")
+     :hover {:color ~(if can "@accentSoft" "@raised")}
+     :textColor ~(if can "@accent" "@muted")
      :anchors {:right 72 :bottom 32}
      :width 200
      :height 52
@@ -369,9 +371,90 @@
      :shadow {:y 4 :blur 12 :color "#00000040"}
      :role button
      :label ~(t (str "dev.add." state.devTab))
-     :tooltip ~(t "dev.addSoon")
-     :cursor arrow
-     :disabled true))
+     :tooltip ~(if can "" (t "dev.addSoon"))
+     :cursor ~(if can "hand" "arrow")
+     :disabled ~(not can)
+     :onClick ~(handler open-new-device)))
+
+(def new-device-kinds "The kinds of device the add dialog offers, with their icons on and off."
+  [{:kind "plug" :icon "plug-zap" :iconOff "plug"} {:kind "fan" :icon "fan" :iconOff "fan"}])
+
+(defn open-new-device "Opens the dialog that adds a device, empty." []
+  (set "state.newDevice" {:open true :name "" :kind "plug" :room 0 :link "Wi-Fi" :error ""}))
+
+(defn add-device "Adds the device the dialog describes, off, to the home's devices; it needs a name." []
+  (let [{:keys [name kind room link]} state.newDevice
+        title (str/trim name)
+        icons (find #(= (:kind %) kind) new-device-kinds)]
+    (if (empty? title)
+      (set "state.newDevice.error" (t "dev.new.needName"))
+      (do (set "state.devices"
+               (conj state.devices
+                     {:id (str kind "-" (count state.devices)) :kind kind :name title :icon (:icon icons)
+                      :iconOff (:iconOff icons) :maker (t "dev.new.maker") :room room :link link :on false
+                      :busy false :progress 0}))
+          (set "state.newDevice.open" false)
+          (show-toast (t "dev.new.added" {:name title}))))))
+
+(defcomponent newDeviceDialog "Adds a device: its name, its kind, its room and how it is connected."
+  {}
+  `(node :dir auto
+     :overlay {:placement center :open state.newDevice.open :dismiss outside :modal true}
+     :width 440
+     :height 404
+     :radius 28
+     :color @card
+     :shadow {:y 8 :blur 24 :color "#00000040"}
+     :role dialog
+     :label ~(t "dev.new.title")
+     (label#newDeviceTitle :font heading :textColor @text :text ~(t "dev.new.title") :anchors {:left 24 :top 20}
+       :fitText true)
+     (textarea#newDeviceName :anchors {:left 24 :right 24 :top 60}
+       :height 40
+       :padding 10
+       :radius 10
+       :color @raised
+       :textColor @text
+       :placeholderColor @muted
+       :bind state.newDevice.name
+       :maxLength 40
+       :placeholder ~(t "dev.new.name")
+       :label ~(t "dev.new.name")
+       :autofocus true
+       :onSubmit ~(handler add-device))
+     (label#newDeviceError :when ~(and (not (empty? state.newDevice.error)) (empty? (str/trim state.newDevice.name)))
+       :font small :text ~state.newDevice.error :textColor @alert :anchors {:left 24 :top 104} :fitText true :live assertive)
+     ~(new-device-field "kind" 124)
+     ~(new-device-field "room" 196)
+     ~(new-device-field "link" 268)
+     (node#newDeviceCancel :style button :text ~(t "dev.new.cancel") :anchors {:right 132 :bottom 20} :width 100
+       :height 36 :onClick {:set state.newDevice.open :to false})
+     (node#newDeviceAdd :style choiceOn :text ~(t "dev.new.add") :anchors {:right 24 :bottom 20} :width 100
+       :height 36 :onClick ~(handler add-device))))
+
+(defcomputed newDeviceChoices "The choices of each field of the new device: its kinds, the rooms, the connections."
+  ; style: keep, #(...) can't give a map
+  {:kind (map (fn [it] {:v it :title (t (str "kind." it))}) ["plug" "fan"])
+   :room (map-indexed (fn [index it] {:v index :title (:name it)}) state.rooms)
+   ; style: keep, #(...) can't give a map
+   :link (map (fn [it] {:v it :title it}) computed.connections)})
+
+(defview new-device-field "A caption over the choices of one field of the new device, the chosen one lit." [field top]
+  `(column :anchors {:left 24 :right 24 :top ~top} :height 70 :gap 6
+     (node :style caption :text ~(t (str "dev.new." field)) :fitText true)
+     (row :height 40 :anchors {:left 0 :right 0} :gap 8 :role radiogroup :label ~(t (str "dev.new." field))
+       ~(repeat [o (get computed.newDeviceChoices field)]
+          `(node :id ~(str "newDevice-" field "-" o.v)
+             :style ~(if (= (get state.newDevice field) o.v) "choiceOn" "choice")
+             :role radio
+             :selected ~(= (get state.newDevice field) o.v)
+             :text ~o.title
+             :fitText true
+             :padding 11
+             :onClick ~(handler pick-new-device field o.v))))))
+
+(defn pick-new-device "Chooses a field of the new device: its kind, room or connection." [field v]
+  (set (str "state.newDevice." field) v))
 
 (defview device-tables "The devices tab's table, or the controls tab's table of rooms." []
   `(column#settingsDevices :when ~(and (= state.settingsView :devices)

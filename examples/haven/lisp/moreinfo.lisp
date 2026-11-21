@@ -49,7 +49,7 @@
         (= state.info.kind :climate) (str computed.room.target "°")
         (= state.info.kind :cover) (t "blinds.open" {:n (round computed.room.blinds)})
         computed.infoDevice.busy (t "device.waiting")
-        :else (t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".on" ".off")))))
+        :else (t (str "device." computed.infoDevice.kind (if computed.infoDevice.on ".on" ".off")))))
 
 ;;; The dialog
 
@@ -351,7 +351,7 @@
        :width 160
        :height 36
        :radius 18
-       :text ~(t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".doOff" ".doOn")))
+       :text ~(t (str "device." computed.infoDevice.kind (if computed.infoDevice.on ".doOff" ".doOn")))
        :onClick ~(handler device-call state.info.index))
      ~(device-facts)
      (label#infoLogTitle :textColor @text
@@ -372,7 +372,7 @@
      (label#infoLogText :textColor @text
        :anchors {:left 64 :right 12 :top 10}
        :height 20
-       :text ~(t (str "device." computed.infoDevice.id (if (= (even? n) computed.infoDevice.on) ".on" ".off"))))))
+       :text ~(t (str "device." computed.infoDevice.kind (if (= (even? n) computed.infoDevice.on) ".on" ".off"))))))
 
 (defview dialog-menu "The dialog's menu: the automation the device is part of, and its attributes." []
   `(node#infoMore :style round
