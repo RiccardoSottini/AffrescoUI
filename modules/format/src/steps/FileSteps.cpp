@@ -108,6 +108,21 @@ std::string numberedPath(const std::string& chosen, std::size_t number) {
 	return {text.begin(), text.end()};
 }
 
+/// @brief Whether a numbered series beside the chosen file would write over a file already there (the save dialog
+/// asked about the chosen name only).
+/// @param chosen The chosen file (UTF-8).
+/// @param count How many files the series has (a single file goes under the chosen name, so nothing to check).
+/// @return The error naming the first file in the way, or nothing.
+std::optional<std::string> seriesTaken(const std::string& chosen, std::size_t count) {
+	for(std::size_t i = 0; count > 1 && i < count; ++i) {
+		const std::string path = numberedPath(chosen, i + 1);
+		std::error_code ignored;
+		if(std::filesystem::exists(std::filesystem::path(std::u8string(path.begin(), path.end())), ignored))
+			return "'" + fileNameOf(path) + "' exists already: choose another name";
+	}
+	return std::nullopt;
+}
+
 /// @brief Reads a file of at most @p limit bytes.
 /// @param path The file (UTF-8).
 /// @param bytes Filled in with its text.
@@ -324,6 +339,13 @@ void saveSeriesAfterEvent(const Running& s, std::vector<std::vector<std::uint8_t
 		    engine.window->chooseFiles({FileDialogKind::Save, title, {filter}, "", name, false});
 		if(!alive.lock() || chosen.empty()) return; // cancelled, or the screen went away meanwhile
 		json names = json::array();
+		// The dialog asked about the chosen name only: a numbered file beside it is never written over
+		if(const std::optional<std::string> error = seriesTaken(chosen.front(), files.size())) {
+			engine.report("AffrescoUI screen: saving: " + *error);
+			followers.outcome->vars = json{{"error", {{"code", "save"}, {"message", *error}}}};
+			followers.failed();
+			return;
+		}
 		for(std::size_t i = 0; i < files.size(); ++i) {
 			const std::string path = files.size() == 1 ? chosen.front() : numberedPath(chosen.front(), i + 1);
 			if(const std::optional<std::string> error = writeBytes(path, files[i])) {

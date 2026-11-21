@@ -114,6 +114,35 @@ void exportFailed(const Running& s, const std::string& message) {
 	followers.failed();
 }
 
+/// @brief Draws the files of an export: one PDF of every page, one PNG a page, or the glTF of a scene node. Reports
+/// the failure (exportFailed()) when one can't be drawn.
+/// @param s The step.
+/// @param engine Its engine.
+/// @param kind "pdf", "png" or "gltf".
+/// @param pages The nodes to draw.
+/// @param title The PDF's title.
+/// @param view The scene node, for a glTF.
+/// @param warnings Filled in with the glTF's warnings.
+/// @return The files, none of them empty, or nothing if the export failed.
+std::vector<std::vector<std::uint8_t>> drawFiles(const Running& s, Engine& engine, const std::string& kind,
+                                                 const std::vector<Panel*>& pages, const std::string& title,
+                                                 const scene3d::SceneView* view, std::vector<std::string>& warnings) {
+	std::vector<std::vector<std::uint8_t>> files;
+	try {
+		if(kind == "png")
+			for(Panel* page : pages) files.push_back(pngOf(s, engine, *page));
+		else files.push_back(kind == "pdf" ? pdfOf(s, pages, title) : gltfOf(s, *view, warnings));
+	} catch(const std::exception& error) {
+		exportFailed(s, error.what());
+		return {};
+	}
+	if(std::ranges::any_of(files, [](const std::vector<std::uint8_t>& file) { return file.empty(); })) {
+		exportFailed(s, "the window draws nothing");
+		return {};
+	}
+	return files;
+}
+
 /// @brief "export": "pdf", "png" or "gltf" of the "pages", saved where the person chooses, named after "name" (or
 /// "title"), then onDone with result {name, pages, bytes} (and the glTF's warnings; several PNGs, one a page, are
 /// numbered beside the chosen name and named in {files}).
@@ -136,24 +165,11 @@ bool exportFile(const Running& s) {
 		exportFailed(s, "a glTF file is of a scene node");
 		return true;
 	}
-	std::vector<std::vector<std::uint8_t>> files;
 	std::vector<std::string> warnings;
-	try {
-		if(kind == "png")
-			for(Panel* page : pages) files.push_back(pngOf(s, engine, *page));
-		else files.push_back(kind == "pdf" ? pdfOf(s, pages, title) : gltfOf(s, *view, warnings));
-	} catch(const std::exception& error) {
-		exportFailed(s, error.what());
-		return true;
-	}
+	std::vector<std::vector<std::uint8_t>> files = drawFiles(s, engine, kind, pages, title, view, warnings);
+	if(files.empty()) return true;
 	std::size_t size = 0;
-	for(const std::vector<std::uint8_t>& file : files) {
-		if(file.empty()) {
-			exportFailed(s, "the window draws nothing");
-			return true;
-		}
-		size += file.size();
-	}
+	for(const std::vector<std::uint8_t>& file : files) size += file.size();
 	if(!name.ends_with("." + kind)) name += "." + kind;
 	json result = {{"pages", pages.size()}, {"bytes", size}};
 	if(kind == "gltf") result["warnings"] = warnings;

@@ -131,6 +131,10 @@ private:
 	/// @param event The event.
 	/// @return true if a binding ran, a chord started or went on, or a press ended one.
 	bool resolve(Panel* from, const KeyEvent& event);
+	/// @brief Escape: ends a chord in progress (and does nothing else), or closes the open overlays.
+	/// @param chording Whether a chord is in progress.
+	/// @return true if it ended a chord, so the press is taken.
+	bool escape(bool chording);
 	/// @brief Runs the "keys" binding of a press on the focused panel or its nearest ancestor that has one.
 	/// @param from The focused panel, or nullptr.
 	/// @param press The press, with the chord in progress before it.

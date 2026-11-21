@@ -239,15 +239,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const std::string name = shortcut(event);
 	if(name.empty()) return false;
 	const bool chording = !chord_.empty();
-	if(name == "escape") {
-		if(chording) { // Escape ends a chord, and does nothing else
-			chord_.clear();
-			engine_.document.contextChanged();
-			if(engine_.window) engine_.window->takeKey();
-			return true;
-		}
-		dismissOverlays(nullptr);
-	}
+	if(name == "escape" && escape(chording)) return true;
 	const std::string press = chording ? chord_ + " " + name : name;
 	bool waits = false; // some key starts with this press
 	// The focused panel and its ancestors, then the document's; a focused text input keeps plain keys for typing
@@ -261,6 +253,17 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const bool taken = ran || waits || chording;
 	if(taken && engine_.window) engine_.window->takeKey();
 	return taken;
+}
+
+bool Events::escape(bool chording) {
+	if(!chording) {
+		dismissOverlays(nullptr);
+		return false;
+	}
+	chord_.clear(); // Escape ends a chord, and does nothing else
+	engine_.document.contextChanged();
+	if(engine_.window) engine_.window->takeKey();
+	return true;
 }
 
 bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
