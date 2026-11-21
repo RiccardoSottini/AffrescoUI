@@ -62,7 +62,8 @@ std::u32string_view trimmed(std::u32string_view text) noexcept {
 float justifiedShare(std::u32string_view text, const TextLayout::Line& line, float boxWidth) {
 	const bool last = line.end >= text.size() || text[line.end] == U'\n';
 	std::size_t gaps = 0;
-	for(std::size_t at = line.begin; at < line.end; ++at) gaps += text[at] == U' ' ? 1 : 0;
+	for(std::size_t at = line.begin; at < line.end; ++at)
+		if(text[at] == U' ') ++gaps;
 	std::size_t trailing = 0; // the spaces the line ends with aren't widened
 	for(std::size_t at = line.end; at > line.begin && text[at - 1] == U' '; --at) ++trailing;
 	gaps -= trailing;
@@ -96,7 +97,7 @@ void appendJustified(const TextLayout::Piece& piece, std::u32string_view whole, 
 		part.x = piece.x + carets[begin] + share * static_cast<float>(passed);
 		part.width = carets[end] - carets[begin];
 		justified.push_back(part);
-		passed += end > begin && text[end - 1] == U' ' ? 1 : 0;
+		if(end > begin && text[end - 1] == U' ') ++passed;
 		begin = end;
 	}
 }

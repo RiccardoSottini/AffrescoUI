@@ -2,7 +2,7 @@
 	"id": "forge-focus",
 	"level": "forge",
 	"screen": "examples/forge/json/index.screen.json",
-	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a button \"Focus the Editor\" (id welcome-focus) in the Welcome page's Quick actions.",
+	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a button \"Focus the Editor\" (id welcome-focus) in the Welcome page's Start list.",
 	"scenarios": [
 		{
 			"name": "welcome",
@@ -92,18 +92,15 @@
 						"run": "focusEditor"
 					}
 				},
-				"#welcome-body/children/11": {
-					"type": "label",
+				"#welcome-left/children/6": {
 					"id": "welcome-focus",
-					"role": "button",
-					"icon": "maximize",
-					"text": "Focus the Editor",
-					"width": "100%",
-					"height": 38,
-					"padding": 12,
-					"radius": 9,
-					"color": "@color.widget",
-					"cursor": "hand",
+					"use": "forgeWelcomeAction",
+					"with": {
+						"icon": "maximize",
+						"text": "Focus the Editor",
+						"tip": "Hide the side bar and the panel",
+						"command": "focusEditor"
+					},
 					"onClick": {
 						"run": "focusEditor"
 					}

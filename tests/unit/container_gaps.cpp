@@ -97,7 +97,7 @@ TEST_CASE("padding: a column places its children inside it, and fits its content
 	CHECK(cell.top == doctest::Approx(grid.top + 8.0f));
 	CHECK(cell.width() == doctest::Approx(100.0f)); // (216 - 16) / 2
 
-	ManualClock clock;
+	const ManualClock clock;
 	const auto window = createHeadlessWindow(100, 100, clock);
 	affresco::Screen bad = affresco::Screen::fromString(
 	    screenOf({{"id", "root"}, {"children", {{{"type", "row"}, {"id", "r"}, {"padding", {1, 2, 3}}}}}}).dump());
@@ -136,7 +136,7 @@ TEST_CASE("letter spacing: wrapped text breaks with the spacing counted") {
 }
 
 TEST_CASE("tabs: each tab is an element of its own, selected when active, and pressing it picks it") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 100, clock);
 	auto strip = std::make_unique<affresco::Tabs>();
 	affresco::Tabs& tabs = *strip;
@@ -248,7 +248,9 @@ TEST_CASE("justify: rich text's wrapped lines fill the width, cut at their space
 	const auto font = affresco::Font::load(std::filesystem::path(AFFRESCOUI_FONTS_DIR) / "Roboto-Regular.ttf", 16.0f);
 	REQUIRE(font != nullptr);
 	affresco::TextLayout layout;
-	const std::vector<affresco::TextRun> runs = {{.text = U"one two three "}, {.text = U"four five six seven eight"}};
+	std::vector<affresco::TextRun> runs(2);
+	runs[0].text = U"one two three ";
+	runs[1].text = U"four five six seven eight";
 	const float box = font->measure(U"one two three four") + 12.0f; // room left on the first line
 	layout.layOut(runs, *font, box, box, affresco::Align::Start);
 	REQUIRE(layout.lines().size() >= 2);

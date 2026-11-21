@@ -38,7 +38,9 @@ inline const Shape single = true; ///< Text, a number or a boolean.
 	return {{"first", true}, {"last", true}, {"rows", true}, {"lines", true}, {"rowHeight", true}};
 }
 
-inline constexpr std::size_t maxVisits = 1000000; ///< Nodes, steps and values a check visits before giving up.
+/// Nodes, steps and values a check visits before giving up, over all its passes: the largest example app takes 1.2
+/// million in two passes, about 0.3 s, so the limit bounds a check at about a second.
+inline constexpr std::size_t maxVisits = 4000000;
 /// Shape nodes a check copies before giving up: a step that writes the state into the state doubles what it may
 /// hold, so a few dozen such steps would copy more than memory holds (the largest screens tested copy 40,000).
 inline constexpr std::size_t maxShapeWork = 4000000;

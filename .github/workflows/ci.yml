@@ -279,7 +279,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
-    timeout-minutes: 90 # the build alone takes about 45 minutes, then the tests about 15
+    timeout-minutes: 120 # the build alone takes about 65 minutes, then the tests about 30 (both notations of 13 apps)
     steps:
       - name: Check out with the repository's line endings # the CLI's tests compare generated files with them
         run: git config --global core.autocrlf false

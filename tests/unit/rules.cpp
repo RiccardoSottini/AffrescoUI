@@ -362,7 +362,7 @@ TEST_CASE("format: components are expanded up to a document's size, past which a
 TEST_CASE("format: a revision can't give a taken id to another node, even in a document too large to check") {
 	json before = screenWithActions();
 	json& text = before["root"]["children"][0]["text"] = json::array();
-	text.get_ref<json::array_t&>().resize(1100000, json::array()); // lists cost the checker a visit each
+	text.get_ref<json::array_t&>().resize(4100000, json::array()); // lists cost the checker a visit each
 	REQUIRE_FALSE(affresco::format::check(before, before["state"]));
 	json after = before;
 	after["root"]["children"].insert(after["root"]["children"].begin(),

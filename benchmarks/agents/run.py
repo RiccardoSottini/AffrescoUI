@@ -297,9 +297,10 @@ def ran(reply):
 def replayed(task, runs):
     """A `use` task's scenarios with the runs before each one's steps, in order, as the reviewer (who may run what
     the client was allowed to): its records, which the played document doesn't hold, are then the runs' too. A
-    wait first, for what the app makes once it has started (as the host had, long before the client)."""
-    steps = [{"wait": 50}] + [{"command": run["command"], "with": run.get("arguments") or {}, "as": "studio"}
-                              for run in runs]
+    wait first, for what the app makes once it has started (as the host had, long before the client), then the
+    task's `setup` steps (a day pinned, say), so the runs land where its scenarios look."""
+    steps = [{"wait": 50}] + list(task.get("setup") or []) + [
+        {"command": run["command"], "with": run.get("arguments") or {}, "as": "studio"} for run in runs]
     return [{**scenario, "steps": steps + scenario["steps"]} for scenario in task["scenarios"]]
 
 
