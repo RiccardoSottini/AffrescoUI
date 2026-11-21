@@ -31,6 +31,9 @@ constexpr std::size_t maxNameBytes = 255;
 	for(const auto& [id, layer] : structure.layers)
 		bytes += sizeof(Layer) + layer.name.size() + layer.children.size() * sizeof(std::uint64_t) +
 		         layer.adjustment.curve.size() * sizeof(float) * 2 + layer.adjustment.gradient.stops.size() * 20 +
+		         (layer.adjustment.channelCurves[0].size() + layer.adjustment.channelCurves[1].size() +
+		          layer.adjustment.channelCurves[2].size()) *
+		             sizeof(float) * 2 +
 		         layer.content.text.size() + layer.content.points.size() * sizeof(PathPoint);
 	for(const VectorPath& path : structure.paths)
 		bytes += sizeof(VectorPath) + path.name.size() + path.points.size() * sizeof(PathPoint);

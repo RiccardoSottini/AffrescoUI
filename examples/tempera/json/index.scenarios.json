@@ -1405,6 +1405,166 @@
 			]
 		},
 		{
+			"name": "tempera-high-pass",
+			"note": "Filter > Other > High Pass opens its dialog with the radius alone, and OK applies it as a step",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-filter"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Other"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "High Pass..."
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.kind",
+						"is": "high-pass"
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": true
+					}
+				},
+				{
+					"action": "commitFilter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-last-filter-and-panel-keys",
+			"note": "Filter > Last Filter (Alt+Cmd+F) applies the filter last applied again; F5, F7 and F6 bring the Brushes, Layers and Colour panels forward, Cmd+; shows or hides the guides, F1 says what Tempera is",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showFilter",
+						"args": {
+							"kind": "unsharp-mask"
+						}
+					}
+				},
+				{
+					"action": "commitFilter"
+				},
+				{
+					"expect": {
+						"state": "lastFilter.kind",
+						"is": "unsharp-mask"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				},
+				{
+					"key": "mod+alt+f"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showPanel",
+						"args": {
+							"slot": "layers",
+							"id": "channels"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "showPanel",
+						"args": {
+							"slot": "colour",
+							"id": "swatches"
+						}
+					}
+				},
+				{
+					"key": "f7"
+				},
+				{
+					"expect": {
+						"state": "panels.layers",
+						"is": "layers"
+					}
+				},
+				{
+					"key": "f6"
+				},
+				{
+					"expect": {
+						"state": "panels.colour",
+						"is": "colour"
+					}
+				},
+				{
+					"key": "mod+semicolon"
+				},
+				{
+					"expect": {
+						"state": "view.guides",
+						"is": false
+					}
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"expect": {
+						"state": "panels.properties",
+						"is": "brushes"
+					}
+				},
+				{
+					"key": "f1"
+				},
+				{
+					"expect": {
+						"state": "about",
+						"is": true
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-zoom",
 			"note": "Zoom keys and the status bar",
 			"steps": [
@@ -1770,9 +1930,9 @@
 				{
 					"propose": {
 						"author": "agent",
-						"message": "Add a Filters panel: one button per filter, above the Layers panel",
+						"message": "Add a Filters panel: one button per filter, under the panel groups",
 						"add": {
-							"#panels/children/3": {
+							"#panels/children/1": {
 								"type": "column",
 								"id": "filter-panel",
 								"role": "region",
@@ -1847,7 +2007,7 @@
 									}
 								]
 							},
-							"#panels/children/4": {
+							"#panels/children/2": {
 								"id": "filter-panel-split",
 								"width": "100%",
 								"height": 1,
@@ -3044,6 +3204,253 @@
 					"expect": {
 						"state": "doc.canUndo",
 						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-distribute",
+			"note": "Shift and a click pick the sample's three layers together; Properties' Distribute icons and Layer > Distribute space them evenly as one step; a plain click picks one again",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Hills"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sun"
+					},
+					"mods": "shift"
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Layers panel is shorter: its bottom row needs a scroll",
+					"scroll": "#layer-rows",
+					"dy": -40
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sky"
+					},
+					"mods": "shift"
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 3
+					}
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Properties panel is shorter: its Distribute row needs a scroll",
+					"scroll": "#properties",
+					"dy": -40
+				},
+				{
+					"click": "#distribute-left"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Distribute Layers"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Distribute"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Top Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Distribute Layers"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sun"
+					},
+					"mods": "shift"
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 2
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Sky"
+					}
+				},
+				{
+					"expect": {
+						"state": "pickedLayers.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-trim",
+			"note": "Image > Trim crops the image to its visible pixels: with the sky hidden, the sun and the hills' box",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Trim"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Layers panel is shorter: its bottom row needs a scroll",
+					"scroll": "#layer-rows",
+					"dy": -40
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Visibility of Sky"
+					}
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Trim"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 672
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-image-mode",
+			"note": "Image > Mode converts the image to 16 bits a channel and back, its layers kept; the mode it is in is disabled",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Mode"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "16 Bits/Channel"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.format",
+						"is": "rgba16f"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"action": "mode8Bit"
+				},
+				{
+					"expect": {
+						"state": "doc.format",
+						"is": "rgba8"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-history-snapshots",
+			"note": "The History panel's camera keeps the layers as a snapshot; a click on the snapshot restores it as one step that undo takes back; its × forgets it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#history-button"
+				},
+				{
+					"click": "#history-snapshot"
+				},
+				{
+					"expect": {
+						"state": "doc.snapshots[0].name",
+						"is": "Snapshot 1"
+					}
+				},
+				{
+					"action": "clearPixels"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 2
+					}
+				},
+				{
+					"click": "#snapshot-0"
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Snapshot 1"
+					}
+				},
+				{
+					"click": "#snapshot-delete-0"
+				},
+				{
+					"expect": {
+						"state": "doc.snapshots",
+						"is": []
 					}
 				}
 			]
@@ -4669,6 +5076,116 @@
 			]
 		},
 		{
+			"name": "tempera-curves-per-channel",
+			"note": "A Curves layer edits the composite curve or red's, green's or blue's own, each kept on the layer",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+m"
+				},
+				{
+					"expect": {
+						"node": "#curve-channels",
+						"exists": true
+					}
+				},
+				{
+					"click": "#curve-channel-red"
+				},
+				{
+					"expect": {
+						"state": "curveChannel",
+						"is": "red"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setCurve",
+						"args": {
+							"points": [
+								[
+									0,
+									1
+								],
+								[
+									1,
+									0
+								]
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.channelCurves[0][0][1]",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.channelCurves[1]",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.curve[0][1]",
+						"is": 0
+					}
+				},
+				{
+					"click": "#curve-channel-rgb"
+				},
+				{
+					"expect": {
+						"state": "curveChannel",
+						"is": "rgb"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-colorize",
+			"note": "A Hue/Saturation layer's Colorize colours the image in one hue, kept on the layer and taken back by undo",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+u"
+				},
+				{
+					"expect": {
+						"node": "#adjust-colorize",
+						"exists": true
+					}
+				},
+				{
+					"click": "#adjust-colorize"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.colorize",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.colorize",
+						"is": false
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-type-layer",
 			"note": "The Type tool adds a type layer; its text, size and style edit in place, and it rasterizes",
 			"steps": [
@@ -5618,6 +6135,145 @@
 					"expect": {
 						"state": "panels.properties",
 						"is": "properties"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-dock-group-move",
+			"note": "A group's tabs dragged onto another group's move the group there, as Alt+Up and Alt+Down on them do; a saved workspace keeps the order, and the standard one puts it back",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"drag": "#panel-tabs-layers",
+					"to": "#panel-tabs-colour"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "layers"
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[2]",
+						"is": "properties"
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-rows",
+						"exists": true
+					}
+				},
+				{
+					"drag": "#panel-tabs-colour",
+					"to": "#panel-tabs-properties"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[1]",
+						"is": "properties"
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[2]",
+						"is": "colour"
+					}
+				},
+				{
+					"click": "#panel-tab-properties"
+				},
+				{
+					"key": "alt+up"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "properties"
+					}
+				},
+				{
+					"key": "alt+down"
+				},
+				{
+					"expect": {
+						"state": "groupOrder[1]",
+						"is": "properties"
+					}
+				},
+				{
+					"action": "saveWorkspace"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "chooseWorkspace",
+						"args": {
+							"name": "standard"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "colour"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "chooseWorkspace",
+						"args": {
+							"name": "Workspace 1"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "groupOrder[0]",
+						"is": "layers"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-brushes-panel",
+			"note": "The options bar's Brush settings button opens the Brushes panel; a preset chosen there is the brush's, and filled",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#brush-settings"
+				},
+				{
+					"expect": {
+						"state": "panels.properties",
+						"is": "brushes"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Soft Round 30"
+					}
+				},
+				{
+					"expect": {
+						"state": "brushPreset",
+						"is": "Soft Round 30"
+					}
+				},
+				{
+					"expect": {
+						"node": "#brushes-size",
+						"exists": true
 					}
 				}
 			]

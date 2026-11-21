@@ -119,7 +119,9 @@
 (defview paint-options "A painting tool's options: the brush, the mode, opacity and flow, and what isn't there yet." []
   `(row#options-paint :when ~computed.paints :alignItems center :gap 8 :height 30 :grow 100
      ~(brush-picker)
-     (node#brush-settings :use tIcon :with {:icon sliders-horizontal :tip ~(t "option.brushSettings") :off true})
+     (node#brush-settings :use tIcon
+       :with {:icon sliders-horizontal :tip ~(t "option.brushSettings") :run show-panel
+              :args {:slot properties :id brushes} :on ~(= state.panels.properties "brushes")})
      (node :style sep)
      (node#paint-mode :use tPicker
        :with {:title ~(t "blend.normal")

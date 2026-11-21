@@ -144,6 +144,13 @@ struct Press {
 	imaging::Point boxTo; ///< @copydoc boxFrom
 };
 
+/// @brief A named copy of an image's layers, taken from the history panel and restored as a step.
+struct ImageSnapshot {
+	std::string name;             ///< Its name ("Snapshot 1").
+	imaging::Structure structure; ///< The layers, their images copied (copy-on-write: sharing tiles).
+	std::uint64_t generation = 0; ///< The canvas's generation it was taken in: another document's can't be restored.
+};
+
 /// @brief One image being edited: its document on a canvas model, and everything the operations share. Main thread
 /// only.
 struct ImageDocument {
@@ -193,6 +200,7 @@ struct ImageDocument {
 	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
+	std::vector<ImageSnapshot> snapshots; ///< takeSnapshot: the snapshots, the oldest first.
 };
 
 /// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.

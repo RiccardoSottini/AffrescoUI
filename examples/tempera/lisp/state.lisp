@@ -20,6 +20,7 @@
    :active ""
    :layers []
    :history []
+   :snapshots []
    :position 0
    :dropped 0
    :canUndo false
@@ -124,7 +125,7 @@
   "The kinds of adjustment layer, in the Adjust panel and its menu.")
 
 (defstate filters
-  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise}]
+  [{:id gaussian-blur} {:id motion-blur} {:id sharpen} {:id unsharp-mask} {:id add-noise} {:id high-pass}]
   "The filters the Filter menu opens.")
 
 (defstate profiles [{:id srgb} {:id displayP3} {:id wideRgb} {:id gray}] "The colour profiles a document can be in.")
@@ -159,6 +160,9 @@
 
 (defstate collapsed {:colour false :properties false :layers false} "The dock's groups folded to their tabs.")
 
+(defstate groupOrder ["colour" "properties" "layers"]
+  "The dock's groups from the top: a group's tabs dragged onto another group's take its place.")
+
 (defstate groupHeights {:colour 158 :properties 236}
   "The heights of the dock's first two groups, that the sash under each drags; the Layers group takes the rest.")
 
@@ -173,6 +177,9 @@
 (defstate layerFilter {:on false :kinds []} "The Layers panel's filter: on, and the kinds of layer it shows.")
 
 (defstate foldedGroups [] "The groups folded in the Layers panel.")
+
+(defstate pickedLayers []
+  "The layers picked together in the Layers panel (Shift or Cmd and a click): what Distribute spaces.")
 
 (defstate grouping "" "The layer being grouped or ungrouped, while a command moves it.")
 
@@ -191,6 +198,8 @@
 (defstate quickPick {:open false :query "" :index 0 :top 0 :recent []} "The command search.")
 
 ;;; The dialogs
+
+(defstate lastFilter {} "The filter last applied, with its values: Filter > Last Filter applies it again.")
 
 (defstate filter
   {:open false :kind gaussian-blur :radius 4 :amount 100 :threshold 0 :angle 0 :distance 12 :live true :apply 0
@@ -227,6 +236,10 @@
 (defstate blendMenu false "The blend modes are shown.")
 
 (defstate brushMenu false "The brush presets are shown.")
+
+(defstate curveChannel "rgb" "The channel the Curves editor shows: rgb (the composite), red, green or blue.")
+
+(defstate brushPreset "" "The brush preset last chosen, filled in the Brushes panel.")
 
 (defstate gradientMenu false "The gradient presets are shown.")
 

@@ -1487,6 +1487,9 @@ The operations, and the keys of `with` each reads:
 | `redo` | — | Does again the step last taken back. |
 | `history` | `position` | Goes to a place in the history (0 is before the first step). |
 | `clearHistory` | — | Forgets every step of the history. |
+| `takeSnapshot` | `name` | Keeps the layers as they are under a name, to restore later (the snapshot's `snapshots`). |
+| `restoreSnapshot` | `index` | Puts the layers back as a snapshot kept them, as one step. |
+| `deleteSnapshot` | `index` | Forgets a snapshot. |
 | `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
 | `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
 | `duplicateLayer` | `id` | Duplicates a layer. |
@@ -1499,6 +1502,7 @@ The operations, and the keys of `with` each reads:
 | `feather` | `radius` | Softens the selection's edge. |
 | `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
 | `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `trim` | — | Crops the image to the box around its visible pixels that aren't transparent, and forgets the history. |
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
@@ -1506,9 +1510,11 @@ The operations, and the keys of `with` each reads:
 | `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `convertFormat` | `format` | Converts the image to 8 bits a channel (`rgba8`) or 16-bit floats (`rgba16f`), and forgets the history. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
 | `transformSelection` | `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns the selection about the centre of its bounds. |
 | `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `distributeLayers` | `ids`, `edge` | Spaces three or more pixel layers evenly between the outermost two, by their edges or middles. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
 | `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
@@ -1577,7 +1583,7 @@ The names the operations and tool options take, and the library's limits:
 | A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
-| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur`, `high-pass` |
 | The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
 | `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `imageFilePixels` 268435456, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
 <!-- end generated -->
@@ -1585,11 +1591,12 @@ The names the operations and tool options take, and the library's limits:
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
 `lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
-an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
-`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
-`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
-pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
-`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
+an `image` node shows), `history` (`id`, `label`), `snapshots` (`name`, `index`), `position`, `dropped`, `canUndo`,
+`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`,
+`x`, `y`), `message`, `previewing`, `clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the
+`histogram` operation last counted: pixels by brightness, darkest first, transparent ones left out; a large image is
+measured at a smaller size, so give `curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole
+image.
 
 ### An image example
 

@@ -41,13 +41,17 @@
 ;;; Image, its rotations and the colour profiles
 
 (defmenu image "The Image menu: adjustments, sizes, rotation and crop."
-  {:mode {:run unavailable :title ~(t "menu.image.mode") :group "1_mode"}
+  {:mode {:submenu imageMode :title ~(t "menu.image.mode") :group "1_mode"}
    :adjustments {:submenu adjustmentLayers :title ~(t "menu.image.adjustments") :group "1_mode" :order 1}
    :imageSize {:run showImageSize :group "2_size" :order 1}
    :canvasSize {:run showCanvasSize :group "2_size" :order 2}
    :rotation {:submenu imageRotation :title ~(t "menu.image.rotation") :group "2_size" :order 3}
    :crop {:run cropToSelection :title ~(t "menu.image.crop") :group "2_size" :order 4}
-   :trim {:run unavailable :title ~(t "menu.image.trim") :group "2_size" :order 5}})
+   :trim {:run trimImage :title ~(t "menu.image.trim") :group "2_size" :order 5}})
+
+(defmenu imageMode "Image > Mode: the bits a channel holds; the one the image is in is disabled."
+  {:eight {:run mode8Bit :order 1}
+   :sixteen {:run mode16Bit :order 2}})
 
 (defmenu layerTransform "Edit > Transform: the active layer turned or flipped."
   {:rotate180 {:run rotateLayer180 :title ~(t "menu.layerTransform.rotate180") :group "1_rotate" :order 1}
@@ -92,7 +96,8 @@
    :ungroup {:run ungroupLayers :group "5_group" :order 2}
    :arrange {:submenu arrange :title ~(t "menu.layer.arrange") :group "6_arrange" :order 1}
    :align {:submenu layerAlign :title ~(t "menu.layer.align") :group "6_arrange" :order 2}
-   :lock {:run toggleLockAll :title ~(t "menu.layer.lock") :group "6_arrange" :order 3}
+   :distribute {:submenu layerDistribute :title ~(t "menu.layer.distribute") :group "6_arrange" :order 3}
+   :lock {:run toggleLockAll :title ~(t "menu.layer.lock") :group "6_arrange" :order 4}
    :rasterize {:run rasterizeLayer :title ~(t "menu.layer.rasterize") :group "7_merge" :order 1}
    :mergeDown {:run mergeDown :group "7_merge" :order 2}
    :mergeVisible {:run mergeVisible :group "7_merge" :order 3}
@@ -112,6 +117,19 @@
    :top {:run alignActive :with {:args {:edge top}} :title ~(t "menu.layerAlign.top") :group "2_down" :order 1}
    :middle {:run alignActive :with {:args {:edge middle}} :title ~(t "menu.layerAlign.middle") :group "2_down" :order 2}
    :bottom {:run alignActive :with {:args {:edge bottom}}
+            :title ~(t "menu.layerAlign.bottom") :group "2_down" :order 3}})
+
+(defmenu layerDistribute "Layer > Distribute: the layers picked together spaced evenly by an edge, or their middles."
+  {:left {:run distributeLayers :with {:args {:edge left}}
+          :title ~(t "menu.layerAlign.left") :group "1_across" :order 1}
+   :center {:run distributeLayers :with {:args {:edge center}}
+            :title ~(t "menu.layerAlign.center") :group "1_across" :order 2}
+   :right {:run distributeLayers :with {:args {:edge right}}
+           :title ~(t "menu.layerAlign.right") :group "1_across" :order 3}
+   :top {:run distributeLayers :with {:args {:edge top}} :title ~(t "menu.layerAlign.top") :group "2_down" :order 1}
+   :middle {:run distributeLayers :with {:args {:edge middle}}
+            :title ~(t "menu.layerAlign.middle") :group "2_down" :order 2}
+   :bottom {:run distributeLayers :with {:args {:edge bottom}}
             :title ~(t "menu.layerAlign.bottom") :group "2_down" :order 3}})
 
 (defmenu layerDelete "Layer > Delete."
@@ -184,9 +202,11 @@
    :quickMask {:run toggleQuickMask :title ~(t "menu.select.quickMask") :group "4_mask"}})
 
 (defmenu filter "The Filter menu: its kinds of filter."
-  {:blur {:submenu blurFilters :title ~(t "menu.filter.blur") :group "2_kinds" :order 1}
+  {:last {:run lastFilter :group "1_last"}
+   :blur {:submenu blurFilters :title ~(t "menu.filter.blur") :group "2_kinds" :order 1}
    :noise {:submenu noiseFilters :title ~(t "menu.filter.noise") :group "2_kinds" :order 2}
-   :sharpen {:submenu sharpenFilters :title ~(t "menu.filter.sharpen") :group "2_kinds" :order 3}})
+   :sharpen {:submenu sharpenFilters :title ~(t "menu.filter.sharpen") :group "2_kinds" :order 3}
+   :other {:submenu otherFilters :title ~(t "menu.filter.other") :group "2_kinds" :order 4}})
 
 (defmenu blurFilters "Filter > Blur."
   {:gaussianBlur {:run showFilter :with {:args {:kind gaussian-blur}}
@@ -195,6 +215,9 @@
 
 (defmenu noiseFilters "Filter > Noise."
   {:addNoise {:run showFilter :with {:args {:kind add-noise}} :title ~(t "menu.noiseFilters.addNoise")}})
+
+(defmenu otherFilters "Filter > Other."
+  {:highPass {:run showFilter :with {:args {:kind high-pass}} :title ~(t "menu.otherFilters.highPass")}})
 
 (defmenu sharpenFilters "Filter > Sharpen."
   {:sharpen {:run showFilter :with {:args {:kind sharpen}} :title ~(t "menu.sharpenFilters.sharpen") :order 1}
@@ -223,6 +246,7 @@
 (defmenu window "The Window menu: the panels."
   {:adjustments {:run show-panel :with {:args {:slot properties :id adjustments}}
                  :title ~(t "menu.window.adjustments") :order 1}
+   :brushes {:run show-panel :with {:args {:slot properties :id brushes}} :title ~(t "menu.window.brushes") :order 2}
    :channels {:run show-panel :with {:args {:slot layers :id channels}} :title ~(t "menu.window.channels") :order 2}
    :colour {:run show-panel :with {:args {:slot colour :id colour}} :title ~(t "menu.window.colour") :order 3}
    :history {:run show-popout :with {:args {:id history}} :title ~(t "menu.window.history") :order 4}

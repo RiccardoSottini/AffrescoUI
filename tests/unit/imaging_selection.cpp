@@ -189,6 +189,13 @@ TEST_CASE("imaging filters: sharpen, noise, motion, preview runs, and feather") 
 	} // a run never finished puts the tiles back
 	CHECK(document.history().steps().back().name == "Add Noise");
 	CHECK(byteFromUnit(filterKindOf("motion-blur") == FilterKind::motionBlur ? 1.0f : 0.0f) == 255);
+	Filter highPass; // flat grey at the left: mid grey; the edge keeps its contrast
+	highPass.kind = FilterKind::highPass;
+	highPass.radius = 3.0f;
+	applyFilter(document, pixels, highPass);
+	CHECK(image.pixel(40, 50).alpha == doctest::Approx(1.0f).epsilon(0.01));
+	CHECK(document.history().steps().back().name == "High Pass");
+	CHECK(filterKindOf("high-pass") == FilterKind::highPass);
 
 	select(document, "Marquee", rectangleCoverage(256, 256, {64.0f, 64.0f}, {192.0f, 192.0f}), SelectionMode::replace);
 	featherSelection(document, 8.0f);

@@ -85,7 +85,19 @@
 
 (defkey "mod+alt+shift+w" exportPng)
 
+(defkey "mod+alt+shift+s" exportJpeg)
+
 (defkey "f12" revert)
+
+;;; Panels and filters
+
+(defkey "f5" {:do show-panel :with {:args {:slot properties :id brushes}}})
+
+(defkey "f6" {:do show-panel :with {:args {:slot colour :id colour}}})
+
+(defkey "f7" {:do show-panel :with {:args {:slot layers :id layers}}})
+
+(defkey "mod+alt+f" lastFilter)
 
 ;;; Edit
 
@@ -179,6 +191,10 @@
 
 (defkey "mod+r" toggleRulers)
 
+(defkey "mod+semicolon" toggleGuides)
+
 (defkey "f" cycleScreenMode)
 
 (defkey "mod+f" showSearch)
+
+(defkey "f1" showAbout)

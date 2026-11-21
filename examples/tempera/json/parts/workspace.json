@@ -240,10 +240,11 @@
 								{ "type": "column", "role": "list", "label": "Brush presets", "width": "100%", "grow": 1, "children": [
 									{ "type": "label", "repeat": { "for": "b", "in": "state.brushes" }, "role": "listitem", "label": "{{b}}", "text": "{{b}}",
 									  "width": "100%", "height": 21, "padding": 4, "textColor": "@text", "cursor": "hand", "hover": { "color": "@menuHover" },
-									  "onClick": [{ "run": "setOptions", "with": { "args": { "preset": "{{b}}" } } }, { "set": "state.brushMenu", "to": false }] } ] }
+									  "onClick": [{ "run": "setOptions", "with": { "args": { "preset": "{{b}}" } } }, { "set": "state.brushPreset", "to": "{{b}}" }, { "set": "state.brushMenu", "to": false }] } ] }
 							  ] }
 						  ] },
-						{ "id": "brush-settings", "use": "tIcon", "with": { "icon": "sliders-horizontal", "tip": "Brush settings, not available yet", "off": true } },
+						{ "id": "brush-settings", "use": "tIcon", "with": { "icon": "sliders-horizontal", "tip": "Brush settings: the Brushes panel", "run": "showPanel",
+						  "args": { "slot": "properties", "id": "brushes" }, "on": "{{state.panels.properties == 'brushes'}}" } },
 						{ "style": "sep" },
 						{ "id": "paint-mode", "use": "tPicker", "with": { "title": "Normal", "tip": "Painting mode: other modes aren't available yet", "width": 84, "open": "state.paintModeMenu",
 						  "items": [{ "title": "Normal", "checked": true }] } },

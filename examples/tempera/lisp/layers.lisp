@@ -97,18 +97,18 @@
   `(row :id ~(str "layer-" layer.id)
      :role listitem
      :label ~layer.name
-     :selected ~(= layer.id state.doc.active)
+     :selected ~(or (= layer.id state.doc.active) (contains computed.picked layer.id))
      :anchors {:left 4 :right 4}
      :height 36
      :alignItems center
      :gap 5
      :cursor hand
      :radius @kit.radius
-     :color ~(if (= layer.id state.doc.active) "@selected" "transparent")
+     :color ~(if (or (= layer.id state.doc.active) (contains computed.picked layer.id)) "@selected" "transparent")
      :hover {:color @hover}
      :drag {:data {:id ~layer.id}}
-     :onDrop ~(handler moveLayer {:id event.data.id :onto layer.id})
-     :onClick ~(handler selectLayer {:id layer.id})
+     :onDrop ~(handler drop-on-layer layer.id)
+     :onClick ~(handler pick-layer {:id layer.id})
      (node :width 3 :height 22 :radius 2 :color ~(if (= layer.id state.doc.active) "@accent" "transparent"))
      (label :id ~(str "layer-eye-" layer.id)
        :role button

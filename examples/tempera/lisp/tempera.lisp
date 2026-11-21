@@ -82,6 +82,12 @@
 (defn deleteMask "Deletes the active layer's mask." [args]
   (image "deleteMask" :with args))
 
+(defn restore-snapshot "Puts the layers back as a snapshot kept them: args.index, which." [args]
+  (image "restoreSnapshot" :with args))
+
+(defn delete-snapshot "Forgets a snapshot: args.index, which." [args]
+  (image "deleteSnapshot" :with args))
+
 ; style: keep, named in examples/tempera/lisp/index.scenarios.json
 (defn goToHistory "Goes back, or forward, to a step of the history." [args]
   (image "history" :with args))
@@ -219,8 +225,9 @@ would."
   (set "state.gradientEdit" args)
   (setOptions {:gradient args}))
 
-(defn choose-brush "Gives the brush a preset, and closes the presets." [preset]
+(defn choose-brush "Gives the brush a preset, kept as the one chosen, and closes the presets." [preset]
   (setOptions {:preset preset})
+  (set "state.brushPreset" preset)
   (set "state.brushMenu" false))
 
 (defn choose-gradient "Gives the gradient tool a preset, and chooses the tool." [preset]
@@ -246,8 +253,13 @@ would."
         changed (map #(if (= % channel) value (get balance %)) (range 3))]
     (setLayer {:adjustment (assoc computed.adjustment :balance changed)})))
 
-(defn set-curve "The Curves layer's curve, as its editor drew it." [points]
-  (setLayer {:adjustment (assoc computed.adjustment :curve points)}))
+(defn set-curve "The Curves layer's curve for the channel chosen, as its editor drew it: args.points." [args]
+  (let [channel (indexOf ["red" "green" "blue"] state.curveChannel)
+        own computed.adjustment.channelCurves
+        channels (mapv #(if (= % channel) args.points (get own %)) [0 1 2])]
+    (setLayer {:adjustment (if (< channel 0)
+                             (assoc computed.adjustment :curve args.points)
+                             (assoc computed.adjustment :channelCurves channels))})))
 
 (defn measure-tones "Levels and Curves show the image's tones; other layers don't need them measured." []
   (when (#{:levels :curves} computed.adjustmentKind)
@@ -276,8 +288,9 @@ would."
   (if (truthy? state.filter.live) (preview-filter-now) (image "cancelFilter")))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
-(defn commitFilter "Applies the filter to the image, and closes its dialog." []
+(defn commitFilter "Applies the filter to the image, kept as the last filter, and closes its dialog." []
   (image "applyFilter" :with state.filter)
+  (set "state.lastFilter" (assoc state.filter :open false))
   (set "state.filter.open" false))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
@@ -315,14 +328,25 @@ would."
   (set (str "state.groupHeights." slot) (-> state.slide (+ event.dy) round (clamp 96 520))))
 
 (defn layout-now "The dock as it is now: what a workspace keeps." []
-  {:panels state.panels :collapsed state.collapsed :groupHeights state.groupHeights :popout state.popout})
+  {:panels state.panels
+   :collapsed state.collapsed
+   :groupHeights state.groupHeights
+   :popout state.popout
+   :groupOrder state.groupOrder})
 
 (defn use-layout "Puts the dock as a workspace keeps it." [layout]
   (set "state.panels" layout.panels)
   (set "state.collapsed" layout.collapsed)
   (set "state.groupHeights" layout.groupHeights)
   (set "state.popout" layout.popout)
+  (set "state.groupOrder" (or-else layout.groupOrder ["colour" "properties" "layers"]))
   (set "state.screenMode" :standard))
+
+(defn move-group "A group's tabs dropped onto another group's: the group dragged takes that group's place." [from onto]
+  (let [rest (filter #(not= % from) state.groupOrder)
+        at (indexOf state.groupOrder onto)]
+    (when (and (contains state.groupOrder from) (not= from onto) (>= at 0))
+      (set "state.groupOrder" (concat (slice rest 0 at) [from] (slice rest at))))))
 
 ; style: keep, a string of the code names it, and a rename never changes a string
 (defn chooseWorkspace "Chooses a workspace: standard, painting (the colours tall, the properties folded), or one saved."
@@ -357,13 +381,34 @@ would."
   {:panels {:colour "colour" :properties "properties" :layers "layers"}
    :collapsed {:colour false :properties false :layers false}
    :groupHeights {:colour 158 :properties 236}
-   :popout {:history false :navigator false}})
+   :popout {:history false :navigator false}
+   :groupOrder ["colour" "properties" "layers"]})
 
 (def painting-layout "The painting workspace's dock: the palette tall, the properties folded."
   (assoc standard-layout
          :panels {:colour "swatches" :properties "properties" :layers "layers"}
          :collapsed {:colour false :properties true :layers false}
          :groupHeights {:colour 260 :properties 236}))
+
+(defn move-group-by "Alt+Up or Alt+Down on a group's tabs: the group a place up (by -1) or down (by 1) in the dock."
+  [slot by]
+  (let [at (+ (indexOf state.groupOrder slot) by)]
+    (when (and (>= at 0) (< at (count state.groupOrder)))
+      (move-group slot (get state.groupOrder at)))))
+
+(defn drop-on-layer
+  "A layer's row dropped onto another's: it takes that layer's place. A dock group dropped there does nothing."
+  [onto]
+  (when-some [id event.data.id] (moveLayer {:id id :onto onto})))
+
+(defn pick-layer
+  "A layer's row clicked: with Shift or Cmd it joins the layers picked together, or leaves them; else it alone is."
+  [args]
+  (let [before (if (empty? computed.picked) [state.doc.active] computed.picked)
+        picked (if (or event.shift event.mod) (toggled before args.id) [])
+        chosen (or (empty? picked) (contains picked args.id))]
+    (set "state.pickedLayers" picked)
+    (when chosen (selectLayer args))))
 
 (defn fold-group "Folds a group in the Layers panel, or unfolds it." [args]
   (set "state.foldedGroups" (toggled state.foldedGroups (:id args))))
