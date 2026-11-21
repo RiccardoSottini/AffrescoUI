@@ -203,7 +203,20 @@ void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& lay
 	// the line's shaping from the cache
 	const Font::ShapedText& shaped = font.shape(text);
 	if(shaped.advances.size() < text.size() || shaped.carets.size() <= span.end) return; // out of memory
+	// The spaces' dots, placed before the runs are drawn (drawing may drop the shaping)
+	std::vector<Rect> dots;
+	if(whitespace_) {
+		const float origin = wrap_ ? shaped.carets[span.start] : 0.0f, middle = top + layout.lineHeight / 2.0f;
+		for(std::size_t column = span.start; column < span.end; ++column)
+			if(text[column] == U' ') {
+				const float x = layout.textLeft + (shaped.carets[column] + shaped.carets[column + 1]) / 2.0f - origin;
+				if(x >= box.left + layout.gutter && x <= box.right)
+					dots.push_back({std::round(x) - 1.0f, std::round(middle) - 1.0f, std::round(x) + 1.0f,
+					                std::round(middle) + 1.0f});
+			}
+	}
 	colorRuns(colors_, shaped, {span.start, span.end}, wrap_, runs_);
+	for(const Rect& dot : dots) painter.fillRect(dot, guideColor_);
 	std::size_t start = span.start;
 	for(const auto& [end, x, width] : runs_) {
 		const float left = layout.textLeft + x;

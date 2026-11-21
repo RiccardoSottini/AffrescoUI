@@ -103,7 +103,9 @@ Rect ImageView::fitted(ImageFit fit, const Rect& frame, int width, int height) n
 void ImageView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	if(!bitmap_) return;
-	painter.drawImage(*bitmap_, fitted(fit_, frame(), bitmap_->width(), bitmap_->height()));
+	const Rect drawn = fitted(fit_, frame(), bitmap_->width(), bitmap_->height());
+	if(cornerRadii().isSquare()) painter.drawImage(*bitmap_, drawn);
+	else painter.drawRoundedImage(*bitmap_, drawn, frame(), cornerRadii());
 	if(!highlight_) return;
 	const Rect region = highlighted(fit_, frame(), bitmap_->width(), bitmap_->height(), *highlight_);
 	if(region.width() <= 0 || region.height() <= 0) return;

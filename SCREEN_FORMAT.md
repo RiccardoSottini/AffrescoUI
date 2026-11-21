@@ -162,7 +162,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
-| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
+| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. An `image`'s picture is drawn inside the rounded corners; other children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `gradient` | The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and `radial-gradient()`: `["#1e3a5f", "#0b1220"]` (colours spread evenly from top to bottom), or `{ "kind": "linear", "angle": 90, "stops": ["@accent", { "at": 0.6, "color": "#00000000" }] }`. `angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A `radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or `{ "at": 0..1, "color" }`; two stops at one place change colour sharply. At most 32 stops. It can be set in `hover` and the other states. |
@@ -283,6 +283,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `whitespace` | `true` draws a small dot in each space, in `guideColor`, so blanks can be seen. |
 | `foldMarkers` | `true` draws a chevron in the gutter beside each line that folds (pointing down) and each folded line (pointing right); a click on it folds or unfolds the line. |
 | `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |

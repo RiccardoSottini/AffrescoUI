@@ -2395,6 +2395,9 @@
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"whitespace": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"foldMarkers": {
 						"$ref": "#/$defs/v2/flag"
 					},

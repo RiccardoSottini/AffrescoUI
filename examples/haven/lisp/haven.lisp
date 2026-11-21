@@ -179,7 +179,7 @@
     (let [device (get state.devices i)]
       (show-toast (t "toast.device"
                     {:name (:name device)
-                     :state (-> (str "device." (:id device) (if (:on device) ".on" ".off")) t lower)})))))
+                     :state (-> (str "device." (:kind device) (if (:on device) ".on" ".off")) t lower)})))))
 
 ;; A host would make it a call with onAsyncCall; here a timer stands in for the device.
 (defn device-call "A device call takes a while: the tile shows its progress, then the new state." [i]
