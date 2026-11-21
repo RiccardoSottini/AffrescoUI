@@ -157,7 +157,7 @@
                                  (if (= (type it) "object")
                                    (and (= (type it.id) "string")
                                         (= (type it.name) "string")
-                                        (contains? #{:mesh :light :camera} it.kind)
+                                        (contains? #{:mesh :light :camera :empty} it.kind)
                                         (three-numbers? it.translation)
                                         (three-numbers? it.rotationDegrees)
                                         (three-numbers? it.scale))

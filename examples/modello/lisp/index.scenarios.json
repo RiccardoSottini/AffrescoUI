@@ -1224,6 +1224,28 @@
 				{ "expect": { "state": "edit.faces", "is": [5] } },
 				{ "expect": { "state": "view.selection", "is": ["edit-pivot"] } }
 			]
+		},
+		{
+			"name": "modello-import-gltf",
+			"note": "File › Import glTF reads a .gltf with its data inside: the pyramid joins the scene with its material, selected, its mesh editable in Edit Mode",
+			"steps": [
+				{ "choose": "pyramid.gltf", "from": "fixtures/pyramid.gltf" },
+				{ "action": "importGltf" },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Imported pyramid.gltf: 1 objects" } },
+				{ "expect": { "state": "scene.nodes[3].name", "is": "Pyramid" } },
+				{ "expect": { "state": "scene.nodes[3].kind", "is": "mesh" } },
+				{ "expect": { "state": "scene.nodes[3].translation", "is": [3, 0, 0] } },
+				{ "expect": { "state": "scene.materials[1].name", "is": "Stone" } },
+				{ "expect": { "state": "view.selection", "is": ["import1-node0"] } },
+				{ "key": "tab" },
+				{ "expect": { "state": "mode", "is": "edit" } },
+				{ "key": "a" },
+				{ "expect": { "state": "edit.vertices", "is": [0, 1, 2, 3, 4] } },
+				{ "key": "tab" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes.length", "is": 3 } }
+			]
 		}
 	]
 }
