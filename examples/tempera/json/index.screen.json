@@ -175,6 +175,7 @@
 		"adjustMenu": false,
 		"blendMenu": false,
 		"brushMenu": false,
+		"brushPreset": "",
 		"gradientMenu": false,
 		"workspaceMenu": false,
 		"paintModeMenu": false,

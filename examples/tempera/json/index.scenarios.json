@@ -6046,6 +6046,43 @@
 			]
 		},
 		{
+			"name": "tempera-brushes-panel",
+			"note": "The options bar's Brush settings button opens the Brushes panel; a preset chosen there is the brush's, and filled",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#brush-settings"
+				},
+				{
+					"expect": {
+						"state": "panels.properties",
+						"is": "brushes"
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Soft Round 30"
+					}
+				},
+				{
+					"expect": {
+						"state": "brushPreset",
+						"is": "Soft Round 30"
+					}
+				},
+				{
+					"expect": {
+						"node": "#brushes-size",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
 			"name": "tempera-guides-drag",
 			"note": "A drag out of a ruler makes a guide where it is let go (level from the top ruler, upright from the side one); a guide drags, and dragged back onto its ruler it goes",
 			"steps": [

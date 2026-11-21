@@ -715,6 +715,7 @@
 		"window": {
 			"workspace": { "submenu": "workspaceChoices", "title": "Workspace", "order": 10 },
 			"adjustments": { "run": "showPanel", "with": { "args": { "slot": "properties", "id": "adjustments" } }, "title": "Adjustments", "order": 1 },
+			"brushes": { "run": "showPanel", "with": { "args": { "slot": "properties", "id": "brushes" } }, "title": "Brushes", "order": 2 },
 			"channels": { "run": "showPanel", "with": { "args": { "slot": "layers", "id": "channels" } }, "title": "Channels", "order": 2 },
 			"colour": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } }, "title": "Colour", "order": 3 },
 			"history": { "run": "showPopout", "with": { "args": { "id": "history" } }, "title": "History", "order": 4 },

@@ -242,6 +242,7 @@
 (defmenu window "The Window menu: the panels."
   {:adjustments {:run show-panel :with {:args {:slot properties :id adjustments}}
                  :title ~(t "menu.window.adjustments") :order 1}
+   :brushes {:run show-panel :with {:args {:slot properties :id brushes}} :title ~(t "menu.window.brushes") :order 2}
    :channels {:run show-panel :with {:args {:slot layers :id channels}} :title ~(t "menu.window.channels") :order 2}
    :colour {:run show-panel :with {:args {:slot colour :id colour}} :title ~(t "menu.window.colour") :order 3}
    :history {:run show-popout :with {:args {:id history}} :title ~(t "menu.window.history") :order 4}

@@ -225,8 +225,9 @@ would."
   (set "state.gradientEdit" args)
   (setOptions {:gradient args}))
 
-(defn choose-brush "Gives the brush a preset, and closes the presets." [preset]
+(defn choose-brush "Gives the brush a preset, kept as the one chosen, and closes the presets." [preset]
   (setOptions {:preset preset})
+  (set "state.brushPreset" preset)
   (set "state.brushMenu" false))
 
 (defn choose-gradient "Gives the gradient tool a preset, and chooses the tool." [preset]

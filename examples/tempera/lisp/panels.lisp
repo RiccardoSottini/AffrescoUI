@@ -169,9 +169,64 @@
      :height 32
      :grow 1
      :with {:slot properties
-            :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
+            :tabs ~[{:id "properties" :label (t "panel.properties")}
+                    {:id "adjustments" :label (t "panel.adjust")}
+                    {:id "brushes" :label (t "panel.brushes")}]}
      ~(properties-panel)
-     ~(adjustments-panel)))
+     ~(adjustments-panel)
+     ~(brushes-panel)))
+
+(defview brushes-panel "The Brushes panel: the brush presets, a click choosing one, then the brush's numbers." []
+  `(column#brushes :when ~(= state.panels.properties "brushes")
+     :role region
+     :label ~(t "panel.brushes")
+     :anchors {:left 10 :right 10 :top 6 :bottom 6}
+     :gap 4
+     :scroll vertical
+     (column#brush-presets :role list
+       :label ~(t "option.brushPresets")
+       :width "100%"
+       :height ~(* 26 (count state.brushes))
+       ~(repeat [b state.brushes :key b.name] (brush-preset-row b)))
+     (node :width "100%" :height 1 :color @border)
+     ~(brushes-option "size" 500 "unit.pxValue")
+     ~(brushes-option "hardness" 100 "unit.percentValue")
+     ~(brushes-option "spacing" 200 "unit.percentValue")))
+
+(defview brush-preset-row "A brush preset's row in the Brushes panel: a click chooses it; it is filled while chosen."
+  [b]
+  `(row :id ~(str "brush-preset-" b.name)
+     :role listitem
+     :label ~(t (str "brush." b.name))
+     :selected ~(= state.brushPreset b.preset)
+     :width "100%"
+     :height 26
+     :alignItems center
+     :gap 6
+     :radius @kit.radius
+     :cursor hand
+     :color ~(if (= state.brushPreset b.preset) "@selected" "transparent")
+     :hover {:color @hover}
+     :onClick ~(handler choose-brush b.preset)
+     (label :icon paintbrush :textColor @muted :width 22 :height 26 :align center)
+     (label :text ~(t (str "brush." b.name))
+       :textColor @text
+       :grow 1
+       :height 26
+       :align {:horizontal start :vertical center})))
+
+(defview brushes-option "One of the brush's numbers in the Brushes panel, from 1 to high: its title, slider and value."
+  [key high unit]
+  `(row :id ~(str "brushes-" key) :width "100%" :height 26 :alignItems center :gap 8
+     (node :style dim :fitText false :text ~(str (t (str "option." key)) ":") :width 62 :height 16)
+     (node :use tRange
+       :with {:title ~(t (str "option." key))
+              :key ~key
+              :value ~(get state.doc.options key)
+              :low 1
+              :high ~high
+              :width 100})
+     (label :text ~(t unit {:n (text (get state.doc.options key))}) :textColor @text :fitText true)))
 
 (defview layers-group "The third group: the layers, the channels and the paths." []
   `(node :use tGroup

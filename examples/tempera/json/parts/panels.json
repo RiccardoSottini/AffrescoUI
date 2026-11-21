@@ -144,9 +144,10 @@
 							  "text": "No patterns: pattern fills aren't available yet." }
 						] } ] },
 						{ "type": "column", "when": "{{place == 'properties'}}", "style": "clear", "width": "100%", "grow": 1, "children": [
-						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
+						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }, { "id": "brushes", "label": "Brushes" }] }, "children": [
 							{ "use": "temperaProperties", "when": "{{state.panels.properties == 'properties'}}" },
-							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" }
+							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" },
+							{ "use": "temperaBrushes", "when": "{{state.panels.properties == 'brushes'}}" }
 						] } ] },
 						{ "type": "column", "when": "{{place == 'layers'}}", "style": "clear", "width": "100%", "grow": 1, "children": [
 						{ "use": "tGroup", "height": 32, "grow": 1, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
@@ -531,6 +532,33 @@
 						{ "id": "layer-new", "use": "tIcon", "with": { "icon": "plus-square", "tip": "Create a new layer", "run": "newLayer" } },
 						{ "id": "layer-delete", "use": "tIcon", "with": { "icon": "trash-2", "tip": "Delete layer", "run": "deleteActive" } },
 						{ "width": 6, "height": 1, "style": "clear" }
+					  ] }
+				]
+			}
+		},
+
+		"temperaBrushes": {
+			"node": {
+				"type": "column", "id": "brushes", "role": "region", "label": "Brushes", "anchors": { "left": 10, "right": 10, "top": 6, "bottom": 6 }, "gap": 4, "scroll": "vertical",
+				"children": [
+					{ "type": "column", "id": "brush-presets", "role": "list", "label": "Brush presets", "width": "100%", "height": "{{26 * length(state.brushes)}}",
+					  "children": [
+						{ "type": "row", "id": "brush-preset-{{i}}", "repeat": { "for": "b", "in": "state.brushes", "index": "i" }, "role": "listitem", "label": "{{b}}",
+						  "selected": "{{state.brushPreset == b}}", "width": "100%", "height": 26, "alignItems": "center", "gap": 6, "radius": "@kit.radius", "cursor": "hand",
+						  "color": "{{state.brushPreset == b ? '@selected' : 'transparent'}}", "hover": { "color": "@hover" },
+						  "onClick": [{ "run": "setOptions", "with": { "args": { "preset": "{{b}}" } } }, { "set": "state.brushPreset", "to": "{{b}}" }],
+						  "children": [
+							{ "type": "label", "icon": "paintbrush", "textColor": "@muted", "width": 22, "height": 26, "align": "center" },
+							{ "type": "label", "text": "{{b}}", "textColor": "@text", "grow": 1, "height": 26, "align": { "horizontal": "start", "vertical": "center" } }
+						  ] }
+					  ] },
+					{ "width": "100%", "height": 1, "color": "@border" },
+					{ "type": "row", "id": "brushes-{{o.key}}",
+					  "repeat": { "for": "o", "in": "{{[{key: 'size', title: 'Size', max: 500, unit: ' px'}, {key: 'hardness', title: 'Hardness', max: 100, unit: '%'}, {key: 'spacing', title: 'Spacing', max: 200, unit: '%'}]}}" }, "width": "100%", "height": 26, "alignItems": "center", "gap": 8,
+					  "children": [
+						{ "style": "dim", "fitText": false, "text": "{{o.title}}:", "width": 62, "height": 16 },
+						{ "use": "tRange", "with": { "title": "{{o.title}}", "key": "{{o.key}}", "value": "{{state.doc.options[o.key]}}", "min": 1, "max": "{{o.max}}", "width": 100 } },
+						{ "type": "label", "text": "{{state.doc.options[o.key]}}{{o.unit}}", "textColor": "@text", "fitText": true }
 					  ] }
 				]
 			}

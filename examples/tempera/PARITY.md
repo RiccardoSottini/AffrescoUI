@@ -47,7 +47,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Adjustments (icon grid) | done | |
 | History (states and snapshots) | done | The states, and snapshots: the panel's camera keeps the layers under a name, a click on one restores it as a step undo takes back, its × forgets it |
 | Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
-| Brushes (presets) | partial | Presets, size, hardness and spacing in the options bar's brush picker; no Brushes panel |
+| Brushes (presets) | done | Presets, size, hardness and spacing in the options bar's brush picker, and a Brushes panel (beside Properties and Adjust; the options bar's Brush settings button and Window > Brushes open it) |
 | Channels | partial | Composite and channel rows, display only |
 | Paths | done | The document's paths (kept in the project file and the history): click one to show it on the canvas, and fill, stroke, make a selection or a shape layer of it, add or delete one |
 | Navigator | done | |
@@ -125,7 +125,6 @@ general feature the image step or a node needs first.
 | Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
 | Layers: link button | P3 | Library: linked layers that move and transform together |
 | Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
-| Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |
 | Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
 | Info panel (pointer position, colour under it) | P2 | Library: the raster node publishing the pointer's document position and the composite colour there |
 | Quick selection | P2 | Library: an edge-aware brush selection |

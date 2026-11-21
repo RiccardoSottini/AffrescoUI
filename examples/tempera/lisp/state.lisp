@@ -237,6 +237,8 @@
 
 (defstate brushMenu false "The brush presets are shown.")
 
+(defstate brushPreset "" "The brush preset last chosen, filled in the Brushes panel.")
+
 (defstate gradientMenu false "The gradient presets are shown.")
 
 (defstate workspaceMenu false "The workspace menu is open.")
