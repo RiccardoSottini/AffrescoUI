@@ -159,6 +159,10 @@ void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 
 void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own: glfwSetWindowIcon
 
+std::vector<std::uint8_t> clipboardImagePng(std::size_t /*most*/) { return {}; } // not read here yet
+
+bool setClipboardImage(const Bitmap& /*image*/) { return false; }
+
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {
 	return std::make_unique<Win32MenuBar>(window, std::move(chosen));
 }

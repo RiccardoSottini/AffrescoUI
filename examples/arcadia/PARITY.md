@@ -82,8 +82,4 @@ and deleted from its shelf's pencil or a right click on its heading in the list.
 
 ## Left for later
 
-Each partial row and each disabled control, with what it needs and a priority: P1 daily, P2 occasional, P3 rare.
-
-| What | Needs | Priority |
-| --- | --- | --- |
-| Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |
+Nothing: every row is done, and no control is disabled (the Arcadia menu's Exit closes the window).

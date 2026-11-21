@@ -521,8 +521,9 @@ float Font::measure(std::u32string_view text) const noexcept {
 	}
 }
 
-std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth) const {
+std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth, float letterSpacing) const {
 	std::vector<std::u32string_view> lines;
+	std::vector<float> spaced; // the advances with the letter spacing, when there is one
 	lines.reserve(4); // most texts wrap into a few lines: one allocation, rather than one each time the vector grows
 
 	// Each paragraph (up to a '\n') is measured once; its lines are views into it, broken by its advances
@@ -532,6 +533,11 @@ std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxW
 		if(!paragraph || start > paragraph->end) {
 			const std::size_t end = std::min(text.find(U'\n', start), text.size());
 			paragraph = Paragraph{data_->measure(text.substr(start, end - start)).advances, start, end};
+			if(letterSpacing != 0.0f) {
+				spaced.assign(paragraph->advances.begin(), paragraph->advances.end());
+				for(float& advance : spaced) advance += letterSpacing;
+				paragraph->advances = spaced;
+			}
 		}
 
 		const auto [end, next] = breakLine(text, *paragraph, start, maxWidth);

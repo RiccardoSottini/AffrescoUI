@@ -123,9 +123,9 @@ public:
 	void setJustify(bool justify);
 	/// @brief Whether wrapped lines are justified (setJustify()).
 	[[nodiscard]] bool justify() const noexcept { return justify_; }
-	/// @brief Sets extra room between the characters of plain text on one line (headings, small capitals), as CSS's
-	/// letter-spacing: after each character but the last, counted in the alignment and when fitted to the text.
-	/// Wrapped text and rich text (runs) keep the font's own spacing.
+	/// @brief Sets extra room between the characters of plain text (headings, small capitals), as CSS's
+	/// letter-spacing: after each character but the last, counted in the alignment, in wrapping, in justified lines
+	/// and when fitted to the text. Rich text (runs) keeps the font's own spacing.
 	/// @param pixels The room, in pixels; negative tightens; 0 (the default) is the font's.
 	void setLetterSpacing(float pixels);
 	/// @brief The extra room between characters, in pixels (setLetterSpacing()).
@@ -173,7 +173,7 @@ private:
 	/// @param lastLine Whether it is the last of the lines.
 	/// @return Whether it is.
 	[[nodiscard]] bool justifies(std::u32string_view line, bool lastLine) const;
-	/// @brief Whether plain text is drawn with letterSpacing(): one line of it, no runs.
+	/// @brief Whether plain text is drawn with letterSpacing(): wrapped or not, no runs.
 	[[nodiscard]] bool spaced() const noexcept;
 	/// @brief A line's width with letterSpacing() when spaced(), else the font's.
 	/// @param font The font.
@@ -223,6 +223,7 @@ private:
 		float boxWidth = 0.0f;      ///< The width they are aligned in.
 		Align align = Align::Start; ///< Their placement.
 		std::size_t length = 0;     ///< The shown text's length (a text area changes it without a version).
+		bool justified = false;     ///< Whether its wrapped lines are justified (setJustify()).
 		/// @brief Whether two are the same.
 		friend bool operator==(const LaidOut&, const LaidOut&) = default;
 	};

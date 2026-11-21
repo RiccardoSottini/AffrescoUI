@@ -396,7 +396,7 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
-	return inside ? this : nullptr;
+	return inside && !hitThrough_ ? this : nullptr;
 }
 
 Rect Panel::clipInSpace(const Rect& clip) const noexcept {

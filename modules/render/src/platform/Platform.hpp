@@ -7,6 +7,7 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Input.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -88,6 +89,20 @@ public:
 	/// @brief Sets the system clipboard's text.
 	/// @param utf8 UTF-8 text.
 	virtual void setClipboardText(const std::string& utf8) = 0;
+	/// @brief The system clipboard's image, as the bytes of a PNG file, where the OS hands one over; empty otherwise.
+	/// @param most The most bytes taken: a larger image gives nothing.
+	/// @return The bytes, or empty.
+	[[nodiscard]] virtual std::vector<std::uint8_t> clipboardImagePng(std::size_t most) const {
+		static_cast<void>(most);
+		return {};
+	}
+	/// @brief Puts an image on the system clipboard, where the OS takes one.
+	/// @param image The image.
+	/// @return Whether it is there now.
+	virtual bool setClipboardImage(const Bitmap& image) {
+		static_cast<void>(image);
+		return false;
+	}
 	/// @brief Shows a cursor shape over the window.
 	/// @param cursor The shape (Arrow is the system default).
 	virtual void setCursor(Cursor cursor) = 0;

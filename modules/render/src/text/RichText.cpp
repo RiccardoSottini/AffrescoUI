@@ -161,6 +161,52 @@ void TextLayout::align(float boxWidth, Align align) noexcept {
 	}
 }
 
+// Each piece is cut at its spaces, and each part moved right by the shares of the spaces before it on its line
+void TextLayout::justify(float boxWidth) {
+	std::vector<Piece> justified;
+	justified.reserve(pieces_.size());
+	for(Line& line : lines_) {
+		const bool last = line.end >= text_.size() || text_[line.end] == U'\n';
+		std::size_t gaps = 0;
+		for(std::size_t at = line.begin; at < line.end; ++at) gaps += text_[at] == U' ' ? 1 : 0;
+		std::size_t trailing = 0; // the spaces the line ends with aren't widened
+		for(std::size_t at = line.end; at > line.begin && text_[at - 1] == U' '; --at) ++trailing;
+		gaps -= trailing;
+		const float share = last || gaps == 0 ? 0.0f : std::max(0.0f, boxWidth - line.width) / static_cast<float>(gaps);
+		const std::size_t first = justified.size();
+		std::size_t passed = 0; // spaces before the part, on this line
+		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
+			const Piece& piece = pieces_[index];
+			const std::u32string_view text = std::u32string_view(text_).substr(piece.begin, piece.end - piece.begin);
+			const std::vector<float> carets = share > 0.0f ? piece.font->shape(text).carets : std::vector<float>{};
+			if(carets.size() != text.size() + 1) { // nothing to widen, or carets it can't cut by
+				justified.push_back(piece);
+				justified.back().x += share * static_cast<float>(passed);
+				passed += static_cast<std::size_t>(std::ranges::count(text, U' '));
+				continue;
+			}
+			for(std::size_t begin = 0; begin < text.size();) {
+				std::size_t end = begin;
+				while(end < text.size() && text[end] != U' ') ++end;
+				if(end < text.size()) ++end; // a part ends with its space
+				Piece part = piece;
+				part.begin = piece.begin + begin;
+				part.end = piece.begin + end;
+				part.x = piece.x + carets[begin] + share * static_cast<float>(passed);
+				part.width = carets[end] - carets[begin];
+				justified.push_back(part);
+				passed += end > begin && text[end - 1] == U' ' ? 1 : 0;
+				begin = end;
+			}
+		}
+		line.firstPiece = first;
+		line.endPiece = justified.size();
+		if(share > 0.0f) line.width = std::max(line.width, boxWidth);
+	}
+	pieces_ = std::move(justified);
+	if(!lines_.empty()) width_ = std::ranges::max(lines_, {}, &Line::width).width;
+}
+
 std::size_t TextLayout::positionAt(Vec2 point) const {
 	if(lines_.empty()) return 0;
 	const auto below = std::ranges::find_if(lines_, [&](const Line& line) { return point.y < line.top + line.height; });

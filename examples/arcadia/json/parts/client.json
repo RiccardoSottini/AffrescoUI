@@ -80,6 +80,11 @@
 				{ "after": 1200, "do": [{ "run": "notify", "with": { "text": "{{t('notice.upToDate')}}" } }] }
 			]
 		},
+		"exitApp": {
+			"title": "Exit",
+			"category": "Arcadia",
+			"do": [{ "closeWindow": "main" }]
+		},
 		"clearCache": {
 			"title": "Clear the download cache",
 			"category": "Settings",

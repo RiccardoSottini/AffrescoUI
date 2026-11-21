@@ -688,6 +688,8 @@
                 :command.openSettings.about "Opens Settings at a page (interface, downloads, storage or account)."
                 :command.notify "Show a notice"
                 :command.notify.about "Shows a short notice at the bottom right; it goes away by itself."
+                :command.exitApp "Exit"
+                :command.exitApp.about "Closes the client's window, which ends the app."
                 :command.checkUpdates "Check for client updates"
                 :command.checkUpdates.about "Checks whether a newer Arcadia is out."
                 :command.clearCache "Clear the download cache"

@@ -688,6 +688,8 @@
                 :command.openSettings.about "Ouvre les paramètres à une page (interface, téléchargements, stockage ou compte)."
                 :command.notify "Afficher une notification"
                 :command.notify.about "Affiche une courte notification en bas à droite ; elle disparaît d'elle-même."
+                :command.exitApp "Quitter"
+                :command.exitApp.about "Ferme la fenêtre du client, ce qui quitte l'application."
                 :command.checkUpdates "Rechercher des mises à jour du client"
                 :command.checkUpdates.about "Vérifie si une version plus récente d'Arcadia est sortie."
                 :command.clearCache "Vider le cache de téléchargement"

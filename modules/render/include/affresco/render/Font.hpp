@@ -190,8 +190,10 @@ public:
 	/// cluster: a ligature, or a letter and its marks). Widths are those of the shaped text.
 	/// @param text The text.
 	/// @param maxWidth Widest line, in pixels.
+	/// @param letterSpacing Extra pixels after each character (CSS `letter-spacing`), counted in the widths.
 	/// @return Views into @p text, one per line.
-	[[nodiscard]] std::vector<std::u32string_view> wrap(std::u32string_view text, float maxWidth) const;
+	[[nodiscard]] std::vector<std::u32string_view> wrap(std::u32string_view text, float maxWidth,
+	                                                    float letterSpacing = 0.0f) const;
 
 	/// @brief How much memory the font's atlas pages, glyphs and shaped text take, its rasters at other scales
 	/// included, without its font files.

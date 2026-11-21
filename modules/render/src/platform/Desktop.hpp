@@ -7,6 +7,8 @@
 
 #include "affresco/render/Events.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -59,6 +61,17 @@ void keepOutOfSwitcher();
 /// GLFW sets each window's.
 /// @param icon The image, or nullptr for the app's own (its bundle's).
 void setApplicationIcon(const Bitmap* icon);
+
+/// @brief The image on the system clipboard, as the bytes of a PNG file, where the OS hands one over (macOS: a PNG or
+/// TIFF on the general pasteboard); empty elsewhere, when it holds none, or when it is larger than @p most bytes.
+/// @param most The most bytes taken.
+/// @return The PNG's bytes, or empty.
+[[nodiscard]] std::vector<std::uint8_t> clipboardImagePng(std::size_t most);
+
+/// @brief Puts an image on the system clipboard, where the OS takes one (macOS, as PNG and TIFF); nothing elsewhere.
+/// @param image The image.
+/// @return Whether it is on the clipboard now.
+bool setClipboardImage(const Bitmap& image);
 
 /// @brief A window's native menu bar.
 class MenuBar {

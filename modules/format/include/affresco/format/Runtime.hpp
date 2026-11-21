@@ -341,6 +341,11 @@ public:
 	/// without it, `file` is left out.
 	/// @param fileOf Gives the file holding a JSON Pointer of the document; must not outlive what it reads.
 	void setFileOf(std::function<FileOf(std::string_view pointer)> fileOf);
+	/// @brief Sets what opens a web address in the browser, for the openUrl step: it runs only for an http:// or
+	/// https:// address the person said yes to, in a question the window draws itself (Window::confirm()). Without
+	/// one, the step asks nothing and reports that this host opens no web addresses.
+	/// @param open Opens the address; returns whether it did (net::openWebAddress()).
+	void setWebOpener(std::function<bool(const std::string& url)> open);
 
 	/* Commands as tools */
 

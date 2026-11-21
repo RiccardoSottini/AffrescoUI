@@ -150,7 +150,7 @@ void Label::setLetterSpacing(float pixels) {
 	invalidate();
 }
 
-bool Label::spaced() const noexcept { return letterSpacing_ != 0.0f && !wrap_ && runs_.empty(); }
+bool Label::spaced() const noexcept { return letterSpacing_ != 0.0f && runs_.empty(); }
 
 float Label::lineWidth(const Font& font, std::u32string_view line) const {
 	const float width = font.measure(line);
@@ -180,7 +180,7 @@ void Label::prepareLayout() {
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
 	// The text changes only through invalidate(): until then, comparing it with the fitted one would find it the same
 	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != shown())) {
-		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth);
+		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth, spaced() ? letterSpacing_ : 0.0f);
 		float textWidth = 0.0f;
 		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, lineWidth(*f, line));
 		fitted_ = {shown(), f->id(), maxTextWidth, textWidth, lines.size()};
@@ -214,7 +214,7 @@ void Label::paint(Painter& painter) const {
 	}
 
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
-	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth);
+	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth, spaced() ? letterSpacing_ : 0.0f);
 	const float textHeight = static_cast<float>(lines.size()) * f->lineHeight();
 	float top = aligned(vertical_, content.top, content.height(), textHeight);
 	for(std::size_t index = 0; index < lines.size(); ++index) {
@@ -239,12 +239,18 @@ void Label::paintJustifiedLine(Painter& painter, const Font& font, std::u32strin
 	const std::size_t gaps = static_cast<std::size_t>(std::ranges::count(line, U' '));
 	const Rect content = contentRect();
 	if(gaps == 0) return paintLine(painter, font, line, top);
-	const float share = std::max(0.0f, content.width() - font.measure(line)) / static_cast<float>(gaps);
+	const float share = std::max(0.0f, content.width() - lineWidth(font, line)) / static_cast<float>(gaps);
 	const float baseline = std::round(top + font.ascent());
+	const float spacing = spaced() ? letterSpacing_ : 0.0f;
 	std::size_t gap = 0;
 	for(std::size_t begin = 0; begin < line.size();) {
 		const std::size_t space = std::min(line.find(U' ', begin), line.size());
-		if(space > begin) {
+		for(std::size_t index = begin; index < space && spacing != 0.0f; ++index) { // each character, spaced
+			const float x = content.left + font.measure(line.substr(0, index)) + spacing * static_cast<float>(index) +
+			                share * static_cast<float>(gap);
+			painter.drawText(font, line.substr(index, 1), {std::round(x), baseline}, textColor_);
+		}
+		if(space > begin && spacing == 0.0f) {
 			const float left = content.left + font.measure(line.substr(0, begin)) + share * static_cast<float>(gap);
 			painter.drawText(font, line.substr(begin, space - begin), {std::round(left), baseline}, textColor_);
 		}
@@ -310,13 +316,15 @@ const TextLayout& Label::textLayout() const {
 	const Rect content = contentRect();
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
 	const Align horizontal = readingAlign(horizontal_);
-	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size()};
+	const bool justified = justify_ && wrap_ && !rightToLeft(); // words go left to right
+	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size(), justified};
 	if(key == laidOut_) return layout_;
 	if(runs_.empty()) {
 		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal);
 	} else {
 		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal);
 	}
+	if(justified) layout_.justify(content.width());
 	laidOut_ = key;
 	return layout_;
 }

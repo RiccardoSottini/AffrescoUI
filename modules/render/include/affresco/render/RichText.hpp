@@ -81,6 +81,11 @@ public:
 	/// @param align Each line's placement.
 	void layOutPlain(std::u32string_view text, const Font& font, float maxWidth, float boxWidth, Align align);
 
+	/// @brief Stretches each wrapped line but a paragraph's last to the full width, sharing the room left between its
+	/// spaces (CSS `text-align: justify`), after layOut(): its pieces are cut at the spaces it widens.
+	/// @param boxWidth The width the lines fill.
+	void justify(float boxWidth);
+
 	/// @brief Every code point laid out, icons included.
 	[[nodiscard]] const std::u32string& text() const noexcept { return text_; }
 	/// @brief The lines, top to bottom.

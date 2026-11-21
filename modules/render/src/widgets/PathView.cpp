@@ -115,13 +115,33 @@ void PathView::build(Vec2 size) const {
 	appendStroke(contours, style, strokeMesh_);
 }
 
+// A translucent path is drawn as a group (Panel::setPaintOpacity()): its mesh's quads overlap at joins, edges and
+// crossings, which would show darker drawn one by one. Only when the group holds nothing else and is drawn
+// untransformed
+float PathView::groupOpacity() const {
+	const float fill = fillMesh_.empty() ? 0.0f : fillColor_.a, stroke = strokeMesh_.empty() ? 0.0f : strokeColor_.a;
+	const float most = std::max(fill, stroke);
+	if(!(most > 0.0f && most < 1.0f) || !gradientBands_.empty() || !children().empty() || color().a > 0.0f ||
+	   borderWidth() > 0.0f || shadow().isVisible())
+		return 1.0f;
+	for(const Panel* panel = this; panel; panel = panel->parent())
+		if(panel->isTransformed()) return 1.0f; // a transformed subtree is drawn directly, not through a texture
+	return most;
+}
+
 void PathView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const Rect& box = frame();
 	build({box.width(), box.height()});
+	const float group = groupOpacity();
+	setPaintOpacity(group);
+	const auto inGroup = [group](Color color) {
+		color.a = std::min(color.a / group, 1.0f);
+		return color;
+	};
 	for(const GradientBand& band : gradientBands_) painter.fillMesh(band.quads, {box.left, box.top}, band.color);
-	if(!fillMesh_.empty()) painter.fillMesh(fillMesh_, {box.left, box.top}, fillColor_);
-	if(!strokeMesh_.empty()) painter.fillMesh(strokeMesh_, {box.left, box.top}, strokeColor_);
+	if(!fillMesh_.empty()) painter.fillMesh(fillMesh_, {box.left, box.top}, inGroup(fillColor_));
+	if(!strokeMesh_.empty()) painter.fillMesh(strokeMesh_, {box.left, box.top}, inGroup(strokeColor_));
 }
 
 } // namespace affresco

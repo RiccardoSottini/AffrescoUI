@@ -213,6 +213,12 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "its "
 	 "text. A child that grows or is stretched by its anchors adds only its own size.",
 	 "stack"},
+    {"padding", "",
+	 "Room inside the edges around the children, as CSS padding: one number for every edge, `[vertical, horizontal]` "
+	 "or `[top, right, bottom, left]`. The children are placed, and their percentages and anchors resolved, within "
+	 "the rest; `fitContent` adds it to the children's size, and a scrolling container scrolls it with them. A "
+	 "number token works (`\"@space.m\"`). Default: `0`.",
+	 "stack"},
     {"direction", R"json({"anyOf": [{"enum": ["row", "column"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(On a `stack`: `"row"` or `"column"`.)", "stack"},
     {"wrap", "",
@@ -242,6 +248,7 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"gap", "", "Pixels between cells; `rowGap` and `columnGap` over `gap`.", "grid"},
     {"rowGap", "", "", "grid"},
     {"columnGap", "", "", "grid"},
+    {"padding", "", "Room inside the edges around the cells, as on a `row` (a number or a CSS-style list).", "grid"},
     {"justifyItems", R"json({"description": "grid: where children sit across their cells (default stretch)",
 		"$ref": "#/$defs/v2/crossAlign"})json",
 	 "Where children sit across their cells: `stretch` (default), `start`, `center` or `end`.", "grid"},
@@ -337,7 +344,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; "
 	 "default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened "
 	 "replaces. At most "
-	 "10,000; the strip scrolls sideways when they don't fit.",
+	 "10,000; the strip scrolls sideways when they don't fit. Each tab is an element of its own to assistive tools "
+	 "and scenarios (role `tab`, its label as its name, `selected` when active; pressing it picks it), for the first "
+	 "1,000.",
 	 "tabs"},
     {"value", "", "The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`.", "tabs"},
     {"textColor", "", "The labels' colour (default muted), the active tab's, its background and its line.", "tabs"},

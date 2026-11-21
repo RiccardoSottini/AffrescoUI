@@ -20,6 +20,10 @@ void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 
 void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own (glfwSetWindowIcon), or none (Wayland)
 
+std::vector<std::uint8_t> clipboardImagePng(std::size_t /*most*/) { return {}; } // none here
+
+bool setClipboardImage(const Bitmap& /*image*/) { return false; }
+
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* /*window*/, MenuChosen /*chosen*/) { return nullptr; }
 
 } // namespace affresco::platform::desktop

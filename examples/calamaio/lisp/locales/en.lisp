@@ -396,7 +396,6 @@
                  :echo.notAYank "The command before this one was not a yank"
                  :echo.notDefined "Not defined"
                  :echo.notLoaded "Not loaded: {error}"
-                 :echo.nothingLeft "Nothing left to save; close the window to end the session"
                  :echo.nothingToSave "(Nothing to save)"
                  :echo.onlyWindow "Can't remove the frame's only window"
                  :echo.proposed "Proposal {proposal} waits for you: M-x accept-proposal, or C-x C-z to leave it"

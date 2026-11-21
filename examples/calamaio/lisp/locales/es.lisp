@@ -396,7 +396,6 @@
                  :echo.notAYank "El comando anterior no fue un pegado"
                  :echo.notDefined "No está definido"
                  :echo.notLoaded "No cargado: {error}"
-                 :echo.nothingLeft "No queda nada que guardar; cierra la ventana para terminar la sesión"
                  :echo.nothingToSave "(Nada que guardar)"
                  :echo.onlyWindow "No se puede quitar la única ventana del marco"
                  :echo.proposed "La propuesta {proposal} te espera: M-x accept-proposal, o C-x C-z para dejarla"

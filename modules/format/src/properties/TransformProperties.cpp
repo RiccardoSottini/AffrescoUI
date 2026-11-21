@@ -1,6 +1,7 @@
 /// @file
-/// @brief "rotate", "scale", "skew", "translate" and "transformOrigin", properties of every panel: how it is drawn
-/// turned, scaled, skewed or moved after layout (Panel::setTransform). Layout doesn't see them.
+/// @brief "rotate", "scale", "skew", "translate", "transformOrigin" and "opacity", properties of every panel: how it is
+/// drawn turned, scaled, skewed or moved after layout (Panel::setTransform). Layout doesn't see them. And "opacity",
+/// also of every panel: the subtree drawn as one translucent group (Panel::setOpacity()).
 
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
@@ -77,6 +78,19 @@ void applyTransform(Panel& panel, const json& values, const PropertyReader& read
 	panel.setTransform(Affine2::compose(translate, degrees, scale, skew), at);
 }
 
+/// @brief Applies "opacity": the panel and its children drawn as one group that opaque; 1 when the node leaves it out.
+/// @param panel The panel.
+/// @param values The node's keys of the set.
+/// @param reader Not used: the key is a number.
+/// @param path The node's place, for errors.
+void applyOpacity(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+	static_cast<void>(reader);
+	const json& value = values.contains("opacity") && !values["opacity"].is_null() ? values["opacity"] : json(1.0);
+	const float opacity = number(value, path + ".opacity");
+	if(opacity < 0.0f || opacity > 1.0f) fail(path + ".opacity", "expected a number from 0 to 1");
+	panel.setOpacity(opacity);
+}
+
 } // namespace
 
 void registerTransformProperties(TypeRegistry& registry) {
@@ -85,8 +99,12 @@ void registerTransformProperties(TypeRegistry& registry) {
 	                   {"scale", ValueKind::Any},
 	                   {"skew", ValueKind::Any},
 	                   {"translate", ValueKind::Any},
-	                   {"transformOrigin", ValueKind::Any}};
-	set->apply = applyTransform;
+	                   {"transformOrigin", ValueKind::Any},
+	                   {"opacity", ValueKind::Number}}; // one set: a panel inherits a bounded number of them
+	set->apply = [](Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+		applyTransform(panel, values, reader, path);
+		applyOpacity(panel, values, reader, path);
+	};
 	set->everyUpdate = true; // setTransform() does nothing when it is the same; it also clears keys removed
 	set->appliesTo = [](const Panel&) { return true; }; // every panel; a timeline's zoom is "pixelsPerSecond"
 	registry.addProperties(std::move(set));

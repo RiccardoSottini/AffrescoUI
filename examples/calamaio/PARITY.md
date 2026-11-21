@@ -39,7 +39,7 @@ the difference in the note) or **missing**. The words, the sample texts and the 
 | Registers | `C-x r s`, `C-x r i`, `C-x r SPC`, `C-x r j` | done | Text or a position, in its buffer; kept while Calamaio runs |
 | Help | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`, `C-h e` | done | From the document's commands, keys and settings |
 | Files | `C-x b`, `C-x C-f`, `C-x C-s`, `C-x k` | partial | Files are a sample folder in the document |
-| Files | `C-x C-c` with a save prompt | partial | Asks, but the frame stays |
+| Files | `C-x C-c` with a save prompt | done | With unsaved files it says so and stays; else it closes the window (`closeWindow "main"`) |
 | Major modes | Fundamental, Text, Lisp, Python, C, Markdown, Org | partial | Names in the mode line; colours where the host has a grammar |
 | Minor modes | Line numbers, visual line, show-paren, electric pair, auto-fill, whitespace, fill column indicator, menu bar, tool bar | done | From Options and `M-x`; auto-fill breaks at the last space before `fill-column` as a space is typed past it (`Fill` in the mode line); whitespace dots each space; `C-h m` lists the ones on |
 | Dired | Listing, RET, `g`, `q`, `d`, `u`, `x`, `+`, `R`, `C` | done | `C-x d`; `x` asks yes or no; a buffer visiting a renamed file follows it. The files are the sample folder's |

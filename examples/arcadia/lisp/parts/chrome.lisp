@@ -96,7 +96,7 @@
              {:title ~(t "menu.backup") :run openBackup}
              {:title ~(t "menu.settings") :run openSettings :with {:page interface} :keyLabel "⌘,"}
              {:separator true}
-             {:title ~(t "menu.exit") :enabled false}]))
+             {:title ~(t "menu.exit") :run exitApp}]))
 
 (defview view-menu "The View menu: couch mode, the pages, the theme and the language." []
   `(node :name view
