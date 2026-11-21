@@ -1566,7 +1566,8 @@ out); `path-select` drags the active path or the anchor pressed. `textToPath` ad
 per contour. `quick-select` selects, at the release, the pixels like the one under each point of the drag (within the
 `tolerance`) and connected to it, no farther than the brush's radius (`size`), so it stops at edges.
 `selection-box` draws the selection's box with eight handles: a drag on a handle scales the outline (the opposite side
-stays), a drag inside moves it, one step each. The
+stays), a drag inside moves it, one step each; `layer-box` does the same to the active pixel layer, around its pixels
+(a Free Transform step). The
 paths are the document's (`paths` and `activePath` in the snapshot, kept in projects and the history), drawn over the
 canvas while one is active.
 
@@ -1577,7 +1578,7 @@ The names the operations and tool options take, and the library's limits:
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
-| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select`, `quick-select`, `selection-box` |
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom`, `text`, `shape`, `pen`, `path-select`, `quick-select`, `selection-box`, `layer-box` |
 | A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
 | `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
 | A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |

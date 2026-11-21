@@ -54,7 +54,8 @@ goes on. The pen's paths are the document's (`doc.paths`), drawn over the canvas
 panel, and filled, stroked, selected or made a shape layer from there or the options bar. The Pen adds an anchor on a
 segment, deletes the one pressed on, and Alt converts a smooth anchor to a corner (a drag pulls a corner's handles);
 Type > Create Work Path makes a type layer's letters paths. Select > Transform Selection puts handles on the
-selection's box (the `selection-box` gesture), and every colour chip opens a picker beside it.
+selection's box (the `selection-box` gesture), Free Transform (Cmd+T) on the active layer's (`layer-box`), and every
+colour chip opens a picker beside it.
 
 ## Agents
 

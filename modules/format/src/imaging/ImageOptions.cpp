@@ -17,10 +17,10 @@ namespace affresco::format::editing {
 namespace {
 
 /// @brief The gestures' names, in Gesture's order.
-constexpr std::array<std::string_view, 21> gestureNameList{
+constexpr std::array<std::string_view, 22> gestureNameList{
     "move", "select-rectangle", "select-ellipse", "lasso",    "polygon-lasso", "magic-wand", "crop", "paint",
     "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom", "text",
-    "shape", "pen",             "path-select",    "quick-select", "selection-box"};
+    "shape", "pen",             "path-select",    "quick-select", "selection-box", "layer-box"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
 constexpr std::array<std::string_view, 23> optionKeyList{

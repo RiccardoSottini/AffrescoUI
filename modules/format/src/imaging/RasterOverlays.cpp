@@ -69,7 +69,7 @@ void RasterView::paint(Painter& painter) const {
 	if(shown->press.down && !shown->press.pan && gesture == Gesture::crop) paintCrop(painter, *shown);
 	paintOutline(painter, *shown);
 	paintPaths(painter, *shown);
-	if(gesture == Gesture::selectionBox) paintSelectionBox(painter, *shown);
+	if(gesture == Gesture::selectionBox || gesture == Gesture::layerBox) paintSelectionBox(painter, *shown);
 	if(hovered_ && !shown->spaceHeld && !shown->press.pan &&
 	   (gesture == Gesture::paint || gesture == Gesture::erase || gesture == Gesture::clone ||
 	    gesture == Gesture::quickSelect))
@@ -189,7 +189,11 @@ void RasterView::paintPaths(Painter& painter, const editing::ImageDocument& imag
 
 void RasterView::paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const {
 	std::array<float, 4> box = image.boxNow;
-	if(!image.press.down || image.boxHandle < 0) {
+	if((!image.press.down || image.boxHandle < 0) && image.settings.gesture == editing::Gesture::layerBox) {
+		const auto layerBox = editing::activeLayerBox(image);
+		if(!layerBox) return;
+		box = *layerBox;
+	} else if(!image.press.down || image.boxHandle < 0) {
 		const imaging::Document& document = image.canvas->document();
 		if(!document.hasSelection()) return;
 		const auto [x, y, width, height] = imaging::selectionBounds(document);

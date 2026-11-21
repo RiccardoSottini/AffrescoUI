@@ -152,6 +152,12 @@
 
 ;;; Edit: the active layer's transform
 
+(defcommand freeTransformHandles "Puts handles on the box around the active layer's pixels: scale by one, move inside."
+  :title ~(t "command.freeTransformHandles") :description ~(t "command.freeTransformHandles.about")
+  :category ~(t "category.edit") :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)
+  []
+  (setTool {:tool "free-transform"}))
+
 (defcommand showTransform "Opens the Free Transform dialog on the active layer."
   :title ~(t "command.showTransform") :description ~(t "command.showTransform.about") :category ~(t "category.edit")
   :icon "scaling" :enablement ~(= computed.activeLayer.kind :pixel)

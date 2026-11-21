@@ -2433,7 +2433,7 @@
 					"wait": 0
 				},
 				{
-					"key": "mod+t"
+					"action": "showTransform"
 				},
 				{
 					"expect": {
@@ -6421,6 +6421,108 @@
 					"expect": {
 						"state": "doc.tool",
 						"is": "marquee"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-free-transform-handles",
+			"note": "Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales the layer, a drag inside moves it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+t"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "free-transform"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.gesture",
+						"is": "layer-box"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 1200,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 1100,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 1000,
+									"y": 600,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 420,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 450,
+									"y": 600,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"click": "#option-layer-box-numbers"
+				},
+				{
+					"expect": {
+						"state": "transform.open",
+						"is": true
 					}
 				}
 			]

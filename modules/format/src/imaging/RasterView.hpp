@@ -131,7 +131,8 @@ private:
 	/// @param painter The painter.
 	/// @param image The image shown.
 	void paintPaths(Painter& painter, const editing::ImageDocument& image) const;
-	/// @brief Draws the box around the selection and its eight handles, as the drag makes it (selection-box).
+	/// @brief Draws the box around the selection (selection-box) or the active layer's pixels (layer-box), and its eight
+	/// handles, as the drag makes it.
 	/// @param painter The painter.
 	/// @param image The image shown.
 	void paintSelectionBox(Painter& painter, const editing::ImageDocument& image) const;

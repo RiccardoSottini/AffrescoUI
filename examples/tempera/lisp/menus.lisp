@@ -32,7 +32,7 @@
    :clear {:run clearPixels :group "2_clipboard" :order 5}
    :fill {:run showFill :group "3_fill" :order 1}
    :stroke {:run unavailable :title ~(t "menu.edit.stroke") :group "3_fill" :order 2}
-   :freeTransform {:run showTransform :group "4_transform" :order 1}
+   :freeTransform {:run freeTransformHandles :group "4_transform" :order 1}
    :transform {:submenu layerTransform :title ~(t "menu.edit.transform") :group "4_transform" :order 2}
    :swap {:run swapColours :group "5_colours" :order 1}
    :reset {:run resetColours :group "5_colours" :order 2}

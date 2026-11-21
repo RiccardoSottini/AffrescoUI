@@ -225,18 +225,26 @@ void closeQuickSelection(ImageDocument& image) {
 	        static_cast<float>(y + height)};
 }
 
-/// @brief selection-box's press: picks the handle of the selection's box pressed on, or inside it to move it.
-/// @param image The image; its message says why when there is no selection.
+/// @brief selection-box's and layer-box's press: picks the handle of the box pressed on (the selection's, or the
+/// active layer's pixels'), or inside it to move it.
+/// @param image The image; its message says why when there is no box.
 /// @param at Where.
 /// @return Whether the screen should hear of it.
 bool pressSelectionBox(ImageDocument& image, Point at) {
 	const imaging::Document& document = image.canvas->document();
 	image.boxHandle = -1;
-	if(!document.hasSelection()) {
+	if(image.settings.gesture == Gesture::layerBox) {
+		const auto box = activeLayerBox(image);
+		if(!box) {
+			image.message = "Choose a pixel layer with pixels";
+			return true;
+		}
+		image.boxBefore = *box;
+	} else if(!document.hasSelection()) {
 		image.message = "Select something to transform";
 		return true;
-	}
-	image.boxBefore = selectionBox(document);
+	} else
+		image.boxBefore = selectionBox(document);
 	image.boxNow = image.boxBefore;
 	constexpr float handleReach = 6.0f; // window units around a handle
 	image.boxHandle =
@@ -315,6 +323,7 @@ bool pressTool(ImageDocument& image, Point at) {
 		addQuickPoint(image, at);
 		return true;
 	case Gesture::selectionBox:
+	case Gesture::layerBox:
 		return pressSelectionBox(image, at);
 	case Gesture::move:
 		return image.settings.autoSelect && pickLayer(image.canvas->document(), at);
@@ -354,6 +363,7 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 		addQuickPoint(image, at);
 		return true;
 	case Gesture::selectionBox:
+	case Gesture::layerBox:
 		if(image.boxHandle < 0) return false;
 		image.boxNow =
 		    draggedBox(image.boxBefore, image.boxHandle, at.x - image.press.start.x, at.y - image.press.start.y);
@@ -451,10 +461,12 @@ bool releaseTool(ImageDocument& image, Point at) {
 		closeQuickSelection(image);
 		return true;
 	case Gesture::selectionBox:
+	case Gesture::layerBox:
 		if(image.boxHandle < 0) return false;
 		image.boxNow = draggedBox(image.boxBefore, image.boxHandle, at.x - from.x, at.y - from.y);
 		image.boxHandle = -1;
-		transformSelectionTo(image, image.boxBefore, image.boxNow);
+		if(image.settings.gesture == Gesture::layerBox) transformLayerTo(image, image.boxBefore, image.boxNow);
+		else transformSelectionTo(image, image.boxBefore, image.boxNow);
 		return true;
 	case Gesture::gradient:
 		drawGradient(image, at);

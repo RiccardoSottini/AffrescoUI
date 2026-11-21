@@ -21,6 +21,7 @@
                          :wand {:gesture magic-wand}
                          :quick-select {:gesture quick-select}
                          :transform-selection {:gesture selection-box}
+                         :free-transform {:gesture layer-box}
                          :crop {:gesture crop}
                          :brush {:gesture paint}
                          :pencil {:gesture paint :hardness 100}

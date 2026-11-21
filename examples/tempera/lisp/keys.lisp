@@ -106,7 +106,7 @@
 
 (defkey "delete" clearPixels)
 
-(defkey "mod+t" showTransform)
+(defkey "mod+t" freeTransformHandles)
 
 ;;; Image
 

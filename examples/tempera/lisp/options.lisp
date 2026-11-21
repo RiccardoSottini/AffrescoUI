@@ -302,16 +302,25 @@
      (node#gradient-dither :use tCheck :with {:title ~(t "option.dither") :checked false :off true})
      (node#gradient-transparency :use tCheck :with {:title ~(t "option.transparency") :checked true :off true})))
 
-(defview selection-box-options "Transform Selection's handles: what a drag does, the numbers, and Done." []
-  `(row#options-selection-box :when ~(= state.doc.tool "transform-selection") :alignItems center :gap 8 :height 30
+(defview selection-box-options
+  "The handles of Transform Selection and Free Transform: what a drag does, the numbers, and Done." []
+  `(row#options-selection-box :when ~(contains ["transform-selection" "free-transform"] state.doc.tool)
+     :alignItems center :gap 8 :height 30
      :grow 100
      (node :style dim :text ~(t "option.selectionBox.hint") :fitText true)
      (node#option-selection-box-numbers :use tButton
+       :when ~(= state.doc.tool "transform-selection")
        :with {:title ~(t "option.selectionBox.numbers") :tip ~(t "command.showTransformSelection.about")
               :run showTransformSelection :off ~(not state.doc.selection)})
+     (node#option-layer-box-numbers :use tButton
+       :when ~(= state.doc.tool "free-transform")
+       :with {:title ~(t "option.selectionBox.numbers") :tip ~(t "command.showTransform.about") :run showTransform})
      (node#option-selection-box-done :use tButton
-       :with {:title ~(t "option.selectionBox.done") :tip ~(t "option.selectionBox.done.tip") :run setTool
-              :args {:tool "marquee"}})))
+       :with {:title ~(t "option.selectionBox.done")
+              :tip ~(if (= state.doc.tool "free-transform") (t "option.freeTransform.done.tip")
+                      (t "option.selectionBox.done.tip"))
+              :run setTool
+              :args {:tool ~(if (= state.doc.tool "free-transform") "move" "marquee")}})))
 
 (defview crop-options "The crop tool's ratios: the selection's box, or a centred box of a ratio." []
   `(node#option-crop :use tPicker

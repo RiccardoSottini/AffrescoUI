@@ -60,6 +60,7 @@ enum class Gesture : std::uint8_t {
 	pathSelect,      ///< Drags the active path, or the anchor pressed on.
 	quickSelect,     ///< Selects like colours under a brush dragged over them, stopping at edges.
 	selectionBox,    ///< Moves the selection's outline, or scales it by a handle of the box around it.
+	layerBox,        ///< Moves the active pixel layer, or scales it by a handle of the box around its pixels.
 };
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
@@ -195,10 +196,14 @@ struct ImageDocument {
 	imaging::Point pathLast; ///< path-select: where the pointer was at the last move of the press.
 	bool typing = false;   ///< text: the canvas types into the active type layer (a press of the tool began it).
 	bool pathMoved = false; ///< pen, path-select: whether the press has changed the path yet (later changes coalesce).
-	/// selection-box: the handle pressed (0 to 7 clockwise from the top left corner, 8 inside to move), or -1.
+	/// selection-box, layer-box: the handle pressed (0 to 7 clockwise from the top left corner, 8 inside to move), or -1.
 	int boxHandle = -1;
-	std::array<float, 4> boxBefore{}; ///< selection-box: the selection's bounds at the press, left, top, right, bottom.
-	std::array<float, 4> boxNow{};    ///< selection-box: the box as the drag makes it.
+	std::array<float, 4> boxBefore{}; ///< selection-box, layer-box: the box at the press, left, top, right, bottom.
+	std::array<float, 4> boxNow{};    ///< selection-box, layer-box: the box as the drag makes it.
+	/// layer-box: the active layer's box (activeLayerBox()) and the document revision and layer it was measured at.
+	mutable std::optional<std::array<float, 4>> layerBoxCache;
+	mutable std::uint64_t layerBoxRevision = ~std::uint64_t{0}; ///< @copydoc layerBoxCache
+	mutable std::uint64_t layerBoxLayer = 0;                     ///< @copydoc layerBoxCache
 };
 
 /// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.
@@ -409,6 +414,19 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy);
 /// @param to The box it goes to; its width and height under 1 pixel do nothing.
 /// @throws DocumentError If there is no selection.
 void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to);
+
+/// @brief The box around the active pixel layer's pixels, measured again only when the document changed.
+/// @param image The image.
+/// @return Left, top, right and bottom; nothing when the active layer isn't a pixel layer or has no pixels.
+[[nodiscard]] std::optional<std::array<float, 4>> activeLayerBox(const ImageDocument& image);
+
+/// @brief Moves and scales the active pixel layer from the box around its pixels to another, as one step (Free
+/// Transform).
+/// @param image The image.
+/// @param from The box it is in, left, top, right, bottom.
+/// @param to The box it goes to; its width and height under 1 pixel do nothing.
+/// @throws DocumentError If the layer can't be transformed.
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to);
 
 /// @brief The handle of a selection box under a point: 0 to 7 clockwise from the top left corner, 8 inside, or -1.
 /// @param box The box, left, top, right, bottom, in document pixels.

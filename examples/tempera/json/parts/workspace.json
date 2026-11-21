@@ -367,11 +367,15 @@
 						  "text": "{{state.doc.gesture == 'pen' ? 'Click to add anchors, drag to curve, click the first to close' : 'Drag the path, or one of its anchors'}}" }
 					  ] },
 
-					{ "type": "row", "id": "options-selection-box", "when": "{{state.doc.tool == 'transform-selection'}}", "alignItems": "center", "gap": 8, "height": 30, "grow": 100, "children": [
+					{ "type": "row", "id": "options-selection-box", "when": "{{contains(['transform-selection', 'free-transform'], state.doc.tool)}}", "alignItems": "center", "gap": 8, "height": 30, "grow": 100, "children": [
 						{ "style": "dim", "text": "Drag a handle to scale, inside to move", "fitText": true },
-						{ "id": "option-selection-box-numbers", "use": "tButton", "with": { "title": "Numbers...", "tip": "Moves, scales and turns the selection's outline, not its pixels.",
-						  "run": "showTransformSelection", "off": "{{!state.doc.selection}}" } },
-						{ "id": "option-selection-box-done", "use": "tButton", "with": { "title": "Done", "tip": "Back to the Rectangular Marquee", "run": "setTool", "args": { "tool": "marquee" } } }
+						{ "id": "option-selection-box-numbers", "use": "tButton", "when": "{{state.doc.tool == 'transform-selection'}}",
+						  "with": { "title": "Numbers...", "tip": "Moves, scales and turns the selection's outline, not its pixels.", "run": "showTransformSelection", "off": "{{!state.doc.selection}}" } },
+						{ "id": "option-layer-box-numbers", "use": "tButton", "when": "{{state.doc.tool == 'free-transform'}}",
+						  "with": { "title": "Numbers...", "tip": "Moves, scales and turns the active layer by numbers.", "run": "showTransform" } },
+						{ "id": "option-selection-box-done", "use": "tButton", "with": { "title": "Done",
+						  "tip": "{{state.doc.tool == 'free-transform' ? 'Back to the Move tool' : 'Back to the Rectangular Marquee'}}", "run": "setTool",
+						  "args": { "tool": "{{state.doc.tool == 'free-transform' ? 'move' : 'marquee'}}" } } }
 					] },
 					{ "id": "option-crop", "use": "tPicker", "when": "{{state.doc.tool == 'crop'}}",
 					  "with": { "title": "Ratio", "tip": "Crop", "open": "state.cropMenu", "items": [{ "title": "Crop to Selection", "run": "cropToSelection" },

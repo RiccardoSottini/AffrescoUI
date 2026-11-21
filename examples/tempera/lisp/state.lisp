@@ -84,8 +84,10 @@
    [{:id zoom :name zoom :icon zoom-in :key "Z"}]]
   "The tools bar's groups, top to bottom (an empty group is a gap): a tool with no id isn't available yet.")
 
-(defstate modeTools {:transform-selection {:id transform-selection :name transformSelection :icon scan}}
-  "Tools chosen by a command, not on the tools bar: Select > Transform Selection's handles.")
+(defstate modeTools
+  {:transform-selection {:id transform-selection :name transformSelection :icon scan}
+   :free-transform {:id free-transform :name freeTransform :icon scaling}}
+  "Tools chosen by a command, not on the tools bar: the handles of Select > Transform Selection and Free Transform.")
 
 (defstate brushHardness 80 "The brush's hardness, kept while the pencil (always hard) is chosen.")
 

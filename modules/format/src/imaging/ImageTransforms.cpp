@@ -856,6 +856,33 @@ void transformSelectionTo(ImageDocument& image, const std::array<float, 4>& from
 	                   nullptr);
 }
 
+std::optional<std::array<float, 4>> activeLayerBox(const ImageDocument& image) {
+	const imaging::Document& document = image.canvas->document();
+	const imaging::Layer* layer = document.activeLayer();
+	if(layer == nullptr || layer->kind != imaging::LayerKind::pixel) return std::nullopt;
+	if(image.layerBoxRevision != document.revision() || image.layerBoxLayer != layer->id) {
+		image.layerBoxRevision = document.revision();
+		image.layerBoxLayer = layer->id;
+		image.layerBoxCache.reset();
+		if(const auto box = contentBox(*document.image(layer->pixels)))
+			image.layerBoxCache = std::array<float, 4>{static_cast<float>((*box)[0]), static_cast<float>((*box)[1]),
+			                                           static_cast<float>((*box)[2]), static_cast<float>((*box)[3])};
+	}
+	return image.layerBoxCache;
+}
+
+void transformLayerTo(ImageDocument& image, const std::array<float, 4>& from, const std::array<float, 4>& to) {
+	const float width = from[2] - from[0], height = from[3] - from[1];
+	if(width < 1.0f || height < 1.0f || to[2] - to[0] < 1.0f || to[3] - to[1] < 1.0f || from == to) return;
+	settle(image);
+	transform(image,
+	          json{{"x", std::lround((to[0] + to[2] - from[0] - from[2]) / 2.0f)},
+	               {"y", std::lround((to[1] + to[3] - from[1] - from[3]) / 2.0f)},
+	               {"scaleX", (to[2] - to[0]) / width * 100.0f},
+	               {"scaleY", (to[3] - to[1]) / height * 100.0f}},
+	          "Free Transform");
+}
+
 int boxHandleAt(const std::array<float, 4>& box, imaging::Point at, float reach) noexcept {
 	const float middleX = (box[0] + box[2]) / 2.0f, middleY = (box[1] + box[3]) / 2.0f;
 	const std::array<imaging::Point, 8> handles{{{box[0], box[1]},

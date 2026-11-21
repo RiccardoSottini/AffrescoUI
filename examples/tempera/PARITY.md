@@ -67,7 +67,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Magic wand with tolerance, quick selection | done | Quick Selection (Shift+W) brushes over like colours, each stroke stopping at edges (its size and tolerance in the options bar); Shift adds, Alt subtracts |
 | Select all, deselect, inverse, feather, transform selection | done | Select > Transform Selection puts handles on the selection's box: a handle's drag scales the outline, a drag inside moves it, and Numbers... opens the dialog that also flips and turns it; Select > Reselect (Shift+Cmd+D) brings back what Deselect or a marquee click took away |
 | Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
-| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
+| Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | Cmd+T puts handles on the box around the active layer's pixels: a handle's drag scales it (the opposite side stays), a drag inside moves it, each drag one step (undo cancels it); Numbers... opens the dialog that also flips and turns it; no rotating or skewing handles |
 | Crop with overlay grid and aspect presets | partial | Thirds while dragging; Shift keeps a square and Alt crops from the centre; the ratios crop the largest centred part, but don't hold a drag to that shape |
 | Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
 | Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
@@ -116,7 +116,7 @@ general feature the image step or a node needs first.
 
 | Item | Pri | Needs |
 | --- | --- | --- |
-| Free transform: on-canvas handles, skew | P1 | Library: transform handles in the raster overlay that preview and commit `transformBox`, and a skew term |
+| Free transform: rotating and skewing handles, a live preview of the pixels while dragging | P2 | Library: a rotation and skew term in `layer-box`, and the remapped layer drawn while the drag lasts |
 | Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
 | Character: type on a path; a glyph's synthetic bold or italic in Create Work Path (the font's own outlines are used) | P3 | Library: text laid along a path in renderText; outlines of the synthesised styles |
 | Create Work Path: a path per letter rather than per contour | P3 | Library: paths of several contours (subpaths) |

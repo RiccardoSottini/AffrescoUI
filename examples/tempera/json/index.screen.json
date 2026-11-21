@@ -68,7 +68,7 @@
 			"tools": {
 				"move": { "gesture": "move" }, "marquee": { "gesture": "select-rectangle" },
 				"ellipse": { "gesture": "select-ellipse" }, "lasso": { "gesture": "lasso" },
-				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "quick-select": { "gesture": "quick-select" }, "transform-selection": { "gesture": "selection-box" }, "crop": { "gesture": "crop" },
+				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "quick-select": { "gesture": "quick-select" }, "transform-selection": { "gesture": "selection-box" }, "free-transform": { "gesture": "layer-box" }, "crop": { "gesture": "crop" },
 				"brush": { "gesture": "paint" }, "pencil": { "gesture": "paint", "hardness": 100 }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
 				"gradient": { "gesture": "gradient" }, "fill": { "gesture": "fill" }, "eyedropper": { "gesture": "sample" },
 				"type": { "gesture": "text", "vector": { "size": 48 } },
@@ -120,7 +120,8 @@
 			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
 			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]
 		],
-		"modeTools": { "transform-selection": { "id": "transform-selection", "icon": "scan", "title": "Transform Selection Tool" } },
+		"modeTools": { "transform-selection": { "id": "transform-selection", "icon": "scan", "title": "Transform Selection Tool" },
+			"free-transform": { "id": "free-transform", "icon": "scaling", "title": "Free Transform Tool" } },
 		"brushHardness": 80,
 		"brushes": ["Hard Round 5", "Hard Round 20", "Soft Round 30", "Soft Round 100", "Airbrush 60", "Pencil 1", "Chalk 40"],
 		"gradients": ["Black, White", "Spectrum", "Copper", "Black, Transparent"],
