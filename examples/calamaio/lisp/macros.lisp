@@ -3,7 +3,8 @@
 ;;; While a numeric argument waits or a macro is being recorded, the selected window's editor gives every key to
 ;;; editor-key (window.lisp) before the bindings and the text see it. A key that types a character types it the
 ;;; argument's count of times; a binding runs its command, a prefix (C-x) waits for the rest; any other key goes to
-;;; the editor. A macro keeps the keys typed in a window from F3 to F4, and F4 types them again.
+;;; the editor. A macro keeps the keys typed in a window from F3 to F4, and each answer given in the minibuffer, and
+;;; F4 types them again.
 
 (ns calamaio.macros)
 
@@ -54,6 +55,9 @@
           (and (= k "q") computed.buf.readOnly (not= computed.buf.kind "splash") (not= mode "messages")) "quit-window"
           :else nil)))
 
+(def macro-answer-mark "What starts a keyboard macro's step that answers the minibuffer, the answer after it."
+  "minibuffer:")
+
 (defn electric? "Whether electric-pair-mode types this character itself." [c]
   (and (get settings "electric-pair-mode") (contains? #{"(" ")" "[" "]" "{" "}" "\""} c)))
 
@@ -65,6 +69,9 @@
         c (typed-char k)
         wc (when (= state.keyseq "") (window-command k))]
     (cond (= k "ctrl+g") (do (set "state.keyseq" "") (keyboard-quit))
+          (str/starts-with? k macro-answer-mark) (when state.mb.open
+                                                   (set "state.mb.text" (subs k (count macro-answer-mark)))
+                                                   (minibuffer-exit))
           (and (= state.keyseq "") (some? state.arg) (some? (parse-long k))) (digit-argument (parse-long k))
           (some? b) (do (set "state.keyseq" "") (set "state.echo" "") (run-binding b k))
           (prefix? s) (do (set "state.keyseq" s)

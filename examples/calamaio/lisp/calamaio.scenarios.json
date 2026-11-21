@@ -3538,6 +3538,88 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "macro-answers-the-minibuffer",
+			"note": "A keyboard macro keeps what was answered in the minibuffer (M-x open-line here) and gives the answer again when it is played",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "p"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f3"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "a"
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"type": "open-line"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 60
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "kmacro.last",
+						"is": [
+							"a",
+							"alt+x",
+							"minibuffer:open-line"
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "a\n"
+					}
+				},
+				{
+					"key": "f4"
+				},
+				{
+					"wait": 80
+				},
+				{
+					"expect": {
+						"state": "bufs.b3.text",
+						"is": "aa\n\n"
+					}
+				}
+			]
 		}
 	]
 }
