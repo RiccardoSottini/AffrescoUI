@@ -108,7 +108,9 @@
                       (= state.tool :scale) "scale"
                       (and (= state.tool :select) (some? state.objectGizmo)) state.objectGizmo
                       :else "translate")
-          :space (cond (#{:local :normal} state.orientation) "local" (= state.orientation :view) "view" :else "world")
+          :space (cond (#{:local :normal} state.orientation) "local"
+                       (#{:view :gimbal} state.orientation) (name state.orientation)
+                       :else "world")
           :snap (if state.snap computed.snapSteps {})}
          (cond (= state.pivot :individual) {:individual true}
                (= state.pivot :cursor) {:pivot state.cursor}

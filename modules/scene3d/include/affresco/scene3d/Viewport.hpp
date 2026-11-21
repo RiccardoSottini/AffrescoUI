@@ -37,6 +37,7 @@ struct GizmoSettings {
 	                                       ///< selection's centre (e.g. a 3D cursor).
 	bool individual = false;               ///< Each node turns and scales about its own origin instead.
 	bool view = false;                     ///< Along the camera's axes (right, up, towards the eye) instead.
+	bool gimbal = false;                   ///< Around the active node's Euler axes (x, then y, then z) instead.
 };
 
 /// @brief Everything a viewport's parameters say, except the scene.
@@ -78,7 +79,7 @@ inline constexpr std::string_view upFrameId = "<up>";
 ///
 /// The keys are `camera` (see cameraFromJson()), `selection` and `outlined` (ids), `shading`, `grid`, `axes`,
 /// `background`, `gridColor` and `outline` (`"#rrggbb"` or three numbers 0..1), `exposure`, `time`, `gizmo`
-/// (`{ "visible", "mode", "space": "world" | "local" | "view", "axis", "pivot", "individual" }`), `box` (four numbers), `up` (`"y"` or
+/// (`{ "visible", "mode", "space": "world" | "local" | "view" | "gimbal", "axis", "pivot", "individual" }`), `box` (four numbers), `up` (`"y"` or
 /// `"z"`), `cursor3d` (three numbers), `glyphs` and `extras` (flags), `xray` (0 to 1) and `lighting` (`"scene"` or `"studio"`).
 /// @param params The parameters.
 /// @return The settings.
@@ -94,6 +95,11 @@ inline constexpr std::string_view upFrameId = "<up>";
 /// @return The scene.
 /// @throws std::exception If the scene or the clips are malformed.
 [[nodiscard]] Scene sceneAtTime(const json& scene, const json& animations, float time, const SceneLimits& limits = {});
+
+/// @brief A gimbal's axes for a node: around its Euler angles (applied x, then y, then z) in the scene's frame, so
+/// that turning around one changes that angle alone; the x axis turns with y and z, the y axis with z.
+/// @param world The node's world matrix. @param up The scene frame's turn (upTurn()). @return The x, y and z axes.
+[[nodiscard]] std::array<Vec3, 3> gimbalAxes(const Mat4& world, Quat up) noexcept;
 
 /// @brief The gizmo over a selection: at the mean of the selected nodes' world positions (or the pivot), along the
 /// scene frame's axes or the active (last) node's, sized to a number of pixels.

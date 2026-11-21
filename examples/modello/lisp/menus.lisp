@@ -208,14 +208,11 @@
    {:title (t "mode.edit") :icon "pen-tool" :checked (= state.mode :edit) :run "setMode" :with {:mode "edit"}
     :enabled (or (= state.mode :edit) (editable? computed.activeNode)) :keyLabel "Tab"}])
 
-(defcomputed orientationItems "The transform orientations; Gimbal is to come."
-  (map (fn [it]
-         (if (= it "gimbal")
-           {:title (t (str "orientation." it)) :enabled false :keyLabel (t "menu.notYet")}
-           {:title (t (str "orientation." it))
-            :checked (= state.orientation it)
-            :run "setOption"
-            :with {:key "orientation" :value it}}))
+(defcomputed orientationItems "The transform orientations: Gimbal turns around the active object's Euler axes."
+  (map #(hash-map :title (t (str "orientation." %))
+                  :checked (= state.orientation %)
+                  :run "setOption"
+                  :with {:key "orientation" :value %})
        ["global" "local" "normal" "gimbal" "view" "cursor"]))
 
 (defcomputed pivotItems "The pivot points: what the selected objects turn and scale about."

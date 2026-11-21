@@ -2,6 +2,7 @@
 /// @brief The scene3d module's editable polygon meshes: their JSON, triangles, edit operations, modifiers and picking.
 
 #include <affresco/scene3d/PolyMesh.hpp>
+#include <affresco/scene3d/Viewport.hpp>
 
 #include <doctest/doctest.h>
 
@@ -184,6 +185,23 @@ TEST_CASE("scene3d: picking a vertex, an edge or a face of a polygon mesh") {
 	REQUIRE(face);
 	CHECK(*face == 3);
 	CHECK_FALSE(nearestVertex(PolyMesh{}, {}).has_value());
+}
+
+TEST_CASE("scene3d: a gimbal's axes follow the Euler angles") {
+	const auto near = [](Vec3 a, Vec3 b) { return length(a - b) < 1e-4f; };
+	Transform turned;
+	turned.rotation = Quat::fromEuler({0.0f, 0.0f, 3.14159265f / 2.0f}); // a quarter turn about z
+	const auto axes = gimbalAxes(turned.matrix(), Quat{});
+	CHECK(near(axes[0], {0.0f, 1.0f, 0.0f})); // x turns with z
+	CHECK(near(axes[1], {-1.0f, 0.0f, 0.0f}));
+	CHECK(near(axes[2], {0.0f, 0.0f, 1.0f}));                            // z stays
+	turned.rotation = Quat::fromEuler({3.14159265f / 2.0f, 0.0f, 0.0f}); // about x only: y and z don't follow it
+	const auto still = gimbalAxes(turned.matrix(), Quat{});
+	CHECK(near(still[1], {0.0f, 1.0f, 0.0f}));
+	CHECK(near(still[2], {0.0f, 0.0f, 1.0f}));
+	Gizmo gizmo;
+	gizmo.axes = still;
+	CHECK(near(gizmo.axis(1), {0.0f, 1.0f, 0.0f}));
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
