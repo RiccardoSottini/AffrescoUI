@@ -140,6 +140,46 @@
 				"to": "{{length(state.edit.vertices) > 0 ? ['edit-pivot'] : []}}"
 			}
 		],
+		"editAfterHistory": [
+			{
+				"if": "{{state.mode != 'edit'}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.tmpId",
+				"to": "{{find(state.scene.nodes, it.id == state.edit.object).mesh ?? ''}}"
+			},
+			{
+				"set": "state.tmpMesh",
+				"to": "{{find(state.scene.meshes ?? [], it.id == state.tmpId)}}"
+			},
+			{
+				"if": "{{state.tmpMesh == null}}",
+				"then": [
+					{
+						"run": "leaveEdit"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.edit",
+				"to": "{{merge(state.edit, { faces: filter(state.edit.faces, it < length(state.tmpMesh.faces)), edge: null })}}"
+			},
+			{
+				"set": "state.edit.vertices",
+				"to": "{{length(state.edit.faces) > 0 ? meshFaceVertices(state.tmpMesh, state.edit.faces) : filter(state.edit.vertices, it < length(state.tmpMesh.vertices))}}"
+			},
+			{
+				"run": "pivotSelection"
+			}
+		],
 		"selectElements": [
 			{
 				"set": "state.edit",

@@ -65,12 +65,14 @@
   (set "state.lastOp" nil)
   (swap-scene "state.undoStack" "state.redoStack" state.undoStack)
   (let [left (ids state.scene.nodes)]
-    (set "state.view.selection" (filter #(contains left %) state.view.selection))))
+    (set "state.view.selection" (filter #(contains left %) state.view.selection)))
+  (edit-after-history))
 
 (defcommand redo "Makes the change Undo took back again."
   :title ~(t "command.redo") :description ~(t "command.redo.about")
   :category ~(t "category.edit") :icon "redo-2" :enablement ~(pos? (count state.redoStack)) []
-  (swap-scene "state.redoStack" "state.undoStack" state.redoStack))
+  (swap-scene "state.redoStack" "state.undoStack" state.redoStack)
+  (edit-after-history))
 
 ;;; Selecting
 

@@ -74,6 +74,19 @@
 
 ;;; Selecting
 
+(defn edit-after-history "After Undo or Redo in Edit Mode: the selection kept to the vertices and faces the mesh still has, the pivot on it; without the mesh, Object Mode."
+  []
+  (when (= state.mode :edit)
+    (if-some [mesh (by-id state.scene.meshes (:mesh (by-id state.scene.nodes state.edit.object)))]
+      (let [faces (filter #(< % (count mesh.faces)) state.edit.faces)]
+        (set "state.edit" (merge state.edit {:vertices (if (seq faces)
+                                                         (meshFaceVertices mesh faces)
+                                                         (filter #(< % (count mesh.vertices)) state.edit.vertices))
+                                             :faces faces
+                                             :edge nil}))
+        (pivot-selection))
+      (leave-edit))))
+
 (defn pivot-selection "The viewport's selection in Edit Mode: the pivot that moves the vertices, when there are some." []
   (set "state.view.selection" (if (seq state.edit.vertices) ["edit-pivot"] [])))
 

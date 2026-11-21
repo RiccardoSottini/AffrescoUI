@@ -1216,7 +1216,13 @@
 				{ "wait": 20 },
 				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 2.5] } },
 				{ "key": "mod+z" },
-				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 1.5] } }
+				{ "expect": { "state": "scene.meshes[0].vertices[11]", "is": [1, 1, 1.5] } },
+				{ "expect": { "state": "view.selection", "is": ["edit-pivot"] } },
+				{ "key": "mod+z" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "mode", "is": "edit" } },
+				{ "expect": { "state": "edit.faces", "is": [5] } },
+				{ "expect": { "state": "view.selection", "is": ["edit-pivot"] } }
 			]
 		}
 	]

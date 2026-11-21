@@ -81,7 +81,7 @@
 				{ "push": "state.redoStack", "value": "{{state.scene}}" },
 				{ "set": "state.scene", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
 				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
-				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, contains(map(state.scene.nodes, it.id), it))}}" }
+				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, contains(map(state.scene.nodes, it.id), it))}}" }, { "run": "editAfterHistory" }
 			]
 		},
 		"redo": {
@@ -89,7 +89,7 @@
 			"do": [
 				{ "push": "state.undoStack", "value": "{{state.scene}}" },
 				{ "set": "state.scene", "to": "{{state.redoStack[length(state.redoStack) - 1]}}" },
-				{ "remove": "state.redoStack", "at": "{{length(state.redoStack) - 1}}" }
+				{ "remove": "state.redoStack", "at": "{{length(state.redoStack) - 1}}" }, { "run": "editAfterHistory" }
 			]
 		},
 		"startTransform": [
