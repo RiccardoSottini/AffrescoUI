@@ -5,9 +5,14 @@
 #include "CheckerImpl.hpp"
 #include "Strings.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdint>
 #include <format>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace affresco::format::checker {
 
@@ -446,13 +451,25 @@ std::vector<std::string> Checker::visibleNames(const Scope& scope) {
 	return names;
 }
 
+// Called for every component node and action run, with a few dozen names in scope: each name is numbered once per
+// check, and the set is a bitmap of the numbers, which needs no sorting
 std::string Checker::variableNames(const Scope& scope) {
-	std::set<std::string> names;
+	std::string bits;
 	for(const Scope* layer = &scope; layer; layer = layer->parent)
-		for(const auto& [name, shape] : layer->vars.items()) names.insert(name);
-	std::string joined;
-	for(const std::string& name : names) joined += name + ",";
-	return joined;
+		if(layer->vars.is_object())
+			for(const auto& [name, shape] : layer->vars.items()) {
+				const std::uint32_t number = nameNumber(name);
+				if(number / 8 >= bits.size()) bits.resize(number / 8 + 1, '\0');
+				bits[number / 8] =
+				    static_cast<char>(static_cast<unsigned char>(bits[number / 8]) | (1U << (number % 8)));
+			}
+	return bits; // ends with its last name's byte: the same set gives the same text however many names are numbered
+}
+
+std::uint32_t Checker::nameNumber(std::string_view name) {
+	if(const auto found = nameNumbers_.find(name); found != nameNumbers_.end()) return found->second;
+	const std::string_view kept = names_.emplace_back(name); // a deque: the texts the keys view never move
+	return nameNumbers_.emplace(kept, static_cast<std::uint32_t>(nameNumbers_.size())).first->second;
 }
 
 const Shape& Checker::computedShape(const std::string& name) {

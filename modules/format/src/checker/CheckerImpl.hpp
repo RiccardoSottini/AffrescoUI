@@ -13,12 +13,16 @@
 #include "Record.hpp"
 #include "StateTypes.hpp"
 
+#include <cstdint>
+#include <deque>
 #include <initializer_list>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace affresco::format::checker {
@@ -401,10 +405,14 @@ private:
 	/// @param scope The variables.
 	/// @return Local and screen-wide names.
 	[[nodiscard]] static std::vector<std::string> visibleNames(const Scope& scope);
-	/// @brief The local names in a scope, sorted and joined: actions and components are checked once per set.
+	/// @brief The local names in a scope as a set: actions and components are checked once per set.
 	/// @param scope The variables.
-	/// @return E.g. "c,card,i".
-	[[nodiscard]] static std::string variableNames(const Scope& scope);
+	/// @return A bitmap of the names' numbers (nameNumber()): equal for the same set of names.
+	[[nodiscard]] std::string variableNames(const Scope& scope);
+	/// @brief A variable's name as a number, the same for the same name throughout the check.
+	/// @param name The name.
+	/// @return Its number.
+	[[nodiscard]] std::uint32_t nameNumber(std::string_view name);
 	/// @brief A computed value's shape, checking its expression the first time in a pass.
 	/// @param name The computed value.
 	/// @return Its shape (anything inside a circle).
@@ -501,7 +509,10 @@ private:
 	Shape data_ = Shape::object();                            ///< What `data` holds (learnData()).
 	Learning learnt_ = Learning::nothing;                     ///< What this pass learnt about the state.
 	std::set<Finding> findings_;                              ///< This pass's findings.
-	std::set<std::string> walked_; ///< Actions and components checked, with their variables' names.
+	std::unordered_set<std::string> walked_; ///< Actions and components checked, with their variables' names.
+	std::deque<std::string> names_;          ///< The variables' names numbered so far (nameNumber()).
+	/// The numbers of names_, by the names they view (nameNumber()).
+	std::unordered_map<std::string_view, std::uint32_t> nameNumbers_;
 	std::set<std::string, std::less<>> actionsReached_;    ///< Actions a node or handler runs.
 	std::set<std::string, std::less<>> componentsReached_; ///< Components a node uses.
 	/// Computed values checked in this pass. A map, not a JSON object (a vector): a shape read through a reference
