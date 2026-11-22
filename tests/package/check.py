@@ -7,14 +7,15 @@ Usage:
 DIR is a configured and built AffrescoUI (default: build), with AFFRESCOUI_INSTALL on, its default for a top-level
 static build. The script runs `cmake --install` into a temporary prefix, checks what landed there, then configures and
 builds this directory's consumer project with CMAKE_PREFIX_PATH set to the prefix and runs its two programs (neither
-needs a display). It also checks that the dependencies came from the prefix, and that find_package(AffrescoUI 2.0)
-refuses the 1.0 package. --keep leaves the prefix and the consumer's build for a look. Only the Python standard library
+needs a display). It also checks that the dependencies came from the prefix, and that find_package asking for the next
+major version refuses this one. --keep leaves the prefix and the consumer's build for a look. Only the Python standard library
 and CMake are needed.
 """
 
 import argparse
 import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -73,6 +74,15 @@ def cached(build, name):
     return None
 
 
+def major():
+    """The library's major version, from the project() line of the top-level CMakeLists.txt."""
+    with open(os.path.join(ROOT, "CMakeLists.txt"), encoding="utf-8") as file:
+        found = re.search(r"project\(AffrescoUI VERSION (\d+)\.", file.read())
+    if not found:
+        sys.exit("package check: no version found in CMakeLists.txt")
+    return int(found.group(1))
+
+
 def configure(build, config, version, locate):
     """Configures the consumer, asking find_package for a version; locate is how CMake finds the package."""
     command = ["cmake", "-S", HERE, "-B", build, *locate, f"-DCMAKE_BUILD_TYPE={config}",
@@ -102,7 +112,7 @@ def check_dependencies_follow_package(prefix, work, config):
         shutil.copytree(source, os.path.join(decoy, "lib", "cmake", package))
     build = os.path.join(work, "consumer-decoy")
     package_dir = glob.glob(os.path.join(prefix, "lib*", "cmake", "AffrescoUI"))[0]
-    run(configure(build, config, "1.0", [f"-DAffrescoUI_DIR={package_dir}", f"-DCMAKE_SYSTEM_PREFIX_PATH={decoy}"]))
+    run(configure(build, config, f"{major()}.0", [f"-DAffrescoUI_DIR={package_dir}", f"-DCMAKE_SYSTEM_PREFIX_PATH={decoy}"]))
     check_found_in_prefix(build, prefix)
     print("the dependencies came from the prefix, not from the system's copies")
 
@@ -134,21 +144,23 @@ def main():
         check_installed(prefix)
 
         locate = [f"-DCMAKE_PREFIX_PATH={prefix}"]
-        run(configure(build, options.config, "1.0", locate))
+        run(configure(build, options.config, f"{major()}.0", locate))
         check_found_in_prefix(build, prefix)
         check_dependencies_follow_package(prefix, work, options.config)
         run(["cmake", "--build", build, "--config", options.config])
         for name in ["screen_consumer", "vcs_consumer"]:
             print(run([program(build, options.config, name)]).stdout, end="")
 
-        # SameMajorVersion: a request for 2.0 must not accept 1.x
-        refused = run(configure(os.path.join(work, "consumer-2.0"), options.config, "2.0", locate), False)
+        # SameMajorVersion: a request for the next major version must not accept this one
+        current, following = major(), major() + 1
+        refused = run(configure(os.path.join(work, f"consumer-{following}.0"), options.config, f"{following}.0", locate),
+                      False)
         if refused.returncode == 0:
-            sys.exit("package check: find_package(AffrescoUI 2.0) accepted the 1.x package")
-        if 'compatible with requested version "2.0"' not in " ".join(refused.stdout.split()):
+            sys.exit(f"package check: find_package(AffrescoUI {following}.0) accepted the {current}.x package")
+        if f'compatible with requested version "{following}.0"' not in " ".join(refused.stdout.split()):
             print(refused.stdout)
-            sys.exit("package check: the 2.0 consumer failed for another reason than the version rule")
-        print("find_package(AffrescoUI 2.0) refused the 1.x package, as it should")
+            sys.exit(f"package check: the {following}.0 consumer failed for another reason than the version rule")
+        print(f"find_package(AffrescoUI {following}.0) refused the {current}.x package, as it should")
         print("package check: passed")
     finally:
         if options.keep:

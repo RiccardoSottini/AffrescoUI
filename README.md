@@ -30,7 +30,7 @@ app made from a name and a description, a small change to a home app, and the La
 ---
 
 > [!WARNING]
-> **The v1.0.0 downloads are not code-signed yet**, so macOS and Windows warn that they can't verify the developer when you first open them. Signed builds will come in the next releases.
+> **The v2.0.0 downloads are not code-signed yet**, so macOS and Windows warn that they can't verify the developer when you first open them. Signed builds will come in a later release.
 >
 > **Best today: build from source.** It's one command, gives an optimised build for your machine, and never shows that warning (you need CMake 3.25+ and a C++23 compiler):
 >

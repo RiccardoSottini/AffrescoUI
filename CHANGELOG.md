@@ -3,6 +3,51 @@
 All notable changes are listed here. AffrescoUI follows [Semantic Versioning](https://semver.org): from 1.0.0 on,
 only a major version may change the C++ API or the screen format in a way that breaks what works.
 
+## 2.0.0 (unreleased)
+
+Apps are now written in **AffrescoUI Lisp**, a sandboxed Clojure dialect. A program builds its document and runs its
+functions while the app is open, and keeps everything a document has: history, diffs, permissions and review. JSON
+still works everywhere. The major version marks this new way of writing apps. The C++ API and screen format version
+2 stay compatible: what worked on 1.0.0 still works. The one change for C++ users is `find_package(AffrescoUI 2.0)`,
+since the package accepts its own major version only.
+
+- **The Lisp language** (`modules/lisp`, RFCs 0005 and 0006): a notation for screen documents, then programs that run.
+  `defscreen`, `defview`, `defstate` and `defcomputed` replace the JSON tree, with docstrings and locales. It is a
+  documented, sandboxed subset of Clojure: everyday forms, strings, sets, reader forms and `ns`. Its score against a
+  cross-dialect Clojure test suite is measured, and a test keeps it from going down. Every intended difference from
+  Clojure is written down with its reason. Authority is the least among the authors whose code ran.
+- **Every example in both notations:** each app has a `json/` and a `lisp/` folder, and the Launcher's Settings
+  choose which opens (Lisp by default). Every Lisp version is an idiomatic program, held to the dialect's style by a
+  check.
+- **Connect an editor to a running app:** `--nrepl` starts an nREPL server. The person pairs the editor once, and
+  then it evaluates forms as the person would.
+- **Point and ask:** in every app with the assistant, the **Point** button (Ctrl+Alt+A, Cmd+Alt+A on macOS) picks an
+  element on screen, and the request names it for the assistant or an MCP agent.
+- **The assistant changes programs:** the built-in assistant edits a program's definitions. It says "Done." only when
+  something changed.
+- **Version control:**
+  - Undo an earlier change and keep what was built on it. Where a later change depends on it, the person chooses.
+  - A public three-way merge (`vcs/Merge.hpp`) keeps key order and lists each conflict.
+  - The changes window shows every change file by file, as a git-style diff (Ctrl+Shift+D, Cmd+Shift+D on macOS).
+- **Commands as tools:** agents list an app's commands with typed arguments, run them under their own authority and
+  the app's run rules, and undo their runs.
+- **Share and install:** a person's version of an app is one file. A feature can hold program code, which runs with
+  its author's authority. Installing is a proposal the person reviews, from a file or from the signed `catalogue/`
+  in the Launcher.
+- **Text and translations:** `t()` covers command, menu and setting titles and `window.title`. `affrescoui strings`
+  finds, extracts, requires and splits an app's text into one file per language.
+- **Faster updates:** dependency tracking for state, lists, revisions and programs, so an update costs what it
+  touches. An idle app runs no update.
+- **Sharper text:** text is hinted below a display scale of 2, and glyphs sit on whole pixels at 2x and above. On
+  Windows and Linux on X11, windows follow the display's scale (125% to 400%). The rendering check covers 1.25x,
+  1.5x and 1.75x, with a measure of text sharpness.
+- **Every example app revamped:** missing features added, glitches fixed and a better look, in both notations. The
+  capabilities the apps needed went into the library as general features.
+- **Fixes:**
+  - A closed window's timers no longer keep the event loop spinning.
+  - Code that an app's own file ships is no longer confined as if a feature had installed it.
+  - Bugs found by the sanitizers and the fuzzers are fixed.
+
 ## 1.0.0 (2026-10-25)
 
 The first release of AffrescoUI, which started in 2017 as sGLGUI. A UI is a folder of JSON documents that people and
