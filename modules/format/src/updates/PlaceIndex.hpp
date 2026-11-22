@@ -222,7 +222,7 @@ private:
 	std::vector<std::uint32_t> frontier_;                                             ///< reach()'s nodes (reused).
 	std::vector<std::uint32_t> next_;    ///< reach()'s next nodes (reused).
 	std::vector<std::uint32_t> below_;   ///< collectBelow()'s stack (reused).
-	std::vector<std::uint32_t> seen_;    ///< Per slot: the collect() it was last collected in.
+	std::vector<std::uint32_t> seen_;    ///< Per slot: the collect() it was last collected in (as long as slots_).
 	std::uint32_t collecting_ = 0;       ///< The collect() running.
 	std::vector<Link> scratch_;          ///< set()'s old links (reused).
 	std::string rowText_;                ///< A row's key being made (reused).
