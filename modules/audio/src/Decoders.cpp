@@ -5,7 +5,8 @@
 /// Every decoder reads through a virtual file system of this module (BoundedVfs), never miniaudio's own: a seek past
 /// the end of the bytes fails. miniaudio's memory and file readers clamp such a seek and report success, so a WAV
 /// chunk whose size underflows made its parser step through 2^64 bytes, 2 GiB at a time, and hang (found by
-/// tests/fuzz/audio.cpp, kept in regressions/audio/).
+/// tests/fuzz/audio.cpp, kept in regressions/audio/). And a decoder being set up reads only so much (setUpPasses):
+/// the same parser seeks back on a format chunk past 2 GiB, then reads the same chunks over again, forever.
 
 #include "Decoders.hpp"
 
@@ -27,6 +28,13 @@ namespace {
 constexpr ma_uint32 mp3SeekPoints = 1024;
 /// Frames the stream's thread decodes at a time.
 constexpr std::size_t decodeFrames = 1024;
+/// How many times over a decoder may read its bytes while it is set up: each decoder tried (WAV, FLAC, MP3) reads
+/// some of them, and an MP3's seek table all of them. More is a parser going round in circles: miniaudio's WAV parser
+/// seeks back on a format chunk past 2 GiB (its size cast to an int) and reads the same chunks again, forever (found by
+/// tests/fuzz/audio.cpp, kept in regressions/audio/).
+constexpr std::uint64_t setUpPasses = 8;
+/// What a decoder may read while it is set up besides those passes, so that a short sound's probes have room.
+constexpr std::uint64_t setUpSlack = std::uint64_t{1} << 20;
 
 /// @brief Bytes a decoder reads: they say how many there are, if known, and refuse to seek outside them.
 class ByteSource {
@@ -170,8 +178,9 @@ private:
 /// @brief miniaudio's virtual file system over one ByteSource: its one "file" is the source, whatever the path.
 /// The callbacks come first, as miniaudio reads them through the pointer it is given.
 struct BoundedVfs {
-	ma_vfs_callbacks callbacks{}; ///< What miniaudio calls.
-	ByteSource* source = nullptr; ///< The bytes.
+	ma_vfs_callbacks callbacks{};         ///< What miniaudio calls.
+	ByteSource* source = nullptr;         ///< The bytes.
+	std::uint64_t readsLeft = UINT64_MAX; ///< What a decoder being set up may still read (init()); else no limit.
 
 	/// @brief The source behind a file handle.
 	/// @param file The handle open() gave.
@@ -190,8 +199,11 @@ struct BoundedVfs {
 			return MA_SUCCESS;
 		};
 		callbacks.onClose = [](ma_vfs*, ma_vfs_file) { return MA_SUCCESS; };
-		callbacks.onRead = [](ma_vfs*, ma_vfs_file file, void* out, size_t count, size_t* read) {
-			const std::size_t taken = of(file).read(static_cast<std::uint8_t*>(out), count);
+		callbacks.onRead = [](ma_vfs* vfs, ma_vfs_file file, void* out, size_t count, size_t* read) {
+			std::uint64_t& left = static_cast<BoundedVfs*>(vfs)->readsLeft;
+			const auto allowed = static_cast<std::size_t>(std::min<std::uint64_t>(count, left));
+			const std::size_t taken = of(file).read(static_cast<std::uint8_t*>(out), allowed);
+			if(left != UINT64_MAX) left -= taken;
 			if(read) *read = taken;
 			return taken == 0 && count > 0 ? MA_AT_END : MA_SUCCESS;
 		};
@@ -222,13 +234,17 @@ struct BoundedVfs {
 	BoundedVfs& operator=(BoundedVfs&&) = delete;
 	~BoundedVfs() = default;
 
-	/// @brief Sets a decoder up on the source.
+	/// @brief Sets a decoder up on the source, reading it setUpPasses times over at most.
 	/// @param config The decoder's configuration.
 	/// @param decoder The decoder.
+	/// @param most The most bytes the source holds while the decoder is set up.
 	/// @return miniaudio's result.
-	ma_result init(const ma_decoder_config& config, ma_decoder* decoder) {
+	ma_result init(const ma_decoder_config& config, ma_decoder* decoder, std::uint64_t most) {
 		static_assert(std::is_standard_layout_v<BoundedVfs>, "miniaudio reads the callbacks through the pointer");
-		return ma_decoder_init_vfs(this, "sound", &config, decoder);
+		readsLeft = most > (UINT64_MAX - setUpSlack) / setUpPasses ? UINT64_MAX : most * setUpPasses + setUpSlack;
+		const ma_result result = ma_decoder_init_vfs(this, "sound", &config, decoder);
+		readsLeft = UINT64_MAX; // decoding reads as far as the sound goes, within the engine's limits
+		return result;
 	}
 };
 
@@ -285,7 +301,7 @@ public:
 	/// @param config The decoder's configuration.
 	/// @return Whether it decodes.
 	bool open(const ma_decoder_config& config) {
-		open_ = vfs_.init(config, &decoder_) == MA_SUCCESS;
+		open_ = vfs_.init(config, &decoder_, bytes_->size()) == MA_SUCCESS;
 		if(!open_) return false;
 		ma_uint64 frames = 0;
 		if(ma_decoder_get_length_in_pcm_frames(&decoder_, &frames) == MA_SUCCESS && frames > 0) length_ = frames;
@@ -394,7 +410,7 @@ private:
 	/// @brief The thread: sets the decoder up, then decodes into the ring until the end or a stop.
 	void decode() {
 		ma_decoder decoder{};
-		if(vfs_.init(config_, &decoder) != MA_SUCCESS) {
+		if(vfs_.init(config_, &decoder, queue_->capacity) != MA_SUCCESS) { // it keeps what it holds until then
 			if(!stop_) fail("the stream couldn't be decoded (WAV, FLAC or MP3)");
 			else ring_.finished.store(true, std::memory_order_release);
 			return;
