@@ -132,7 +132,11 @@ void PlaceIndex::link(Slot& slot, std::string_view place) {
 
 void PlaceIndex::add(ReaderId reader, std::span<const std::string> places) {
 	const std::uint32_t at = slotOf(reader);
-	if(at >= slots_.size()) slots_.resize(at + 1u);
+	if(at >= slots_.size()) {
+		slots_.resize(at + 1u);
+		// Grown with the slots, as readers are built: never by an update that collects them later
+		seen_.resize(slots_.size(), 0);
+	}
 	Slot& slot = slots_[at];
 	if(slot.id != reader) { // a new reader in the slot: the old one's places go
 		remove(slot.id);
@@ -280,7 +284,6 @@ void PlaceIndex::collectShape(std::string_view place, std::vector<ReaderId>& out
 }
 
 void PlaceIndex::startCollect() {
-	if(seen_.size() < slots_.size()) seen_.resize(slots_.size(), 0);
 	if(++collecting_ == 0) { // wrapped: no slot may look collected already
 		std::ranges::fill(seen_, 0);
 		collecting_ = 1;
