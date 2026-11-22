@@ -1,0 +1,1 @@
+"{{reduce(range(09999), reduce(range(10000),![acc], acc), [])}}"
