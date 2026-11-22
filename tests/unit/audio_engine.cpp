@@ -457,6 +457,34 @@ TEST_CASE("audio: a WAV chunk whose size underflows is refused at once, in memor
 	CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds{2});
 }
 
+TEST_CASE("audio: a WAV format chunk past 2 GiB is refused at once, in memory and as a stream") {
+	// Found by tests/fuzz/audio.cpp (regressions/audio/): miniaudio's parser seeks over the rest of a format chunk by
+	// its size cast to an int, so a size past 2 GiB went back, and it read the same chunks again forever
+	std::vector<std::uint8_t> bytes = {'R', 'I', 'F', 'F', 0xa4, 0, 0, 0x25, 'W', 'A', 'V', 'E',
+	                                   'f', 'm', 't', ' ', 0xf7, 0xff, 0xff, 0xff, 0x10};
+	bytes.resize(93, 0);
+	test::QueueExecutor executor;
+	Engine engine(manual(&executor));
+	std::string error;
+	const auto started = std::chrono::steady_clock::now();
+	const auto voice = engine.play(Source::memory(bytes), {}, error);
+	if(voice) static_cast<void>(pull(engine, 4800));
+	CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds{2});
+
+	const auto stream = EncodedStream::create(4096);
+	REQUIRE(stream);
+	CHECK(stream->push(bytes));
+	stream->finish();
+	const auto streamed = engine.play(stream, {}, error);
+	REQUIRE(streamed);
+	const auto until = std::chrono::steady_clock::now() + std::chrono::seconds{2};
+	while(!streamed->error() && std::chrono::steady_clock::now() < until) {
+		static_cast<void>(pull(engine, 64));
+		std::this_thread::sleep_for(std::chrono::milliseconds{1});
+	}
+	CHECK(streamed->error().value_or("").contains("couldn't be decoded"));
+}
+
 TEST_CASE("audio: encodings are guessed from names") {
 	CHECK(encodingOf("song.MP3") == Encoding::Mp3);
 	CHECK(encodingOf("https://example.com/live.flac?token=1") == Encoding::Flac);

@@ -1,0 +1,80 @@
+{
+ "format": "affrescoui-package",
+ "version": 1,
+ "kind": "app",
+ "name": "Notes witB hlocked",
+ "release": "1.1.0",
+ "engine": "1.0.0",
+ "author": "Ada",
+ "base": {
+  "app": "notes",
+  "name": "Notes",
+  "release": "1.0.0",
+  "notation": "lisp",
+  "tree": "sha256:9930931f708a2e40da53e382f96492722e08cf47c6513d732634cda008827a8e",
+  "delta": [
+   {
+    "op": "remove",
+    "path": "/state/columns/1"
+   },
+   {
+    "op": "replace",
+    "path": "/program/app.lisp/count",
+    "value": "(defn count [] 1)"
+   },
+   {
+    "op": "remove",
+    "path": "/assets"
+   }
+  ],
+  "files": {
+   "app.json": {
+    "text": "{\"format\": \"affrescoui-app\", \"version\": 1, \"id\": \"notes\", \"name\": \"Notes\", \"entry\": \"index.screen.lisp\"}"
+   },
+   "index.screen.lisp": {
+    "text": "(screen)"
+   },
+   "seed/notes.csv": {
+    "data": "aWnulll0bGUK"
+   }
+  }
+ },
+ "document": {
+  "format": "affrescoui-screen",
+  "version": 2,
+  "state": {
+   "title": "Notes",
+   "columns": [
+    "To do",
+    "Blocked",
+    "Done"
+   ]
+  },
+  "program": {
+   "app.lisp": {
+    "count": "(defn co2af302655093bbe81unt [] 2)"
+   }
+  },
+  "assets": {
+   "dot.svg": {
+    "type": "image/svg+xml",
+    "size": 62,
+    "sha256": "5b10d22019dbf0238b178c09957cac2af302655093bbe81a741d207a4e58e53a"
+   }
+  },
+  "root": {
+   "type": "label",
+   "id": "title",
+   "text": "{{state.title}}"
+  }
+ },
+ "state": {
+  "blockedReason": ""
+ },
+ "assets": {
+  "dot.svg": {
+   "type": "image/svg+xml",
+   "text": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"4\"/>"
+  }
+ }
+}

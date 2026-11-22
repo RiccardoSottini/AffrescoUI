@@ -154,6 +154,17 @@ TEST_CASE("budget: an update has a budget too, so a binding can't freeze the scr
 	    doctest::Contains("root.children[0].text"), affresco::DocumentError);
 }
 
+// Found by fuzzing (tests/fuzz, expression): folds in folds, each item cheap, ran 10^8 items with no budget
+TEST_CASE("budget: a fold inside a fold stops at the update's budget") {
+	const Errors errors;
+	for(const char* text : {"{{reduce(range(10000), reduce(range(1161), acc, acc), [])}}",
+	                        "{{reduce(range(9999), reduce(range(10000), ![acc], acc), [])}}"}) {
+		const std::string root = std::string(R"([{"id": "slow", "type": "label", "text": ")") + text + R"("}])";
+		CHECK_THROWS_WITH_AS(Built("{}", root.c_str()), doctest::Contains("10000000 operations, its work budget"),
+		                     affresco::DocumentError);
+	}
+}
+
 TEST_CASE("budget: a drag's data has a budget too, so dragging can't freeze the screen") {
 	const Errors errors;
 	const Built built("{}", R"([{"id": "source", "width": 100, "height": 100,

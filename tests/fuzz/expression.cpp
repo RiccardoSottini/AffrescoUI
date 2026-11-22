@@ -4,7 +4,9 @@
 ///
 /// The input is a JSON value to evaluate (a `{{...}}` template, a `$` operator, or anything holding them) or, when it
 /// isn't JSON, the inside of a `{{ }}`. Evaluating either gives a value or throws DocumentError, as the runtime
-/// expects.
+/// expects, within a work budget as every update and event has one (SECURITY.md, "Limits"): with none, nothing
+/// bounds a fold inside a fold (regressions/expression/). Its operations are fewer than an update's, so that the
+/// most this build can be made to do takes about a second, not the 15 s that ten million operations take here.
 
 #include "Expression.hpp"
 #include "Fuzz.hpp"
@@ -17,6 +19,9 @@
 using affresco::json;
 
 namespace {
+
+/// The operations one input may evaluate: a fiftieth of an update's (operationsPerEvent), as the lisp target's.
+constexpr std::size_t fuzzOperations = 200000;
 
 /// @brief Evaluates a value as a screen would, with the JSON template's state.
 /// @param value The value.
@@ -32,7 +37,9 @@ void evaluate(const json& value) {
 	static const affresco::format::NodeLookup nodes = [](std::string_view id) {
 		return id == "board" ? json{{"x", 0}, {"y", 0}, {"width", 800}, {"height", 600}, {"visible", true}} : json();
 	};
-	const affresco::format::Context context{state, window, revision, event, locals, globals, &nodes};
+	affresco::format::WorkBudget budget{affresco::format::stepsPerEvent, fuzzOperations,
+	                                    affresco::format::bytesPerEvent};
+	const affresco::format::Context context{state, window, revision, event, locals, globals, &nodes, nullptr, &budget};
 	static_cast<void>(affresco::format::evaluate(value, context, "fuzz"));
 }
 

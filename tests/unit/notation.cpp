@@ -179,10 +179,14 @@ TEST_CASE("notation: formatting keeps comments and discarded forms") {
 	CHECK(format("(row\n  (label) ; c\n)") == "(row\n  (label) ; c\n  )\n");
 	CHECK(format("(row ; only\n)") == "(row ; only\n  )\n");
 	CHECK(format("[;a\n]") == "[\n ;a\n ]\n");
+	// Found by fuzzing (tests/fuzz, notation): a comment before a node's type was lost when the type became its head
+	CHECK(format("{:f ; c\n (node :type box :children [])}") ==
+	      "{:f (node\n      ; c\n      :type box\n      :children [])}\n");
 	// Canonical: the same tree, and twice is once
 	for(const char* text :
 	    {"; a\n[1 ; b\n 2]", "(row ; c\n #a ; d\n :x 1 ; e\n (y ; f\n ) ; g\n ; h\n)", "{;a\n:a [;b\n] ;c\n;d\n}",
-	     "1 ;x", "#_ 1 2 #_ 3", "(node ;a\n)", "(row :children [;a\n (x)])", "(row #_a :b 1 #_(c) #_ d)"}) {
+	     "1 ;x", "#_ 1 2 #_ 3", "(node ;a\n)", "(row :children [;a\n (x)])", "(row #_a :b 1 #_(c) #_ d)",
+	     "(node ; a\n :type box ; b\n #c (label))"}) {
 		CAPTURE(text);
 		const std::string once = format(text);
 		CHECK(fromLisp(once).dump() == fromLisp(text).dump());
