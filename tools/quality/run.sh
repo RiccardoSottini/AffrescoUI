@@ -72,13 +72,21 @@ setup_python() {
 
 # Configures the build with clang, coverage instrumentation and compile_commands.json (what clang-tidy reads). The
 # benchmarks and the fuzz sources (compiled without libFuzzer) are on so tests/perf and tests/fuzz are in it too: a
-# file missing from it can't be parsed, so it can't be checked.
+# file missing from it can't be parsed, so it can't be checked. Configuring downloads the dependencies, so it is tried
+# three times: CMake doesn't retry a download that fails with an HTTP error (.github/workflows/configure.sh).
 configure() {
 	local flags="-fprofile-instr-generate -fcoverage-mapping"
-	cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-		-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
-		-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
-		"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null
+	local attempt
+	for attempt in 1 2 3; do
+		if cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+			-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
+			-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
+			"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null; then
+			return 0
+		fi
+		[ "$attempt" = 3 ] || sleep $((attempt * 30))
+	done
+	fail "cmake couldn't configure $build (three tries)"
 }
 
 # The gate on the changes since $1 (default: the merge base with origin/master).

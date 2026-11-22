@@ -86,7 +86,7 @@ jobs:
         run: tools/quality/run.sh generalism
       - name: Build
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
       - name: Unit tests # headless windows included
         run: ctest --test-dir build -R unit --output-on-failure
@@ -184,7 +184,7 @@ jobs:
       - name: Build
         run: |
           # shellcheck disable=SC2086 # SMALLER is a list of options
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON $SMALLER \
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON $SMALLER \
             "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
           cmake --build build
       - name: Unit tests and the scenarios # the scenarios' captures draw, under Xvfb
@@ -231,7 +231,7 @@ jobs:
           cache: linux-clang-fuzzers
       - name: Build the fuzz targets
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON \
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON \
             -DAFFRESCOUI_BUILD_EXAMPLES=OFF -DAFFRESCOUI_BUILD_TESTS=OFF -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
       - name: Restore the fuzz corpus of the nightly runs # read, never written, here
@@ -269,7 +269,7 @@ jobs:
           cache: macos
       - name: Build
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
       - name: Unit tests and the templates' scenarios # headless: the runner has no OpenGL 4.1 to draw the captures with
         env:
@@ -363,7 +363,7 @@ jobs:
           cache: linux-gcc-agent-benchmark
       - name: Build
         run: |
-          cmake -S . -B build -G Ninja -DAFFRESCOUI_BUILD_TESTS=OFF
+          .github/workflows/configure.sh -S . -B build -G Ninja -DAFFRESCOUI_BUILD_TESTS=OFF
           cmake --build build --target affrescoui
       - name: Every task, by the oracle
         run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 benchmarks/agents/run.py --client oracle --out "$RUNNER_TEMP/agents/oracle.json"

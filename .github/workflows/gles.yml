@@ -41,7 +41,7 @@ jobs:
           cache: linux-gles3
       - name: Build (gles3)
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DAFFRESCOUI_GL_BACKEND=gles3
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DAFFRESCOUI_GL_BACKEND=gles3
           cmake --build build
       - name: Unit tests
         run: ctest --test-dir build -R unit --output-on-failure
@@ -55,7 +55,7 @@ jobs:
             echo "::warning title=OpenGL ES::The base commit has no gles3 backend: HEAD's frames are recorded, not compared"
             exit 0
           fi
-          cmake -S "$base" -B "$base/build" -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3
+          .github/workflows/configure.sh -S "$base" -B "$base/build" -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3
           cmake --build "$base/build" --target affrescoui_render_runner
           xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 "$base/tests/render/check.py" --build "$base/build" --backend gles3 ||
             echo "::warning title=OpenGL ES::The base commit's own check failed (above); its pictures are compared all the same"
@@ -69,7 +69,7 @@ jobs:
         env:
           MESA_GL_VERSION_OVERRIDE: "4.1" # for the gl41 build, as in ci.yml
         run: |
-          cmake -S . -B build-gl41 -G Ninja
+          .github/workflows/configure.sh -S . -B build-gl41 -G Ninja
           cmake --build build-gl41 --target affrescoui_render_runner
           scenarios=$(find tests/render/scenarios -name '*.json' | sort)
           # shellcheck disable=SC2086 # the scenarios are a list

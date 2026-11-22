@@ -39,6 +39,12 @@ as skipped, which branch protection counts as passing, and would hide a failure 
 **Less waiting.** A new push cancels the run of the one before (`concurrency`). The compile cache is kept per kind of
 build (`ccache-<kind>-...`); a pull request reads the base branch's and writes its own, never master's.
 
+**Fewer flaky failures.** Configuring downloads the dependencies, and CMake doesn't retry a download that fails with
+an HTTP error (GitHub's release downloads sometimes answer 403), so the builds configure through
+[`configure.sh`](configure.sh), which tries three times. Every Xvfb runs with `-noreset`: by default it resets when its
+last client leaves and drops a client that connects meanwhile, which failed the window tests at random as one test
+closed its window and the next opened one.
+
 **What is protected.** Every workflow has `contents: read` only and no `pull_request_target`; every action is pinned by
 its commit; checkouts don't keep the token. A pull request's code is built and run with that read-only token, and
 nothing it writes reaches `master`'s caches. The golden images and the base benchmarks are built from the base commit
