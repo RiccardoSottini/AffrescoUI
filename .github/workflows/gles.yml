@@ -46,7 +46,7 @@ jobs:
       - name: Unit tests
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests # drawn with OpenGL ES 3.0
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" ctest --test-dir build -R window --output-on-failure
       - name: Golden images from the base commit (gles3)
         run: |
           base="$RUNNER_TEMP/base"
@@ -57,12 +57,12 @@ jobs:
           fi
           cmake -S "$base" -B "$base/build" -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3
           cmake --build "$base/build" --target affrescoui_render_runner
-          xvfb-run -a -s "-screen 0 1920x1080x24" python3 "$base/tests/render/check.py" --build "$base/build" --backend gles3 ||
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 "$base/tests/render/check.py" --build "$base/build" --backend gles3 ||
             echo "::warning title=OpenGL ES::The base commit's own check failed (above); its pictures are compared all the same"
           mkdir -p tests/render/golden-gles3
           cp "$base"/tests/render/golden-gles3/*.png tests/render/golden-gles3/
       - name: Rendering check (gles3) # every template's scenarios
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/render/check.py --backend gles3
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 tests/render/check.py --backend gles3
       - name: Frames that differ between gl41 and gles3 # for information: each backend is checked against its own
         if: success() || failure()
         continue-on-error: true
@@ -73,10 +73,10 @@ jobs:
           cmake --build build-gl41 --target affrescoui_render_runner
           scenarios=$(find tests/render/scenarios -name '*.json' | sort)
           # shellcheck disable=SC2086 # the scenarios are a list
-          xvfb-run -a -s "-screen 0 1920x1080x24" build-gl41/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out "$RUNNER_TEMP/gl41-out" \
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" build-gl41/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out "$RUNNER_TEMP/gl41-out" \
             --update $scenarios >/dev/null
           # shellcheck disable=SC2086
-          xvfb-run -a -s "-screen 0 1920x1080x24" build/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out build/backends $scenarios \
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" build/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out build/backends $scenarios \
             >"$RUNNER_TEMP/backends.txt" || true
           {
             echo "### Frames that differ between gl41 and gles3 (Mesa llvmpipe)"

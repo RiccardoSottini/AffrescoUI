@@ -121,6 +121,7 @@ TEST_CASE("automation: pictures are compared with golden images pixel for pixel"
 
 		report = automation::run(file, options);
 		box = &report.scenarios.at(0);
+		REQUIRE(box->pictures.size() == 3); // none if the window couldn't open
 		CHECK(box->pictures[0].outcome == automation::Picture::Outcome::Same);
 		CHECK(box->pictures[1].outcome == automation::Picture::Outcome::Differs);
 		CHECK(box->pictures[1].changedPixels == 16 * 16);

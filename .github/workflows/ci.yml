@@ -30,7 +30,11 @@ concurrency:
 env:
   # The commit a change is compared with: the merge commit's first parent (the base branch), or the commit before a push
   BASE_COMMIT: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
-  LIBGL_ALWAYS_SOFTWARE: "1" # Mesa's llvmpipe, under Xvfb
+  # Mesa's llvmpipe, under Xvfb. Every Xvfb here runs with -noreset: by default the server resets when its last client
+  # disconnects, and a client that connects meanwhile is dropped. A test that closes its last window and opens the
+  # next one at once (glfwTerminate, then glfwInit) then fails at random with "GLFW error 65550: Failed to detect any
+  # supported platform".
+  LIBGL_ALWAYS_SOFTWARE: "1"
   MESA_GL_VERSION_OVERRIDE: "4.1"
 
 jobs:
@@ -87,32 +91,32 @@ jobs:
       - name: Unit tests # headless windows included
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests # pictures drawn with OpenGL, under Xvfb (the rest of a window runs headless, in unit)
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" ctest --test-dir build -R window --output-on-failure
       - name: Accessibility through AT-SPI # ACCESSIBILITY.md: the tree read as Orca reads it, on a bus of its own
         run: >
-          xvfb-run -a -s "-screen 0 1920x1080x24" dbus-run-session -- sh -c
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" dbus-run-session -- sh -c
           '/usr/libexec/at-spi-bus-launcher --launch-immediately & sleep 2;
           dbus-send --session --print-reply --dest=org.a11y.Bus /org/a11y/bus org.freedesktop.DBus.Properties.Set
           string:org.a11y.Status string:IsEnabled variant:boolean:true;
           AFFRESCOUI_ATSPI=1 build/affrescoui_window_tests -tc="accessibility*"'
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: The scenarios # affrescoui test: what each template does (their image steps write to --out), and where the rendering check's screens put each node
         run: >
-          xvfb-run -a -s "-screen 0 1920x1080x24"
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset"
           build/affrescoui test --out "$RUNNER_TEMP/scenario-frames"
           examples/{code-editor,flow,haven,launcher,sign-in,streak,tempo}/json/*.scenarios.json examples/{code-editor,flow,haven,streak,tempo}/lisp/*.scenarios.json
           tests/render/screens/*.scenarios.json
       - name: Every application's first frame # tests/smoke/first_frames.py: each screen in tools/media/gallery.json loads, checks and draws
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/first_frames.py
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 tests/smoke/first_frames.py
       - name: Every application opens # tests/smoke/open_apps.py: each program and screen as its README starts it, 5 s
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/open_apps.py
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 tests/smoke/open_apps.py
       - name: The policy tests # affrescoui policy test: each *.policy.json's and *.policy.lisp's example revisions get the expected decision
         run: build/affrescoui policy test $(git ls-files '*.policy.json' '*.policy.lisp')
       - name: Every file is format version 2 # affrescoui migrate --check: SCREEN_FORMAT.md, "Migrating from version 1"
         run: git ls-files -z '*.json' ':!:tests/migrate/v1/**' | xargs -0 build/affrescoui migrate --check
       - name: Rendering check
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)
         if: failure() || env.RENDER_CHECK_RECORD == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -184,13 +188,13 @@ jobs:
             "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
           cmake --build build
       - name: Unit tests and the scenarios # the scenarios' captures draw, under Xvfb
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "unit|scenarios" --output-on-failure --parallel 4
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" ctest --test-dir build -R "unit|scenarios" --output-on-failure --parallel 4
       - name: Window tests
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" ctest --test-dir build -R window --output-on-failure
       - name: Rendering check
         run: |
           # shellcheck disable=SC2086
-          xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh -DCMAKE_BUILD_TYPE=Debug $SMALLER \
+          xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" .github/workflows/render-check.sh -DCMAKE_BUILD_TYPE=Debug $SMALLER \
             "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
       - name: Upload the frames
         if: failure() || env.RENDER_CHECK_RECORD == 'true'
@@ -332,7 +336,7 @@ jobs:
           "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r tests/perf/requirements.txt
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Measure base and head
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" tests/perf/ci.sh
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" tests/perf/ci.sh
       - name: Upload the results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -362,7 +366,7 @@ jobs:
           cmake -S . -B build -G Ninja -DAFFRESCOUI_BUILD_TESTS=OFF
           cmake --build build --target affrescoui
       - name: Every task, by the oracle
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 benchmarks/agents/run.py --client oracle --out "$RUNNER_TEMP/agents/oracle.json"
+        run: xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" python3 benchmarks/agents/run.py --client oracle --out "$RUNNER_TEMP/agents/oracle.json"
       - name: Upload the results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
