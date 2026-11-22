@@ -225,9 +225,10 @@ private:
 		close("}", tree, indent);
 	}
 
-	/// @brief Writes a node: `(type#id :key value ... child ...)`. The head is the `type` when it is the first key and
-	/// a word isHeadType() takes, else `node`; `#id` follows it when the `id` is the key after that and a plain word;
-	/// every other key keeps its place; the `children`, when they are the last key and not empty, follow one per line.
+	/// @brief Writes a node: `(type#id :key value ... child ...)`. The head is the `type` when it is the first key, a
+	/// word isHeadType() takes and no comment stands on a line of its own before it, else `node`; `#id` follows it
+	/// when the `id` is the key after that and a plain word; every other key keeps its place; the `children`, when
+	/// they are the last key and not empty, follow one per line.
 	/// @param value The object.
 	/// @param tree The comments inside it, or nullptr.
 	void node(const json& value, const CommentTree* tree) {
@@ -264,7 +265,10 @@ private:
 	/// @return Whether a comment ends the head's line.
 	bool nodeHead(json::const_iterator& from, std::size_t& index, const json::const_iterator& to,
 	              const CommentTree* tree) {
-		const bool typed = from.key() == "type" && isHeadType(*from);
+		// a comment on a line of its own before the type stays before it: written as the head, it would have no place
+		const MemberComments* typeComments = commentsOf(tree, 0);
+		const bool typed =
+		    from.key() == "type" && isHeadType(*from) && (!typeComments || typeComments->leading.empty());
 		append("(");
 		append(typed ? from->get_ref<const std::string&>() : std::string(untypedHead));
 		if(typed) {
