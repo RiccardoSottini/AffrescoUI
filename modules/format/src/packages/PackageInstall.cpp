@@ -401,22 +401,49 @@ void checkChanges(const Package& package, const json& base, const PackageReceive
 		problems.push_back("base.app: made for " + package.base.name + ", which isn't here");
 }
 
+/// @brief Every problem installProblems() lists but a version that can't be built, which working out the summary's
+/// parts finds (addChangePartsOrProblem()).
+/// @param package The package.
+/// @param base Its base.
+/// @param receiver The person's copy.
+/// @return Them.
+std::vector<std::string> problemsBeforeBuilding(const Package& package, const json& base,
+                                                const PackageReceiver& receiver) {
+	std::vector<std::string> problems;
+	if(package.kind == PackageKind::Changes) checkChanges(package, base, receiver, problems);
+	checkFormat(package.document, "document", problems);
+	checkFormat(base, "base", problems);
+	checkDefinitionForms(package, base, problems);
+	return problems;
+}
+
+/// @brief What installing a package changes, as addChangeParts() lists it, or the problem of a version that can't be
+/// built.
+/// @param summary Gets the parts.
+/// @param package The package.
+/// @param base Its base.
+/// @param problems Gets the problem.
+void addChangePartsOrProblem(json& summary, const Package& package, const json& base,
+                             std::vector<std::string>& problems) {
+	try {
+		addChangeParts(summary, package, base);
+	} catch(const DocumentError& error) {
+		problems.push_back(std::string("document.program: can't be built: ") + error.what());
+	}
+}
+
 } // namespace
 
 namespace detail {
 
 void addInstallParts(json& summary, const Package& package, const json& base, const PackageReceiver& receiver) {
 	summary["base"]["installedRelease"] = receiver.release.empty() ? json() : json(receiver.release);
-	std::vector<std::string> problems = installProblems(package, receiver);
+	std::vector<std::string> problems = problemsBeforeBuilding(package, base, receiver);
 	// every part is there, empty, should the version not build: a reader never meets a part that's missing
 	summary["impact"] = json::object();
 	summary["extensions"] = {{"added", json::array()}, {"removed", json::array()}};
 	for(const char* part : {"writes", "uses", "models"}) summary[part] = json::array();
-	try {
-		addChangeParts(summary, package, base);
-	} catch(const DocumentError& error) {
-		problems.push_back(std::string("document.program: can't be built: ") + error.what());
-	}
+	addChangePartsOrProblem(summary, package, base, problems);
 	if(package.kind == PackageKind::App) addAppParts(summary, package, receiver);
 	summary["problems"] = problems;
 	summary["conflicts"] = receiver.conflicts;
@@ -426,11 +453,11 @@ void addInstallParts(json& summary, const Package& package, const json& base, co
 
 std::vector<std::string> installProblems(const Package& package, const PackageReceiver& receiver) {
 	const json base = baseOf(package);
-	std::vector<std::string> problems;
-	if(package.kind == PackageKind::Changes) checkChanges(package, base, receiver, problems);
-	checkFormat(package.document, "document", problems);
-	checkFormat(base, "base", problems);
-	checkDefinitionForms(package, base, problems);
+	std::vector<std::string> problems = problemsBeforeBuilding(package, base, receiver);
+	// Found by fuzzing (package): a version whose program can't be built was proposed, though its summary listed
+	// that problem. The summary's problems and these are the same list
+	json parts;
+	addChangePartsOrProblem(parts, package, base, problems);
 	return problems;
 }
 
