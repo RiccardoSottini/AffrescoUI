@@ -8,8 +8,11 @@
 #   tools/quality/run.sh coverage [BASE]
 #                                     builds and runs the unit tests with clang's source-based coverage; fails below
 #                                     the floor in coverage-baseline.json (BASE's, if given)
-#   tools/quality/run.sh report       the whole repository: the longest and most complex functions, tidy findings per
-#                                     module, and the coverage if `coverage` ran before
+#   tools/quality/run.sh report [--part K/N | --parts DIR]
+#                                     the whole repository: the longest and most complex functions, tidy findings per
+#                                     module, and the coverage if `coverage` ran before. --part K/N runs clang-tidy on
+#                                     part K of N of the files only and writes tidy-part-K.json; --parts DIR then
+#                                     reports from the parts in DIR instead of running clang-tidy (CI's nightly)
 #   tools/quality/run.sh all [BASE]   gate, coverage and report
 #   tools/quality/run.sh test         the unit tests of these tools (test_quality.py)
 #   tools/quality/run.sh generalism   the generalism gate (generalism.py): apps are JSON, the engine mechanisms; needs
@@ -121,14 +124,15 @@ coverage() {
 		"${base_option[@]+"${base_option[@]}"}"
 }
 
-# The whole-repository report, with the coverage if it was measured.
+# The whole-repository report, with the coverage if it was measured. Its options, if any, are quality.py report's:
+# --part K/N (clang-tidy on part K of N only) or --parts DIR (the parts' findings instead of running clang-tidy).
 report() {
 	local with_coverage=()
 	if [ -f "$build/coverage/coverage.json" ]; then
 		with_coverage=(--coverage "$build/coverage/coverage.json")
 	fi
 	"$build/venv/bin/python" "$here/quality.py" report --build "$build" --clang-tidy "$clang_tidy" --jobs "$jobs" \
-		--output "$build/quality-report.json" "${with_coverage[@]+"${with_coverage[@]}"}"
+		--output "$build/quality-report.json" "${with_coverage[@]+"${with_coverage[@]}"}" "$@"
 }
 
 command="${1:-}"
@@ -155,7 +159,7 @@ configure
 case "$command" in
 gate) gate "${2:-}" ;;
 coverage) coverage "${2:-}" ;;
-report) report ;;
+report) report "${@:2}" ;;
 all)
 	status=0
 	gate "${2:-}" || status=$?

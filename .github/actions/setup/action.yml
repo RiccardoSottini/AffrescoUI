@@ -12,7 +12,7 @@ inputs:
     description: More apt packages (Linux), space separated
     default: ""
   cache:
-    description: The compile cache's name, one per kind of build (the job's compiler and flags)
+    description: The compile cache's name, one per kind of build (the job's compiler and flags); empty for a job that compiles nothing
     required: true
 runs:
   using: composite
@@ -33,6 +33,7 @@ runs:
       shell: bash
       run: brew install ninja ccache
     - name: Use the compile cache
+      if: inputs.cache != ''
       shell: bash
       run: |
         {
@@ -46,6 +47,7 @@ runs:
           echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache"
         } >>"$GITHUB_ENV"
     - name: Restore and keep the compile cache
+      if: inputs.cache != ''
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/ccache

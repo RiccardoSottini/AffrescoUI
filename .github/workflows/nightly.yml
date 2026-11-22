@@ -4,7 +4,7 @@
 # job; it is uploaded as the "fuzz-found" artifact, under its target's name, and tests/fuzz/README.md says how to
 # replay it. A v* tag fuzzes too. And, every night and on demand: the scaling workloads at their large sizes
 # (tests/perf/README.md, "Scaling"), the benchmarks of the last commit against the one before, and the quality report
-# (the coverage of the unit tests and the whole-repository report).
+# (the coverage of the unit tests and the whole-repository report, its clang-tidy in four parts side by side).
 name: Nightly
 
 on:
@@ -147,14 +147,49 @@ jobs:
           name: benchmarks
           path: ${{ runner.temp }}/perf/
 
-  # The whole repository (the longest and most complex functions, tidy findings per module) and the coverage of the
-  # unit tests. Fails only when coverage falls below the floor in tools/quality/coverage-baseline.json; the numbers are
-  # in the job summary and the artifacts. Measured on this runner: the coverage 18 minutes, the report 63.
-  report:
-    name: Quality report
+  # clang-tidy on the whole repository, for the Quality report, in four parts side by side: on one runner (4 cores),
+  # LLVM 18's clang-tidy over the 970 files took 79 to over 113 minutes and outgrew the job's limit, since it checks
+  # what each file includes from the standard library and the dependencies too. Each part is every fourth file (about a
+  # quarter of the time); the Quality report puts the parts together, and fails if they don't cover every file once.
+  tidy:
+    name: Quality report (clang-tidy, part ${{ matrix.part }} of 4)
     if: github.event_name != 'push' # not for a tag
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4]
+    env:
+      LLVM_BIN: /usr/lib/llvm-18/bin
+      QUALITY_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: clang-18 clang-tidy-18 llvm-18 python3-venv
+          cache: "" # clang-tidy compiles nothing
+      - name: clang-tidy on this part of the files
+        run: tools/quality/run.sh report --part "${{ matrix.part }}/4"
+      - name: Upload this part
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tidy-part-${{ matrix.part }}
+          path: build-quality/tidy-part-${{ matrix.part }}.json
+          if-no-files-found: error
+
+  # The whole repository (the longest and most complex functions, tidy findings per module, from the parts above) and
+  # the coverage of the unit tests. Fails when coverage falls below the floor in tools/quality/coverage-baseline.json,
+  # or when the clang-tidy parts don't cover every file; the numbers are in the job summary and the artifacts.
+  # Measured on this runner: the coverage about 40 minutes.
+  report:
+    name: Quality report
+    needs: tidy
+    if: ${{ !cancelled() && github.event_name != 'push' }} # also when a part failed: the coverage floor still counts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
     env:
       LLVM_BIN: /usr/lib/llvm-18/bin
       QUALITY_JOBS: "4"
@@ -169,9 +204,16 @@ jobs:
           cache: linux-clang-coverage
       - name: Coverage of the unit tests # fails below the floor in tools/quality/coverage-baseline.json
         run: tools/quality/run.sh coverage
+      - name: The clang-tidy parts
+        if: success() || failure()
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: tidy-part-*
+          path: build-quality/tidy-parts
+          merge-multiple: true
       - name: Whole-repository report # also when the coverage is below the floor: its numbers still help
         if: success() || failure()
-        run: tools/quality/run.sh report
+        run: tools/quality/run.sh report --parts build-quality/tidy-parts
       - name: Upload the report
         if: success() || failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
