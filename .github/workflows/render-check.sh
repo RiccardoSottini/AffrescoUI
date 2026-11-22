@@ -71,7 +71,7 @@ EOF
 # pictures are still the base's, so they are compared all the same. What fails the job is a picture the base could
 # not record: HEAD would record it in its place, and that frame would be compared with nothing.
 record_base() {
-	cmake -S "$base" -B "$base/build" -G Ninja "$@" || return 1
+	"$(dirname "$0")/configure.sh" -S "$base" -B "$base/build" -G Ninja "$@" || return 1
 	cmake --build "$base/build" --target affrescoui_render_runner || return 1 # all check.py needs
 	if ! python3 "$base/tests/render/check.py" --build "$base/build"; then
 		echo "::warning title=Rendering check::The base commit's own check failed (above); its pictures are compared all the same"

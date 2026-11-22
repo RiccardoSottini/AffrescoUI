@@ -28,7 +28,7 @@ default setup, a setting, not a workflow here.
 | `macOS (build only)` | Code changes | Apple clang, warnings as errors; unit tests and the templates' scenarios, headless; every application opens ([`open_apps.py`](../../tests/smoke/open_apps.py), Apple's software OpenGL: the runners have no GPU, so no rendering check) | Yes |
 | `Windows` | Code changes | MSVC, warnings as errors; unit tests, the templates' scenarios and the CLI's tests, headless (the runners have no OpenGL 4.1, so `render` isn't checked there) | Yes |
 | `Benchmarks (callgrind)` | Pull requests with code changes and the `perf-change` or `full-ci` label (and every night in `nightly.yml`); not on `master` pushes until the commit check is fast again (about 2 hours 20 now) | Base and head built the same way on this runner ([`tests/perf/ci.sh`](../../tests/perf/ci.sh)): instructions under callgrind, frame CPU time, allocations, memory, tokens; fails when a workload's instructions grow over 3%, or when an area's cost grows faster with its n than `tests/perf/scaling-baseline.json` allows ([`tests/perf/README.md`](../../tests/perf/README.md), "Scaling") | No |
-| `Quality report` | Every night and on demand, in `nightly.yml` (about 85 minutes) | The coverage of the unit tests against the floor in `tools/quality/coverage-baseline.json`, and the whole-repository report (artifacts `quality-report`, `coverage`) | No |
+| `Quality report` | Every night and on demand, in `nightly.yml` (clang-tidy in four parts side by side, then the coverage, which took about 40 minutes) | The coverage of the unit tests against the floor in `tools/quality/coverage-baseline.json`, and the whole-repository report (artifacts `quality-report`, `coverage`); fails too if the clang-tidy parts don't cover every file once | No |
 
 **Labels**, set by the maintainer only: `visual-change` makes the rendering check record the frames instead of
 comparing them (they are uploaded), `perf-change` runs the benchmarks and lets them grow, and `full-ci` runs the
@@ -38,6 +38,12 @@ as skipped, which branch protection counts as passing, and would hide a failure 
 
 **Less waiting.** A new push cancels the run of the one before (`concurrency`). The compile cache is kept per kind of
 build (`ccache-<kind>-...`); a pull request reads the base branch's and writes its own, never master's.
+
+**Fewer flaky failures.** Configuring downloads the dependencies, and CMake doesn't retry a download that fails with
+an HTTP error (GitHub's release downloads sometimes answer 403), so the builds configure through
+[`configure.sh`](configure.sh), which tries three times. Every Xvfb runs with `-noreset`: by default it resets when its
+last client leaves and drops a client that connects meanwhile, which failed the window tests at random as one test
+closed its window and the next opened one.
 
 **What is protected.** Every workflow has `contents: read` only and no `pull_request_target`; every action is pinned by
 its commit; checkouts don't keep the token. A pull request's code is built and run with that read-only token, and

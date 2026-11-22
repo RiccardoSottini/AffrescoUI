@@ -8,8 +8,11 @@
 #   tools/quality/run.sh coverage [BASE]
 #                                     builds and runs the unit tests with clang's source-based coverage; fails below
 #                                     the floor in coverage-baseline.json (BASE's, if given)
-#   tools/quality/run.sh report       the whole repository: the longest and most complex functions, tidy findings per
-#                                     module, and the coverage if `coverage` ran before
+#   tools/quality/run.sh report [--part K/N | --parts DIR]
+#                                     the whole repository: the longest and most complex functions, tidy findings per
+#                                     module, and the coverage if `coverage` ran before. --part K/N runs clang-tidy on
+#                                     part K of N of the files only and writes tidy-part-K.json; --parts DIR then
+#                                     reports from the parts in DIR instead of running clang-tidy (CI's nightly)
 #   tools/quality/run.sh all [BASE]   gate, coverage and report
 #   tools/quality/run.sh test         the unit tests of these tools (test_quality.py)
 #   tools/quality/run.sh generalism   the generalism gate (generalism.py): apps are JSON, the engine mechanisms; needs
@@ -72,13 +75,21 @@ setup_python() {
 
 # Configures the build with clang, coverage instrumentation and compile_commands.json (what clang-tidy reads). The
 # benchmarks and the fuzz sources (compiled without libFuzzer) are on so tests/perf and tests/fuzz are in it too: a
-# file missing from it can't be parsed, so it can't be checked.
+# file missing from it can't be parsed, so it can't be checked. Configuring downloads the dependencies, so it is tried
+# three times: CMake doesn't retry a download that fails with an HTTP error (.github/workflows/configure.sh).
 configure() {
 	local flags="-fprofile-instr-generate -fcoverage-mapping"
-	cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-		-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
-		-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
-		"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null
+	local attempt
+	for attempt in 1 2 3; do
+		if cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+			-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
+			-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
+			"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null; then
+			return 0
+		fi
+		[ "$attempt" = 3 ] || sleep $((attempt * 30))
+	done
+	fail "cmake couldn't configure $build (three tries)"
 }
 
 # The gate on the changes since $1 (default: the merge base with origin/master).
@@ -113,14 +124,15 @@ coverage() {
 		"${base_option[@]+"${base_option[@]}"}"
 }
 
-# The whole-repository report, with the coverage if it was measured.
+# The whole-repository report, with the coverage if it was measured. Its options, if any, are quality.py report's:
+# --part K/N (clang-tidy on part K of N only) or --parts DIR (the parts' findings instead of running clang-tidy).
 report() {
 	local with_coverage=()
 	if [ -f "$build/coverage/coverage.json" ]; then
 		with_coverage=(--coverage "$build/coverage/coverage.json")
 	fi
 	"$build/venv/bin/python" "$here/quality.py" report --build "$build" --clang-tidy "$clang_tidy" --jobs "$jobs" \
-		--output "$build/quality-report.json" "${with_coverage[@]+"${with_coverage[@]}"}"
+		--output "$build/quality-report.json" "${with_coverage[@]+"${with_coverage[@]}"}" "$@"
 }
 
 command="${1:-}"
@@ -147,7 +159,7 @@ configure
 case "$command" in
 gate) gate "${2:-}" ;;
 coverage) coverage "${2:-}" ;;
-report) report ;;
+report) report "${@:2}" ;;
 all)
 	status=0
 	gate "${2:-}" || status=$?

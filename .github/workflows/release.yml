@@ -184,7 +184,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
           MESA_GL_VERSION_OVERRIDE: "4.1"
         run: |
-          on_display() { if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1920x1080x24" "$@"; else "$@"; fi; }
+          on_display() { if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1920x1080x24 -noreset" "$@"; else "$@"; fi; }
           cd affrescoui-*/
           mkdir -p frames
           for app in assets/*/json/app.json assets/*/lisp/app.lisp; do

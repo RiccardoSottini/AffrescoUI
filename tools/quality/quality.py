@@ -4,6 +4,7 @@
 Usage:
     quality.py gate --base COMMIT --build DIR --clang-tidy PATH [--jobs N]
     quality.py report --build DIR --clang-tidy PATH --output quality-report.json [--coverage coverage.json] [--jobs N]
+                      [--part K/N | --parts DIR]
     quality.py coverage --export llvm-cov-export.json --output coverage.json
 
 gate fails (exit 1) on a clang-tidy finding in the changed lines, or on a function the change made too long or too
@@ -141,18 +142,30 @@ def section(title, items):
 
 
 def report(arguments):
-    """The whole-repository report: function sizes and tidy findings per module, plus coverage if given."""
+    """The whole-repository report: function sizes and tidy findings per module, plus coverage if given. With --part,
+    only clang-tidy on that part of the files, written to tidy-part-K.json in the build folder; with --parts, the
+    findings of every part instead of running clang-tidy (CI runs the parts side by side, on runners of their own)."""
     thresholds = load_thresholds()
     sources, top = thresholds["sources"], thresholds["top"]
+    units = tidy.translation_units(arguments.build, ROOT, sources)
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    if arguments.part:
+        return report_part(arguments, units, sources, commit)
+
     measured = []
     for path in source_files(sources):
         measured += functions.measure(path, read_file(path))
     sizes = functions.summary(measured, thresholds["function"], thresholds["aim"], top)
 
-    units = tidy.translation_units(arguments.build, ROOT, sources)
-    findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, units, sources, arguments.jobs)
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True,
-                            text=True).stdout.strip()
+    if arguments.parts:
+        try:
+            findings, failures = tidy.merge(read_parts(arguments.parts), units, commit)
+        except ValueError as error:
+            print(f"quality.py report: {error}", file=sys.stderr)
+            return 1
+    else:
+        findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, units, sources, arguments.jobs)
     result = {
         "commit": commit,
         "tools": {"clang-tidy": tidy.version(arguments.clang_tidy), "lizard": functions.lizard.version},
@@ -169,6 +182,31 @@ def report(arguments):
         json.dump(result, file, indent=1)
     publish(report_markdown(result, top))
     return 0
+
+
+def report_part(arguments, units, sources, commit):
+    """clang-tidy on part K of N of the translation units (every Nth, from the Kth), written with the units it covered
+    to tidy-part-K.json in the build folder, for report --parts to put together."""
+    index, count = arguments.part
+    mine = units[index - 1::count]
+    findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, mine, sources, arguments.jobs)
+    output = os.path.join(arguments.build, f"tidy-part-{index}.json")
+    with open(output, "w") as file:
+        json.dump({"commit": commit, "units": mine, "findings": findings,
+                   "failures": [list(failure) for failure in failures]}, file, indent=1)
+    print(f"clang-tidy, part {index} of {count}: {len(mine)} of {len(units)} files, {len(findings)} findings, "
+          f"{len(failures)} not parsed ({output})")
+    return 0
+
+
+def read_parts(folder):
+    """The tidy-part-*.json files in a folder, in the order of their names."""
+    names = sorted(name for name in os.listdir(folder) if name.startswith("tidy-part-") and name.endswith(".json"))
+    parts = []
+    for name in names:
+        with open(os.path.join(folder, name)) as file:
+            parts.append(json.load(file))
+    return parts
 
 
 def report_markdown(result, top):
@@ -226,6 +264,9 @@ def main():
     commands.choices["gate"].add_argument("--base", required=True, help="the commit the changes are compared with")
     commands.choices["report"].add_argument("--output", required=True, help="where to write quality-report.json")
     commands.choices["report"].add_argument("--coverage", help="coverage.json, to include in the report")
+    parts = commands.choices["report"].add_mutually_exclusive_group()
+    parts.add_argument("--part", type=tidy.part_number, help="K/N: only clang-tidy on part K of N of the files, to tidy-part-K.json")
+    parts.add_argument("--parts", help="a folder of tidy-part-*.json files, used instead of running clang-tidy")
     command = commands.add_parser("coverage")
     command.add_argument("--export", required=True, help="the output of llvm-cov export -summary-only")
     command.add_argument("--output", required=True, help="where to write coverage.json")
