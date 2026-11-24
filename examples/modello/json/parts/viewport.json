@@ -53,7 +53,7 @@
 					{ "type": "label", "when": "{{chevron}}", "font": "iconsSmall", "icon": "chevron-down", "text": "",
 					  "textColor": "@dim", "align": "center", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 12 },
 					{ "when": "{{open != ''}}", "use": "menu", "with": { "open": "{{open}}", "items": "{{items}}",
-					  "width": "{{menuWidth}}", "placement": "{{placement}}", "icons": "{{some(items, it.icon != null)}}" } }
+					  "width": "{{menuWidth}}", "placement": "{{placement}}", "icons": "{{some(items, merge({ icon: null }, it).icon != null)}}" } }
 				]
 			}
 		},

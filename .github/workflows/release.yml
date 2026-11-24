@@ -391,8 +391,11 @@ jobs:
           "./dist/AffrescoUI-$VERSION-x86_64.AppImage" --appimage-extract-and-run affrescoui --version
           # It holds what the archive holds: every app's folder and the notices
           (cd appimage && "../dist/AffrescoUI-$VERSION-x86_64.AppImage" --appimage-extract > /dev/null)
-          diff <(cd "appimage/archive/affrescoui-$VERSION-linux-x86_64/assets" && ls -d */app.json) \
-            <(cd appimage/squashfs-root/usr/bin/assets && ls -d */app.json)
+          # Apps live in json/ and lisp/ folders. Two empty listings would compare equal, so ls must fail on no match
+          apps() { (cd "$1" && ls -d */json/app.json */lisp/app.lisp); }
+          apps "appimage/archive/affrescoui-$VERSION-linux-x86_64/assets" > appimage/archive-apps.txt
+          apps appimage/squashfs-root/usr/bin/assets > appimage/appimage-apps.txt
+          diff appimage/archive-apps.txt appimage/appimage-apps.txt
           for file in LICENSE NOTICE THIRD_PARTY_NOTICES.md; do test -s "appimage/squashfs-root/usr/share/doc/affrescoui/$file"; done
           ls appimage/squashfs-root/usr/bin/assets/shared/fonts/*.ttf > /dev/null
       - name: Zip the recipes
