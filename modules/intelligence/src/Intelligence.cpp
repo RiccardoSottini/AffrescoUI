@@ -102,16 +102,16 @@ json commandLineTest(const Shared& shared, const Endpoint& endpoint, const std::
 	const bool copilot = endpoint.provider->kind == Kind::Copilot;
 	const CommandLineRunner& stand = copilot ? shared.options.copilot : shared.options.claude;
 	const std::optional<std::filesystem::path> program = stand ? std::nullopt : copilot ? findCopilot() : findClaude();
-	if(!stand && !program)
+	const std::string system = "Answer with the word OK.";
+	const auto timeout = std::chrono::seconds(90);
+	CommandLineAnswer answer;
+	if(stand) answer = stand(endpoint.model, system, "Say OK.", stopped);
+	else if(!program)
 		return {{"ok", false},
 		        {"message", endpoint.provider->name + " isn't installed (the " + (copilot ? "copilot" : "claude") +
 		                        " command isn't on the PATH)."}};
-	const std::string system = "Answer with the word OK.";
-	const auto timeout = std::chrono::seconds(90);
-	const CommandLineAnswer answer = stand ? stand(endpoint.model, system, "Say OK.", stopped)
-	                                 : copilot
-	                                     ? runCopilot(*program, endpoint.model, system, "Say OK.", timeout, stopped)
-	                                     : runClaude(*program, endpoint.model, system, "Say OK.", timeout, stopped);
+	else if(copilot) answer = runCopilot(*program, endpoint.model, system, "Say OK.", timeout, stopped);
+	else answer = runClaude(*program, endpoint.model, system, "Say OK.", timeout, stopped);
 	return {{"ok", answer.ok},
 	        {"message", answer.ok ? "Connected: " + endpoint.provider->name + " answered with " + endpoint.model + "."
 	                              : answer.text}};
@@ -266,7 +266,7 @@ json models(const Shared& shared, const json& arguments, affresco::CallProgress&
 	if(!origin) return fallback("The base URL isn't an http(s) URL.");
 	std::string failed;
 	try {
-		json list = liveModels(shared, *endpoint, *origin, call);
+		const json list = liveModels(shared, *endpoint, *origin, call);
 		return list.empty() && !provider.models.empty() ? fallbackOf(provider) : list;
 	} catch(const std::exception& error) {
 		failed = redact(error.what(), endpoint->key);
