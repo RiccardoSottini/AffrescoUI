@@ -1,6 +1,7 @@
 /// @file
 /// @brief ProviderAgent (Agent.hpp): the queue and the thread, and AgentRun, one request's work: the prompt, the
-/// API providers' bounded tool loop and claude-code's single answer.
+/// API providers' bounded tool loop, and the JSON answers of a model without tools (claude-code, or a server that
+/// refuses tools).
 
 #include "affresco/intelligence/Agent.hpp"
 
@@ -10,8 +11,12 @@
 #include "affresco/intelligence/Providers.hpp"
 #include "affresco/intelligence/ScreenQueries.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <format>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -87,7 +92,7 @@ constexpr const char* commandToolRules =
     "your name; the person sees each run in the chat and can undo it). A run marked [ask] waits for the person's "
     "yes on its card: say so in your reply, and never run a command again because it waits or was refused.";
 
-/// How claude-code answers, without tools.
+/// How a model without tools answers (claude-code, or a server that refuses tools).
 constexpr const char* jsonRules =
     "You have no tools. Answer with exactly one JSON object and nothing else (no code fence, no text around it): "
     "{\"reply\": \"what you did, for the person\", \"revision\": {\"message\": \"one line\", \"set\": {...}, \"add\": "
@@ -202,18 +207,112 @@ std::vector<ToolSpec> agentTools() {
 	};
 }
 
-/// @brief The first JSON object in a text: the whole text, else from its first "{" to its last "}" (a model may wrap
-/// it in a code fence).
-/// @param text The text.
-/// @return It, or a discarded value.
-json firstObject(const std::string& text) {
-	json parsed = json::parse(text, nullptr, false);
-	if(parsed.is_object()) return parsed;
-	const std::size_t open = text.find('{');
-	const std::size_t close = text.rfind('}');
-	if(open == std::string::npos || close == std::string::npos || close < open) return json(json::value_t::discarded);
-	return json::parse(text.substr(open, close - open + 1), nullptr, false);
+/// The most bytes of a model's answer searched for its JSON object.
+constexpr std::size_t maxAnswerScan = std::size_t{256} * 1024;
+
+/// The most places ("{") an answer's JSON object is looked for from.
+constexpr int maxObjectStarts = 16;
+
+/// @brief A model's answer without its reasoning: the `<think>...</think>` blocks some local models write first (one
+/// left open runs to the end).
+/// @param text The answer.
+/// @return It.
+std::string withoutThinking(std::string text) {
+	for(int blocks = 0; blocks < 8; ++blocks) {
+		const std::size_t open = text.find("<think>");
+		if(open == std::string::npos) break;
+		const std::size_t close = text.find("</think>", open);
+		text.erase(open, close == std::string::npos ? std::string::npos : close + 8 - open);
+	}
+	const std::size_t start = text.find_first_not_of(" \t\r\n");
+	return start == std::string::npos ? std::string() : text.substr(start);
 }
+
+/// @brief Where the JSON object that opens at a "{" closes: its braces counted outside its strings.
+/// @param text The text.
+/// @param open Where it opens.
+/// @return Where its "}" is, or npos if it doesn't close.
+std::size_t objectEnd(std::string_view text, std::size_t open) {
+	int depth = 0;
+	bool quoted = false;
+	bool escaped = false;
+	for(std::size_t at = open; at < text.size(); ++at) {
+		const char c = text[at];
+		if(quoted) {
+			if(escaped) escaped = false;
+			else if(c == '\\') escaped = true;
+			else if(c == '"') quoted = false;
+		} else if(c == '"') {
+			quoted = true;
+		} else if(c == '{') {
+			++depth;
+		} else if(c == '}' && --depth == 0) {
+			return at;
+		}
+	}
+	return std::string_view::npos;
+}
+
+/// @brief Whether an object is an answer of the JSON protocol: it has one of the protocol's keys.
+/// @param said The object.
+/// @return Whether it is.
+bool protocolAnswer(const json& said) {
+	constexpr std::array<const char*, 9> keys{"reply", "revision", "undo",     "read", "find",
+	                                          "guide", "plan",     "commands", "run"};
+	return std::ranges::any_of(keys, [&said](const char* key) { return said.contains(key); });
+}
+
+/// @brief The JSON object in a model's answer: the whole answer, else the inside of its first code fence, else the
+/// first object of the protocol found in its text (protocolAnswer(), so never a part of a broken answer). Local
+/// models wrap their answer in a fence, write text around it or reason first (withoutThinking()); the search in the
+/// text is bounded (maxAnswerScan, maxObjectStarts).
+/// @param answer The answer.
+/// @return It, or a discarded value.
+json firstObject(const std::string& answer) {
+	const std::string cleaned = withoutThinking(answer);
+	json parsed = json::parse(cleaned, nullptr, false); // whole, as large as the answer is (its own bound)
+	if(parsed.is_object()) return parsed;
+	const std::string_view text = std::string_view(cleaned).substr(0, maxAnswerScan);
+	if(const std::size_t fence = text.find("```"); fence != std::string_view::npos) {
+		const std::size_t start = text.find('\n', fence);
+		const std::size_t close = start == std::string_view::npos ? start : text.find("```", start);
+		if(close != std::string_view::npos) {
+			parsed = json::parse(text.substr(start, close - start), nullptr, false);
+			if(parsed.is_object()) return parsed;
+		}
+	}
+	std::size_t open = text.find('{');
+	for(int tries = 0; open != std::string_view::npos && tries < maxObjectStarts; ++tries) {
+		if(const std::size_t close = objectEnd(text, open); close != std::string_view::npos) {
+			parsed = json::parse(text.substr(open, close - open + 1), nullptr, false);
+			if(parsed.is_object() && protocolAnswer(parsed)) return parsed; // not a part of a broken answer
+		}
+		open = text.find('{', open + 1);
+	}
+	return json(json::value_t::discarded);
+}
+
+/// @brief Whether a failure is the server refusing tools: a 4xx (or the 500 some servers give) whose body speaks of
+/// tools, as Ollama's "... does not support tools" and llama-server's "tools param requires --jinja flag" do. A
+/// refused key (401, 403) or a rate limit (429) isn't one.
+/// @param failure The failure.
+/// @return Whether it is.
+bool refusesTools(const affresco::network::Failure& failure) {
+	if(failure.code != "status" || failure.status < 400 || failure.status > 500) return false;
+	if(failure.status == 401 || failure.status == 403 || failure.status == 429) return false;
+	std::string body = failure.body.substr(0, 4096);
+	for(char& c : body) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+	return body.contains("tool");
+}
+
+/// @brief One answer of a model without tools: its text, or why there is none.
+struct Answer {
+	bool ok = false;  ///< Whether it answered.
+	std::string text; ///< Its text, or why it failed, for people.
+};
+
+/// @brief Asks a model without tools once: (system prompt, input) to its answer.
+using Ask = std::function<Answer(const std::string& system, const std::string& input)>;
 
 /// @brief The model a request asks for: its `options.model`, if it is a short text.
 /// @param request The request.
@@ -299,19 +398,21 @@ std::string attachmentLines(const json& list) {
 	return out;
 }
 
-/// The most rounds of reading claude-code may ask for in one request.
+/// The most rounds of reading a model without tools may ask for in one request.
 constexpr int maxReads = 3;
 
-/// The most times claude-code may fix a rejected revision in one request.
+/// The most times a model without tools may fix a rejected revision (or an answer that couldn't be read) in one
+/// request.
 constexpr int maxRetries = 2;
 
-/// @brief The rounds of one claude-code request so far.
+/// @brief The rounds so far of one request to a model without tools.
 struct Rounds {
 	int reads = 0;   ///< Rounds of reading.
 	int retries = 0; ///< Rejected revisions it was asked to fix.
 };
 
-/// @brief Whether claude-code's answer asks to see more: nodes, a search, topics of the guide or an undo's plan.
+/// @brief Whether an answer of a model without tools asks to see more: nodes, a search, topics of the guide or an
+/// undo's plan.
 /// @param said Its answer.
 /// @return Whether it does.
 bool asksToRead(const json& said) {
@@ -319,7 +420,7 @@ bool asksToRead(const json& said) {
 	       said.value("commands", json(false)) == json(true);
 }
 
-/// @brief The texts of a list in claude-code's answer; anything else in it is skipped.
+/// @brief The texts of a list in an answer of a model without tools; anything else in it is skipped.
 /// @param said Its answer.
 /// @param key The list's key.
 /// @return The texts, or none if it isn't a list.
@@ -357,19 +458,45 @@ public:
 		endpoint_ = *chosen;
 		const Provider& provider = *endpoint_.provider;
 		endpoint_.model = provider.modelFor(model_, endpoint_.model); // the chat's choice, if the provider lists it
-		if(provider.kind != Kind::ClaudeCode) {
-			if(const std::optional<std::string> refused = checkBaseUrl(endpoint_)) return {*refused, true};
-			endpoint_.key = options_.keys ? readKey(*options_.keys, endpoint_) : "";
-			if(provider.needsKey && endpoint_.key.empty())
-				return {provider.name + " needs an API key: add it in the AffrescoUI Launcher's Settings.", true};
-			if(endpoint_.model.empty())
-				return {"Choose a model for " + provider.name + " in the AffrescoUI Launcher's Settings.", true};
-		}
+		if(provider.kind != Kind::ClaudeCode)
+			if(const std::optional<std::string> problem = apiProblem()) return {*problem, true};
+		const auto longer = std::chrono::duration_cast<std::chrono::milliseconds>(2 * provider.timeout);
+		if(longer > options_.budget) deadline_ += longer - options_.budget; // a slow (local) model's longer time
 		if(!readScreen()) return {"The app didn't answer in time.", true};
-		return provider.kind == Kind::ClaudeCode ? claudeCode() : toolLoop();
+		if(provider.kind == Kind::ClaudeCode) return jsonAnswers(claudeAsker(), false);
+		if(const std::optional<std::string> problem = openSession()) return {*problem, true};
+		if(provider.tools != Tools::None && !agent_.noTools_.contains(toolsKey()))
+			if(std::optional<std::pair<std::string, bool>> done = toolLoop()) return *std::move(done);
+		return jsonAnswers(chatAsker(), true); // without tools, or after the server refused them
 	}
 
 private:
+	/// @brief Checks an API provider before a request: its base URL, its key (read now) and its model.
+	/// @return Why it can't be asked, for people, or nullopt.
+	std::optional<std::string> apiProblem() {
+		const Provider& provider = *endpoint_.provider;
+		if(std::optional<std::string> refused = checkBaseUrl(endpoint_)) return refused;
+		endpoint_.key = options_.keys ? readKey(*options_.keys, endpoint_) : "";
+		if(provider.needsKey && endpoint_.key.empty())
+			return provider.name + " needs an API key: add it in the AffrescoUI Launcher's Settings.";
+		if(endpoint_.model.empty())
+			return "Choose a model for " + provider.name + " in the AffrescoUI Launcher's Settings.";
+		return std::nullopt;
+	}
+
+	/// @brief Opens the HTTP session to an API provider's origin (http_).
+	/// @return Why it can't be, for people, or nullopt.
+	std::optional<std::string> openSession() {
+		const std::optional<std::string> origin = originOf(endpoint_.baseUrl);
+		if(!origin) return "The base URL of " + endpoint_.provider->name + " isn't an http(s) URL.";
+		try {
+			http_ = std::make_unique<HttpSession>(options_.network, *origin);
+		} catch(const std::exception& error) {
+			return "Can't reach " + endpoint_.provider->name + ": " + redact(error.what(), endpoint_.key);
+		}
+		return std::nullopt;
+	}
+
 	/// @brief Reads the screen: its document, with the live state as its "state".
 	/// @return Whether it answered.
 	bool readScreen() {
@@ -418,8 +545,7 @@ private:
 	[[nodiscard]] std::string context() const {
 		std::string screen;
 		if(!picks_.empty()) {
-			screen = pickBlock(picks_, document_) + "\n\n" +
-			         screenSummary(document_, revision_, endpoint_.provider->kind != Kind::ClaudeCode);
+			screen = pickBlock(picks_, document_) + "\n\n" + screenSummary(document_, revision_, tools_);
 		} else if(const std::string whole = compact(document_); whole.size() <= options_.inlineDocument) {
 			screen = "The screen (revision " + std::to_string(revision_) + "), minified:\n" + whole;
 		} else {
@@ -541,7 +667,8 @@ private:
 		return "rejected: " + answer->value("error", std::string("the app refused it"));
 	}
 
-	/// @brief list_commands, and claude-code's "commands": the app's commands, one line each (Commands.hpp).
+	/// @brief list_commands, and the "commands" of a model without tools: the app's commands, one line each
+	/// (Commands.hpp).
 	/// @param filter The words to match, or null.
 	/// @return The lines.
 	/// @throws std::runtime_error If the app didn't answer, or refused.
@@ -576,7 +703,7 @@ private:
 		return runText(*answer, command.get<std::string>());
 	}
 
-	/// @brief claude-code's runs, beside its reply: in order, stopping at the first one refused.
+	/// @brief The runs of a model without tools, beside its reply: in order, stopping at the first one refused.
 	/// @param said Its answer.
 	/// @return Why the runs stopped, for the person, or nullopt when every run ran or waits.
 	std::optional<std::string> runListed(const json& said) {
@@ -618,10 +745,10 @@ private:
 		return std::nullopt;
 	}
 
-	/// @brief revert_revision, or claude-code's "undo": with dry_run, the plan (nothing changes); else the undo of
-	/// one earlier revision, sent as the agent like a revision (submit()): only the revision and the choices are
-	/// taken from the model. The host decides whether it applies or waits for review (with drop or then it always
-	/// waits).
+	/// @brief revert_revision, or the "undo" of a model without tools: with dry_run, the plan (nothing changes); else
+	/// the undo of one earlier revision, sent as the agent like a revision (submit()): only the revision and the
+	/// choices are taken from the model. The host decides whether it applies or waits for review (with drop or then it
+	/// always waits).
 	/// @param input The model's arguments.
 	/// @param error Set if it was refused.
 	/// @return The plan, or what happened, for the model.
@@ -669,58 +796,129 @@ private:
 	}
 
 	/// @brief The API providers: answers of the model and the tools it calls, within the bounds.
-	/// @return The reply, or the failure.
-	std::pair<std::string, bool> toolLoop() {
+	/// @return The reply, or the failure; or nullopt to go on without tools, when the server refused them in its first
+	/// answer (remembered for this server and model), or when a provider whose tools are only tried (Tools::Tried)
+	/// answered first with no tool call.
+	std::optional<std::pair<std::string, bool>> toolLoop() {
 		const Kind kind = endpoint_.provider->kind;
-		const std::optional<std::string> origin = originOf(endpoint_.baseUrl);
-		if(!origin) return {"The base URL of " + endpoint_.provider->name + " isn't an http(s) URL.", true};
-		std::unique_ptr<HttpSession> http;
-		try {
-			http = std::make_unique<HttpSession>(options_.network, *origin);
-		} catch(const std::exception& error) {
-			return {"Can't reach " + endpoint_.provider->name + ": " + redact(error.what(), endpoint_.key), true};
-		}
+		tools_ = true;
 		Conversation conversation{systemPrompt(true), json::array()};
 		addUser(kind, conversation, context());
 		const std::vector<ToolSpec> tools = allTools();
-		long long written = 0;
 		std::string lastText;
 		while(steps_ < options_.maxSteps) {
 			++steps_; // each answer of the model is a step, and so is each run (runCommand)
-			if(overTime()) return {"The request took too long, so it stopped." + proposalNote(), true};
-			const Outcome outcome =
-			    http->fetch(chatRequest(endpoint_, conversation, tools), [this] { return overTime(); });
-			if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
-				return {describeFailure(*failure, endpoint_.provider->name, endpoint_.key) + proposalNote(), true};
-			Turn turn;
-			try {
-				turn = parseTurn(kind, std::get<affresco::network::Response>(outcome).body);
-			} catch(const std::exception& error) {
-				return {endpoint_.provider->name + "'s answer couldn't be read (" + std::string(error.what()) + ").",
-				        true};
-			}
-			if(turn.stop == "refusal") return {endpoint_.provider->name + " declined this request.", true};
-			written += turn.outputTokens;
-			if(!turn.text.empty()) lastText = turn.text;
+			if(overTime()) return std::pair{"The request took too long, so it stopped." + proposalNote(), true};
+			std::optional<std::pair<std::string, bool>> ended;
+			const std::optional<Turn> answered = turnWithTools(conversation, tools, ended);
+			if(!answered) return ended;
+			const Turn& turn = *answered;
+			if(!turn.text.empty()) lastText = withoutThinking(turn.text);
 			if(turn.calls.empty()) return lastText.empty() ? nothingSaid() : std::pair{lastText, false};
 			addAssistant(conversation, turn);
 			std::optional<std::string> replied;
 			std::vector<ToolResult> results;
 			for(const ToolCall& call : turn.calls) results.push_back(runTool(call, replied));
 			if(replied) return replied->empty() ? nothingSaid() : std::pair{*replied, false};
-			if(written > options_.maxOutputTokens)
-				return {"The request used its whole budget of tokens, so it stopped." + proposalNote(), true};
+			if(written_ > options_.maxOutputTokens)
+				return std::pair{"The request used its whole budget of tokens, so it stopped." + proposalNote(), true};
 			addResults(kind, conversation, results);
 		}
-		return {lastText.empty() ? "I stopped after " + std::to_string(options_.maxSteps) + " steps." + proposalNote()
-		                         : lastText,
-		        lastText.empty()};
+		return std::pair{lastText.empty()
+		                     ? "I stopped after " + std::to_string(options_.maxSteps) + " steps." + proposalNote()
+							 : lastText,
+		                 lastText.empty()};
 	}
 
-	/// @brief claude-code: one JSON answer, after at most three rounds of reading, and two retries of a rejected
-	/// revision (a program's first one is often on a built node, and its fix needs the definition read first).
+	/// @brief One answer of the model with tools, read; its tokens counted.
+	/// @param conversation The conversation so far.
+	/// @param tools The tools it may call.
+	/// @param ended Without a turn, set to what ends the request (its failure), or left nullopt to go on without
+	/// tools: the server refused them in its first answer (remembered), or a provider whose tools are only tried
+	/// answered first with no tool call.
+	/// @return The turn, or nullopt.
+	std::optional<Turn> turnWithTools(const Conversation& conversation, const std::vector<ToolSpec>& tools,
+	                                  std::optional<std::pair<std::string, bool>>& ended) {
+		const Provider& provider = *endpoint_.provider;
+		const Outcome outcome =
+		    http_->fetch(chatRequest(endpoint_, conversation, tools), [this] { return overTime(); });
+		if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome)) {
+			if(steps_ == 1 && refusesTools(*failure)) rememberNoTools();
+			else ended = std::pair{describeFailure(*failure, provider.name, endpoint_.key) + proposalNote(), true};
+			return std::nullopt;
+		}
+		Turn turn;
+		try {
+			turn = parseTurn(provider.kind, std::get<affresco::network::Response>(outcome).body);
+		} catch(const std::exception& error) {
+			ended = std::pair{provider.name + "'s answer couldn't be read (" + std::string(error.what()) + ").", true};
+			return std::nullopt;
+		}
+		if(turn.stop == "refusal") {
+			ended = std::pair{provider.name + " declined this request.", true};
+			return std::nullopt;
+		}
+		written_ += turn.outputTokens;
+		if(turn.calls.empty() && steps_ == 1 && provider.tools == Tools::Tried)
+			return std::nullopt; // a model that calls no tool answers again, in JSON
+		return turn;
+	}
+
+	/// @brief The key under which a server and model that refused tools are remembered (ProviderAgent::noTools_).
+	/// @return It.
+	[[nodiscard]] std::string toolsKey() const { return endpoint_.baseUrl + " " + endpoint_.model; }
+
+	/// @brief Remembers that the server refused tools for this model, so the agent's later requests go without them
+	/// at once (at most 64 kept).
+	void rememberNoTools() {
+		if(agent_.noTools_.size() >= 64) agent_.noTools_.clear();
+		agent_.noTools_.insert(toolsKey());
+	}
+
+	/// @brief How claude-code is asked: its command line, run once with no tools.
+	/// @return It.
+	Ask claudeAsker() {
+		return [this](const std::string& system, const std::string& input) -> Answer {
+			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
+			return {answer.ok, answer.text};
+		};
+	}
+
+	/// @brief How an API provider is asked without tools: one request with no tools, the input its only message,
+	/// within the request's tokens (AgentOptions::maxOutputTokens).
+	/// @return It.
+	Ask chatAsker() {
+		return [this](const std::string& system, const std::string& input) -> Answer {
+			const Provider& provider = *endpoint_.provider;
+			if(written_ > options_.maxOutputTokens)
+				return {false, "The request used its whole budget of tokens, so it stopped." + proposalNote()};
+			Conversation conversation{system, json::array()};
+			addUser(provider.kind, conversation, input);
+			const Outcome outcome =
+			    http_->fetch(chatRequest(endpoint_, conversation, {}), [this] { return overTime(); });
+			if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
+				return {false, describeFailure(*failure, provider.name, endpoint_.key) + proposalNote()};
+			try {
+				const Turn turn = parseTurn(provider.kind, std::get<affresco::network::Response>(outcome).body);
+				if(turn.stop == "refusal") return {false, provider.name + " declined this request."};
+				written_ += turn.outputTokens;
+				return {true, turn.text};
+			} catch(const std::exception& error) {
+				return {false, provider.name + "'s answer couldn't be read (" + std::string(error.what()) + ")."};
+			}
+		};
+	}
+
+	/// @brief A model without tools (claude-code, or a server that refuses tools): one JSON answer, after at most
+	/// three rounds of reading, and two retries of a rejected revision (a program's first one is often on a built
+	/// node, and its fix needs the definition read first).
+	/// @param ask How the model is asked, once.
+	/// @param retryUnreadable Whether an answer that holds a "{" but no JSON object that can be read is asked again
+	/// (within the retries), then ends the request with why, rather than being shown as the reply: for the weaker
+	/// models of a server.
 	/// @return The reply, or the failure.
-	std::pair<std::string, bool> claudeCode() {
+	std::pair<std::string, bool> jsonAnswers(const Ask& ask, bool retryUnreadable) {
+		tools_ = false;
 		const std::string system = systemPrompt(false);
 		std::string input = context();
 		Rounds rounds;
@@ -729,16 +927,34 @@ private:
 			    std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
 			if(left.count() <= 0 || overTime())
 				return {"The request took too long, so it stopped." + proposalNote(), true};
-			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
+			const Answer answer = ask(system, input);
 			if(!answer.ok) return {answer.text, true};
 			const json said = firstObject(answer.text);
-			if(!said.is_object()) return {cut(answer.text, 4000), false}; // a plain answer, no change
+			const bool unreadable = !said.is_object() && retryUnreadable && answer.text.contains('{');
+			if(unreadable && rounds.retries < maxRetries) {
+				++rounds.retries;
+				input += "\n\nYour answer was:\n" + cut(answer.text, 2000) +
+				         "\n\nIt isn't one JSON object that can be read. Answer again with exactly one JSON object, "
+				         "as the rules say.";
+				continue;
+			}
+			if(unreadable) return {unreadableNote(), true};
+			if(!said.is_object()) return {cut(withoutThinking(answer.text), 4000), false}; // a plain answer, no change
 			if(auto done = takeAnswer(said, input, rounds)) return *std::move(done);
 		}
 	}
 
-	/// @brief One of claude-code's answers: a read (what it asked for is added to the input), a revision (submitted;
-	/// a rejected one is told, to be fixed), or the reply.
+	/// @brief Why a request ends when the model's answers can't be read, for people.
+	/// @return It.
+	[[nodiscard]] std::string unreadableNote() const {
+		return endpoint_.provider->name + "'s model (" + endpoint_.model +
+		       ") didn't answer with a JSON object that could be read, though asked again: a larger model may do "
+		       "better." +
+		       proposalNote();
+	}
+
+	/// @brief One answer of a model without tools: a read (what it asked for is added to the input), a revision
+	/// (submitted; a rejected one is told, to be fixed), or the reply.
 	/// @param said The answer.
 	/// @param input The input, which a read or a rejection adds to.
 	/// @param rounds The reads and retries so far.
@@ -748,7 +964,8 @@ private:
 		const bool undoing = said.contains("undo");
 		if(!revising && !undoing && !said.contains("reply") && asksToRead(said)) {
 			if(rounds.reads >= maxReads)
-				return std::pair{"Claude Code kept reading and made no change: ask again, perhaps saying where." +
+				return std::pair{endpoint_.provider->name +
+				                     " kept reading and made no change: ask again, perhaps saying where." +
 				                     proposalNote(),
 				                 true};
 			++rounds.reads;
@@ -772,8 +989,8 @@ private:
 		return reply.empty() ? nothingSaid() : std::pair{reply, false};
 	}
 
-	/// @brief The change in one of claude-code's answers: its revision, or its undo (sent as a revert, never a dry
-	/// run: a plan is read in a reading round). An answer may hold one of them, not both.
+	/// @brief The change in an answer of a model without tools: its revision, or its undo (sent as a revert, never a
+	/// dry run: a plan is read in a reading round). An answer may hold one of them, not both.
 	/// @param said The answer.
 	/// @param revising Whether it holds a revision.
 	/// @param undoing Whether it holds an undo.
@@ -798,7 +1015,7 @@ private:
 		        true};
 	}
 
-	/// @brief What claude-code asked to read: searches, nodes and definitions, and topics of the guide.
+	/// @brief What a model without tools asked to read: searches, nodes and definitions, and topics of the guide.
 	/// @param said Its answer.
 	/// @return Them, as text.
 	std::string readParts(const json& said) {
@@ -823,7 +1040,7 @@ private:
 		return out.empty() ? "(nothing)" : out;
 	}
 
-	/// @brief The plan claude-code asked to read: of a revision, or of an undo with its choices.
+	/// @brief The plan a model without tools asked to read: of a revision, or of an undo with its choices.
 	/// @param asked A revision number or commit id, or {"revision", "drop"?, "keep"?, "then"?, "head"?}.
 	/// @return A line: the plan, or why there is none.
 	std::string planPart(const json& asked) {
@@ -833,7 +1050,7 @@ private:
 		return "plan of revision " + compact(input["revision"]) + ": " + plan(input, error) + "\n";
 	}
 
-	/// @brief One node, value or definition claude-code asked to read, or why there is none.
+	/// @brief One node, value or definition a model without tools asked to read, or why there is none.
 	/// @param at Its address: "#id" or a JSON Pointer.
 	/// @return A line: the address, then it.
 	std::string readPart(const std::string& at) const {
@@ -859,6 +1076,9 @@ private:
 	json picks_;                                     ///< What the person pointed at (Picks.hpp), or none.
 	std::chrono::steady_clock::time_point deadline_; ///< When it must end.
 	Endpoint endpoint_;                              ///< The provider, with its key.
+	std::unique_ptr<HttpSession> http_;              ///< An API provider's session (to its origin only).
+	bool tools_ = false;                             ///< Whether the model has tools (the first message says so).
+	long long written_ = 0;                          ///< The tokens the model wrote so far.
 	json document_;                                  ///< The screen, as last read.
 	int revision_ = 0;                               ///< Its revision.
 	std::optional<int> proposal_;                    ///< The proposal this request opened.

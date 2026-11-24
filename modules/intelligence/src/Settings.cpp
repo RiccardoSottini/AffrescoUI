@@ -55,6 +55,52 @@ std::string text(const json& object, const char* key, const std::string& otherwi
 	return found != object.end() && found->is_string() ? found->get<std::string>() : otherwise;
 }
 
+/// @brief Whether a provider's model is given tools: "tools" (true, false or "auto"), else its kind's default.
+/// @param value The provider's JSON.
+/// @param kind Its kind.
+/// @return It.
+/// @throws std::runtime_error If "tools" is another value.
+Tools toolsOf(const json& value, Kind kind) {
+	const auto found = value.find("tools");
+	if(found == value.end()) return kind == Kind::ClaudeCode ? Tools::None : Tools::Given;
+	if(found->is_boolean()) return found->get<bool>() ? Tools::Given : Tools::None;
+	if(*found == "auto") return Tools::Tried;
+	throw std::runtime_error(R"(providers.json: "tools" is true, false or "auto")");
+}
+
+/// @brief The longest one answer may take: "timeout", in seconds.
+/// @param value The provider's JSON.
+/// @return It: 120 s by default.
+/// @throws std::runtime_error If it isn't a number of seconds from 10 to 600.
+std::chrono::seconds timeoutOf(const json& value) {
+	const auto found = value.find("timeout");
+	if(found == value.end()) return std::chrono::seconds(120);
+	if(!found->is_number_integer() || *found < 10 || *found > 600)
+		throw std::runtime_error(R"(providers.json: "timeout" is a number of seconds from 10 to 600)");
+	return std::chrono::seconds(found->get<int>());
+}
+
+/// @brief The servers a provider's base URL can be set to: "presets", each { id, name, baseUrl }.
+/// @param value The provider's JSON.
+/// @param kind Its kind.
+/// @return Them (at most 8).
+/// @throws std::runtime_error If one is malformed, its base URL isn't one cleanBaseUrl() takes, or the provider's base
+/// URL isn't the person's to change (any kind but openai-compatible).
+std::vector<Preset> presetsOf(const json& value, Kind kind) {
+	std::vector<Preset> presets;
+	const auto found = value.find("presets");
+	if(found == value.end()) return presets;
+	if(kind != Kind::OpenAICompatible || !found->is_array() || found->size() > 8)
+		throw std::runtime_error(
+		    R"(providers.json: "presets" is a list of at most 8, for an openai-compatible provider)");
+	for(const json& preset : *found) {
+		if(!preset.is_object() || text(preset, "id").empty() || text(preset, "name").empty())
+			throw std::runtime_error("providers.json: a preset needs an id, a name and a base URL");
+		presets.push_back({text(preset, "id"), text(preset, "name"), cleanBaseUrl(text(preset, "baseUrl"))});
+	}
+	return presets;
+}
+
 /// @brief Reads one provider of the catalogue.
 /// @param value Its JSON.
 /// @return It.
@@ -73,6 +119,9 @@ Provider providerOf(const json& value) {
 	provider.model = text(value, "model");
 	provider.shown = value.value("shown", true);
 	provider.fixedModels = value.value("fixedModels", false);
+	provider.tools = toolsOf(value, provider.kind);
+	provider.timeout = timeoutOf(value);
+	provider.presets = presetsOf(value, provider.kind);
 	for(const json& model : value.value("models", json::array()))
 		if(model.is_object() && !text(model, "id").empty()) {
 			const auto description = model.find("description");

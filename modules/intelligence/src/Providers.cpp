@@ -56,6 +56,25 @@ bool isChatModel(const std::string& id) {
 	return std::ranges::none_of(never, [&](std::string_view word) { return id.find(word) != std::string::npos; });
 }
 
+/// @brief Whether a compatible server's model id names an embedding model, which can't chat.
+/// @param id The id, e.g. "text-embedding-nomic-embed-text-v1.5".
+/// @return Whether it does.
+bool isEmbeddingModel(std::string id) {
+	for(char& c : id) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+	return id.contains("embed");
+}
+
+/// @brief Whether a models list's id is one to offer: not empty, not too long, a chat model (OpenAI's), not an
+/// embedding model (a compatible server's: LM Studio lists them beside the chat ones).
+/// @param kind The provider's kind.
+/// @param id The id.
+/// @return Whether it is.
+bool chatModelOf(Kind kind, const std::string& id) {
+	if(id.empty() || id.size() > 200) return false;
+	if(kind == Kind::OpenAI) return isChatModel(id);
+	return kind != Kind::OpenAICompatible || !isEmbeddingModel(id);
+}
+
 /// @brief The tools in the Messages API's shape.
 /// @param tools The tools.
 /// @return `[{name, description, input_schema}]`.
@@ -174,7 +193,7 @@ std::vector<Model> parseModels(Kind kind, const std::string& body) {
 	for(const json& entry : parsed["data"]) {
 		if(!entry.is_object() || !entry.contains("id") || !entry["id"].is_string()) continue;
 		const std::string id = entry["id"].get<std::string>();
-		if(id.empty() || id.size() > 200 || (kind == Kind::OpenAI && !isChatModel(id))) continue;
+		if(!chatModelOf(kind, id)) continue;
 		const std::string name = entry.contains("display_name") && entry["display_name"].is_string()
 		                             ? entry["display_name"].get<std::string>()
 		                             : id;
@@ -232,7 +251,7 @@ network::Request chatRequest(const Endpoint& endpoint, const Conversation& conve
 	request.url = urlOf(endpoint, kind == Kind::Anthropic ? "/messages" : "/chat/completions");
 	request.headers = headersOf(endpoint, true);
 	request.body = body.dump(-1, ' ', false, json::error_handler_t::replace);
-	request.timeout = std::chrono::milliseconds(120000);
+	request.timeout = endpoint.provider->timeout;
 	request.maxBodyBytes = std::size_t{4} << 20;
 	return request;
 }

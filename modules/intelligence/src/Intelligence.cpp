@@ -103,6 +103,16 @@ json fallbackOf(const Provider& provider) {
 	return list;
 }
 
+/// @brief A provider's presets: the servers its base URL can be set to.
+/// @param provider The provider.
+/// @return `[{ id, name, baseUrl }]`.
+json presetsOf(const Provider& provider) {
+	json list = json::array();
+	for(const Preset& preset : provider.presets)
+		list.push_back({{"id", preset.id}, {"name", preset.name}, {"baseUrl", preset.baseUrl}});
+	return list;
+}
+
 /// @brief What intelligence.providers answers.
 /// @param shared The natives' parts.
 /// @return It.
@@ -126,6 +136,7 @@ json providersJson(const Shared& shared) {
 		                {"defaultModel", provider.model},
 		                {"fixedModels", provider.fixedModels},
 		                {"keyHelp", provider.keyHelp},
+		                {"presets", presetsOf(provider)},
 		                {"models", fallbackOf(provider)}});
 	}
 	std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
@@ -183,33 +194,65 @@ json save(Shared& shared, const json& arguments) {
 	return providersJson(shared);
 }
 
+/// @brief A provider's live models list.
+/// @param shared The natives' parts.
+/// @param endpoint The provider, with the base URL asked and its key.
+/// @param origin The base URL's origin.
+/// @param call The call in progress.
+/// @return `[{ id, name }]`, perhaps empty.
+/// @throws std::runtime_error If it couldn't be read: why, for people.
+json liveModels(const Shared& shared, const Endpoint& endpoint, const std::string& origin,
+                affresco::CallProgress& call) {
+	HttpSession http(shared.options.network, origin);
+	const Outcome outcome = http.fetch(modelsRequest(endpoint), [&call] { return call.cancelled(); });
+	if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
+		throw std::runtime_error(describeFailure(*failure, endpoint.provider->name, endpoint.key));
+	json list = json::array();
+	for(const Model& model : parseModels(endpoint.provider->kind, std::get<affresco::network::Response>(outcome).body))
+		list.push_back({{"id", model.id}, {"name", model.name}});
+	return list;
+}
+
 /// @brief intelligence.models, on a worker thread.
 /// @param shared The natives' parts.
-/// @param arguments `{ provider }`.
+/// @param arguments `{ provider, baseUrl? }`: a base URL given (an openai-compatible provider's, not yet saved) is
+/// asked instead of the saved one, with the key only if it was saved for that origin.
 /// @param call The call in progress.
-/// @return `[{ id, name }]`.
+/// @return `[{ id, name }]`: the live list, else the fallback. A server that lists no model gives `[]`.
+/// @throws std::runtime_error If the live list can't be read and the provider has no fallback (a local server that
+/// isn't running): why, for people.
 json models(const Shared& shared, const json& arguments, affresco::CallProgress& call) {
 	const Provider& provider = providerOf(shared, arguments);
-	const auto fallback = [&provider] { return fallbackOf(provider); };
-	if(provider.kind == Kind::ClaudeCode || provider.fixedModels) return fallback();
+	const auto fallback = [&provider](const std::string& why) {
+		if(provider.models.empty()) throw std::runtime_error(why);
+		return fallbackOf(provider);
+	};
+	if(provider.kind == Kind::ClaudeCode || provider.fixedModels) return fallbackOf(provider);
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
-	if(!endpoint || checkBaseUrl(*endpoint)) return fallback();
+	if(!endpoint) return fallback("no such provider");
+	const std::string url = argument(arguments, "baseUrl");
+	if(!url.empty() && provider.kind == Kind::OpenAICompatible) endpoint->baseUrl = cleanBaseUrl(url);
+	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint)) return fallback(*refused);
 	endpoint->key = readKey(*shared.options.keys, *endpoint);
-	if(provider.needsKey && endpoint->key.empty()) return fallback();
+	if(provider.needsKey && endpoint->key.empty()) return fallback(provider.name + " needs an API key.");
 	const std::optional<std::string> origin = originOf(endpoint->baseUrl);
-	if(!origin) return fallback();
+	if(!origin) return fallback("The base URL isn't an http(s) URL.");
+	std::string failed;
 	try {
-		HttpSession http(shared.options.network, *origin);
-		const Outcome outcome = http.fetch(modelsRequest(*endpoint), [&call] { return call.cancelled(); });
-		const auto* response = std::get_if<affresco::network::Response>(&outcome);
-		if(response == nullptr) return fallback();
-		json list = json::array();
-		for(const Model& model : parseModels(provider.kind, response->body))
-			list.push_back({{"id", model.id}, {"name", model.name}});
-		return list.empty() ? fallback() : list;
-	} catch(const std::exception&) {
-		return fallback();
+		json list = liveModels(shared, *endpoint, *origin, call);
+		return list.empty() && !provider.models.empty() ? fallbackOf(provider) : list;
+	} catch(const std::exception& error) {
+		failed = redact(error.what(), endpoint->key);
 	}
+	return fallback(failed);
+}
+
+/// @brief How long a test waits for its answer: a minute, or 90 s for a provider whose answers take longer (a local
+/// model loaded on its first request); the settings' call waits 100 s.
+/// @param provider The provider.
+/// @return It.
+std::chrono::milliseconds testTimeout(const Provider& provider) {
+	return provider.timeout > std::chrono::seconds(120) ? std::chrono::seconds(90) : std::chrono::seconds(60);
 }
 
 /// @brief intelligence.test, on a worker thread: one tiny request to the provider in use.
@@ -247,7 +290,7 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 		Conversation conversation{"Answer with the word OK.", json::array()};
 		addUser(provider.kind, conversation, "Say OK.");
 		affresco::network::Request request = chatRequest(*endpoint, conversation, {});
-		request.timeout = std::chrono::milliseconds(60000);
+		request.timeout = testTimeout(provider);
 		const Outcome outcome = http.fetch(std::move(request), [&call] { return call.cancelled(); });
 		if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
 			return {{"ok", false}, {"message", describeFailure(*failure, provider.name, endpoint->key)}};

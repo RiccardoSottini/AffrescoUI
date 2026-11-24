@@ -1,5 +1,5 @@
-;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an
-;;; OpenAI-compatible server, Claude Code) and which model every app's assistant uses
+;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Claude Code, or a local
+;;; LLM on this computer: Ollama, LM Studio or llama.cpp) and which model every app's assistant uses
 ;;;
 ;;; Put { "use": "intelligenceSettings" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls
 ;;; the host's intelligence.* natives (modules/intelligence/include/affresco/intelligence/Intelligence.hpp), which
@@ -44,55 +44,12 @@
    :notice ""
    :error ""
    :keyShown true
+   :modelsError ""
+   :modelsLoaded false
    :data {:current {:provider "" :model ""}
           :keyStore "Keychain"
           :persistent true
-          :providers [{:id anthropic
-                       :name "Anthropic (Claude)"
-                       :kind anthropic
-                       :needsKey true
-                       :takesKey true
-                       :hasKey false
-                       :available true
-                       :baseUrl "https://api.anthropic.com"
-                       :editableUrl false
-                       :model claude-sonnet-5-5
-                       :defaultModel claude-sonnet-5-5
-                       :fixedModels false
-                       :keyHelp "https://console.anthropic.com/settings/keys"
-                       :models [{:id claude-opus-5-5 :name "Claude Opus 5.5"}
-                                {:id claude-sonnet-5-5 :name "Claude Sonnet 5.5"}
-                                {:id claude-haiku-5-5 :name "Claude Haiku 5.5"}
-                                {:id claude-fable-5-1 :name "Claude Fable 5.1"}]}
-                      {:id openai
-                       :name "OpenAI"
-                       :kind openai
-                       :needsKey true
-                       :takesKey true
-                       :hasKey false
-                       :available true
-                       :baseUrl "https://api.openai.com/v1"
-                       :editableUrl false
-                       :model gpt-5
-                       :defaultModel gpt-5
-                       :fixedModels false
-                       :keyHelp "https://platform.openai.com/api-keys"
-                       :models [{:id gpt-5 :name "GPT-5"} {:id gpt-5-mini :name "GPT-5 mini"}]}
-                      {:id openai-compatible
-                       :name "OpenAI-compatible server"
-                       :kind openai-compatible
-                       :needsKey false
-                       :takesKey true
-                       :hasKey false
-                       :available true
-                       :baseUrl "http://127.0.0.1:11434/v1"
-                       :editableUrl true
-                       :model ""
-                       :defaultModel ""
-                       :fixedModels false
-                       :keyHelp "https://ollama.com/download"
-                       :models []}
-                      {:id claude-code
+          :providers [{:id claude-code
                        :name "Claude Code"
                        :kind claude-code
                        :needsKey false
@@ -124,7 +81,24 @@
                                  :name "Claude Haiku 5.5"
                                  :description {:en "The fastest, for quick small changes."
                                                :es "El más rápido, para cambios pequeños y rápidos."
-                                               :fr "Le plus rapide, pour les petits changements rapides."}}]}]}})
+                                               :fr "Le plus rapide, pour les petits changements rapides."}}]}
+                      {:id local
+                       :name "Local LLM"
+                       :kind openai-compatible
+                       :needsKey false
+                       :takesKey true
+                       :hasKey false
+                       :available true
+                       :baseUrl "http://127.0.0.1:11434/v1"
+                       :editableUrl true
+                       :model ""
+                       :defaultModel ""
+                       :fixedModels false
+                       :keyHelp ""
+                       :presets [{:id ollama :name "Ollama" :baseUrl "http://127.0.0.1:11434/v1"}
+                                 {:id lm-studio :name "LM Studio" :baseUrl "http://127.0.0.1:1234/v1"}
+                                 {:id llama-server :name "llama.cpp" :baseUrl "http://127.0.0.1:8080/v1"}]
+                       :models []}]}})
 
 (defcomponent intelligenceButton "A button of the settings: filled when it is the main one."
   {:text "" :run "" :primary false :enabled true :width 150}
@@ -163,16 +137,30 @@
 (defn intelligence-provider-of "The provider of that id, of the host's list." [id]
   (find #(= (:id %) id) state.intelligence.data.providers))
 
-(defn intelligence-refresh "Asks the host for the chosen provider's models (only the host has them)." []
+(defn intelligence-refresh
+  "Asks the host for the chosen provider's models (only the host has them), from the server the form shows: an
+editable base URL is asked before it is saved."
+  []
   (when state.intelligence.native
+    (set "state.intelligence.modelsError" "")
+    (set "state.intelligence.modelsLoaded" false)
     (call "intelligence.models"
-          :with {:provider state.intelligence.selected}
+          :with {:provider state.intelligence.selected :baseUrl state.intelligence.baseUrl}
           :into "state.intelligence.models"
           :loading "state.intelligence.loadingModels"
           :timeout 20000
+          :then intelligence-models-came
           :onError intelligence-no-models)))
 
-(defn intelligence-no-models "No models to choose from." [] (set "state.intelligence.models" []))
+(defn intelligence-models-came "The server's models came, perhaps none." [] (set "state.intelligence.modelsLoaded" true))
+
+(defn intelligence-no-models "No models to choose from: the server didn't answer, and why." [error]
+  (set "state.intelligence.models" [])
+  (set "state.intelligence.modelsError" (or error "")))
+
+(defn intelligence-use-preset "Points the base URL at a local server, and asks it for its models." [url]
+  (set "state.intelligence.baseUrl" url)
+  (intelligence-refresh))
 
 (defn intelligence-choose "Shows a provider's form: its address and model, its models asked for." [id]
   (let [{:keys [baseUrl model]} (intelligence-provider-of id)]
@@ -181,6 +169,8 @@
     (set "state.intelligence.model" (or model "")))
   (set "state.intelligence.query" "")
   (set "state.intelligence.models" [])
+  (set "state.intelligence.modelsError" "")
+  (set "state.intelligence.modelsLoaded" false)
   (set "state.intelligence.test" nil)
   (set "state.intelligence.error" "")
   (set "state.intelligence.notice" "")
@@ -271,6 +261,7 @@ first provider: then its own first is chosen, as the form shows it."
             :intelligence.pick [{:lisp intelligence-pick}]
             :intelligence.choose [{:lisp intelligence-choose}]
             :intelligence.refresh [{:lisp intelligence-refresh}]
+            :intelligence.preset [{:lisp intelligence-use-preset}]
             :intelligence.pickModel [{:lisp intelligence-pick-model}]
             :intelligence.apply [{:lisp intelligence-apply}]
             :intelligence.check [{:lisp intelligence-check}]
@@ -423,9 +414,32 @@ first provider: then its own first is chosen, as the form shows it."
        :align "start center"
        :textColor @intelligence.dim
        :text ~(t "intelligence.loadingModels"))
+     (label#intelligenceNoServer :when ~(and (not state.intelligence.loadingModels)
+                                             (not= state.intelligence.modelsError ""))
+       :wrap true
+       :height 40
+       :textColor @intelligence.warning
+       :text ~(t "intelligence.noServer" {:url state.intelligence.baseUrl}))
+     (label#intelligenceNoServerWhy :when ~(and (not state.intelligence.loadingModels)
+                                                (not= state.intelligence.modelsError ""))
+       :wrap true
+       :height 20
+       :textColor @intelligence.dim
+       :text ~state.intelligence.modelsError)
+     (label#intelligenceNoModelLoaded :when ~(and (not state.intelligence.loadingModels)
+                                                  state.intelligence.modelsLoaded
+                                                  (empty? state.intelligence.models)
+                                                  (empty? (or-else iProvider.models [])))
+       :wrap true
+       :height 40
+       :textColor @intelligence.warning
+       :text ~(t "intelligence.noModelLoaded"))
      (label#intelligenceNoModels :when ~(and (not state.intelligence.loadingModels)
                                              (empty? iMatches)
-                                             (empty? (str/trim state.intelligence.query)))
+                                             (empty? (str/trim state.intelligence.query))
+                                             (= state.intelligence.modelsError "")
+                                             (not (and state.intelligence.modelsLoaded
+                                                       (empty? (or-else iProvider.models [])))))
        :height 28
        :align "start center"
        :textColor @intelligence.dim
@@ -434,7 +448,7 @@ first provider: then its own first is chosen, as the form shows it."
        (intelligence-model model m))
      ~(intelligence-use-model)))
 
-(defview intelligence-form "The provider's form: its address, key and model." []
+(defview intelligence-form "The provider's form: its server and address, its key and its model." []
   `(column#intelligenceForm :gap 10
      :fitContent height
      :color @intelligence.surface
@@ -447,10 +461,23 @@ first provider: then its own first is chosen, as the form shows it."
        :textColor @intelligence.text
        :runs [{:text ~iProvider.name :bold true :size 16}])
      ~(intelligence-no-key-note)
+     ~(intelligence-local-note)
      (node#intelligenceInstall :when ~(not iProvider.available)
        :use intelligenceButton
        :anchors {:left 14}
        :with {:text ~(t "intelligence.install") :run intelligence.getKey :width 150})
+     (label#intelligenceServerLabel :when ~(pos? (count (or-else iProvider.presets [])))
+       :height 18
+       :anchors {:left 14 :right 14}
+       :textColor @intelligence.text
+       :text ~(t "intelligence.server"))
+     ~(intelligence-presets)
+     (label#intelligenceBaseUrlLabel :when ~iProvider.editableUrl
+       :height 18
+       :anchors {:left 14 :right 14}
+       :textColor @intelligence.text
+       :text ~(t "intelligence.baseUrl"))
+     ~(intelligence-base-url)
      (label#intelligenceKeyLabel :when ~iProvider.takesKey
        :height 18
        :anchors {:left 14 :right 14}
@@ -459,12 +486,6 @@ first provider: then its own first is chosen, as the form shows it."
      ~(intelligence-key-row)
      ~(intelligence-key-saved)
      ~(intelligence-not-kept)
-     (label#intelligenceBaseUrlLabel :when ~iProvider.editableUrl
-       :height 18
-       :anchors {:left 14 :right 14}
-       :textColor @intelligence.text
-       :text ~(t "intelligence.baseUrl"))
-     ~(intelligence-base-url)
      ~(intelligence-model-label)
      ~(intelligence-model-search)
      ~(intelligence-models)
@@ -478,6 +499,44 @@ first provider: then its own first is chosen, as the form shows it."
      :anchors {:left 14 :right 14}
      :textColor @intelligence.dim
      :text ~(t "intelligence.claudeCode")))
+
+(defview intelligence-local-note "For a local model: nothing leaves the computer, and what a model needs." []
+  `(label#intelligenceLocalNote :when ~(pos? (count (or-else iProvider.presets [])))
+     :wrap true
+     :height 40
+     :anchors {:left 14 :right 14}
+     :textColor @intelligence.dim
+     :text ~(t "intelligence.localNote")))
+
+(defview intelligence-preset "A local server to choose, as a button that fills the base URL." [preset s]
+  `(label :id ~(str "intelligencePreset" s)
+     :text ~preset.name
+     :width 130
+     :height 32
+     :radius 6
+     :align center
+     :color ~(if (= preset.baseUrl state.intelligence.baseUrl) "@intelligence.selected" "@intelligence.raised")
+     :textColor @intelligence.text
+     :borderWidth 1
+     :borderColor ~(if (= preset.baseUrl state.intelligence.baseUrl) "@intelligence.accent" "@intelligence.border")
+     :hover {:borderColor @intelligence.accent}
+     :focused {:borderWidth 2 :borderColor @intelligence.accentHover}
+     :role radio
+     :checked ~(= preset.baseUrl state.intelligence.baseUrl)
+     :focusable true
+     :cursor hand
+     :onClick ~(handler intelligence-use-preset preset.baseUrl)
+     :keys {:space ~(handler intelligence-use-preset preset.baseUrl)}))
+
+(defview intelligence-presets "The local servers (Ollama, LM Studio, llama.cpp), each filling the base URL." []
+  `(row#intelligencePresets :when ~(pos? (count (or-else iProvider.presets [])))
+     :height 32
+     :gap 8
+     :anchors {:left 14 :right 14}
+     :role radiogroup
+     :label ~(t "intelligence.server")
+     ~(repeat [preset (or-else iProvider.presets []) :index s]
+       (intelligence-preset preset s))))
 
 (defview intelligence-key-row "The key's field, and a link to get a key where the provider gives one." []
   `(row#intelligenceKeyRow :when ~iProvider.takesKey :height 32 :gap 8 :anchors {:left 14 :right 14}

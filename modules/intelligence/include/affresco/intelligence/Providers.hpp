@@ -57,7 +57,7 @@ inline constexpr int maxOutputTokens = 8192;
 /// @param endpoint The provider (an API one), with its key.
 /// @return The request.
 [[nodiscard]] affresco::network::Request modelsRequest(const Endpoint& endpoint);
-/// @brief Reads a models list: the chat models only, for openai.
+/// @brief Reads a models list: the chat models only, for openai; no embedding model, for openai-compatible.
 /// @param kind The provider's kind.
 /// @param body The response's body.
 /// @return The models, sorted by id; empty if the body isn't a list.
@@ -82,7 +82,7 @@ void addResults(Kind kind, Conversation& conversation, const std::vector<ToolRes
 /// @param endpoint The provider (an API one), with its key and model.
 /// @param conversation The conversation so far.
 /// @param tools The tools it may call (may be empty).
-/// @return The request: a POST with a JSON body and a timeout of two minutes.
+/// @return The request: a POST with a JSON body and the provider's timeout (Provider::timeout, two minutes by default).
 [[nodiscard]] affresco::network::Request chatRequest(const Endpoint& endpoint, const Conversation& conversation,
                                                      const std::vector<ToolSpec>& tools);
 /// @brief Reads the model's answer.

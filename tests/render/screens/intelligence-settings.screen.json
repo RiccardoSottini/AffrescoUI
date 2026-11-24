@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The intelligence settings add-on (examples/shared/addons/intelligence), for the rendering check: a page with the container the AffrescoUI Launcher gives it. The check's runner has none of the host's intelligence.* natives, so it shows the add-on's stand-in providers; test actions stand in for a saved provider and a test's answer.",
+	"note": "The intelligence settings add-on (examples/shared/addons/intelligence), for the rendering check: a page with the container the AffrescoUI Launcher gives it. The check's runner has none of the host's intelligence.* natives, so it shows the add-on's stand-in providers; test actions stand in for a saved provider, a test's answer and a local server's models list.",
 	"include": ["../../../examples/shared/addons/intelligence/settings.json"],
 
 	"window": { "title": "Intelligence", "width": 800, "height": 900 },
@@ -21,9 +21,15 @@
 
 	"actions": {
 		"test.connected": [
-			{ "set": "state.intelligence.data.current", "to": { "provider": "anthropic", "model": "claude-sonnet-5-5" } },
-			{ "set": "state.intelligence.data.providers[0].hasKey", "to": true },
-			{ "set": "state.intelligence.test", "to": { "ok": true, "message": "Connected: claude-sonnet-5-5 answered." } }
+			{ "set": "state.intelligence.data.current", "to": { "provider": "claude-code", "model": "sonnet" } },
+			{ "set": "state.intelligence.test", "to": { "ok": true, "message": "Connected: Claude Code answered with sonnet." } }
+		],
+		"test.noServer": [
+			{ "set": "state.intelligence.modelsError", "to": "Can't reach Local LLM (connection refused)." }
+		],
+		"test.noModel": [
+			{ "set": "state.intelligence.modelsError", "to": "" },
+			{ "set": "state.intelligence.modelsLoaded", "to": true }
 		],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.french": [{ "set": "state.locale", "to": "fr" }]

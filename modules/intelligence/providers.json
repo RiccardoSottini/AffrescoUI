@@ -1,5 +1,5 @@
 {
-	"note": "The providers of intelligence a host's assistant can use (Intelligence.hpp), built into the library: data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read (description: one line per language on when to use it); with fixedModels the list is the whole choice (a model saved that isn't in it gives model, the default). No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
+	"note": "The providers of intelligence a host's assistant can use (Intelligence.hpp), built into the library: data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). tools says whether the model is given tools: true (the API kinds' default), false (it answers with one JSON object a round, claude-code's default) or \"auto\" (given, and if the server refuses them or the model calls none, the request goes on in JSON). presets are servers an openai-compatible base URL can be set to in one click; timeout is the longest one answer may take, in seconds (120 by default; a local model loaded on its first request takes longer). models are the fallback when the live list can't be read (description: one line per language on when to use it); with fixedModels the list is the whole choice (a model saved that isn't in it gives model, the default). No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
 	"providers": [
 		{
 			"id": "anthropic", "shown": false,
@@ -66,6 +66,23 @@
 					"es": "El más rápido, para cambios pequeños y rápidos.",
 					"fr": "Le plus rapide, pour les petits changements rapides." } }
 			]
+		},
+		{
+			"id": "local",
+			"name": "Local LLM",
+			"kind": "openai-compatible",
+			"baseUrl": "http://127.0.0.1:11434/v1",
+			"needsKey": false,
+			"keyHelp": "",
+			"model": "",
+			"tools": "auto",
+			"timeout": 300,
+			"presets": [
+				{ "id": "ollama", "name": "Ollama", "baseUrl": "http://127.0.0.1:11434/v1" },
+				{ "id": "lm-studio", "name": "LM Studio", "baseUrl": "http://127.0.0.1:1234/v1" },
+				{ "id": "llama-server", "name": "llama.cpp", "baseUrl": "http://127.0.0.1:8080/v1" }
+			],
+			"models": []
 		}
 	]
 }

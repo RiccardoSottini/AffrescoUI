@@ -1,8 +1,9 @@
 # Intelligence settings
 
 The settings of the provider of intelligence that every app's assistant uses (the assistant add-on in
-`../assistant`), as one JSON file to `include`: a list of providers, the chosen one's form (its API key, its base URL
-for an OpenAI-compatible server, a searchable model picker), *Save and use* and *Test connection*. The AffrescoUI
+`../assistant`), as one JSON file to `include` (or `settings.lisp`, the same in Lisp): a list of providers, the chosen
+one's form (its server and base URL for a local LLM, its key, a searchable model picker), *Save and use* and *Test
+connection*. The AffrescoUI
 Launcher shows it in its Settings:
 
 ```json
@@ -29,10 +30,13 @@ providers, and saving says the settings are changed in the Launcher.
 
 ## Providers
 
-`modules/intelligence/providers.json` lists them, as data: Anthropic (the Messages API), OpenAI (Chat
-Completions), an OpenAI-compatible server (Ollama, LM Studio, OpenRouter: a base URL, a key optional; `http://` only on
-this computer) and Claude Code (the person's own `claude` command line and sign-in, run with no tools). The models come
-live from the provider (`GET /v1/models`) when it can be reached with the saved key, else from the list there.
+`modules/intelligence/providers.json` lists them, as data. The settings offer Claude Code (the person's own `claude`
+command line and sign-in, run with no tools) and a Local LLM (a model on this computer: Ollama, LM Studio or llama.cpp's
+llama-server, each a button that fills the base URL, or any base URL typed; `http://` only on this computer; a key
+optional). The API providers (Anthropic, OpenAI, an OpenAI-compatible server such as OpenRouter) are in the catalogue
+but hidden (`"shown": false`). The models come live from the provider (`GET /v1/models`, with the base URL the form
+shows, even before it is saved) when it can be reached, else from the list there. A local server that doesn't answer
+says to start one, with why; one that answers with no model says to load or download one.
 
 Claude Code's models are its command line's aliases, which follow the latest model: Claude Sonnet 5.5 (`sonnet`, the
 default: fast enough for a chat and strong at editing screens), Claude Opus 5.5 (`opus`, for harder, longer asks),
@@ -45,14 +49,17 @@ another one per app (`../assistant/README.md`).
 ## State, actions and strings
 
 All in `state.intelligence`: `data` (what `intelligence.providers` answered, or the stand-in), `selected`, `baseUrl`,
-`model`, `query`, `models` (the live list), `test` (`{ ok, message }`), `error`, `notice`, and the flags `native`,
-`loadingModels`, `testing`, `keyShown`. The actions are `intelligence.load` (run when it is shown), `intelligence.pick`,
-`intelligence.refresh`, `intelligence.pickModel`, `intelligence.apply`, `intelligence.check`, `intelligence.removeKey`
-and `intelligence.getKey`. The colours are the `intelligence.*` tokens (light and dark), the strings the
+`model`, `query`, `models` (the live list), `modelsError` (why the live list couldn't be read, or ""), `test`
+(`{ ok, message }`), `error`, `notice`, and the flags `native`, `loadingModels`, `modelsLoaded` (a live list came,
+perhaps empty), `testing`, `keyShown`. The actions are `intelligence.load` (run when it is shown), `intelligence.pick`,
+`intelligence.refresh`, `intelligence.preset` (`{ url }`: a server's base URL, then its models),
+`intelligence.pickModel`, `intelligence.apply`, `intelligence.check`, `intelligence.removeKey` and
+`intelligence.getKey`. The colours are the `intelligence.*` tokens (light and dark), the strings the
 `intelligence.*` keys in English, Spanish and French; a screen's own win.
 
 ## Tests
 
 The rendering check draws it through `tests/render/screens/intelligence-settings.screen.json` (its scenarios in
-`tests/render/scenarios/intelligence.json`). `tests/unit/intelligence*.cpp` test the natives, the providers' requests and
-the agent with a fake network and an in-memory keychain.
+`tests/render/scenarios/intelligence.json`), and its Lisp version through `intelligence-settings.screen.lisp`
+(`tests/render/lisp/intelligence.json`), compared with the same pictures. `tests/unit/intelligence*.cpp` test the
+natives, the providers' requests and the agent with a fake network and an in-memory keychain.

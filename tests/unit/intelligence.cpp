@@ -558,12 +558,13 @@ TEST_CASE("intelligence: claude-code past its time ends even when a program it s
 }
 #endif
 
-TEST_CASE("intelligence: the settings offer only the providers the catalogue shows (Claude Code, for now)") {
+TEST_CASE("intelligence: the settings offer only the providers the catalogue shows (Claude Code, a local LLM)") {
 	const DataFolder data;
 	SettingsScreen settings(data.path, false);
 	const json answer = settings.run("providers");
-	REQUIRE(answer["providers"].size() == 1);
 	CHECK(answer["providers"][0]["id"] == "claude-code");
+	CHECK(providerIn(answer, "local")["name"] == "Local LLM");
+	for(const char* hidden : {"anthropic", "openai", "openai-compatible"}) CHECK(providerIn(answer, hidden).is_null());
 	settings.run("save", {{"provider", "anthropic"}, {"model", "claude-sonnet-5-5"}});
 	CHECK(settings.error().find("no such provider") != std::string::npos); // a hidden one can't be chosen
 	// One chosen before it was hidden isn't in use

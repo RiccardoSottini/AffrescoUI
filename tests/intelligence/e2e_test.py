@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""The host's own agent end to end, with no MCP: the stock host, the openai-compatible provider pointed at a tiny fake
-Chat Completions server on the loopback, and the assistant add-on's test page.
+"""The host's own agent end to end, with no MCP: the stock host, the Local LLM provider pointed at a tiny fake
+Chat Completions server on the loopback (as Ollama, LM Studio or llama-server would be), and the assistant add-on's
+test page.
 
 The data folder's intelligence.json names the provider; the host starts with --grant assistant (the page's assistant
-capability) and --ask, so the assistant opens and sends the request. The fake server answers the agent's first call with a submit_revision tool call, the second with a reply.
-The page's kept conversation then holds the person's message, the reply and the proposal's card (it waits for the
-person's review: nothing was accepted), and the server saw the tools, the request and no key. The host keeps its keys
-in memory (AFFRESCOUI_KEYS=memory), never touching the system's keychain.
+capability) and --ask, so the assistant opens and sends the request. It runs twice:
+
+- a model with tool calling: the fake server answers the agent's first call with a submit_revision tool call, the
+  second with a reply;
+- a model without: the server refuses tools (400, as Ollama does), then answers the request without tools with the
+  JSON answer in a code fence, text around it, as small local models do.
+
+Each time the page's kept conversation then holds the person's message, the reply and the proposal's card (it waits for
+the person's review: nothing was accepted), and the server saw the request and no key. The host keeps its keys in
+memory (AFFRESCOUI_KEYS=memory), never touching the system's keychain.
 
 Usage: e2e_test.py BUILD_DIR
 """
@@ -29,8 +36,19 @@ REQUEST = "Rename the page to Launch plan"
 
 
 class Provider(http.server.BaseHTTPRequestHandler):
-    """A fake Chat Completions server: a revision first, then a reply."""
+    """A fake Chat Completions server: with tools, a revision first, then a reply; without (tools False), it refuses
+    tools, then answers in JSON."""
     seen = []
+    tools = True
+
+    def answer(self, status, payload):
+        """Sends a JSON answer."""
+        data = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def do_POST(self):  # noqa: N802 (the handler's name is http.server's)
         """Answers /v1/chat/completions, keeping what it was sent."""
@@ -38,6 +56,15 @@ class Provider(http.server.BaseHTTPRequestHandler):
         # Only whether a key came, never the header itself: a test's output must not hold a key
         Provider.seen.append({"path": self.path, "authorized": self.headers.get("Authorization") is not None,
                               "body": body})
+        if not Provider.tools:
+            if "tools" in body:
+                self.answer(400, {"error": {"message": "registry.ollama.ai/library/tiny:1b does not support tools"}})
+                return
+            said = {"reply": "Renamed it: it waits for your review.",
+                    "revision": {"message": "Rename the page", "set": {"#pageTitle/text": "Launch plan"}}}
+            text = "Sure! Here is the change:\n```json\n" + json.dumps(said, indent=2) + "\n```\nAnything {else}?"
+            self.answer(200, {"choices": [{"message": {"role": "assistant", "content": text}, "finish_reason": "stop"}]})
+            return
         if len(Provider.seen) == 1:
             call = {"name": "submit_revision",
                     "arguments": json.dumps({"message": "Rename the page", "set": {"#pageTitle/text": "Launch plan"}})}
@@ -49,12 +76,7 @@ class Provider(http.server.BaseHTTPRequestHandler):
             message = {"role": "assistant", "content": None,
                        "tool_calls": [{"id": "call_2", "type": "function", "function": call}]}
             finish = "tool_calls"
-        answer = json.dumps({"choices": [{"message": message, "finish_reason": finish}]}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(answer)))
-        self.end_headers()
-        self.wfile.write(answer)
+        self.answer(200, {"choices": [{"message": message, "finish_reason": finish}]})
 
     def log_message(self, *args):
         """Quiet."""
@@ -66,9 +88,11 @@ def fail(message):
     sys.exit(1)
 
 
-def main():
-    build = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build")
-    host = os.path.join(build, "affrescoui_launcher.exe" if os.name == "nt" else "affrescoui_launcher")
+def run(host, tools):
+    """Runs the host once against the fake server, with a model that calls tools or one that can't; checks the
+    conversation it kept and what the server saw."""
+    Provider.seen = []
+    Provider.tools = tools
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Provider)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     port = server.server_address[1]
@@ -78,20 +102,19 @@ def main():
         os.makedirs(data, mode=0o700)
         os.makedirs(sockets, mode=0o700)
         with open(os.path.join(data, "intelligence.json"), "w", encoding="utf-8") as file:
-            json.dump({"provider": "openai-compatible", "model": "fake-model",
-                       "providers": {"openai-compatible": {"baseUrl": f"http://127.0.0.1:{port}/v1"}}}, file)
-        # AFFRESCOUI_KEYS=memory: the host's keys stay in its memory, so the system's keychain is never read;
-        # AFFRESCOUI_PROVIDERS=all: the hidden OpenAI-compatible provider may answer, for this test only
-        env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_PROVIDERS="all", AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
-                   AFFRESCOUI_SCREENSHOT_AFTER="6000")
-        run = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--grant", "assistant", "--ask", REQUEST],
-                             env=env, capture_output=True, text=True, timeout=120)
+            json.dump({"provider": "local", "model": "fake-model",
+                       "providers": {"local": {"baseUrl": f"http://127.0.0.1:{port}/v1"}}}, file)
+        # AFFRESCOUI_KEYS=memory: the host's keys stay in its memory, so the system's keychain is never read
+        env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_SOCKET_DIR=sockets,
+                   AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"), AFFRESCOUI_SCREENSHOT_AFTER="6000")
+        result = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--grant", "assistant", "--ask",
+                                 REQUEST], env=env, capture_output=True, text=True, timeout=120)
         server.shutdown()
-        if run.returncode != 0:
-            fail(f"the host exited with {run.returncode}: {run.stderr[-2000:]}")
+        if result.returncode != 0:
+            fail(f"the host exited with {result.returncode}: {result.stderr[-2000:]}")
         states = glob.glob(os.path.join(data, "*.state.json"))
         if not states:
-            fail("the conversation wasn't kept: " + run.stderr[-2000:])
+            fail("the conversation wasn't kept: " + result.stderr[-2000:])
         with open(states[0], encoding="utf-8") as file:
             kept = json.load(file)
         messages = kept["/assistant/messages"]  # the persisted paths, by JSON Pointer
@@ -113,10 +136,20 @@ def main():
             fail(f"the tools weren't offered: {names}")
         if REQUEST not in json.dumps(first["body"]["messages"]):
             fail("the request wasn't sent to the provider")
-        second = json.dumps(Provider.seen[1]["body"]["messages"])
-        if "waits for the person's review" not in second:
+        second = Provider.seen[1]["body"]
+        if tools and "waits for the person's review" not in json.dumps(second["messages"]):
             fail("the revision's outcome wasn't given back to the model")
-    print("ok: the host's agent read the screen, proposed a revision for review and replied")
+        if not tools and ("tools" in second or "You have no tools" not in second["messages"][0]["content"]):
+            fail("after the server refused tools, the request wasn't asked again without them")
+
+
+def main():
+    build = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build")
+    host = os.path.join(build, "affrescoui_launcher.exe" if os.name == "nt" else "affrescoui_launcher")
+    run(host, True)
+    print("ok: with tools, the host's agent read the screen, proposed a revision for review and replied")
+    run(host, False)
+    print("ok: without tools, the host's agent asked again in JSON, read the fenced answer, proposed and replied")
 
 
 if __name__ == "__main__":
