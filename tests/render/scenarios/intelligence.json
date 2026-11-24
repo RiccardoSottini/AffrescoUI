@@ -6,7 +6,7 @@
 		{
 			"name": "intelligence-settings",
 			"screen": "intelligence-settings.screen.json",
-			"note": "The intelligence settings with the stand-in providers (Claude Code and a local LLM): none set up yet, the first one chosen, its models",
+			"note": "The intelligence settings with the stand-in providers (Claude Code, GitHub Copilot and a local LLM): none set up yet, the first one chosen, its models",
 			"steps": [
 				{ "wait": 50 },
 				{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
@@ -33,11 +33,29 @@
 			]
 		},
 		{
+			"name": "intelligence-copilot",
+			"screen": "intelligence-settings.screen.json",
+			"note": "GitHub Copilot: its note (no tools, its own history on this computer), its five models with when to use each, Claude Sonnet recommended; only a listed model can be chosen",
+			"steps": [
+				{ "click": "#intelligenceProvider1" },
+				{ "wait": 50 },
+				{ "expect": { "state": "intelligence.selected", "is": "copilot" } },
+				{ "expect": { "state": "intelligence.model", "is": "claude-sonnet-5.5" } },
+				{ "expect": { "image": "models" } },
+				{ "click": "#intelligenceModel4" },
+				{ "expect": { "state": "intelligence.model", "is": "auto" } },
+				{ "click": "#intelligenceModelSearch" },
+				{ "type": "gpt-4" },
+				{ "key": "enter" },
+				{ "expect": { "state": "intelligence.model", "is": "auto" } }
+			]
+		},
+		{
 			"name": "intelligence-compatible",
 			"screen": "intelligence-settings.screen.json",
 			"note": "A local LLM: its servers (Ollama, LM Studio, llama.cpp) filling the base URL field, an optional key, and a model typed by hand",
 			"steps": [
-				{ "click": "#intelligenceProvider1" },
+				{ "click": "#intelligenceProvider2" },
 				{ "wait": 50 },
 				{ "expect": { "state": "intelligence.selected", "is": "local" } },
 				{ "expect": { "state": "intelligence.baseUrl", "is": "http://127.0.0.1:11434/v1" } },
@@ -55,7 +73,7 @@
 			"screen": "intelligence-settings.screen.json",
 			"note": "A local LLM whose server doesn't answer, then one that answers with no model loaded: each says what to do",
 			"steps": [
-				{ "click": "#intelligenceProvider1" },
+				{ "click": "#intelligenceProvider2" },
 				{ "action": "test.noServer" },
 				{ "wait": 50 },
 				{ "expect": { "image": "no-server" } },

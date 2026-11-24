@@ -25,6 +25,8 @@ struct CallsOptions {
 	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a models list or a test.
 	std::function<bool()> claudeInstalled;       ///< Whether claude-code can run; empty: findClaude().
 	ClaudeRunner claude;                         ///< Runs claude-code for a test; empty: the installed one.
+	std::function<bool()> copilotInstalled;      ///< Whether copilot can run; empty: findCopilot().
+	CommandLineRunner copilot;                   ///< Runs copilot for a test; empty: the installed one.
 	std::function<void()> changed;               ///< Called on the main thread after the settings changed.
 	bool hidden = false; ///< Offer the providers providers.json hides too (for tests of the other providers).
 };

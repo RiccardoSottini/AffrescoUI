@@ -12,7 +12,9 @@ affrescoui_module(intelligence
 	src/Http.cpp          # HTTP to one origin from a worker thread
 	src/Providers.cpp     # what the API providers are sent and answer
 	src/ScreenQueries.cpp # the screen as an agent reads it, and the format guide by topic
+	src/CommandLine.cpp   # what the command-line providers share: one headless run, with no tools
 	src/ClaudeCode.cpp    # the claude-code provider: the person's command line, with no tools
+	src/Copilot.cpp       # the copilot provider: the person's GitHub Copilot command line, with no tools
 	src/Picks.cpp         # what the person pointed at, as the agent tells a model of it
 	src/Commands.cpp      # the app's commands, as the agent tells a model of them
 	src/Undo.cpp          # undoing an earlier change, as the agent offers it to a model

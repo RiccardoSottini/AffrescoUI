@@ -8,6 +8,7 @@
 #include "Commands.hpp"
 #include "Picks.hpp"
 #include "Undo.hpp"
+#include "affresco/intelligence/Copilot.hpp"
 #include "affresco/intelligence/Providers.hpp"
 #include "affresco/intelligence/ScreenQueries.hpp"
 
@@ -458,12 +459,12 @@ public:
 		endpoint_ = *chosen;
 		const Provider& provider = *endpoint_.provider;
 		endpoint_.model = provider.modelFor(model_, endpoint_.model); // the chat's choice, if the provider lists it
-		if(provider.kind != Kind::ClaudeCode)
+		if(!runsCommandLine(provider.kind))
 			if(const std::optional<std::string> problem = apiProblem()) return {*problem, true};
 		const auto longer = std::chrono::duration_cast<std::chrono::milliseconds>(2 * provider.timeout);
 		if(longer > options_.budget) deadline_ += longer - options_.budget; // a slow (local) model's longer time
 		if(!readScreen()) return {"The app didn't answer in time.", true};
-		if(provider.kind == Kind::ClaudeCode) return jsonAnswers(claudeAsker(), false);
+		if(runsCommandLine(provider.kind)) return jsonAnswers(commandLineAsker(), false);
 		if(const std::optional<std::string> problem = openSession()) return {*problem, true};
 		if(provider.tools != Tools::None && !agent_.noTools_.contains(toolsKey()))
 			if(std::optional<std::pair<std::string, bool>> done = toolLoop()) return *std::move(done);
@@ -875,11 +876,12 @@ private:
 		agent_.noTools_.insert(toolsKey());
 	}
 
-	/// @brief How claude-code is asked: its command line, run once with no tools.
+	/// @brief How a command line (claude-code, copilot) is asked: run once with no tools.
 	/// @return It.
-	Ask claudeAsker() {
-		return [this](const std::string& system, const std::string& input) -> Answer {
-			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
+	Ask commandLineAsker() {
+		const CommandLineRunner& run = endpoint_.provider->kind == Kind::Copilot ? options_.copilot : options_.claude;
+		return [this, &run](const std::string& system, const std::string& input) -> Answer {
+			const CommandLineAnswer answer = run(endpoint_.model, system, input, [this] { return overTime(); });
 			return {answer.ok, answer.text};
 		};
 	}
@@ -909,7 +911,7 @@ private:
 		};
 	}
 
-	/// @brief A model without tools (claude-code, or a server that refuses tools): one JSON answer, after at most
+	/// @brief A model without tools (a command line, or a server that refuses tools): one JSON answer, after at most
 	/// three rounds of reading, and two retries of a rejected revision (a program's first one is often on a built
 	/// node, and its fix needs the definition read first).
 	/// @param ask How the model is asked, once.
@@ -1096,6 +1098,13 @@ ProviderAgent::ProviderAgent(affresco::Executor& executor, AgentOptions options)
 			const std::optional<std::filesystem::path> program = findClaude();
 			if(!program) return {false, "Claude Code isn't installed (the claude command isn't on the PATH)."};
 			return runClaude(*program, model, system, input, std::chrono::minutes(4), stopped);
+		};
+	if(!options_.copilot)
+		options_.copilot = [](const std::string& model, const std::string& system, const std::string& input,
+		                      const std::function<bool()>& stopped) -> CommandLineAnswer {
+			const std::optional<std::filesystem::path> program = findCopilot();
+			if(!program) return {false, "GitHub Copilot isn't installed (the copilot command isn't on the PATH)."};
+			return runCopilot(*program, model, system, input, std::chrono::minutes(4), stopped);
 		};
 	worker_ = std::thread([this] { work(); });
 }

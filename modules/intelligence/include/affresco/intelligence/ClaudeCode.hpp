@@ -5,6 +5,8 @@
 /// for one answer, with no tools at all (no commands, no files, no MCP servers, no hooks or settings of theirs), in
 /// an empty temporary folder, from an argument vector (no shell), with a time limit.
 
+#include "affresco/intelligence/CommandLine.hpp"
+
 #include <chrono>
 #include <filesystem>
 #include <functional>
@@ -14,11 +16,8 @@
 
 namespace affresco::intelligence {
 
-/// @brief What a run of the command line gave.
-struct ClaudeAnswer {
-	bool ok = false;  ///< Whether it answered.
-	std::string text; ///< Its answer (the "result"), or why it failed, for people.
-};
+/// @brief What a run of the command line gave: its answer (the "result"), or why it failed.
+using ClaudeAnswer = CommandLineAnswer;
 
 /// @brief Where the command line is.
 /// @return `claude` on the PATH, or nullopt if it isn't installed.
@@ -38,8 +37,9 @@ struct ClaudeAnswer {
 /// @return "NAME=value" entries.
 [[nodiscard]] std::vector<std::string> claudeEnvironment();
 
-/// @brief Runs the command line once: @p input goes to its stdin (so the screen's content never shows in the list
-/// of processes), its JSON answer is read from its stdout (at most 4 MiB), with claudeEnvironment().
+/// @brief Runs the command line once (runCommandLine()): @p input goes to its stdin (so the screen's content never
+/// shows in the list of processes), its JSON answer is read from its stdout (at most 4 MiB), with
+/// claudeEnvironment().
 /// @param program The command line (findClaude()).
 /// @param model The model.
 /// @param system The system prompt.

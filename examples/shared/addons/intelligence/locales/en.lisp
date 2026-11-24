@@ -23,6 +23,7 @@
                 :intelligence.server "Server"
                 :intelligence.noServer "No server answers at {url}. Start Ollama, LM Studio or llama.cpp's llama-server, then refresh."
                 :intelligence.noModelLoaded "The server answers but has no model: download or load one (ollama pull, lms load), then refresh."
+                :intelligence.copilot "Uses your own GitHub Copilot and its sign-in (copilot login), with no tools: it can't run commands or read your files. Like your other Copilot use, it keeps a history of each run on this computer."
                 :intelligence.model "Model"
                 :intelligence.modelChosen "Model: {model}"
                 :intelligence.searchModels "Search the models…"

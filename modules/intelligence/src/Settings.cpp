@@ -42,6 +42,7 @@ Kind kindOf(const std::string& name) {
 	if(name == "openai") return Kind::OpenAI;
 	if(name == "openai-compatible") return Kind::OpenAICompatible;
 	if(name == "claude-code") return Kind::ClaudeCode;
+	if(name == "copilot") return Kind::Copilot;
 	throw std::runtime_error("providers.json: unknown kind '" + name + "'");
 }
 
@@ -59,10 +60,14 @@ std::string text(const json& object, const char* key, const std::string& otherwi
 /// @param value The provider's JSON.
 /// @param kind Its kind.
 /// @return It.
-/// @throws std::runtime_error If "tools" is another value.
+/// @throws std::runtime_error If "tools" is another value, or gives a command line tools (it runs with none).
 Tools toolsOf(const json& value, Kind kind) {
 	const auto found = value.find("tools");
-	if(found == value.end()) return kind == Kind::ClaudeCode ? Tools::None : Tools::Given;
+	if(found == value.end() || runsCommandLine(kind)) {
+		if(found != value.end() && *found != false)
+			throw std::runtime_error(R"(providers.json: a command line runs with no tools ("tools": false))");
+		return runsCommandLine(kind) ? Tools::None : Tools::Given;
+	}
 	if(found->is_boolean()) return found->get<bool>() ? Tools::Given : Tools::None;
 	if(*found == "auto") return Tools::Tried;
 	throw std::runtime_error(R"(providers.json: "tools" is true, false or "auto")");
@@ -286,7 +291,7 @@ std::optional<std::string> checkBaseUrl(const Endpoint& endpoint) {
 std::string keyName(const std::string& providerId) { return "intelligence/" + providerId; }
 
 std::string readKey(affresco::SecretStore& keys, const Endpoint& endpoint) {
-	if(endpoint.provider == nullptr || endpoint.provider->kind == Kind::ClaudeCode) return "";
+	if(endpoint.provider == nullptr || runsCommandLine(endpoint.provider->kind)) return "";
 	const std::string stored = keys.read(keyName(endpoint.provider->id)).value_or("");
 	if(endpoint.provider->kind != Kind::OpenAICompatible) return stored;
 	// A compatible server's key is kept with the origin it was given for, and goes to that origin only
@@ -297,7 +302,7 @@ std::string readKey(affresco::SecretStore& keys, const Endpoint& endpoint) {
 }
 
 bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::string& key) {
-	if(endpoint.provider == nullptr || endpoint.provider->kind == Kind::ClaudeCode) return false;
+	if(endpoint.provider == nullptr || runsCommandLine(endpoint.provider->kind)) return false;
 	const std::string name = keyName(endpoint.provider->id);
 	if(endpoint.provider->kind != Kind::OpenAICompatible) return keys.write(name, key);
 	const std::optional<std::string> origin = originOf(endpoint.baseUrl);
@@ -331,8 +336,12 @@ std::string kindName(Kind kind) {
 		return "openai-compatible";
 	case Kind::ClaudeCode:
 		return "claude-code";
+	case Kind::Copilot:
+		return "copilot";
 	}
 	return "openai";
 }
+
+bool runsCommandLine(Kind kind) { return kind == Kind::ClaudeCode || kind == Kind::Copilot; }
 
 } // namespace affresco::intelligence

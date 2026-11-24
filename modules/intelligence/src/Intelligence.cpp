@@ -4,6 +4,7 @@
 #include "affresco/intelligence/Intelligence.hpp"
 
 #include "affresco/intelligence/ClaudeCode.hpp"
+#include "affresco/intelligence/Copilot.hpp"
 #include "affresco/intelligence/Providers.hpp"
 #include "affresco/intelligence/ScreenQueries.hpp"
 
@@ -81,13 +82,39 @@ std::string withoutSlash(std::string url) {
 	return url;
 }
 
-/// @brief Whether a provider can run here: claude-code only if its command line is installed.
+/// @brief Whether a provider can run here: a command line only if it is installed.
 /// @param shared The natives' parts.
 /// @param provider The provider.
 /// @return Whether it can.
 bool available(const Shared& shared, const Provider& provider) {
+	if(provider.kind == Kind::Copilot)
+		return shared.options.copilotInstalled ? shared.options.copilotInstalled() : findCopilot().has_value();
 	if(provider.kind != Kind::ClaudeCode) return true;
 	return shared.options.claudeInstalled ? shared.options.claudeInstalled() : findClaude().has_value();
+}
+
+/// @brief intelligence.test for a command line: it is asked to say OK.
+/// @param shared The natives' parts.
+/// @param endpoint The provider in use (claude-code or copilot) and its model.
+/// @param stopped Whether the test was cancelled.
+/// @return `{ ok, message }`.
+json commandLineTest(const Shared& shared, const Endpoint& endpoint, const std::function<bool()>& stopped) {
+	const bool copilot = endpoint.provider->kind == Kind::Copilot;
+	const CommandLineRunner& stand = copilot ? shared.options.copilot : shared.options.claude;
+	const std::optional<std::filesystem::path> program = stand ? std::nullopt : copilot ? findCopilot() : findClaude();
+	if(!stand && !program)
+		return {{"ok", false},
+		        {"message", endpoint.provider->name + " isn't installed (the " + (copilot ? "copilot" : "claude") +
+		                        " command isn't on the PATH)."}};
+	const std::string system = "Answer with the word OK.";
+	const auto timeout = std::chrono::seconds(90);
+	const CommandLineAnswer answer = stand ? stand(endpoint.model, system, "Say OK.", stopped)
+	                                 : copilot
+	                                     ? runCopilot(*program, endpoint.model, system, "Say OK.", timeout, stopped)
+	                                     : runClaude(*program, endpoint.model, system, "Say OK.", timeout, stopped);
+	return {{"ok", answer.ok},
+	        {"message", answer.ok ? "Connected: " + endpoint.provider->name + " answered with " + endpoint.model + "."
+	                              : answer.text}};
 }
 
 /// @brief A provider's fallback models.
@@ -127,7 +154,7 @@ json providersJson(const Shared& shared) {
 		                {"name", provider.name},
 		                {"kind", kindName(provider.kind)},
 		                {"needsKey", provider.needsKey},
-		                {"takesKey", provider.kind != Kind::ClaudeCode},
+		                {"takesKey", !runsCommandLine(provider.kind)},
 		                {"hasKey", hasKey},
 		                {"available", available(shared, provider)},
 		                {"baseUrl", endpoint ? endpoint->baseUrl : provider.baseUrl},
@@ -181,7 +208,7 @@ json save(Shared& shared, const json& arguments) {
 		if(key.empty() && staged != shared.staged.end()) key = staged->second;
 		shared.staged.erase(provider.id);
 	}
-	if(!key.empty() && provider.kind != Kind::ClaudeCode) {
+	if(!key.empty() && !runsCommandLine(provider.kind)) {
 		key = cleanKey(std::move(key));
 		const std::optional<Endpoint> after = endpointOf(shared.catalog, settings, provider.id);
 		if(!key.empty() && (!after || !writeKey(*shared.options.keys, *after, key)))
@@ -227,7 +254,7 @@ json models(const Shared& shared, const json& arguments, affresco::CallProgress&
 		if(provider.models.empty()) throw std::runtime_error(why);
 		return fallbackOf(provider);
 	};
-	if(provider.kind == Kind::ClaudeCode || provider.fixedModels) return fallbackOf(provider);
+	if(runsCommandLine(provider.kind) || provider.fixedModels) return fallbackOf(provider);
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
 	if(!endpoint) return fallback("no such provider");
 	const std::string url = argument(arguments, "baseUrl");
@@ -264,19 +291,7 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 	if(!endpoint || !offered(shared, *endpoint->provider))
 		return {{"ok", false}, {"message", "No provider is chosen yet."}};
 	const Provider& provider = *endpoint->provider;
-	if(provider.kind == Kind::ClaudeCode) {
-		const std::optional<std::filesystem::path> program = findClaude();
-		if(!shared.options.claude && !program)
-			return {{"ok", false}, {"message", "Claude Code isn't installed (the claude command isn't on the PATH)."}};
-		const auto stopped = [&call] { return call.cancelled(); };
-		const ClaudeAnswer answer =
-		    shared.options.claude
-		        ? shared.options.claude(endpoint->model, "Answer with the word OK.", "Say OK.", stopped)
-		        : runClaude(*program, endpoint->model, "Answer with the word OK.", "Say OK.", std::chrono::seconds(90),
-		                    stopped);
-		return {{"ok", answer.ok},
-		        {"message", answer.ok ? "Connected: Claude Code answered with " + endpoint->model + "." : answer.text}};
-	}
+	if(runsCommandLine(provider.kind)) return commandLineTest(shared, *endpoint, [&call] { return call.cancelled(); });
 	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint))
 		return {{"ok", false}, {"message", *refused}};
 	endpoint->key = readKey(*shared.options.keys, *endpoint);

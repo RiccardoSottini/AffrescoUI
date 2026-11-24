@@ -33,8 +33,7 @@
 namespace affresco::intelligence {
 
 /// @brief Runs the claude-code provider once: (model, system prompt, input) to its answer.
-using ClaudeRunner = std::function<ClaudeAnswer(const std::string& model, const std::string& system,
-                                                const std::string& input, const std::function<bool()>& stopped)>;
+using ClaudeRunner = CommandLineRunner;
 
 /// @brief The bounds and the parts an agent works with.
 struct AgentOptions {
@@ -44,6 +43,7 @@ struct AgentOptions {
 	std::shared_ptr<affresco::SecretStore> keys; ///< The keys (systemKeys()).
 	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a request.
 	ClaudeRunner claude;                         ///< Runs claude-code; empty: the installed command line.
+	CommandLineRunner copilot;                   ///< Runs copilot; empty: the installed command line.
 	bool hiddenProviders = true;              ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
 	int maxSteps = 12;                        ///< The most answers of the model per request.
 	int maxRevisions = 6;                     ///< The most revisions per request.
@@ -62,7 +62,7 @@ struct AgentOptions {
 /// Requests from the screen's own chat (`request` messages with `"source": "screen"`) are queued and worked on one at
 /// a time on a thread of its own, so the window never waits: it reads the screen and submits revisions through the
 /// live protocol (posted to the main thread), and calls the provider (an HTTP client allowing its origin only, or
-/// the claude command line with no tools). A model without tools (claude-code, a provider with "tools": false, or a
+/// a command line with no tools). A model without tools (claude-code, copilot, a provider with "tools": false, or a
 /// server that refuses them) answers with one JSON object a round, in the same protocol. A request's `options.model` is
 /// used when the provider in use lists it, else the person's default. Errors come back as the reply's `error`, without
 /// secrets.

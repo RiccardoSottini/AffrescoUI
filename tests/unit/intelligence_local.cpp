@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -137,7 +138,7 @@ TEST_CASE("intelligence local: the Local LLM is shown, with Ollama, LM Studio an
 	const auto parse = [](const json& provider) {
 		return intelligence::Catalog::fromJson({{"providers", json::array({provider})}}, "test");
 	};
-	const auto with = [](json extra) {
+	const auto with = [](const json& extra) {
 		json provider = {{"id", "x"}, {"name", "X"}, {"kind", "openai-compatible"}};
 		provider.update(extra);
 		return provider;
@@ -157,7 +158,10 @@ TEST_CASE("intelligence local: the Local LLM is shown, with Ollama, LM Studio an
 
 TEST_CASE("intelligence local: a chat request waits the provider's timeout, and the models list has no embeddings") {
 	const intelligence::Catalog catalog = intelligence::Catalog::standard();
-	intelligence::Endpoint endpoint = *intelligence::endpointOf(catalog, {}, "local");
+	const std::optional<intelligence::Endpoint> local = intelligence::endpointOf(catalog, {}, "local");
+	REQUIRE(local.has_value());
+	if(!local) return; // for the analysers: REQUIRE has stopped already
+	intelligence::Endpoint endpoint = *local;
 	endpoint.model = "qwen2.5-7b-instruct";
 	const network::Request request = intelligence::chatRequest(endpoint, {"Be brief.", json::array()}, {});
 	CHECK(request.timeout == std::chrono::seconds(300));

@@ -1,11 +1,11 @@
 # intelligence: the providers of intelligence a host's assistant uses
 
 `intelligence` answers an app's assistant (the `ask` step, `examples/shared/addons/assistant`) with a provider of
-intelligence the person set up once, for every app: the person's own Claude Code command line, a local LLM (a model on
-the person's computer, served by Ollama, LM Studio or llama.cpp's llama-server), or an API (Anthropic's Messages API,
-OpenAI's Chat Completions, a Chat Completions server at a base URL; these are hidden for now, `"shown": false`). Target:
-`affrescoui::intelligence` (uses the library, `affrescoui::affrescoui`: the screen, `net` for the APIs, `services` to
-run the command line).
+intelligence the person set up once, for every app: the person's own command line (Claude Code, `claude`, or GitHub
+Copilot, `copilot`), a local LLM (a model on the person's computer, served by Ollama, LM Studio or llama.cpp's
+llama-server), or an API (Anthropic's Messages API, OpenAI's Chat Completions, a Chat Completions server at a base URL;
+these are hidden for now, `"shown": false`). Target: `affrescoui::intelligence` (uses the library,
+`affrescoui::affrescoui`: the screen, `net` for the APIs, `services` to run a command line).
 
 It is a service a host offers, gated like the others. An app that asks the agents declares the `assistant` capability
 in its `app.json` (`affrescoui check` says when one is missing), and the stock host attaches its agent only once the
@@ -30,9 +30,42 @@ open with no restart.
 | `Agent.hpp` | `ProviderAgent`: a `Channel` connected as author `"agent"`, whose changes wait for the person's review like any agent's; `AgentOptions` bounds its turns, tools and time |
 | `Settings.hpp` | `Catalog` (`standard()`, `load`, `fromJson`), `Settings` (`load`, `save`), `endpointOf`, `checkBaseUrl` (https, or http only on the loopback), `readKey` |
 | `Providers.hpp` | What the APIs are sent (`chatRequest`, `modelsRequest`) and answer (`parseTurn`, `parseModels`), and `describeFailure` and `redact`, with no secret |
-| `ClaudeCode.hpp` | The claude-code provider: `findClaude`, `runClaude` (with no tools, on `services::runProgram`), `parseClaudeOutput` |
+| `CommandLine.hpp` | What the command lines share: `findCommandLine`, `keptEnvironment`, `runCommandLine` (one headless run on `services::runProgram`, in an empty temporary folder, input on stdin, output bounded to 4 MiB, a time limit, stopped every 100 ms) |
+| `ClaudeCode.hpp` | The claude-code provider: `findClaude`, `claudeArguments`, `claudeEnvironment`, `runClaude` (with no tools), `parseClaudeOutput` |
+| `Copilot.hpp` | The copilot provider: `findCopilot`, `copilotArguments`, `copilotEnvironment`, `copilotInput`, `runCopilot` (with no tools), `parseCopilotOutput` |
 | `Http.hpp` | `HttpSession`: HTTP to one origin from the agent's worker thread, every byte bounded (`net`) |
 | `ScreenQueries.hpp` | The screen as an agent reads it (`outline`, `nodeAt`, `findNodes`) and the format guide by topic (`readFormatGuide(folder)`, `formatGuide`) |
+
+## The command lines
+
+A command-line provider takes no key and no base URL: it is the person's own program, signed in their own way, found
+on the PATH (or where its installers put it) and offered only when it is installed. Each request runs it once,
+headless, from an argument vector (no shell), in an empty temporary folder of its own (this user's only, removed
+after), with an environment cut to what it needs (no API keys or tokens, no `AFFRESCOUI_` variables), its input on
+stdin (so the screen never shows in the list of processes), its stdout bounded to 4 MiB, a time limit, and a check
+every 100 ms that stops it. With no tools (`"tools"` can only be `false`), it answers with the JSON protocol below
+("Undoing an earlier change", "Using the app's commands"): reading rounds, a revision or an undo, command runs, its
+answer read as loosely as a local model's.
+
+- **Claude Code** (`claude -p`): `--tools ""` (no tools at all), `--restricted`, `--safe-mode` (no hooks, plugins,
+  skills, CLAUDE.md or MCP servers of the person's), `--strict-mcp-config`, `--no-session-persistence`, the system
+  prompt as its own, the answer as one JSON object.
+- **GitHub Copilot** (`copilot`, npm `@github/copilot`; on Windows the `copilot.exe` of WinGet): the prompt on stdin
+  (piped, with no `-p`), `--output-format json` (one JSON event a line: the last `assistant.message` is the answer, a
+  `session.error` the failure). It has no flag that turns its tools off, so `--available-tools` names only a tool
+  that doesn't exist (the model sees none: no shell, files, web, agents or MCP tools) and `--deny-tool` denies every
+  kind of tool besides; `--disable-builtin-mcps`, `--no-custom-instructions`, `--no-ask-user`, `--disallow-temp-dir`,
+  `--sync-session=off`, `--no-auto-update`, `--disable-client-telemetry`, `--log-level none`. Its environment keeps
+  `COPILOT_HOME` (its sign-in and settings) and drops `GH_TOKEN`, `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` (the
+  person's own sign-in is used), `COPILOT_ALLOW_ALL` and the provider, model, instructions and skills variables; it
+  sets `COPILOT_AUTO_UPDATE=false`, `COPILOT_DISABLE_LOGIN_SHELL_ENV=1` and the `GITHUB_COPILOT_PROMPT_MODE_*`
+  variables to `false`. It expands an `@` followed by a path into that file's or folder's path and size, so every
+  `@/`, `@~`, `@.`, `@\` and `@C:` of the input is broken by a word joiner (U+2060). The system prompt goes first in
+  the input, since it has no option for one. It runs with the person's own `COPILOT_HOME`, so their `copilot login`
+  signs it in (no token from the environment is used: the person runs `copilot login` once), and like the person's
+  other Copilot use it keeps its own history of each run on this computer (`$COPILOT_HOME/session-state`,
+  `session-store.db`), which no option turns off; `--sync-session=off` keeps it off the GitHub account, and the
+  Settings' note says so.
 
 ## A local LLM
 
@@ -100,7 +133,7 @@ When the person asks for something the app can already do (add an entry, send a 
 app's commands rather than changing the app (`src/Commands.hpp`). It has two tools: `list_commands` (the screen's
 `getCommands`, one line a command: `name(argument: type, ...)`, what it does, and `[ask]`, `[person]` or `[deny]`;
 `filter` narrows it) and `run_command` (a `runCommand` with the name and the arguments, the state as its evidence). A
-model without tools (claude-code, or a server that refuses them) asks for the list with `{"commands": true}` and runs
+model without tools (a command line, or a server that refuses them) asks for the list with `{"commands": true}` and runs
 what its answer's `run` names (`[{ "command", "arguments" }]`), beside its reply; a refused run stops the rest, and the
 reply says it wasn't run.
 
@@ -118,10 +151,11 @@ prompt, which only says when to run a command and that running one never approve
 `tests/unit/intelligence.cpp`, `tests/unit/intelligence_agent.cpp` (a fake network, no real API),
 `tests/unit/intelligence_commands.cpp` (the commands, on the same harness, `tests/unit/AgentHarness.hpp`) and
 `tests/unit/intelligence_picks.cpp` (picks, the first message's sizes on the examples),
-`tests/unit/intelligence_local.cpp` (the Local LLM: presets, the models list, the fallback when tools are refused or
-unused, answers in a fence or after reasoning), the `picks` fuzz target, and `tests/intelligence/e2e_test.py`: the stock
-host with the Local LLM pointed at a fake server on the loopback, once with tool calls and once refusing tools and
-answering in a fenced JSON object.
+`tests/unit/intelligence_copilot.cpp` (GitHub Copilot: its arguments, environment, input and output, and a stand-in
+`copilot`), `tests/unit/intelligence_local.cpp` (the Local LLM: presets, the models list, the fallback when tools are
+refused or unused, answers in a fence or after reasoning), the `picks` fuzz target, and `tests/intelligence/e2e_test.py`:
+the stock host with the Local LLM pointed at a fake server on the loopback, once with tool calls and once refusing tools
+and answering in a fenced JSON object.
 
 ## Undoing an earlier change
 
@@ -135,7 +169,7 @@ choices taken from the model, and returns "applied: revision 12", "proposed: pro
 or "rejected: ..."; a rejection on a conflict says to read the plan. Arguments that break the tool's schema are
 refused before the screen is asked. An undo counts as a revision against `maxRevisions`.
 
-Without tools (claude-code, or a server that refuses them), the answer holds `"undo": {"revision", "drop"?, "keep"?,
+Without tools (a command line, or a server that refuses them), the answer holds `"undo": {"revision", "drop"?, "keep"?,
 "then"?, "head"?, "message"?}` in place of `"revision"` (never both), sent as a `revert` (never a dry run), and a
 reading round may ask `"plan": 12` (or the same object as `undo`) beside `read`, `find` and `guide`. A refused undo is
 given back to fix, within the same two retries as a revision. Both kinds of model are told to undo with the undo, never

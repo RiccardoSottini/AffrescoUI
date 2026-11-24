@@ -31,12 +31,13 @@ providers, and saving says the settings are changed in the Launcher.
 ## Providers
 
 `modules/intelligence/providers.json` lists them, as data. The settings offer Claude Code (the person's own `claude`
-command line and sign-in, run with no tools) and a Local LLM (a model on this computer: Ollama, LM Studio or llama.cpp's
-llama-server, each a button that fills the base URL, or any base URL typed; `http://` only on this computer; a key
-optional). The API providers (Anthropic, OpenAI, an OpenAI-compatible server such as OpenRouter) are in the catalogue
-but hidden (`"shown": false`). The models come live from the provider (`GET /v1/models`, with the base URL the form
-shows, even before it is saved) when it can be reached, else from the list there. A local server that doesn't answer
-says to start one, with why; one that answers with no model says to load or download one.
+command line and sign-in, run with no tools), GitHub Copilot (the person's own `copilot` command line, its GitHub
+sign-in from `copilot login` and subscription, run with no tools) and a Local LLM (a model on this computer: Ollama, LM
+Studio or llama.cpp's llama-server, each a button that fills the base URL, or any base URL typed; `http://` only on this
+computer; a key optional). The API providers (Anthropic, OpenAI, an OpenAI-compatible server such as OpenRouter) are in
+the catalogue but hidden (`"shown": false`). The models come live from the provider (`GET /v1/models`, with the base URL
+the form shows, even before it is saved) when it can be reached, else from the list there. A local server that doesn't
+answer says to start one, with why; one that answers with no model says to load or download one.
 
 Claude Code's models are its command line's aliases, which follow the latest model: Claude Sonnet 5.5 (`sonnet`, the
 default: fast enough for a chat and strong at editing screens), Claude Opus 5.5 (`opus`, for harder, longer asks),
@@ -45,6 +46,12 @@ line on when to use it in English, Spanish and French (`description`), and the c
 *Recommended*. Its list is the whole choice (`fixedModels`): saving another model is refused, and a saved one it no
 longer lists gives the default. The person's model is the default of every app's assistant, whose picker can choose
 another one per app (`../assistant/README.md`).
+
+GitHub Copilot's models are fixed the same way: Claude Sonnet 5.5 (`claude-sonnet-5.5`, the default), Claude Opus 5.5,
+GPT-6.2 Sol, Claude Haiku 5.5 and Auto (Copilot picks, among the models the person's plan allows). A command line's
+form shows a line on what it can't do (`intelligence.claudeCode`, `intelligence.copilot`) and *Install it* while it
+isn't installed. Copilot's line also says that it keeps its own history of each run on this computer, as it does for the
+person's other Copilot use.
 
 ## State, actions and strings
 

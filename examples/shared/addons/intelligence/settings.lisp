@@ -1,5 +1,5 @@
-;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Claude Code, or a local
-;;; LLM on this computer: Ollama, LM Studio or llama.cpp) and which model every app's assistant uses
+;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Claude Code, GitHub
+;;; Copilot, or a local LLM on this computer: Ollama, LM Studio or llama.cpp) and which model every app's assistant uses
 ;;;
 ;;; Put { "use": "intelligenceSettings" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls
 ;;; the host's intelligence.* natives (modules/intelligence/include/affresco/intelligence/Intelligence.hpp), which
@@ -82,6 +82,44 @@
                                  :description {:en "The fastest, for quick small changes."
                                                :es "El más rápido, para cambios pequeños y rápidos."
                                                :fr "Le plus rapide, pour les petits changements rapides."}}]}
+                      {:id copilot
+                       :name "GitHub Copilot"
+                       :kind copilot
+                       :needsKey false
+                       :takesKey false
+                       :hasKey false
+                       :available true
+                       :baseUrl ""
+                       :editableUrl false
+                       :model "claude-sonnet-5.5"
+                       :defaultModel "claude-sonnet-5.5"
+                       :fixedModels true
+                       :keyHelp "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli"
+                       :models [{:id "claude-sonnet-5.5"
+                                 :name "Claude Sonnet 5.5"
+                                 :description {:en "Fast and strong at editing screens: the best for most asks."
+                                               :es "Rápido y bueno editando pantallas: el mejor para casi todo."
+                                               :fr "Rapide et doué pour modifier les écrans : le meilleur pour presque tout."}}
+                                {:id "claude-opus-5.5"
+                                 :name "Claude Opus 5.5"
+                                 :description {:en "Deeper reasoning, for harder and longer changes."
+                                               :es "Razona más a fondo, para cambios difíciles y largos."
+                                               :fr "Raisonne plus en profondeur, pour les changements longs et difficiles."}}
+                                {:id "gpt-6.2-sol"
+                                 :name "GPT-6.2 Sol"
+                                 :description {:en "OpenAI's model, for those who prefer GPT."
+                                               :es "El modelo de OpenAI, para quien prefiera GPT."
+                                               :fr "Le modèle d'OpenAI, pour qui préfère GPT."}}
+                                {:id "claude-haiku-5.5"
+                                 :name "Claude Haiku 5.5"
+                                 :description {:en "The fastest, for quick small changes."
+                                               :es "El más rápido, para cambios pequeños y rápidos."
+                                               :fr "Le plus rapide, pour les petits changements rapides."}}
+                                {:id "auto"
+                                 :name "Auto"
+                                 :description {:en "Copilot picks the model for each ask, among those your plan allows."
+                                               :es "Copilot elige el modelo de cada petición, entre los que permite tu plan."
+                                               :fr "Copilot choisit le modèle de chaque demande, parmi ceux que permet votre forfait."}}]}
                       {:id local
                        :name "Local LLM"
                        :kind openai-compatible
@@ -299,7 +337,7 @@ first provider: then its own first is chosen, as the form shows it."
      (label#label-provider-kind-claude :anchors {:left 16 :top 31}
        :fitText true
        :textColor @intelligence.dim
-       :text ~(if (= provider.kind :claude-code) "claude" provider.baseUrl))
+       :text ~(case provider.kind :claude-code "claude" :copilot "copilot" provider.baseUrl))
      (row#row-intelligence-provider-p :anchors {:right 16 :top 17} :height 22 :fitContent width :gap 6 :alignItems center
        (node#panel-intelligence-provider :width 8
          :height 8
@@ -492,13 +530,13 @@ first provider: then its own first is chosen, as the form shows it."
      ~(intelligence-actions)
      ~(intelligence-feedback)))
 
-(defview intelligence-no-key-note "For the provider that takes no key, Claude Code: it uses its own sign-in, with no tools." []
+(defview intelligence-no-key-note "For a provider that takes no key, a command line: it uses its own sign-in, with no tools." []
   `(label#intelligenceClaudeNote :when ~(not iProvider.takesKey)
      :wrap true
      :height 40
      :anchors {:left 14 :right 14}
      :textColor @intelligence.dim
-     :text ~(t "intelligence.claudeCode")))
+     :text ~(t (if (= iProvider.kind "copilot") "intelligence.copilot" "intelligence.claudeCode"))))
 
 (defview intelligence-local-note "For a local model: nothing leaves the computer, and what a model needs." []
   `(label#intelligenceLocalNote :when ~(pos? (count (or-else iProvider.presets [])))
@@ -608,7 +646,7 @@ first provider: then its own first is chosen, as the form shows it."
               :run intelligence.check
               :enabled ~(and (not= iData.current.provider "") (not state.intelligence.testing))
               :width 170})
-     (node#intelligenceRefresh :when ~(not= iProvider.kind "claude-code")
+     (node#intelligenceRefresh :when ~(and (not= iProvider.kind "claude-code") (not= iProvider.kind "copilot"))
        :use intelligenceButton
        :with {:text ~(t "intelligence.refresh") :run intelligence.refresh :width 170})))
 
