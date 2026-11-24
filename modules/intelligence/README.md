@@ -44,8 +44,11 @@ headless, from an argument vector (no shell), in an empty temporary folder of it
 after), with an environment cut to what it needs (no API keys or tokens, no `AFFRESCOUI_` variables), its input on
 stdin (so the screen never shows in the list of processes), its stdout bounded to 4 MiB, a time limit, and a check
 every 100 ms that stops it. With no tools (`"tools"` can only be `false`), it answers with the JSON protocol below
-("Undoing an earlier change", "Using the app's commands"): reading rounds, a revision or an undo, command runs, its
-answer read as loosely as a local model's.
+("Undoing an earlier change", "Using the app's commands"): reading rounds, a revision or an undo, command runs. Its
+JSON is found the same way as a local model's (in a fence, among text, after reasoning), but an answer with no readable
+object is shown as the reply, never asked again (a local model's is). A program found where its installer put it,
+outside the host's PATH, gets its folder first on the PATH (an npm install's `node` often sits beside it), and one that
+can't start (exit 127, nothing printed) says to check that Node.js is on the PATH.
 
 - **Claude Code** (`claude -p`): `--tools ""` (no tools at all), `--restricted`, `--safe-mode` (no hooks, plugins,
   skills, CLAUDE.md or MCP servers of the person's), `--strict-mcp-config`, `--no-session-persistence`, the system
@@ -53,13 +56,15 @@ answer read as loosely as a local model's.
 - **GitHub Copilot** (`copilot`, npm `@github/copilot`; on Windows the `copilot.exe` of WinGet): the prompt on stdin
   (piped, with no `-p`), `--output-format json` (one JSON event a line: the last `assistant.message` is the answer, a
   `session.error` the failure). It has no flag that turns its tools off, so `--available-tools` names only a tool
-  that doesn't exist (the model sees none: no shell, files, web, agents or MCP tools) and `--deny-tool` denies every
-  kind of tool besides; `--disable-builtin-mcps`, `--no-custom-instructions`, `--no-ask-user`, `--disallow-temp-dir`,
+  that doesn't exist (the model sees none: no shell, files, web, agents, nor any MCP server's tools) and `--deny-tool`
+  denies every kind of tool besides; `--disable-builtin-mcps` (no built-in MCP servers), `--no-custom-instructions`, `--no-ask-user`, `--disallow-temp-dir`,
   `--sync-session=off`, `--no-auto-update`, `--disable-client-telemetry`, `--log-level none`. Its environment keeps
   `COPILOT_HOME` (its sign-in and settings) and drops `GH_TOKEN`, `GITHUB_TOKEN` and `COPILOT_GITHUB_TOKEN` (the
   person's own sign-in is used), `COPILOT_ALLOW_ALL` and the provider, model, instructions and skills variables; it
   sets `COPILOT_AUTO_UPDATE=false`, `COPILOT_DISABLE_LOGIN_SHELL_ENV=1` and the `GITHUB_COPILOT_PROMPT_MODE_*`
-  variables to `false`. It expands an `@` followed by a path into that file's or folder's path and size, so every
+  variables to `false` (no workspace extensions, hooks or MCP servers). The person's own user-level MCP servers,
+  plugins and hooks in `~/.copilot` may still start, since no flag turns them off; the model is given none of their
+  tools. It expands an `@` followed by a path into that file's or folder's path and size, so every
   `@/`, `@~`, `@.`, `@\` and `@C:` of the input is broken by a word joiner (U+2060). The system prompt goes first in
   the input, since it has no option for one. It runs with the person's own `COPILOT_HOME`, so their `copilot login`
   signs it in (no token from the environment is used: the person runs `copilot login` once), and like the person's
@@ -74,7 +79,11 @@ the person's computer, through the Chat Completions API that Ollama (`http://127
 Studio (`http://127.0.0.1:1234/v1`) and llama.cpp's llama-server (`http://127.0.0.1:8080/v1`) all serve. Its `presets`
 fill the base URL in one click in the Settings, and any other base URL can be typed (https, or http only on the
 loopback, `checkBaseUrl`). A key stays optional (llama-server's `--api-key`, LM Studio's authentication), kept in the
-keychain with the origin it was given for, like any compatible server's.
+keychain with the origin it was given for, like any compatible server's. With a loopback address nothing leaves the
+computer; an https base URL sends the screen to that server.
+
+Its default ports are unprivileged: while no server is running there, another program of this computer could listen
+on that port and receive the screen and the request (its changes would still wait for the person's review).
 
 - **The models** come live from the server's `GET /v1/models` (`intelligence.models`, asked with the base URL the form
   shows, before it is saved; the key goes only to the origin it was saved for), without the embedding models LM Studio
@@ -86,7 +95,8 @@ keychain with the origin it was given for, like any compatible server's.
   answers claude-code gives (one JSON object a round: reads, then a revision, an undo or runs, and the reply), and the
   agent remembers that server and model for its later requests. A model that calls no tool in its first answer is
   asked again in the same JSON protocol (not remembered). A refusal for any other reason (a refused key, a rate limit,
-  a context too small) is the request's error. Any API provider whose server refuses tools falls back the same way.
+  a context too small) is the request's error. Only a provider whose tools are tried falls back: one given tools
+  (`"tools": true`, the API kinds' default) reports the refusal as its error.
 - **Its answers are read loosely**: inside a code fence, with text around it, or after `<think>` reasoning, the first
   object of the protocol in the answer is taken (the search bounded to 256 KiB and 16 places); an answer that holds a
   `{` but no object that can be read is asked again, within the two retries a rejected revision has, then the

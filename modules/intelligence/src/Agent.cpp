@@ -271,21 +271,21 @@ bool protocolAnswer(const json& said) {
 /// @return It, or a discarded value.
 json firstObject(const std::string& answer) {
 	const std::string cleaned = withoutThinking(answer);
-	json parsed = json::parse(cleaned, nullptr, false); // whole, as large as the answer is (its own bound)
+	json parsed = parseAnswerJson(cleaned); // whole, as large as the answer is (its own bound)
 	if(parsed.is_object()) return parsed;
 	const std::string_view text = std::string_view(cleaned).substr(0, maxAnswerScan);
 	if(const std::size_t fence = text.find("```"); fence != std::string_view::npos) {
 		const std::size_t start = text.find('\n', fence);
 		const std::size_t close = start == std::string_view::npos ? start : text.find("```", start);
 		if(close != std::string_view::npos) {
-			parsed = json::parse(text.substr(start, close - start), nullptr, false);
+			parsed = parseAnswerJson(text.substr(start, close - start));
 			if(parsed.is_object()) return parsed;
 		}
 	}
 	std::size_t open = text.find('{');
 	for(int tries = 0; open != std::string_view::npos && tries < maxObjectStarts; ++tries) {
 		if(const std::size_t close = objectEnd(text, open); close != std::string_view::npos) {
-			parsed = json::parse(text.substr(open, close - open + 1), nullptr, false);
+			parsed = parseAnswerJson(text.substr(open, close - open + 1));
 			if(parsed.is_object() && protocolAnswer(parsed)) return parsed; // not a part of a broken answer
 		}
 		open = text.find('{', open + 1);
@@ -835,8 +835,8 @@ private:
 	/// @param conversation The conversation so far.
 	/// @param tools The tools it may call.
 	/// @param ended Without a turn, set to what ends the request (its failure), or left nullopt to go on without
-	/// tools: the server refused them in its first answer (remembered), or a provider whose tools are only tried
-	/// answered first with no tool call.
+	/// tools: for a provider whose tools are only tried ("tools": "auto"), the server refused them in its first answer
+	/// (remembered) or the model answered first with no tool call. A provider given tools reports any failure.
 	/// @return The turn, or nullopt.
 	std::optional<Turn> turnWithTools(const Conversation& conversation, const std::vector<ToolSpec>& tools,
 	                                  std::optional<std::pair<std::string, bool>>& ended) {
@@ -844,7 +844,7 @@ private:
 		const Outcome outcome =
 		    http_->fetch(chatRequest(endpoint_, conversation, tools), [this] { return overTime(); });
 		if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome)) {
-			if(steps_ == 1 && refusesTools(*failure)) rememberNoTools();
+			if(steps_ == 1 && provider.tools == Tools::Tried && refusesTools(*failure)) rememberNoTools();
 			else ended = std::pair{describeFailure(*failure, provider.name, endpoint_.key) + proposalNote(), true};
 			return std::nullopt;
 		}

@@ -3,8 +3,10 @@
 /// @file
 /// @brief The copilot provider: the person's own GitHub Copilot command line (`copilot`, npm `@github/copilot`),
 /// with their own GitHub sign-in and subscription, run headless for one answer with no tools at all (no shell, no
-/// files, no web, no MCP servers, no custom instructions), in an empty temporary folder, from an argument vector
-/// (no shell), with a time limit. Its input goes to stdin, never on the command line.
+/// files, no web, none of any MCP server's tools; no built-in or workspace MCP servers, no custom instructions), in an
+/// empty temporary folder, from an argument vector (no shell), with a time limit. Its input goes to stdin, never on the
+/// command line. The person's own user-level MCP servers, plugins and hooks (in `~/.copilot`) may still start: no flag
+/// turns them off, though the model is given none of their tools.
 
 #include "affresco/intelligence/CommandLine.hpp"
 
@@ -32,7 +34,8 @@ namespace affresco::intelligence {
 /// the temporary folder, the locale, its own home and cache, the GitHub host, the session bus its keyring is read
 /// through; on Windows the profile folders and SystemRoot), never the rest (no GitHub tokens, so the person's own
 /// sign-in is used; no COPILOT_ALLOW_ALL, provider, model, instructions or skills variables; no AFFRESCOUI_
-/// variables); with its updater, its login shell and the repository's extensions, hooks and MCP servers off.
+/// variables); with its updater, its login shell and the repository's (workspace) extensions, hooks and MCP servers
+/// off. The person's own user-level ones in `$COPILOT_HOME` are theirs: no variable turns them off.
 /// @return "NAME=value" entries.
 [[nodiscard]] std::vector<std::string> copilotEnvironment();
 

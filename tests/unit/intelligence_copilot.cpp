@@ -243,6 +243,8 @@ TEST_CASE("copilot: a run gives a stand-in its arguments and its input on stdin,
 	const std::string environment = textOf(record / "environment");
 	CHECK(environment.find("gho_from-the-environment") == std::string::npos);
 	CHECK(environment.find("COPILOT_AUTO_UPDATE=false") != std::string::npos);
+	// Found outside the PATH, its own folder comes first on it (an npm install's node sits beside it)
+	CHECK(environment.find("PATH=" + data.path.string() + ":") != std::string::npos);
 	std::string folder = textOf(record / "folder");
 	while(!folder.empty() && folder.back() == '\n') folder.pop_back();
 	CHECK(folder.find("affrescoui-copilot-") != std::string::npos);
@@ -259,6 +261,16 @@ TEST_CASE("copilot: a run gives a stand-in its arguments and its input on stdin,
 	    intelligence::runCopilot(program, "auto", "rules", "input", std::chrono::seconds(20), {});
 	CHECK_FALSE(out.ok);
 	CHECK(out.text.find("signed in") != std::string::npos);
+
+	// It can't start: `env` found no node, exit 127, nothing printed
+	{
+		std::ofstream script(program);
+		script << "#!/bin/sh\ncat > /dev/null\necho 'env: node: No such file or directory' >&2\nexit 127\n";
+	}
+	const intelligence::CommandLineAnswer missing =
+	    intelligence::runCopilot(program, "auto", "rules", "input", std::chrono::seconds(20), {});
+	CHECK_FALSE(missing.ok);
+	CHECK(missing.text == "GitHub Copilot couldn't start (is Node.js on the PATH, for an npm install?).");
 
 	// Past its time, it is ended
 	{

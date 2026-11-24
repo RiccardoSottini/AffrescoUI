@@ -3,6 +3,8 @@
 
 #include "affresco/intelligence/ClaudeCode.hpp"
 
+#include "affresco/intelligence/Providers.hpp"
+
 #include <affresco/core/Json.hpp>
 
 #include <array>
@@ -51,7 +53,7 @@ std::vector<std::string> claudeArguments(const std::string& model, const std::st
 }
 
 ClaudeAnswer parseClaudeOutput(const std::string& output) {
-	const json parsed = json::parse(output, nullptr, false);
+	const json parsed = parseAnswerJson(output);
 	if(!parsed.is_object()) {
 		const bool loggedOut = output.find("login") != std::string::npos || output.find("Login") != std::string::npos;
 		return {false, loggedOut ? "Claude Code isn't signed in: run `claude` once in a terminal to sign in."
@@ -73,8 +75,8 @@ ClaudeAnswer parseClaudeOutput(const std::string& output) {
 ClaudeAnswer runClaude(const std::filesystem::path& program, const std::string& model, const std::string& system,
                        const std::string& input, std::chrono::milliseconds timeout,
                        const std::function<bool()>& stopped) {
-	const CommandLineRun run{"Claude Code", "claude", program, claudeArguments(model, system), claudeEnvironment(),
-	                         parseClaudeOutput};
+	const CommandLineRun run{"Claude Code",       "claude",         program, claudeArguments(model, system),
+	                         claudeEnvironment(), parseClaudeOutput};
 	return runCommandLine(run, input, timeout, stopped);
 }
 

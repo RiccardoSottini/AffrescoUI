@@ -19,7 +19,7 @@
                 :intelligence.baseUrl "Base URL"
                 :intelligence.baseUrlHelp "https://, or http:// on this computer (Ollama, LM Studio)"
                 :intelligence.claudeCode "Uses your own Claude Code and its sign-in, with no tools: it can't run commands or change files."
-                :intelligence.localNote "Runs a model on this computer: nothing leaves it. Load a model with a context of 16k tokens or more; one without tool calling answers in JSON."
+                :intelligence.localNote "Runs a model on your own server; at a loopback address nothing leaves this computer. Load it with a context of 16k tokens or more; one without tool calling answers in JSON."
                 :intelligence.server "Server"
                 :intelligence.noServer "No server answers at {url}. Start Ollama, LM Studio or llama.cpp's llama-server, then refresh."
                 :intelligence.noModelLoaded "The server answers but has no model: download or load one (ollama pull, lms load), then refresh."

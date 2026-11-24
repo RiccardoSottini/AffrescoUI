@@ -16,8 +16,8 @@
 #include <doctest/doctest.h>
 
 #include <memory>
-#include <stdexcept>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -347,4 +347,56 @@ TEST_CASE("intelligence local: claude-code's answer is read after reasoning or i
 	CHECK(harness.claudeRuns == 2);
 	CHECK(harness.claudeInputs[1].find("What you asked to see:\n#title:") != std::string::npos);
 	CHECK(harness.requests().empty()); // no network at all
+}
+
+TEST_CASE("intelligence local: a provider given tools reports a refusal of them, never falls back") {
+	Harness harness("openai-compatible", "llama3.2"); // hidden, "tools" left to its kind: given
+	harness.server->answer = [](const network::Request&) -> Answer {
+		return refusal(400, R"({"error": {"message": "llama3.2 does not support tools"}})");
+	};
+	const json reply = harness.ask("Rename the page");
+	CHECK(reply["error"].get<std::string>().find("400") != std::string::npos);
+	CHECK(reply["error"].get<std::string>().find("does not support tools") != std::string::npos);
+	CHECK(harness.requests().size() == 1); // not asked again without tools
+	harness.ask("Rename it again");
+	const std::vector<network::Request> requests = harness.requests();
+	REQUIRE(requests.size() == 2);
+	CHECK(offersTools(requests[1])); // and not remembered as refusing them
+}
+
+TEST_CASE("intelligence local: an answer nested too deep is refused cleanly, in JSON or in a tool's arguments") {
+	const std::string deep = std::string(10000, '[') + std::string(10000, ']');
+	const std::string answer =
+	    R"({"reply": "Done.", "revision": {"message": "m", "set": {"#title/text": )" + deep + "}}}";
+	SUBCASE("a JSON answer of a server that refused tools: asked again, then the request ends") {
+		Harness harness("local", "gemma3:1b");
+		harness.server->answer = [&answer](const network::Request& request) -> Answer {
+			if(offersTools(request)) return refusal(400, R"({"error": "this model does not support tools"})");
+			return said("```json\n" + answer + "\n```");
+		};
+		const json reply = harness.ask("Rename the page");
+		CHECK(reply["error"].get<std::string>().find("didn't answer with a JSON object") != std::string::npos);
+		CHECK(harness.revisions.empty());
+	}
+	SUBCASE("a command line's answer: shown as the reply, nothing submitted") {
+		Harness harness("claude-code", "haiku");
+		harness.claudeAnswers = {answer};
+		const json reply = harness.ask("Rename the page");
+		CHECK(reply["text"].get<std::string>().starts_with(R"({"reply": "Done.")"));
+		CHECK(harness.revisions.empty());
+	}
+	SUBCASE("a tool's arguments: read as none") {
+		const json call = {{"id", "call-1"},
+		                   {"type", "function"},
+		                   {"function", {{"name", "submit_revision"}, {"arguments", R"({"set": )" + deep + "}"}}}};
+		const std::string body =
+		    json{{"choices",
+			      {{{"message", {{"role", "assistant"}, {"tool_calls", {call}}}}, {"finish_reason", "tool_calls"}}}}}
+		        .dump();
+		const intelligence::Turn turn = intelligence::parseTurn(intelligence::Kind::OpenAICompatible, body);
+		REQUIRE(turn.calls.size() == 1);
+		CHECK(turn.calls[0].input == json::object());
+		CHECK_THROWS_AS((void)intelligence::parseTurn(intelligence::Kind::OpenAI, deep), std::runtime_error);
+		CHECK(intelligence::parseAnswerJson(deep).is_discarded());
+	}
 }

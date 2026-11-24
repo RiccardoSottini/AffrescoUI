@@ -32,9 +32,11 @@ providers, and saving says the settings are changed in the Launcher.
 
 `modules/intelligence/providers.json` lists them, as data. The settings offer Claude Code (the person's own `claude`
 command line and sign-in, run with no tools), GitHub Copilot (the person's own `copilot` command line, its GitHub
-sign-in from `copilot login` and subscription, run with no tools) and a Local LLM (a model on this computer: Ollama, LM
-Studio or llama.cpp's llama-server, each a button that fills the base URL, or any base URL typed; `http://` only on this
-computer; a key optional). The API providers (Anthropic, OpenAI, an OpenAI-compatible server such as OpenRouter) are in
+sign-in from `copilot login` and subscription, run with no tools: the model is given none, not even an MCP server's,
+though the person's own MCP servers, plugins and hooks in `~/.copilot` may still start) and a Local LLM (a model on
+a server of the person's: Ollama, LM Studio or llama.cpp's llama-server on this computer, each a button that fills the
+base URL, or any base URL typed, `http://` only on this computer; a key optional; with a loopback address nothing
+leaves the computer). The API providers (Anthropic, OpenAI, an OpenAI-compatible server such as OpenRouter) are in
 the catalogue but hidden (`"shown": false`). The models come live from the provider (`GET /v1/models`, with the base URL
 the form shows, even before it is saved) when it can be reached, else from the list there. A local server that doesn't
 answer says to start one, with why; one that answers with no model says to load or download one.

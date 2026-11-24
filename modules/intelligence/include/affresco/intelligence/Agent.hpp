@@ -63,9 +63,9 @@ struct AgentOptions {
 /// a time on a thread of its own, so the window never waits: it reads the screen and submits revisions through the
 /// live protocol (posted to the main thread), and calls the provider (an HTTP client allowing its origin only, or
 /// a command line with no tools). A model without tools (claude-code, copilot, a provider with "tools": false, or a
-/// server that refuses them) answers with one JSON object a round, in the same protocol. A request's `options.model` is
-/// used when the provider in use lists it, else the person's default. Errors come back as the reply's `error`, without
-/// secrets.
+/// server that refuses the tools a provider with "tools": "auto" tries) answers with one JSON object a round, in the
+/// same protocol. A request's `options.model` is used when the provider in use lists it, else the person's default.
+/// Errors come back as the reply's `error`, without secrets.
 class ProviderAgent final : public affresco::Channel {
 public:
 	/// @brief Starts the thread.

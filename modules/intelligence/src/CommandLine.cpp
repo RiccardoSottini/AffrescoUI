@@ -8,6 +8,7 @@
 #include <affresco/services/Grants.hpp>
 #include <affresco/services/Program.hpp>
 
+#include <algorithm>
 #include <random>
 #include <system_error>
 
@@ -46,6 +47,31 @@ struct EmptyFolder {
 	}
 };
 
+/// @brief An environment with a program's folder first on its PATH, unless PATH has it already: a program found where
+/// its installer put it, outside the host's PATH (often short for an app opened from the desktop), finds what sits
+/// beside it, such as the `node` an npm install's `#!/usr/bin/env node` asks for.
+/// @param environment "NAME=value" entries.
+/// @param program The program.
+/// @return The entries.
+std::vector<std::string> withProgramFolder(std::vector<std::string> environment, const std::filesystem::path& program) {
+#ifdef _WIN32
+	constexpr char separator = ';';
+#else
+	constexpr char separator = ':';
+#endif
+	const std::string folder = program.parent_path().string();
+	if(folder.empty()) return environment;
+	const auto path =
+	    std::ranges::find_if(environment, [](const std::string& entry) { return entry.starts_with("PATH="); });
+	if(path == environment.end()) {
+		environment.push_back("PATH=" + folder);
+		return environment;
+	}
+	const std::string folders = std::string(1, separator) + path->substr(5) + separator;
+	if(!folders.contains(separator + folder + separator)) *path = "PATH=" + folder + separator + path->substr(5);
+	return environment;
+}
+
 } // namespace
 
 std::optional<std::filesystem::path> findCommandLine(std::string_view name, std::span<const char* const> homePlaces) {
@@ -83,7 +109,7 @@ CommandLineAnswer runCommandLine(const CommandLineRun& run, const std::string& i
 	launch.program = run.program;
 	launch.arguments = run.arguments;
 	launch.directory = folder.path;
-	launch.environment = run.environment; // what it needs, never the host's keys or AffrescoUI's settings
+	launch.environment = withProgramFolder(run.environment, run.program); // never the host's keys or settings
 	const affresco::services::ProgramRun ran =
 	    affresco::services::runProgram(launch, input, timeout, stopped, maxCommandLineOutput);
 	using End = affresco::services::ProgramRun::End;
@@ -99,6 +125,9 @@ CommandLineAnswer runCommandLine(const CommandLineRun& run, const std::string& i
 	case End::Exited:
 		break;
 	}
+	// 127: the shell's "not found", as `env` says when an npm install's `node` isn't on the PATH
+	if(ran.status == 127 && ran.output.empty())
+		return {false, run.name + " couldn't start (is Node.js on the PATH, for an npm install?)."};
 	CommandLineAnswer answer = run.parse(ran.output);
 	if(answer.ok && ran.status != 0)
 		return {false, run.name + " stopped with status " + std::to_string(ran.status) + "."};

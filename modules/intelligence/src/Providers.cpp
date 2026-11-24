@@ -139,7 +139,7 @@ Turn openaiTurn(const json& answer) {
 		kept["tool_calls"] = message["tool_calls"];
 		for(const json& call : message["tool_calls"]) {
 			const json function = call.value("function", json::object());
-			json input = json::parse(function.value("arguments", std::string("{}")), nullptr, false);
+			json input = parseAnswerJson(function.value("arguments", std::string("{}")));
 			if(!input.is_object()) input = json::object();
 			turn.calls.push_back({call.value("id", ""), function.value("name", ""), input});
 		}
@@ -159,7 +159,7 @@ Turn openaiTurn(const json& answer) {
 /// @param body The body.
 /// @return E.g. "model not found", or "".
 std::string errorMessageOf(const std::string& body) {
-	const json parsed = json::parse(body, nullptr, false);
+	const json parsed = parseAnswerJson(body);
 	if(!parsed.is_object()) return "";
 	const json error = parsed.value("error", json());
 	if(error.is_object() && error.contains("message") && error["message"].is_string())
@@ -175,6 +175,14 @@ bool keyCharacter(char c) { return std::isalnum(static_cast<unsigned char>(c)) !
 
 } // namespace
 
+json parseAnswerJson(std::string_view text) {
+	try {
+		return affresco::parseUntrusted(text);
+	} catch(...) { // not JSON, too deep, or a number no double holds
+		return json(json::value_t::discarded);
+	}
+}
+
 network::Request modelsRequest(const Endpoint& endpoint) {
 	network::Request request;
 	request.method = "GET";
@@ -187,7 +195,7 @@ network::Request modelsRequest(const Endpoint& endpoint) {
 }
 
 std::vector<Model> parseModels(Kind kind, const std::string& body) {
-	const json parsed = json::parse(body, nullptr, false);
+	const json parsed = parseAnswerJson(body);
 	std::vector<Model> models;
 	if(!parsed.is_object() || !parsed.contains("data") || !parsed["data"].is_array()) return models;
 	for(const json& entry : parsed["data"]) {
@@ -257,7 +265,7 @@ network::Request chatRequest(const Endpoint& endpoint, const Conversation& conve
 }
 
 Turn parseTurn(Kind kind, const std::string& body) {
-	const json parsed = json::parse(body, nullptr, false);
+	const json parsed = parseAnswerJson(body);
 	if(parsed.is_discarded()) throw std::runtime_error("the answer isn't JSON");
 	return kind == Kind::Anthropic ? anthropicTurn(parsed) : openaiTurn(parsed);
 }
