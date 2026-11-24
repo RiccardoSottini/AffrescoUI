@@ -30,14 +30,18 @@ bool isFinite(const affresco::Rect& rect) {
 	       std::isfinite(rect.bottom);
 }
 
-/// @brief Checks what layout promises about a panel and its subtree: a shown panel lies within what clips it.
+/// @brief Checks what layout promises about a panel and its subtree: a shown panel lies within what clips it. A
+/// transformed panel's bounds are in its own space, clipped to its parent's brought into it (Panel::localTransform()),
+/// so they are compared with its children's, not its parent's: a panel scaled down may reach past its parent in its
+/// own space and still be drawn inside it.
 /// @param panel The subtree's root.
 void checkTree(const affresco::Panel& panel) {
 	if(panel.isShown() && isFinite(panel.bounds())) {
 		const affresco::Rect& bounds = panel.bounds();
 		if(!(bounds.right >= bounds.left) || !(bounds.bottom >= bounds.top))
 			affresco::fuzz::broken("a shown panel's bounds aren't inverted");
-		if(const affresco::Panel* parent = panel.parent(); parent && !panel.isOverlay() && isFinite(parent->bounds())) {
+		if(const affresco::Panel* parent = panel.parent();
+		   parent && !panel.isOverlay() && !panel.isTransformed() && isFinite(parent->bounds())) {
 			const affresco::Rect& clip = parent->bounds();
 			if(bounds.left < clip.left || bounds.right > clip.right || bounds.top < clip.top ||
 			   bounds.bottom > clip.bottom)

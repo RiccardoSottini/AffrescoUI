@@ -362,14 +362,19 @@ private:
 	bool running_ = false;          ///< Whether the thread runs.
 };
 
-/// @brief Sets the child's working directory. posix_spawn_file_actions_addchdir is POSIX 2024's name; macOS has it
-/// (and deprecates the _np one), glibc has the _np one since 2.29.
+/// @brief Sets the child's working directory. posix_spawn_file_actions_addchdir is POSIX 2024's name: macOS has it from
+/// 26 on (and deprecates the _np one), but the release still runs on macOS 13.3, which has only the _np one; glibc has
+/// the _np one since 2.29.
 /// @param actions The file actions.
 /// @param directory The directory.
 /// @return 0 or an error number.
 int changeDirectory(posix_spawn_file_actions_t& actions, const char* directory) noexcept {
 #ifdef __APPLE__
-	return posix_spawn_file_actions_addchdir(&actions, directory);
+	if(__builtin_available(macOS 26.0, *)) return posix_spawn_file_actions_addchdir(&actions, directory);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations" // the only name macOS before 26 has
+	return posix_spawn_file_actions_addchdir_np(&actions, directory);
+#pragma clang diagnostic pop
 #else
 	return posix_spawn_file_actions_addchdir_np(&actions, directory);
 #endif

@@ -45,7 +45,7 @@ struct PackageReceiver {
 /// revision of a person's app doesn't (`permissions`, `channels`, `persist`, `services`, `connections`) or adds or
 /// takes away its program as a whole, or that is made for an app that isn't here; a document of a newer format than
 /// this engine reads; a definition it adds or changes holding a form that isn't a definition (which would run as the
-/// program is built).
+/// program is built); a version whose program can't be built. They are the problems packageSummary() lists.
 /// @param package The package, read with parsePackage().
 /// @param receiver The person's copy (an app that isn't here counts only when PackageReceiver::known).
 /// @return The problems; empty if it can be installed.

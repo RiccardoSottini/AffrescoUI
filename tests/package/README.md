@@ -16,12 +16,12 @@ It checks:
 - **The two consumers:**
   - `screen_consumer` links `affrescoui::affrescoui` (GLFW too), loads a screen and applies a revision;
   - `vcs_consumer` links `affrescoui::vcs` alone and commits and reverts a document of its own format.
-- **The version rule:** `find_package(AffrescoUI 2.0)` refuses the 1.x package (SameMajorVersion).
+- **The version rule:** find_package asking for the next major version (`3.0` for 2.x) refuses the package (SameMajorVersion).
 
 ## Using the installed package
 
 ```cmake
-find_package(AffrescoUI 1.0 CONFIG REQUIRED)                 # CMAKE_PREFIX_PATH names the install prefix
+find_package(AffrescoUI 2.0 CONFIG REQUIRED)                 # CMAKE_PREFIX_PATH names the install prefix
 target_link_libraries(app PRIVATE affrescoui::affrescoui)     # or a module: affrescoui::core, ::render, ::format,
                                                               # ::vcs, ::channel
 ```

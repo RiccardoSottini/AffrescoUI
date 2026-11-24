@@ -133,6 +133,31 @@ class TidyTest(unittest.TestCase):
         findings = [{"module": "vcs"}, {"module": "format"}, {"module": "format"}]
         self.assertEqual(list(tidy.counts(findings, "module").items()), [("format", 2), ("vcs", 1)])
 
+    def test_a_part_is_k_of_n(self):
+        self.assertEqual(tidy.part_number("2/4"), (2, 4))
+        for text in ("0/4", "5/4", "4", "a/b", "-1/2"):
+            with self.assertRaises(ValueError):
+                tidy.part_number(text)
+
+    def test_parts_put_together_are_the_whole_repository(self):
+        header = {"file": "modules/a/H.hpp", "line": 3, "column": 1, "check": "misc-x", "message": "m", "module": "a"}
+        own = {"file": "modules/a/B.cpp", "line": 9, "column": 2, "check": "misc-y", "message": "m", "module": "a"}
+        parts = [{"commit": "abc", "units": ["modules/a/A.cpp"], "findings": [header], "failures": []},
+                 {"commit": "abc", "units": ["modules/a/B.cpp"], "findings": [own, header],
+                  "failures": [["modules/a/B.cpp", "error"]]}]
+        findings, failures = tidy.merge(parts, ["modules/a/A.cpp", "modules/a/B.cpp"], "abc")
+        self.assertEqual(findings, [own, header])  # the header's finding once, though both parts reached it
+        self.assertEqual(failures, [("modules/a/B.cpp", "error")])
+
+    def test_parts_that_do_not_cover_the_build_once_are_refused(self):
+        part = {"commit": "abc", "units": ["a.cpp"], "findings": [], "failures": []}
+        with self.assertRaisesRegex(ValueError, "1 files not checked by any part"):
+            tidy.merge([part], ["a.cpp", "b.cpp"], "abc")
+        with self.assertRaisesRegex(ValueError, "checked by more than one part"):
+            tidy.merge([part, part], ["a.cpp"], "abc")
+        with self.assertRaisesRegex(ValueError, "another commit"):
+            tidy.merge([part], ["a.cpp"], "def")
+
 
 class ScratchRepository(unittest.TestCase):
     """A git repository in a temporary folder, with one commit: modules/a.cpp and modules/b.cpp."""

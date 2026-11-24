@@ -6,11 +6,13 @@
 #include "Characters.hpp"
 #include "Machine.hpp"
 
+#include <affresco/core/Numbers.hpp>
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cerrno>
 #include <charconv>
 #include <cstdint>
 #include <limits>
@@ -463,14 +465,17 @@ Value parseDouble(Machine& /*machine*/, Arguments arguments) {
 	if(negative || text.starts_with('+')) text.remove_prefix(1);
 	if(!text.empty() && std::string_view("dDfF").contains(text.back())) text.remove_suffix(1);
 	if(!decimalNumber(text)) return {};
-	double value = 0.0;
-	const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
-	if(error == std::errc::result_out_of_range) { // too small is zero, as in Clojure; too large has no JSON value
+	// strtod (readNumber), not std::from_chars: the release's oldest macOS (13.3) has no floating-point from_chars. The
+	// text is a plain decimal by now, and the library never sets a locale, so strtod reads what from_chars would.
+	const std::string digits(text);
+	char* end = nullptr;
+	errno = 0;
+	double value = readNumber(digits.c_str(), &end);
+	if(end != digits.c_str() + digits.size()) return {};
+	if(errno == ERANGE) { // too small is zero, as in Clojure; too large has no JSON value
 		const std::size_t exponent = text.find_first_of("eE");
 		if(exponent == std::string_view::npos || text[exponent + 1] != '-') return {};
 		value = 0.0;
-	} else if(error != std::errc() || end != text.data() + text.size()) {
-		return {};
 	}
 	return Value::real(negative ? -value : value);
 }

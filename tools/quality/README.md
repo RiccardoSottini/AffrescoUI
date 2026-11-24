@@ -15,9 +15,11 @@ clean-ups can pick their files.
 
 The gates run in the `Linux` job of [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), on every pull request
 and every push to `master`, after the tests (they configure a clang build of their own; they don't build it). The
-reports and the coverage floor run in its `Quality report` job, on pushes to `master` only: they take about 15 minutes,
-which a pull request doesn't need. A drop below the floor then shows on `master`; run `run.sh coverage` locally to
-see it before.
+reports and the coverage floor run every night, in the `Quality report` job of
+[`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), which a pull request doesn't need: clang-tidy
+over the whole repository is split over four runners (`run.sh report --part K/4`), and the report puts
+their parts together (`run.sh report --parts DIR`). A drop below the floor then shows there; run `run.sh coverage`
+locally to see it before.
 
 ## The gates
 

@@ -269,6 +269,41 @@ TEST_CASE("packages install: refused for an app that isn't here, a delta that do
 	CHECK(screen.versions().proposals().empty());
 }
 
+TEST_CASE("packages install: a version whose program can't be built is refused, as its summary says") {
+	// Found by fuzzing (tests/fuzz, package): the summary listed the problem, yet installing it on a copy without the
+	// program made a proposal. The package is the fuzz target's (corpus.py, package_seeds()), with an entry that
+	// defines another name
+	const std::filesystem::path folder = freshFolder("affrescoui-install-unbuilt-test") / "notes";
+	write(folder / "app.json", R"({"format": "affrescoui-app", "version": 1, "id": "notes", "name": "Notes",
+		"release": "1.0.0", "entry": "index.screen.json"})");
+	write(folder / "index.screen.json", R"json({"format": "affrescoui-screen", "version": 2,
+		"state": {"title": "Notes"}, "root": {"type": "label", "id": "title", "text": "{{state.title}}"}})json");
+	affresco::Screen screen = affresco::Screen::fromApp(folder, {}, affresco::Screen::History::InMemory);
+	const std::string text = R"json({"format": "affrescoui-package", "version": 1, "kind": "changes",
+		"name": "Notes with Blocked", "release": "1.1.0", "engine": "1.0.0", "author": "Ada",
+		"base": {"app": "notes", "name": "Notes", "release": "1.0.0", "notation": "lisp",
+			"tree": "sha256:9930931f708a2e40da53e382f96492722e08cf47c6513d732634cda008827a8e",
+			"delta": [{"op": "remove", "path": "/state/columns/1"},
+				{"op": "replace", "path": "/program/app.lisp/count", "value": "(defn count [] 1)"},
+				{"op": "remove", "path": "/assets"}]},
+		"document": {"format": "affrescoui-screen", "version": 2,
+			"state": {"title": "Notes", "columns": ["To do", "Blocked", "Done"]},
+			"program": {"app.lisp": {"count": "(defn total)"}},
+			"assets": {"dot.svg": {"type": "image/svg+xml", "size": 62,
+				"sha256": "5b10d22019dbf0238b178c09957cac2af302655093bbe81a741d207a4e58e53a"}},
+			"root": {"type": "label", "id": "title", "text": "{{state.title}}"}},
+		"state": {"blockedReason": ""},
+		"assets": {"dot.svg": {"type": "image/svg+xml",
+			"text": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"4\"/>"}}})json";
+	const json summary = screen.inspectPackage(text, json::object());
+	REQUIRE(summary["problems"].size() == 1);
+	CHECK(summary["problems"][0].get<std::string>().contains("document.program: can't be built"));
+	std::string error;
+	CHECK(screen.proposePackage(text, &error).status == RevisionStatus::Rejected);
+	CHECK_MESSAGE(error.contains("document.program: can't be built"), error);
+	CHECK(screen.versions().proposals().empty());
+}
+
 TEST_CASE("packages install: a trusted key names its publisher, an unknown one its start") {
 	const std::filesystem::path root = freshFolder("affrescoui-install-trust-test");
 	const format::SigningKey key = format::SigningKey::generate();

@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import subprocess
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 # "path:line:column: warning: message [check-name,alias-name]"
@@ -108,6 +109,38 @@ def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None, confi
                 output = (result.stdout + result.stderr).strip()
                 failures.append((path, output or f"clang-tidy exited with status {result.returncode}"))
     return sorted(findings.values(), key=lambda f: (f["file"], f["line"], f["column"])), failures
+
+
+def part_number(text):
+    """(K, N) from "K/N", the part of the files one runner checks; ValueError unless 1 <= K <= N."""
+    index, _, count = text.partition("/")
+    if not (index.isdigit() and count.isdigit() and 1 <= int(index) <= int(count)):
+        raise ValueError(f"a part is K/N, with 1 <= K <= N: {text!r}")
+    return int(index), int(count)
+
+
+def merge(parts, units, commit):
+    """(findings, failures) of the whole repository from the parts' results (tidy-part-K.json, as dicts), as run()
+    returns them. The parts must be of `commit` and cover each of `units` exactly once: a missing part would otherwise
+    make a report that looks whole. Raises ValueError naming what doesn't match."""
+    stale = sorted({part.get("commit", "") for part in parts} - {commit})
+    if stale:
+        raise ValueError(f"parts of another commit than {commit[:7]}: {', '.join(c[:7] or '?' for c in stale)}")
+    covered = Counter(unit for part in parts for unit in part["units"])
+    problems = []
+    for title, paths in (("not checked by any part", set(units) - set(covered)),
+                         ("not in this build", set(covered) - set(units)),
+                         ("checked by more than one part", {unit for unit, times in covered.items() if times > 1})):
+        if paths:
+            problems.append(f"{len(paths)} files {title} (first: {sorted(paths)[0]})")
+    if problems:
+        raise ValueError(f"{len(parts)} parts don't cover the {len(units)} files: " + "; ".join(problems))
+    findings, failures = {}, []
+    for part in parts:
+        for finding in part["findings"]:
+            findings[(finding["file"], finding["line"], finding["column"], finding["check"])] = finding
+        failures += [tuple(failure) for failure in part["failures"]]
+    return sorted(findings.values(), key=lambda f: (f["file"], f["line"], f["column"])), sorted(failures)
 
 
 def parse(line, root, sources):
