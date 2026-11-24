@@ -82,7 +82,7 @@ jobs:
       - name: Build # Release, without the tests: the CI workflow tests every commit
         shell: bash
         run: |
-          cmake -S . -B build ${{ matrix.configure }} -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_TESTS=OFF
+          bash .github/workflows/configure.sh -S . -B build ${{ matrix.configure }} -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_TESTS=OFF
           cmake --build build --config Release --target affrescoui_launcher affrescoui_cli
       - name: Pack
         shell: bash
@@ -285,7 +285,7 @@ jobs:
           cache: site
       - name: Build the affrescoui tool
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          .github/workflows/configure.sh -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build --target affrescoui -j 4
       - name: Build the site (strict)
         run: website/build.sh
