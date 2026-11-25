@@ -3,7 +3,7 @@
 All notable changes are listed here. AffrescoUI follows [Semantic Versioning](https://semver.org): from 1.0.0 on,
 only a major version may change the C++ API or the screen format in a way that breaks what works.
 
-## 2.0.0 (unreleased)
+## 2.0.0 (2026-11-25)
 
 Apps are now written in **AffrescoUI Lisp**, a sandboxed Clojure dialect. A program builds its document and runs its
 functions while the app is open, and keeps everything a document has: history, diffs, permissions and review. JSON
@@ -25,6 +25,9 @@ since the package accepts its own major version only.
   element on screen, and the request names it for the assistant or an MCP agent.
 - **The assistant changes programs:** the built-in assistant edits a program's definitions. It says "Done." only when
   something changed.
+- **Choose the assistant's AI:** the Launcher's Settings offer Claude Code, GitHub Copilot (the person's own `copilot`
+  command line and sign-in) or a local model (Ollama, LM Studio or llama.cpp's `llama-server`). A local model that
+  can't call tools still works: it answers in JSON instead.
 - **Version control:**
   - Undo an earlier change and keep what was built on it. Where a later change depends on it, the person chooses.
   - A public three-way merge (`vcs/Merge.hpp`) keeps key order and lists each conflict.
