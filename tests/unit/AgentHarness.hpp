@@ -179,6 +179,7 @@ struct Harness {
 	json document = {
 	    {"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}}};
 	int claudeRuns = 0;                     ///< Times claude-code ran.
+	int copilotRuns = 0;                    ///< Times copilot ran (it answers from claudeAnswers too).
 	std::vector<std::string> claudeModels;  ///< The model of each run.
 	std::vector<std::string> claudeAnswers; ///< What it answers, in turn.
 	std::vector<std::string> claudeInputs;  ///< Its system prompt and input, each time it ran.
@@ -214,6 +215,12 @@ struct Harness {
 			claudeInputs.push_back(system + "\n---\n" + input);
 			const std::string answer = claudeAnswers.at(static_cast<std::size_t>(claudeRuns++));
 			return {true, answer};
+		};
+		options.copilot = [this, claude = options.claude](const std::string& asked, const std::string& system,
+		                                                  const std::string& input,
+		                                                  const std::function<bool()>& stopped) {
+			++copilotRuns;
+			return claude(asked, system, input, stopped);
 		};
 		agent = std::make_unique<intelligence::ProviderAgent>(executor, std::move(options));
 		agent->onMessage.connect([this](const std::string& line) { answer(json::parse(line)); });

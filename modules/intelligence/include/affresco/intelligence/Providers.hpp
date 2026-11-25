@@ -10,6 +10,7 @@
 #include <affresco/core/Network.hpp>
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco::intelligence {
@@ -53,11 +54,18 @@ struct Conversation {
 /// @brief The most a model writes in one answer.
 inline constexpr int maxOutputTokens = 8192;
 
+/// @brief Parses JSON that a model, a server or a command line wrote (affresco::parseUntrusted): its nesting is bounded
+/// (maxNesting), so a deep answer is refused here, never copied or printed later with a recursion that overflows the
+/// agent's stack.
+/// @param text The text.
+/// @return Its value, or a discarded value if it isn't JSON or breaks a bound.
+[[nodiscard]] affresco::json parseAnswerJson(std::string_view text);
+
 /// @brief The request that lists a provider's models.
 /// @param endpoint The provider (an API one), with its key.
 /// @return The request.
 [[nodiscard]] affresco::network::Request modelsRequest(const Endpoint& endpoint);
-/// @brief Reads a models list: the chat models only, for openai.
+/// @brief Reads a models list: the chat models only, for openai; no embedding model, for openai-compatible.
 /// @param kind The provider's kind.
 /// @param body The response's body.
 /// @return The models, sorted by id; empty if the body isn't a list.
@@ -82,7 +90,7 @@ void addResults(Kind kind, Conversation& conversation, const std::vector<ToolRes
 /// @param endpoint The provider (an API one), with its key and model.
 /// @param conversation The conversation so far.
 /// @param tools The tools it may call (may be empty).
-/// @return The request: a POST with a JSON body and a timeout of two minutes.
+/// @return The request: a POST with a JSON body and the provider's timeout (Provider::timeout, two minutes by default).
 [[nodiscard]] affresco::network::Request chatRequest(const Endpoint& endpoint, const Conversation& conversation,
                                                      const std::vector<ToolSpec>& tools);
 /// @brief Reads the model's answer.

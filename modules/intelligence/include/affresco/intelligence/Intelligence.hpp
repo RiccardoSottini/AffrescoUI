@@ -25,6 +25,8 @@ struct CallsOptions {
 	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a models list or a test.
 	std::function<bool()> claudeInstalled;       ///< Whether claude-code can run; empty: findClaude().
 	ClaudeRunner claude;                         ///< Runs claude-code for a test; empty: the installed one.
+	std::function<bool()> copilotInstalled;      ///< Whether copilot can run; empty: findCopilot().
+	CommandLineRunner copilot;                   ///< Runs copilot for a test; empty: the installed one.
 	std::function<void()> changed;               ///< Called on the main thread after the settings changed.
 	bool hidden = false; ///< Offer the providers providers.json hides too (for tests of the other providers).
 };
@@ -34,12 +36,15 @@ struct CallsOptions {
 ///
 /// - `intelligence.providers` → `{ "current": { provider, model }, "keyStore", "persistent", "providers": [{ id,
 ///   name, kind, needsKey, takesKey, hasKey, available, baseUrl, editableUrl, model, defaultModel, fixedModels,
-///   keyHelp, models }] }`; `hasKey` is a boolean, the key never leaves the keychain; `persistent` is false when the
-///   store keeps keys in memory only (no keychain); `models` is the fallback list (`[{ id, name, description? }]`),
-///   `defaultModel` the catalogue's default and `fixedModels` whether the list is the whole choice (save refuses
-///   another model).
-/// - `intelligence.models` `{ provider }` (slow, on a worker thread) → `[{ id, name }]`: the provider's live list with
-///   its saved base URL and key, else the catalogue's fallback.
+///   keyHelp, presets, models }] }`; `hasKey` is a boolean, the key never leaves the keychain; `persistent` is false
+///   when the store keeps keys in memory only (no keychain); `models` is the fallback list
+///   (`[{ id, name, description? }]`), `defaultModel` the catalogue's default and `fixedModels` whether the list is
+///   the whole choice (save refuses another model); `presets` the servers an editable base URL can be set to in one
+///   click (`[{ id, name, baseUrl }]`, e.g. Ollama's, LM Studio's and llama-server's for a local model).
+/// - `intelligence.models` `{ provider, baseUrl? }` (slow, on a worker thread) → `[{ id, name }]`: the provider's live
+///   list with its saved base URL (or the one given, for an editable one: the key goes only to the origin it was
+///   saved for) and key, else the catalogue's fallback; a provider with no fallback fails with why (no server
+///   answers), and a server that lists no model gives `[]`.
 /// - `intelligence.stageKey` `{ provider, key }` → `true`: keeps a key typed in the form in this process's memory
 ///   only (the field isn't bound to the state), for the next save of that provider; "" forgets it.
 /// - `intelligence.save` `{ provider, model?, baseUrl?, key? }` → as `intelligence.providers`: makes it the provider

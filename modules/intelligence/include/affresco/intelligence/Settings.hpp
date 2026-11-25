@@ -8,6 +8,7 @@
 #include <affresco/core/Json.hpp>
 #include <affresco/core/SecretStore.hpp>
 
+#include <chrono>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -23,7 +24,29 @@ enum class Kind {
 	OpenAI,           ///< Chat Completions, with a Bearer key.
 	OpenAICompatible, ///< Chat Completions at a base URL the person gives, a key optional.
 	ClaudeCode,       ///< The person's own Claude Code command line, run with no tools.
+	Copilot,          ///< The person's own GitHub Copilot command line, run with no tools.
 };
+
+/// @brief Whether a provider's model is given tools ("tools" in providers.json).
+enum class Tools {
+	Given, ///< The API takes tools: the agent's bounded tool loop (true, the default of the API kinds).
+	None,  ///< None: the model answers with one JSON object a round (false, the default of a command line).
+	/// Tried ("auto"): given, and if the server refuses them or the model calls none in its first answer, the
+	/// request goes on with the JSON answers, as with None (a local model may lack tool calling).
+	Tried,
+};
+
+/// @brief A server a provider's base URL can be set to in one click (a local model's server).
+struct Preset {
+	std::string id;      ///< E.g. "ollama".
+	std::string name;    ///< For people, e.g. "Ollama".
+	std::string baseUrl; ///< E.g. "http://127.0.0.1:11434/v1".
+};
+/// @brief Whether a provider is the person's own command line (claude-code, copilot): run with no tools, it answers
+/// with the agent's JSON protocol, and takes no key and no base URL.
+/// @param kind How it is spoken to.
+/// @return Whether it is.
+[[nodiscard]] bool runsCommandLine(Kind kind);
 
 /// @brief A model a provider offers.
 struct Model {
@@ -35,16 +58,22 @@ struct Model {
 
 /// @brief One provider of the catalogue (providers.json).
 struct Provider {
-	std::string id;            ///< E.g. "anthropic".
-	std::string name;          ///< For people, e.g. "Anthropic (Claude)".
-	Kind kind = Kind::OpenAI;  ///< How it is spoken to.
-	std::string baseUrl;       ///< Its default base URL ("" for claude-code).
-	bool needsKey = false;     ///< Whether it can't work without a key.
-	std::string keyHelp;       ///< Where to get a key (or the program), for people.
-	std::string model;         ///< The model chosen when the person hasn't chosen one.
-	std::vector<Model> models; ///< The fallback list, when the live one can't be read.
-	bool shown = true;         ///< Whether the settings offer it ("shown" in providers.json); a hidden one isn't used.
-	bool fixedModels = false;  ///< Whether models is the whole choice ("fixedModels"): no live list, no other model.
+	std::string id;             ///< E.g. "anthropic".
+	std::string name;           ///< For people, e.g. "Anthropic (Claude)".
+	Kind kind = Kind::OpenAI;   ///< How it is spoken to.
+	std::string baseUrl;        ///< Its default base URL ("" for a command line).
+	bool needsKey = false;      ///< Whether it can't work without a key.
+	std::string keyHelp;        ///< Where to get a key (or the program), for people.
+	std::string model;          ///< The model chosen when the person hasn't chosen one.
+	std::vector<Model> models;  ///< The fallback list, when the live one can't be read.
+	bool shown = true;          ///< Whether the settings offer it ("shown" in providers.json); a hidden one isn't used.
+	bool fixedModels = false;   ///< Whether models is the whole choice ("fixedModels"): no live list, no other model.
+	Tools tools = Tools::Given; ///< Whether its model is given tools ("tools": true, false or "auto").
+	std::vector<Preset> presets; ///< Servers its base URL can be set to ("presets"; an openai-compatible one only).
+	/// The longest one answer of the model may take ("timeout", in seconds, 10 to 600; 120 by default): a local
+	/// model loaded on its first request takes longer. A request may take twice this, if that is longer than the
+	/// agent's budget (AgentOptions::budget).
+	std::chrono::seconds timeout{120};
 
 	/// @brief Whether the catalogue lists a model of this provider.
 	/// @param wanted The model.

@@ -4,6 +4,7 @@
 #include "affresco/intelligence/Intelligence.hpp"
 
 #include "affresco/intelligence/ClaudeCode.hpp"
+#include "affresco/intelligence/Copilot.hpp"
 #include "affresco/intelligence/Providers.hpp"
 #include "affresco/intelligence/ScreenQueries.hpp"
 
@@ -81,13 +82,39 @@ std::string withoutSlash(std::string url) {
 	return url;
 }
 
-/// @brief Whether a provider can run here: claude-code only if its command line is installed.
+/// @brief Whether a provider can run here: a command line only if it is installed.
 /// @param shared The natives' parts.
 /// @param provider The provider.
 /// @return Whether it can.
 bool available(const Shared& shared, const Provider& provider) {
+	if(provider.kind == Kind::Copilot)
+		return shared.options.copilotInstalled ? shared.options.copilotInstalled() : findCopilot().has_value();
 	if(provider.kind != Kind::ClaudeCode) return true;
 	return shared.options.claudeInstalled ? shared.options.claudeInstalled() : findClaude().has_value();
+}
+
+/// @brief intelligence.test for a command line: it is asked to say OK.
+/// @param shared The natives' parts.
+/// @param endpoint The provider in use (claude-code or copilot) and its model.
+/// @param stopped Whether the test was cancelled.
+/// @return `{ ok, message }`.
+json commandLineTest(const Shared& shared, const Endpoint& endpoint, const std::function<bool()>& stopped) {
+	const bool copilot = endpoint.provider->kind == Kind::Copilot;
+	const CommandLineRunner& stand = copilot ? shared.options.copilot : shared.options.claude;
+	const std::optional<std::filesystem::path> program = stand ? std::nullopt : copilot ? findCopilot() : findClaude();
+	const std::string system = "Answer with the word OK.";
+	const auto timeout = std::chrono::seconds(90);
+	CommandLineAnswer answer;
+	if(stand) answer = stand(endpoint.model, system, "Say OK.", stopped);
+	else if(!program)
+		return {{"ok", false},
+		        {"message", endpoint.provider->name + " isn't installed (the " + (copilot ? "copilot" : "claude") +
+		                        " command isn't on the PATH)."}};
+	else if(copilot) answer = runCopilot(*program, endpoint.model, system, "Say OK.", timeout, stopped);
+	else answer = runClaude(*program, endpoint.model, system, "Say OK.", timeout, stopped);
+	return {{"ok", answer.ok},
+	        {"message", answer.ok ? "Connected: " + endpoint.provider->name + " answered with " + endpoint.model + "."
+	                              : answer.text}};
 }
 
 /// @brief A provider's fallback models.
@@ -100,6 +127,16 @@ json fallbackOf(const Provider& provider) {
 		if(model.description.is_object()) entry["description"] = model.description;
 		list.push_back(std::move(entry));
 	}
+	return list;
+}
+
+/// @brief A provider's presets: the servers its base URL can be set to.
+/// @param provider The provider.
+/// @return `[{ id, name, baseUrl }]`.
+json presetsOf(const Provider& provider) {
+	json list = json::array();
+	for(const Preset& preset : provider.presets)
+		list.push_back({{"id", preset.id}, {"name", preset.name}, {"baseUrl", preset.baseUrl}});
 	return list;
 }
 
@@ -117,7 +154,7 @@ json providersJson(const Shared& shared) {
 		                {"name", provider.name},
 		                {"kind", kindName(provider.kind)},
 		                {"needsKey", provider.needsKey},
-		                {"takesKey", provider.kind != Kind::ClaudeCode},
+		                {"takesKey", !runsCommandLine(provider.kind)},
 		                {"hasKey", hasKey},
 		                {"available", available(shared, provider)},
 		                {"baseUrl", endpoint ? endpoint->baseUrl : provider.baseUrl},
@@ -126,6 +163,7 @@ json providersJson(const Shared& shared) {
 		                {"defaultModel", provider.model},
 		                {"fixedModels", provider.fixedModels},
 		                {"keyHelp", provider.keyHelp},
+		                {"presets", presetsOf(provider)},
 		                {"models", fallbackOf(provider)}});
 	}
 	std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
@@ -170,7 +208,7 @@ json save(Shared& shared, const json& arguments) {
 		if(key.empty() && staged != shared.staged.end()) key = staged->second;
 		shared.staged.erase(provider.id);
 	}
-	if(!key.empty() && provider.kind != Kind::ClaudeCode) {
+	if(!key.empty() && !runsCommandLine(provider.kind)) {
 		key = cleanKey(std::move(key));
 		const std::optional<Endpoint> after = endpointOf(shared.catalog, settings, provider.id);
 		if(!key.empty() && (!after || !writeKey(*shared.options.keys, *after, key)))
@@ -183,33 +221,65 @@ json save(Shared& shared, const json& arguments) {
 	return providersJson(shared);
 }
 
+/// @brief A provider's live models list.
+/// @param shared The natives' parts.
+/// @param endpoint The provider, with the base URL asked and its key.
+/// @param origin The base URL's origin.
+/// @param call The call in progress.
+/// @return `[{ id, name }]`, perhaps empty.
+/// @throws std::runtime_error If it couldn't be read: why, for people.
+json liveModels(const Shared& shared, const Endpoint& endpoint, const std::string& origin,
+                affresco::CallProgress& call) {
+	HttpSession http(shared.options.network, origin);
+	const Outcome outcome = http.fetch(modelsRequest(endpoint), [&call] { return call.cancelled(); });
+	if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
+		throw std::runtime_error(describeFailure(*failure, endpoint.provider->name, endpoint.key));
+	json list = json::array();
+	for(const Model& model : parseModels(endpoint.provider->kind, std::get<affresco::network::Response>(outcome).body))
+		list.push_back({{"id", model.id}, {"name", model.name}});
+	return list;
+}
+
 /// @brief intelligence.models, on a worker thread.
 /// @param shared The natives' parts.
-/// @param arguments `{ provider }`.
+/// @param arguments `{ provider, baseUrl? }`: a base URL given (an openai-compatible provider's, not yet saved) is
+/// asked instead of the saved one, with the key only if it was saved for that origin.
 /// @param call The call in progress.
-/// @return `[{ id, name }]`.
+/// @return `[{ id, name }]`: the live list, else the fallback. A server that lists no model gives `[]`.
+/// @throws std::runtime_error If the live list can't be read and the provider has no fallback (a local server that
+/// isn't running): why, for people.
 json models(const Shared& shared, const json& arguments, affresco::CallProgress& call) {
 	const Provider& provider = providerOf(shared, arguments);
-	const auto fallback = [&provider] { return fallbackOf(provider); };
-	if(provider.kind == Kind::ClaudeCode || provider.fixedModels) return fallback();
+	const auto fallback = [&provider](const std::string& why) {
+		if(provider.models.empty()) throw std::runtime_error(why);
+		return fallbackOf(provider);
+	};
+	if(runsCommandLine(provider.kind) || provider.fixedModels) return fallbackOf(provider);
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
-	if(!endpoint || checkBaseUrl(*endpoint)) return fallback();
+	if(!endpoint) return fallback("no such provider");
+	const std::string url = argument(arguments, "baseUrl");
+	if(!url.empty() && provider.kind == Kind::OpenAICompatible) endpoint->baseUrl = cleanBaseUrl(url);
+	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint)) return fallback(*refused);
 	endpoint->key = readKey(*shared.options.keys, *endpoint);
-	if(provider.needsKey && endpoint->key.empty()) return fallback();
+	if(provider.needsKey && endpoint->key.empty()) return fallback(provider.name + " needs an API key.");
 	const std::optional<std::string> origin = originOf(endpoint->baseUrl);
-	if(!origin) return fallback();
+	if(!origin) return fallback("The base URL isn't an http(s) URL.");
+	std::string failed;
 	try {
-		HttpSession http(shared.options.network, *origin);
-		const Outcome outcome = http.fetch(modelsRequest(*endpoint), [&call] { return call.cancelled(); });
-		const auto* response = std::get_if<affresco::network::Response>(&outcome);
-		if(response == nullptr) return fallback();
-		json list = json::array();
-		for(const Model& model : parseModels(provider.kind, response->body))
-			list.push_back({{"id", model.id}, {"name", model.name}});
-		return list.empty() ? fallback() : list;
-	} catch(const std::exception&) {
-		return fallback();
+		const json list = liveModels(shared, *endpoint, *origin, call);
+		return list.empty() && !provider.models.empty() ? fallbackOf(provider) : list;
+	} catch(const std::exception& error) {
+		failed = redact(error.what(), endpoint->key);
 	}
+	return fallback(failed);
+}
+
+/// @brief How long a test waits for its answer: a minute, or 90 s for a provider whose answers take longer (a local
+/// model loaded on its first request); the settings' call waits 100 s.
+/// @param provider The provider.
+/// @return It.
+std::chrono::milliseconds testTimeout(const Provider& provider) {
+	return provider.timeout > std::chrono::seconds(120) ? std::chrono::seconds(90) : std::chrono::seconds(60);
 }
 
 /// @brief intelligence.test, on a worker thread: one tiny request to the provider in use.
@@ -221,19 +291,7 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 	if(!endpoint || !offered(shared, *endpoint->provider))
 		return {{"ok", false}, {"message", "No provider is chosen yet."}};
 	const Provider& provider = *endpoint->provider;
-	if(provider.kind == Kind::ClaudeCode) {
-		const std::optional<std::filesystem::path> program = findClaude();
-		if(!shared.options.claude && !program)
-			return {{"ok", false}, {"message", "Claude Code isn't installed (the claude command isn't on the PATH)."}};
-		const auto stopped = [&call] { return call.cancelled(); };
-		const ClaudeAnswer answer =
-		    shared.options.claude
-		        ? shared.options.claude(endpoint->model, "Answer with the word OK.", "Say OK.", stopped)
-		        : runClaude(*program, endpoint->model, "Answer with the word OK.", "Say OK.", std::chrono::seconds(90),
-		                    stopped);
-		return {{"ok", answer.ok},
-		        {"message", answer.ok ? "Connected: Claude Code answered with " + endpoint->model + "." : answer.text}};
-	}
+	if(runsCommandLine(provider.kind)) return commandLineTest(shared, *endpoint, [&call] { return call.cancelled(); });
 	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint))
 		return {{"ok", false}, {"message", *refused}};
 	endpoint->key = readKey(*shared.options.keys, *endpoint);
@@ -247,7 +305,7 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 		Conversation conversation{"Answer with the word OK.", json::array()};
 		addUser(provider.kind, conversation, "Say OK.");
 		affresco::network::Request request = chatRequest(*endpoint, conversation, {});
-		request.timeout = std::chrono::milliseconds(60000);
+		request.timeout = testTimeout(provider);
 		const Outcome outcome = http.fetch(std::move(request), [&call] { return call.cancelled(); });
 		if(const auto* failure = std::get_if<affresco::network::Failure>(&outcome))
 			return {{"ok", false}, {"message", describeFailure(*failure, provider.name, endpoint->key)}};

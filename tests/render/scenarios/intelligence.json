@@ -6,10 +6,10 @@
 		{
 			"name": "intelligence-settings",
 			"screen": "intelligence-settings.screen.json",
-			"note": "The intelligence settings with the stand-in providers: none set up yet, the first one chosen, its key field and models",
+			"note": "The intelligence settings with the stand-in providers (Claude Code, GitHub Copilot and a local LLM): none set up yet, the first one chosen, its models",
 			"steps": [
 				{ "wait": 50 },
-				{ "expect": { "state": "intelligence.selected", "is": "anthropic" } },
+				{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
 				{ "expect": { "image": "first-frame" } }
 			]
 		},
@@ -18,7 +18,8 @@
 			"screen": "intelligence-settings.screen.json",
 			"note": "Claude Code: its four models, each with when to use it, Sonnet recommended; only a listed model can be chosen",
 			"steps": [
-				{ "click": "#intelligenceProvider3" },
+				{ "click": "#intelligenceProvider1" },
+				{ "click": "#intelligenceProvider0" },
 				{ "wait": 50 },
 				{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
 				{ "expect": { "state": "intelligence.model", "is": "sonnet" } },
@@ -32,19 +33,53 @@
 			]
 		},
 		{
+			"name": "intelligence-copilot",
+			"screen": "intelligence-settings.screen.json",
+			"note": "GitHub Copilot: its note (no tools, its own history on this computer), its five models with when to use each, Claude Sonnet recommended; only a listed model can be chosen",
+			"steps": [
+				{ "click": "#intelligenceProvider1" },
+				{ "wait": 50 },
+				{ "expect": { "state": "intelligence.selected", "is": "copilot" } },
+				{ "expect": { "state": "intelligence.model", "is": "claude-sonnet-5.5" } },
+				{ "expect": { "image": "models" } },
+				{ "click": "#intelligenceModel4" },
+				{ "expect": { "state": "intelligence.model", "is": "auto" } },
+				{ "click": "#intelligenceModelSearch" },
+				{ "type": "gpt-4" },
+				{ "key": "enter" },
+				{ "expect": { "state": "intelligence.model", "is": "auto" } }
+			]
+		},
+		{
 			"name": "intelligence-compatible",
 			"screen": "intelligence-settings.screen.json",
-			"note": "An OpenAI-compatible server: its base URL field, an optional key, and a model typed by hand",
+			"note": "A local LLM: its servers (Ollama, LM Studio, llama.cpp) filling the base URL field, an optional key, and a model typed by hand",
 			"steps": [
 				{ "click": "#intelligenceProvider2" },
 				{ "wait": 50 },
-				{ "expect": { "state": "intelligence.selected", "is": "openai-compatible" } },
+				{ "expect": { "state": "intelligence.selected", "is": "local" } },
 				{ "expect": { "state": "intelligence.baseUrl", "is": "http://127.0.0.1:11434/v1" } },
+				{ "click": "#intelligencePreset1" },
+				{ "expect": { "state": "intelligence.baseUrl", "is": "http://127.0.0.1:1234/v1" } },
 				{ "click": "#intelligenceModelSearch" },
 				{ "type": "llama3.2" },
 				{ "expect": { "image": "typed-model" } },
 				{ "key": "enter" },
 				{ "expect": { "state": "intelligence.model", "is": "llama3.2" } }
+			]
+		},
+		{
+			"name": "intelligence-local-server",
+			"screen": "intelligence-settings.screen.json",
+			"note": "A local LLM whose server doesn't answer, then one that answers with no model loaded: each says what to do",
+			"steps": [
+				{ "click": "#intelligenceProvider2" },
+				{ "action": "test.noServer" },
+				{ "wait": 50 },
+				{ "expect": { "image": "no-server" } },
+				{ "action": "test.noModel" },
+				{ "wait": 50 },
+				{ "expect": { "image": "no-model" } }
 			]
 		},
 		{
@@ -65,7 +100,7 @@
 			"note": "Without the Launcher's natives, saving says where the settings are changed",
 			"steps": [
 				{ "click": "#intelligenceModel1" },
-				{ "expect": { "state": "intelligence.model", "is": "claude-sonnet-5-5" } },
+				{ "expect": { "state": "intelligence.model", "is": "opus" } },
 				{ "click": "#intelligenceSave" },
 				{ "expect": { "state": "intelligence.error", "is": "These settings can only be changed in the AffrescoUI Launcher." } }
 			]
