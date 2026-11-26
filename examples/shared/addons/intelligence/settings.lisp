@@ -276,9 +276,12 @@ first provider: then its own first is chosen, as the form shows it."
   (set "state.intelligence.test"
        {:ok false :message (if state.intelligence.native error (t "intelligence.launcherOnly"))}))
 
-(defn intelligence-check "Asks the provider something small, to see that it answers." []
+(defn intelligence-check "Asks the provider the form shows, saved or not, something small, to see that it answers." []
   (set "state.intelligence.error" "")
   (call "intelligence.test"
+        :with {:provider state.intelligence.selected
+               :model state.intelligence.model
+               :baseUrl state.intelligence.baseUrl}
         :into "state.intelligence.test"
         :loading "state.intelligence.testing"
         :timeout 100000
@@ -644,7 +647,7 @@ first provider: then its own first is chosen, as the form shows it."
      (node#intelligenceTest :use intelligenceButton
        :with {:text ~(t (if state.intelligence.testing "intelligence.testing" "intelligence.test"))
               :run intelligence.check
-              :enabled ~(and (not= iData.current.provider "") (not state.intelligence.testing))
+              :enabled ~(and (not= state.intelligence.model "") iProvider.available (not state.intelligence.testing))
               :width 170})
      (node#intelligenceRefresh :when ~(and (not= iProvider.kind "claude-code") (not= iProvider.kind "copilot"))
        :use intelligenceButton

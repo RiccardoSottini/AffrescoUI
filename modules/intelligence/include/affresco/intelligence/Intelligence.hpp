@@ -53,7 +53,9 @@ struct CallsOptions {
 ///   (a key never goes to a server it wasn't given for).
 /// - `intelligence.forget` `{ provider }` → as `intelligence.providers`: erases its key.
 /// - `intelligence.openKeyHelp` `{ provider }` → `true`: opens the catalogue's page for getting that provider's key.
-/// - `intelligence.test` (slow) → `{ ok, message }`: one tiny request to the provider in use, with its model.
+/// - `intelligence.test` `{ provider?, model?, baseUrl? }` (slow) → `{ ok, message }`: one tiny request to the
+///   provider given, with the model and base URL given (the form's, not yet saved; the key goes only to the origin
+///   it was saved for, as for `intelligence.models`), else to the provider in use with its model.
 /// @param screen The screen.
 /// @param dataDir The data folder of intelligence.json.
 /// @param options What they use.

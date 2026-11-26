@@ -282,14 +282,46 @@ std::chrono::milliseconds testTimeout(const Provider& provider) {
 	return provider.timeout > std::chrono::seconds(120) ? std::chrono::seconds(90) : std::chrono::seconds(60);
 }
 
-/// @brief intelligence.test, on a worker thread: one tiny request to the provider in use.
+/// @brief The endpoint intelligence.test asks: the provider the form shows, with its model and base URL (not yet
+/// saved), else the provider in use.
 /// @param shared The natives' parts.
+/// @param arguments `{ provider?, model?, baseUrl? }`.
+/// @return It, or nothing if no provider is chosen yet.
+/// @throws std::runtime_error If the provider or the model named can't be used.
+std::optional<Endpoint> testEndpoint(const Shared& shared, const json& arguments) {
+	const Settings settings = Settings::load(shared.dataDir);
+	if(argument(arguments, "provider").empty()) {
+		std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
+		if(current && !offered(shared, *current->provider)) current.reset();
+		return current;
+	}
+	const Provider& provider = providerOf(shared, arguments);
+	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, settings, provider.id);
+	if(!endpoint) return std::nullopt;
+	const std::string model = argument(arguments, "model");
+	if(model.size() > 200) throw std::runtime_error("the model's name is too long");
+	if(!model.empty() && provider.fixedModels && !provider.lists(model))
+		throw std::runtime_error("choose one of " + provider.name + "'s models");
+	if(!model.empty()) endpoint->model = model;
+	const std::string url = argument(arguments, "baseUrl");
+	if(!url.empty() && provider.kind == Kind::OpenAICompatible) endpoint->baseUrl = cleanBaseUrl(url);
+	return endpoint;
+}
+
+/// @brief intelligence.test, on a worker thread: one tiny request to the provider the form shows (or the one in use).
+/// @param shared The natives' parts.
+/// @param arguments `{ provider?, model?, baseUrl? }`: a base URL given is asked instead of the saved one, with the
+/// key only if it was saved for that origin, as intelligence.models does.
 /// @param call The call in progress.
 /// @return `{ ok, message }`.
-json test(const Shared& shared, affresco::CallProgress& call) {
-	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir));
-	if(!endpoint || !offered(shared, *endpoint->provider))
-		return {{"ok", false}, {"message", "No provider is chosen yet."}};
+json test(const Shared& shared, const json& arguments, affresco::CallProgress& call) {
+	std::optional<Endpoint> endpoint;
+	try {
+		endpoint = testEndpoint(shared, arguments);
+	} catch(const std::exception& error) {
+		return {{"ok", false}, {"message", error.what()}};
+	}
+	if(!endpoint) return {{"ok", false}, {"message", "No provider is chosen yet."}};
 	const Provider& provider = *endpoint->provider;
 	if(runsCommandLine(provider.kind)) return commandLineTest(shared, *endpoint, [&call] { return call.cancelled(); });
 	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint))
@@ -378,8 +410,8 @@ void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDi
 	screen.onAsyncCall("intelligence.models", [shared](const std::string& argumentsJson, affresco::CallProgress& call) {
 		return models(*shared, json::parse(argumentsJson, nullptr, false), call).dump();
 	});
-	screen.onAsyncCall("intelligence.test", [shared](const std::string&, affresco::CallProgress& call) {
-		return test(*shared, call).dump();
+	screen.onAsyncCall("intelligence.test", [shared](const std::string& argumentsJson, affresco::CallProgress& call) {
+		return test(*shared, json::parse(argumentsJson, nullptr, false), call).dump();
 	});
 }
 

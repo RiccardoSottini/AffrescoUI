@@ -379,7 +379,7 @@
 								            "enabled": "{{state.intelligence.model != '' && iProvider.available}}", "width": 170 } },
 								{ "id": "intelligenceTest", "use": "intelligenceButton",
 								  "with": { "text": "{{t(state.intelligence.testing ? 'intelligence.testing' : 'intelligence.test')}}",
-								            "run": "intelligence.check", "enabled": "{{iData.current.provider != '' && !state.intelligence.testing}}",
+								            "run": "intelligence.check", "enabled": "{{state.intelligence.model != '' && iProvider.available && !state.intelligence.testing}}",
 								            "width": 170 } },
 								{ "id": "intelligenceRefresh", "when": "{{iProvider.kind != 'claude-code' && iProvider.kind != 'copilot'}}", "use": "intelligenceButton",
 								  "with": { "text": "{{t('intelligence.refresh')}}", "run": "intelligence.refresh", "width": 170 } }
@@ -458,7 +458,10 @@
 		],
 		"intelligence.check": [
 			{ "set": "state.intelligence.error", "to": "" },
+			{ "note": "Tests what the form shows (the provider, model and server chosen), saved or not" },
 			{ "call": "intelligence.test", "into": "state.intelligence.test", "loading": "state.intelligence.testing",
+			  "with": { "provider": "{{state.intelligence.selected}}", "model": "{{state.intelligence.model}}",
+			            "baseUrl": "{{state.intelligence.baseUrl}}" },
 			  "timeout": 100000,
 			  "onError": [{ "set": "state.intelligence.test", "to": "{{ {ok: false, message: state.intelligence.native ? error : t('intelligence.launcherOnly')} }}" }] }
 		],

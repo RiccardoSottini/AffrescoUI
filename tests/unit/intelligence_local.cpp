@@ -58,7 +58,8 @@ network::Failure refusal(int code, const std::string& body) {
 }
 
 /// @brief A screen with the settings' natives on a fake network: actions that call intelligence.providers and
-/// intelligence.models (with the event as the arguments) into state.out, failures into state.error.
+/// intelligence.models, intelligence.save and intelligence.test (with the event as the arguments) into state.out,
+/// failures into state.error.
 struct LocalSettings {
 	DataFolder data;                                                     ///< intelligence.json.
 	affresco::detail::ManualClock clock;                                 ///< The window's clock.
@@ -77,6 +78,8 @@ struct LocalSettings {
 			"models": [{"call": "intelligence.models", "with": "{{event}}", "into": "state.out",
 			            "onError": [{"set": "state.error", "to": "{{error}}"}]}],
 			"save": [{"call": "intelligence.save", "with": "{{event}}", "into": "state.out",
+			          "onError": [{"set": "state.error", "to": "{{error}}"}]}],
+			"test": [{"call": "intelligence.test", "with": "{{event}}", "into": "state.out",
 			          "onError": [{"set": "state.error", "to": "{{error}}"}]}]
 		},
 		"root": {"id": "page"}})")) {
@@ -175,6 +178,57 @@ TEST_CASE("intelligence local: a chat request waits the provider's timeout, and 
 	REQUIRE(models.size() == 2);
 	CHECK(models[0].id == "llama-3.2-1b-instruct");
 	CHECK(models[1].id == "qwen2.5-7b-instruct");
+}
+
+TEST_CASE("intelligence local: Test connection asks the provider the form shows, not the one saved") {
+	LocalSettings settings;
+	settings.server->answer = [](const network::Request&) -> Answer { return said("OK"); };
+	// Claude Code is saved; the form shows the Local LLM at LM Studio's address with a model, not yet saved
+	intelligence::Settings saved;
+	saved.provider = "claude-code";
+	saved.model = "opus";
+	saved.save(settings.data.path);
+
+	SUBCASE("the form's provider, model and server are asked, and nothing is saved") {
+		const json result = settings.run(
+		    "test", {{"provider", "local"}, {"model", "qwen3-4b"}, {"baseUrl", "http://127.0.0.1:1234/v1"}});
+		CHECK(result["ok"] == true);
+		CHECK(result["message"] == "Connected: qwen3-4b answered.");
+		REQUIRE(settings.requests().size() == 1);
+		CHECK(settings.requests()[0].url == "http://127.0.0.1:1234/v1/chat/completions");
+		CHECK(json::parse(settings.requests()[0].body)["model"] == "qwen3-4b");
+		const intelligence::Settings after = intelligence::Settings::load(settings.data.path);
+		CHECK(after.provider == "claude-code");
+		CHECK(after.model == "opus");
+	}
+	SUBCASE("no server at the form's address says so, rather than testing the saved provider") {
+		settings.server->answer = [](const network::Request&) -> Answer {
+			return network::Failure{"network", "connection refused", 0, {}};
+		};
+		const json result = settings.run("test", {{"provider", "local"}, {"model", "qwen3-4b"}});
+		CHECK(result["ok"] == false);
+		CHECK(result["message"].get<std::string>().find("Can't reach Local LLM") != std::string::npos);
+	}
+	SUBCASE("a key saved for one server never goes to another one tested") {
+		settings.run("save", {{"provider", "local"}, {"model", "qwen3-4b"}, {"key", "lm-studio-token-1"}});
+		settings.run("test", {{"provider", "local"}, {"model", "qwen3-4b"}, {"baseUrl", "http://127.0.0.1:8080/v1"}});
+		REQUIRE(settings.requests().size() == 1);
+		CHECK(settings.requests()[0].url == "http://127.0.0.1:8080/v1/chat/completions");
+		for(const auto& [name, value] : settings.requests()[0].headers) CHECK(name != "authorization");
+	}
+	SUBCASE("a base URL elsewhere, over http, is refused before anything is sent") {
+		const json result =
+		    settings.run("test", {{"provider", "local"}, {"model", "m"}, {"baseUrl", "http://example.com/v1"}});
+		CHECK(result["ok"] == false);
+		CHECK(settings.requests().empty());
+	}
+	SUBCASE("with no provider given, the one in use is tested with its saved model and server, as before") {
+		settings.run("save", {{"provider", "local"}, {"model", "llama3.2"}});
+		const json result = settings.run("test");
+		CHECK(result["message"] == "Connected: llama3.2 answered.");
+		REQUIRE(settings.requests().size() == 1);
+		CHECK(settings.requests()[0].url == "http://127.0.0.1:11434/v1/chat/completions");
+	}
 }
 
 TEST_CASE("intelligence local: the settings list the presets, ask a preset's server, and tell no server from none") {
