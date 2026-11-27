@@ -400,6 +400,8 @@ that first opened it (`Screen::appDataDirectory()`, recorded in the folder's `lo
 followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash of its folder>/`, so it never opens
 with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
 way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
+The Launcher sets an app's data aside (the `packages` service's `setAside`: renamed, never erased) once its folder
+is deleted and once a new app's folder is made, so a new app of the same name and folder is asked again too.
 
 The window that asks shows each capability with the app's reason, quoted as the app's own words. Every capability
 starts checked, and the person unchecks what they don't want (a click anywhere on its card); "Allow nothing", or
@@ -812,8 +814,10 @@ An install never takes the id `shared`, whose kits every app of the root include
 `export` reads the app's history from a copy of its data, so the person's own data folder isn't written nor its lock
 taken, and leaves out what `affrescoui pack` leaves out. `inspect` and `install` refuse a package over 16 MiB before
 it is read. `install` writes only into the writable root (`apps`), only into a folder that doesn't exist yet, removes
-only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. Results and
-errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
+only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. `setAside`
+(and `install`, before it writes) sets aside the data the data folder keeps for a folder of the writable root
+(`Screen::setDataAside()`): it renames, never erases, and only what a record names as that folder's or a file's in
+it. Results and errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
 
 ### The AffrescoUI catalogue
 The Launcher lists the catalogue in the repository (`catalogue/`, its `README.md`): versions of apps and features,

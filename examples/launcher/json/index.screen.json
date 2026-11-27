@@ -290,8 +290,10 @@
 			{ "set": "state.confirmOpen", "to": true }
 		],
 		"deleteMine": [
+			{ "note": "Its data is set aside, so a new app of its name starts empty; a failure is logged, and the next app made there tries again" },
 			{ "invoke": "apps.delete", "with": { "path": "{{state.confirm.id}}" },
 			  "onDone": [
+				{ "invoke": "packages.setAside", "with": { "app": "{{state.confirm.id}}" }, "onError": [] },
 				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "failed": false } },
 				{ "after": 1, "do": [{ "run": "launcher.refresh" }] }
 			  ],
@@ -303,10 +305,19 @@
 				"to": "{{find(map(range(50), index == 0 ? id + '-copy' : id + '-copy-' + (index + 1)), !contains(computed.myIds, it))}}" } }
 		],
 		"copyMine": [
-			{ "note": "with: id, name, to" },
+			{ "note": "with: id, name, to. The data an app of the copy's name left is set aside, then the copy is renamed; if it couldn't be moved ('failed'), the copy, which would open with it, goes (a host without the packages service goes on)" },
 			{ "invoke": "apps.copy", "with": { "path": "{{id}}", "to": "{{to}}" },
-			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "firstRequest": "", "then": "copied" } }],
+			  "onDone": [{ "invoke": "packages.setAside", "with": { "app": "{{to}}" },
+			               "onDone": [{ "run": "renameCopy", "with": { "id": "{{id}}", "name": "{{name}}", "to": "{{to}}" } }],
+			               "onError": [{ "if": "{{error.code == 'failed'}}",
+			                             "then": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } },
+			                                      { "invoke": "apps.delete", "with": { "path": "{{to}}" }, "onError": [] }],
+			                             "else": [{ "run": "renameCopy", "with": { "id": "{{id}}", "name": "{{name}}", "to": "{{to}}" } }] }] }],
 			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "failed": true } }] }
+		],
+		"renameCopy": [
+			{ "note": "with: id, name, to. The copy is renamed" },
+			{ "run": "retitle", "with": { "id": "{{to}}", "sub": "{{(find(state.mine, it.id == id) ?? {}).sub ?? ''}}", "title": "{{t('mine.copyName', {name: name})}}", "firstRequest": "", "then": "copied" } }
 		],
 		"copied": [
 			{ "run": "listNew", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}" } },
@@ -397,26 +408,38 @@
 			            "sub": "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}", "then": "createShared" } }] }
 		],
 		"createBlank": [
-			{ "note": "with: id, title, firstRequest, then. A folder, and the blank starter in it" },
+			{ "note": "with: id, title, firstRequest, then. A folder, the data an app of that name left set aside, and the blank starter in it. If that data couldn't be moved ('failed'), the app isn't made, as it would open with it (a host without the packages service goes on)" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
-			  "onDone": [
-				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "launcher/json/starters/blank.screen.json", "to": "{{id + '/index.screen.json'}}" },
-				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
-				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
-			  ],
+			  "onDone": [{ "invoke": "packages.setAside", "with": { "app": "{{id}}" },
+			    "onDone": [{ "run": "copyBlank", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
+			    "onError": [{ "if": "{{error.code == 'failed'}}",
+			                  "then": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }],
+			                  "else": [{ "run": "copyBlank", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }] }] }],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
+		"copyBlank": [
+			{ "note": "with: id, title, firstRequest, then. The blank starter, copied into the new folder" },
+			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "launcher/json/starters/blank.screen.json", "to": "{{id + '/index.screen.json'}}" },
+			  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+		],
 		"createCopy": [
-			{ "note": "with: id, title, firstRequest, exampleFolder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there" },
+			{ "note": "with: id, title, firstRequest, exampleFolder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there. The data an app of that name left is set aside first, as createBlank's" },
 			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
-			  "onDone": [
-				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
-				  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
-				                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
-				                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }] }],
-				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
-			  ],
+			  "onDone": [{ "invoke": "packages.setAside", "with": { "app": "{{id}}" },
+			    "onDone": [{ "run": "copyExample", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "exampleFolder": "{{exampleFolder}}", "sub": "{{sub}}", "then": "{{then}}" } }],
+			    "onError": [{ "if": "{{error.code == 'failed'}}",
+			                  "then": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }],
+			                  "else": [{ "run": "copyExample", "with": { "id": "{{id}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "exampleFolder": "{{exampleFolder}}", "sub": "{{sub}}", "then": "{{then}}" } }] }] }],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
+		],
+		"copyExample": [
+			{ "note": "with: id, title, firstRequest, exampleFolder, sub, then. The example's files copied into the new folder, then its assets beside them (with none, the copy goes on)" },
+			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + sub}}", "to": "{{id + sub}}", "exclude": "{{computed.excluded}}" },
+			  "onDone": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{exampleFolder + '/assets'}}", "to": "{{id + '/assets'}}", "exclude": "{{computed.excluded}}" },
+			                "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }],
+			                "onError": [{ "run": "retitle", "with": { "id": "{{id}}", "sub": "{{sub}}", "title": "{{title}}", "firstRequest": "{{firstRequest}}", "then": "{{then}}" } }] }],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 		],
 		"createShared": [
 			{ "note": "with: id, title, firstRequest. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },

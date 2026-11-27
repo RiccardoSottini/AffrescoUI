@@ -248,7 +248,10 @@
 (defn delete-mine "Deletes the app the question was about, once confirmed." []
   (invoke "apps.delete" :with {:path state.confirm.id} :onDone deleted :onError show-error))
 
+;; Its data is set aside (never erased), so a new app of its name starts empty; on a failure the next app made there
+;; tries again.
 (defn deleted "Says the app is deleted, and reads the folder again." []
+  (invoke "packages.setAside" :with {:app state.confirm.id} :onError ignored)
   (toast (t "toast.deleted" {:name state.confirm.name}) false)
   (after 1 refresh-mine))
 
@@ -264,7 +267,19 @@
 (defn copy-mine "Copies an app's folder." [id name to]
   (invoke "apps.copy" :with {:path id :to to} :onDone [folder-copied id name to] :onError show-error))
 
-(defn folder-copied "The copy is renamed." [id name to]
+(defn folder-copied "The data an app of the copy's name left is set aside, then the copy is renamed." [id name to]
+  (invoke "packages.setAside" :with {:app to} :onDone [rename-copy id name to]
+          :onError [copy-data-not-set-aside id name to]))
+
+;; A host without the packages service can't set it aside: the copy goes on, as before.
+(defn copy-data-not-set-aside "Data that couldn't be moved stays: the copy, which would open with it, goes."
+  [id name to error]
+  (if (data-kept? error)
+    (do (show-error error)
+        (invoke "apps.delete" :with {:path to} :onError ignored))
+    (rename-copy id name to)))
+
+(defn rename-copy "The copy is renamed." [id name to]
   (retitle to (sub-of id) (t "mine.copyName" {:name name}) "" :copied))
 
 (defn copied "The copy is at the top of the list, and a note says so." [id sub title]
@@ -395,7 +410,16 @@
 (defn create-blank "A folder, and the blank starter in it." [id title ask]
   (invoke "apps.mkdir" :with {:path id} :onDone [blank-folder-made id title ask] :onError [folder-not-made id]))
 
-(defn blank-folder-made "Copies the blank starter into the new folder." [id title ask]
+;; A new app's folder starts with no data of an app of its name deleted before (in Finder too): it is set aside.
+(defn blank-folder-made "Sets aside the data an app of that name left, then brings the blank starter." [id title ask]
+  (invoke "packages.setAside" :with {:app id} :onDone [copy-blank id title ask]
+          :onError [blank-data-not-set-aside id title ask]))
+
+(defn blank-data-not-set-aside "Data that couldn't be moved stops the app; a host without the service goes on."
+  [id title ask error]
+  (if (data-kept? error) (failed-to-create id error) (copy-blank id title ask)))
+
+(defn copy-blank "Copies the blank starter into the new folder." [id title ask]
   (invoke "apps.copy"
           :with {:from "examples" :path "launcher/json/starters/blank.screen.json" :to (str id "/index.screen.json")}
           :onDone [blank-copied id title ask] :onError [failed-to-create id]))
@@ -408,7 +432,16 @@
 (defn create-copy "A folder, and a copy of an example in it." [id title ask folder sub]
   (invoke "apps.mkdir" :with {:path id} :onDone [copy-folder-made id title ask folder sub] :onError [folder-not-made id]))
 
-(defn copy-folder-made "Copies the example's files into the new folder." [id title ask folder sub]
+(defn copy-folder-made "Sets aside the data an app of that name left, then brings the example's files."
+  [id title ask folder sub]
+  (invoke "packages.setAside" :with {:app id} :onDone [copy-example id title ask folder sub]
+          :onError [example-data-not-set-aside id title ask folder sub]))
+
+(defn example-data-not-set-aside "Data that couldn't be moved stops the app; a host without the service goes on."
+  [id title ask folder sub error]
+  (if (data-kept? error) (failed-to-create id error) (copy-example id title ask folder sub)))
+
+(defn copy-example "Copies the example's files into the new folder." [id title ask folder sub]
   (invoke "apps.copy" :with {:from "examples" :path (str folder sub) :to (str id sub) :exclude computed.excluded}
           :onDone [example-copied id title ask folder sub] :onError [failed-to-create id]))
 
@@ -438,6 +471,10 @@
 
 (defn failed-to-create "A step of making the app failed: its folder goes."
   [id error] (create-failed id (:message error) false))
+
+;; The packages service's setAside couldn't move some of it ("failed"): a new app there would open with an old one's
+;; state, records and chat. Any other error is a host without the service: the app is made as before.
+(defn data-kept? "Whether an old app's data couldn't be set aside." [error] (= (:code error) :failed))
 
 ;; keep: the folder isn't the new app's, as it was there already, or was never made.
 (defn create-failed "Says why the app couldn't be made, and takes its folder away unless keep." [id why keep]

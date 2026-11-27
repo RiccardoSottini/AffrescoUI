@@ -1933,7 +1933,10 @@ without `app.json` reads `app.lisp`. A generated example:
   kept for the entry screen (`<data folder>/<screen name>.*`) is moved there the first time the app opens. An id is
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
-  own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
+  own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`). A host
+  that deletes an app, or makes a new one in a folder, sets aside the data recorded as that folder's
+  (`Screen::setDataAside()`), so a new app of an old one's name starts empty: nothing is erased, each is renamed
+  `<name>.replaced-<UTC time>`, as a replaced history is, and never read again. Another place's data stays.
 - **`release`** (optional): the app's release, three numbers as a feature's (`"1.2.0"`, compared as semver's). A
   shared version of the app names the release it was made from; an app without one is known by its files alone. A
   malformed one refuses the app (`AffrescoUI app: release: expected three numbers such as 1.0.0`).

@@ -60,8 +60,14 @@ opens it when it is started without a file.
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
   inside one of those two folders (with `--ask TEXT`), found next to the host, each detached,
   with the host's `--data` and a socket folder of its own (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
-  It also grants the `packages` service (`export`, `inspect`, `install`, `catalogue`; SECURITY.md, "The `packages` service") on
+  It also grants the `packages` service (`export`, `inspect`, `install`, `catalogue`, `setAside`; SECURITY.md, "The `packages` service") on
   those two roots, `apps` the only writable one, with the data folder, and the file dialogs (the capability `files`).
+- **A name used again starts empty.** Once an app's folder is deleted, and once a new app's folder is made (by Create,
+  Duplicate or Install, which covers a folder deleted in Finder), the data the data folder keeps for it (its state,
+  the assistant's chat, records, history, usage and permissions) is set aside as `<name>.replaced-<UTC time>`, never
+  erased (`packages.setAside`, `Screen::setDataAside()`). If some of it can't be moved, deleting goes on (the next app
+  made there tries again), but the new app isn't made, as it would open with the old one's data; a host without the
+  `packages` service makes it as before.
 - **The apps folder** holds one folder per app and `shared/`, a copy of `examples/shared` without its C++ (fonts,
   add-ons, components, languages), brought up to date at each create, so the apps' `../shared/...` paths hold as in
   `examples/`. The names of the examples' folders are kept: an app's state and history in the data folder are named
