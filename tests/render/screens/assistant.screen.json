@@ -95,6 +95,25 @@
 		"test.waiting": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p4"],
 		                  "proposals": [{ "id": "p4", "message": "Rename the board to Q4 launch", "touches": ["a"],
 		                  "changes": ["set /state/board to \"Q4 launch\""] }] } }],
+		"test.history": [
+			{ "note": "Three past conversations beside the one shown (test.conversation's), at fixed times" },
+			{ "set": "state.assistant.conversation", "to": "c4" },
+			{ "set": "state.assistant.conversations", "to": [
+				{ "id": "c3", "title": "Add a dark theme", "time": 1773414000000, "count": 2, "messages": [
+					{ "mine": true, "from": "You", "text": "Add a dark theme", "time": 1773413990000, "error": false },
+					{ "mine": false, "from": "claude", "text": "It follows the system's setting now.", "time": 1773414000000, "error": false }
+				] },
+				{ "id": "c2", "title": "Why does the Done column scroll on its own when a card moves there from Doing?", "time": 1773327600000, "count": 1, "messages": [
+					{ "mine": true, "from": "You", "text": "Why does the Done column scroll on its own when a card moves there from Doing?", "time": 1773327600000, "error": false }
+				] },
+				{ "id": "c1", "title": "Make the text larger", "time": 1772895600000, "count": 4, "messages": [
+					{ "mine": true, "from": "You", "text": "Make the text larger", "time": 1772895500000, "error": false },
+					{ "mine": false, "from": "claude", "text": "Larger by two points.", "time": 1772895510000, "error": false },
+					{ "mine": true, "from": "You", "text": "A bit more", "time": 1772895590000, "error": false },
+					{ "mine": false, "from": "claude", "text": "Two more.", "time": 1772895600000, "error": false }
+				] }
+			] }
+		],
 		"test.models": [{ "set": "state.assistant.simulate", "to": { "online": true, "models": {
 			"provider": "Claude Code", "default": "sonnet", "models": [
 				{ "id": "sonnet", "name": "Claude Sonnet 5.5" }, { "id": "opus", "name": "Claude Opus 5.5" },

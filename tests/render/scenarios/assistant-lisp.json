@@ -32,6 +32,33 @@
 			]
 		},
 		{
+			"name": "assistant-lisp-history",
+			"screen": "assistant-lisp.screen.lisp",
+			"note": "The Lisp add-on's past conversations: New conversation keeps the one shown, titled by what the person wrote, the list shows it, and a click goes on with it",
+			"steps": [
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "type": "(+ 1 2)" },
+				{ "key": "enter" },
+				{ "wait": 100 },
+				{ "click": "#assistantNew" },
+				{ "wait": 100 },
+				{ "expect": { "state": "assistant.messages", "is": [] } },
+				{ "expect": { "state": "assistant.conversations[0].title", "is": "(+ 1 2)" } },
+				{ "expect": { "state": "assistant.conversations[0].count", "is": 2 } },
+				{ "click": "#assistantHistoryButton" },
+				{ "wait": 100 },
+				{ "expect": { "state": "assistant.history", "is": true } },
+				{ "click": "#assistantPastOpen0" },
+				{ "wait": 100 },
+				{ "expect": { "state": "assistant.history", "is": false } },
+				{ "expect": { "state": "assistant.conversations", "is": [] } },
+				{ "expect": { "state": "assistant.messages[0].text", "is": "(+ 1 2)" } },
+				{ "expect": { "image": "resumed" } }
+			]
+		},
+		{
 			"name": "assistant-lisp-runs",
 			"screen": "assistant-lisp.screen.lisp",
 			"note": "The Lisp add-on's run cards: ran, denied, waiting for the person's yes, and one only the window may allow",

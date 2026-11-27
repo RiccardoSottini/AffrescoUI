@@ -3,7 +3,8 @@
 /// it: the launcher shows by default (an app that hides it shows it again for an agent, a conversation or a request),
 /// the panel opens on the composer and says when no agent is connected, Escape gives the focus back to the launcher, a
 /// message sent is kept, a request to a connected agent comes back as a proposal card the person accepts or rejects,
-/// and the person points at elements of the app for their next message.
+/// the person points at elements of the app for their next message, and the past conversations are kept, listed, gone
+/// on with and deleted.
 
 #include "AudioWav.hpp"
 #include "Headless.hpp"
@@ -256,6 +257,74 @@ TEST_CASE("assistant add-on: Enter sends the draft, Shift+Enter starts a line, a
 	CHECK(assistant["messages"][0]["text"] == "Bigger\ntitles");
 	CHECK(assistant["open"] == false);       // only the conversation is kept, not whether the panel was open
 	CHECK(again.shown("assistantLauncher")); // a conversation shows the launcher
+}
+
+TEST_CASE("assistant add-on: New conversation keeps the one shown with the past ones, kept across a restart") {
+	const DataFolder data;
+	{
+		Built built(data.path);
+		built.run("test.online");
+		built.run("assistant.open");
+		built.type("Bigger");
+		built.press(affresco::Key::Enter, 0x0001); // Shift: a new line
+		built.type("titles");
+		built.press(affresco::Key::Enter);
+		REQUIRE(built.assistant()["messages"].size() == 2); // the request, and the failed reply
+
+		built.click("assistantNew", "New conversation");
+		json assistant = built.assistant();
+		CHECK(assistant["messages"].empty());
+		CHECK(assistant["conversation"] == "");
+		REQUIRE(assistant["conversations"].size() == 1);
+		CHECK(assistant["conversations"][0]["title"] == "Bigger titles"); // on one line
+		CHECK(assistant["conversations"][0]["count"] == 2);
+		CHECK(assistant["conversations"][0]["messages"].size() == 2);
+		CHECK(built.shown("assistantEmpty"));
+		CHECK(built.focusIn("assistantComposer"));
+
+		built.click("assistantNew", "New conversation"); // an empty conversation isn't kept
+		CHECK(built.assistant()["conversations"].size() == 1);
+
+		// What the host was asked to ask (--ask) starts a conversation of its own
+		built.type("Draft");
+		built.press(affresco::Key::Enter);
+		built.screen.runAction("assistant.start", built.window->root(), R"({"text": "Add a chart"})");
+		built.settle();
+		assistant = built.assistant();
+		REQUIRE(assistant["conversations"].size() == 2);
+		CHECK(assistant["conversations"][0]["title"] == "Draft");
+		REQUIRE_FALSE(assistant["messages"].empty());
+		CHECK(assistant["messages"][0]["text"] == "Add a chart");
+
+		built.click("assistantHistoryButton", "Past conversations");
+		CHECK(built.shown("assistantHistory"));
+		CHECK_FALSE(built.shown("assistantMessages"));
+		CHECK(built.shown("assistantPast1"));
+	}
+	Built again(data.path);
+	again.run("test.online");
+	again.run("assistant.open");
+	json assistant = again.assistant();
+	CHECK(assistant["history"] == false); // whether the list showed isn't kept
+	REQUIRE(assistant["conversations"].size() == 2);
+	CHECK(assistant["messages"][0]["text"] == "Add a chart");
+
+	again.click("assistantHistoryButton", "Past conversations");
+	again.click("assistantPast1", "Bigger titles"); // goes on with it: the one shown takes its place in the list
+	assistant = again.assistant();
+	CHECK(assistant["history"] == false);
+	CHECK(assistant["messages"][0]["text"] == "Bigger\ntitles");
+	REQUIRE(assistant["conversations"].size() == 2);
+	CHECK(assistant["conversations"][0]["title"] == "Add a chart");
+	CHECK(assistant["conversations"][1]["title"] == "Draft");
+	CHECK(assistant["conversation"] != "");
+
+	again.click("assistantHistoryButton", "Past conversations");
+	again.click("assistantPast0", "Delete Add a chart");
+	CHECK(again.assistant()["conversations"].size() == 1);
+	again.click("assistantHistory", "Delete all");
+	CHECK(again.assistant()["conversations"].empty());
+	CHECK(again.shown("assistantHistoryEmpty"));
 }
 
 /// @brief The add-on with an agent connected: the person asks, the agent proposes and replies.
