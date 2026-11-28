@@ -184,9 +184,9 @@ every run tries them again. A broken rule prints
 
 The sanitizer job of `.github/workflows/ci.yml` builds every target with the tests, and runs each for 35 seconds on
 every pull request (`.github/workflows/fuzz.sh`, which finds the targets in the build: a new one needs no edit
-there). `.github/workflows/nightly.yml` runs each for 15 minutes every night and keeps the corpus it grew in the
-Actions cache; every run starts from the latest one, so the search goes on where it stopped. It also runs on demand
-(Actions, "Nightly", "Run workflow"), for as long as you ask. A failing input is uploaded as the `fuzz-found`
+there). `.github/workflows/nightly.yml` runs each for 15 minutes on demand (Actions, "Nightly", "Run workflow", for as long
+as you ask) and on a `v*` tag, not every night for now, and keeps the corpus it grew in the Actions cache; every run
+starts from the latest one, so the search goes on where it stopped. A failing input is uploaded as the `fuzz-found`
 artifact, in a folder named after its target.
 
 ## Files

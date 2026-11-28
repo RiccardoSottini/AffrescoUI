@@ -205,9 +205,9 @@ jobs:
             build/render-check/*.png
             tests/render/golden/
 
-  # Every fuzz target for 60 s, one per core at a time, from the nightly corpus (tests/fuzz/README.md), built as
-  # nightly.yml builds them: on a pull request with the full-ci label only (the nightly fuzzes every target for 15
-  # minutes, and a v* tag does too)
+  # Every fuzz target for 60 s, one per core at a time, from the corpus nightly.yml keeps (tests/fuzz/README.md),
+  # built as nightly.yml builds them: on a pull request with the full-ci label only (nightly.yml fuzzes every target
+  # for 15 minutes on demand and on a v* tag, not every night for now)
   fuzz:
     name: Fuzz
     needs: changes

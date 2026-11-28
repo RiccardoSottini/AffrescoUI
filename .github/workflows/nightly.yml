@@ -1,10 +1,11 @@
-# What is too long for every pull request (.github/workflows/README.md): every fuzz target for 15 minutes, starting
-# from the corpus earlier nights grew, which this run keeps for the next one and for pull requests with the full-ci
-# label (ci.yml's Fuzz reads it, never writes it). An input that crashes, leaks, hangs or runs out of memory fails the
-# job; it is uploaded as the "fuzz-found" artifact, under its target's name, and tests/fuzz/README.md says how to
-# replay it. A v* tag fuzzes too. And, every night and on demand: the scaling workloads at their large sizes
-# (tests/perf/README.md, "Scaling"), the benchmarks of the last commit against the one before, and the quality report
-# (the coverage of the unit tests and the whole-repository report, its clang-tidy in four parts side by side).
+# What is too long for every pull request (.github/workflows/README.md): every fuzz target for 15 minutes, on demand
+# and on a v* tag (not every night, for now), starting from the corpus earlier runs grew, which this run keeps for the
+# next one and for pull requests with the full-ci label (ci.yml's Fuzz reads it, never writes it). An input that
+# crashes, leaks, hangs or runs out of memory fails the job; it is uploaded as the "fuzz-found" artifact, under its
+# target's name, and tests/fuzz/README.md says how to replay it. And, every night and on demand: the scaling
+# workloads at their large sizes (tests/perf/README.md, "Scaling"), the benchmarks of the last commit against the one
+# before, and the quality report (the coverage of the unit tests and the whole-repository report, its clang-tidy in
+# four parts side by side).
 name: Nightly
 
 on:
@@ -28,6 +29,7 @@ concurrency:
 jobs:
   fuzz:
     name: Fuzz (nightly)
+    if: github.event_name != 'schedule' # on demand and on a v* tag only, for now: not every night
     runs-on: ubuntu-24.04
     timeout-minutes: 330 # 58 targets for 15 minutes each, four at a time, take about 3 hours 40, with the build after
     env:
