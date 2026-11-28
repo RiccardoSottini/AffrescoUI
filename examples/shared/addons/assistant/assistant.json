@@ -46,6 +46,12 @@
 			"assistant.rejected": "Rejected",
 			"assistant.closed": "Closed",
 			"assistant.clear": "Clear the conversation",
+			"assistant.newChat": "New conversation",
+			"assistant.history": "Past conversations",
+			"assistant.historyEmpty": "No past conversations yet. Start a new one, and this one is kept here.",
+			"assistant.historyCount": "{n, plural, one {# message} other {# messages}}",
+			"assistant.forget": "Delete {name}",
+			"assistant.forgetAll": "Delete all",
 			"assistant.chooseModel": "Choose the model ({provider})",
 			"assistant.defaultModel": "default",
 			"assistant.attach": "Attach files",
@@ -112,6 +118,12 @@
 			"assistant.rejected": "Rechazado",
 			"assistant.closed": "Cerrado",
 			"assistant.clear": "Borrar la conversación",
+			"assistant.newChat": "Nueva conversación",
+			"assistant.history": "Conversaciones anteriores",
+			"assistant.historyEmpty": "Aún no hay conversaciones anteriores. Empieza una nueva y esta se guarda aquí.",
+			"assistant.historyCount": "{n, plural, one {# mensaje} other {# mensajes}}",
+			"assistant.forget": "Eliminar {name}",
+			"assistant.forgetAll": "Eliminar todas",
 			"assistant.chooseModel": "Elige el modelo ({provider})",
 			"assistant.defaultModel": "predeterminado",
 			"assistant.attach": "Adjuntar archivos",
@@ -178,6 +190,12 @@
 			"assistant.rejected": "Refusé",
 			"assistant.closed": "Fermé",
 			"assistant.clear": "Effacer la conversation",
+			"assistant.newChat": "Nouvelle conversation",
+			"assistant.history": "Conversations précédentes",
+			"assistant.historyEmpty": "Aucune conversation précédente. Commencez-en une nouvelle, et celle-ci est gardée ici.",
+			"assistant.historyCount": "{n, plural, one {# message} other {# messages}}",
+			"assistant.forget": "Supprimer {name}",
+			"assistant.forgetAll": "Tout supprimer",
 			"assistant.chooseModel": "Choisir le modèle ({provider})",
 			"assistant.defaultModel": "par défaut",
 			"assistant.attach": "Joindre des fichiers",
@@ -222,12 +240,14 @@
 		"assistant": { "show": true, "lift": 0, "size": 40, "inset": 16, "floor": 0, "side": "end", "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
 		               "decided": {}, "phase": 0, "simulate": null,
 		               "model": "", "models": null, "modelMenu": false, "canReview": false, "attachments": [], "picked": null,
-		               "pointed": [], "justPointed": null, "pointing": false, "wasOpen": false, "copied": null }
+		               "pointed": [], "justPointed": null, "pointing": false, "wasOpen": false, "copied": null,
+		               "conversation": "", "conversations": [], "history": false }
 	},
 	"watch": {
 		"state.assistant.picked": [{ "if": "{{state.assistant.picked != null}}", "then": [{ "run": "assistant.attachPicked" }] }]
 	},
-	"persist": ["state.assistant.messages", "state.assistant.decided", "state.assistant.model"],
+	"persist": ["state.assistant.messages", "state.assistant.decided", "state.assistant.model", "state.assistant.conversation",
+	            "state.assistant.conversations"],
 	"keys": { "mod+shift+a": "assistant.toggle", "mod+alt+a": "assistant.point" },
 	"components": {
 		"assistantChip": {
@@ -313,6 +333,36 @@
 				]
 			}
 		},
+		"assistantPast": {
+			"note": "A past conversation in the list: its title and when it was, a click goes on with it, and a button deletes it (beside it, so its click is its own)",
+			"params": { "past": {}, "at": 0 },
+			"node": {
+				"alignSelf": "stretch", "height": 52, "color": "transparent", "children": [
+					{ "id": "assistantPastOpen{{at}}", "fill": true, "radius": 8, "color": "transparent", "role": "button",
+					  "focusable": true, "cursor": "hand", "label": "{{past.title}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.resume", "with": { "id": "{{past.id}}" } }],
+					  "children": [
+						{ "type": "label", "text": "{{past.title}}", "textColor": "@assistant.text",
+						  "anchors": { "left": 10, "right": 40, "top": 8 }, "height": 20 },
+						{ "type": "label", "runs": [{ "text": "{{formatDate(past.time, 'medium') + ' · ' + formatTime(past.time, 'short') + ' · ' + t('assistant.historyCount', {n: past.count ?? 0})}}", "size": 12 }],
+						  "textColor": "@assistant.dim", "anchors": { "left": 10, "right": 40, "top": 30 }, "height": 16 }
+					  ] },
+					{ "id": "assistantPastForget{{at}}", "anchors": { "right": 8, "top": 13 }, "width": 26, "height": 26,
+					  "radius": 6, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.forget', {name: past.title})}}", "tooltip": "{{t('assistant.forget', {name: past.title})}}",
+					  "hover": { "color": "@assistant.border" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.forget", "with": { "id": "{{past.id}}" } }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 6, "top": 6 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+						  "d": "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2",
+						  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+					  ] }
+				]
+			}
+		},
 		"assistantExtras": {
 			"note": "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each",
 			"params": { "id": 0, "assets": [], "run": [] },
@@ -349,6 +399,8 @@
 		],
 		"assistant.close": [{ "set": "state.assistant.open", "to": false }, { "focus": "#assistantLauncher" }],
 		"assistant.start": [
+			{ "note": "What the host was asked to ask (its --ask) starts a conversation of its own: the one before is kept with the past ones" },
+			{ "run": "assistant.new" },
 			{ "run": "assistant.open" },
 			{ "run": "assistant.ask", "with": { "text": "{{trim(event.text ?? '')}}" } }
 		],
@@ -359,6 +411,7 @@
 		"assistant.ask": [
 			{ "if": "{{length(text) == 0}}", "then": [{ "stop": true }] },
 			{ "run": "assistant.keepCurrentPoints" },
+			{ "set": "state.assistant.history", "to": false },
 			{ "if": "{{length(state.assistant.attachments) > 0}}", "then": [
 				{ "push": "state.assistant.messages",
 				  "value": "{{ {kind: 'files', mine: true, files: state.assistant.attachments, time: now()} }}" }
@@ -509,8 +562,49 @@
 			{ "set": "state.assistant.modelMenu", "to": false }
 		],
 		"assistant.clear": [
+			{ "note": "Forgets the conversation, without keeping it with the past ones" },
 			{ "set": "state.assistant.messages", "to": [] },
-			{ "set": "state.assistant.decided", "to": {} }
+			{ "set": "state.assistant.conversation", "to": "" }
+		],
+		"assistant.keep": [
+			{ "note": "Keeps the conversation with the past ones, newest first and 50 at most, in place of its earlier copy: titled by its first request, on one line, and dated by its last message" },
+			{ "if": "{{length(state.assistant.messages) > 0}}", "then": [
+				{ "set": "state.assistant.conversations",
+				  "to": "{{slice(concat([{id: state.assistant.conversation != '' ? state.assistant.conversation : text(now()), title: slice(join(split(find(state.assistant.messages, it.mine == true && length(it.text ?? '') > 0).text ?? find(state.assistant.messages, length(it.text ?? '') > 0).text ?? t('assistant.messages'), '\\n'), ' '), 0, 80), time: slice(state.assistant.messages, -1)[0].time ?? now(), count: count(state.assistant.messages, length(it.text ?? '') > 0), messages: state.assistant.messages}], filter(state.assistant.conversations, it.id != state.assistant.conversation)), 0, 50)}}" }
+			] }
+		],
+		"assistant.new": [
+			{ "note": "Starts a new conversation: the one shown is kept with the past ones" },
+			{ "run": "assistant.keep" },
+			{ "set": "state.assistant.messages", "to": [] },
+			{ "set": "state.assistant.conversation", "to": "" },
+			{ "set": "state.assistant.history", "to": false },
+			{ "focus": "#assistantComposer" }
+		],
+		"assistant.history": [
+			{ "note": "Shows the past conversations in place of the one shown, or the conversation again" },
+			{ "set": "state.assistant.history", "to": "{{!state.assistant.history}}" },
+			{ "if": "{{!state.assistant.history}}", "then": [{ "focus": "#assistantComposer" }, { "scrollTo": "#assistantEnd" }] }
+		],
+		"assistant.resume": [
+			{ "note": "with: id, a past conversation's: it is shown again, to go on with, and the one shown is kept with the past ones" },
+			{ "if": "{{some(state.assistant.conversations, it.id == id)}}", "then": [
+				{ "run": "assistant.keep" },
+				{ "set": "state.assistant.messages", "to": "{{find(state.assistant.conversations, it.id == id).messages ?? []}}" },
+				{ "set": "state.assistant.conversation", "to": "{{id}}" },
+				{ "set": "state.assistant.conversations", "to": "{{filter(state.assistant.conversations, it.id != id)}}" },
+				{ "set": "state.assistant.history", "to": false },
+				{ "focus": "#assistantComposer" },
+				{ "scrollTo": "#assistantEnd" }
+			] }
+		],
+		"assistant.forget": [
+			{ "note": "with: id: deletes a past conversation" },
+			{ "set": "state.assistant.conversations", "to": "{{filter(state.assistant.conversations, it.id != id)}}" }
+		],
+		"assistant.forgetAll": [
+			{ "note": "Deletes every past conversation" },
+			{ "set": "state.assistant.conversations", "to": [] }
 		],
 		"assistant.allowRun": [
 			{ "note": "with: id, a run of a command that waits for a yes (the runs variable): it runs now, under its runner's name" },
@@ -526,7 +620,7 @@
 	"overlays": {
 		"assistantLauncher": {
 			"id": "assistantLauncher",
-			"when": "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || state.assistant.show}}", "use": "chatLauncher", "anchors": { "right": "{{state.assistant.side == 'start' ? window.width - state.assistant.inset - state.assistant.size : state.assistant.inset}}", "bottom": "{{state.assistant.inset + state.assistant.floor + state.assistant.lift}}" },
+			"when": "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || length(state.assistant.conversations) > 0 || state.assistant.show}}", "use": "chatLauncher", "anchors": { "right": "{{state.assistant.side == 'start' ? window.width - state.assistant.inset - state.assistant.size : state.assistant.inset}}", "bottom": "{{state.assistant.inset + state.assistant.floor + state.assistant.lift}}" },
 			"with": {
 				"isOpen": "{{state.assistant.open}}", "run": "assistant.toggle", "unread": "{{state.assistant.unread + count(state.assistant.simulate.runs ?? runs, it.state == 'waiting')}}",
 				"label": "{{t(state.assistant.open ? 'assistant.close' : 'assistant.open')}}",
@@ -566,6 +660,30 @@
 					{ "type": "label", "id": "assistantStatus", "role": "status", "live": "polite",
 					  "text": "{{assistantOnline ? t('assistant.online', {n: max(1, length(peers))}) : t('assistant.offline')}}",
 					  "textColor": "@assistant.dim", "anchors": { "left": 30, "top": 30 }, "fitText": true },
+					{ "id": "assistantHistoryButton", "anchors": { "right": 84, "top": 12 }, "width": 32, "height": 32,
+					  "radius": 6, "color": "{{state.assistant.history ? '@assistant.raised' : 'transparent'}}", "role": "button",
+					  "focusable": true, "cursor": "hand", "selected": "{{state.assistant.history}}",
+					  "label": "{{t('assistant.history')}}", "tooltip": "{{t('assistant.history')}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.history" }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 7, "top": 7 }, "width": 18, "height": 18, "viewBox": "0 0 24 24",
+						  "d": "M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
+						  "stroke": "{{state.assistant.history ? '@assistant.accent' : '@assistant.dim'}}", "strokeWidth": 2,
+						  "strokeCap": "round", "strokeJoin": "round" }
+					  ] },
+					{ "id": "assistantNew", "anchors": { "right": 48, "top": 12 }, "width": 32, "height": 32,
+					  "radius": 6, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.newChat')}}", "tooltip": "{{t('assistant.newChat')}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.new" }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 7, "top": 7 }, "width": 18, "height": 18, "viewBox": "0 0 24 24",
+						  "d": "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.4 2.6a2.1 2.1 0 0 1 3 3L12 15l-4 1l1-4Z",
+						  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+					  ] },
 					{ "id": "assistantClose", "anchors": { "right": 12, "top": 12 }, "width": 32, "height": 32,
 					  "radius": 6, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
 					  "label": "{{t('assistant.close')}}", "tooltip": "{{t('assistant.close')}}",
@@ -586,7 +704,25 @@
 					  "wrap": true, "anchors": { "left": 16, "right": 16, "top": 8, "bottom": 8 } }
 				] },
 				{ "grow": 1, "alignSelf": "stretch", "color": "transparent", "children": [
-					{ "type": "grid", "id": "assistantMessages", "columns": ["1fr", 8], "columnGap": 0, "rowGap": 8,
+					{ "type": "column", "id": "assistantHistory", "when": "{{state.assistant.history}}", "gap": 2,
+					  "scroll": "vertical", "anchors": { "left": 12, "right": 12, "top": 12, "bottom": 0 },
+					  "role": "list", "label": "{{t('assistant.history')}}", "children": [
+						{ "id": "assistantHistoryHead", "alignSelf": "stretch", "height": 30, "color": "transparent", "children": [
+							{ "type": "label", "runs": [{ "text": "{{t('assistant.history')}}", "bold": true }], "role": "heading",
+							  "textColor": "@assistant.text", "anchors": { "left": 4, "top": 4 }, "fitText": true },
+							{ "type": "label", "id": "assistantForgetAll", "when": "{{length(state.assistant.conversations) > 0}}",
+							  "text": "{{t('assistant.forgetAll')}}", "label": "{{t('assistant.forgetAll')}}", "textColor": "@assistant.dim", "anchors": { "right": 4, "top": 4 },
+							  "fitText": true, "role": "button", "focusable": true, "cursor": "hand",
+							  "hover": { "textColor": "@assistant.danger" }, "focused": { "textColor": "@assistant.danger" },
+							  "onClick": [{ "run": "assistant.forgetAll" }] }
+						] },
+						{ "type": "label", "id": "assistantHistoryEmpty", "when": "{{length(state.assistant.conversations) == 0}}",
+						  "text": "{{t('assistant.historyEmpty')}}", "textColor": "@assistant.dim", "wrap": true,
+						  "alignSelf": "stretch", "height": 44, "padding": 4 },
+						{ "id": "assistantPast{{c}}", "repeat": { "for": "past", "in": "state.assistant.conversations", "index": "c" },
+						  "use": "assistantPast", "with": { "past": "{{past}}", "at": "{{c}}" } }
+					] },
+					{ "type": "grid", "id": "assistantMessages", "when": "{{!state.assistant.history}}", "columns": ["1fr", 8], "columnGap": 0, "rowGap": 8,
 					  "scroll": "vertical", "anchors": { "left": 12, "right": 12, "top": 12, "bottom": 0 },
 					  "role": "list", "label": "{{t('assistant.messages')}}",
 					  "let": { "assistantCount": "{{length(state.assistant.messages)}}",

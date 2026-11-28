@@ -24,6 +24,12 @@
                 :assistant.rejected "Rechazado"
                 :assistant.closed "Cerrado"
                 :assistant.clear "Borrar la conversación"
+                :assistant.newChat "Nueva conversación"
+                :assistant.history "Conversaciones anteriores"
+                :assistant.historyEmpty "Aún no hay conversaciones anteriores. Empieza una nueva y esta se guarda aquí."
+                :assistant.historyCount "{n, plural, one {# mensaje} other {# mensajes}}"
+                :assistant.forget "Eliminar {name}"
+                :assistant.forgetAll "Eliminar todas"
                 :assistant.chooseModel "Elige el modelo ({provider})"
                 :assistant.defaultModel predeterminado
                 :assistant.attach "Adjuntar archivos"

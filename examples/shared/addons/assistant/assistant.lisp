@@ -58,7 +58,10 @@
    :pointing false
    :wasOpen false
    :copied nil
-   :codeFont "default"})
+   :codeFont "default"
+   :conversation ""
+   :conversations []
+   :history false})
 
 (def assistant-new-file
   "The file of the program a definition evaluated from the field lands in, when the program has none of that name."
@@ -177,6 +180,60 @@ how many other forms it runs, and whether the person typed it all (describe-form
      ~(assistant-unpoint-button item removable)
      {:width 4 :height 1 :color transparent}))
 
+(defcomponent assistantPast
+  ;; A past conversation in the list: its title and when it was, a click goes on with it, and a button deletes it
+  ;; (beside it, so its click is its own)
+  "A past conversation in the list: its title and when it was, a click goes on with it, and a button deletes it (beside it, so its click is its own)"
+  {:past {} :at 0}
+  `(node :alignSelf stretch :height 52 :color transparent
+     (node :id ~(str "assistantPastOpen" at)
+       :fill true
+       :radius 8
+       :color transparent
+       :role button
+       :focusable true
+       :cursor hand
+       :label ~past.title
+       :hover {:color @assistant.raised}
+       :focused {:borderWidth 1 :borderColor @assistant.accent}
+       :onClick ~(handler assistant-resume past.id)
+       (label :text ~past.title
+         :textColor @assistant.text
+         :anchors {:left 10 :right 40 :top 8}
+         :height 20)
+       (label :runs [{:text ~(str (formatDate past.time "medium")
+                                  " · "
+                                  (formatTime past.time "short")
+                                  " · "
+                                  (t "assistant.historyCount" {:n (or-else past.count 0)}))
+                      :size 12}]
+         :textColor @assistant.dim
+         :anchors {:left 10 :right 40 :top 30}
+         :height 16))
+     (node :id ~(str "assistantPastForget" at)
+       :anchors {:right 8 :top 13}
+       :width 26
+       :height 26
+       :radius 6
+       :color transparent
+       :role button
+       :focusable true
+       :cursor hand
+       :label ~(t "assistant.forget" {:name past.title})
+       :tooltip ~(t "assistant.forget" {:name past.title})
+       :hover {:color @assistant.border}
+       :focused {:borderWidth 1 :borderColor @assistant.accent}
+       :onClick ~(handler assistant-forget past.id)
+       (path :anchors {:left 6 :top 6}
+         :width 14
+         :height 14
+         :viewBox "0 0 24 24"
+         :d "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+         :stroke @assistant.dim
+         :strokeWidth 2
+         :strokeCap round
+         :strokeJoin round))))
+
 (defcomponent assistantExtras
   ;; What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is
   ;; previewed) and its run-once steps, a line each
@@ -239,6 +296,7 @@ the request (whose picks are spent once sent)."
   [text]
   (when (seq text)
     (assistant-keep-current-points)
+    (set "state.assistant.history" false)
     (when (seq state.assistant.attachments)
       (push "state.assistant.messages"
             :value {:kind "files" :mine true :files state.assistant.attachments :time (now)}))
@@ -256,7 +314,11 @@ the request (whose picks are spent once sent)."
     (set "state.assistant.pointed" [])
     (scrollTo "#assistantEnd")))
 
-(defn assistant-start "Opens the panel and asks what the app was given (event.text): the host's own way in." []
+(defn assistant-start
+  "Opens the panel and asks what the app was given (event.text), the host's own way in, in a conversation of its own:
+the one before is kept with the past ones."
+  []
+  (assistant-new)
   (assistant-open)
   (assistant-ask (str/trim (or event.text ""))))
 
@@ -505,9 +567,76 @@ rendering check) models stays nil and the picker hides."
        (if (= id (:default (or state.assistant.simulate.models state.assistant.models))) "" id))
   (set "state.assistant.modelMenu" false))
 
-(defn assistant-clear "Empties the conversation." []
+(defn assistant-clear "Forgets the conversation, without keeping it with the past ones." []
   (set "state.assistant.messages" [])
-  (set "state.assistant.decided" {}))
+  (set "state.assistant.conversation" ""))
+
+(defn assistant-said-text? "Whether a message says something in words: a request, a reply, a note, code." [message]
+  (seq (:text message)))
+
+(defn assistant-asked-text? "Whether a message is the person's, in words: a request or code." [message]
+  (and (true? (:mine message)) (assistant-said-text? message)))
+
+(defn assistant-first-text "The words of the first message that passes, or nil." [pass? messages]
+  (:text (first (filter pass? messages))))
+
+(defn assistant-title "A conversation's title: its first request (else its first words), on one line, 80 characters at most."
+  [messages]
+  (let [text (or-else (assistant-first-text assistant-asked-text? messages)
+                      (assistant-first-text assistant-said-text? messages)
+                      (t "assistant.messages"))]
+    (->> (str/split (assistant-run-text text) "") (take 80) (str/join ""))))
+
+(defn assistant-keep
+  "Keeps the conversation with the past ones, newest first and 50 at most, in place of its earlier copy: titled by its
+first request, and dated by its last message."
+  []
+  (let [messages state.assistant.messages
+        id state.assistant.conversation]
+    (when (seq messages)
+      (set "state.assistant.conversations"
+           (->> state.assistant.conversations
+                (remove #(= (:id %) id))
+                (concat [{:id (if (= id "") (text (now)) id)
+                          :title (assistant-title messages)
+                          :time (or-else (:time (last messages)) (now))
+                          :count (count (filter assistant-said-text? messages))
+                          :messages messages}])
+                (take 50)
+                vec)))))
+
+(defn assistant-new "Starts a new conversation: the one shown is kept with the past ones." []
+  (assistant-keep)
+  (set "state.assistant.messages" [])
+  (set "state.assistant.conversation" "")
+  (set "state.assistant.history" false)
+  (focus "#assistantComposer"))
+
+(defn assistant-toggle-history "Shows the past conversations in place of the one shown, or the conversation again." []
+  (let [showing (not state.assistant.history)]
+    (set "state.assistant.history" showing)
+    (when-not showing
+      (focus "#assistantComposer")
+      (scrollTo "#assistantEnd"))))
+
+(defn assistant-past "The past conversation of this id, or nil." [id]
+  (first (filter #(= (:id %) id) state.assistant.conversations)))
+
+(defn assistant-resume "Shows a past conversation again, to go on with: the one shown is kept with the past ones." [id]
+  (when-some [past (assistant-past id)]
+    (assistant-keep)
+    (set "state.assistant.messages" (or-else (:messages past) []))
+    (set "state.assistant.conversation" id)
+    (set "state.assistant.conversations" (vec (remove #(= (:id %) id) state.assistant.conversations)))
+    (set "state.assistant.history" false)
+    (focus "#assistantComposer")
+    (scrollTo "#assistantEnd")))
+
+(defn assistant-forget "Deletes a past conversation." [id]
+  (set "state.assistant.conversations" (vec (remove #(= (:id %) id) state.assistant.conversations))))
+
+(defn assistant-forget-all "Deletes every past conversation." []
+  (set "state.assistant.conversations" []))
 
 (defn assistant-allow-run "Runs a command a peer asked for that waits for a yes (the runs variable), under its name."
   [id]
@@ -555,7 +684,8 @@ rendering check) models stays nil and the picker hides."
 (defpart assistant "The assistant's watch, persist, actions (each a function, by the name keys, components and apps
 run) and overlays: its launcher and its panel."
   :watch {:state.assistant.picked assistant-picked}
-  :persist [state.assistant.messages state.assistant.decided state.assistant.model]
+  :persist [state.assistant.messages state.assistant.decided state.assistant.model state.assistant.conversation
+            state.assistant.conversations]
   :actions {:assistant.toggle [{:lisp assistant-toggle}]
             :assistant.open [{:lisp assistant-open}]
             :assistant.close [{:lisp assistant-close}]
@@ -583,6 +713,12 @@ run) and overlays: its launcher and its panel."
             :assistant.loadModels [{:lisp assistant-load-models}]
             :assistant.pickModel [{:lisp assistant-pick-model}]
             :assistant.clear [{:lisp assistant-clear}]
+            :assistant.keep [{:lisp assistant-keep}]
+            :assistant.new [{:lisp assistant-new}]
+            :assistant.history [{:lisp assistant-toggle-history}]
+            :assistant.resume [{:lisp assistant-resume}]
+            :assistant.forget [{:lisp assistant-forget}]
+            :assistant.forgetAll [{:lisp assistant-forget-all}]
             :assistant.allowRun [{:lisp assistant-allow-run}]
             :assistant.alwaysAllowRun [{:lisp assistant-always-allow-run}]
             :assistant.denyRun [{:lisp assistant-deny-run}]
@@ -590,6 +726,7 @@ run) and overlays: its launcher and its panel."
   :overlays {:assistantLauncher (node#assistantLauncher :when ~(or (or-else state.assistant.simulate.online
                                                                             (pos? (count peers)))
                                                                    (pos? (count state.assistant.messages))
+                                                                   (pos? (count state.assistant.conversations))
                                                                    state.assistant.show)
                                   :use chatLauncher
                                   :anchors {:right ~(if (= state.assistant.side :start)
@@ -724,6 +861,8 @@ run) and overlays: its launcher and its panel."
        :textColor @assistant.dim
        :anchors {:left 30 :top 30}
        :fitText true)
+     ~(assistant-history-button)
+     ~(assistant-new-button)
      (node#assistantClose :anchors {:right 12 :top 12}
        :width 32
        :height 32
@@ -740,6 +879,90 @@ run) and overlays: its launcher and its panel."
        {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate 45 :color @assistant.dim}
        {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate -45 :color @assistant.dim})
      {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @assistant.border}))
+
+(defview assistant-history-button "The header's button that shows the past conversations, lit while they show." []
+  `(node#assistantHistoryButton :anchors {:right 84 :top 12}
+     :width 32
+     :height 32
+     :radius 6
+     :color ~(if state.assistant.history "@assistant.raised" "transparent")
+     :role button
+     :focusable true
+     :cursor hand
+     :selected ~state.assistant.history
+     :label ~(t "assistant.history")
+     :tooltip ~(t "assistant.history")
+     :hover {:color @assistant.raised}
+     :focused {:borderWidth 1 :borderColor @assistant.accent}
+     :onClick assistant-toggle-history
+     (path :anchors {:left 7 :top 7}
+       :width 18
+       :height 18
+       :viewBox "0 0 24 24"
+       :d "M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2"
+       :stroke ~(if state.assistant.history "@assistant.accent" "@assistant.dim")
+       :strokeWidth 2
+       :strokeCap round
+       :strokeJoin round)))
+
+(defview assistant-new-button "The header's button that starts a new conversation." []
+  `(node#assistantNew :anchors {:right 48 :top 12}
+     :width 32
+     :height 32
+     :radius 6
+     :color transparent
+     :role button
+     :focusable true
+     :cursor hand
+     :label ~(t "assistant.newChat")
+     :tooltip ~(t "assistant.newChat")
+     :hover {:color @assistant.raised}
+     :focused {:borderWidth 1 :borderColor @assistant.accent}
+     :onClick assistant-new
+     (path :anchors {:left 7 :top 7}
+       :width 18
+       :height 18
+       :viewBox "0 0 24 24"
+       :d "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.4 2.6a2.1 2.1 0 0 1 3 3L12 15l-4 1l1-4Z"
+       :stroke @assistant.dim
+       :strokeWidth 2
+       :strokeCap round
+       :strokeJoin round)))
+
+(defview assistant-history "The past conversations, newest first, in place of the one shown." []
+  `(column#assistantHistory :when ~state.assistant.history
+     :gap 2
+     :scroll vertical
+     :anchors {:left 12 :right 12 :top 12 :bottom 0}
+     :role list
+     :label ~(t "assistant.history")
+     (node#assistantHistoryHead :alignSelf stretch :height 30 :color transparent
+       (label :runs [{:text ~(t "assistant.history") :bold true}]
+         :role heading
+         :textColor @assistant.text
+         :anchors {:left 4 :top 4}
+         :fitText true)
+       (label#assistantForgetAll :when ~(pos? (count state.assistant.conversations))
+         :text ~(t "assistant.forgetAll")
+         :label ~(t "assistant.forgetAll")
+         :textColor @assistant.dim
+         :anchors {:right 4 :top 4}
+         :fitText true
+         :role button
+         :focusable true
+         :cursor hand
+         :hover {:textColor @assistant.danger}
+         :focused {:textColor @assistant.danger}
+         :onClick assistant-forget-all))
+     (label#assistantHistoryEmpty :when ~(zero? (count state.assistant.conversations))
+       :text ~(t "assistant.historyEmpty")
+       :textColor @assistant.dim
+       :wrap true
+       :alignSelf stretch
+       :height 44
+       :padding 4)
+     ~(repeat [past state.assistant.conversations :index c]
+       `(node :id ~(str "assistantPast" c) :use assistantPast :with {:past ~past :at ~c}))))
 
 (defview assistant-copy "A message's Copy button, its id `prefix` and the message's place." [message m prefix]
   `(node :id ~(str prefix m)
@@ -963,7 +1186,8 @@ it waits for a yes, and Undo once it ran."
             :buttonColor @assistant.raised}))
 
 (defview assistant-messages "The conversation, newest last, scrolled to the end." []
-  `(grid#assistantMessages :columns ["1fr" 8]
+  `(grid#assistantMessages :when ~(not state.assistant.history)
+     :columns ["1fr" 8]
      :columnGap 0
      :rowGap 8
      :scroll vertical
@@ -1283,6 +1507,7 @@ while the draft is a request: building it would build the field again, and the c
      ~(assistant-header)
      ~(assistant-offline-note)
      (node :grow 1 :alignSelf stretch :color transparent
+       ~(assistant-history)
        ~(assistant-messages))
      (node#assistantInput :alignSelf stretch
        :color transparent

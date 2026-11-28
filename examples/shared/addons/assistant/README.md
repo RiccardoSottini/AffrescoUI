@@ -24,6 +24,12 @@ screen without meeting the app's own names.
   Launcher's Settings (the host then runs an agent of its own, `modules/intelligence`, for an app whose `app.json`
   declares the `assistant` capability and that the person allowed it), or to connect an agent over MCP. An empty conversation shows three suggestions
   to ask with a click.
+- **Past conversations**: *New conversation* (the pen in the header) keeps the one shown
+  with the past ones and empties the panel, and *Past conversations* (the clock beside it) lists them in place of the
+  conversation, newest first, 50 at most, each with its title (its first request, on one line), when it was and how many
+  messages it has. A click goes on with one where it was (the one shown joins the list in its place), its bin deletes
+  it, and *Delete all* deletes them all. Sending a message goes back to the conversation. What the host was asked to ask
+  (its `--ask`, e.g. a new app's first request from the Launcher) starts a conversation of its own.
 - **The conversation**, as Claude Code and Codex show one: the person's messages in soft bubbles, the replies as plain
   text, each with *Copy* (to the clipboard) and *Retry* (asks the request it answered again), a typing indicator
   while a request is being worked on,
@@ -121,15 +127,19 @@ All in `state.assistant`:
 | `pointing` | Whether the person is pointing now |
 | `justPointed`, `wasOpen` | The record just picked, and whether the panel was open, while pointing |
 | `copied` | The place of the message just copied, for a moment, or `null` |
+| `conversation` | The id of the conversation shown once it was kept with the past ones, or `""` for a new one (persisted) |
+| `conversations` | The past conversations, newest first, 50 at most: `{ id, title, time, count, messages }`, `time` being its last message's and `count` its messages with words (persisted) |
+| `history` | Whether the past conversations show in place of the conversation |
 | `simulate` | For tests only: see below |
 
-`messages`, `decided` and `model` are persisted (`persist`); whether the panel is open is not.
+`messages`, `decided`, `model`, `conversation` and `conversations` are persisted (`persist`); whether the panel is
+open, or the list shows, is not.
 
 | Action | What it does |
 |---|---|
 | `assistant.toggle`, `assistant.open`, `assistant.close` | Open and close the panel |
 | `assistant.ask` | Sends `text` (with `{ "text": … }`) as a request, as the suggestions do |
-| `assistant.start` | Opens the panel and sends `event.text` as a request: what the host's `--ask TEXT` runs once the window is up |
+| `assistant.start` | Starts a new conversation, opens the panel and sends `event.text` as a request: what the host's `--ask TEXT` runs once the window is up |
 | `assistant.send` | Sends the draft and empties it; in the Lisp version a draft that is Lisp is evaluated instead |
 | `assistant.askDraft` | Sends the draft as a request, Lisp or not (*Ask instead*, Cmd+Enter) |
 | `assistant.preview`, `assistant.accept`, `assistant.reject` | Review the proposal `id` |
@@ -142,7 +152,11 @@ All in `state.assistant`:
 | `assistant.point` | Lets the person point at an element for the next message (from a click or a key of theirs: a pick starts only from the person's own input) |
 | `assistant.unpoint` | Takes the element `id` (a record's) from the next message |
 | `assistant.showSource` | Asks the host to show where the element `record` is written (`changes.open`); a host without it does nothing |
-| `assistant.clear` | Forgets the conversation |
+| `assistant.clear` | Forgets the conversation, without keeping it with the past ones |
+| `assistant.new` | Keeps the conversation with the past ones (`assistant.keep`) and starts a new one |
+| `assistant.history` | Shows the past conversations, or the conversation again |
+| `assistant.resume` | Goes on with the past conversation `id`, keeping the one shown in its place |
+| `assistant.forget`, `assistant.forgetAll` | Delete the past conversation `id`, or all of them |
 | `assistant.allowRun`, `assistant.alwaysAllowRun`, `assistant.denyRun` | Run the waiting run `run`, run it and grant its agent that command, or refuse it, from its card |
 | `assistant.undoRun` | Puts back what the run `run` changed |
 
