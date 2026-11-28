@@ -54,6 +54,15 @@ private:
 /// @throws PackagesFailure If it can't be installed: nothing is left in the writable root.
 [[nodiscard]] json installVersion(const PackagesGrant& grant, const json& with, const std::stop_token& stop);
 
+/// @brief `setAside`: sets aside the data the data folder keeps for a folder of the writable root
+/// (Screen::setDataAside()), once its app is deleted or before a new app there opens, so a new app of an old one's
+/// name starts empty. Nothing is erased.
+/// @param grant What the service may touch.
+/// @param with `{app}`: the folder's name.
+/// @return `{moved}`: how many were set aside.
+/// @throws PackagesFailure If the name isn't a folder's, or one couldn't be moved (the others are).
+[[nodiscard]] json setAsideData(const PackagesGrant& grant, const json& with);
+
 /// @brief `catalogue`: the entries of the granted catalogue (PackagesCatalogue), its index read and checked again.
 /// @param grant What the service may touch.
 /// @return `{name, updated, signed, entries: [{id, kind, title, description, release, base, installed}]}`: kind is

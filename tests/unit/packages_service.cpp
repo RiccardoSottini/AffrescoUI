@@ -324,3 +324,34 @@ TEST_CASE("packages service: an app that isn't one, and a grant with nowhere to 
 		          detail::installVersion(readOnly, {{"package", package}, {"id", "x"}, {"name", "X"}}, {}));
 	      }).first == "refused");
 }
+
+TEST_CASE("packages service: setAside sets a folder's data aside, its name a folder's, and install does it first") {
+	const Folders folders = changedCopy("affrescoui-packages-service-aside");
+	const fs::path own = affresco::Screen::appDataDirectory(folders.data, "notes", folders.apps / "my-notes");
+	REQUIRE(fs::exists(own / "location"));
+	fs::remove_all(folders.apps / "my-notes"); // deleted: its history stays until it is set aside
+	CHECK(detail::setAsideData(folders.grant(), {{"app", "my-notes"}})["moved"].get<std::size_t>() >= 1);
+	CHECK_FALSE(fs::exists(own));
+	CHECK(detail::setAsideData(folders.grant(), {{"app", "my-notes"}})["moved"] == 0); // nothing left to move
+	for(const char* path : {"../data", "a/b", "/tmp", "My Notes", ""})
+		CHECK(failure([&] { static_cast<void>(detail::setAsideData(folders.grant(), {{"app", path}})); }).first ==
+		      "invalid");
+	affresco::PackagesGrant readOnly = folders.grant();
+	readOnly.writable.clear();
+	CHECK(failure([&] { static_cast<void>(detail::setAsideData(readOnly, {{"app", "my-notes"}})); }).first ==
+	      "refused");
+
+	// An app installed where one was deleted in Finder opens with none of its data: its folder is set aside first
+	writeNotes(folders.apps / "again");
+	{
+		const affresco::Screen first = affresco::Screen::fromApp(folders.apps / "again", folders.data);
+	}
+	const fs::path again = affresco::Screen::appDataDirectory(folders.data, "notes", folders.apps / "again");
+	write(again / "state.json", R"({"/title": "the old one's"})");
+	fs::remove_all(folders.apps / "again");
+	const json whole = {{"root", "examples"}, {"app", "notes"}, {"name", "Notes"}, {"whole", true}};
+	const json package = detail::exportVersion(folders.grant(), whole, {})["package"];
+	static_cast<void>(
+	    detail::installVersion(folders.grant(), {{"package", package}, {"id", "again"}, {"name", "Again"}}, {}));
+	CHECK_FALSE(fs::exists(again / "state.json"));
+}

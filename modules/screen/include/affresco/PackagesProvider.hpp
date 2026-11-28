@@ -7,8 +7,10 @@
 /// in a granted root (its changes, or the app as a whole), `inspect` says what installing one would do, and `install`
 /// makes a new folder in the writable root from one, its changes waiting as a proposal only the person accepts
 /// (VERSION_CONTROL.md, "Installing a package"). With a catalogue granted, `catalogue` lists its entries, and
-/// `inspect` and `install` take one of them in place of a package (`catalogue/README.md`). Arguments, results and
-/// errors name the roots, never a path.
+/// `inspect` and `install` take one of them in place of a package (`catalogue/README.md`). `setAside` sets aside the
+/// data kept for a folder of the writable root (Screen::setDataAside()), its app deleted or a new one about to open
+/// there, as `install` does before it writes, so that a new app of an old one's name starts empty. Arguments, results
+/// and errors name the roots, never a path.
 
 #include "affresco/services/Provider.hpp"
 

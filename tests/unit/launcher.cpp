@@ -464,6 +464,63 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	CHECK(built.failed() == 0);
 }
 
+TEST_CASE("launcher: a new app of an old one's name starts with none of its data, which is set aside, not erased") {
+	const TemporaryFolder folder;
+	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	const fs::path data = folder.path() / "data";
+	fs::create_directories(apps);
+	// What apps of these names left, their folders deleted in Finder: a bare screen's and an app's, and another's
+	const auto record = [](const fs::path& place) { return fs::weakly_canonical(place).string() + "\n"; };
+	writeFile(data / "garden-planner.location", record(apps / "garden-planner" / "index.screen.json"));
+	writeFile(data / "garden-planner.state.json", R"({"/assistant": "the old chat"})");
+	writeFile(data / "apps" / "flow~0123456789ab" / "location", record(apps / "team-board" / "json"));
+	writeFile(data / "apps" / "flow~0123456789ab" / "state.json", R"({"/assistant": "the old chat"})");
+	writeFile(data / "apps" / "flow" / "location", record(examples / "flow" / "json"));
+	const auto grant = [&](affresco::Screen& screen) {
+		screen.services().addRoot("examples", examples, true);
+		screen.services().addRoot("apps", apps);
+		affresco::PackagesGrant packages; // the host's grant: it sets the data aside
+		packages.roots = {{"examples", examples}, {"apps", apps}};
+		packages.writable = "apps";
+		packages.dataDirectory = data;
+		screen.services().add(affresco::makePackagesProvider(std::move(packages)));
+	};
+	const json scenarios = json::parse(R"json([{ "name": "again", "steps": [
+		{ "key": "mod+n" },
+		{ "click": "#createName" },
+		{ "type": "Garden planner" },
+		{ "key": "enter" },
+		{ "wait": 10 },
+		{ "expect": { "state": "mine[0].id", "is": "garden-planner" } },
+		{ "key": "mod+n" },
+		{ "click": "#createName" },
+		{ "type": "Team board" },
+		{ "click": { "role": "radio", "name": "Flow" } },
+		{ "key": "mod+enter" },
+		{ "wait": 10 },
+		{ "expect": { "state": "mine.length", "is": 2 } }
+	] }])json");
+	for(const char* notation : {"json", "lisp"}) {
+		CAPTURE(notation);
+		fs::remove_all(apps / "garden-planner");
+		fs::remove_all(apps / "team-board");
+		const fs::path launcher = examples / "launcher" / notation / (std::string("index.screen.") + notation);
+		const automation::Report report = play(scenarios, launcher, "", grant);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+		CHECK(fs::exists(apps / "garden-planner"));
+		CHECK_FALSE(fs::exists(data / "garden-planner.state.json"));
+		CHECK_FALSE(fs::exists(data / "apps" / "flow~0123456789ab"));
+		CHECK(fs::exists(data / "apps" / "flow" / "location")); // the example's own stays
+	}
+	int aside = 0; // each kept beside, renamed
+	for(const auto& entry : fs::directory_iterator(data))
+		aside += entry.path().filename().string().starts_with("garden-planner.state.json.replaced-") ? 1 : 0;
+	for(const auto& entry : fs::directory_iterator(data / "apps"))
+		aside += entry.path().filename().string().starts_with("flow~0123456789ab.replaced-") ? 1 : 0;
+	CHECK(aside == 2);
+}
+
 TEST_CASE("launcher: with Lisp chosen in Settings, an app is created from an example written as a program, listed, "
           "duplicated and opened") {
 	const TemporaryFolder folder;

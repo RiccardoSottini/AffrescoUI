@@ -247,18 +247,11 @@ void giveSeeds(json& document, const AppFolder& app) {
 /// @param appData The app's data folder, which doesn't exist yet.
 void adoptOldData(const std::filesystem::path& dataDirectory, const std::filesystem::path& entry,
                   const std::filesystem::path& appData) {
-	static constexpr std::array<std::array<std::string_view, 2>, 7> moves = {
-	    {{".history", "history"},
-		 {".state.json", "state.json"},
-		 {".state.json.before-data.json", "state.json.before-data.json"},
-		 {".data.sqlite", "data.sqlite"},
-		 {".data.sqlite-wal", "data.sqlite-wal"},
-		 {".data.sqlite-shm", "data.sqlite-shm"},
-		 {".usage.json", "usage.json"}}};
 	std::error_code error;
 	std::filesystem::create_directories(appData, error);
 	if(error) return; // the history and state files report it
-	for(const auto& [old, now] : moves) {
+	for(const std::string_view old : detail::screenDataSuffixes) {
+		const std::string_view now = old.substr(1); // "<name>.state.json" is the app folder's "state.json"
 		const std::filesystem::path from = detail::stateLocation(dataDirectory, entry, old);
 		if(!std::filesystem::exists(from, error) || std::filesystem::exists(appData / now, error)) continue;
 		std::filesystem::rename(from, appData / now, error);

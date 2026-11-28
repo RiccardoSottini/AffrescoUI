@@ -466,6 +466,7 @@ private:
 			if(method == "export") result = exportVersion(grant_, with, stop);
 			else if(method == "inspect") result = inspectVersion(grant_, with);
 			else if(method == "catalogue") result = catalogueEntries(grant_);
+			else if(method == "setAside") result = setAsideData(grant_, with);
 			else result = installVersion(grant_, with, stop);
 			call.finish(std::move(result));
 		} catch(const PackagesFailure& failure) {
@@ -494,7 +495,7 @@ public:
 	/// @return It.
 	std::string_view about() const override {
 		return "the host's apps exported as one shared file, and shared files or a catalogue's entries reviewed and "
-		       "installed as new apps";
+		       "installed as new apps, and the data of an app deleted set aside";
 	}
 	/// @brief The JSON Schema of its configuration.
 	/// @return An empty object: it takes none.
@@ -502,7 +503,7 @@ public:
 		return {{"type", "object"}, {"additionalProperties", false}, {"properties", json::object()}};
 	}
 	/// @brief Its methods.
-	/// @return export, inspect, install and catalogue.
+	/// @return export, inspect, install, catalogue and setAside.
 	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const auto text = [](std::size_t most) { return json{{"type", "string"}, {"maxLength", most}}; };
 		const json named = {{"type", "string"}, {"minLength", 1}, {"maxLength", maxShortText}};
@@ -557,7 +558,17 @@ public:
 			 false,
 			 {{"type", "object"}, {"properties", json::object()}, {"additionalProperties", false}},
 			 "the entries of the catalogue the host grants: {name, updated, signed, entries: [{id, kind, title, "
-			 "description, release, base, installed}]}"}};
+			 "description, release, base, installed}]}"},
+		    {"setAside",
+			 Effect::Write,
+			 false,
+			 false,
+			 {{"type", "object"},
+			  {"required", {"app"}},
+			  {"properties", {{"app", named}}},
+			  {"additionalProperties", false}},
+			 "sets aside (never erases) the data kept for a folder of the writable root, its app deleted or a new one "
+			 "about to open there, so that it starts empty: {moved}"}};
 	}
 	/// @brief Creates the service. Main thread.
 	/// @param context What it works with: whether calls run at once.
@@ -709,7 +720,31 @@ bool proposeOn(const PackagesGrant& grant, const fs::path& manifest, const std::
 	return result.status == RevisionStatus::Proposed;
 }
 
+/// @brief Sets aside the data kept for a folder of the writable root (Screen::setDataAside()).
+/// @param grant What the service may touch: its data folder (none: nothing is kept, nothing to do).
+/// @param folder The folder's name (an app's id).
+/// @return How many were set aside.
+/// @throws PackagesFailure If one couldn't be moved: the log says where, a screen is never told the data folder's
+/// paths.
+std::size_t setAside(const PackagesGrant& grant, const std::string& folder) {
+	if(grant.dataDirectory.empty()) return 0;
+	try {
+		return Screen::setDataAside(grant.dataDirectory, rootNamed(grant, grant.writable) / folder).size();
+	} catch(const ScreenError&) {
+		throw PackagesFailure("failed", "the data an earlier app at " + grant.writable + ":" + folder +
+		                                    " left couldn't be set aside");
+	}
+}
+
 } // namespace
+
+json setAsideData(const PackagesGrant& grant, const json& with) {
+	const std::string folder = with.at("app").get<std::string>();
+	if(!isAppId(folder)) throw PackagesFailure("invalid", "app: expected the name of an app's folder, not a path");
+	if(grant.writable.empty() || !grant.roots.contains(grant.writable))
+		throw PackagesFailure("refused", "no root is granted to install into");
+	return {{"moved", setAside(grant, folder)}};
+}
 
 json installVersion(const PackagesGrant& grant, const json& with, const std::stop_token& stop) {
 	const std::string id = with.at("id").get<std::string>(), name = with.at("name").get<std::string>();
@@ -728,6 +763,7 @@ json installVersion(const PackagesGrant& grant, const json& with, const std::sto
 
 	const fs::path target = rootNamed(grant, grant.writable) / id;
 	MadeFolder made(target, id, grant.writable);
+	(void)setAside(grant, id); // a folder of that name deleted earlier left its data: the new app starts with none
 	const std::string sub = placeFiles(package, base, target, stop);
 	const fs::path folder = sub.empty() ? target : target / sub;
 	// what goes in is what inspecting it showed, or nothing (the folder made is removed)

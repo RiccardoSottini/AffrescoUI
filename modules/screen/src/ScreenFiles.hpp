@@ -7,6 +7,7 @@
 #include "ScreenSources.hpp"
 #include "affresco/core/Json.hpp"
 
+#include <array>
 #include <filesystem>
 #include <functional>
 #include <span>
@@ -40,6 +41,12 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 /// @throws ScreenError If both are recorded as other places'.
 std::string boundDataName(const std::function<std::filesystem::path(const std::string&)>& recordOf,
                           const std::string& name, const std::filesystem::path& location);
+
+/// @brief What fromFile() keeps of a screen file in the data folder, each after its name (stateLocation()):
+/// "habits.history", "habits.state.json", ... Its `<name>.location` record is beside them.
+inline constexpr std::array<std::string_view, 7> screenDataSuffixes = {
+    ".history",         ".state.json", ".state.json.before-data.json", ".data.sqlite", ".data.sqlite-wal",
+    ".data.sqlite-shm", ".usage.json"};
 
 /// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
 /// @param dataDirectory The data folder (Screen::defaultDataDirectory()).

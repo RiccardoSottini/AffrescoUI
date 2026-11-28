@@ -149,6 +149,22 @@ public:
 	                                                            std::string_view id,
 	                                                            const std::filesystem::path& location);
 
+	/// @brief Sets aside the person's data kept for a place, so that a new app or screen there starts empty: for an
+	/// app deleted, or a folder about to hold a new one (a name used again would otherwise reopen the old app's state,
+	/// records and chat). Nothing is erased: each is renamed `<name>.replaced-<UTC time>`, as a history replaced is
+	/// (VERSION_CONTROL.md), and never read again. What is set aside is what a record names as the place's or as a
+	/// file's inside it: an app's folder in `apps/` (appDataDirectory(), its `location` going with it), and a bare
+	/// screen's files (fromFile(): `<name>.history`, `.state.json`, `.data.sqlite`, `.usage.json`, ... and the
+	/// `<name>.location` record last), plain and `~<hash>` names alike. Data recorded as another place's stays as it
+	/// is.
+	/// @param dataDirectory The data folder.
+	/// @param location The app's folder, or a screen file; it may be gone already.
+	/// @return Where each one set aside is now.
+	/// @throws ScreenError If @p location is the root of a file system, or one couldn't be moved (once every other one
+	/// has been tried); a bare screen's record then stays, as the data it names is still there.
+	static std::vector<std::filesystem::path> setDataAside(const std::filesystem::path& dataDirectory,
+	                                                       const std::filesystem::path& location);
+
 	/// @brief The manifest of the app the screen was loaded from (fromApp()).
 	/// @return It, or nullptr for a screen loaded otherwise.
 	[[nodiscard]] const format::AppManifest* app() const noexcept;
