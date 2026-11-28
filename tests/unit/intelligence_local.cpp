@@ -212,9 +212,11 @@ TEST_CASE("intelligence local: Test connection asks the provider the form shows,
 	SUBCASE("a key saved for one server never goes to another one tested") {
 		settings.run("save", {{"provider", "local"}, {"model", "qwen3-4b"}, {"key", "lm-studio-token-1"}});
 		settings.run("test", {{"provider", "local"}, {"model", "qwen3-4b"}, {"baseUrl", "http://127.0.0.1:8080/v1"}});
-		REQUIRE(settings.requests().size() == 1);
-		CHECK(settings.requests()[0].url == "http://127.0.0.1:8080/v1/chat/completions");
-		for(const auto& [name, value] : settings.requests()[0].headers) CHECK(name != "authorization");
+		// Held in a name: a loop over a member of the temporary settings.requests() returns would read freed memory
+		const std::vector<network::Request> requests = settings.requests();
+		REQUIRE(requests.size() == 1);
+		CHECK(requests[0].url == "http://127.0.0.1:8080/v1/chat/completions");
+		for(const auto& [name, value] : requests[0].headers) CHECK(name != "authorization");
 	}
 	SUBCASE("a base URL elsewhere, over http, is refused before anything is sent") {
 		const json result =
